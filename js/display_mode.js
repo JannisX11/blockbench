@@ -1689,7 +1689,7 @@ Interface.definePanels(function() {
 				},
 				change: (axis, channel) => {
 					if (channel === 'scale') {
-						if (Pressing.shift) {
+						if (Pressing.shift || Pressing.overrides.shift) {
 							var val = limitNumber(parseFloat(DisplayMode.slot.scale[axis]), 0, 4)
 							DisplayMode.slot.scale[0] = val;
 							DisplayMode.slot.scale[1] = val;
@@ -1702,7 +1702,7 @@ Interface.definePanels(function() {
 					if (channel === 'scale') {
 						var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
 						DisplayMode.slot.scale[axis] = val;
-						if (Pressing.shift) {
+						if (Pressing.shift || Pressing.overrides.shift) {
 							DisplayMode.slot.scale[0] = val;
 							DisplayMode.slot.scale[1] = val;
 							DisplayMode.slot.scale[2] = val;

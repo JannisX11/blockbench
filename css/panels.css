@@ -299,7 +299,7 @@
 		flex-shrink: 1;
 	}
 	.bar.slider_input_combo input.tool[type="number"] {
-		width: 60px;
+		width: 52px;
 		float: none;
 		flex-grow: 0;
 		flex-shrink: 0;

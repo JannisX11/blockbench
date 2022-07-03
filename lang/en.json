@@ -109,7 +109,7 @@
 	"format.skin": "Minecraft Skin",
 	"format.skin.desc": "Edit player and entity skins",
 	"format.skin.info.skin": "This format is designed to create Minecraft skins and entity textures.",
-	"format.skin.info.model": "The model cannot be changed. In order to make changes to the model, first convert to a different format via **File** > **Convert**.",
+	"format.skin.info.model": "The model cannot be changed. In order to make changes to the model, first convert to a different format via **File** > **Convert Project**.",
 
 	"format.java_block": "Java Block/Item",
 	"format.java_block.desc": "Block or item model for Minecraft Java Edition.",

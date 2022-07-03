@@ -444,8 +444,9 @@ ModelLoader.loaders = {};
 					{type: 'h2', text: tl('message.recover_backup.title')},
 					{text: tl('message.recover_backup.message')},
 					{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-						for (let uuid in backup_models) {
-							loadModelFile({content: backup_models[uuid], path: 'backup.bbmodel', no_file: true})
+						let parsed_backup_models = JSON.parse(backup_models);
+						for (let uuid in parsed_backup_models) {
+							Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
 						}
 						section.delete();
 					}},

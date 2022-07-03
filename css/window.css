@@ -250,6 +250,7 @@
 		height: 100%;
 		padding: 0;
 		cursor: pointer;
+		background: transparent;
 	}
 	#web_download_button a {
 		text-decoration: none !important;
@@ -258,8 +259,11 @@
 		padding: 0 12px;
 		cursor: inherit;
 	}
+	#web_download_button a > i {
+		vertical-align: top;
+	}
 	#web_download_button:hover a {
-		color: var(--color-accent_text);
+		color: var(--color-light);
 	}
 	#windows_window_menu {
 		margin-left: auto;
