@@ -838,7 +838,7 @@ function calculateVisibleBox() {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable && !obj.rotation.allEqual(0)) {
+						if (obj.rotatable) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],

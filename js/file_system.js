@@ -391,7 +391,12 @@ Object.assign(Blockbench, {
 		if (options.errorbox) entry.errorbox = true;
 		if (options.element) entry.element = options.element;
 
+		entry.delete = () => {
+			Blockbench.removeDragHandler(id);
+		}
+
 		this.drag_handlers[id] = entry
+		return entry;
 	},
 	removeDragHandler(id) {
 		delete this.drag_handlers[id]

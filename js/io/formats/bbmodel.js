@@ -34,6 +34,7 @@ function processCompatibility(model) {
 	if (model.cubes && !model.elements) {
 		model.elements = model.cubes;
 	}
+	if (model.geometry_name) model.model_identifier = model.geometry_name;
 
 	if (model.outliner) {
 		if (compareVersions('3.2', model.meta.format_version)) {
@@ -95,7 +96,7 @@ var codec = new Codec('project', {
 		var model = {
 			meta: {
 				format_version: FORMATV,
-				creation_time: Math.round(new Date().getTime()/1000),
+				//creation_time: Math.round(new Date().getTime()/1000),
 				backup: options.backup ? true : undefined,
 				model_format: Format.id,
 				box_uv: Project.box_uv
