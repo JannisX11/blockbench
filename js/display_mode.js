@@ -1166,7 +1166,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	DisplayMode.loadThirdRight()
 
 	display_area.updateMatrixWorld()
@@ -1193,7 +1193,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	}
 	scene.add(Transformer)
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	Canvas.updateRenderSides()
 }
 function resetDisplayBase() {

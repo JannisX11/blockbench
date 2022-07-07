@@ -1688,5 +1688,9 @@
 	"display.preset.item": "Default Item",
 	"display.preset.block": "Default Block",
 	"display.preset.handheld": "Default Weapon",
-	"display.preset.rod": "Default Rod"
+	"display.preset.rod": "Default Rod",
+
+	"preview_scene.minecraft_overworld": "Minecraft Overworld",
+	"preview_scene.minecraft_nether": "Minecraft Nether",
+	"preview_scene.minecraft_end": "Minecraft End"
 }

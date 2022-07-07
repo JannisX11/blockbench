@@ -55,11 +55,15 @@ class ModelFormat {
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
 		}
+		if (!this.preview_scenes && BarItems.preview_scene.value !== 'none') {
+			BarItems.preview_scene.change('none');
+			
+		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
-		updateShading();
+		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		return this;
 	}
