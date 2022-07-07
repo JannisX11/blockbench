@@ -413,6 +413,9 @@ class ModelLoader {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
 	}
+	new() {
+		this.onStart();
+	}
 	delete() {
 		delete ModelLoader.loaders[this.id];
 	}

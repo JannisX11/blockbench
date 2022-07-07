@@ -591,21 +591,32 @@ const MenuBar = {
 			'_',
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
 				children: function() {
-					var arr = [];
+					let arr = [];
 					let redact = settings.streamer_mode.value;
-					for (var key in Formats) {
-						(function() {
-							var format = Formats[key];
-							arr.push({
-								id: format.id,
-								name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
-								icon: format.icon,
-								description: format.description,
-								click: (e) => {
-									format.new()
-								}
-							})
-						})()
+					for (let key in Formats) {
+						let format = Formats[key];
+						arr.push({
+							id: format.id,
+							name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
+							icon: format.icon,
+							description: format.description,
+							click: (e) => {
+								format.new()
+							}
+						})
+					}
+					arr.push('_');
+					for (let key in ModelLoader.loaders) {
+						let loader = ModelLoader.loaders[key];
+						arr.push({
+							id: loader.id,
+							name: (redact && loader.confidential) ? `[${tl('generic.redacted')}]` : loader.name,
+							icon: loader.icon,
+							description: loader.description,
+							click: (e) => {
+								loader.new()
+							}
+						})
 					}
 					return arr;
 				}

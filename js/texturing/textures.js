@@ -1047,9 +1047,8 @@ class Texture {
 			}
 			tex_version++;
 			if (!as && this.path && fs.existsSync(this.path)) {
-				fs.writeFile(this.path, image, function (err) {
-					scope.fromPath(scope.path)
-				})
+				fs.writeFileSync(this.path, image);
+				scope.fromPath(scope.path)
 			} else {
 				var find_path;
 				if (Format.bone_rig && Project.geometry_name && Project.BedrockEntityManager) {

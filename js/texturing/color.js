@@ -116,6 +116,14 @@ Interface.definePanels(() => {
 					settings.color_wheel.set(!settings.color_wheel.value);
 					Panels.color.onResize();
 				},
+				onMouseWheel(event) {
+					if (!event.target) return;
+					if (settings.color_wheel.value || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
+						let sign = Math.sign(event.deltaY);
+						if (event.shiftKey) sign *= 4;
+						BarItems.slider_color_h.change(v => v+sign);
+					}
+				},
 				sort(event) {
 					var item = this.palette.splice(event.oldIndex, 1)[0];
 					this.palette.splice(event.newIndex, 0, item);
@@ -191,7 +199,7 @@ Interface.definePanels(() => {
 						</div>
 
 					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'">
+					<div v-show="open_tab == 'picker' || open_tab == 'both'" @mousewheel="onMouseWheel($event)">
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
 							<input id="main_colorpicker">
 						</div>

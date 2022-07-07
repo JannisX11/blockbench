@@ -14,6 +14,9 @@ var codec = new Codec('optifine_entity', {
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}
+		if (settings.credit.value) {
+			jpm.credit = settings.credit.value
+		}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
 			let tex = Texture.getDefault();
