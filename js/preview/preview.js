@@ -1404,7 +1404,7 @@ class Preview {
 		}
 		Preview.selected = this;
 		quad_previews.enabled = false;
-		$('#preview').empty()
+		$('#preview > .quad_canvas_wrapper, #preview > .single_canvas_wrapper').remove()
 
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
 		wrapper.append(this.node)
