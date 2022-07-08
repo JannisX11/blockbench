@@ -462,14 +462,9 @@ const Painter = {
 		} else if (fill_mode === 'face') {
 			ctx.fill()
 		} else {
-
-			var pxcol = [];
-			var map = {}
-			Painter.scanCanvas(ctx, x, y, 1, 1, (x, y, px) => {
-				px.forEach((val, i) => {
-					pxcol[i] = val
-				})
-			})
+			let image_data = ctx.getImageData(x, y, 1, 1)
+			let pxcol = [...image_data.data];
+			let map = {}
 			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
 				if (pxcol.equals(px)) {
 					if (!map[x]) map[x] = {}
@@ -929,23 +924,23 @@ const Painter = {
 		return canvas;
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
-		var arr = ctx.getImageData(x, y, w, h)
-		for (var i = 0; i < arr.data.length; i += 4) {
-			var pixel = arr.data.slice(i, i+4)
+		let arr = ctx.getImageData(x, y, w, h)
+		for (let i = 0; i < arr.data.length; i += 4) {
+			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]]
 
-			var px = x + (i/4) % w
-			var py = y + Math.floor((i/4) / w)
+			let px = x + (i/4) % w
+			let py = y + Math.floor((i/4) / w)
 			if (px >= ctx.canvas.width || px < 0 || py >= ctx.canvas.height || py < 0) continue;
-			pixel = cb(px, py, pixel)||pixel
+			let result = cb(px, py, pixel) || pixel
 
-			pixel.forEach((p, pi) => {
-				arr.data[i+pi] = p
+			result.forEach((p, pi) => {
+				if (p != arr.data[i+pi]) arr.data[i+pi] = p
 			})
 		}
 		ctx.putImageData(arr, x, y)
 	},
 	getPixelColor(ctx, x, y) {
-		var {data} = ctx.getImageData(x, y, 1, 1)
+		let {data} = ctx.getImageData(x, y, 1, 1)
 		return new tinycolor({
 			r: data[0],
 			g: data[1],

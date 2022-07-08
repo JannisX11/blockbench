@@ -212,7 +212,10 @@
 
 				child.quaternion.setFromRotationMatrix( lookAtMatrix.lookAt( eye, vec1, vec2 ) );
 
-			} else if ( child.name.search( "X" ) !== - 1 || child.name.search( "Y" ) !== - 1 || child.name.search( "Z" ) !== - 1 ) {
+			} else if (
+				this instanceof THREE.TransformGizmoRotate &&
+				(child.name.search( "X" ) !== - 1 || child.name.search( "Y" ) !== - 1 || child.name.search( "Z" ) !== - 1)
+			) {
 
 				child.quaternion.setFromEuler( rotation );
 
