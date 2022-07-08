@@ -214,7 +214,7 @@ const Settings = {
 		//Preview 
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
-			updateShading()
+			Canvas.updateShading()
 		}});
 		new Setting('antialiasing', 	{category: 'preview', value: true});
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
@@ -385,7 +385,7 @@ const Settings = {
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 		if (hasSettingChanged('brightness')) {
-			updateShading()
+			Canvas.updateShading()
 		}
 		for (var id in settings) {
 			var setting = settings[id];

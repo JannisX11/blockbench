@@ -411,6 +411,9 @@ const Canvas = {
 		})
 	},
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
+	global_light_color: new THREE.Color(0xffffff),
+	global_light_side: 0,
+
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
 		three_grid.children.length = 0;
@@ -560,6 +563,7 @@ const Canvas = {
 			el.layers.set(3)
 		});
 	},
+	updateShading,
 
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
@@ -614,7 +618,7 @@ const Canvas = {
 
 		lights.west.intensity = lights.east.intensity = 0.1
 
-		updateShading()
+		Canvas.updateShading()
 
 		var img = new Image();
 		img.src = 'assets/north.png';

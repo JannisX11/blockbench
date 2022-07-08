@@ -1005,8 +1005,8 @@ class BarSelect extends Widget {
 		}
 		return false;
 	}
-	change(event) {
-		this.set( $(event.target).find('option:selected').prop('id') );
+	change(value, event) {
+		this.set(value);
 		if (this.onChange) {
 			this.onChange(this, event);
 		}

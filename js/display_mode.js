@@ -1168,7 +1168,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	display_scene.add(Canvas.ground_plane);
 	DisplayMode.loadThirdRight()
 
@@ -1196,7 +1196,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	}
 	scene.add(Transformer)
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	Canvas.scene.add(Canvas.ground_plane);
 	Canvas.updateRenderSides()
 }

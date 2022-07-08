@@ -901,6 +901,7 @@ const MenuBar = {
 			'fullscreen',
 			'_',
 			'view_mode',
+			'preview_scene',
 			'toggle_shading',
 			'toggle_motion_trails',
 			'toggle_ground_plane',

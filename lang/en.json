@@ -1237,6 +1237,8 @@
 	"action.view_mode.wireframe": "Wireframe",
 	"action.view_mode.uv": "UV Preview",
 	"action.view_mode.normal": "Face Normal",
+	"action.preview_scene": "Preview Scene",
+	"action.preview_scene.desc": "Change the model preview scene",
 	"action.screenshot_model": "Screenshot Model",
 	"action.screenshot_model.desc": "Take a cropped screenshot of the model from the current angle",
 	"action.record_model_gif": "Record GIF...",
@@ -1736,5 +1738,9 @@
 	"display.preset.item": "Default Item",
 	"display.preset.block": "Default Block",
 	"display.preset.handheld": "Default Weapon",
-	"display.preset.rod": "Default Rod"
+	"display.preset.rod": "Default Rod",
+
+	"preview_scene.minecraft_overworld": "Minecraft Overworld",
+	"preview_scene.minecraft_nether": "Minecraft Nether",
+	"preview_scene.minecraft_end": "Minecraft End"
 }

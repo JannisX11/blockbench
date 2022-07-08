@@ -499,6 +499,7 @@ var format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	preview_scenes: true,
 	locators: true,
 	codec,
 	onSetup(project) {
@@ -507,7 +508,6 @@ var format = new ModelFormat({
 		}
 	}
 })
-//Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;
 
 BARS.defineActions(function() {

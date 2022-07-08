@@ -68,11 +68,15 @@ class ModelFormat {
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
 		}
+		if (!this.preview_scenes && BarItems.preview_scene.value !== 'none') {
+			BarItems.preview_scene.change('none');
+			
+		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
-		updateShading();
+		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		return this;
 	}
@@ -245,6 +249,7 @@ new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'preview_scenes');
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
