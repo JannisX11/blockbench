@@ -56,9 +56,15 @@ class ModelFormat {
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 0;
+			})
 		} else {
 			scene.position.set(-8, -8, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 8;
+			})
 		}
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
@@ -67,10 +73,6 @@ class ModelFormat {
 		})
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
-		}
-		if (!this.preview_scenes && BarItems.preview_scene.value !== 'none') {
-			BarItems.preview_scene.change('none');
-			
 		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
@@ -249,7 +251,6 @@ new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
-new Property(ModelFormat, 'boolean', 'preview_scenes');
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');

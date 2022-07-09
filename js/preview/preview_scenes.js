@@ -74,6 +74,7 @@ class PreviewModel {
 		if (typeof this.onUpdate == 'function') {
 			this.onUpdate();
 		}
+		this.model_3d.position.x = this.model_3d.position.z = Format.centered_grid ? 0 : 8;
 		this.model_3d.visible = !!Condition(this.condition);
 	}
 	buildModel() {
@@ -126,6 +127,19 @@ class PreviewModel {
 				return arr;
 			}
 
+			let indices = [];
+			let j = 0;
+			mesh.geometry.faces = [];
+			mesh.geometry.clearGroups();
+			Canvas.face_order.forEach((fkey, i) => {
+				if (cube.faces[fkey]) {
+					indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
+					mesh.geometry.faces.push(fkey)
+					j++;
+				}
+			})
+			mesh.geometry.setIndex(indices)
+
 			for (let face in cube.faces) {
 				let uv_array = getUVArray(cube.faces[face]);
 				let fIndex = 0;
@@ -163,7 +177,25 @@ new PreviewModel('minecraft_overworld', {
 	texture_size: [32, 32],
 	cubes: [
 		{
-			position: [-8, -16, -8],
+			position: [-24, 0, 0],
+			size: [16, 16, 0],
+			origin: [-16, 0, 0],
+			rotation: [0, 45, 0],
+			faces: {
+				north: {uv: [16, 0, 32, 16]}
+			}
+		},
+		{
+			position: [-24, 0, 0],
+			size: [16, 16, 0],
+			origin: [-16, 0, 0],
+			rotation: [0, -45, 0],
+			faces: {
+				north: {uv: [16, 0, 32, 16]}
+			}
+		},
+		{
+			position: [-24, -16, -8],
 			size: [16, 16, 16],
 			faces: {
 				north: {uv: [0, 16, 16, 32]},
@@ -173,14 +205,7 @@ new PreviewModel('minecraft_overworld', {
 				up: {uv: [0, 0, 16, 16]},
 				down: {uv: [16, 16, 32, 32]},
 			}
-		}
-	]
-})
-new PreviewModel('minecraft_nether', {
-	texture: './assets/preview_scenes/mc_nether.png',
-	texture_size: [32, 32],
-	color: '#ad9c7d',
-	cubes: [
+		},
 		{
 			position: [-8, -16, -8],
 			size: [16, 16, 16],
@@ -192,7 +217,536 @@ new PreviewModel('minecraft_nether', {
 				up: {uv: [0, 0, 16, 16]},
 				down: {uv: [16, 16, 32, 32]},
 			}
-		}
+		},
+		{
+			position: [8, -16, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [8, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-8, -16, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-24, -16, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-24, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-8, -16, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-24, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [8, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [8, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-8, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-24, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [8, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-8, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-24, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-40, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-40, -32, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [-40, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [24, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [24, -32, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+		{
+			position: [24, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		},
+	]
+})
+new PreviewModel('minecraft_nether', {
+	texture: './assets/preview_scenes/mc_nether.png',
+	texture_size: [32, 32],
+	color: '#ad9c7d',
+	cubes: [
+		{
+			position: [-24, 0, 0],
+			size: [16, 16, 0],
+			origin: [-16, 0, 0],
+			rotation: [0, 45, 0],
+			faces: {
+				north: {uv: [16, 0, 32, 16]}
+			}
+		},
+		{
+			position: [-24, 0, 0],
+			size: [16, 16, 0],
+			origin: [-16, 0, 0],
+			rotation: [0, -45, 0],
+			faces: {
+				north: {uv: [16, 0, 32, 16]}
+			}
+		},
+		{
+			position: [-24, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-8, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [8, -16, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [8, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-8, -16, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-24, -16, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-24, -16, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-8, -16, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-24, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [8, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [8, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 16, 16, 32]},
+				down: {uv: [0, 16, 16, 32]},
+			}
+		},
+		{
+			position: [-8, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-24, -32, -40],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [8, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-8, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-24, -32, 24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 16, 16, 32]},
+				down: {uv: [0, 16, 16, 32]},
+			}
+		},
+		{
+			position: [-40, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-40, -32, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [-40, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [24, -32, -24],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [24, -32, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
+		{
+			position: [24, -32, 8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 0, 16, 16]},
+				south: {uv: [0, 0, 16, 16]},
+				east: {uv: [0, 0, 16, 16]},
+				west: {uv: [0, 0, 16, 16]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [0, 0, 16, 16]},
+			}
+		},
 	]
 })
 let solid_uv = {
@@ -208,41 +762,30 @@ new PreviewModel('minecraft_end', {
 	texture_size: [16, 16],
 	color: '#6f8377',
 	cubes: [
-		{
-			position: [-8, -16, -8],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [8, -16, 8],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [8, -16, -8],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [-8, -16, 8],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [-24, -16, -24],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [-24, -16, -8],
-			size: [16, 16, 16],
-			faces: solid_uv
-		},
-		{
-			position: [-8, -16, -24],
-			size: [16, 16, 16],
-			faces: solid_uv
-		}
+		{position: [-8, -16, -8], size: [16, 16, 16], faces: solid_uv},
+		{position: [8, -16, 8], size: [16, 16, 16], faces: solid_uv},
+		{position: [8, -16, -8], size: [16, 16, 16], faces: solid_uv},
+		{position: [-8, -16, 8], size: [16, 16, 16], faces: solid_uv},
+		{position: [-24, -16, -24], size: [16, 16, 16], faces: solid_uv},
+		{position: [-24, -16, -8], size: [16, 16, 16], faces: solid_uv},
+		{position: [-8, -16, -24], size: [16, 16, 16], faces: solid_uv},
+
+		{position: [-24, -32, 8], size: [16, 16, 16], faces: solid_uv},
+		{position: [8, -32, -24], size: [16, 16, 16], faces: solid_uv},
+
+		{position: [8, -32, -40], size: [16, 16, 16], faces: solid_uv},
+		{position: [-8, -32, -40], size: [16, 16, 16], faces: solid_uv},
+		{position: [-24, -32, -40], size: [16, 16, 16], faces: solid_uv},
+		{position: [8, -32, 24], size: [16, 16, 16], faces: solid_uv},
+		{position: [-8, -32, 24], size: [16, 16, 16], faces: solid_uv},
+		{position: [-24, -32, 24], size: [16, 16, 16], faces: solid_uv},
+
+		{position: [-40, -32, -24], size: [16, 16, 16], faces: solid_uv},
+		{position: [-40, -32, -8], size: [16, 16, 16], faces: solid_uv},
+		{position: [-40, -32, 8], size: [16, 16, 16], faces: solid_uv},
+		{position: [24, -32, -24], size: [16, 16, 16], faces: solid_uv},
+		{position: [24, -32, -8], size: [16, 16, 16], faces: solid_uv},
+		{position: [24, -32, 8], size: [16, 16, 16], faces: solid_uv},
 	]
 })
 new PreviewScene('minecraft_overworld', {

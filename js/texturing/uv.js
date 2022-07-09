@@ -1346,7 +1346,7 @@ const UVEditor = {
 			]
 		}},
 		'face_tint',
-		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length), name: 'action.cullface' , children: function() {
+		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
 			var off = 'radio_button_unchecked';
 			var on = 'radio_button_checked';
 			function setCullface(cullface) {
