@@ -145,7 +145,7 @@ function updateSelection(options = {}) {
 				document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
 			}
 		}
-		if (Group.selected || NullObject.selected[0]) {
+		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			document.querySelectorAll('.selection_only#panel_bone').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 		if (Modes.paint) {

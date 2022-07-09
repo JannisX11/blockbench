@@ -50,14 +50,16 @@ class Animation {
 				if (!this.animators[key]) {
 					if (key == 'effects') {
 						animator = this.animators[key] = new EffectAnimator(this);
-					} else if (animator_blueprint.type == 'null_object') {
+					} else if (animator_blueprint.type && animator_blueprint.type !== 'bone') {
 						let uuid = isUUID(key) && key;
+						let element;
 						if (!uuid) {
 							let lowercase_name = key.toLowerCase();
-							let null_object_match = NullObject.all.find(null_object => null_object.name.toLowerCase() == lowercase_name)
-							uuid = null_object_match ? null_object_match.uuid : guid();
+							element = Outliner.elements.find(element => element.constructor.animator && element.name.toLowerCase() == lowercase_name)
+							uuid = element ? element.uuid : guid();
 						}
-						animator = this.animators[uuid] = new NullObjectAnimator(uuid, this, animator_blueprint.name)
+						if (!element) element = Outliner.elements.find(element => element.constructor.animator && element.uuid == uuid);
+						animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name)
 					} else {
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
@@ -238,7 +240,8 @@ class Animation {
 					}
 				})
 			})
-			NullObject.all.forEach(node => {
+			Outliner.elements.forEach(node => {
+				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				let animator = this.getBoneAnimator(node);
@@ -388,8 +391,9 @@ class Animation {
 		Group.all.forEach(group => {
 			scope.getBoneAnimator(group);
 		})
-		NullObject.all.forEach(null_object => {
-			scope.getBoneAnimator(null_object);
+		Outliner.elements.forEach(element => {
+			if (!element.constructor.animator) return;
+			scope.getBoneAnimator(element);
 		})
 
 		if (selected_bone) {
@@ -464,8 +468,8 @@ class Animation {
 	getBoneAnimator(group) {
 		if (!group && Group.selected) {
 			group = Group.selected;
-		} else if (!group && NullObject.selected[0]) {
-			group = NullObject.selected[0];
+		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+			group = Outliner.selected[0];
 		} else if (!group) {
 			return;
 		}
@@ -485,11 +489,7 @@ class Animation {
 					break;
 				}
 			}
-			if (group instanceof NullObject) {
-				this.animators[uuid] = match || new NullObjectAnimator(uuid, this);
-			} else {
-				this.animators[uuid] = match || new BoneAnimator(uuid, this);
-			}
+			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
 	}
@@ -883,7 +883,8 @@ const Animator = {
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
-		[...Group.all, ...NullObject.all].forEach(node => {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
 			var mesh = node.mesh;
 			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
 			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
@@ -905,7 +906,9 @@ const Animator = {
 	showMotionTrail(target) {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
-			if (!target) target = Group.selected || NullObject.selected[0];
+			if (!target) {
+				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+			}
 		}
 		if (!target) return;
 		let animation = Animation.selected;
@@ -927,7 +930,7 @@ const Animator = {
 		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || NullObject.selected[0];
+		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
 			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
@@ -1008,7 +1011,8 @@ const Animator = {
 	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
-		[...Group.all, ...NullObject.all].forEach(node => {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			Animator.animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
@@ -1044,7 +1048,7 @@ const Animator = {
 			if (texture) texture.select();
 		}
 
-		if (Group.selected || NullObject.selected[0]) {
+		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1658,10 +1662,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
+		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
 		onChange(value) {
-			if (value && (Group.selected || NullObject.selected[0])) {
-				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
+			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
 			} else {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
@@ -1677,7 +1681,8 @@ BARS.defineActions(function() {
 			let elements = Outliner.elements;
 			Undo.initEdit({elements, outliner: true});
 
-			[...Group.all, ...NullObject.all].forEach(node => {
+			let animatable_elements = Outliner.elements.filter(el => el.constructor.animator);
+			[...Group.all, ...animatable_elements].forEach(node => {
 				let offset_rotation = [0, 0, 0];
 				let offset_position = [0, 0, 0];
 				Animator.animations.forEach(animation => {

@@ -30,7 +30,7 @@ new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_eff
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 
 class Keyframe {
-	constructor(data, uuid) {
+	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
@@ -39,7 +39,8 @@ class Keyframe {
 
 		if (typeof data === 'object') {
 			Merge.string(this, data, 'channel')
-			this.transform = !!(BoneAnimator.prototype.channels[this.channel] || EffectAnimator.prototype.channels[this.channel]).transform;
+			this.animator = animator;
+			this.transform = !!(this.animator.channels[this.channel]).transform;
 			this.data_points.push(new KeyframeDataPoint(this));
 		}
 
@@ -468,7 +469,7 @@ function updateKeyframeSelection() {
 			BarItems.keyframe_uniform.updateEnabledState();
 		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {

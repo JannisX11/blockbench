@@ -43,7 +43,7 @@ class GeneralAnimator {
 		var channel = data.channel;
 		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
 		if (channel && this[channel]) {
-			var kf = new Keyframe(data, uuid);
+			var kf = new Keyframe(data, uuid, this);
 			this[channel].push(kf);
 			kf.animator = this;
 			return kf;
@@ -59,7 +59,7 @@ class GeneralAnimator {
 		var keyframe = new Keyframe({
 			channel: channel,
 			time: time
-		});
+		}, null, this);
 		keyframes.push(keyframe);
 
 		if (value) {
@@ -410,6 +410,8 @@ class BoneAnimator extends GeneralAnimator {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
 		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
 	}
+	Group.animator = BoneAnimator;
+
 class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
@@ -597,6 +599,7 @@ class NullObjectAnimator extends BoneAnimator {
 	NullObjectAnimator.prototype.channels = {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
 	}
+	NullObject.animator = NullObjectAnimator;
 
 class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {

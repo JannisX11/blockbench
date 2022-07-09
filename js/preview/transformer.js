@@ -967,15 +967,15 @@
 					} else {
 						Transformer.rotation_ref = Group.selected.mesh.parent;
 					}
-				} else if (Modes.animate && NullObject.selected[0]) {
+				} else if (Modes.animate && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 
-					this.attach(NullObject.selected[0]);
-					this.position.copy(NullObject.selected[0].getWorldCenter(true));
+					this.attach(Outliner.selected[0]);
+					this.position.copy(Outliner.selected[0].getWorldCenter(true));
 					
 					if (BarItems.rotation_space.value === 'global') {
 						delete Transformer.rotation_ref;
 					} else {
-						Transformer.rotation_ref = NullObject.selected[0].mesh.parent;
+						Transformer.rotation_ref = Outliner.selected[0].mesh.parent;
 					}
 				}
 			}
@@ -1384,7 +1384,7 @@
 							difference = 0;
 						}
 
-						let {mesh} = Group.selected || NullObject.selected[0];
+						let {mesh} = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
 
 						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
 
