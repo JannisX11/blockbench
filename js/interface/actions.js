@@ -1712,6 +1712,7 @@ const BARS = {
 							Property.resetUniqueValues(Animation, animation);
 							animation.createUniqueName();
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
+							animation.saved = false;
 							animation.add(true).select();
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {

@@ -87,17 +87,14 @@ const TextureGenerator = {
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: Math.isPowerOfTwo(texture.width)},
 				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
-				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.rearrange_uv && Mesh.selected.length)},
-				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (Mesh.selected.length)},
+				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
+				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
 				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.rearrange_uv)},
 			},
 			onFormChange(form) {
-				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
+				if (TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
-				}
-				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
-					TextureGenerator.background_color.set('#ffffffff')
 				}
 			},
 			onConfirm(options) {

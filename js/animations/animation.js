@@ -399,7 +399,9 @@ class Animation {
 		if (selected_bone) {
 			selected_bone.select();
 		}
-		if (Modes.animate) Animator.preview();
+		if (Modes.animate) {
+			Animator.preview();
+		}
 		return this;
 	}
 	setLength(len = this.length) {
@@ -1031,6 +1033,9 @@ const Animator = {
 			value = (value % 64) || 0;
 			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x + value;
 			three_grid.position.z = three_grid.position.x + value;
+		} else {
+			three_grid.position.z = three_grid.position.x;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
 		}
 
 		// Effects

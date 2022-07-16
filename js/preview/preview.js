@@ -1152,11 +1152,17 @@ class Preview {
 						}
 
 						let vertex_points = {};
+						let is_on_screen = false;
 						for (let vkey in element.vertices) {
 							let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
 							vertex_points[vkey] = point;
+							if (point[0] >= 0 && point[0] <= scope.width && point[1] >= 0 && point[1] <= scope.height) {
+								is_on_screen = true;
+							}
 						}
-						if (selection_mode == 'vertex') {
+						if (!is_on_screen) {
+
+						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
 								if (
@@ -1229,20 +1235,26 @@ class Preview {
 							mesh.localToWorld(vector);
 							return projectPoint(vector);
 						})
-						isSelected = lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+						let is_on_screen = vertices.find(vertex => {
+							return (vertex[0] >= 0 && vertex[0] <= scope.width
+								 && vertex[1] >= 0 && vertex[1] <= scope.height);
+						})
+						isSelected = is_on_screen && (
+							   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
 
-								  || lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
 
-								  || lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+						);
 					}
 
 				} else if (element.mesh) {
