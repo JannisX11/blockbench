@@ -1452,6 +1452,7 @@ Clipbench.pasteAnimation = function() {
 	let animations = [];
 	Undo.initEdit({animations});
 	let animation = new Animation(Clipbench.animation).add(false);
+	animation.createUniqueName();
 	animation.select().propertiesDialog();
 	animations.push(animation);
 	Undo.finishEdit('Paste animation')

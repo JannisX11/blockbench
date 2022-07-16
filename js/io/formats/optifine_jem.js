@@ -15,7 +15,7 @@ var codec = new Codec('optifine_entity', {
 		if (options === undefined) options = {}
 		var entitymodel = {}
 		if (settings.credit.value) {
-			jpm.credit = settings.credit.value
+			entitymodel.credit = settings.credit.value
 		}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
