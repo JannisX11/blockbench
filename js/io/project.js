@@ -374,6 +374,11 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 		return options;
 	}
 });
+new Property(ModelProject, 'boolean', 'modded_entity_flip_y', {
+	label: 'dialog.project.modded_entity_flip_y',
+	default: true,
+	condition: {formats: ['modded_entity']}
+});
 new Property(ModelProject, 'boolean', 'ambientocclusion', {
 	label: 'dialog.project.ao',
 	default: true,

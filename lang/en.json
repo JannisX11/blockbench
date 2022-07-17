@@ -346,6 +346,7 @@
 	"dialog.project.geoname": "Model Identifier",
 	"dialog.project.openparent": "Open Parent",
 	"dialog.project.modded_entity_version": "Export Version",
+	"dialog.project.modded_entity_flip_y": "Flip Y Axis",
 	"dialog.project.ao": "Ambient Occlusion",
 	"dialog.project.uv_mode": "UV Mode",
 	"dialog.project.uv_mode.box_uv": "Box UV",
