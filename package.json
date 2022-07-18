@@ -82,7 +82,8 @@
 				"rpm",
 				"appImage"
 			],
-			"category": "3DGraphics"
+			"category": "3DGraphics",
+			"icon": "build/icon.png"
 		},
 		"fileAssociations": [
 			{

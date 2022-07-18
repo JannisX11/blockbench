@@ -262,6 +262,9 @@
 	#web_download_button a > i {
 		vertical-align: top;
 	}
+	#web_download_button a > * {
+		pointer-events: none;
+	}
 	#web_download_button:hover a {
 		color: var(--color-light);
 	}
