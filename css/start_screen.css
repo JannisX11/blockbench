@@ -266,15 +266,15 @@
 		#start_screen > content > section {
 			display: block;
 		}
-		#start_screen content section div.start_screen_right {
+		#start_screen > content > section > div.start_screen_right {
 			width: 100% !important;
 			float: none;
 		}
-		#start_screen content section div.start_screen_left {
+		#start_screen > content > section > div.start_screen_left {
 			width: 100% !important;
 			float: none;
 		}
-		#start_screen content section div.start_screen_left {
+		#start_screen > content > section > div.start_screen_left {
 			width: 100% !important;
 			float: none;
 		}

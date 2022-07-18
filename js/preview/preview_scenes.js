@@ -59,6 +59,7 @@ class PreviewModel {
 		this.cubes = data.cubes || [];
 		this.texture = data.texture;
 		this.color = data.color;
+		this.shading = data.shading !== false;
 		this.texture_size = data.texture_size || [16, 16];
 
 		this.buildModel();
@@ -90,7 +91,7 @@ class PreviewModel {
 				tex.needsUpdate = true;
 			}
 		}
-		this.material = new THREE.MeshLambertMaterial({
+		this.material = new (this.shading ? THREE.MeshLambertMaterial : THREE.MeshBasicMaterial)({
 			color: this.color,
 			map: tex,
 			side: 2,
@@ -788,6 +789,67 @@ new PreviewModel('minecraft_end', {
 		{position: [24, -32, 8], size: [16, 16, 16], faces: solid_uv},
 	]
 })
+new PreviewModel('studio', {
+	texture: './assets/preview_scenes/studio.png',
+	texture_size: [64, 64],
+	shading: false,
+	cubes: [
+		{position: [-256, 0, -256], size: [512, 128, 512], faces: {
+			up: {uv: [0, 16.04, 15.96, 31.96]},
+			down: {uv: [0, 0, 16, 16]},
+			east: {uv: [6, 50, 8, 60]},
+			west: {uv: [6, 50, 8, 60]},
+			north: {uv: [6, 50, 8, 60]},
+			south: {uv: [6, 50, 8, 60]},
+		}},
+		{position: [48, 0, -240], size: [96, 128, 480], faces: {
+			south: {uv: [16.06, 0, 64, 64]},
+			north: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-48, 0, -240], size: [96, 128, 480], faces: {
+			south: {uv: [16.06, 0, 64, 64]},
+			north: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-144, 0, -240], size: [96, 128, 480], faces: {
+			south: {uv: [16.06, 0, 64, 64]},
+			north: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [144, 0, -240], size: [96, 128, 480], faces: {
+			south: {uv: [16.06, 0, 64, 64]},
+			north: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-240, 0, -240], size: [96, 128, 480], faces: {
+			south: {uv: [16.06, 0, 64, 64]},
+			north: {uv: [16.06, 0, 64, 64]}
+		}},
+
+		{position: [-240, 0, 48], size: [480, 128, 96], faces: {
+			east: {uv: [16.06, 0, 64, 64]},
+			west: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-240, 0, -48], size: [480, 128, 96], faces: {
+			east: {uv: [16.06, 0, 64, 64]},
+			west: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-240, 0, -144], size: [480, 128, 96], faces: {
+			east: {uv: [16.06, 0, 64, 64]},
+			west: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-240, 0, 144], size: [480, 128, 96], faces: {
+			east: {uv: [16.06, 0, 64, 64]},
+			west: {uv: [16.06, 0, 64, 64]}
+		}},
+		{position: [-240, 0, -240], size: [480, 128, 96], faces: {
+			east: {uv: [16.06, 0, 64, 64]},
+			west: {uv: [16.06, 0, 64, 64]}
+		}},
+	]
+})
+new PreviewScene('studio', {
+	light_color: {r: 1.04, g: 1.03, b: 1.1},
+	light_side: 1,
+	preview_models: ['studio']
+});
 new PreviewScene('minecraft_overworld', {
 	preview_models: ['minecraft_overworld']
 });

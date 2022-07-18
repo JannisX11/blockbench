@@ -640,7 +640,7 @@
 	body.theme_borders .contextMenu,
 	body.theme_borders dialog,
 	body.theme_borders .dialog_close_button,
-	body.theme_borders #start_screen content,
+	body.theme_borders #start_screen > content,
 	body.theme_borders #quick_message_box,
 	body.theme_borders action_selector > #action_selector_list
 	{

@@ -108,16 +108,16 @@ function addStartScreenSection(id, data) {
 		obj.css('color', data.text_color);
 	}
 	if (data.last) {
-		$('#start_screen content').append(obj);
+		$('#start_screen > content').append(obj);
 	} else if (data.insert_after) {
-		$('#start_screen content').find(`#${data.insert_after}`).after(obj);
+		$('#start_screen > content').find(`#${data.insert_after}`).after(obj);
 	} else if (data.insert_before) {
-		$('#start_screen content').find(`#${data.insert_before}`).before(obj);
+		$('#start_screen > content').find(`#${data.insert_before}`).before(obj);
 	} else {
-		$('#start_screen content').prepend(obj);
+		$('#start_screen > content').prepend(obj);
 	}
 	if (!obj[0].parentElement) {
-		$('#start_screen content').append(obj);
+		$('#start_screen > content').append(obj);
 	}
 	return {
 		delete() {
@@ -511,7 +511,7 @@ ModelLoader.loaders = {};
 		if (Blockbench.startup_count <= 1) {
 			
 			let section = Interface.createElement('section', {id: 'quick_setup'});
-			$('#start_screen content').prepend(section);
+			$('#start_screen > content').prepend(section);
 
 			new Vue({
 				data() {return {

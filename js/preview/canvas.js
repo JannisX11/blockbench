@@ -947,7 +947,7 @@ const Canvas = {
 		})
 	},
 	updateAllBones(bones = Group.all) {
-
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
 			let bone = obj.mesh
 			if (bone) {

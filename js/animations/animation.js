@@ -882,6 +882,7 @@ const Animator = {
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 
+		Project.model_3d.scale.set(1, 1, 1);
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
@@ -1047,10 +1048,27 @@ const Animator = {
 				}
 			}
 		})
-		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/m)) {
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];
 			if (texture) texture.select();
+		}
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scale');
+			Project.model_3d.scale.x = Project.model_3d.scale.y = Project.model_3d.scale.z = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalex\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalex');
+			Project.model_3d.scale.x = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scaley\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scaley');
+			Project.model_3d.scale.y = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalez\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalez');
+			Project.model_3d.scale.z = scale;
 		}
 
 		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
