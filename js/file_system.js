@@ -276,7 +276,7 @@ Object.assign(Blockbench, {
 		if (Blockbench.isWeb) {
 			var file_name = options.name || 'file';
 			var extension = pathToExtension(file_name);
-			if (!options.extensions.includes(extension) && options.extensions && options.extensions[0]) {
+			if (options.extensions instanceof Array && !options.extensions.includes(extension) && options.extensions[0]) {
 				file_name += '.' + options.extensions[0];
 			}
 			if (options.custom_writer) {
@@ -327,7 +327,7 @@ Object.assign(Blockbench, {
 				StateMemory.save('dialog_paths')
 			}
 			var extension = pathToExtension(file_path);
-			if (!options.extensions.includes(extension) && options.extensions && options.extensions[0]) {
+			if (options.extensions instanceof Array && !options.extensions.includes(extension) && options.extensions[0]) {
 				file_path += '.'+options.extensions[0]
 			}
 			Blockbench.writeFile(file_path, options, cb)
