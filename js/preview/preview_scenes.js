@@ -58,7 +58,7 @@ class PreviewModel {
 
 		this.cubes = data.cubes || [];
 		this.texture = data.texture;
-		this.color = data.color;
+		this.color = data.color || '#ffffff';
 		this.shading = data.shading !== false;
 		this.texture_size = data.texture_size || [16, 16];
 

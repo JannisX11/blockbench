@@ -83,7 +83,7 @@
 				"appImage"
 			],
 			"category": "3DGraphics",
-			"icon": "build/icon.png"
+			"icon": "build/icon.icns"
 		},
 		"fileAssociations": [
 			{

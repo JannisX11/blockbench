@@ -882,7 +882,7 @@ const Animator = {
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 
-		Project.model_3d.scale.set(1, 1, 1);
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
