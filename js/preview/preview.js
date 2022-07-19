@@ -3,7 +3,7 @@ var scene,
 	Sun, lights,
 	Transformer,
 	canvas_scenes,
-	display_scene, display_area, display_base;
+	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
 var quad_previews = {};
@@ -475,9 +475,7 @@ class Preview {
 	render() {
 		this.controls.update()
 		this.renderer.render(
-			display_mode
-				? display_scene
-				: scene,
+			scene,
 			this.camera
 		)
 	}
@@ -1907,17 +1905,14 @@ function initCanvas() {
 	
 	//Objects
 	scene = Canvas.scene = new THREE.Scene();
-	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
 
-	display_scene.add(display_area)
 	display_area.add(display_base)
 
 	scene.name = 'scene'
 	display_base.name = 'display_base'
 	display_area.name = 'display_area'
-	display_scene.name = 'display_scene'
 
 	scene.add(Vertexsnap.vertex_gizmos)
 	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
@@ -2012,11 +2007,10 @@ function animate() {
 function updateShading() {
 	Canvas.updateLayeredTextures();
 	scene.remove(lights)
-	display_scene.remove(lights)
 	Sun.intensity = settings.brightness.value/50;
 	if (settings.shading.value === true) {
 		Sun.intensity *= 0.5;
-		let parent = display_mode ? display_scene : scene;
+		let parent = scene;
 		parent.add(lights);
 		lights.position.copy(parent.position).multiplyScalar(-1);
 	}

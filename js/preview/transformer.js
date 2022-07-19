@@ -934,10 +934,10 @@
 
 				} else if (Modes.display) {
 
-					display_scene.add(Transformer)
 					Transformer.attach(display_base)
 
-					display_base.getWorldPosition(Transformer.position)
+					display_base.getWorldPosition(Transformer.position);
+					Transformer.position.sub(scene.position);
 
 					if (Toolbox.selected.transformerMode === 'translate') {
 						Transformer.rotation_ref = display_area;

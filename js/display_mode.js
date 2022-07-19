@@ -424,7 +424,7 @@ class refModel {
 			}
 			this.initialized = true;
 		}
-		display_scene.add(this.model)
+		scene.add(this.model)
 		displayReferenceObjects.active = this;
 
 		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
@@ -1113,7 +1113,7 @@ window.displayReferenceObjects = {
 		}
 	},
 	clear: function() {
-		display_scene.remove(displayReferenceObjects.active.model)
+		scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
 	},
 	ref_indexes: {
@@ -1152,7 +1152,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	selected.empty()
 	updateSelection()
 
-	display_base.add(scene)
+	if (Project.model_3d) display_base.add(Project.model_3d)
 	if (!display_preview) {
 		display_preview = new Preview({id: 'display'})
 	}
@@ -1169,8 +1169,10 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 	Canvas.buildGrid()
 	Canvas.updateShading()
-	display_scene.add(Canvas.ground_plane);
 	DisplayMode.loadThirdRight()
+	scene.add(display_area);
+	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	scene.position.set(0, 0, 0);
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
@@ -1180,10 +1182,19 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
+	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
-	if (scene.parent) scene.parent.remove(scene)
+	scene.remove(display_area)
+	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
+	display_base.children.forEachReverse(child => {
+		display_base.remove(child);
+		child.position.set(0, 0, 0);
+	})
+	if (Project.model_3d) {
+		scene.add(Project.model_3d);
+	}
 
 	display_mode = false;
 	main_preview.fullscreen()
@@ -1197,7 +1208,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	scene.add(Transformer)
 	Canvas.buildGrid()
 	Canvas.updateShading()
-	Canvas.scene.add(Canvas.ground_plane);
 	Canvas.updateRenderSides()
 }
 function resetDisplayBase() {
@@ -1310,7 +1320,7 @@ DisplayMode.updateGUILight = function() {
 	if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 	} else {
-		lights.rotation.set(0, Math.PI * 0.75, 0);
+		lights.rotation.set(0, 0, 0);
 	}
 } 
 
