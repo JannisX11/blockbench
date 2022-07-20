@@ -1152,9 +1152,21 @@ Interface.definePanels(function() {
 							let {path} = files[0];
 							Undo.initEdit({keyframes: [keyframe]})
 							data_point.file = path;
-							Animator.loadParticleEmitter(path, files[0].content);
-							Undo.finishEdit('Change keyframe particle file')
-						})	
+							let effect = Animator.loadParticleEmitter(path, files[0].content);
+							Undo.finishEdit('Change keyframe particle file');
+
+							if (!isApp || !effect.config.texture.image.src.match(/\/\\/)) {
+								Blockbench.import({
+									extensions: ['png'],
+									type: 'Particle Texture',
+									readtype: 'image',
+									startpath: effect.config.preview_texture || path
+								}, function(files) {
+									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+									if (isApp) effect.config.updateTexture();
+								})
+							}
+						})
 					} else {
 						Blockbench.import({
 							resource_id: 'animation_audio',

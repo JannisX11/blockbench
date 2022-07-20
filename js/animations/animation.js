@@ -793,6 +793,9 @@ Blockbench.on('finish_edit', event => {
 
 const WinterskyScene = new Wintersky.Scene({
 	fetchTexture: isApp && function(config) {
+		if (config.preview_texture) {
+			return config.preview_texture;
+		}
 		if (config.file_path && config.particle_texture_path) {
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
@@ -1109,6 +1112,7 @@ const Animator = {
 				})
 			}
 		}
+		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
 		var json = file.json || autoParseJSON(file.content);
