@@ -467,10 +467,10 @@ ModelLoader.loaders = {};
 			"text_color": '#000000',
 			"graphic": {
 				"type": "image",
-				"source": "./assets/splash_art.png?42",
+				"source": "./assets/splash_art.png?43",
 				"width": 1000,
 				"aspect_ratio": "21/9",
-				"description": "Splash Art by [Shroomy](https://twitter.com/ShroomyArts) and [RedstoneMvv](https://twitter.com/Redstone_mvv)",
+				"description": "Splash Art by [MisterGriimm](https://twitter.com/MisterGriimm) and [MidnitePixel_](https://twitter.com/MidnitePixel_)",
 				"text_color": '#cfcfcf'
 			}
 		})
