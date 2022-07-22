@@ -5,17 +5,17 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.3 - The Preview Update!", "type": "h1"},
+			{"text": "Welcome to Blockbench 4.3 - The Start Screen Update!", "type": "h1"},
 			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.3.0)!"}
 		],
 		"features": [
 			{
-				"image": "./content/start_screen.png",
+				"image": "https://web.blockbench.net/content/start_screen.png",
 				"title": "Improved Start Screen",
 				"text": "Formats are now organized into categories, and provide detailed descriptions. Also, recent models can be pinned as favorites!"
 			},
 			{
-				"image": "./content/preview_scenes.png",
+				"image": "https://web.blockbench.net/content/preview_scenes.png",
 				"title": "Preview Scenes",
 				"text": "Preview your model in a different environment. Check out how it looks in a Minecraft biome, or in a studio setting!"
 			}
