@@ -2,7 +2,7 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: window.innerWidth <= 960 || window.innerHeight <= 500,
+	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
 	get isPWA() {
