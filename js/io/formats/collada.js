@@ -617,6 +617,9 @@ var codec = new Codec('collada', {
 					let track_channel = animators[track.group_uuid][track.channel];
 					track_channel.times.push(...track.times.map(t => t + time_offset));
 					track_channel.animations_added.push(anim_i);
+
+					let add_keyframe_at_end = track.times[track.times.length-1] - anim_obj.duration <= 0.1;
+					if (add_keyframe_at_end) track_channel.times.push(anim_obj.duration + time_offset);
 					
 					if (track.channel == 'rotation') {
 						if (!track_channel.values) track_channel.values = {};
@@ -626,14 +629,22 @@ var codec = new Codec('collada', {
 								return i % 3 == axis_i;
 							}).map(v => Math.radToDeg(v));
 							track_channel.values[axis].push(...axis_values);
+							if (add_keyframe_at_end) {
+								track_channel.values[axis].push(...track_channel.values[axis].slice(-1));
+							}
 						})
 					} else {
 						if (!track_channel.values) track_channel.values = [];
 						track_channel.values.push(...track.values);
+						if (add_keyframe_at_end) {
+							track_channel.values.push(...track_channel.values.slice(-3));
+						}
 					}
 				})
 
 				for (let uuid in animators) {
+					let group = Group.all.find(group => group.uuid == uuid);
+					
 					for (let channel in animators[uuid]) {
 						let track_channel = animators[uuid][channel];
 						if (track_channel.animations_added.includes(anim_i)) {
@@ -647,10 +658,15 @@ var codec = new Codec('collada', {
 									if (!track_channel.values[axis]) track_channel.values[axis] = [];
 									track_channel.values[axis].push(0, 0);
 								})
+							} else if (channel == 'scale') {
+								if (!track_channel.values) track_channel.values = [];
+								track_channel.values.push(1, 1, 1, 1, 1, 1);
 							} else {
 								if (!track_channel.values) track_channel.values = [];
-								let v = channel == 'scale' ? 1 : 0;
-								track_channel.values.push(v, v, v, v, v, v);
+								let pos = group.origin.slice();
+								if (group.parent instanceof Group) pos.V3_subtract(group.parent.origin);
+								pos.V3_divide(16);
+								track_channel.values.push(...pos, ...pos);
 							}
 						}
 					}
