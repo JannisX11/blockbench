@@ -2,7 +2,7 @@ const LastVersion = localStorage.getItem('last_version') || localStorage.getItem
 
 const Blockbench = {
 	isWeb: !isApp,
-	isMobile: window.innerWidth <= 960 || window.innerHeight <= 500,
+	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
 	get isPWA() {
@@ -20,7 +20,6 @@ const Blockbench = {
 		Undo.finishEdit()
 	},
 	reload() {
-		localStorage.removeItem('backup_model')
 		if (isApp) {
 			Blockbench.setProgress(0)
 			Blockbench.addFlag('allow_closing')
@@ -207,7 +206,7 @@ const Blockbench = {
 				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
 			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
 			marked(tl(options.message))+
 			'</div></div>'
 		)

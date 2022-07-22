@@ -1,34 +1,5 @@
 (function() {
 
-Vue.component('search-bar', {
-	props: {
-		value: String,
-		hide: Boolean
-	},
-	data() {return {
-		hidden: this.hide
-	}},
-	methods: {
-		change(text) {
-			this.$emit('input', text)
-		},
-		clickIcon() {
-			if (this.hide && !this.value) {
-				this.hidden = false;
-				this.$refs.input.focus();
-			} else {
-				this.value = '';
-				this.$emit('input', '');
-			}
-		}
-	},
-	template: `
-		<div class="search_bar" :class="{folded: (!value && hidden)}">
-			<input type="text" ref="input" class="dark_bordered" :value="value" @focusout="hidden = hide;" @input="change($event.target.value)">
-			<i class="material-icons" :class="{light_on_hover: !!value}" @click="clickIcon()">{{ value ? 'clear' : 'search' }}</i>
-		</div>`
-})
-
 function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
 	for (var form_id in dialog.form) {
@@ -104,16 +75,14 @@ function buildForm(dialog) {
 
 
 				case 'select':
-					var el = $(`<div class="bar_select half"><select class="focusable_input" id="${form_id}"></select></div>`)
-					input_element = el.find('select')
-					for (var key in data.options) {
-						var name = tl(data.options[key])
-						input_element.append(`<option id="${key}" ${(data.value === key || (data.default || data.value) === key) ? 'selected' : ''}>${name}</option>`)
-					}
-					bar.append(el)
-					input_element.on('change', () => {
-						dialog.updateFormValues()
-					})
+					let select_input = new Interface.CustomElements.SelectInput(form_id, {
+						options: data.options,
+						value: data.value || data.default,
+						onChange() {
+							dialog.updateFormValues();
+						}
+					});
+					bar.append(select_input.node)
 					break;
 
 
@@ -406,8 +375,10 @@ class DialogSidebar {
 		}
 	}
 	setPage(page) {
+		let allow;
+		if (this.onPageSwitch) allow = this.onPageSwitch(page);
+		if (allow === false) return;
 		this.page = page;
-		if (this.onPageSwitch) this.onPageSwitch(page);
 		for (let key in this.page_menu) {
 			let li = this.page_menu[key];
 			li.classList.toggle('selected', key == this.page);
@@ -446,6 +417,7 @@ window.Dialog = class Dialog {
 		this.onButton = options.onButton;
 		this.onFormChange = options.onFormChange;
 		this.onOpen = options.onOpen;
+		this.onBuild = options.onBuild;
 	
 		this.object;
 	}
@@ -530,7 +502,7 @@ window.Dialog = class Dialog {
 							result[form_id] = data.bar.find('textarea#'+form_id).val()
 							break;
 						case 'select':
-							result[form_id] = data.bar.find('select#'+form_id+' > option:selected').attr('id')
+							result[form_id] = data.bar.find('bb-select#'+form_id).attr('value');
 							break;
 						case 'radio':
 							result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')
@@ -677,6 +649,11 @@ window.Dialog = class Dialog {
 			})
 			jq_dialog.css('position', 'absolute')
 		}
+
+		if (typeof this.onBuild == 'function') {
+			this.onBuild(this.object);
+		}
+
 		return this;
 	}
 	show() {

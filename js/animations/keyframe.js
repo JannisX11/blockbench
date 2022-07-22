@@ -30,21 +30,25 @@ new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_eff
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 
 class Keyframe {
-	constructor(data, uuid) {
+	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
 		this.selected = 0;
 		this.data_points = []
 
+		if (typeof data === 'object') {
+			Merge.string(this, data, 'channel')
+			this.animator = animator;
+			this.transform = !!(this.animator.channels[this.channel]).transform;
+			this.data_points.push(new KeyframeDataPoint(this));
+		}
+
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].reset(this);
 		}
 
 		if (typeof data === 'object') {
-			Merge.string(this, data, 'channel')
-			this.transform = !!(BoneAnimator.prototype.channels[this.channel] || EffectAnimator.prototype.channels[this.channel]).transform;
-			this.data_points.push(new KeyframeDataPoint(this));
 			this.extend(data)
 		}
 	}
@@ -85,7 +89,10 @@ class Keyframe {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
 		let last_value = Animator._last_values[this.channel] && Animator._last_values[this.channel][axis];
-		let result = Animator.MolangParser.parse(data_point && data_point[axis], {this: last_value});
+		let result = Animator.MolangParser.parse(data_point && data_point[axis], {
+			'this': last_value,
+			'query.anim_time': this.animator.animation.time
+		});
 		return result;
 	}
 	set(axis, value, data_point = 0) {
@@ -117,6 +124,7 @@ class Keyframe {
 			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
 			if (number == 0) {
 				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+				value = value.trim();
 			} else {
 				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
 			}
@@ -203,9 +211,9 @@ class Keyframe {
 		if (this.channel === 'rotation') {
 			let fix = this.animator.group.mesh.fix_rotation;
 			let euler = new THREE.Euler(
-				fix.x - Math.degToRad(this.calc('x', data_point)),
-				fix.y - Math.degToRad(this.calc('y', data_point)),
-				fix.z + Math.degToRad(this.calc('z', data_point)),
+				(fix.x||0) - Math.degToRad(this.calc('x', data_point)),
+				(fix.y||0) - Math.degToRad(this.calc('y', data_point)),
+				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
 				'ZYX'
 			)
 			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
@@ -270,7 +278,8 @@ class Keyframe {
 					scripts.push(...data_point.script.split('\n'));
 				}
 			})
-			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''))
+			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''));
+			scripts = scripts.map(line => line.match(/;\s*$/) ? line : (line+';'));
 			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];
@@ -408,17 +417,19 @@ class Keyframe {
 		'_',
 		'keyframe_uniform',
 		'keyframe_interpolation',
-		{name: 'menu.cube.color', icon: 'color_lens', children: [
-			{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
-			...markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: 'cube.color.'+color.name,
-				click(kf) {
-					kf.forSelected(function(kf2){kf2.color = i}, 'change color')
-				}
-			}}),
-		]},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return [
+				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
+				...markerColors.map((color, i) => {return {
+					icon: 'bubble_chart',
+					color: color.standard,
+					name: color.name || 'cube.color.'+color.id,
+					click(kf) {
+						kf.forSelected(function(kf2){kf2.color = i}, 'change color')
+					}
+				}})
+			];
+		}},
 		'copy',
 		'delete',
 	])
@@ -458,7 +469,7 @@ function updateKeyframeSelection() {
 			BarItems.keyframe_uniform.updateEnabledState();
 		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || NullObject.selected[0] || Project.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -483,6 +494,14 @@ function selectAllKeyframes() {
 			Timeline.selected.remove(kf)
 		}
 		kf.selected = state
+	})
+	updateKeyframeSelection()
+}
+function unselectAllKeyframes() {
+	if (!Animation.selected) return;
+	Timeline.keyframes.forEach((kf) => {
+		Timeline.selected.remove(kf)
+		kf.selected = false;
 	})
 	updateKeyframeSelection()
 }
@@ -570,6 +589,7 @@ Object.assign(Clipbench, {
 					if (!kf) return;
 					keyframes.push(kf);
 					kf.selected = true;
+					Property.resetUniqueValues(Keyframe, kf);
 					Timeline.selected.push(kf);
 				}
 
@@ -797,7 +817,7 @@ BARS.defineActions(function() {
 			updateKeyframeSelection()
 		}
 	})
-	new Action('change_keyframe_file', {
+	/*new Action('change_keyframe_file', {
 		icon: 'fa-file',
 		category: 'animation',
 		condition: () => (Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
@@ -849,7 +869,7 @@ BARS.defineActions(function() {
 				})
 			}
 		}
-	})
+	})*/
 	new Action('reverse_keyframes', {
 		icon: 'swap_horizontal_circle',
 		category: 'animation',
@@ -871,6 +891,52 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Reverse keyframes')
 			updateKeyframeSelection()
 			Animator.preview()
+		}
+	})
+	let channels = ['rotation', 'position', 'scale']
+	new Action('keyframe_column_create', {
+		icon: 'add_road',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			Timeline.selected.empty();
+			let new_keyframes = [];
+			Undo.initEdit({keyframes: new_keyframes})
+			Timeline.animators.forEach(animator => {
+				if (animator instanceof BoneAnimator == false) return;
+				channels.forEach(channel => {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+						let kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
+						new_keyframes.push(kf)
+						Timeline.selected.push(kf);
+						kf.selected = true;
+					}
+				})
+			})
+			updateKeyframeSelection();
+			Undo.finishEdit('Create keyframe column');
+		}
+	})
+	new Action('keyframe_column_select', {
+		icon: 'unfold_more_double',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			Timeline.selected.empty();
+			Timeline.animators.forEach(animator => {
+				if (animator instanceof BoneAnimator == false) return;
+				channels.forEach(channel => {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+						animator[channel].forEach(kf => {
+							if (Math.epsilon(kf.time, Timeline.time, 1e-5) && Timeline.vue.channels[kf.channel] !== false) {
+								Timeline.selected.push(kf);
+								kf.selected = true;
+							}
+						})
+					}
+				})
+			})
+			updateKeyframeSelection();
 		}
 	})
 
@@ -1074,6 +1140,53 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
+				changeKeyframeFile(data_point, keyframe) {
+					if (keyframe.channel == 'particle') {
+						Blockbench.import({
+							resource_id: 'animation_particle',
+							extensions: ['json'],
+							type: 'Bedrock Particle',
+							startpath: keyframe.data_points[0].file
+						}, function(files) {
+
+							let {path} = files[0];
+							Undo.initEdit({keyframes: [keyframe]})
+							data_point.file = path;
+							let effect = Animator.loadParticleEmitter(path, files[0].content);
+							Undo.finishEdit('Change keyframe particle file');
+
+							if (!isApp || !effect.config.texture.image.src.match(/\/\\/)) {
+								Blockbench.import({
+									extensions: ['png'],
+									type: 'Particle Texture',
+									readtype: 'image',
+									startpath: effect.config.preview_texture || path
+								}, function(files) {
+									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+									if (isApp) effect.config.updateTexture();
+								})
+							}
+						})
+					} else {
+						Blockbench.import({
+							resource_id: 'animation_audio',
+							extensions: ['ogg', 'wav', 'mp3'],
+							type: 'Audio File',
+							startpath: keyframe.data_points[0].file
+						}, function(files) {
+
+							let path = isApp
+								? files[0].path
+								: URL.createObjectURL(files[0].browser_file);
+
+							Undo.initEdit({keyframes: [keyframe]})
+							data_point.file = path;
+							if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
+							Timeline.visualizeAudioFile(path);
+							Undo.finishEdit('Change keyframe audio file')
+						})
+					}
+				},
 				tl,
 				Condition
 			},
@@ -1103,7 +1216,7 @@ Interface.definePanels(function() {
 								class="in_list_button"
 								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points && keyframes[0].interpolation !== 'catmullrom'"
 								v-on:click.stop="addDataPoint()"
-								title="${ tl('panel.keyframe.add_data_point') }"
+								title="${ tl('panel.keyframe.change_effect_file') }"
 							>
 								<i class="material-icons">add</i>
 							</div>
@@ -1166,6 +1279,9 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
+										<div class="tool" v-if="key == 'effect'" title="${tl('action.change_keyframe_file')}" @click="changeKeyframeFile(data_point, keyframes[0])">
+											<i class="material-icons">upload_file</i>
+										</div>
 									</div>
 								</template>
 							</div>

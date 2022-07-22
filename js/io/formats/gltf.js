@@ -65,7 +65,7 @@ function buildAnimationTracks(do_quaternions = true) {
 											y: values[1],
 											z: values[2],
 										}] 
-									})
+									}, null, animator)
 									new_keyframe.animator = animator;
 									keyframes.push(new_keyframe)
 								}
@@ -98,7 +98,7 @@ function buildAnimationTracks(do_quaternions = true) {
 											y: values[1],
 											z: values[2],
 										}]
-									})
+									}, null, animator)
 									new_keyframe.animator = animator;
 									keyframes.splice(keyframes.indexOf(kf) + step, 0, new_keyframe);
 								}
@@ -111,7 +111,7 @@ function buildAnimationTracks(do_quaternions = true) {
 								let new_keyframe = new Keyframe({
 									time: kf.time + 0.004, channel,
 									data_points: [kf.data_points[1]]
-								})
+								}, null, animator)
 								new_keyframe.animator = animator;
 								keyframes.splice(keyframes.indexOf(kf) + 1, 0, new_keyframe);
 							} 
@@ -127,7 +127,12 @@ function buildAnimationTracks(do_quaternions = true) {
 							}
 							times.push(kf.time);
 							Timeline.time = kf.time;
-							kf.getFixed(0, do_quaternions).toArray(values, values.length);
+							let result = kf.getFixed(0, do_quaternions)
+							if (do_quaternions) {
+								result.toArray(values, values.length);
+							} else {
+								values.push(result.x, result.y, result.z);
+							}
 						})
 						let trackType = THREE.VectorKeyframeTrack;
 						if (channel === 'rotation' && do_quaternions) {

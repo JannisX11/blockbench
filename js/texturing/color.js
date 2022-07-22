@@ -8,44 +8,49 @@ function colorDistance(color1, color2) {
 	);
 }
 (function() {
-	var palettes = {
-		default: [
-			'#1a1a1b','#353637','#464849','#5d5f60','#757677','#868788','#979b9d','#b8bdbe','#dadedf','#ffffff',
-			'#9a080f','#b40a1a','#d21129','#ef2142','#ff5774','#bb7907','#cc9104','#edb508','#fcd720','#fef364',
-			'#0d7e36','#12933d','#11aa38','#1cc93d','#29e64d','#044b8f','#0955a8','#126bc3','#1782db','#339afc',
-			'#cd3e00','#e65b00','#f37800','#f89520','#fdaf40','#02a8c1','#0cc3ca','#17d1c7','#38debd','#5be9b7',
-		],
-		material: [
-			'#ffebee','#ffcdd2','#ef9a9a','#e57373','#ef5350','#f44336','#e53935','#d32f2f','#c62828','#b71c1c','#ff5252','#ff1744',
-			'#fce4ec','#f8bbd0','#f48fb1','#f06292','#ec407a','#e91e63','#d81b60','#c2185b','#ad1457','#880e4f','#ff4081','#f50057',
-			'#f3e5f5','#e1bee7','#ce93d8','#ba68c8','#ab47bc','#9c27b0','#8e24aa','#7b1fa2','#6a1b9a','#4a148c','#e040fb','#d500f9',
-			'#ede7f6','#d1c4e9','#b39ddb','#9575cd','#7e57c2','#673ab7','#5e35b1','#512da8','#4527a0','#311b92','#7c4dff','#651fff',
-			'#e8eaf6','#c5cae9','#9fa8da','#7986cb','#5c6bc0','#3f51b5','#3949ab','#303f9f','#283593','#1a237e','#536dfe','#3d5afe',
-			'#e3f2fd','#bbdefb','#90caf9','#64b5f6','#42a5f5','#2196f3','#1e88e5','#1976d2','#1565c0','#0d47a1','#448aff','#2979ff',
-			'#e1f5fe','#b3e5fc','#81d4fa','#4fc3f7','#29b6f6','#03a9f4','#039be5','#0288d1','#0277bd','#01579b','#40c4ff','#00b0ff',
-			'#e0f7fa','#b2ebf2','#80deea','#4dd0e1','#26c6da','#00bcd4','#00acc1','#0097a7','#00838f','#006064','#18ffff','#00e5ff',
-			'#e0f2f1','#b2dfdb','#80cbc4','#4db6ac','#26a69a','#009688','#00897b','#00796b','#00695c','#004d40','#64ffda','#1de9b6',
-			'#e8f5e9','#c8e6c9','#a5d6a7','#81c784','#66bb6a','#4caf50','#43a047','#388e3c','#2e7d32','#1b5e20','#69f0ae','#00e676',
-			'#f1f8e9','#dcedc8','#c5e1a5','#aed581','#9ccc65','#8bc34a','#7cb342','#689f38','#558b2f','#33691e','#b2ff59','#76ff03',
-			'#f9fbe7','#f0f4c3','#e6ee9c','#dce775','#d4e157','#cddc39','#c0ca33','#afb42b','#9e9d24','#827717','#eeff41','#c6ff00',
-			'#fffde7','#fff9c4','#fff59d','#fff176','#ffee58','#ffeb3b','#fdd835','#fbc02d','#f9a825','#f57f17','#ffff00','#ffea00',
-			'#fff8e1','#ffecb3','#ffe082','#ffd54f','#ffca28','#ffc107','#ffb300','#ffa000','#ff8f00','#ff6f00','#ffd740','#ffc400',
-			'#fff3e0','#ffe0b2','#ffcc80','#ffb74d','#ffa726','#ff9800','#fb8c00','#f57c00','#ef6c00','#e65100','#ffab40','#ff9100',
-			'#fbe9e7','#ffccbc','#ffab91','#ff8a65','#ff7043','#ff5722','#f4511e','#e64a19','#d84315','#bf360c','#ff6e40','#ff3d00',
-			'#efebe9','#d7ccc8','#bcaaa4','#a1887f','#8d6e63','#795548','#6d4c41','#5d4037','#4e342e','#3e2723','#6d422d','#593022',
-			'#fafafa','#f5f5f5','#eeeeee','#e0e0e0','#bdbdbd','#9e9e9e','#757575','#616161','#424242','#212121','#ffffff','#000000',
-			'#eceff1','#cfd8dc','#b0bec5','#90a4ae','#78909c','#607d8b','#546e7a','#455a64','#37474f','#263238',
-		],
-		endesga64: [
-			'#ff0040','#131313','#1b1b1b','#272727','#3d3d3d','#5d5d5d','#858585','#b4b4b4','#ffffff','#c7cfdd',
-			'#92a1b9','#657392','#424c6e','#2a2f4e','#1a1932','#0e071b','#1c121c','#391f21','#5d2c28','#8a4836',
-			'#bf6f4a','#e69c69','#f6ca9f','#f9e6cf','#edab50','#e07438','#c64524','#8e251d','#ff5000','#ed7614',
-			'#ffa214','#ffc825','#ffeb57','#d3fc7e','#99e65f','#5ac54f','#33984b','#1e6f50','#134c4c','#0c2e44',
-			'#00396d','#0069aa','#0098dc','#00cdf9','#0cf1ff','#94fdff','#fdd2ed','#f389f5','#db3ffd','#7a09fa',
-			'#3003d9','#0c0293','#03193f','#3b1443','#622461','#93388f','#ca52c9','#c85086','#f68187','#f5555d',
-			'#ea323c','#c42430','#891e2b','#571c27',
-		]
-	}
+//
+StateMemory.init('color_palettes', 'array')
+
+var palettes = {
+	default: [
+		'#1a1a1b','#353637','#464849','#5d5f60','#757677','#868788','#979b9d','#b8bdbe','#dadedf','#ffffff',
+		'#9a080f','#b40a1a','#d21129','#ef2142','#ff5774','#bb7907','#cc9104','#edb508','#fcd720','#fef364',
+		'#0d7e36','#12933d','#11aa38','#1cc93d','#29e64d','#044b8f','#0955a8','#126bc3','#1782db','#339afc',
+		'#cd3e00','#e65b00','#f37800','#f89520','#fdaf40','#02a8c1','#0cc3ca','#17d1c7','#38debd','#5be9b7',
+	],
+	material: [
+		'#ffebee','#ffcdd2','#ef9a9a','#e57373','#ef5350','#f44336','#e53935','#d32f2f','#c62828','#b71c1c','#ff5252','#ff1744',
+		'#fce4ec','#f8bbd0','#f48fb1','#f06292','#ec407a','#e91e63','#d81b60','#c2185b','#ad1457','#880e4f','#ff4081','#f50057',
+		'#f3e5f5','#e1bee7','#ce93d8','#ba68c8','#ab47bc','#9c27b0','#8e24aa','#7b1fa2','#6a1b9a','#4a148c','#e040fb','#d500f9',
+		'#ede7f6','#d1c4e9','#b39ddb','#9575cd','#7e57c2','#673ab7','#5e35b1','#512da8','#4527a0','#311b92','#7c4dff','#651fff',
+		'#e8eaf6','#c5cae9','#9fa8da','#7986cb','#5c6bc0','#3f51b5','#3949ab','#303f9f','#283593','#1a237e','#536dfe','#3d5afe',
+		'#e3f2fd','#bbdefb','#90caf9','#64b5f6','#42a5f5','#2196f3','#1e88e5','#1976d2','#1565c0','#0d47a1','#448aff','#2979ff',
+		'#e1f5fe','#b3e5fc','#81d4fa','#4fc3f7','#29b6f6','#03a9f4','#039be5','#0288d1','#0277bd','#01579b','#40c4ff','#00b0ff',
+		'#e0f7fa','#b2ebf2','#80deea','#4dd0e1','#26c6da','#00bcd4','#00acc1','#0097a7','#00838f','#006064','#18ffff','#00e5ff',
+		'#e0f2f1','#b2dfdb','#80cbc4','#4db6ac','#26a69a','#009688','#00897b','#00796b','#00695c','#004d40','#64ffda','#1de9b6',
+		'#e8f5e9','#c8e6c9','#a5d6a7','#81c784','#66bb6a','#4caf50','#43a047','#388e3c','#2e7d32','#1b5e20','#69f0ae','#00e676',
+		'#f1f8e9','#dcedc8','#c5e1a5','#aed581','#9ccc65','#8bc34a','#7cb342','#689f38','#558b2f','#33691e','#b2ff59','#76ff03',
+		'#f9fbe7','#f0f4c3','#e6ee9c','#dce775','#d4e157','#cddc39','#c0ca33','#afb42b','#9e9d24','#827717','#eeff41','#c6ff00',
+		'#fffde7','#fff9c4','#fff59d','#fff176','#ffee58','#ffeb3b','#fdd835','#fbc02d','#f9a825','#f57f17','#ffff00','#ffea00',
+		'#fff8e1','#ffecb3','#ffe082','#ffd54f','#ffca28','#ffc107','#ffb300','#ffa000','#ff8f00','#ff6f00','#ffd740','#ffc400',
+		'#fff3e0','#ffe0b2','#ffcc80','#ffb74d','#ffa726','#ff9800','#fb8c00','#f57c00','#ef6c00','#e65100','#ffab40','#ff9100',
+		'#fbe9e7','#ffccbc','#ffab91','#ff8a65','#ff7043','#ff5722','#f4511e','#e64a19','#d84315','#bf360c','#ff6e40','#ff3d00',
+		'#efebe9','#d7ccc8','#bcaaa4','#a1887f','#8d6e63','#795548','#6d4c41','#5d4037','#4e342e','#3e2723','#6d422d','#593022',
+		'#fafafa','#f5f5f5','#eeeeee','#e0e0e0','#bdbdbd','#9e9e9e','#757575','#616161','#424242','#212121','#ffffff','#000000',
+		'#eceff1','#cfd8dc','#b0bec5','#90a4ae','#78909c','#607d8b','#546e7a','#455a64','#37474f','#263238',
+	],
+	endesga64: [
+		'#ff0040','#131313','#1b1b1b','#272727','#3d3d3d','#5d5d5d','#858585','#b4b4b4','#ffffff','#c7cfdd',
+		'#92a1b9','#657392','#424c6e','#2a2f4e','#1a1932','#0e071b','#1c121c','#391f21','#5d2c28','#8a4836',
+		'#bf6f4a','#e69c69','#f6ca9f','#f9e6cf','#edab50','#e07438','#c64524','#8e251d','#ff5000','#ed7614',
+		'#ffa214','#ffc825','#ffeb57','#d3fc7e','#99e65f','#5ac54f','#33984b','#1e6f50','#134c4c','#0c2e44',
+		'#00396d','#0069aa','#0098dc','#00cdf9','#0cf1ff','#94fdff','#fdd2ed','#f389f5','#db3ffd','#7a09fa',
+		'#3003d9','#0c0293','#03193f','#3b1443','#622461','#93388f','#ca52c9','#c85086','#f68187','#f5555d',
+		'#ea323c','#c42430','#891e2b','#571c27',
+	]
+}
+
+
 Interface.definePanels(() => {
 	var saved_colors = localStorage.getItem('colors');
 	if (saved_colors) {
@@ -110,6 +115,14 @@ Interface.definePanels(() => {
 				togglePickerType() {
 					settings.color_wheel.set(!settings.color_wheel.value);
 					Panels.color.onResize();
+				},
+				onMouseWheel(event) {
+					if (!event.target) return;
+					if (settings.color_wheel.value || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
+						let sign = Math.sign(event.deltaY);
+						if (event.shiftKey) sign *= 4;
+						BarItems.slider_color_h.change(v => v+sign);
+					}
 				},
 				sort(event) {
 					var item = this.palette.splice(event.oldIndex, 1)[0];
@@ -186,7 +199,7 @@ Interface.definePanels(() => {
 						</div>
 
 					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'">
+					<div v-show="open_tab == 'picker' || open_tab == 'both'" @mousewheel="onMouseWheel($event)">
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
 							<input id="main_colorpicker">
 						</div>
@@ -224,6 +237,7 @@ Interface.definePanels(() => {
 		},
 		menu: new Menu([
 			'sort_palette',
+			'save_palette',
 			'load_palette'
 		])
 	})
@@ -498,14 +512,9 @@ Interface.definePanels(() => {
 				color = tinycolor('rgb'+color);
 				colors.safePush(color.toHexString());
 			})
-			var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
+			var m_gpl = string.match(/\n\s*\d{1,3}\s+\d{1,3}\s+\d{1,3}/g)
 			if (m_gpl) m_gpl.forEach(color => {
-				color = tinycolor(`rgb(${color.substr(1).replace(/ /g, ',')})`);
-				colors.safePush(color.toHexString());
-			})
-			var m_gpl = string.match(/\n\d{1,3} \d{1,3} \d{1,3}/g)
-			if (m_gpl) m_gpl.forEach(color => {
-				color = tinycolor(`rgb(${color.substr(1).replace(/ /g, ',')})`);
+				color = tinycolor(`rgb(${color.replace(/^[\n\s]*/, '').replace(/\s+/g, ',')})`);
 				colors.safePush(color.toHexString());
 			})
 		}
@@ -783,23 +792,79 @@ BARS.defineActions(function() {
 		icon: 'fa-tasks',
 		category: 'color',
 		click: function (e) {
-			new Menu(this.children).open(e.target)
+			new Menu(this.children()).open(e.target)
 		},
-		children: [
-			{name: 'menu.palette.load.default', icon: 'bubble_chart', id: 'default', click: () => {
-				loadPalette(palettes.default);
-			}},
-			{name: 'Endesga 64', description: 'Pixel art palette created by lospec.com/endesga', icon: 'bubble_chart', id: 'endesga64', click: () => {
-				loadPalette(palettes.endesga64);
-			}},
-			{name: 'Material', icon: 'bubble_chart', id: 'material', click: () => {
-				loadPalette(palettes.material);
-			}},
-			'_',
-			{name: 'menu.palette.load.empty', icon: 'clear', id: 'empty', click: () => {
-				loadPalette([]);
-			}},
-		]
+		children() {
+			let options = this.default_palettes.slice();
+
+			StateMemory.color_palettes.forEach((palette, i) => {
+				let option = {
+					name: palette.name,
+					icon: 'bubble_chart',
+					id: i.toString(),
+					click() {
+						loadPalette(palette.colors);
+					},
+					children: [
+						{icon: 'update', name: 'menu.palette.load.update', description: 'menu.palette.load.update.desc', click() {
+							palette.colors.replace(ColorPanel.palette);
+							StateMemory.save('color_palettes');
+						}},
+						{icon: 'delete', name: 'generic.delete', click() {
+							StateMemory.color_palettes.remove(palette);
+							StateMemory.save('color_palettes');
+						}}
+					]
+				}
+				options.push(option);
+			})
+			
+			options.push(
+				'_',
+				{name: 'menu.palette.load.empty', icon: 'clear', id: 'empty', click: () => {
+					loadPalette([]);
+				}}
+			);
+			return options;
+		}
+	})
+	BarItems.load_palette.default_palettes = [
+		{name: 'menu.palette.load.default', icon: 'bubble_chart', id: 'default', click: () => {
+			loadPalette(palettes.default);
+		}},
+		{name: 'Endesga 64', description: 'Pixel art palette created by lospec.com/endesga', icon: 'bubble_chart', id: 'endesga64', click: () => {
+			loadPalette(palettes.endesga64);
+		}},
+		{name: 'Material', icon: 'bubble_chart', id: 'material', click: () => {
+			loadPalette(palettes.material);
+		}},
+		'_'
+	];
+
+	new Action('save_palette', {
+		icon: 'playlist_add',
+		click(event) {	
+			let dialog = new Dialog({
+				id: 'save_palette',
+				title: 'action.save_palette',
+				width: 540,
+				form: {
+					name: {label: 'generic.name'},
+				},
+				onConfirm: function(formResult) {
+					if (!formResult.name) return;
+	
+					let palette = {
+						name: formResult.name,
+						colors: ColorPanel.palette.slice()
+					}
+
+					StateMemory.color_palettes.push(palette);
+					StateMemory.save('color_palettes');
+				}
+			})
+			dialog.show()
+		}
 	})
 
 

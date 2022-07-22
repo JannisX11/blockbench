@@ -162,8 +162,8 @@ function mirrorSelected(axis) {
 		updateKeyframeSelection();
 		Animator.preview();
 
-	} else if (Modes.edit && selected.length) {
-		Undo.initEdit({elements: selected, outliner: Format.bone_rig})
+	} else if (Modes.edit && (Outliner.selected.length || Group.selected)) {
+		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.selected, selection: true})
 		var center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
 			let flip_pairs = {
@@ -1281,7 +1281,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected, group: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
@@ -1308,7 +1308,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected, group: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
@@ -1335,19 +1335,13 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected, group: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
-	function rotateCondition() {
-		return (Modes.edit && (
-			(Format.bone_rig && Group.selected) ||
-			(Format.rotate_cubes && Cube.selected.length)
-		))
-	}
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {

@@ -50,14 +50,16 @@ class Animation {
 				if (!this.animators[key]) {
 					if (key == 'effects') {
 						animator = this.animators[key] = new EffectAnimator(this);
-					} else if (animator_blueprint.type == 'null_object') {
+					} else if (animator_blueprint.type && animator_blueprint.type !== 'bone') {
 						let uuid = isUUID(key) && key;
+						let element;
 						if (!uuid) {
 							let lowercase_name = key.toLowerCase();
-							let null_object_match = NullObject.all.find(null_object => null_object.name.toLowerCase() == lowercase_name)
-							uuid = null_object_match ? null_object_match.uuid : guid();
+							element = Outliner.elements.find(element => element.constructor.animator && element.name.toLowerCase() == lowercase_name)
+							uuid = element ? element.uuid : guid();
 						}
-						animator = this.animators[uuid] = new NullObjectAnimator(uuid, this, animator_blueprint.name)
+						if (!element) element = Outliner.elements.find(element => element.constructor.animator && element.uuid == uuid);
+						animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name)
 					} else {
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
@@ -83,7 +85,9 @@ class Animation {
 		}
 		if (data.markers instanceof Array) {
 			data.markers.forEach(marker => {
-				this.markers.push(new TimelineMarker(marker));
+				if (!this.markers.find(m2 => Math.epsilon(m2.time, marker.time, 0.001))) {
+					this.markers.push(new TimelineMarker(marker));
+				}
 			})
 		}
 		return this;
@@ -236,7 +240,8 @@ class Animation {
 					}
 				})
 			})
-			NullObject.all.forEach(node => {
+			Outliner.elements.forEach(node => {
+				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				let animator = this.getBoneAnimator(node);
@@ -386,14 +391,17 @@ class Animation {
 		Group.all.forEach(group => {
 			scope.getBoneAnimator(group);
 		})
-		NullObject.all.forEach(null_object => {
-			scope.getBoneAnimator(null_object);
+		Outliner.elements.forEach(element => {
+			if (!element.constructor.animator) return;
+			scope.getBoneAnimator(element);
 		})
 
 		if (selected_bone) {
 			selected_bone.select();
 		}
-		if (Modes.animate) Animator.preview();
+		if (Modes.animate) {
+			Animator.preview();
+		}
 		return this;
 	}
 	setLength(len = this.length) {
@@ -403,6 +411,9 @@ class Animation {
 			Timeline.vue._data.animation_length = this.length;
 			BarItems.slider_animation_length.update()
 		}
+	}
+	get time() {
+		return (this.length && this.loop === 'loop') ? ((Timeline.time - 0.001) % this.length) + 0.001 : Timeline.time;
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -459,8 +470,8 @@ class Animation {
 	getBoneAnimator(group) {
 		if (!group && Group.selected) {
 			group = Group.selected;
-		} else if (!group && NullObject.selected[0]) {
-			group = NullObject.selected[0];
+		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+			group = Outliner.selected[0];
 		} else if (!group) {
 			return;
 		}
@@ -480,11 +491,7 @@ class Animation {
 					break;
 				}
 			}
-			if (group instanceof NullObject) {
-				this.animators[uuid] = match || new NullObjectAnimator(uuid, this);
-			} else {
-				this.animators[uuid] = match || new BoneAnimator(uuid, this);
-			}
+			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
 	}
@@ -786,6 +793,9 @@ Blockbench.on('finish_edit', event => {
 
 const WinterskyScene = new Wintersky.Scene({
 	fetchTexture: isApp && function(config) {
+		if (config.preview_texture) {
+			return config.preview_texture;
+		}
 		if (config.file_path && config.particle_texture_path) {
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
@@ -799,7 +809,7 @@ const WinterskyScene = new Wintersky.Scene({
 	}
 });
 WinterskyScene.global_options.scale = 16;
-WinterskyScene.global_options.loop_mode = 'once';
+WinterskyScene.global_options.loop_mode = 'auto';
 WinterskyScene.global_options.parent_mode = 'entity';
 
 Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
@@ -867,15 +877,20 @@ const Animator = {
 		scene.remove(Animator.motion_trail);
 		Animator.resetParticles(true);
 
+		three_grid.position.z = three_grid.position.x;
+		Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+
 		if (Panels.element) {
 			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
-		[...Group.all, ...NullObject.all].forEach(node => {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
 			var mesh = node.mesh;
 			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
 			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
@@ -897,7 +912,9 @@ const Animator = {
 	showMotionTrail(target) {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
-			if (!target) target = Group.selected || NullObject.selected[0];
+			if (!target) {
+				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+			}
 		}
 		if (!target) return;
 		let animation = Animation.selected;
@@ -919,7 +936,7 @@ const Animator = {
 		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || NullObject.selected[0];
+		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
 			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
@@ -1000,7 +1017,8 @@ const Animator = {
 	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
-		[...Group.all, ...NullObject.all].forEach(node => {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			Animator.animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
@@ -1010,7 +1028,19 @@ const Animator = {
 			})
 		})
 		Animator.resetLastValues();
-		scene.updateMatrixWorld()
+		scene.updateMatrixWorld();
+
+		// Shift ground
+		if (Canvas.ground_plane.visible && Animation.selected && Animation.selected.anim_time_update.includes('modified_distance_moved')) {
+			let value = Animator.MolangParser.parse(Animation.selected.anim_time_update, {'query.modified_distance_moved': Timeline.time});
+			value = (Timeline.time / value) * Timeline.time * 3;
+			value = (value % 64) || 0;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x + value;
+			three_grid.position.z = three_grid.position.x + value;
+		} else {
+			three_grid.position.z = three_grid.position.x;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+		}
 
 		// Effects
 		Animator.resetParticles(true);
@@ -1021,18 +1051,30 @@ const Animator = {
 				}
 			}
 		})
-		Interface.Panels.variable_placeholders.inside_vue.text.split('\n').forEach(line => {
-			line = line.replace(/ +/g, '');
-			if (!line) return;
-			let [key, value] = line.split(/=\s*(.+)/);
-			if (key == 'preview.texture') {
-				let tex_index = parseInt(Animator.MolangParser.parse(value));
-				let texture = Texture.all[tex_index % Texture.all.length];
-				if (texture) texture.select();
-			}
-		});
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
+			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
+			let texture = Texture.all[tex_index % Texture.all.length];
+			if (texture) texture.select();
+		}
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scale');
+			Project.model_3d.scale.x = Project.model_3d.scale.y = Project.model_3d.scale.z = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalex\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalex');
+			Project.model_3d.scale.x = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scaley\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scaley');
+			Project.model_3d.scale.y = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalez\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalez');
+			Project.model_3d.scale.z = scale;
+		}
 
-		if (Group.selected || NullObject.selected[0]) {
+		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1070,6 +1112,7 @@ const Animator = {
 				})
 			}
 		}
+		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
 		var json = file.json || autoParseJSON(file.content);
@@ -1436,6 +1479,7 @@ Clipbench.pasteAnimation = function() {
 	let animations = [];
 	Undo.initEdit({animations});
 	let animation = new Animation(Clipbench.animation).add(false);
+	animation.createUniqueName();
 	animation.select().propertiesDialog();
 	animations.push(animation);
 	Undo.finishEdit('Paste animation')
@@ -1450,7 +1494,7 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Timeline.time;
+		return Animation.selected.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;
@@ -1646,10 +1690,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && (Group.selected || NullObject.selected[0]),
+		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
 		onChange(value) {
-			if (value && (Group.selected || NullObject.selected[0])) {
-				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : NullObject.selected[0].uuid;
+			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
 			} else {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
@@ -1658,14 +1702,15 @@ BARS.defineActions(function() {
 	})
 
 	new Action('bake_animation_into_model', {
-		icon: 'transfer_within_a_station',
+		icon: 'directions_run',
 		category: 'animation',
 		condition: {modes: ['animate']},
 		click: function () {
 			let elements = Outliner.elements;
 			Undo.initEdit({elements, outliner: true});
 
-			[...Group.all, ...NullObject.all].forEach(node => {
+			let animatable_elements = Outliner.elements.filter(el => el.constructor.animator);
+			[...Group.all, ...animatable_elements].forEach(node => {
 				let offset_rotation = [0, 0, 0];
 				let offset_position = [0, 0, 0];
 				Animator.animations.forEach(animation => {
@@ -2124,8 +2169,8 @@ Interface.definePanels(function() {
 
 					<ul id="placeholder_buttons">
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
-							<input v-if="button.type == 'toggle'" type="checkbox" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<input v-else type="number" class="dark_bordered" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
+							<input v-else type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>

@@ -590,7 +590,10 @@ window.addEventListener('focus', event => {
 })
 
 function getFocusedTextInput() {
-	return document.querySelector('input[type="text"]:focus, input[type="number"]:focus, *[contenteditable="true"]:focus, textarea:focus');
+	let element = document.activeElement;
+	if (element.nodeName == 'TEXTAREA' || (element.nodeName == 'INPUT' && ['number', 'text'].includes(element.type)) || element.isContentEditable) {
+		return element;
+	}
 }
 
 addEventListeners(document, 'keydown mousedown', function(e) {
@@ -611,10 +614,16 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 
 		//Tab
 		if (e.which == 9 && !open_dialog) {
-			var all_inputs = $('.tab_target:visible:not(.prism-editor-wrapper), .prism-editor-wrapper.tab_target:visible > pre[contenteditable="true"]')
-			var index = all_inputs.index(input_focus)+1;
-			if (index >= all_inputs.length) index = 0;
-			var next = $(all_inputs.get(index))
+			let all_visible_inputs = [];
+			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-wrapper), .prism-editor-wrapper.tab_target > pre[contenteditable="true"]')
+			all_inputs.forEach(input => {
+				if (input.isConnected && input.offsetParent && $(input).is(':visible')) {
+					all_visible_inputs.push(input);
+				}
+			})
+			var index = all_visible_inputs.indexOf(input_focus)+1;
+			if (index >= all_visible_inputs.length) index = 0;
+			var next = $(all_visible_inputs[index])
 
 			if (next.length) {
 				if (next.hasClass('cube_name')) {

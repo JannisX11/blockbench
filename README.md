@@ -38,7 +38,7 @@ To launch Blockbench from source, you can clone the repository, navigate to the 
 
 ## Plugins
 
-Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://documentation.blockbench.net](https://documentation.blockbench.net).
+Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/api/index](https://www.blockbench.net/wiki/api/index).
 
 
 

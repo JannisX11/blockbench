@@ -424,7 +424,7 @@ class refModel {
 			}
 			this.initialized = true;
 		}
-		display_scene.add(this.model)
+		scene.add(this.model)
 		displayReferenceObjects.active = this;
 
 		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
@@ -1042,19 +1042,21 @@ class refModel {
 	}
 	buildBlock() {
 		this.buildModel(JSON.parse(`[
-			{"size": [16,16,16], "pos": [0, 0, 0], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+			{"size": [16,16,16], "pos": [8, -7.98, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]`), 'assets/missing.png')
 	}
 	buildFrame() {
-		this.buildBlock()
 		this.buildModel(JSON.parse(`[
-			{"size": [10,10,0.5], "pos": [0, 0, -8.25], "origin": [0, 0, 0], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [16,16,16], "pos": [8, 8, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+		]`), 'assets/missing.png')
+		this.buildModel(JSON.parse(`[
+			{"size": [10,10,0.5], "pos": [8, 8, -0.25], "origin": [0, 0, 0], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
 
-			{"size": [1,12,1], "pos": [5.5, 0, -8.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
-			{"size": [1,12,1], "pos": [-5.5, 0, -8.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+			{"size": [1,12,1], "pos": [13.5, 8, -0.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+			{"size": [1,12,1], "pos": [2.5,  8, -0.5], "origin": [0, 0, 0], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
 
-			{"size": [10,1,1], "pos": [0, 5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
-			{"size": [10,1,1], "pos": [0, -5.5, -8.5], "origin": [0, 0, 0], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
+			{"size": [10,1,1], "pos": [8, 13.5, -0.5], "origin": [0, 0, 0], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
+			{"size": [10,1,1], "pos": [8, 2.5, -0.5], "origin": [0, 0, 0], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
 		]`), 'assets/item_frame.png')
 	}
 }
@@ -1111,7 +1113,7 @@ window.displayReferenceObjects = {
 		}
 	},
 	clear: function() {
-		display_scene.remove(displayReferenceObjects.active.model)
+		scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
 	},
 	ref_indexes: {
@@ -1150,7 +1152,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	selected.empty()
 	updateSelection()
 
-	display_base.add(scene)
+	if (Project.model_3d) display_base.add(Project.model_3d)
 	if (!display_preview) {
 		display_preview = new Preview({id: 'display'})
 	}
@@ -1166,8 +1168,11 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 
 
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	DisplayMode.loadThirdRight()
+	scene.add(display_area);
+	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	scene.position.set(0, 0, 0);
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
@@ -1177,10 +1182,19 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 }
 exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
+	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
-	if (scene.parent) scene.parent.remove(scene)
+	scene.remove(display_area)
+	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
+	display_base.children.forEachReverse(child => {
+		display_base.remove(child);
+		child.position.set(0, 0, 0);
+	})
+	if (Project.model_3d) {
+		scene.add(Project.model_3d);
+	}
 
 	display_mode = false;
 	main_preview.fullscreen()
@@ -1193,7 +1207,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	}
 	scene.add(Transformer)
 	Canvas.buildGrid()
-	updateShading()
+	Canvas.updateShading()
 	Canvas.updateRenderSides()
 }
 function resetDisplayBase() {
@@ -1297,7 +1311,7 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1
-	display_area.position.y = 13.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
@@ -1306,7 +1320,7 @@ DisplayMode.updateGUILight = function() {
 	if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 	} else {
-		lights.rotation.set(0, Math.PI * 0.75, 0);
+		lights.rotation.set(0, 0, 0);
 	}
 } 
 
@@ -1411,9 +1425,9 @@ DisplayMode.loadGround = function() {		//Loader
 	loadDisp('ground')
 	display_preview.loadAnglePreset({
 		position: [-40, 37, -40],
-		target: [0, 11, 0]
+		target: [0, 3, 0]
 	})
-	setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
+	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
 	ground_timer = 0
 	displayReferenceObjects.bar(['block'])
@@ -1424,7 +1438,7 @@ DisplayMode.loadFixed = function() {		//Loader
 		position: [-24, 18, -50],
 		target: [0, 1, -5]
 	})
-	setDisplayArea(0, 0, -8.5, 0, 0, 0, 0.5, 0.5, 0.5)
+	setDisplayArea(8, 8, -0.5, 0, 0, 0, 0.5, 0.5, 0.5)
 	displayReferenceObjects.bar(['frame'])
 }
 DisplayMode.load = function(slot) {
@@ -1668,7 +1682,8 @@ Interface.definePanels(function() {
 				axes: [0, 1, 2],
 				reference_model: 'player',
 				pose_angle: 0,
-				slot: new DisplaySlot()
+				slot: new DisplaySlot(),
+				allow_mirroring: Settings.get('allow_display_slot_mirror')
 			}},
 			watch: {
 				pose_angle(value) {
@@ -1684,9 +1699,20 @@ Interface.definePanels(function() {
 				},
 				change: (axis, channel) => {
 					if (channel === 'scale') {
+						if (Pressing.shift || Pressing.overrides.shift) {
+							var val = limitNumber(parseFloat(DisplayMode.slot.scale[axis]), 0, 4)
+							DisplayMode.slot.scale[0] = val;
+							DisplayMode.slot.scale[1] = val;
+							DisplayMode.slot.scale[2] = val;
+						}
+					}
+					DisplayMode.updateDisplayBase()
+				},
+				focusout: (axis, channel) => {
+					if (channel === 'scale') {
 						var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
 						DisplayMode.slot.scale[axis] = val;
-						if (Pressing.shift) {
+						if (Pressing.shift || Pressing.overrides.shift) {
 							DisplayMode.slot.scale[0] = val;
 							DisplayMode.slot.scale[1] = val;
 							DisplayMode.slot.scale[2] = val;
@@ -1720,6 +1746,9 @@ Interface.definePanels(function() {
 				save: (axis, channel) => {
 					Undo.finishEdit('Change display setting');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+				},
+				showMirroringSetting() {
+					Settings.openDialog({search_term: tl('settings.allow_display_slot_mirror')});
 				},
 				getAxisLetter
 			},
@@ -1756,29 +1785,39 @@ Interface.definePanels(function() {
 		
 					<div id="display_sliders">
 						
-						<p>${ tl('display.rotation') }</p><div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.rotation') }</p>
+							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
+						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
 							<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
-							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation');save()" @mousedown="start()">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation')" @focusout="focusout(axis, 'rotation');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
-						<p>${ tl('display.translation') }</p><div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.translation') }</p>
+							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
+							</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
 							<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 								v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
 								value="0" @input="change(axis, 'translation')" @mousedown="start()" @change="save">
-							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation');save()" @mousedown="start()">
+							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation')" @focusout="focusout(axis, 'translation');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
-		
-						<p>${ tl('display.scale') }</p><div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+
+						<div class="bar display_slot_section_bar">
+							<p>${ tl('display.scale') }</p>
+							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
@@ -1787,12 +1826,14 @@ Interface.definePanels(function() {
 								v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
-							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale');save()" @mousedown="start()">
+							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()">
 							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
 						<template v-if="reference_model == 'player'">
-							<p>${ tl('display.pose_angle') }</p>
+							<div class="bar display_slot_section_bar">
+								<p>${ tl('display.pose_angle') }</p>
+							</div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" value="0">

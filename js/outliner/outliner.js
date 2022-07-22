@@ -78,16 +78,16 @@ Object.defineProperty(window, 'selected', {
 });
 //Colors
 var markerColors = [
-	{pastel: "#A2EBFF", standard: "#58C0FF", name: 'light_blue'},
-	{pastel: "#FFF899", standard: "#F4D714", name: 'yellow'},
-	{pastel: "#F1BB75", standard: "#EC9218", name: 'orange'},
-	{pastel: "#FF9B97", standard: "#FA565D", name: 'red'},
-	{pastel: "#C5A6E8", standard: "#B55AF8", name: 'purple'},
-	{pastel: "#A6C8FF", standard: "#4D89FF", name: 'blue'},
-	{pastel: "#7BFFA3", standard: "#00CE71", name: 'green'},
-	{pastel: "#BDFFA6", standard: "#AFFF62", name: 'lime'},
-	{pastel: "#FFA5D5", standard: "#F96BC5", name: 'pink'},
-	{pastel: "#E0E9FB", standard: "#C7D5F6", name: 'silver'}
+	{pastel: "#A2EBFF", standard: "#58C0FF", id: 'light_blue'},
+	{pastel: "#FFF899", standard: "#F4D714", id: 'yellow'},
+	{pastel: "#F1BB75", standard: "#EC9218", id: 'orange'},
+	{pastel: "#FF9B97", standard: "#FA565D", id: 'red'},
+	{pastel: "#C5A6E8", standard: "#B55AF8", id: 'purple'},
+	{pastel: "#A6C8FF", standard: "#4D89FF", id: 'blue'},
+	{pastel: "#7BFFA3", standard: "#00CE71", id: 'green'},
+	{pastel: "#BDFFA6", standard: "#AFFF62", id: 'lime'},
+	{pastel: "#FFA5D5", standard: "#F96BC5", id: 'pink'},
+	{pastel: "#E0E9FB", standard: "#C7D5F6", id: 'silver'}
 ]
 class OutlinerNode {
 	constructor(uuid) {
@@ -407,6 +407,7 @@ class OutlinerElement extends OutlinerNode {
 		} else {
 			selected.push(copy)
 		}
+		Property.resetUniqueValues(this.constructor, copy);
 		if (Condition(copy.needsUniqueName)) {
 			copy.createUniqueName()
 		}
@@ -414,7 +415,7 @@ class OutlinerElement extends OutlinerNode {
 		return copy;
 	}
 	select(event, isOutlinerClick) {
-		if (Modes.animate && this.constructor != NullObject) return false;
+		if (Modes.animate && !this.constructor.animator) return false;
 		//Shiftv
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
@@ -526,6 +527,7 @@ class OutlinerElement extends OutlinerNode {
 class NodePreviewController {
 	constructor(type, data = {}) {
 		this.type = type;
+		this.events = {};
 		type.preview_controller = this;
 
 		this.updateGeometry = null;
@@ -545,6 +547,8 @@ class NodePreviewController {
 		mesh.visible = element.visibility;
 		mesh.rotation.order = 'ZYX';
 		this.updateTransform(element);
+
+		this.dispatchEvent('setup', {element});
 	}
 	remove(element) {
 		let {mesh} = element;
@@ -557,6 +561,8 @@ class NodePreviewController {
 			}
 		}
 		delete Project.nodes_3d[element.uuid];
+
+		this.dispatchEvent('remove', {element});
 	}
 	updateAll(element) {
 		if (!element.mesh) this.setup(element);
@@ -566,6 +572,8 @@ class NodePreviewController {
 		if (this.updateUV) this.updateUV(element);
 		if (this.updateFaces) this.updateFaces(element);
 		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
+
+		this.dispatchEvent('update_all', {element});
 	}
 	updateTransform(element) {
 		let mesh = element.mesh;
@@ -604,14 +612,43 @@ class NodePreviewController {
 		}
 
 		mesh.updateMatrixWorld();
+
+		this.dispatchEvent('update_transform', {element});
 	}
 	updateVisibility(element) {
 		element.mesh.visible = element.visibility;
+
+		this.dispatchEvent('update_visibility', {element});
 	}
 	updateSelection(element) {
 		let {mesh} = element;
 		if (mesh && mesh.outline) {
 			mesh.outline.visible = element.selected
+		}
+
+		this.dispatchEvent('update_selection', {element});
+	}
+
+	//Events
+	dispatchEvent(event_name, data) {
+		if (!this.events) return;
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
+			}
+		}
+	}
+	on(event_name, cb) {
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
+		}
+		this.events[event_name].safePush(cb)
+	}
+	removeListener(event_name, cb) {
+		if (this.events[event_name]) {
+			this.events[event_name].remove(cb);
 		}
 	}
 }
@@ -987,7 +1024,7 @@ BARS.defineActions(function() {
 				return {
 					name: group.name,
 					icon: 'folder',
-					color: markerColors[group.color] && markerColors[group.color].standard,
+					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
 					click(event) {
 						moveOutlinerSelectionTo(element, group, event);
 						element.showInOutliner();
@@ -1041,7 +1078,7 @@ BARS.defineActions(function() {
 				'-1': 'generic.all'
 			}
 			markerColors.forEach((color, i) => {
-				color_options[i] = 'cube.color.' + color.name;
+				color_options[i] = color.name || 'cube.color.' + color.id;
 			})
 			let type_options = {
 				all: 'generic.all'
@@ -1140,37 +1177,59 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 'a', ctrl: true}),
-		click: function () {selectAll()}
+		click() {selectAll()}
+	})
+	new Action('unselect_all', {
+		icon: 'border_clear',
+		category: 'edit',
+		condition: () => !Modes.display,
+		click() {
+			if (Modes.animate) {
+				unselectAllKeyframes()
+			} else if (Prop.active_panel == 'uv') {
+				this.vue.selected_faces.empty();
+				UVEditor.displayTools();
+		
+			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
+				Mesh.selected.forEach(mesh => {
+					delete Project.selected_vertices[mesh.uuid];
+				})
+				updateSelection();
+		
+			} else if (Modes.edit || Modes.paint) {
+				unselectAll()
+			}
+			Blockbench.dispatchEvent('select_all')
+		}
 	})
 
-	let enabled = false;
-	let were_hidden_before = [];
 	new Action('hide_everything_except_selection', {
 		icon: 'fa-glasses',
 		category: 'view',
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
-			enabled = !enabled;
+			let enabled = !Project.only_hidden_elements;
 
-			let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && (!el.selected || were_hidden_before.includes(el.uuid)));
-			Undo.initEdit({elements: affected})
-			affected.forEach(el => {
-				if (enabled) {
-					if (el.visibility) were_hidden_before.push(el.uuid);
-					el.visibility = !!el.selected;
-				} else {
-					el.visibility = were_hidden_before.includes(el.uuid);
-				}
-			})
-			if (!enabled) were_hidden_before.empty();
+			if (Project.only_hidden_elements) {
+				let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && Project.only_hidden_elements.includes(el.uuid));
+				Undo.initEdit({elements: affected})
+				affected.forEach(el => {
+					el.visibility = true;
+				})
+				delete Project.only_hidden_elements;
+			} else {
+				let affected = Project.elements.filter(el => typeof el.visibility == 'boolean' && !el.selected && el.visibility);
+				Undo.initEdit({elements: affected})
+				affected.forEach(el => {
+					el.visibility = false;
+				})
+				Project.only_hidden_elements = affected.map(el => el.uuid);
+			}
+
 			Canvas.updateVisibility();
 			Undo.finishEdit('Toggle visibility on everything except selection');
 		}
-	})
-	Blockbench.on('unselect_project', () => {
-		enabled = false;
-		were_hidden_before.empty();
 	})
 })
 
@@ -1194,7 +1253,7 @@ Interface.definePanels(function() {
 				<i v-else class="outliner_opener_placeholder"></i>
 
 				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
-					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color].pastel}"
+					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color % markerColors.length].pastel}"
 					v-on:dblclick.stop="doubleClickIcon(node)"
 				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +

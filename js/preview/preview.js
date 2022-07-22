@@ -3,7 +3,7 @@ var scene,
 	Sun, lights,
 	Transformer,
 	canvas_scenes,
-	display_scene, display_area, display_base;
+	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
 var quad_previews = {};
@@ -475,9 +475,7 @@ class Preview {
 	render() {
 		this.controls.update()
 		this.renderer.render(
-			display_mode
-				? display_scene
-				: scene,
+			scene,
 			this.camera
 		)
 	}
@@ -957,7 +955,7 @@ class Preview {
 			}
 			return true;
 		}
-		if (typeof Toolbox.selected.onCanvasClick === 'function') {
+		if (is_canvas_click && typeof Toolbox.selected.onCanvasClick === 'function') {
 			Toolbox.selected.onCanvasClick({event})
 		}
 
@@ -1081,7 +1079,7 @@ class Preview {
 		if (this.movingBackground) {
 			if (event.shiftKey || Pressing.overrides.shift || (event.touches && event.touches.length >= 2)) {
 				let diff = event.clientY - this.selection.client_y;
-				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 0, 10e3)
+				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
 			} else {
 				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
 				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
@@ -1152,11 +1150,17 @@ class Preview {
 						}
 
 						let vertex_points = {};
+						let is_on_screen = false;
 						for (let vkey in element.vertices) {
 							let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
 							vertex_points[vkey] = point;
+							if (point[0] >= 0 && point[0] <= scope.width && point[1] >= 0 && point[1] <= scope.height) {
+								is_on_screen = true;
+							}
 						}
-						if (selection_mode == 'vertex') {
+						if (!is_on_screen) {
+
+						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
 								if (
@@ -1229,20 +1233,26 @@ class Preview {
 							mesh.localToWorld(vector);
 							return projectPoint(vector);
 						})
-						isSelected = lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+						let is_on_screen = vertices.find(vertex => {
+							return (vertex[0] >= 0 && vertex[0] <= scope.width
+								 && vertex[1] >= 0 && vertex[1] <= scope.height);
+						})
+						isSelected = is_on_screen && (
+							   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
 
-								  || lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
 
-								  || lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
-								  || lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+							|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+						);
 					}
 
 				} else if (element.mesh) {
@@ -1321,7 +1331,7 @@ class Preview {
 	clearBackground() {
 		this.loadBackground()
 		this.background.image = false
-		this.background.size = limitNumber(this.background.size, 100, 2400)
+		this.background.size = limitNumber(this.background.size, 40, 2400)
 		this.background.x = limitNumber(this.background.x, 0, this.width-30)
 		this.background.y = limitNumber(this.background.y, 0, this.height-30)
 		this.loadBackground()
@@ -1380,7 +1390,7 @@ class Preview {
 			title: tl('message.set_background_position.title'),
 			form: {
 				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size}
+				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 40, max: 10000}
 			},
 			onConfirm(form) {
 				if (!scope.background) return;
@@ -1404,7 +1414,7 @@ class Preview {
 		}
 		Preview.selected = this;
 		quad_previews.enabled = false;
-		$('#preview').empty()
+		$('#preview > .quad_canvas_wrapper, #preview > .single_canvas_wrapper').remove()
 
 		var wrapper = $('<div class="single_canvas_wrapper"></div>')
 		wrapper.append(this.node)
@@ -1895,17 +1905,14 @@ function initCanvas() {
 	
 	//Objects
 	scene = Canvas.scene = new THREE.Scene();
-	display_scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
 
-	display_scene.add(display_area)
 	display_area.add(display_base)
 
 	scene.name = 'scene'
 	display_base.name = 'display_base'
 	display_area.name = 'display_area'
-	display_scene.name = 'display_scene'
 
 	scene.add(Vertexsnap.vertex_gizmos)
 	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
@@ -2000,18 +2007,18 @@ function animate() {
 function updateShading() {
 	Canvas.updateLayeredTextures();
 	scene.remove(lights)
-	display_scene.remove(lights)
 	Sun.intensity = settings.brightness.value/50;
 	if (settings.shading.value === true) {
 		Sun.intensity *= 0.5;
-		let parent = display_mode ? display_scene : scene;
+		let parent = scene;
 		parent.add(lights);
 		lights.position.copy(parent.position).multiplyScalar(-1);
 	}
 	Texture.all.forEach(tex => {
 		let material = tex.getMaterial();
 		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+		material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 	})
 	Canvas.emptyMaterials.forEach(material => {
 		material.uniforms.SHADE.value = settings.shading.value;
@@ -2112,15 +2119,21 @@ BARS.defineActions(function() {
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
-		condition: () => !Modes.display,
 		click: function () {
+			if (!Project) return;
 			if (Prop.active_panel == 'uv') {
 				UVEditor.focusOnSelection()
 
 			} else {
 				let preview = quad_previews.current;
-				let center = new THREE.Vector3().fromArray(getSelectionCenter());
-				center.add(scene.position);
+				if (!preview.controls.enabled) return;
+				let center = new THREE.Vector3();
+				if (!Modes.display) {
+					center.fromArray(getSelectionCenter());
+					center.add(scene.position);
+				} else {
+					Transformer.getWorldPosition(center)
+				}
 
 				let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
 				difference.divideScalar(6)

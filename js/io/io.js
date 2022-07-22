@@ -440,18 +440,25 @@ function compileJSON(object, options) {
 		} else if (o instanceof Array) {
 			//Array
 			let has_content = false
-			let has_objects = !!o.find(item => typeof item === 'object');
+			let multiline = !!o.find(item => typeof item === 'object');
+			if (!multiline) {
+				let length = 0;
+				o.forEach(item => {
+					length += typeof item === 'string' ? (item.length+4) : 3;
+				});
+				if (length > 140) multiline = true;
+			}
 			out += '['
 			for (var i = 0; i < o.length; i++) {
 				var compiled = handleVar(o[i], tabs+1)
 				if (compiled) {
-					if (has_content) {out += ',' + ((options.small || has_objects) ? '' : ' ')}
-					if (has_objects) {out += newLine(tabs)}
+					if (has_content) {out += ',' + ((options.small || multiline) ? '' : ' ')}
+					if (multiline) {out += newLine(tabs)}
 					out += compiled
 					has_content = true
 				}
 			}
-			if (has_objects) {out += newLine(tabs-1)}
+			if (multiline) {out += newLine(tabs-1)}
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
@@ -559,7 +566,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		click() {
 			Blockbench.textPrompt('action.open_from_link', '', link => {
-				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4) {
+				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4 || link.length == 6) {
 					let code = link.replace(/[/]+/g, '').substr(-4);
 					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
 						Codecs.project.load(model, {path: ''});
@@ -573,7 +580,7 @@ BARS.defineActions(function() {
 						Blockbench.showQuickMessage('message.invalid_link')
 					})
 				}
-			}, 'https://blckbn.ch/1234')
+			}, 'https://blckbn.ch/123abc')
 		}
 	})
 	new Action('extrude_texture', {
@@ -666,11 +673,22 @@ BARS.defineActions(function() {
 	new Action('share_model', {
 		icon: 'share',
 		condition: () => Outliner.elements.length,
-		click() {
+		async click() {
+			let thumbnail = await new Promise(resolve => {
+				Preview.selected.screenshot({width: 640, height: 480}, resolve);
+			});
+			let image = new Image();
+			image.src = thumbnail;
+			image.width = 320;
+			image.style.display = 'block';
+			image.style.margin = 'auto';
+			image.style.backgroundColor = 'var(--color-back)';
+
 			var dialog = new Dialog({
 				id: 'share_model',
 				title: 'dialog.share_model.title',
 				form: {
+					name: {type: 'text', label: 'generic.name', value: Project.name},
 					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
 						'10m': tl('dates.minutes', [10]),
 						'1h': tl('dates.hour', [1]),
@@ -679,17 +697,26 @@ BARS.defineActions(function() {
 						'1w': tl('dates.week', [1]),
 						'2w': tl('dates.weeks', [2]),
 					}},
-					info: {type: 'info', text: 'The model will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'}
+					info: {type: 'info', text: 'The model and thumbnail will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'},
+					thumbnail: {type: 'checkbox', label: 'dialog.share_model.thumbnail', value: true},
+				},
+				lines: [image],
+				part_order: ['form', 'lines'],
+				onFormChange(form) {
+					image.style.display = form.thumbnail ? 'block' : 'none';
 				},
 				buttons: ['generic.share', 'dialog.cancel'],
 				onConfirm: function(formResult) {
 		
+					let name = formResult.name;
 					let expire_time = formResult.expire_time;
 					let model = Codecs.project.compile({compressed: false});
+					let data = {name, expire_time, model}
+					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
 					$.ajax({
 						url: 'https://blckbn.ch/api/model',
-						data: JSON.stringify({ expire_time, model }),
+						data: JSON.stringify(data),
 						cache: false,
 						contentType: 'application/json; charset=utf-8',
 						dataType: 'json',

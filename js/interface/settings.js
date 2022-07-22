@@ -214,7 +214,7 @@ const Settings = {
 		//Preview 
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
-			updateShading()
+			Canvas.updateShading()
 		}});
 		new Setting('antialiasing', 	{category: 'preview', value: true});
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
@@ -249,6 +249,9 @@ const Settings = {
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
+		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
+			DisplayMode.vue.allow_mirroring = value;
+		}})
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
 		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
 		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
@@ -264,7 +267,7 @@ const Settings = {
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
-		new Setting('display_grid',		{category: 'grid', value: false});
+		//new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
 		}});
@@ -308,6 +311,7 @@ const Settings = {
 		new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
 		new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
 		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
+		new Setting('dialog_invalid_characters',{category: 'dialogs', value: true, name: tl('message.invalid_characters.title'), description: tl('settings.dialog.desc', [tl('message.invalid_characters.title')])});
 		
 		//Application
 		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
@@ -376,12 +380,12 @@ const Settings = {
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
-			||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
+			||hasSettingChanged('large_box') || hasSettingChanged('edit_size')) {
 			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 		if (hasSettingChanged('brightness')) {
-			updateShading()
+			Canvas.updateShading()
 		}
 		for (var id in settings) {
 			var setting = settings[id];
@@ -409,6 +413,15 @@ const Settings = {
 			return settings[id].value;
 		}
 	},
+	openDialog(options = {}) {
+		for (var sett in settings) {
+			if (settings.hasOwnProperty(sett)) {
+				Settings.old[sett] = settings[sett].value
+			}
+		}
+		Settings.dialog.show();
+		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
+	},
 	old: {}
 }
 Settings.setup()
@@ -423,7 +436,7 @@ function updateStreamerModeNotification() {
 			text_color: 'var(--color-light)',
 			text: [
 				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
-					ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
+					Settings.openDialog({search_term: tl('settings.streamer_mode')})
 				}}
 			]
 		})
@@ -632,9 +645,7 @@ onVueSetup(function() {
 
 							<template v-else-if="setting.type === 'select'">
 								<div class="bar_select">
-									<select v-model="setting.value">
-										<option v-for="(text, id) in setting.options" v-bind:value="id">{{ text }}</option>
-									</select>
+									<select-input v-model="setting.value" :options="setting.options" />
 								</div>
 							</template>
 						</li>

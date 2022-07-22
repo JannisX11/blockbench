@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.2.5",
+	"version": "4.3.0",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -82,7 +82,8 @@
 				"rpm",
 				"appImage"
 			],
-			"category": "3DGraphics"
+			"category": "3DGraphics",
+			"icon": "build/icon.icns"
 		},
 		"fileAssociations": [
 			{
@@ -104,8 +105,8 @@
 	},
 	"devDependencies": {
 		"blockbench-types": "^4.0.0",
-		"electron": "^17.4.1",
-		"electron-builder": "^23.0.3",
+		"electron": "^19.0.7",
+		"electron-builder": "^23.1.0",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.21.2",
 		"webpack-cli": "^4.5.0",

@@ -490,6 +490,7 @@ var format = new ModelFormat({
 	id: 'bedrock_old',
 	extension: 'json',
 	icon: 'icon-format_bedrock_legacy',
+	category: 'minecraft',
 	show_on_start_screen: false,
 	box_uv: true,
 	single_texture: true,
@@ -500,8 +501,12 @@ var format = new ModelFormat({
 	animation_mode: true,
 	locators: true,
 	codec,
+	onSetup(project) {
+		if (isApp) {
+			project.BedrockEntityManager = new BedrockEntityManager(project);
+		}
+	}
 })
-//Object.defineProperty(format, 'single_texture', {get: _ => !settings.layered_textures.value})
 codec.format = format;
 
 BARS.defineActions(function() {

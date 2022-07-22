@@ -655,16 +655,18 @@ class Mesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		'_',
 		'rename',
-		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
-			icon: 'bubble_chart',
-			color: color.standard,
-			name: 'cube.color.'+color.name,
-			click(cube) {
-				cube.forSelected(function(obj){
-					obj.setColor(i)
-				}, 'change color')
-			}
-		}})},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return markerColors.map((color, i) => {return {
+				icon: 'bubble_chart',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click(cube) {
+					cube.forSelected(function(obj){
+						obj.setColor(i)
+					}, 'change color')
+				}
+			}})
+		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
@@ -738,6 +740,8 @@ new NodePreviewController(Mesh, {
 		this.updateFaces(element);
 		this.updateUV(element);
 		mesh.visible = element.visibility;
+
+		this.dispatchEvent('setup', {element});
 	},
 	updateGeometry(element) {
 		
@@ -836,6 +840,8 @@ new NodePreviewController(Mesh, {
 		if (Modes.paint) {
 			Mesh.preview_controller.updatePaintingGrid(element);
 		}
+
+		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -909,6 +915,8 @@ new NodePreviewController(Mesh, {
 			mesh.material = materials;
 			if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 		}
+
+		this.dispatchEvent('update_faces', {element});
 	},
 	updateUV(element, animation = true) {
 		var {mesh} = element;
@@ -929,6 +937,8 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv_array), 2)), 
 		mesh.geometry.attributes.uv.needsUpdate = true;
+
+		this.dispatchEvent('update_uv', {element});
 
 		return mesh.geometry;
 	},
@@ -987,6 +997,8 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.needsUpdate = true;
 		
 		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
+
+		this.dispatchEvent('update_selection', {element});
 	},
 	updateHighlight(element, hover_cube, force_off) {
 		var mesh = element.mesh;
@@ -1017,6 +1029,8 @@ new NodePreviewController(Mesh, {
 
 		mesh.geometry.attributes.highlight.array.set(array);
 		mesh.geometry.attributes.highlight.needsUpdate = true;
+
+		this.dispatchEvent('update_highlight', {element});
 	},
 	updatePaintingGrid(element) {
 		var mesh = element.mesh;
@@ -1082,6 +1096,8 @@ new NodePreviewController(Mesh, {
 		box.frustumCulled = false;
 		mesh.grid_box = box;
 		mesh.add(box);
+
+		this.dispatchEvent('update_painting_grid', {element});
 	}
 })
 

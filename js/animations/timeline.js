@@ -27,13 +27,32 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
-	
-	...markerColors.map((color, i) => {return {
-		icon: 'flag',
-		color: color.standard,
-		name: 'cube.color.'+color.name,
-		click(marker) {marker.color = i;}
-	}}),
+	{name: 'menu.cube.color', icon: 'color_lens', children() {
+		return [
+			...markerColors.map((color, i) => {return {
+				icon: 'flag',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click(marker) {marker.color = i;}
+			}})
+		];
+	}},
+	{
+		name: 'menu.timeline_marker.set_time',
+		icon: 'schedule',
+		click(marker) {
+			new Dialog({
+				id: 'timeline_marker_set_time',
+				title: 'menu.timeline_marker.set_time',
+				form: {
+					time: {label: 'action.slider_keyframe_time', value: Math.roundTo(marker.time, 4), type: 'number', min: 0}
+				},
+				onConfirm(form) {
+					marker.time = form.time;
+				}
+			}).show();
+		}
+	},
 	'_',
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
@@ -264,6 +283,7 @@ const Timeline = {
 
 				convertTouchEvent(e);
 				Timeline.dragging_playhead = true;
+				if (Timeline.playing) Timeline.pause();
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
@@ -609,6 +629,7 @@ Interface.definePanels(() => {
 				graph_offset: 200,
 				graph_size: 200,
 				show_zero_line: true,
+				loop_graph: '',
 
 				channels: {
 					rotation: true,
@@ -632,6 +653,7 @@ Interface.definePanels(() => {
 				graph() {
 					let ba = this.graph_editor_animator;
 					if (!ba || !ba[this.graph_editor_channel] || !ba[this.graph_editor_channel].length) {
+						this.loop_graph = '';
 						return '';
 					}
 					let original_time = Timeline.time;
@@ -640,20 +662,28 @@ Interface.definePanels(() => {
 					let clientHeight = this.$refs.timeline_body ? this.$refs.timeline_body.clientHeight : 400;
 					let keyframes = ba[this.graph_editor_channel];
 					let points = [];
+					let loop_points = [];
 					let min = this.show_zero_line ? -1 : 10000,
 						max = this.show_zero_line ? 1 : -10000;
 
 					for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 						Timeline.time = time / this.size;
+
 						let snap_kf = keyframes.find(kf => Timeline.time <= kf.time && Timeline.time > kf.time - step / this.size );
 						if (snap_kf) {
 							Timeline.time = snap_kf.time;
 						}
 						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
-						points.push(value);
-						min = Math.min(min, value);
-						max = Math.max(max, value);
 						if (snap_kf) snap_kf.display_value = value;
+						
+						if (Timeline.time > Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
+							if (points.length && !loop_points.length) loop_points.push(points.last())
+							loop_points.push(value);
+						} else {
+							points.push(value);
+							min = Math.min(min, value);
+							max = Math.max(max, value);
+						}
 					}
 					
 					Timeline.time = original_time;
@@ -669,6 +699,14 @@ Interface.definePanels(() => {
 					points.forEach((value, i) => {
 						string += `${string.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
 					})
+
+					this.loop_graph = '';
+					if (loop_points.length) {
+						loop_points.forEach((value, i) => {
+							i = i + points.length - 1;
+							this.loop_graph += `${this.loop_graph.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+						})
+					}
 
 					return string;
 				}
@@ -741,7 +779,7 @@ Interface.definePanels(() => {
 				},
 				getColor(index) {
 					if (index == -1 || index == undefined) return;
-					return markerColors[index].standard;
+					return markerColors[index % markerColors.length].standard;
 				},
 				getWaveformPoints(samples, size) {
 					let height = 23;
@@ -925,7 +963,8 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
-				trimFloatNumber
+				trimFloatNumber,
+				a() {console.trace('nee')}
 			},
 			watch: {
 				size() {this.updateTimecodes()},
@@ -960,7 +999,7 @@ Interface.definePanels(() => {
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"
-									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color].standard}"
+									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color % markerColors.length].standard}"
 									@contextmenu.prevent="marker.showContextMenu($event)"
 									v-on:click="marker.callPlayhead()"
 								></div>
@@ -1049,6 +1088,7 @@ Interface.definePanels(() => {
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
+									<path :d="loop_graph" class="loop_graph" style="stroke: var(--color-grid);"></path>
 									<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
 								</svg>
 								<template v-if="graph_editor_animator">
@@ -1062,7 +1102,7 @@ Interface.definePanels(() => {
 										v-on:dblclick="keyframe.callPlayhead()"
 										:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-										@contextmenu.prevent="keyframe.showContextMenu($event)"
+										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
@@ -1181,8 +1221,14 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 36}),
 		click: function () {
-			Timeline.setTime(0)
-			Animator.preview()
+			let was_playing = Timeline.playing;
+			if (Timeline.playing) Timeline.pause();
+			Timeline.setTime(0);
+			if (was_playing) {
+				Timeline.start();
+			} else {
+				Animator.preview();
+			}
 		}
 	})
 
@@ -1192,37 +1238,43 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		keybind: new Keybind({key: 35}),
 		click: function () {
+			let was_playing = Timeline.playing;
+			if (Timeline.playing) Timeline.pause();
 			Timeline.setTime(Animation.selected ? Animation.selected.length : 0)
-			Animator.preview()
+			if (was_playing) {
+				Timeline.start();
+			} else {
+				Animator.preview();
+			}
 		}
 	})
 	new Action('timeline_frame_back', {
 		icon: 'arrow_back',
 		category: 'animation',
-		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
+		condition: {modes: ['animate', 'edit', 'paint'], method: () => (Modes.animate || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 188}),
 		click: function (e) {
-			if (Modes.edit) {
-				BarItems.animated_texture_frame.change(v => v - 1);
-			} else {
+			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
 				Animator.preview()
+			} else {
+				BarItems.animated_texture_frame.change(v => v - 1);
 			}
 		}
 	})
 	new Action('timeline_frame_forth', {
 		icon: 'arrow_forward',
 		category: 'animation',
-		condition: {modes: ['animate', 'edit'], method: () => (!Modes.edit || Interface.Panels.textures.inside_vue.maxFrameCount())},
+		condition: {modes: ['animate', 'edit', 'paint'], method: () => (Modes.animate || Interface.Panels.textures.inside_vue.maxFrameCount())},
 		keybind: new Keybind({key: 190}),
 		click: function (e) {
-			if (Modes.edit) {
-				BarItems.animated_texture_frame.change(v => v + 1);
-			} else {
+			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
 				Animator.preview()
+			} else {
+				BarItems.animated_texture_frame.change(v => v + 1);
 			}
 		}
 	})

@@ -17,6 +17,7 @@
 	<link rel="stylesheet" href="css/setup.css">
 	<link rel="stylesheet" href="css/general.css">
 	<link rel="stylesheet" href="css/window.css">
+	<link rel="stylesheet" href="css/start_screen.css">
 	<link rel="stylesheet" href="css/panels.css">
 	<link rel="stylesheet" href="css/dialogs.css">
 	<style type="text/css" id="theme_css"></style>
@@ -25,7 +26,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '4.2.5';
+		const appVersion = '4.3.0';
 
 		
 		if (localStorage.getItem('theme')) {
@@ -87,6 +88,7 @@
 		<script src="js/modes.js"></script>
 		<script src="js/api.js"></script>
 		<script src="js/file_system.js"></script>
+		<script src="js/interface/vue_components.js"></script>
 		<script src="js/interface/panels.js"></script>
 		<script src="js/interface/interface.js"></script>
 		<script src="js/interface/start_screen.js"></script>
@@ -130,12 +132,14 @@
 		<script src="js/animations/timeline_animators.js"></script>
 		<script src="js/animations/keyframe.js"></script>
 		<script src="js/animations/timeline.js"></script>
+		<script src="js/preview/preview_scenes.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
 		<script src="js/io/codec.js"></script>
 		<script src="js/io/format.js"></script>
 		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
+		<script src="js/io/formats/generic.js"></script>
 		<script src="js/io/formats/bbmodel.js"></script>
 		<script src="js/io/formats/java_block.js"></script>
 		<script src="js/io/formats/bedrock.js"></script>
@@ -364,7 +368,10 @@
 			<li onclick="currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()"><i class="material-icons">crop_square</i><!--🗖--></li>
 			<li class="wwm_r" onclick="currentwindow.close()"><i class="material-icons">clear</i></li>
 		</ul>
-		<button id="web_download_button" hidden><a class="tl" href="https://blockbench.net/downloads">web.download_app</a></button>
+		<button id="web_download_button" hidden><a href="https://blockbench.net/downloads">
+			<span class="tl">web.download_app</span>
+			<i class="material-icons">system_update</i>
+		</a></button>
 	</header>
 	
 
@@ -384,7 +391,7 @@
 						move_back:  (drag_position_index !== null && index > drag_target_index && drag_position_index >= index),
 						move_forth: (drag_position_index !== null && index < drag_target_index && drag_position_index <= index)
 					}"
-					:title="project.name || project.geometry_name"
+					:title="project.name || project.geometry_name || ''"
 					@dblclick="project.openSettings()"
 					@mousedown="mouseDown(project, $event)"
 					@mouseup="mouseUp(project, $event)"

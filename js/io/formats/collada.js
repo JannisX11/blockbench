@@ -580,8 +580,8 @@ var codec = new Codec('collada', {
 			root.push(processNode(node))
 		})
 
-		/*
-		let compiled_animations = Codecs.gltf.buildAnimationTracks();
+		
+		let compiled_animations = Codecs.gltf.buildAnimationTracks(false);
 		if (compiled_animations.length) {
 			let animations_tag = {
 				type: 'library_animations',
@@ -591,24 +591,124 @@ var codec = new Codec('collada', {
 				type: 'library_animation_clips',
 				content: []
 			}
+
+			let animators = {};
+			let time_offset = 0;
+
 			compiled_animations.forEach(anim_obj => {
+				if (anim_obj.duration < 0.01) return;
+				
+				anim_obj.tracks.forEach(track => {
+					if (!animators[track.group_uuid]) animators[track.group_uuid] = {}
+					if (!animators[track.group_uuid][track.channel]) {
+						animators[track.group_uuid][track.channel] = {
+							animations_added: [],
+							times: [],
+						}
+					}
+				});
+			});
+
+			compiled_animations.forEach((anim_obj, anim_i) => {
+				if (anim_obj.duration < 0.01) return;
+				
+				anim_obj.tracks.forEach(track => {
+
+					let track_channel = animators[track.group_uuid][track.channel];
+					track_channel.times.push(...track.times.map(t => t + time_offset));
+					track_channel.animations_added.push(anim_i);
+
+					let add_keyframe_at_end = track.times[track.times.length-1] - anim_obj.duration <= 0.1;
+					if (add_keyframe_at_end) track_channel.times.push(anim_obj.duration + time_offset);
+					
+					if (track.channel == 'rotation') {
+						if (!track_channel.values) track_channel.values = {};
+						['X', 'Y', 'Z'].forEach((axis, axis_i) => {
+							if (!track_channel.values[axis]) track_channel.values[axis] = [];
+							let axis_values = track.values.filter((v, i) => {
+								return i % 3 == axis_i;
+							}).map(v => Math.radToDeg(v));
+							track_channel.values[axis].push(...axis_values);
+							if (add_keyframe_at_end) {
+								track_channel.values[axis].push(...track_channel.values[axis].slice(-1));
+							}
+						})
+					} else {
+						if (!track_channel.values) track_channel.values = [];
+						track_channel.values.push(...track.values);
+						if (add_keyframe_at_end) {
+							track_channel.values.push(...track_channel.values.slice(-3));
+						}
+					}
+				})
+
+				for (let uuid in animators) {
+					let group = Group.all.find(group => group.uuid == uuid);
+					
+					for (let channel in animators[uuid]) {
+						let track_channel = animators[uuid][channel];
+						if (track_channel.animations_added.includes(anim_i)) {
+							continue;
+						} else {
+							track_channel.times.push(time_offset, time_offset+anim_obj.duration);
+
+							if (channel == 'rotation') {
+								if (!track_channel.values) track_channel.values = {};
+								['X', 'Y', 'Z'].forEach((axis, axis_i) => {
+									if (!track_channel.values[axis]) track_channel.values[axis] = [];
+									track_channel.values[axis].push(0, 0);
+								})
+							} else if (channel == 'scale') {
+								if (!track_channel.values) track_channel.values = [];
+								track_channel.values.push(1, 1, 1, 1, 1, 1);
+							} else {
+								if (!track_channel.values) track_channel.values = [];
+								let pos = group.origin.slice();
+								if (group.parent instanceof Group) pos.V3_subtract(group.parent.origin);
+								pos.V3_divide(16);
+								track_channel.values.push(...pos, ...pos);
+							}
+						}
+					}
+				}
+
+				let animation_clip_tag = {
+					type: 'animation_clip',
+					attributes: {
+						id: anim_obj.name,
+						name: anim_obj.name,
+						start: time_offset,
+						end: time_offset + anim_obj.duration
+					},
+					/*
+					content: [
+						{type: 'instance_animation', attributes: {url: `#animation-${anim_obj.name}`}}
+					]*/
+				}
+				time_offset += anim_obj.duration + 0.01;
+				animation_clips_tag.content.push(animation_clip_tag)
+			})
+
+			for (let group_uuid in animators) {
 				let anim_tag = {
 					type: 'animation',
 					attributes: {
-						id: `animation-${anim_obj.name}`,
-						name: anim_obj.name
+						id: `animation-${group_uuid}`,
+						name: group_uuid
 					},
 					content: []
 				}
-				anim_obj.tracks.forEach(track => {
-					let group = OutlinerNode.uuids[track.group_uuid];
-					let collada_channel = track.channel;
+				for (let channel in animators[group_uuid]) {
+					let track = animators[group_uuid][channel];
+					let group = OutlinerNode.uuids[group_uuid];
+					let collada_channel = channel;
 					if (collada_channel == 'position') collada_channel = 'location';
+					if (collada_channel == 'rotation') collada_channel = 'rotation_euler';
 					let track_name = `${group.name}_${collada_channel}`
 
 					let track_tag = {
 						type: 'animation',
-						attributes: {id: `${group.name}`, name: group.name},
+						attributes: {id: `${track_name}`, name: track_name},
 						content: [
 							{
 								type: 'source',
@@ -629,6 +729,50 @@ var codec = new Codec('collada', {
 									}
 								]
 							},
+						]
+					}
+					if (channel == 'rotation') {
+						['X', 'Y', 'Z'].forEach((axis, axis_i) => {
+							let axis_values = track.values[axis];
+							track_tag.content.push(
+								{
+									type: 'source',
+									attributes: {id: track_name+'_'+axis+'-output'},
+									content: [
+										{
+											type: 'float_array',
+											attributes: {id: track_name+'_'+axis+'-output-array', count: axis_values.length},
+											content: arrangeArray(axis_values)
+										},
+										{
+											type: 'technique_common',
+											content: {
+												type: 'accessor',
+												attributes: {source: '#'+track_name+'_'+axis+'-output-array', count: axis_values.length, stride: 1},
+												content: [
+													{type: 'param', attributes: {name: 'ANGLE', type: 'float'}},
+												]
+											}
+										}
+									]
+								},
+								{
+									type: 'sampler',
+									attributes: {id: `${track_name+'_'+axis}-sampler`},
+									content: [
+										{type: 'input', attributes: {semantic: 'INPUT', source: '#'+track_name+'-input'}},
+										{type: 'input', attributes: {semantic: 'OUTPUT', source: '#'+track_name+'_'+axis+'-output'}},
+										//{type: 'input', attributes: {semantic: 'INTERPOLATION', source: '#'+track_name+'-interpolation'}},
+									]
+								},
+								{
+									type: 'channel',
+									attributes: {source: `#${track_name+'_'+axis}-sampler`, target: `${group.uuid}/rotation${axis}.ANGLE`}
+								}
+							)
+						})
+					} else {
+						track_tag.content.push(
 							{
 								type: 'source',
 								attributes: {id: track_name+'-output'},
@@ -660,28 +804,22 @@ var codec = new Codec('collada', {
 									{type: 'input', attributes: {semantic: 'OUTPUT', source: '#'+track_name+'-output'}},
 									//{type: 'input', attributes: {semantic: 'INTERPOLATION', source: '#'+track_name+'-interpolation'}},
 								]
+							},
+							{
+								type: 'channel',
+								attributes: {source: `#${track_name}-sampler`, target: `${group.uuid}/${collada_channel}`}
 							}
-						]
+						)
 					}
-					track_tag.content.push({
-						type: 'channel',
-						attributes: {source: `#${track_name}-sampler`, target: `${group.uuid}/${collada_channel}`}
-					})
-
 					anim_tag.content.push(track_tag)
-				})
-				animations_tag.content.push(anim_tag)
-
-				let animation_clip_tag = {
-					type: 'animation_clip',
-					attributes: {
-						id: anim_obj.name,
-						name: anim_obj.name
-					}
 				}
-			})
+
+				animations_tag.content.push(anim_tag)
+			}
+			
 			model.content.push(animations_tag);
-		}*/
+			model.content.push(animation_clips_tag);
+		}
 
 		scope.dispatchEvent('compile', {model, options});
 		

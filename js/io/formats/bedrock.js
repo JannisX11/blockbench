@@ -186,8 +186,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		}
 	}
 	initAnimations() {
-
-		var anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
+		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
 			for (var key in anim_list) {
@@ -220,11 +219,6 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			})
 		}
 		this.initialized_animations = true;
-	}
-	reset() {
-		delete this.initialized_animations;
-		delete this.client_entity;
-		delete this.root_path;
 	}
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
@@ -320,6 +314,143 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				}
 			}
+		}
+	}
+}
+window.BedrockBlockManager = class BedrockBlockManager {
+	constructor(project) {
+		this.project = project || Project;
+		this.root_path = '';
+	}
+	checkBlockFile(path) {
+		try {
+			var c = fs.readFileSync(path, 'utf-8');
+			if (typeof c === 'string') {
+				c = autoParseJSON(c, false);
+				let main = c && c['minecraft:block'];
+				if (main && main.components && typeof main.components['minecraft:geometry'] == 'string') {
+					var geoname = main.components['minecraft:geometry'];
+					geoname = geoname.replace(/^geometry\./, '');
+					if (geoname == this.project.geometry_name) {
+						main.type = 'block';
+						return main;
+					}
+				} 
+			}
+		} catch (err) {
+			console.log(err);
+			return false;
+		}
+	}
+	getBlockFile() {
+		var path = this.project.export_path.split(osfs);
+		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
+		let rp_dir = path.find(dir => (dir == 'resource_packs' || dir == 'development_resource_packs'));
+		var root_index = path.indexOf(rp_dir);
+		
+		let rp_manifest_path = [...path.slice(0, root_index+2), 'manifest.json'].join(osfs);
+		let rp_manifest_content = autoParseJSON(fs.readFileSync(rp_manifest_path, 'utf-8'), false);
+		let rp_uuid = rp_manifest_content.header.uuid;
+
+		path.splice(root_index);
+		path.push(rp_dir.match(/development/) ? 'development_behavior_packs' : 'behavior_packs');
+		let behavior_packs = fs.readdirSync(path.join(osfs), {withFileTypes: true});
+		let bp_name;
+		for (let dirent of behavior_packs) {
+			if (dirent.isDirectory()) {
+				try {
+					let bp_manifest_path = [...path, dirent.name, 'manifest.json'].join(osfs);
+					let bp_manifest_content = autoParseJSON(fs.readFileSync(bp_manifest_path, 'utf-8'), false);
+					if (bp_manifest_content && bp_manifest_content.dependencies && bp_manifest_content.dependencies[0] && bp_manifest_content.dependencies[0].uuid == rp_uuid) {
+						bp_name = dirent.name;
+						break;
+					}
+				} catch (err) {}
+			}
+		}
+		if (!bp_name) return;
+
+		path.push(bp_name, 'blocks')
+		path = path.join(osfs);
+		var block_path = findExistingFile([
+			path+osfs+name+'.block.json',
+			path+osfs+name+'.json',
+		])
+		if (block_path) {
+			var content = this.checkBlockFile(block_path);
+			if (content) {
+				return content;
+			}
+		} else {
+			let searchFolder = (path) => {
+				try {
+					var files = fs.readdirSync(path);	
+					for (var name of files) {
+						var new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							var result = this.checkBlockFile(new_path);
+							if (result) return result;
+						} else if (!name.includes('.')) {
+							var result = searchFolder(new_path);
+							if (result) return result;
+						}
+					}
+				} catch (err) {}
+			}
+			return searchFolder(path);
+		}
+	}
+	initBlock() {
+		this.rp_root_path = this.project.export_path.replace(/[\\/]models[\\/]blocks[\\/].+/, '');
+		try {
+			this.client_block = this.getBlockFile();
+		} catch (err) {
+			console.error(err);
+		}
+		if (this.client_block && this.client_block.components && this.client_block.components['minecraft:material_instances']) {
+
+			let terrain_texture;
+			try {
+				let terrain_tex_path = this.rp_root_path + osfs + 'textures' + osfs + 'terrain_texture.json';
+				let terrain_tex_content = autoParseJSON(fs.readFileSync(terrain_tex_path, 'utf-8'), false);
+				terrain_texture = terrain_tex_content.texture_data;
+			} catch (err) {
+				console.error(err)
+			}
+
+			let materials = this.client_block.components['minecraft:material_instances'];
+			for (let target in materials) {
+				let material = materials[target];
+				let texture_path = `textures/blocks/${material.texture || this.project.geometry_name}`;
+				if (terrain_texture) {
+					let texture_data = terrain_texture[material.texture];
+					texture_path = texture_data.textures
+				}
+				let full_texture_path = PathModule.join(this.rp_root_path + osfs + texture_path.replace(/\.png$/i, ''));
+				full_texture_path = findExistingFile([
+					full_texture_path+'.png',
+					full_texture_path+'.tga'
+				])
+				if (full_texture_path) {
+					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
+					let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
+
+					Cube.all.forEach(cube => {
+						for (let fkey in cube.faces) {
+							let face = cube.faces[fkey];
+							if (face.texture === null) continue;
+							if (
+								(target == '*') ||
+								(face.material_name && face.material_name.match(target_regex))
+							) {
+								face.texture = texture.uuid;
+							}
+						}
+					})
+				}
+			}
+			Canvas.updateView({elements: Cube.all, element_aspects: {faces: true}})
+			UVEditor.loadData()
 		}
 	}
 }
@@ -594,7 +725,8 @@ function calculateVisibleBox() {
 		Canvas.updateAllBones()
 		setProjectTitle()
 		if (isApp && Project.geometry_name) {
-			Project.BedrockEntityManager.initEntity()
+			if (Format.id == 'bedrock') Project.BedrockEntityManager.initEntity();
+			if (Format.id == 'bedrock_block') Project.BedrockBlockManager.initBlock();
 		}
 		updateSelection()
 	}
@@ -706,7 +838,7 @@ function calculateVisibleBox() {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable && !obj.rotation.allEqual(0)) {
+						if (obj.rotatable) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],
@@ -771,6 +903,23 @@ var codec = new Codec('bedrock', {
 		condition(model) {
 			return model.format_version && !compareVersions('1.12.0', model.format_version)
 		}
+	},
+	load(model, file, add) {
+		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
+		if (!add) {
+			setupProject(is_block ? block_format : entity_format);
+		}
+		if (file.path && isApp && this.remember && !file.no_file ) {
+			var name = pathToName(file.path, true);
+			Project.name = pathToName(name, false);
+			Project.export_path = file.path;
+			addRecentProject({
+				name,
+				path: file.path,
+				icon: Format.icon
+			})
+		}
+		this.parse(model, file.path)
 	},
 	compile(options) {
 		if (options === undefined) options = {}
@@ -891,7 +1040,7 @@ var codec = new Codec('bedrock', {
 	},
 	parse(data, path) {
 		pe_list_data.length = 0
-		if (Format != Formats.bedrock) Formats.bedrock.select()
+		if (Format != Formats.bedrock && Format != Formats.bedrock_block) Formats.bedrock.select()
 
 		var geometries = []
 		for (var geo of data['minecraft:geometry']) {
@@ -1055,10 +1204,22 @@ codec.compileCube = compileCube;
 codec.compileGroup = compileGroup;
 
 
-var format = new ModelFormat({
+var entity_format = new ModelFormat({
 	id: 'bedrock',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
+	category: 'minecraft',
+	target: 'Minecraft: Bedrock Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.bedrock.info.textures')}`},
+			{type: 'h3', text: tl('mode.start.format.resources')},
+			{text: `* [Article on modeling and implementation](https://www.blockbench.net/wiki/guides/bedrock-modeling)
+					* [Modeling Tutorial Series](https://www.youtube.com/watch?v=U9FLteWmFzg&list=PLvULVkjBtg2SezfUA8kHcPUGpxIS26uJR)`.replace(/\t+/g, '')
+			}
+		]
+	},
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
@@ -1068,18 +1229,47 @@ var format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
-	codec
+	codec,
+	onSetup(project) {
+		if (isApp) {
+			project.BedrockEntityManager = new BedrockEntityManager(project);
+		}
+	}
 })
-codec.format = format;
+var block_format = new ModelFormat({
+	id: 'bedrock_block',
+	category: 'minecraft',
+	extension: 'json',
+	icon: 'icon-format_bedrock',
+	show_on_start_screen: false,
+	rotate_cubes: true,
+	box_uv: false,
+	optional_box_uv: true,
+	single_texture: false,
+	bone_rig: true,
+	centered_grid: true,
+	animated_textures: true,
+	animation_files: false,
+	animation_mode: false,
+	texture_meshes: true,
+	codec,
+	onSetup(project) {
+		if (isApp) {
+			project.BedrockBlockManager = new BedrockBlockManager(project);
+		}
+	}
+})
+codec.format = entity_format;
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_bedrock',
-		icon: format.icon,
+		icon: entity_format.icon,
 		category: 'file',
-		condition: () => Format == format,
+		condition: () => Format == entity_format || Format == block_format,
 		click: function () {
 			codec.export()
 		}

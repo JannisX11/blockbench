@@ -135,6 +135,8 @@ new NodePreviewController(TextureMesh, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		mesh.visible = element.visibility;
+
+		this.dispatchEvent('setup', {element});
 	},
 	updateGeometry(element, texture = Texture.getDefault()) {
 		
@@ -280,6 +282,8 @@ new NodePreviewController(TextureMesh, {
 
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
+
+		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -300,11 +304,15 @@ new NodePreviewController(TextureMesh, {
 		}
 
 		TextureMesh.preview_controller.updateGeometry(element);
+
+		this.dispatchEvent('update_faces', {element});
 	},
 	updateTransform(element) {
 		let {mesh} = element;
 		NodePreviewController.prototype.updateTransform(element);
 		mesh.scale.set(1, 1, 1);
+
+		this.dispatchEvent('update_transform', {element});
 	}
 })
 

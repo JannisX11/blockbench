@@ -49,9 +49,20 @@ const Screencam = {
 				return;
 			}
 			
-			if (options.crop !== false && !(display_mode && display_slot === 'gui') && !options.width && !options.height) {
+			if (options.crop !== false && !(display_mode && display_slot === 'gui')) {
 				let frame = new CanvasFrame(preview.canvas);
 				frame.autoCrop()
+
+				if (options.width && options.height) {
+					let new_frame = new CanvasFrame(options.width, options.height)
+					let width = frame.width;
+					let height = frame.height;
+					if (width > options.width)   {height /= width / options.width;  width = options.width;}
+					if (height > options.height) {width /= height / options.height; height = options.height;}
+					new_frame.ctx.drawImage(frame.canvas, (options.width - width)/2, (options.height - height)/2, width, height)
+					frame = new_frame;
+				}
+
 				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
 				return;
 			}

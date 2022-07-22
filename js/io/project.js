@@ -20,7 +20,6 @@ class ModelProject {
 		this.added_models = 0;
 
 		this.undo = new UndoSystem();
-		if (isApp) this.BedrockEntityManager = new BedrockEntityManager(this);
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.view_mode = 'textured';
@@ -114,6 +113,12 @@ class ModelProject {
 			setProjectTitle(this.name);
 		}
 	}
+	get geometry_name() {
+		return this.model_identifier;
+	}
+	set geometry_name(val) {
+		this.model_identifier = val;
+	}
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
 	}
@@ -124,7 +129,7 @@ class ModelProject {
 		return ProjectData[this.uuid].nodes_3d;
 	}
 	getDisplayName() {
-		return this.name || this.geometry_name || this.format.name;
+		return this.name || this.model_identifier || this.format.name;
 	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
@@ -263,9 +268,14 @@ class ModelProject {
 		Format = 0;
 		Project = 0;
 		Undo = 0;
+		if (Modes.selected) Modes.selected.unselect();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];
+
+		if (closing) {
+			updateInterface();
+		}
 
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
@@ -319,6 +329,9 @@ class ModelProject {
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
 			Project = 0;
+			
+			delete AutoBackupModels[this.uuid];
+			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();
@@ -341,11 +354,11 @@ new Property(ModelProject, 'string', 'name', {
 });
 new Property(ModelProject, 'string', 'parent', {
 	label: 'dialog.project.parent',
-	condition: {formats: ['java_block']
-}});
-new Property(ModelProject, 'string', 'geometry_name', {
+	condition: {features: ['parent_model_id']}
+});
+new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
-	condition: () => Format.bone_rig
+	condition: () => Format.model_identifier
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
@@ -361,14 +374,20 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 		return options;
 	}
 });
+new Property(ModelProject, 'boolean', 'modded_entity_flip_y', {
+	label: 'dialog.project.modded_entity_flip_y',
+	default: true,
+	condition: {formats: ['modded_entity']}
+});
 new Property(ModelProject, 'boolean', 'ambientocclusion', {
 	label: 'dialog.project.ao',
 	default: true,
-	condition: {formats: ['java_block']}
+	condition: {features: ['vertex_color_ambient_occlusion']}
 });
 new Property(ModelProject, 'boolean', 'front_gui_light', {
 	exposed: false,
-	condition: () => Format.display_mode});
+	condition: () => Format.display_mode
+});
 new Property(ModelProject, 'vector', 'visible_box', {
 	exposed: false,
 	default: [1, 1, 0]
@@ -408,6 +427,9 @@ function setupProject(format) {
 	new ModelProject({format}).select();
 
 	Modes.options.edit.select();
+	if (typeof Format.onSetup == 'function') {
+		Format.onSetup(Project, false)
+	}
 	Blockbench.dispatchEvent('setup_project');
 	return true;
 }
@@ -417,6 +439,9 @@ function newProject(format) {
 	new ModelProject({format}).select();
 
 	Modes.options.edit.select();
+	if (typeof Format.onSetup == 'function') {
+		Format.onSetup(Project, true)
+	}
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
@@ -527,6 +552,7 @@ onVueSetup(() => {
 			Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
+			updateInterface();
 		},
 		openSettings() {}
 	}
@@ -803,6 +829,8 @@ BARS.defineActions(function() {
 					for (var key in ModelProject.properties) {
 						ModelProject.properties[key].merge(Project, formResult);
 					}
+					Project.name = Project.name.trim();
+					Project.model_identifier = Project.model_identifier.trim();
 
 					if (save) {
 						Undo.finishEdit('Change project UV settings')
@@ -846,8 +874,9 @@ BARS.defineActions(function() {
 
 			var options = {};
 			for (var key in Formats) {
-				if (key !== Format.id && key !== 'skin') {
-					options[key] = Formats[key].name;
+				let format = Formats[key]
+				if (key !== Format.id && format.can_convert_to) {
+					options[key] = format.name;
 				}
 			}
 
@@ -861,7 +890,6 @@ BARS.defineActions(function() {
 					format:  {
 						label: 'data.format',
 						type: 'select',
-						default: Format.id,
 						options,
 					},
 				},
@@ -874,6 +902,22 @@ BARS.defineActions(function() {
 				}
 			})
 			dialog.show()
+		}
+	})
+	new Action('switch_tabs', {
+		icon: 'swap_horiz',
+		category: 'file',
+		keybind: new Keybind({key: 9, ctrl: true, shift: null}),
+		condition: () => ModelProject.all.length > 1,
+		click(event) {
+			let index = ModelProject.all.indexOf(Project);
+			let target;
+			if (event && event.shiftKey) {
+				target = ModelProject.all[index-1] || ModelProject.all.last();
+			} else {
+				target = ModelProject.all[index+1] || ModelProject.all[0];
+			}
+			if (target) target.select();
 		}
 	})
 })

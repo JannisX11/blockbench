@@ -280,9 +280,6 @@
 	.tabs_small  label:hover {
 		color: var(--color-light);
 	}
-	#display_sliders p {
-		margin-top: 6px;
-	}
 	#display_bar .tool, #display_ref_bar > div {
 		width: calc(100% / 8 - 2px);
 		max-width: 52px;
@@ -302,14 +299,25 @@
 		flex-shrink: 1;
 	}
 	.bar.slider_input_combo input.tool[type="number"] {
-		width: 60px;
-		background-color: var(--color-back);
+		width: 52px;
 		float: none;
 		flex-grow: 0;
 		flex-shrink: 0;
+		text-align: left;
+		padding-left: 8px;
+		padding-bottom: 3px;
 	}
 	.tool.display_scale_invert {
 		position: relative;
+	}
+	.bar.display_slot_section_bar {
+		display: flex;
+		margin-right: 2px;
+		margin-top: 2px;
+	}
+	.bar.display_slot_section_bar p {
+		flex-grow: 1;
+		margin-top: 6px;
 	}
 
 	input#preset_name {
@@ -841,6 +849,12 @@
 		overflow-y: auto;
 		background-color: transparent;
 	}
+	#keyframe_bar_effect .tool {
+		padding-top: 3px;
+		width: 34px;
+		text-align: center;
+		height: 0;
+	}
 
 	.prism-editor-wrapper {
 		caret-color: var(--color-text);
@@ -1361,6 +1375,7 @@
 	body[mode=paint] #uv_frame {
 		cursor: crosshair !important;
 	}
+	#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
 		position: absolute;
 		pointer-events: none;
@@ -1393,6 +1408,23 @@
 	.uv_panel_texture_name:hover {
 		color: var(--color-light);
 		cursor: pointer;
+	}
+	#uv_scale_handle {
+		width: 18px;
+		height: 18px;
+		position: absolute;
+		text-align: center;
+		cursor: nw-resize;
+		z-index: 1;
+		background-color: var(--color-back);
+	}
+	#uv_scale_handle:hover {
+		color: var(--color-light);
+	}
+	#uv_scale_handle i {
+		transform: scaleY(-1);
+		font-size: 16px;
+		padding-top: 2px;
 	}
 
 	.cube_box_uv {
@@ -1744,24 +1776,28 @@
 	}
 	#color_panel_head .side input {
 		width: 100%;
-		height: 28px;
+		height: 26px;
 		padding: 0 8px;
 		font-family: var(--font-code);
 		background-color: var(--color-back);
 	}
-	#color_panel_head #color_history {
+	#color_history {
 		width: 100%;
-		height: 16px;
+		height: 20px;
 		overflow-x: scroll;
 		overflow-y: hidden;
 		white-space: nowrap;
 		scroll-behavior: smooth;
 	}
-	#color_panel_head #color_history li {
+	#color_history > li {
 		vertical-align: top;
 		display: inline-block;
 		width: 30px;
-		height: 10px;
+		height: 12px;
+		cursor: pointer;
+	}
+	#color_history > li:hover {
+		border: 1px solid var(--color-back);
 	}
 
 	#main_colorpicker_preview {

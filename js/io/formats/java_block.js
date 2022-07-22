@@ -454,12 +454,35 @@ var format = new ModelFormat({
 	id: 'java_block',
 	extension: 'json',
 	icon: 'icon-format_block',
+	category: 'minecraft',
+	target: 'Minecraft: Java Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.java_block.info.rotation')}
+					* ${tl('format.java_block.info.size')}
+					* ${tl('format.java_block.info.animation')}`.replace(/\t+/g, '')
+			}
+		]
+	},
+	render_sides() {
+		if (Modes.display && ['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
+			return 'double';
+		} else {
+			return 'front';
+		}
+	},
+	model_identifier: false,
+	parent_model_id: true,
+	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
 	canvas_limit: true,
 	rotation_limit: true,
 	optional_box_uv: true,
 	uv_rotation: true,
+	java_face_properties: true,
 	animated_textures: true,
+	select_texture_for_particles: true,
 	display_mode: true,
 	texture_folder: true,
 	codec

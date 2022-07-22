@@ -314,10 +314,9 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	duplicate() {
-		var copied_groups = [];
 		var copy = this.getChildlessCopy(false)
 		delete copy.parent;
-		copied_groups.push(copy)
+		Property.resetUniqueValues(Group, copy);
 		copy.sortInBefore(this, 1).init()
 		if (Format.bone_rig) {
 			copy.createUniqueName()
@@ -440,14 +439,16 @@ class Group extends OutlinerNode {
 		'_',
 		'rename',
 		'edit_bedrock_binding',
-		{name: 'menu.cube.color', icon: 'color_lens', children: markerColors.map((color, i) => {return {
-			icon: 'bubble_chart',
-			color: color.standard,
-			name: 'cube.color.'+color.name,
-			click() {
-				setGroupColor(i);
-			}
-		}})},
+		{name: 'menu.cube.color', icon: 'color_lens', children() {
+			return markerColors.map((color, i) => {return {
+				icon: 'bubble_chart',
+				color: color.standard,
+				name: color.name || 'cube.color.'+color.id,
+				click() {
+					setGroupColor(i);
+				}
+			}})
+		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		'resolve_group',
 		'delete'
@@ -486,9 +487,13 @@ new NodePreviewController(Group, {
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
+
+		this.dispatchEvent('update_transform', {group});
 	},
 	updateTransform(group) {
 		Canvas.updateAllBones([group]);
+
+		this.dispatchEvent('update_transform', {group});
 	}
 })
 
@@ -628,7 +633,7 @@ BARS.defineActions(function() {
 	new Action('edit_bedrock_binding', {
 		icon: 'fa-paperclip',
 		category: 'edit',
-		condition: () => Format.id == 'bedrock' && Group.selected,
+		condition: () => Format.bone_binding_expression && Group.selected,
 		click: function() {
 
 			let dialog = new Dialog({

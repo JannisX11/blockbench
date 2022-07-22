@@ -275,7 +275,8 @@ Object.assign(Blockbench, {
 		*/
 		if (Blockbench.isWeb) {
 			var file_name = options.name || 'file';
-			if (options.extensions && file_name.substr(-options.extensions[0].length) != options.extensions[0]) {
+			var extension = pathToExtension(file_name);
+			if (options.extensions instanceof Array && !options.extensions.includes(extension) && options.extensions[0]) {
 				file_name += '.' + options.extensions[0];
 			}
 			if (options.custom_writer) {
@@ -326,7 +327,7 @@ Object.assign(Blockbench, {
 				StateMemory.save('dialog_paths')
 			}
 			var extension = pathToExtension(file_path);
-			if (!extension && options.extensions && options.extensions[0]) {
+			if (options.extensions instanceof Array && !options.extensions.includes(extension) && options.extensions[0]) {
 				file_path += '.'+options.extensions[0]
 			}
 			Blockbench.writeFile(file_path, options, cb)
@@ -391,7 +392,12 @@ Object.assign(Blockbench, {
 		if (options.errorbox) entry.errorbox = true;
 		if (options.element) entry.element = options.element;
 
+		entry.delete = () => {
+			Blockbench.removeDragHandler(id);
+		}
+
 		this.drag_handlers[id] = entry
+		return entry;
 	},
 	removeDragHandler(id) {
 		delete this.drag_handlers[id]

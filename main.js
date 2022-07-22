@@ -216,6 +216,7 @@ app.on('ready', () => {
 			autoUpdater.autoDownload = false;
 			if (LaunchSettings.get('update_to_prereleases') === true) {
 				autoUpdater.allowPrerelease = true;
+				autoUpdater.channel = 'beta';
 			}
 	
 			autoUpdater.on('update-available', (a) => {

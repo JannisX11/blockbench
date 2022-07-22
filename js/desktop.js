@@ -111,15 +111,26 @@ window.alert = function(message, title) {
 
 //Recent Projects
 function updateRecentProjects() {
+	recent_projects.splice(Math.clamp(settings.recent_projects.value, 0, 512));
+	let fav_count = 0;
+	recent_projects.forEach((project, i) => {
+		if (project.favorite) {
+			recent_projects.splice(i, 1);
+			recent_projects.splice(fav_count, 0, project);
+			fav_count++;
+		}
+	})
 	//Set Local Storage
-	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()))
+	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()));
 }
 function addRecentProject(data) {
-	var i = recent_projects.length-1
+	var i = recent_projects.length-1;
+	let former_entry;
 	while (i >= 0) {
 		var p = recent_projects[i]
 		if (p.path === data.path) {
-			recent_projects.splice(i, 1)
+			recent_projects.splice(i, 1);
+			former_entry = p;
 		}
 		i--;
 	}
@@ -128,13 +139,11 @@ function addRecentProject(data) {
 		name: data.name,
 		path: data.path,
 		icon: data.icon,
+		favorite: former_entry ? former_entry.favorite : false,
 		day: new Date().dayOfYear()
 	}
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
-	if (recent_projects.length > Math.clamp(settings.recent_projects.value, 0, 256)) {
-		recent_projects.pop()
-	}
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
@@ -337,7 +346,6 @@ function createBackup(init) {
 	if (init || elements.length === 0) return;
 
 	var model = Codecs.project.compile({compressed: true, backup: true})
-	localStorage.setItem('backup_model', model)
 	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
 	var file_path = folder_path+osfs+file_name+'.bbmodel'
 
@@ -385,7 +393,6 @@ function closeBlockbenchWindow() {
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
-	localStorage.removeItem('backup_model')
 	if (Project.EditSession) Project.EditSession.quit()
 	return currentwindow.close();
 };

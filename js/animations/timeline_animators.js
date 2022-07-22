@@ -43,7 +43,7 @@ class GeneralAnimator {
 		var channel = data.channel;
 		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
 		if (channel && this[channel]) {
-			var kf = new Keyframe(data, uuid);
+			var kf = new Keyframe(data, uuid, this);
 			this[channel].push(kf);
 			kf.animator = this;
 			return kf;
@@ -59,7 +59,7 @@ class GeneralAnimator {
 		var keyframe = new Keyframe({
 			channel: channel,
 			time: time
-		});
+		}, null, this);
 		keyframes.push(keyframe);
 
 		if (value) {
@@ -321,7 +321,7 @@ class BoneAnimator extends GeneralAnimator {
 		return this;
 	}
 	interpolate(channel, allow_expression, axis) {
-		let time = Timeline.time;
+		let time = this.animation.time;
 		var before = false
 		var after = false
 		var result = false
@@ -410,6 +410,8 @@ class BoneAnimator extends GeneralAnimator {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
 		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
 	}
+	Group.animator = BoneAnimator;
+
 class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
@@ -597,6 +599,7 @@ class NullObjectAnimator extends BoneAnimator {
 	NullObjectAnimator.prototype.channels = {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
 	}
+	NullObject.animator = NullObjectAnimator;
 
 class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
@@ -618,7 +621,7 @@ class EffectAnimator extends GeneralAnimator {
 	displayFrame(in_loop) {
 		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
-				var diff = kf.time - Timeline.time;
+				var diff = kf.time - this.animation.time;
 				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
 					if (kf.data_points[0].file && !kf.cooldown) {
 						var media = new Audio(kf.data_points[0].file);
@@ -641,7 +644,7 @@ class EffectAnimator extends GeneralAnimator {
 		
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
-				var diff = Timeline.time - kf.time;
+				var diff = this.animation.time - kf.time;
 				if (diff >= 0) {
 					let i = 0;
 					for (var data_point of kf.data_points) {
@@ -650,7 +653,15 @@ class EffectAnimator extends GeneralAnimator {
 
 							let emitter = particle_effect.emitters[kf.uuid + i];
 							if (!emitter) {
+								let i_here = i;
 								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
+								emitter.on('start', ({params}) => {
+									let kf_now = Animation.selected.animators.effects && Animation.selected.animators.effects.particle.find(kf2 => kf2.uuid == kf.uuid);
+									let data_point_now = kf_now && kf_now.data_points[i_here];
+									if (data_point_now) {
+										emitter.Molang.parse(data_point_now.script, Animator.MolangParser.global_variables);
+									}
+								})
 							}
 
 							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
@@ -671,20 +682,20 @@ class EffectAnimator extends GeneralAnimator {
 		
 		if (!this.muted.timeline) {
 			this.timeline.forEach(kf => {
-				if ((kf.time > this.last_displayed_time && kf.time <= Timeline.time) || Math.epsilon(kf.time, Timeline.time, 0.01)) {
+				if ((kf.time > this.last_displayed_time && kf.time <= this.animation.time) || Math.epsilon(kf.time, this.animation.time, 0.01)) {
 					let script = kf.data_points[0].script;
 					Animator.MolangParser.parse(script);
 				}
 			})
 		}
 
-		this.last_displayed_time = Timeline.time;
+		this.last_displayed_time = this.animation.time;
 	}
 	startPreviousSounds() {
 		if (!this.muted.sound) {
 			this.sound.forEach(kf => {
 				if (kf.data_points[0].file && !kf.cooldown) {
-					var diff = kf.time - Timeline.time;
+					var diff = kf.time - this.animation.time;
 					if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
 						var media = new Audio(kf.data_points[0].file);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);

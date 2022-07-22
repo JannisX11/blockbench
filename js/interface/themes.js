@@ -404,6 +404,7 @@ const CustomTheme = {
 
 		if (app.customized && app.name) {
 			// Backup
+			if (!CustomTheme.dialog.content_vue) CustomTheme.dialog.build();
 			CustomTheme.dialog.content_vue.backup = app.name;
 			CustomTheme.backup_data = JSON.stringify(app);
 		}

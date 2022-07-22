@@ -3,27 +3,42 @@ const Formats = {};
 
 //Formats
 class ModelFormat {
-	constructor(data) {
-		Formats[data.id] = this;
-		this.id = data.id;
+	constructor(id, data) {
+		if (typeof id == 'object') {
+			data = id;
+			id = data.id;
+		}
+		Formats[id] = this;
+		this.id = id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
+		this.category = data.category || 'other';
+		this.target = data.target;
 		this.show_on_start_screen = true;
+		this.can_convert_to = true;
 		this.confidential = false;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
 		}
+		this.render_sides = data.render_sides;
 
 		this.codec = data.codec;
+		this.onSetup = data.onSetup;
+		this.onFormatPage = data.onFormatPage;
 		this.onActivation = data.onActivation;
 		this.onDeactivation = data.onDeactivation;
+		this.format_page = data.format_page;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'can_convert_to');
 		Merge.boolean(this, data, 'confidential');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
+		}
+		if (this.format_page && this.format_page.component) {
+			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
 		if (Blockbench.setup_successful && StartScreen.vue) {
 			StartScreen.vue.$forceUpdate();
@@ -41,9 +56,15 @@ class ModelFormat {
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 0;
+			})
 		} else {
 			scene.position.set(-8, -8, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 8;
+			})
 		}
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
@@ -57,7 +78,7 @@ class ModelFormat {
 		Interface.status_bar.vue.Format = this;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
-		updateShading();
+		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		return this;
 	}
@@ -73,7 +94,7 @@ class ModelFormat {
 		Undo.index = 0;
 		Project.export_path = '';
 
-		var old_format = Format
+		var old_format = Format;
 		this.select();
 		Modes.options.edit.select()
 
@@ -190,6 +211,13 @@ class ModelFormat {
 		if (!Format.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
 		}
+
+		Blockbench.dispatchEvent('convert_format', {format: this, old_format})
+
+		if (typeof this.onSetup == 'function') {
+			this.onSetup(Project)
+		}
+
 		Canvas.updateAllPositions()
 		Canvas.updateAllBones()
 		Canvas.updateAllFaces()
@@ -205,6 +233,9 @@ class ModelFormat {
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
+new Property(ModelFormat, 'boolean', 'parent_model_id');
+new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
@@ -216,21 +247,11 @@ new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'java_face_properties');
+new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
+new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
-
-new ModelFormat({
-	id: 'free',
-	icon: 'icon-format_free',
-	meshes: true,
-	rotate_cubes: true,
-	bone_rig: true,
-	centered_grid: true,
-	optional_box_uv: true,
-	uv_rotation: true,
-	animation_mode: true,
-	locators: true,
-})

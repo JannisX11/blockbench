@@ -313,6 +313,8 @@
 		--color-grid: #495061;
 		--color-checkerboard: #1c2026;
 
+		--color-menu_separator: #b0afba;
+
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
 		--color-stream: #6442A4;
@@ -512,25 +514,70 @@
 		-webkit-appeareance: none;
 	}
 	input[type=range] {
-		background-color: var(--color-back);
+		background-color: transparent;
 		height: 30px;
+		position: relative;
+		--color-track: var(--color-grid);
+		--color-thumb: var(--color-accent);
+		--color-center: var(--color-back);
 	}
-	input[type=password] {
-		font-size: 1.2em;
-	}
-
 	input[type=range]::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		-moz-appearance: none;
 		appearance: none;
-		height: 30px;
-		width: 12px;
-		border:none;
-		background-color: var(--color-accent);
+		height: 20px;
+		width: 20px;
+		margin-top: -9px;
+		border: none;
+		background-color: var(--color-center);
+		border: 2px solid var(--color-thumb);
+		border-radius: 50%;
 		cursor: pointer;
+		z-index: 3;
+	}
+	input[type=range]::-moz-range-thumb {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		height: 20px;
+		width: 20px;
+		border:none;
+		background-color: var(--color-center);
+		border: 2px solid var(--color-thumb);
+		border-radius: 50%;
+		cursor: pointer;
+		z-index: 3;
+	}
+	input[type=range]:not([disabled=disabled])::-webkit-slider-thumb:hover {
+		background-color: var(--color-thumb);
+		border: none;
+	}
+	input[type=range]:not([disabled=disabled])::-moz-range-thumb:hover {
+		background-color: var(--color-thumb);
+		border: none;
 	}
 	input[type=range][disabled=disabled]::-webkit-slider-thumb {
 		background-color: var(--color-button);
+	}
+	input[type=range][disabled=disabled]::-moz-range-thumb {
+		background-color: var(--color-button);
+	}
+	input[type=range]::-webkit-slider-runnable-track {
+		width: 100%;
+		height: 3px;
+		cursor: pointer;
+		background: var(--color-track);
+	}
+	input[type=range]::-moz-range-track {
+		width: 100%;
+		height: 2px;
+		cursor: pointer;
+		background: var(--color-track);
+		border-radius: 3px;
+	}
+
+	input[type=password] {
+		font-size: 1.2em;
 	}
 	input[type=checkbox]::before {
 		content: "\f0c8";
