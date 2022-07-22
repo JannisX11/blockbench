@@ -602,11 +602,21 @@ var codec = new Codec('collada', {
 					if (!animators[track.group_uuid]) animators[track.group_uuid] = {}
 					if (!animators[track.group_uuid][track.channel]) {
 						animators[track.group_uuid][track.channel] = {
+							animations_added: [],
 							times: [],
 						}
 					}
+				});
+			});
+
+			compiled_animations.forEach((anim_obj, anim_i) => {
+				if (anim_obj.duration < 0.01) return;
+				
+				anim_obj.tracks.forEach(track => {
+
 					let track_channel = animators[track.group_uuid][track.channel];
 					track_channel.times.push(...track.times.map(t => t + time_offset));
+					track_channel.animations_added.push(anim_i);
 					
 					if (track.channel == 'rotation') {
 						if (!track_channel.values) track_channel.values = {};
@@ -622,6 +632,29 @@ var codec = new Codec('collada', {
 						track_channel.values.push(...track.values);
 					}
 				})
+
+				for (let uuid in animators) {
+					for (let channel in animators[uuid]) {
+						let track_channel = animators[uuid][channel];
+						if (track_channel.animations_added.includes(anim_i)) {
+							continue;
+						} else {
+							track_channel.times.push(time_offset, time_offset+anim_obj.duration);
+
+							if (channel == 'rotation') {
+								if (!track_channel.values) track_channel.values = {};
+								['X', 'Y', 'Z'].forEach((axis, axis_i) => {
+									if (!track_channel.values[axis]) track_channel.values[axis] = [];
+									track_channel.values[axis].push(0, 0);
+								})
+							} else {
+								if (!track_channel.values) track_channel.values = [];
+								let v = channel == 'scale' ? 1 : 0;
+								track_channel.values.push(v, v, v, v, v, v);
+							}
+						}
+					}
+				}
 
 				let animation_clip_tag = {
 					type: 'animation_clip',
