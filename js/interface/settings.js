@@ -267,7 +267,7 @@ const Settings = {
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
-		new Setting('display_grid',		{category: 'grid', value: false});
+		//new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
 		}});
@@ -380,7 +380,7 @@ const Settings = {
 			}
 		}
 		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
-			||hasSettingChanged('large_box') || hasSettingChanged('display_grid') || hasSettingChanged('edit_size')) {
+			||hasSettingChanged('large_box') || hasSettingChanged('edit_size')) {
 			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value

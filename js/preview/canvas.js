@@ -421,7 +421,7 @@ const Canvas = {
 			Canvas.side_grids.x.children.length = 0;
 			Canvas.side_grids.z.children.length = 0;
 		}
-		if (Modes.display && settings.display_grid.value === false) return;
+		if (Modes.display) return;
 
 		three_grid.name = 'grid_group'
 		gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
