@@ -3,7 +3,7 @@
  * modified for Blockbench by jannisx11
  */
 
-( function () {
+ ( function () {
 
 	'use strict';
 
@@ -205,12 +205,19 @@
 		var vec1 = new THREE.Vector3( 0, 0, 0 );
 		var vec2 = new THREE.Vector3( 0, 1, 0 );
 		var lookAtMatrix = new THREE.Matrix4();
+		let inv;
+		if (this instanceof THREE.TransformGizmoScale) {
+			inv = this.getWorldQuaternion(new THREE.Quaternion()).invert();
+		}
 
-		this.traverse( function( child ) {
+		this.traverse(child => {
 
 			if ( child.name.search( "E" ) !== - 1 ) {
 
 				child.quaternion.setFromRotationMatrix( lookAtMatrix.lookAt( eye, vec1, vec2 ) );
+				if (this instanceof THREE.TransformGizmoScale) {
+					child.quaternion.premultiply(inv);
+				}
 
 			} else if (
 				this instanceof THREE.TransformGizmoRotate &&
@@ -722,9 +729,12 @@
 
 				if (object) {
 					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
-					if (Toolbox.selected.transformerMode === 'rotate' || Toolbox.selected.transformerMode === 'scale') {
+					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						this.rotation.set(0, 0, 0);
+					} else if (Toolbox.selected.transformerMode === 'scale') {
+						_gizmo[ _mode ].update( worldRotation, eye );
+						object.getWorldQuaternion(this.rotation)
 					} else {
 						object.getWorldQuaternion(this.rotation)
 					}
