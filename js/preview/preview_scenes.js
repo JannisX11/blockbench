@@ -60,6 +60,7 @@ class PreviewModel {
 		this.texture = data.texture;
 		this.color = data.color || '#ffffff';
 		this.shading = data.shading !== false;
+		this.render_side = data.render_side == undefined ? THREE.DoubleSide : data.render_side;
 		this.texture_size = data.texture_size || [16, 16];
 
 		this.buildModel();
@@ -94,7 +95,7 @@ class PreviewModel {
 		this.material = new (this.shading ? THREE.MeshLambertMaterial : THREE.MeshBasicMaterial)({
 			color: this.color,
 			map: tex,
-			side: 2,
+			side: this.render_side,
 			alphaTest: 0.05
 		});
 
@@ -793,14 +794,11 @@ new PreviewModel('studio', {
 	texture: './assets/preview_scenes/studio.png',
 	texture_size: [64, 64],
 	shading: false,
+	render_side: THREE.BackSide,
 	cubes: [
-		{position: [-256, 0, -256], size: [512, 128, 512], faces: {
+		{position: [-240, 0, -240], size: [480, 128, 480], faces: {
 			up: {uv: [0, 16.04, 15.96, 31.96]},
 			down: {uv: [0, 0, 16, 16]},
-			east: {uv: [6, 50, 8, 60]},
-			west: {uv: [6, 50, 8, 60]},
-			north: {uv: [6, 50, 8, 60]},
-			south: {uv: [6, 50, 8, 60]},
 		}},
 		{position: [48, 0, -240], size: [96, 128, 480], faces: {
 			south: {uv: [16.06, 0, 64, 64]},
