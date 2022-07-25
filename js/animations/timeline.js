@@ -950,7 +950,12 @@ Interface.definePanels(() => {
 							Blockbench.setStatusBarText();
 							if (values_changed) {
 								Animation.selected.setLength();
-								Undo.finishEdit('Drag keyframes');
+								if (time_stretching) {
+									Undo.finishEdit('Stretch keyframes');
+								} else {
+									Undo.addKeyframeCasualties(deleted);
+									Undo.finishEdit('Drag keyframes');
+								}
 							} else {
 								Undo.cancelEdit();
 							}

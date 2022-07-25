@@ -803,6 +803,7 @@ const WinterskyScene = new Wintersky.Scene({
 			let filePath = PathModule.join(path_arr.join(PathModule.sep), config.particle_texture_path.replace(/\.png$/, '')+'.png')
 
 			if (fs.existsSync(filePath)) {
+				config.preview_texture = filePath;
 				return filePath;
 			}
 		}
@@ -1087,8 +1088,8 @@ const Animator = {
 		if (Animator.particle_effects[path]) {
 			Animator.particle_effects[path].config
 				.reset()
-				.setFromJSON(json_content, {path})
-				.set('file_path', path);
+				.set('file_path', path)
+				.setFromJSON(json_content, {path});
 			for (var uuid in Animator.particle_effects[path].emitters) {
 				let emitter = Animator.particle_effects[path].emitters[uuid];
 				emitter.updateConfig();

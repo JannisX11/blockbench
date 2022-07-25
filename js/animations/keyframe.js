@@ -1153,9 +1153,10 @@ Interface.definePanels(function() {
 							Undo.initEdit({keyframes: [keyframe]})
 							data_point.file = path;
 							let effect = Animator.loadParticleEmitter(path, files[0].content);
+							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || !effect.config.texture.image.src.match(/\/\\/)) {
+							if (!isApp || effect.config.texture.image.src.match(/^data:/)) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
