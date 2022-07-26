@@ -56,13 +56,13 @@ class ResizeLine {
 		if (data.top !== undefined) {
 			jq.css('top', data.top+'px')
 		}
-		if (data.bottom !== undefined && (!data.horizontal || data.top === undefined)) {
+		if (data.bottom !== undefined && (!this.horizontal || data.top === undefined)) {
 			jq.css('bottom', data.bottom+'px')
 		}
 		if (data.left !== undefined) {
 			jq.css('left', data.left+'px')
 		}
-		if (data.right !== undefined && (data.horizontal || data.left === undefined)) {
+		if (data.right !== undefined && (this.horizontal || data.left === undefined)) {
 			jq.css('right', data.right+'px')
 		}
 	}

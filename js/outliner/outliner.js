@@ -77,7 +77,7 @@ Object.defineProperty(window, 'selected', {
 	}
 });
 //Colors
-var markerColors = [
+const markerColors = [
 	{pastel: "#A2EBFF", standard: "#58C0FF", id: 'light_blue'},
 	{pastel: "#FFF899", standard: "#F4D714", id: 'yellow'},
 	{pastel: "#F1BB75", standard: "#EC9218", id: 'orange'},
