@@ -18,11 +18,6 @@
 		"appId": "blockbench",
 		"productName": "Blockbench",
 		"artifactName": "${productName}_${version}.${ext}",
-		"publish": [
-			{
-				"provider": "github"
-			}
-		],
 		"mac": {
 			"target": {
 				"target": "default",
