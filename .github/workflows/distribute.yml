@@ -34,7 +34,7 @@ jobs:
         run: yarn add electron-builder --dev
 
       - name: Build blockbench executable
-        run: electron-builder --win --x64
+        run: npm run windows
         
       - name: Minio Deploy
         uses: mamal72/minio-perfect-deploy-action@main
