@@ -35,5 +35,15 @@ jobs:
 
       - name: Build blockbench executable
         run: npm run dist
+        
+      - name: Minio Deploy
+        uses: mamal72/minio-perfect-deploy-action@main
+        with:
+          endpoint: ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }}
+          access_key: ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }}
+          secret_key: ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
+          bucket: 'blockbench'
+          source_dir: 'dist'
+          target_dir: '/'
 
 
