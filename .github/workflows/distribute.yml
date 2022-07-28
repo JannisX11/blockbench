@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: read
       packages: write
@@ -31,14 +31,22 @@ jobs:
       - name: Build blockbench executable
         run: npm run windows
         
-      - name: Minio Deploy
-        uses: mamal72/minio-perfect-deploy-action@main
+      - name: Minio upload
+        # You may pin to the exact commit or the version.
+        # uses: lovellfelix/minio-deploy-action@cfc4b36780804138fc0df64d8e862ed28db7fd34
+        uses: lovellfelix/minio-deploy-action@v1.1.1
         with:
+          # Minio endpoint of object storage host
           endpoint: ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }}
+          # Minio access key (username)
           access_key: ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }}
+          # Minio secret key (password)
           secret_key: ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
+          # Set the target minio bucket for deployment.
           bucket: 'blockbench'
+          # Set an input directory for deployment.
           source_dir: 'dist'
+          # Set a target directory for deployment (with a leading slash).
           target_dir: '/'
 
 
