@@ -40,16 +40,18 @@ jobs:
       - name: Build blockbench executable
         run: npm run windows
         
+      - name: get version
+        id: version
+        uses: notiz-dev/github-action-json-property@release
+        with: 
+            path: 'package.json'
+            prop_path: 'version'
+      - run: echo ${{steps.version.outputs.prop}}  
 
-      - name: Read package.json
-        id: package
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ./package.json
 
       - name: Deploy To Minio
         run: |
           mc alias set deploy ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }} ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }} ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
-          mc mirror --overwrite dist/Blockbench_${{steps.package.outputs.content.version}}.exe "deploy/${{steps.package.outputs.content.version}}/blockbench/"
+          mc mirror --overwrite dist/Blockbench_${{steps.version.outputs.prop}}.exe "deploy/${{steps.version.outputs.prop}}/blockbench/"
 
 
