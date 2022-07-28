@@ -42,7 +42,7 @@ jobs:
         
       - name: Deploy To Minio
         run: |
-          mc alias set deploy ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }} ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }} $MINIO_SECRET_KEY
+          mc alias set deploy ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }} ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }} ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
           mc mirror --overwrite dist "deploy/blockbench/"
 
 
