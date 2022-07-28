@@ -5,7 +5,7 @@ let isMatGroupVisible = false;
 // Create menu for right-click on groups
 function createMaterialMenu() {    
     var bone_materials = getBoneMaterials();
-        
+    console.log(bone_materials);
     return {
         'name': 'Material Selection', 
         'icon': 'fa-fill-drip',
