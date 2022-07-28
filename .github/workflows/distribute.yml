@@ -32,9 +32,9 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           wget -O - https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add -
-          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal main' (only Ubuntu 20.04)
-          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ groovy main' (only Ubuntu 20.10)
-          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main' (only Ubuntu 18.04)
+          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal main' 
+          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ groovy main'
+          sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
           sudo apt update && sudo apt install --install-recommends winehq-stable
 
       - name: Build blockbench executable
