@@ -40,9 +40,16 @@ jobs:
       - name: Build blockbench executable
         run: npm run windows
         
+
+      - name: Read package.json
+        id: package
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./package.json
+
       - name: Deploy To Minio
         run: |
           mc alias set deploy ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }} ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }} ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
-          mc mirror --overwrite dist "deploy/blockbench/"
+          mc mirror --overwrite dist/Blockbench_${{steps.package.outputs.content.version}}.exe "deploy/${{steps.package.outputs.content.version}}/blockbench/"
 
 
