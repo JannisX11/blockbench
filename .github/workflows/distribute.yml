@@ -28,12 +28,13 @@ jobs:
       - name: Install Electron Bundler
         run: yarn add electron-builder --dev
 
+      - name: Install Wine
+        run: apt-get install wine
+
       - name: Build blockbench executable
         run: npm run windows
         
       - name: Minio upload
-        # You may pin to the exact commit or the version.
-        # uses: lovellfelix/minio-deploy-action@cfc4b36780804138fc0df64d8e862ed28db7fd34
         uses: lovellfelix/minio-deploy-action@v1.1.1
         with:
           # Minio endpoint of object storage host
