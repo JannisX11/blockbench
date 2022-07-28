@@ -51,6 +51,6 @@ jobs:
       - name: Deploy To Minio
         run: |
           mc alias set deploy ${{ secrets.BLOCKBENCH_MINIO_PROD_URL }} ${{ secrets.BLOCKBENCH_MINIO_PROD_ACCESSKEY }} ${{ secrets.BLOCKBENCH_MINIO_PROD_SECRETKEY }}
-          mc mv ~/dist/Blockbench_${{steps.package.outputs.content.version}}.exe "deploy/blockbench/${{steps.package.outputs.content.version}}/Blockbench_${{steps.package.outputs.content.version}}.exe"
+          mc mv ~/dist/Blockbench_${{steps.version.outputs.prop}}.exe "deploy/blockbench/${{steps.version.outputs.prop}}/Blockbench_${{steps.version.outputs.prop}}.exe"
 
 
