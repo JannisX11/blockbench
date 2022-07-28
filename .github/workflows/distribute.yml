@@ -29,7 +29,12 @@ jobs:
         run: yarn add electron-builder --dev
 
       - name: Install Wine
-        run: apt-get install wine
+        run: |
+          sudo dpkg --add-architecture i386
+          wget -qO - https://dl.winehq.org/wine-builds/winehq.key | sudo apt-key add -
+          sudo add-apt-repository ppa:cybermax-dexter/sdl2-backport
+          sudo apt-add-repository "deb https://dl.winehq.org/wine-builds/ubuntu $(lsb_release -cs) main"
+          sudo apt install --install-recommends winehq-stable
 
       - name: Build blockbench executable
         run: npm run windows
