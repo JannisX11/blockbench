@@ -189,6 +189,14 @@ onVueSetup(function() {
 						}
 					},
 					{
+						id: 'open_folder',
+						name: 'menu.texture.folder',
+						icon: 'folder',
+						click() {
+							shell.showItemInFolder(recent_project.path)
+						}
+					},
+					{
 						id: 'remove',
 						name: 'generic.remove',
 						icon: 'clear',

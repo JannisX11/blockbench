@@ -765,6 +765,8 @@
 	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
+	"settings.paint_with_stylus_only": "Paint with Stylus Only",
+	"settings.paint_with_stylus_only.desc": "Only use the stylus for painting, reserve mouse or touch input for navigation.",
 	"settings.image_editor": "Image Editor",
 	"settings.image_editor.desc": "Default image editor to edit textures with",
 
@@ -1491,7 +1493,7 @@
 	"menu.texture.file": "File",
 	"menu.texture.refresh": "Refresh",
 	"menu.texture.change": "Change File",
-	"menu.texture.folder": "Open in Folder",
+	"menu.texture.folder": "Show in File Explorer",
 	"menu.texture.render_mode": "Render Mode",
 	"menu.texture.render_mode.default": "Default",
 	"menu.texture.render_mode.emissive": "Emissive",
