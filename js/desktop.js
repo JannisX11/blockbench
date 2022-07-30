@@ -399,7 +399,7 @@ function closeBlockbenchWindow() {
 
 
 ipcRenderer.on('update-available', (event, arg) => {
-	console.log('Found new update')
+	console.log('Found new update:', arg.version)
 	if (settings.automatic_updates.value) {
 		ipcRenderer.send('allow-auto-update');
 

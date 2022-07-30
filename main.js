@@ -216,7 +216,7 @@ app.on('ready', () => {
 			autoUpdater.autoDownload = false;
 			if (LaunchSettings.get('update_to_prereleases') === true) {
 				autoUpdater.allowPrerelease = true;
-				autoUpdater.channel = 'beta';
+				//autoUpdater.channel = 'beta';
 			}
 	
 			autoUpdater.on('update-available', (a) => {
@@ -224,7 +224,7 @@ app.on('ready', () => {
 				ipcMain.on('allow-auto-update', () => {
 					autoUpdater.downloadUpdate()
 				})
-				orig_win.webContents.send('update-available');
+				orig_win.webContents.send('update-available', a);
 			})
 			autoUpdater.on('update-downloaded', (a) => {
 				console.log('update-downloaded', a)
