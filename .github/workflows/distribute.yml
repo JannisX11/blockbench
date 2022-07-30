@@ -1,4 +1,4 @@
-name: Build/Distribute blocbench
+name: blockbench-distribute
 
 on:
   push:
