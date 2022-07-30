@@ -1391,11 +1391,13 @@
 		width: calc(var(--radius) * 2px);
 		height: calc(var(--radius) * 2px);
 		margin: calc(var(--radius) * -1px);
-		border-radius: 50%;
 		position: absolute;
 		pointer-events: none;
 		mix-blend-mode: difference;
 		z-index: 1;
+	}
+	div#uv_brush_outline.circle {
+		border-radius: 50%;
 	}
 	canvas.move_texture_with_uv {
 		position: absolute;

@@ -873,6 +873,7 @@
 	"action.slider_brush_opacity.desc": "Opacity of the brush from 0 to 255",
 	"action.slider_brush_softness": "Softness",
 	"action.slider_brush_softness.desc": "Softness of the brush in percent",
+	"action.brush_shape": "Brush Shape",
 
 	"action.uv_slider_pos_x": "Move Horizontal",
 	"action.uv_slider_pos_x.desc": "Move the UV selection of all selected cubes horizontally",

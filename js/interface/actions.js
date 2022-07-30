@@ -328,7 +328,7 @@ class Tool extends Action {
 		this.cursor = data.cursor;
 		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;
-		this.brushTool = data.brushTool;
+		this.brush = data.brush;
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
 		this.allowed_view_modes = data.allowed_view_modes || null;
@@ -2153,6 +2153,7 @@ const BARS = {
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'brush_shape',
 				'mirror_painting',
 				'color_erase_mode',
 				'lock_alpha',
@@ -2161,6 +2162,9 @@ const BARS = {
 		})
 		Blockbench.onUpdateTo('4.0', () => {
 			Toolbars.brush.add(BarItems.color_erase_mode, -3);
+		})
+		Blockbench.onUpdateTo('4.4', () => {
+			Toolbars.brush.add(BarItems.brush_shape, 5);
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',
