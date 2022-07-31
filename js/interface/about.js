@@ -122,7 +122,7 @@ BARS.defineActions(() => {
 							</ul>
 
 							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
-							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">${tl('about.privacy_policy')}</a></p>
 
 						</div>`
 				}
