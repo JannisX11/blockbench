@@ -73,22 +73,21 @@ BARS.defineActions(() => {
 								</a>
 							</div>
 
-							<p>Created by Jannis Petersen</p>
-							<p style="color: var(--color-subtle_text);">A free and open-source low-poly model editor. To make 3D art easy and accessible for everyone.
-								For all who enjoy stylized 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
+							<p>${tl('about.created_by')}</p>
+							<p style="color: var(--color-subtle_text);">${tl('about.description')}</p>
 
-							<h4>SPECIAL THANKS TO</h4>
+							<h4>${tl('about.special_thanks')}</h4>
 							<ul class="multi_column_list special_thanks_mentions">
 								<li>Mojang Studios</li>
-								<li>All contributors</li>
-								<li>The community moderators</li>
-								<li>All donators</li>
-								<li>All translators</li>
+								<li>${tl('about.special_thanks.contributors')}</li>
+								<li>${tl('about.special_thanks.community_moderators')}</li>
+								<li>${tl('about.special_thanks.donators')}</li>
+								<li>${tl('about.special_thanks.translators')}</li>
 								<li>Wacky</li>
 								<li>Ewan Howell and Lukas</li>
 								<li>SirBenet</li>
 								<li>Sultan Taha and Kanno</li>
-								<li>The Blockbench Community</li>
+								<li>${tl('about.special_thanks.community')}</li>
 							</ul>
 
 							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
