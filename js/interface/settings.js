@@ -287,6 +287,7 @@ const Settings = {
 		new Setting('color_wheel',	{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
+		new Setting('pick_color_opacity',		{category: 'paint', value: false});
 		new Setting('paint_side_restrict',		{category: 'paint', value: true});
 		// TODO: implement paint with stylus only into paint tools
 		new Setting('paint_with_stylus_only',	{category: 'paint', value: false});

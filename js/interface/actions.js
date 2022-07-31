@@ -744,6 +744,9 @@ class NumSlider extends Widget {
 		} else {
 
 		}
+		if (this.tool_setting) {
+			Toolbox.selected.tool_settings[this.tool_setting] = value;
+		}
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
 		if (this.settings && this.settings.show_bar) {
 			this.node.classList.add('has_percentage_bar');
@@ -2154,6 +2157,7 @@ const BARS = {
 				'slider_brush_opacity',
 				'slider_brush_softness',
 				'brush_shape',
+				'blend_mode',
 				'mirror_painting',
 				'color_erase_mode',
 				'lock_alpha',
@@ -2165,6 +2169,7 @@ const BARS = {
 		})
 		Blockbench.onUpdateTo('4.4', () => {
 			Toolbars.brush.add(BarItems.brush_shape, 5);
+			Toolbars.brush.add(BarItems.blend_mode, 6);
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',

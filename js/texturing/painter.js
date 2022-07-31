@@ -111,6 +111,15 @@ const Painter = {
 				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
 				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
 					let color = Painter.getPixelColor(ctx, x, y);
+					if (settings.pick_color_opacity.value) {
+						let opacity = Math.floor(color.getAlpha()*256);
+						for (let id in BarItems) {
+							let tool = BarItems[id];
+							if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+								tool.tool_settings.brush_opacity = opacity;
+							}
+						}
+					}
 					ColorPanel.set(color);
 				}
 			}
@@ -376,10 +385,22 @@ const Painter = {
 				// Custom area
 			} else if (shape == 'square') {
 				Painter.editSquare(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
+					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
+						let matrix = Painter.current.face_matrices[Painter.current.face];
+						if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
+							return pxcolor;
+						}
+					}
 					return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
 				})
 			} else if (shape == 'circle') {
 				Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
+					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
+						let matrix = Painter.current.face_matrices[Painter.current.face];
+						if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
+							return pxcolor;
+						}
+					}
 					return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
 				})
 			}
@@ -845,6 +866,15 @@ const Painter = {
 	colorPicker(texture, x, y) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
 		let color = Painter.getPixelColor(ctx, x, y);
+		if (settings.pick_color_opacity.value) {
+			let opacity = Math.floor(color.getAlpha()*256);
+			for (let id in BarItems) {
+				let tool = BarItems[id];
+				if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+					tool.tool_settings.brush_opacity = opacity;
+				}
+			}
+		}
 		ColorPanel.set(color);
 	},
 	// Util
@@ -858,10 +888,71 @@ const Painter = {
 		added.a = added.a*opacity
 
 		var mix = {};
-		mix.a = limitNumber(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
+		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
 		mix.r = Math.round((added.r * added.a / mix.a) + (base.r * base.a * (1 - added.a) / mix.a)); // red
 		mix.g = Math.round((added.g * added.a / mix.a) + (base.g * base.a * (1 - added.a) / mix.a)); // green
 		mix.b = Math.round((added.b * added.a / mix.a) + (base.b * base.a * (1 - added.a) / mix.a)); // blue
+
+		added.a = original_a
+		return mix;
+	},
+	blendColors(base, added, opacity, blend_mode) {
+		if (Math.isNumber(base)) base = Jimp.intToRGBA(base)
+		if (Math.isNumber(added)) added = Jimp.intToRGBA(added)
+
+		var original_a = added.a
+		added.a = added.a*opacity
+
+		var mix = {};
+		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
+
+		['r', 'g', 'b'].forEach(ch => {
+			let normal_base = base[ch] / 255;
+			let normal_added = added[ch] / 255;
+			if (base.a == 0) normal_base = normal_added;
+
+			switch (blend_mode) {
+
+				case 'behind':
+				mix[ch] = (normal_base * base.a / mix.a)  +  (normal_added * added.a * (1 - base.a) / mix.a);
+				break;
+
+				case 'color':
+				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'multiply':
+				mix[ch] = ((normal_base * normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'divide':
+				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'add':
+				mix[ch] = ((normal_base + normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'subtract':
+				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				// Todo: Equations for remaining blend modes
+				case 'screen':
+				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'hard_light':
+				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'difference':
+				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+			}
+			mix[ch] = Math.clamp(Math.round(255 * mix[ch]), 0, 255);
+		})
 
 		added.a = original_a
 		return mix;
@@ -1127,23 +1218,31 @@ BARS.defineActions(function() {
 			opacity: true,
 			offset_even_radius: true,
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
-				if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
-					let matrix = Painter.current.face_matrices[Painter.current.face];
-					if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
-						return pxcolor;
-					}
-				}
+				let blend_mode = BarItems.blend_mode.value;
 				var a = opacity * local_opacity;
-				var before = Painter.getAlphaMatrix(texture, px, py)
-				Painter.setAlphaMatrix(texture, px, py, a);
-				if (a > before) {
-					a = (a - before) / (1 - before);
-				} else if (before) {
-					a = 0;
+
+				if (blend_mode == 'set_opacity') {
+					console.log(a)
+					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
+					return {r: color.r, g: color.g, b: color.b, a}
+
+				} else {
+					var before = Painter.getAlphaMatrix(texture, px, py)
+					Painter.setAlphaMatrix(texture, px, py, a);
+					if (a > before) {
+						a = (a - before) / (1 - before);
+					} else if (before) {
+						a = 0;
+					}
+					let result_color;
+					if (blend_mode == 'default') {
+						result_color = Painter.combineColors(pxcolor, color, a);
+					} else {
+						result_color = Painter.blendColors(pxcolor, color, a, blend_mode);
+					}
+					if (Painter.lock_alpha) result_color.a = pxcolor.a
+					return result_color;
 				}
-				var result_color = Painter.combineColors(pxcolor, color, a);
-				if (Painter.lock_alpha) result_color.a = pxcolor.a
-				return result_color;
 			}
 		},
 		allowed_view_modes: ['textured'],
@@ -1308,8 +1407,10 @@ BARS.defineActions(function() {
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
-		onCanvasClick() {
-			Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
 		}
 	})
 
@@ -1339,6 +1440,23 @@ BARS.defineActions(function() {
 			rectangle_h: {name: true, icon: 'far.fa-square'},
 			ellipse: {name: true, icon: 'circle'},
 			ellipse_h: {name: true, icon: 'radio_button_unchecked'},
+		}
+	})
+	new BarSelect('blend_mode', {
+		category: 'paint',
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
+		options: {
+			default: true,
+			set_opacity: true,
+			color: true,
+			behind: true,
+			multiply: true,
+			divide: true,
+			add: true,
+			subtract: true,
+			overlay: true,
+			hard_light: true,
+			difference: true,
 		}
 	})
 	new BarSelect('fill_mode', {
