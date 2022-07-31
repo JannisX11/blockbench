@@ -1227,8 +1227,10 @@ BARS.defineActions(function() {
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
-		onCanvasClick() {
-			Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
 		}
 	})
 

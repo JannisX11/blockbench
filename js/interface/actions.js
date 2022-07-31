@@ -1482,6 +1482,7 @@ const BARS = {
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
 				category: 'tools',
+				selectFace: true,
 				transformerMode: 'translate',
 				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
 				alt_tool: 'rotate_tool',
