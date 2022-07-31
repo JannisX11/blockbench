@@ -1,4 +1,4 @@
-# Blockbench  
+# Blockbench   
 
 Blockbench is a free, modern model editor for low-poly and boxy models with pixel art textures.
 Models can be exported into standardized formats, to be shared, rendered, 3D-printed, or used in game engines. There are also multiple dedicated formats for Minecraft Java and Bedrock Edition with format-specific features. 
