@@ -49,27 +49,27 @@ BARS.defineActions(() => {
 							<div class="socials">
 								<a class="open-in-browser" href="https://blockbench.net">
 									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
-									<label>Website</label>
+									<label>${tl('about.links.website')}</label>
 								</a>
 								<a class="open-in-browser" href="https://twitter.com/blockbench">
 									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
-									<label>Twitter</label>
+									<label>${tl('about.links.twitter')}</label>
 								</a>
 								<a class="open-in-browser" href="http://discord.blockbench.net">
 									<i class="icon fab fa-discord" style="color: #727fff;"></i>
-									<label>Discord</label>
+									<label>${tl('about.links.discord')}</label>
 								</a>
 								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
 									<i class="icon fab fa-youtube" style="color: #ff4444;"></i>
-									<label>YouTube</label>
+									<label>${tl('about.links.youtube')}</label>
 								</a>
 								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
 									<i class="icon fab fa-github" style="color: #dddddd;"></i>
-									<label>GitHub</label>
+									<label>${tl('about.links.github')}</label>
 								</a>
 								<a class="open-in-browser" href="https://blockbench.net/wiki">
 								<i class="icon material-icons">menu_book</i>
-									<label>Wiki</label>
+									<label>${tl('about.links.wiki')}</label>
 								</a>
 							</div>
 
