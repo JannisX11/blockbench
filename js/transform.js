@@ -1144,6 +1144,8 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Change element position')
 		}
 	})
+	let slider_vector_pos = [BarItems.slider_pos_x, BarItems.slider_pos_y, BarItems.slider_pos_z];
+	slider_vector_pos.forEach(slider => slider.slider_vector = slider_vector_pos);
 
 
 	function resizeOnAxis(modify, axis) {
@@ -1229,6 +1231,8 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Change element size')
 		}
 	})
+	let slider_vector_size = [BarItems.slider_size_x, BarItems.slider_size_y, BarItems.slider_size_z];
+	slider_vector_size.forEach(slider => slider.slider_vector = slider_vector_size);
 	//Inflate
 	new NumSlider('slider_inflate', {
 		category: 'transform',
@@ -1342,6 +1346,8 @@ BARS.defineActions(function() {
 		},
 		getInterval: getRotationInterval
 	})
+	let slider_vector_rotation = [BarItems.slider_rotation_x, BarItems.slider_rotation_y, BarItems.slider_rotation_z];
+	slider_vector_rotation.forEach(slider => slider.slider_vector = slider_vector_rotation);
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {
@@ -1451,6 +1457,8 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Change pivot point')
 		}
 	})
+	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
+	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
 
 	new Action('scale', {
 		icon: 'settings_overscan',

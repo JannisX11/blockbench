@@ -435,7 +435,7 @@ function setupInterface() {
 	Interface.text_edit_menu = new Menu([
 		{
 			id: 'copy',
-			name: 'Copy',
+			name: 'action.copy',
 			icon: 'fa-copy',
 			click() {
 				document.execCommand('copy');
@@ -443,7 +443,7 @@ function setupInterface() {
 		},
 		{
 			id: 'paste',
-			name: 'Paste',
+			name: 'action.paste',
 			icon: 'fa-paste',
 			click() {
 				document.execCommand('paste');

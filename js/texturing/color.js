@@ -928,6 +928,9 @@ BARS.defineActions(function() {
 			ColorPanel.updateFromHsv();
 		}
 	})
+	let slider_vector_color = [BarItems.slider_color_h, BarItems.slider_color_s, BarItems.slider_color_v];
+	slider_vector_color.forEach(slider => slider.slider_vector = slider_vector_color);
+
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',

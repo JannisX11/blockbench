@@ -580,13 +580,13 @@ class NumSlider extends Widget {
 			addEventListeners(document, 'mouseup touchend', stop);
 		})
 		//Input
-		.keypress(function (e) {
+		.on('keypress', function (e) {
 			if (e.keyCode === 10 || e.keyCode === 13) {
 				e.preventDefault();
 				scope.stopInput();
 			}
 		})
-		.keyup(function (e) {
+		.on('keyup', function (e) {
 			if (e.keyCode !== 10 && e.keyCode !== 13) {
 				scope.input()
 			}
@@ -598,15 +598,50 @@ class NumSlider extends Widget {
 				scope.update()
 			}
 		})
-		.focusout(function() {
+		.on('focusout', function() {
 			scope.stopInput()
 		})
-		.dblclick(function(event) {
+		.on('dblclick', function(event) {
 			if (event.target != this) return;
 			let value = scope.settings && scope.settings.default ? scope.settings.default.toString() : '0';
 			scope.jq_inner.text(value);
 			scope.stopInput()
 
+		})
+		.on('contextmenu', event => {
+			new Menu([
+				{
+					id: 'copy',
+					name: 'action.copy',
+					icon: 'fa-copy',
+					click: () => {
+						Clipbench.setText(this.value);
+					}
+				},
+				{
+					id: 'copy',
+					name: 'menu.text_edit.copy_vector',
+					icon: 'fa-copy',
+					condition: this.slider_vector instanceof Array,
+					click: () => {
+						let numbers = this.slider_vector.map(slider => slider.value);
+						let text = numbers.join(' ');
+						Clipbench.setText(text);
+					}
+				},
+				{
+					id: 'paste',
+					name: 'action.paste',
+					icon: 'fa-paste',
+					click: () => {
+						this.startInput()
+						document.execCommand('paste');
+						setTimeout(() => {
+							this.stopInput();
+						}, 20);
+					}
+				}
+			]).open(event);
 		});
 		//Arrows
 		this.jq_outer
@@ -678,6 +713,29 @@ class NumSlider extends Widget {
 			if (typeof this.onBefore === 'function') {
 				this.onBefore()
 			}
+
+			if (this.slider_vector && text.split(/\s+/g).length == this.slider_vector.length) {
+				let components = text.split(/\s+/g);
+				console.log(text, components);
+
+				components.forEach((number, axis) => {
+					let slider = this.slider_vector[axis];
+					number = parseFloat(number);
+					if (isNaN(number)) {
+						number = 0;
+					}
+					slider.change(val => number);
+
+					this.jq_inner.removeClass('editing')
+					this.jq_inner.attr('contenteditable', 'false')
+					this.update()
+				})
+
+				this.onAfter()
+				return;
+			}
+
+
 			text = text.replace(/,(?=\d+$)/, '.');
 			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
 				var number = parseFloat(text);

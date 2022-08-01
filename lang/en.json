@@ -1490,6 +1490,8 @@
 	"menu.help.updating": "Updating (%0%)",
 	"menu.help.update_failed": "Update Failed",
 
+	"menu.text_edit.copy_vector": "Copy Vector",
+
 	"menu.cube.color": "Marker Color",
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
