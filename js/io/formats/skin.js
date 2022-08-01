@@ -282,6 +282,7 @@ const skin_dialog = new Dialog({
 		Format = 0;
 	}
 });
+format.setup_dialog = skin_dialog;
 
 
 BARS.defineActions(function() {

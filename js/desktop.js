@@ -80,9 +80,14 @@ function loadOpenWithBlockbenchFile() {
 		})
 	})
 	if (electron.process.argv.length >= 2) {
-		var extension = pathToExtension(electron.process.argv.last())
-		if (Codec.getAllExtensions().includes(extension)) {
-			Blockbench.read([electron.process.argv.last()], {}, (files) => {
+		let path = electron.process.argv.last();
+		var extension = pathToExtension(path);
+		if (extension == 'png') {
+			Blockbench.read([path], {readtype: 'image'}, (files) => {
+				loadImages(files);
+			})
+		} else if (Codec.getAllExtensions().includes(extension)) {
+			Blockbench.read([path], {}, (files) => {
 				loadModelFile(files[0])
 			})
 		}

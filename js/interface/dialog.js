@@ -480,6 +480,7 @@ window.Dialog = class Dialog {
 						} else {
 							data.content = value;
 						}
+						data.bar.find('input').val(value);
 						break;
 				}
 			}

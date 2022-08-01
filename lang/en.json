@@ -331,6 +331,9 @@
 
 	"message.merged_vertices": "Found and merged %0 vertices in %1 locations",
 
+	"message.load_images.title": "Load Images",
+	"message.load_images.edit_image": "Edit Image",
+
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",
 	

@@ -203,6 +203,26 @@
 		user-select: text;
 	}
 
+	.dialog_message_box_command {
+		padding: 6px 12px;
+		cursor: pointer;
+		font-size: 1.1em;
+		background-color: var(--color-back);
+		margin-top: 6px;
+	}
+	.dialog_message_box_command:hover {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	.dialog_message_box_command::after {
+		float: right;
+		content: "\f105";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		margin-right: 10px;
+		pointer-events: none;
+	}
+
 	dialog .form_bar_file .input_wrapper {
 		position: relative;
 		flex-grow: 1;

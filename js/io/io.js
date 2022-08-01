@@ -34,20 +34,9 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
 		function(files, event) {
-			var texture_li = $(event.target).parents('li.texture')
-			if (texture_li.length) {
-				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
-				if (tex) {
-					tex.fromFile(files[0])
-					TickUpdates.selection = true;
-					return;
-				}
-			}
-			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
+			loadImages(files, event)
 		}
 	)
 }
@@ -85,6 +74,81 @@ function loadModelFile(file) {
 		if (success) return;
 	}
 }
+
+function loadImages(files) {
+	let options = {};
+	let texture_li = $(event.target).parents('li.texture');
+	let replace_texture;
+	if (Project && texture_li.length) {
+		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
+		if (replace_texture) {
+			options.replace_texture = 'menu.texture.change';
+		}
+	}
+	if (Project) {
+		options.texture = 'action.import_texture';
+		options.background = 'menu.view.background';
+	}
+	//options.edit = 'message.load_images.edit_image';
+	options.minecraft_skin = 'format.skin';
+	if (Project && !Project.box_uv) {
+		options.extrude_with_cubes = 'dialog.extrude.title';
+	}
+
+	function doLoadImages(method) {
+		if (method == 'texture') {
+			files.forEach(function(f) {
+				new Texture().fromFile(f).add().fillParticle()
+			})
+
+		} else if (method == 'replace_texture') {
+			replace_texture.fromFile(files[0])
+			updateSelection();
+			
+		} else if (method == 'background') {
+			let preview = Preview.selected;
+			let image = isApp ? files[0].path : files[0].content;
+			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
+				image = image + '?' + Math.floor(Math.random() * 1000);
+			}
+			preview.background.image = image;
+			preview.loadBackground();
+			Settings.saveLocalStorages();
+			preview.startMovingBackground();
+			
+		} else if (method == 'edit') {
+			
+		} else if (method == 'minecraft_skin') {
+			Formats.skin.setup_dialog.show();
+			Formats.skin.setup_dialog.setFormValues({
+				texture: isApp ? files[0].path : files[0].content
+			})
+
+		} else if (method == 'extrude_with_cubes') {
+			showDialog('image_extruder');
+			Extruder.drawImage(files[0]);
+		}
+	}
+
+	let all_methods = Object.keys(options);
+	if (all_methods.length) {
+		let title = tl('message.load_images.title');
+		let message = `${files[0].name}`;
+		if (files.length > 1) message += ` (${files.length})`;
+		let img = new Image();
+		img.src = isApp ? files[0].path : files[0].content;
+		Blockbench.showMessageBox({
+			id: 'load_images',
+			commands: options,
+			title, message,
+			icon: img,
+			buttons: ['dialog.cancel'],
+		}, result => {
+			doLoadImages(result);
+		})
+	}
+}
+
 //Extruder
 var Extruder = {
 	drawImage: function(file) {

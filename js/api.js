@@ -206,12 +206,30 @@ const Blockbench = {
 				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
 			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			marked(tl(options.message))+
-			'</div></div>'
-		)
+		let content = $('<div class="dialog_content"></div>');
+		jq_dialog.append(content);
+
+		if (options.message) {
+			content.append('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+				marked(tl(options.message))+
+			'</div></div>')
+		}
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		if (options.commands) {
+			let list = Interface.createElement('ul');
+			for (let id in options.commands) {
+				let command = options.commands[id];
+				let text = tl(typeof command == 'string' ? command : command.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				entry.addEventListener('click', e => {
+					close(id);
+				})
+				list.append(entry);
+			}
+			content.append(list);
 		}
 
 		function close(button) {
