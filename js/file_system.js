@@ -163,7 +163,8 @@ Object.assign(Blockbench, {
 						} else {
 							results[this_i] = {
 								name: pathToName(file, true),
-								path: file
+								path: file,
+								content: file
 							}
 							result_count++;
 							if (result_count === files.length) {
