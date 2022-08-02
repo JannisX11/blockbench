@@ -84,9 +84,9 @@ BARS.defineActions(() => {
 								<li>${tl('about.special_thanks.donators')}</li>
 								<li>${tl('about.special_thanks.translators')}</li>
 								<li>Wacky</li>
-								<li>Ewan Howell and Lukas</li>
+								<li>${tl('about.special_thanks.two_peoples', ['Ewan Howell', 'Lukas'])}</li>
 								<li>SirBenet</li>
-								<li>Sultan Taha and Kanno</li>
+								<li>${tl('about.special_thanks.two_peoples', ['Sultan Taha', 'Kanno'])}</li>
 								<li>${tl('about.special_thanks.community')}</li>
 							</ul>
 
