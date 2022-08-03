@@ -287,10 +287,24 @@ const Painter = {
 				}
 			} else {
 				let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+
 				for (let vkey in uvTag) {
 					min_x = Math.min(min_x, uvTag[vkey][0]); max_x = Math.max(max_x, uvTag[vkey][0]);
 					min_y = Math.min(min_y, uvTag[vkey][1]); max_y = Math.max(max_y, uvTag[vkey][1]);
 				}
+				
+				let current_face = Mesh.selected[0] && Mesh.selected[0].faces[Painter.current.face];
+				if (current_face) {
+					let island = current_face.getUVIsland();
+					island.forEach(fkey => {
+						let face = Mesh.selected[0].faces[fkey];
+						for (let vkey in face.uv) {
+							min_x = Math.min(min_x, face.uv[vkey][0]); max_x = Math.max(max_x, face.uv[vkey][0]);
+							min_y = Math.min(min_y, face.uv[vkey][1]); max_y = Math.max(max_y, face.uv[vkey][1]);
+						}
+					})
+				}
+
 				rect = Painter.editing_area = [
 					Math.floor(min_x * uvFactorX),
 					Math.floor(min_y * uvFactorY) + anim_offset,
@@ -351,6 +365,12 @@ const Painter = {
 			let face = Painter.current.element.faces[Painter.current.face];
 			if (face && face.vertices.length > 2 && !Painter.current.face_matrices[Painter.current.face]) {
 				Painter.current.face_matrices[Painter.current.face] = face.getOccupationMatrix(true, [0, 0]);
+				let island = face.getUVIsland();
+				for (let fkey of island) {
+					let face = Painter.current.element.faces[fkey];
+					console.log(Painter.current.element, fkey, face, island)
+					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[Painter.current.face]);
+				}
 			}
 		}
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
