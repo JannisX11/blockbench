@@ -728,6 +728,7 @@ function calculateVisibleBox() {
 			if (Format.id == 'bedrock') Project.BedrockEntityManager.initEntity();
 			if (Format.id == 'bedrock_block') Project.BedrockBlockManager.initBlock();
 		}
+		Validator.validate()
 		updateSelection()
 	}
 

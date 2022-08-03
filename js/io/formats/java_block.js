@@ -447,6 +447,7 @@ var codec = new Codec('java_block', {
 		if (add) {
 			Undo.finishEdit('Add block model')
 		}
+		Validator.validate()
 	},
 })
 

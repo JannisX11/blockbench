@@ -677,6 +677,8 @@ onVueSetup(function() {
 			selection_info: '',
 			Format: null,
 			show_modifier_keys: settings.status_bar_modifier_keys.value,
+			warnings: Validator.warnings,
+			errors: Validator.errors,
 			modifier_keys: {
 				ctrl: [],
 				shift: [],
@@ -733,6 +735,9 @@ onVueSetup(function() {
 			clickModifiers() {
 				ActionControl.select(`setting: ${tl('settings.status_bar_modifier_keys')}`);
 			},
+			openValidator() {
+				Validator.openDialog();
+			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode,
 			tl
@@ -775,6 +780,12 @@ onVueSetup(function() {
 				</template>
 
 				<div class="status_selection_info">{{ selection_info }}</div>
+
+				
+				<div class="f_right" id="validator_status" v-if="warnings.length || errors.length" @click="openValidator()">
+					<span v-if="warnings.length" style="color: var(--color-warning)">{{ warnings.length }}<i class="material-icons">warning</i></span>
+					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
+				</div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>

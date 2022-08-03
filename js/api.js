@@ -374,6 +374,10 @@ const Blockbench = {
 				results.push(result);
 			}
 		}
+		console.log(event_name, Validator.triggers.includes(event_name))
+		if (Validator.triggers.includes(event_name)) {
+			Validator.validate(event_name);
+		}
 		return results;
 	},
 	addListener(event_names, cb) {

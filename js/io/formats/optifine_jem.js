@@ -296,6 +296,7 @@ var codec = new Codec('optifine_entity', {
 		importTexture(model.texture);
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
+		Validator.validate()
 	}
 })
 

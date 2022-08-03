@@ -329,6 +329,7 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Validator.validate()
 		this.dispatchEvent('parsed', {model})
 	},
 	merge(model, path) {

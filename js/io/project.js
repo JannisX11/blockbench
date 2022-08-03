@@ -225,6 +225,7 @@ class ModelProject {
 		setStartScreen(!Project);
 		updateInterface();
 		updateProjectResolution();
+		Validator.validate();
 		Vue.nextTick(() => {
 			loadTextureDraggable();
 
