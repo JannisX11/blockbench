@@ -650,7 +650,7 @@
 	"about.special_thanks.community": "The Blockbench Community",
 	"about.special_thanks.two_peoples": "%0 and %1",
 	"about.resources": "FRAMEWORKS, LIBRARIES, AND ICONS",
-	"about.resources.powered_by": "This program is powered by ",
+	"about.resources.powered_by": "This program is powered by %0",
 	"about.privacy_policy": "Privacy Policy",
 
 	"settings.category.general": "General",
