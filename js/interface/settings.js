@@ -304,11 +304,13 @@ const Settings = {
 		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
 		
 		//Defaults
+		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number'});
 		new Setting('autouv',	   				{category: 'defaults', value: true});
 		new Setting('create_rename', 			{category: 'defaults', value: false});
 		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
 		new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
 		new Setting('animation_snap',			{category: 'defaults', value: 24, type: 'number'});
+		new Setting('uniform_keyframe',			{category: 'defaults', value: true});
 		
 		//Dialogs
 		new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});

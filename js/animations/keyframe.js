@@ -435,7 +435,7 @@ class Keyframe {
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
-	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: true})
+	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
 	Keyframe.selected = [];
 	Keyframe.interpolation = {

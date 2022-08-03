@@ -744,12 +744,16 @@
 
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Enable Auto UV by default",
+	"settings.default_cube_size": "Cube Size",
+	"settings.default_cube_size.desc": "Set the default cube size when creating a new cube",
 	"settings.create_rename": "Rename New Element",
 	"settings.create_rename.desc": "Focus name field when creating new element or group",
 	"settings.show_only_selected_uv": "Show Only Selected UV",
 	"settings.show_only_selected_uv.desc": "Only display the selected UV faces in the UV editor by default",
 	"settings.animation_snap": "Animation Snap",
 	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second. This can also be changed per animation. The default value is 24.",
+	"settings.uniform_keyframe": "Uniform Scale Keyframes",
+	"settings.uniform_keyframe.desc": "Set scale keyframes to uniform scaling by default",
 
 	"settings.edit_size": "Grid Resolution",
 	"settings.edit_size.desc": "Resolution of the grid that cubes snap to",

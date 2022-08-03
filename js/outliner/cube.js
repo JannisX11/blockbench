@@ -58,7 +58,7 @@ CubeFace.opposite = {
 class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
-		let size = canvasGridSize();
+		let size = Settings.get('default_cube_size');
 		this.from = [0, 0, 0];
 		this.to = [size, size, size];
 		this.shade = true;
@@ -1195,6 +1195,7 @@ BARS.defineActions(function() {
 			var base_cube = new Cube({
 				autouv: (settings.autouv.value ? 1 : 0)
 			}).init()
+			if (!Project.box_uv) base_cube.mapAutoUV()
 			var group = getCurrentGroup();
 			base_cube.addTo(group)
 
@@ -1206,11 +1207,20 @@ BARS.defineActions(function() {
 			}
 			if (Format.bone_rig) {
 				var pos1 = group ? group.origin.slice() : [0, 0, 0];
-				base_cube.extend({
-					from:[ pos1[0]-1, pos1[1]-0, pos1[2]-1 ],
-					to:[   pos1[0]+1, pos1[1]+2, pos1[2]+1 ],
-					origin: pos1.slice()
-				})
+				let size = Settings.get('default_cube_size');
+				if (size % 2 == 0) {
+					base_cube.extend({
+						from:[ pos1[0] - size/2, pos1[1] - 0,    pos1[2] - size/2 ],
+						to:[   pos1[0] + size/2, pos1[1] + size, pos1[2] + size/2 ],
+						origin: pos1.slice()
+					})
+				} else {
+					base_cube.extend({
+						from:[ pos1[0], pos1[1], pos1[2] ],
+						to:[   pos1[0]+size, pos1[1]+size, pos1[2]+size ],
+						origin: pos1.slice()
+					})
+				}
 			}
 
 			if (Group.selected) Group.selected.unselect()
