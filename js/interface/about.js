@@ -90,7 +90,7 @@ BARS.defineActions(() => {
 								<li>${tl('about.special_thanks.community')}</li>
 							</ul>
 
-							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
+							<h4>${tl('about.resources')}</h4>
 
 							<p style="margin-bottom: 16px" v-if="isApp">${tl('about.resources.powered_by')}<a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
 
