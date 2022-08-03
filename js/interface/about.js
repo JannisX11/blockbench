@@ -121,7 +121,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
 							</ul>
 
-							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
+							<p style="margin-top: 20px">${tl('about.publish', '<a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a>')}</p>
 							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">${tl('about.privacy_policy')}</a></p>
 
 						</div>`
