@@ -92,7 +92,7 @@ BARS.defineActions(() => {
 
 							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
 
-							<p style="margin-bottom: 16px" v-if="isApp">This program is powered by <a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
+							<p style="margin-bottom: 16px" v-if="isApp">${tl('about.resources.powered_by')}<a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
 
 							<ul class="multi_column_list">
 								<li><a class="open-in-browser" href="https://material.io/icons/">Material Icons</a></li>
