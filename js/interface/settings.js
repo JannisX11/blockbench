@@ -276,11 +276,12 @@ const Settings = {
 		}});
 		
 		//Snapping
-		new Setting('edit_size',	{category: 'snapping', value: 16, type: 'number'});
-		new Setting('shift_size', 	{category: 'snapping', value: 64, type: 'number'});
-		new Setting('ctrl_size',	{category: 'snapping', value: 160, type: 'number'});
+		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number'});
+		new Setting('shift_size', 		{category: 'snapping', value: 64, type: 'number'});
+		new Setting('ctrl_size',		{category: 'snapping', value: 160, type: 'number'});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
-		new Setting('negative_size',{category: 'snapping', value: false});
+		new Setting('negative_size',	{category: 'snapping', value: false});
+		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
 		//Paint
 		new Setting('sync_color',	{category: 'paint', value: false});

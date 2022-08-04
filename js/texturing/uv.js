@@ -63,8 +63,13 @@ const UVEditor = {
 		}
 
 		if (Toolbox.selected.id === 'copy_paste_tool') {
-			result.x = Math.round(mouse_coords[0]/pixel_size*1);
-			result.y = Math.round(mouse_coords[1]/pixel_size*1);
+			if (settings.nearest_rectangle_select.value) {
+				result.x = Math.round(mouse_coords[0]/pixel_size*1);
+				result.y = Math.round(mouse_coords[1]/pixel_size*1);
+			} else {
+				result.x = Math.floor(mouse_coords[0]/pixel_size*1 + 0.06);
+				result.y = Math.floor(mouse_coords[1]/pixel_size*1 + 0.06);
+			}
 		} else {
 			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
 			result.x = mouse_coords[0]/pixel_size*1 + offset;
@@ -177,6 +182,10 @@ const UVEditor = {
 		let m = UVEditor.inner_width / UVEditor.texture.width;
 
 		if (!Painter.selection.overlay) {
+			if (!settings.nearest_rectangle_select.value) {
+				if (x >= Painter.selection.start_x) x++;
+				if (y >= Painter.selection.start_y) y++;
+			}
 			if (x === Painter.current.x && y === Painter.current.y) return;
 			Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
 			Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);

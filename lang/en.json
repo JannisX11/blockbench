@@ -765,6 +765,8 @@
 	"settings.ctrl_shift_size.desc": "Resolution of the grid while holding control and shift",
 	"settings.negative_size": "Negative Size",
 	"settings.negative_size.desc": "Allow the resize tool to use negative sizes",
+	"settings.nearest_rectangle_select": "Rectangle Seletion: Nearest Edge",
+	"settings.nearest_rectangle_select.desc": "Snap rectangle selections to the nearest pixel edge, like in GIMP, instead of entire pixels.",
 
 	"settings.sync_color": "Sync Color",
 	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
