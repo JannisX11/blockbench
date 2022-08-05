@@ -1998,6 +1998,7 @@ const BARS = {
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',
+				'copy_brush',
 				'fill_tool',
 				'eraser',
 				'color_picker',
@@ -2205,15 +2206,20 @@ const BARS = {
 		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
 			Toolbars.main_tools.add(BarItems.selection_mode, -1);
 		})
+		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
+			delete BARS.brush.timeline;
+		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			children: [
 				'fill_mode',
+				'copy_brush_mode',
 				'draw_shape_type',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'_',
 				'brush_shape',
 				'blend_mode',
 				'mirror_painting',
@@ -2221,13 +2227,6 @@ const BARS = {
 				'lock_alpha',
 				'painting_grid',
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.brush.add(BarItems.color_erase_mode, -3);
-		})
-		Blockbench.onUpdateTo('4.4', () => {
-			Toolbars.brush.add(BarItems.brush_shape, 5);
-			Toolbars.brush.add(BarItems.blend_mode, 6);
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',

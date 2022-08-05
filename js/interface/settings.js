@@ -290,7 +290,6 @@ const Settings = {
 		}});
 		new Setting('pick_color_opacity',		{category: 'paint', value: false});
 		new Setting('paint_side_restrict',		{category: 'paint', value: true});
-		// TODO: implement paint with stylus only into paint tools
 		new Setting('paint_with_stylus_only',	{category: 'paint', value: false});
 		new Setting('brush_opacity_modifier',	{category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),

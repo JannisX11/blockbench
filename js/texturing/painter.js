@@ -186,6 +186,11 @@ const Painter = {
 
 		if (settings.paint_with_stylus_only.value && !(event.touches && event.touches[0] && event.touches[0].touchType == 'stylus')) return;
 
+		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeStart) {
+			let result = Toolbox.selected.brush.onStrokeStart({texture, x, y, uv: uvTag, event, raycast_data: data});
+			if (result == false) return;
+		}
+
 		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y)
 
@@ -220,6 +225,7 @@ const Painter = {
 				//uv editor
 				var is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
+			if (Toolbox.selected.brush.line == false) is_line = false;
 
 			texture.edit(canvas => {
 				if (is_line) {
@@ -235,6 +241,12 @@ const Painter = {
 	},
 	movePaintTool(texture, x, y, event, new_face, uv) {
 		// Called directly from movePaintToolCanvas and moveBrushUV
+		
+		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeMove) {
+			let result = Toolbox.selected.brush.onStrokeMove({texture, x, y, uv, event, raycast_data: data});
+			if (result == false) return;
+		}
+
 		if (Toolbox.selected.id === 'draw_shape_tool') {
 
 			Painter.useShapeTool(texture, x, y, event, uv)
@@ -253,6 +265,10 @@ const Painter = {
 	},
 	stopPaintTool() {
 		//Called directly by stopPaintToolCanvas and stopBrushUV
+		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
+			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
+			if (result == false) return;
+		}
 		if (Painter.brushChanges) {
 			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
@@ -368,7 +384,6 @@ const Painter = {
 				let island = face.getUVIsland();
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
-					console.log(Painter.current.element, fkey, face, island)
 					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[Painter.current.face]);
 				}
 			}
@@ -645,13 +660,14 @@ const Painter = {
 		if (new_face && !length) {
 			length = 1
 		}
-		var i = 1;
+		var interval = Toolbox.selected.brush.line_interval || 1;
+		var i = Math.min(interval, length);
 		var x, y;
 		while (i <= length) {
 			x = Math.round(start_x + diff_x / length * i)
 			y = Math.round(start_y + diff_y / length * i)
 			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
-			i++;
+			i += interval;
 		}
 	},
 	useShapeTool(texture, x, y, event, uvTag) {
@@ -1242,7 +1258,6 @@ BARS.defineActions(function() {
 				var a = opacity * local_opacity;
 
 				if (blend_mode == 'set_opacity') {
-					console.log(a)
 					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
 					return {r: color.r, g: color.g, b: color.b, a}
 
@@ -1281,6 +1296,114 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 		}
 	})
+	let copy_source;
+	let stroke_start_pos;
+	new Tool('copy_brush', {
+		icon: 'fa-stamp',
+		category: 'tools',
+		toolbar: 'brush',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		brush: {
+			shapes: true,
+			size: true,
+			softness: true,
+			opacity: true,
+			offset_even_radius: true,
+			onStrokeStart({texture, event, x, y}) {
+				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
+					if (!Painter.current.canvas) {
+						Painter.current.canvas = Painter.getCanvas(texture);
+					}
+					let size = BarItems.slider_brush_size.get();
+					copy_source = {
+						data: texture.canvas.getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
+						width: texture.width,
+						height: texture.height,
+						size,
+						x,
+						y,
+					}
+					UVEditor.vue.copy_brush_source = {
+						x, y,
+						size,
+						texture: texture.uuid
+					}
+					return false;
+				} else {
+					if (!copy_source) return false;
+					stroke_start_pos = [x, y]
+				}
+			},
+			changePixel(px, py, pxcolor, local_opacity, {opacity,x, y, texture}) {
+				let a = opacity * local_opacity;
+				let mode = BarItems.copy_brush_mode.value
+
+				let before = Painter.getAlphaMatrix(texture, px, py)
+				Painter.setAlphaMatrix(texture, px, py, a);
+				if (a > before) {
+					a = (a - before) / (1 - before);
+				} else if (before) {
+					a = 0;
+				}
+				
+				let source_pos;
+				if (mode == 'copy') {
+					source_pos = [
+						Math.round(copy_source.x + (px - stroke_start_pos[0])),
+						Math.round(copy_source.y + (py - stroke_start_pos[1])),
+					]
+				} else if (mode == 'pattern') {
+					let size = copy_source.size;
+					let grid_start = [
+						copy_source.x - size/2,
+						copy_source.y - size/2,
+					]
+					source_pos = [
+						Math.floor(grid_start[0] + ((px + size*200 - (grid_start[0] % size)) % size)),
+						Math.floor(grid_start[1] + ((py + size*200 - (grid_start[1] % size)) % size)),
+					]
+				} else {
+					source_pos = [
+						Math.round(copy_source.x + (px - x)),
+						Math.round(copy_source.y + (py - y)),
+					]
+				}
+				if (source_pos[0] < 0 || source_pos[0] >= copy_source.width || source_pos[1] < 0 || source_pos[1] >= copy_source.height) {
+					return pxcolor;
+				}
+				let source_index = (source_pos[0] + source_pos[1] * copy_source.width) * 4;
+				let color = {
+					r: copy_source.data[source_index + 0],
+					g: copy_source.data[source_index + 1],
+					b: copy_source.data[source_index + 2],
+					a: copy_source.data[source_index + 3] / 255
+				}
+
+				let result_color = Painter.combineColors(pxcolor, color, a);
+				if (Painter.lock_alpha) result_color.a = pxcolor.a
+				return result_color;
+			}
+		},
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		onCanvasClick(data) {
+			Painter.startPaintToolCanvas(data, data.event);
+		},
+		onSelect() {
+			Painter.updateNslideValues();
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.set_copy_source');
+		},
+		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
+			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.set_copy_source');
+			UVEditor.vue.copy_brush_source = null;
+		}
+	})
+	BarItems.copy_brush.tool_settings.brush_size = 16;
 	new Tool('fill_tool', {
 		icon: 'format_color_fill',
 		category: 'tools',
@@ -1487,6 +1610,15 @@ BARS.defineActions(function() {
 			element: true,
 			color_connected: true,
 			color: true,
+		}
+	})
+	new BarSelect('copy_brush_mode', {
+		category: 'paint',
+		condition: () => Toolbox && ['copy_brush'].includes(Toolbox.selected.id),
+		options: {
+			copy: true,
+			pattern: true,
+			sample: true
 		}
 	})
 	new Toggle('mirror_painting', {

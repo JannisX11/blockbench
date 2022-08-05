@@ -1771,6 +1771,7 @@ Interface.definePanels(function() {
 				uv_overlay: false,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
+				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
 				brush_type: BarItems.brush_shape.value,
 				selection_rect: {
@@ -2856,6 +2857,24 @@ Interface.definePanels(function() {
 						return {display: 'none'};
 					}
 				},
+				getCopyBrushOutlineStyle() {
+					if (Toolbox.selected.brush) {
+						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
+						//pos
+						let offset = this.copy_brush_source.size%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
+						let left = (this.copy_brush_source.x + offset) * pixel_size;
+						let top =  (this.copy_brush_source.y + offset) * pixel_size;
+						//size
+						var radius = (this.copy_brush_source.size/2) * pixel_size;
+						return {
+							'--radius': radius,
+							left: left+'px',
+							top: top+'px'
+						}
+					} else {
+						return {display: 'none'};
+					}
+				},
 				getFrameMargin(style) {
 					let gap_x = Math.max((this.width - this.inner_width) / 2, 0);
 					let gap_y = Math.max((this.height - this.inner_height) / 2, 0);
@@ -3011,6 +3030,8 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
 							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :class="brush_type" :style="getBrushOutlineStyle()"></div>
+
+							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
 							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1 && !texture.display_canvas" :src="texture.source">
 							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>

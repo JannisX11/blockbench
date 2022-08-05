@@ -1387,7 +1387,7 @@
 		object-position: 0 0;
 	}
 	div#uv_brush_outline {
-		border: 1px solid white;
+		border: 2px solid white;
 		width: calc(var(--radius) * 2px);
 		height: calc(var(--radius) * 2px);
 		margin: calc(var(--radius) * -1px);
@@ -1398,6 +1398,30 @@
 	}
 	div#uv_brush_outline.circle {
 		border-radius: 50%;
+	}
+	div#uv_copy_brush_outline {
+		border: 2px dashed white;
+		width: calc(var(--radius) * 2px);
+		height: calc(var(--radius) * 2px);
+		margin: calc(var(--radius) * -1px);
+		position: absolute;
+		pointer-events: none;
+		mix-blend-mode: difference;
+		z-index: 1;
+	}
+	div#uv_copy_brush_outline::after {
+		content: "\2b";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		font-size: 19px;
+		position: absolute;
+		margin: auto;
+		top: calc(50% - 15px);
+		right: -10px;
+		left: -10px;
+		color: white;
+		width: 16px;
+
 	}
 	canvas.move_texture_with_uv {
 		position: absolute;
