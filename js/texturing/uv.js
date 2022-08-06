@@ -1974,7 +1974,6 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
-					if (event.target && event.target.id === 'uv_viewport') return;
 					let scope = this;
 					let second_touch;
 					let original_zoom = this.zoom;
@@ -2033,9 +2032,12 @@ Interface.definePanels(function() {
 						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 						event.preventDefault();
+						$(getFocusedTextInput()).trigger('blur');
 						return false;
+
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						// Paint
+						if (event.target && event.target.id === 'uv_viewport') return;
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;

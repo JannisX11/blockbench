@@ -424,7 +424,7 @@
 				<div class="toolbar_wrapper narrow tools"></div>
 
 				<div class="toolbar_wrapper narrow tool_options"></div>
-				<ul id="mode_selector">
+				<ul id="mode_selector" v-if="showModes()">
 					<li
 						v-for="mode in options"
 						v-if="Condition(mode.condition)"

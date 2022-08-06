@@ -175,6 +175,7 @@ const format = new ModelFormat('skin', {
 	single_texture: true,
 	integer_size: true,
 	rotate_cubes: false,
+	edit_mode: false,
 	pose_mode: true,
 	codec
 })

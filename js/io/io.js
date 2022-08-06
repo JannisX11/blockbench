@@ -75,11 +75,19 @@ function loadModelFile(file) {
 	}
 }
 
-function loadImages(files) {
+async function loadImages(files, event) {
 	let options = {};
-	let texture_li = $(event.target).parents('li.texture');
+	let texture_li = event && $(event.target).parents('li.texture');
 	let replace_texture;
-	if (Project && texture_li.length) {
+
+	let img = new Image();
+	await new Promise((resolve, reject) => {
+		img.src = isApp ? files[0].path : files[0].content;
+		img.onload = resolve;
+		img.onerror = reject;
+	})
+
+	if (Project && texture_li && texture_li.length) {
 		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 		if (replace_texture) {
 			options.replace_texture = 'menu.texture.change';
@@ -89,8 +97,10 @@ function loadImages(files) {
 		options.texture = 'action.import_texture';
 		options.background = 'menu.view.background';
 	}
-	//options.edit = 'message.load_images.edit_image';
-	options.minecraft_skin = 'format.skin';
+	options.edit = 'message.load_images.edit_image';
+	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
+		options.minecraft_skin = 'format.skin';
+	}
 	if (Project && !Project.box_uv) {
 		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
@@ -117,6 +127,19 @@ function loadImages(files) {
 			preview.startMovingBackground();
 			
 		} else if (method == 'edit') {
+			Formats.image.new();
+			Project.texture_width = img.naturalWidth;
+			Project.texture_height = img.naturalHeight;
+			files.forEach(function(f) {
+				new Texture().fromFile(f).add();
+			})
+			UVEditor.vue.updateTexture()
+			let last = Texture.all.last();
+			Project.name = last.name;
+			last.load_callback = () => {
+				last.select();
+			}
+
 			
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
@@ -131,12 +154,13 @@ function loadImages(files) {
 	}
 
 	let all_methods = Object.keys(options);
-	if (all_methods.length) {
+	if (all_methods.length == 1) {
+		doLoadImages(all_methods[0]);
+
+	} else if (all_methods.length) {
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
 		if (files.length > 1) message += ` (${files.length})`;
-		let img = new Image();
-		img.src = isApp ? files[0].path : files[0].content;
 		Blockbench.showMessageBox({
 			id: 'load_images',
 			commands: options,

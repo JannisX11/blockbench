@@ -1341,14 +1341,6 @@ BARS.defineActions(function() {
 				let a = opacity * local_opacity;
 				let mode = BarItems.copy_brush_mode.value
 
-				let before = Painter.getAlphaMatrix(texture, px, py)
-				Painter.setAlphaMatrix(texture, px, py, a);
-				if (a > before) {
-					a = (a - before) / (1 - before);
-				} else if (before) {
-					a = 0;
-				}
-				
 				let source_pos;
 				if (mode == 'copy') {
 					source_pos = [
@@ -1374,12 +1366,21 @@ BARS.defineActions(function() {
 				if (source_pos[0] < 0 || source_pos[0] >= copy_source.width || source_pos[1] < 0 || source_pos[1] >= copy_source.height) {
 					return pxcolor;
 				}
+
 				let source_index = (source_pos[0] + source_pos[1] * copy_source.width) * 4;
 				let color = {
 					r: copy_source.data[source_index + 0],
 					g: copy_source.data[source_index + 1],
 					b: copy_source.data[source_index + 2],
 					a: copy_source.data[source_index + 3] / 255
+				}
+
+				let before = Painter.getAlphaMatrix(texture, px, py)
+				Painter.setAlphaMatrix(texture, px, py, a * color.a);
+				if (a > before) {
+					a = (a - before) / (1 - before);
+				} else if (before) {
+					a = 0;
 				}
 
 				let result_color = Painter.combineColors(pxcolor, color, a);

@@ -674,6 +674,10 @@ class Texture {
 		this.selected = true
 		Texture.selected = this;
 		this.scrollTo();
+		if (Format.id == 'image') {
+			Project.texture_width = this.width;
+			Project.texture_height = this.height;
+		}
 		if (this.render_mode == 'layered') {
 			Canvas.updatePaintingGrid()
 			updateSelection()

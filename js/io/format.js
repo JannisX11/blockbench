@@ -15,6 +15,7 @@ class ModelFormat {
 		this.category = data.category || 'other';
 		this.target = data.target;
 		this.show_on_start_screen = true;
+		this.show_in_new_list = true;
 		this.can_convert_to = true;
 		this.confidential = false;
 
@@ -31,8 +32,11 @@ class ModelFormat {
 		this.format_page = data.format_page;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'show_in_new_list');
 		Merge.boolean(this, data, 'can_convert_to');
 		Merge.boolean(this, data, 'confidential');
+
+		if (data.new) this.new = data.new;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
@@ -251,6 +255,8 @@ new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
+new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');

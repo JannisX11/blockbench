@@ -426,7 +426,11 @@ function setupProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
-	Modes.options.edit.select();
+	if (format.edit_mode) {
+		Modes.options.edit.select();
+	} else if (format.paint_mode) {
+		Modes.options.paint.select();
+	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, false)
 	}
@@ -438,7 +442,11 @@ function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
-	Modes.options.edit.select();
+	if (format.edit_mode) {
+		Modes.options.edit.select();
+	} else if (format.paint_mode) {
+		Modes.options.paint.select();
+	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, true)
 	}

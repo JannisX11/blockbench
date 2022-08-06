@@ -72,15 +72,7 @@ function initializeDesktopApp() {
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
-	ipcRenderer.on('open-model', (event, path) => {
-		Blockbench.read([path], {}, function(files) {
-			files.forEach(file => {
-				loadModelFile(file);
-			})
-		})
-	})
-	if (electron.process.argv.length >= 2) {
-		let path = electron.process.argv.last();
+	function load(path) {
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
 			Blockbench.read([path], {readtype: 'image'}, (files) => {
@@ -91,6 +83,13 @@ function loadOpenWithBlockbenchFile() {
 				loadModelFile(files[0])
 			})
 		}
+	}
+	ipcRenderer.on('open-model', (event, path) => {
+		load(path);
+	})
+	if (electron.process.argv.length >= 2) {
+		let path = electron.process.argv.last();
+		load(path);
 	}
 }
 (function() {

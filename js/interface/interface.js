@@ -74,7 +74,7 @@ const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
-		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
 			paint: {
@@ -82,6 +82,18 @@ const Interface = {
 				float_position: [300, 0],
 				float_size: [500, 600],
 				height: window.innerHeight/2-50
+			},
+			paint_2d: {
+				slot: 'top',
+				float_position: [50, 0],
+				float_size: [800, 600],
+				height: 3000
+			},
+			color_2d: {
+				slot: 'left_bar',
+				float_position: [50, 0],
+				float_size: [300, 400],
+				height: 400
 			}
 		}
 	},

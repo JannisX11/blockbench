@@ -2207,7 +2207,7 @@ const BARS = {
 			Toolbars.main_tools.add(BarItems.selection_mode, -1);
 		})
 		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
-			delete BARS.brush.timeline;
+			delete BARS.stored.brush;
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
