@@ -143,6 +143,7 @@ onVueSetup(function() {
 			search_term: '',
 			isApp,
 			mobile_layout: Blockbench.isMobile,
+			thumbnails: {},
 			getIconNode: Blockbench.getIconNode
 		},
 		methods: {
@@ -167,11 +168,17 @@ onVueSetup(function() {
 					loadModelFile(files[0]);
 				})
 			},
-			getThumbnail(model_path) {
-				let hash = model_path.hashCode().toString().replace(/^-/, '0');
-				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-				if (!fs.existsSync(path)) return;
-				return path + '?' + Math.round(Math.random()*255);
+			updateThumbnails(model_paths) {
+				this.recent.forEach(project => {
+					if (model_paths && !model_paths.includes(project.path)) return;
+					let hash = project.path.hashCode().toString().replace(/^-/, '0');
+					let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
+					if (!fs.existsSync(path)) {
+						delete this.thumbnails[project.path];
+					} else {
+						this.thumbnails[project.path] = path + '?' + Math.round(Math.random()*255);
+					}
+				})
 			},
 			setListType(type) {
 				this.list_type = type;
@@ -261,6 +268,9 @@ onVueSetup(function() {
 					))
 				})
 			}
+		},
+		mounted() {
+			this.updateThumbnails();
 		},
 		template: `
 			<div id="start_screen">
@@ -379,7 +389,7 @@ onVueSetup(function() {
 									@click="openProject(project, $event)"
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
-									<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
+									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" />
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">

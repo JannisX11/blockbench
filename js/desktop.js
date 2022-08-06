@@ -148,6 +148,7 @@ function addRecentProject(data) {
 	}
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
+	StartScreen.vue.updateThumbnails([data.path]);
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
@@ -180,6 +181,7 @@ async function updateRecentProjectThumbnail() {
 			project.path = store_path;
 		})
 	})
+	StartScreen.vue.updateThumbnails([project.path]);
 
 	// Clean old files
 	if (Math.random() < 0.2) {
