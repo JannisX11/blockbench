@@ -350,7 +350,7 @@
 	}
 	.dialog_sidebar .dialog_sidebar_actions li i {
 		margin-top: 1px; 
-		margin-right: 4px;
+		margin-right: 8px;
 		margin-left: -28px;
 		flex-shrink: 0;
 		pointer-events: none;
@@ -1393,7 +1393,7 @@
 		max-height: 30px;
 		overflow: hidden;
 	}
-	div.texture_adjust_previews img {
+	div.texture_adjust_previews img, div.texture_adjust_previews canvas {
 		max-height: 400px;
 		width: 400px;
 		margin: auto;
