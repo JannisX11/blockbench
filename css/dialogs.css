@@ -913,6 +913,7 @@
 		margin-left: 1px;
 		margin-right: 8px;
 		flex-shrink: 0;
+		overflow-wrap: break-word;
 	}
 
 	/*PE Import Dialog*/

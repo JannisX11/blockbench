@@ -31,6 +31,7 @@ class PreviewScene {
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
 		PreviewScene.active = this;
+		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
 		Canvas.updateShading();
 	}
 	unselect() {
@@ -40,6 +41,7 @@ class PreviewScene {
 
 		Canvas.global_light_color.set(0xffffff);
 		Canvas.global_light_side = 0;
+		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
 	}
 	delete() {
