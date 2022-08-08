@@ -1444,14 +1444,19 @@
 							scope.keyframes[0].offset('z', offset_vec.z);
 
 						} else if (Toolbox.selected.id === 'resize_tool' && axis == 'e') {
-				
+
 							scope.keyframes[0].offset('x', difference);
-							scope.keyframes[0].offset('y', difference);
-							scope.keyframes[0].offset('z', difference);
+							if (!scope.keyframes[0].uniform) {
+								scope.keyframes[0].offset('y', difference);
+								scope.keyframes[0].offset('z', difference);
+							}
 
 						} else {
 							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
 								difference *= -1
+							}
+							if (Toolbox.selected.id === 'resize_tool') {
+								scope.keyframes[0].uniform = false;	
 							}
 							scope.keyframes[0].offset(axis, difference);
 						}

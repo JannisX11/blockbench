@@ -1803,9 +1803,9 @@ const BARS = {
 						Undo.initEdit({keyframes});
 						keyframes.forEach(keyframe => {
 							keyframe.data_points.forEach(datapoint => {
-								if (datapoint.x) datapoint.x = replace(datapoint.x.toString());
-								if (datapoint.y) datapoint.y = replace(datapoint.y.toString());
-								if (datapoint.z) datapoint.z = replace(datapoint.z.toString());
+								if (datapoint.x != undefined) datapoint.x = replace(datapoint.x.toString());
+								if (datapoint.y != undefined) datapoint.y = replace(datapoint.y.toString());
+								if (datapoint.z != undefined) datapoint.z = replace(datapoint.z.toString());
 
 								if (datapoint.effect) datapoint.effect = replace(datapoint.effect);
 								if (datapoint.locator) datapoint.locator = replace(datapoint.locator);
