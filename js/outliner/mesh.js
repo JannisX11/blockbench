@@ -1139,6 +1139,7 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cube', 'pyramid', 'plane'].includes(shape)},
 			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
@@ -1161,14 +1162,16 @@ BARS.defineActions(function() {
 				});
 				var group = getCurrentGroup();
 				mesh.addTo(group)
+				let diameter_factor = result.align_edges ? 1 / Math.cos(Math.PI/result.sides) : 1;
+				let off_ang = result.align_edges ? 0.5 : 0;
 
 				if (result.shape == 'circle') {
 					let vertex_keys = mesh.addVertices([0, 0, 0]);
 					let [m] = vertex_keys;
 
 					for (let i = 0; i < result.sides; i++) {
-						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
+						let z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
 						vertex_keys.push(...mesh.addVertices([x, 0, z]));
 					}
 					for (let i = 0; i < result.sides; i++) {
@@ -1187,8 +1190,8 @@ BARS.defineActions(function() {
 					let [m0, m1] = vertex_keys;
 
 					for (let i = 0; i < result.sides; i++) {
-						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
+						let z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
 						vertex_keys.push(...mesh.addVertices([x, 0, z]));
 					}
 					for (let i = 0; i < result.sides; i++) {
@@ -1207,8 +1210,8 @@ BARS.defineActions(function() {
 					let [m0, m1] = vertex_keys;
 
 					for (let i = 0; i < result.sides; i++) {
-						let x = Math.sin((i / result.sides) * Math.PI * 2) * result.diameter/2;
-						let z = Math.cos((i / result.sides) * Math.PI * 2) * result.diameter/2;
+						let x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
+						let z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
 						vertex_keys.push(...mesh.addVertices([x, 0, z], [x, result.height, z]));
 					}
 					for (let i = 0; i < result.sides; i++) {
@@ -1227,11 +1230,11 @@ BARS.defineActions(function() {
 				if (result.shape == 'tube') {
 					let vertex_keys = [];
 
-					let outer_r = result.diameter/2;
-					let inner_r = outer_r - result.minor_diameter;
+					let outer_r = result.diameter/2 * diameter_factor;
+					let inner_r = (outer_r - result.minor_diameter/2) * diameter_factor;
 					for (let i = 0; i < result.sides; i++) {
-						let x = Math.sin((i / result.sides) * Math.PI * 2);
-						let z = Math.cos((i / result.sides) * Math.PI * 2);
+						let x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2);
+						let z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2);
 						vertex_keys.push(...mesh.addVertices(
 							[x * outer_r, 0, z * outer_r],
 							[x * outer_r, result.height, z * outer_r],
@@ -1261,15 +1264,15 @@ BARS.defineActions(function() {
 					let rings = [];
 
 					for (let i = 0; i < result.sides; i++) {
-						let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
-						let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
+						let circle_x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2);
+						let circle_z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2);
 
 						let vertices = [];
 						for (let j = 0; j < result.minor_sides; j++) {
-							let slice_x = Math.sin((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
-							let x = circle_x * (result.diameter/2 + slice_x)
-							let y = Math.cos((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2;
-							let z = circle_z * (result.diameter/2 + slice_x)
+							let slice_x = Math.sin((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2*diameter_factor;
+							let x = circle_x * (result.diameter/2*diameter_factor + slice_x)
+							let y = Math.cos((j / result.minor_sides) * Math.PI * 2) * result.minor_diameter/2*diameter_factor;
+							let z = circle_z * (result.diameter/2*diameter_factor + slice_x)
 							vertices.push(...mesh.addVertices([x, y, z]));
 						}
 						rings.push(vertices);
@@ -1296,13 +1299,13 @@ BARS.defineActions(function() {
 					let [top] = mesh.addVertices([0, result.diameter/2, 0]);
 
 					for (let i = 0; i < result.sides; i++) {
-						let circle_x = Math.sin((i / result.sides) * Math.PI * 2);
-						let circle_z = Math.cos((i / result.sides) * Math.PI * 2);
+						let circle_x = Math.sin(((i+off_ang) / result.sides) * Math.PI * 2);
+						let circle_z = Math.cos(((i+off_ang) / result.sides) * Math.PI * 2);
 
 						let vertices = [];
 						for (let j = 1; j < (sides/2); j++) {
 
-							let slice_x = Math.sin((j / sides) * Math.PI * 2) * result.diameter/2;
+							let slice_x = Math.sin((j / sides) * Math.PI * 2) * result.diameter/2 * diameter_factor;
 							let x = circle_x * slice_x
 							let y = Math.cos((j / sides) * Math.PI * 2) * result.diameter/2;
 							let z = circle_z * slice_x
