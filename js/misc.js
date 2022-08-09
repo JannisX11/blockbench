@@ -249,6 +249,7 @@ function unselectAll() {
 const AutoBackupModels = {};
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
+		Validator.validate();
 		try {
 			var model = Codecs.project.compile({compressed: false, backup: true, raw: true});
 			AutoBackupModels[Project.uuid] = model;

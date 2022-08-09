@@ -317,7 +317,10 @@
 
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
+		--color-error: #ff2a51;
+		--color-warning: #ffc400;
 		--color-stream: #6442A4;
+		
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;

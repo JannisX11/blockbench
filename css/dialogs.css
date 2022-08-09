@@ -1358,6 +1358,31 @@
 		left: 49px;
 	}
 
+/* Validator */
+	li.validator_dialog_problem {
+		background-color: var(--color-back);
+		padding: 3px 5px;
+		margin-bottom: 5px;
+		display: flex;
+	}
+	li.validator_dialog_problem.validator_warning > i {
+		color: var(--color-warning);
+		margin: 3px 4px;
+	}
+	li.validator_dialog_problem.validator_error > i {
+		color: var(--color-error);
+		margin: 3px 4px;
+	}
+	li.validator_dialog_problem span {
+		flex-grow: 1;
+		flex-shrink: 1;
+		padding-top: 3px;
+	}
+	li.validator_dialog_problem .tool {
+		flex-shrink: 0;
+		flex-grow: 0;
+	}
+
 /* Edit History */
 	#edit_history_list ul {
 		margin-left: 14px;

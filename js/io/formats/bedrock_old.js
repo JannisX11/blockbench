@@ -136,6 +136,7 @@ function parseGeometry(data) {
 	if (isApp && Project.geometry_name) {
 		Project.BedrockEntityManager.initEntity()
 	}
+	Validator.validate()
 	updateSelection()
 }
 

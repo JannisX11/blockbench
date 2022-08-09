@@ -973,6 +973,8 @@
 	"action.close_project.desc": "Closes the currently open project",
 	"action.switch_tabs": "Switch Tabs",
 	"action.switch_tabs.desc": "Cycle between opened tabs. Hold shift to cycle in the opposite direction.",
+	"action.validator_window": "View Model Issues...",
+	"action.validator_window.desc": "Opens the validator, which lists issues with the current model.",
 	"action.import_obj": "Import OBJ Model",
 	"action.import_obj.desc": "Imports objects from an OBJ model as meshes",
 	"action.import_java_block_model": "Add Java Block/Item Model",
