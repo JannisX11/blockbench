@@ -1495,7 +1495,7 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Animation.selected.time;
+		return Animation.selected ? Animation.selected.time : Timeline.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;

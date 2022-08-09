@@ -204,8 +204,15 @@ app.on('ready', () => {
 
 	createWindow()
 
+	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {
 
+		if (app_was_loaded) {
+			console.log('[Blockbench] App reloaded')
+			return;
+		}
+
+		app_was_loaded = true;
 		if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
 
 			console.log('[Blockbench] App launched in development mode')
@@ -216,7 +223,7 @@ app.on('ready', () => {
 			autoUpdater.autoDownload = false;
 			if (LaunchSettings.get('update_to_prereleases') === true) {
 				autoUpdater.allowPrerelease = true;
-				autoUpdater.channel = 'beta';
+				//autoUpdater.channel = 'beta';
 			}
 	
 			autoUpdater.on('update-available', (a) => {
@@ -224,7 +231,7 @@ app.on('ready', () => {
 				ipcMain.on('allow-auto-update', () => {
 					autoUpdater.downloadUpdate()
 				})
-				orig_win.webContents.send('update-available');
+				orig_win.webContents.send('update-available', a);
 			})
 			autoUpdater.on('update-downloaded', (a) => {
 				console.log('update-downloaded', a)

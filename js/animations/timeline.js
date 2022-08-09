@@ -855,6 +855,7 @@ Interface.definePanels(() => {
 
 					function slide(e2) {
 						convertTouchEvent(e2);
+						e2.preventDefault();
 						let offset = [
 							e2.clientX - e1.clientX,
 							e2.clientY - e1.clientY,
@@ -964,7 +965,7 @@ Interface.definePanels(() => {
 							}, 20);
 						}
 					}
-					addEventListeners(document, 'mousemove touchmove', slide);
+					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
