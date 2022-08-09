@@ -149,3 +149,36 @@ new ValidatorCheck('texture_names', {
 		})
 	}
 })
+
+new ValidatorCheck('catmullrom_keyframes', {
+	condition: {features: ['animation_files']},
+	update_triggers: ['update_keyframe_selection'],
+	run() {
+		Animation.all.forEach(animation => {
+			for (let key in animation.animators) {
+				let animator = animation.animators[key];
+				if (animator instanceof BoneAnimator) {
+					for (let channel in animator.channels) {
+						if (!animator[channel] || !animator[channel].find(kf => kf.interpolation == 'catmullrom')) continue;
+
+						let keyframes = animator[channel].slice().sort((a, b) => a.time - b.time);
+						keyframes.forEach((kf, i) => {
+							if (kf.interpolation == 'catmullrom') {
+								if (kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
+									this.fail({
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric value. Smooth keyframes cannot contain math expressions.`
+									})
+								}
+								if ((!keyframes[i-1] || keyframes[i-1].interpolation != 'catmullrom') && (!keyframes[i+1] || keyframes[i+1].interpolation != 'catmullrom')) {
+									this.warn({
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounted by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`
+									})
+								}
+							}
+						})
+					}
+				}
+			}
+		})
+	}
+})

@@ -366,15 +366,16 @@ const Blockbench = {
 	//Events
 	dispatchEvent(event_name, data) {
 		let list = this.events[event_name];
-		if (!list) return;
-		let results = [];
-		for (let i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				let result = list[i](data);
-				results.push(result);
+		let results;
+		if (list) {
+			results = [];
+			for (let i = 0; i < list.length; i++) {
+				if (typeof list[i] === 'function') {
+					let result = list[i](data);
+					results.push(result);
+				}
 			}
 		}
-		console.log(event_name, Validator.triggers.includes(event_name))
 		if (Validator.triggers.includes(event_name)) {
 			Validator.validate(event_name);
 		}
