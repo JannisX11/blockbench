@@ -751,6 +751,7 @@ new NodePreviewController(Mesh, {
 
 		// Vertex Points
 		let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
+		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
 		outline.add(points);
