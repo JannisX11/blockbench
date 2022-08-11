@@ -198,7 +198,9 @@ function mirrorSelected(axis) {
 						}
 						function matchAndReplace(a, b) {
 							if (group.name.includes(a)) {
-								let name = group.name.replace(a, b).replace(/2/, '');
+								let name = group._original_name
+										 ? group._original_name.replace(a, b)
+										 : group.name.replace(a, b).replace(/2/, '');
 								if (!Group.all.find(g => g.name == name)) group.name = name;
 								return true;
 							}
