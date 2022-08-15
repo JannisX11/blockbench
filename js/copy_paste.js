@@ -296,7 +296,8 @@ const Clipbench = {
 		if (Clipbench.group) {
 			function iterate(obj, parent) {
 				if (obj.children) {
-					var copy = new Group(obj).addTo(parent).init()
+					var copy = new Group(obj).addTo(parent).init();
+					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
 

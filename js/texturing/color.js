@@ -208,7 +208,7 @@ Interface.definePanels(() => {
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
 						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 							<li
 								class="color" v-for="color in palette"
 								:title="color" :key="color"

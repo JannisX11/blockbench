@@ -217,13 +217,18 @@ const Painter = {
 			Painter.painting = true;
 			Painter.current.face_matrices = {};
 
+			let is_line
 			if (data) {
-				var is_line = (event.shiftKey || Pressing.overrides.shift) && Painter.current.element == data.element && Painter.current.face == data.face
+				is_line = (event.shiftKey || Pressing.overrides.shift)
+					   && Painter.current.element == data.element
+					   && (Painter.current.face == data.face ||
+							(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face))
+						)
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
 			} else {
 				//uv editor
-				var is_line = (event.shiftKey || Pressing.overrides.shift);
+				is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 			if (Toolbox.selected.brush.line == false) is_line = false;
 

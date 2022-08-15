@@ -192,8 +192,8 @@ const Settings = {
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
-		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number'});
-		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number'});
+		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
+		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
 			if (Animator.open) {
 				scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
@@ -212,15 +212,15 @@ const Settings = {
 		}});
 		
 		//Preview 
-		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number'});
+		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			Canvas.updateShading()
 		}});
 		new Setting('antialiasing', 	{category: 'preview', value: true});
-		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', onChange(val) {
+		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', min: 1, max: 120, onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
-		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', onChange(val) {
+		new Setting('camera_near_plane',{category: 'preview', value: 1, type: 'number', min: 0.01, max: 100, onChange(val) {
 			Preview.all.forEach(preview => {
 				preview.camPers.near = val;
 				preview.camPers.updateProjectionMatrix();
@@ -234,17 +234,17 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		new Setting('texture_fps',   	{category: 'preview', value: 7, type: 'number', onChange() {
+		new Setting('texture_fps',   	{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
 			TextureAnimator.updateSpeed()
 		}});
-		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', onChange() {
+		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
-		new Setting('volume',  	  		{category: 'preview', value: 80, type: 'number'});
+		new Setting('volume',  	  		{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
 		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
-		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number'});
+		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number', min: 1});
 		new Setting('canvas_unselect',  	{category: 'edit', value: false});
 		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
@@ -253,7 +253,7 @@ const Settings = {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
 		new Setting('deactivate_size_limit',{category: 'edit', value: false});
-		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number'});
+		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
 		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
 			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
 			'outliner': tl('menu.paste.outliner'),
@@ -266,7 +266,7 @@ const Settings = {
 		new Setting('large_grid', 		{category: 'grid', value: true});
 		new Setting('full_grid',		{category: 'grid', value: false});
 		new Setting('large_box',		{category: 'grid', value: false});
-		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number'});
+		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
 		//new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
 			Canvas.updatePaintingGrid();
@@ -276,10 +276,10 @@ const Settings = {
 		}});
 		
 		//Snapping
-		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number'});
-		new Setting('shift_size', 		{category: 'snapping', value: 64, type: 'number'});
-		new Setting('ctrl_size',		{category: 'snapping', value: 160, type: 'number'});
-		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number'});
+		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number', min: 1, max: 8192});
+		new Setting('shift_size', 		{category: 'snapping', value: 64, type: 'number', min: 1, max: 8192});
+		new Setting('ctrl_size',		{category: 'snapping', value: 160, type: 'number', min: 1, max: 8192});
+		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number', min: 1, max: 8192});
 		new Setting('negative_size',	{category: 'snapping', value: false});
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
@@ -304,7 +304,7 @@ const Settings = {
 		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
 		
 		//Defaults
-		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number'});
+		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
 		new Setting('autouv',	   				{category: 'defaults', value: true});
 		new Setting('create_rename', 			{category: 'defaults', value: false});
 		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
@@ -320,8 +320,8 @@ const Settings = {
 		
 		//Application
 		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
-		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', condition: isApp});
-		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', condition: isApp});
+		new Setting('backup_interval', {category: 'application', value: 10, type: 'number', min: 0, condition: isApp});
+		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 		new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
@@ -336,7 +336,7 @@ const Settings = {
 			tris: tl('settings.obj_face_export_mode.tris'),
 			quads: tl('settings.obj_face_export_mode.quads'),
 		}});
-		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number'});
+		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number', min: 1, max: 640});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 

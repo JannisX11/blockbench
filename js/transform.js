@@ -198,7 +198,9 @@ function mirrorSelected(axis) {
 						}
 						function matchAndReplace(a, b) {
 							if (group.name.includes(a)) {
-								let name = group.name.replace(a, b).replace(/2/, '');
+								let name = group._original_name
+										 ? group._original_name.replace(a, b)
+										 : group.name.replace(a, b).replace(/2/, '');
 								if (!Group.all.find(g => g.name == name)) group.name = name;
 								return true;
 							}
@@ -230,7 +232,6 @@ function mirrorSelected(axis) {
 
 const Vertexsnap = {
 	step1: true,
-	vertex_gizmos: new THREE.Object3D(),
 	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
 	elements_with_vertex_gizmos: [],
 	hovering: false,
@@ -245,16 +246,19 @@ const Vertexsnap = {
 		if (!mesh.vertex_points) {
 			mesh.updateMatrixWorld()
 			let vectors = [];
-			let positions = mesh.geometry.attributes.position.array;
-			for (let i = 0; i < positions.length; i += 3) {
-				let vec = [positions[i], positions[i+1], positions[i+2]];
-				if (!vectors.find(vec2 => vec.equals(vec2))) {
-					vectors.push(vec);
+			if (mesh.geometry) {
+				let positions = mesh.geometry.attributes.position.array;
+				for (let i = 0; i < positions.length; i += 3) {
+					let vec = [positions[i], positions[i+1], positions[i+2]];
+					if (!vectors.find(vec2 => vec.equals(vec2))) {
+						vectors.push(vec);
+					}
 				}
 			}
 			vectors.push([0, 0, 0]);
 			
 			let points = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial().copy(Canvas.meshVertexMaterial));
+			points.element_uuid = element.uuid;
 			points.vertices = vectors;
 			let vector_positions = [];
 			vectors.forEach(vector => vector_positions.push(...vector));
@@ -264,7 +268,11 @@ const Vertexsnap = {
 			points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(vector_colors), 3));
 			points.material.transparent = true;
 			mesh.vertex_points = points;
-			mesh.outline.add(points);
+			if (mesh.outline) {
+				mesh.outline.add(points);
+			} else {
+				mesh.add(points);
+			}
 		}
 		mesh.vertex_points.visible = true;
 		mesh.vertex_points.renderOrder = 900;
@@ -334,6 +342,9 @@ const Vertexsnap = {
 		Outliner.selected.forEach(function(element) {
 			Vertexsnap.addVertices(element)
 		})
+		if (Group.selected) {
+			Vertexsnap.addVertices(Group.selected)
+		}
 		if (Outliner.selected.length) {
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 		}
@@ -347,6 +358,7 @@ const Vertexsnap = {
 			Vertexsnap.vertex_index = data.vertex_index;
 			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
 			Vertexsnap.elements = Outliner.selected.slice();
+			Vertexsnap.group = Group.selected;
 			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices)); 
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
@@ -364,22 +376,33 @@ const Vertexsnap = {
 		return vector;
 	},
 	snap: function(data) {
-		Undo.initEdit({elements: Vertexsnap.elements})
+		Undo.initEdit({elements: Vertexsnap.elements, outliner: !!Vertexsnap.group});
 
-		let mode = BarItems.vertex_snap_mode.get()
+		let mode = BarItems.vertex_snap_mode.get();
 
 		if (Vertexsnap.move_origin) {
-
-			Vertexsnap.elements.forEach(function(element) {
+			if (Vertexsnap.group) {
 				let vec = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 
-				if (Format.bone_rig && element.parent instanceof Group && element.mesh.parent) {
-					element.mesh.parent.worldToLocal(vec);
+				if (Format.bone_rig && Vertexsnap.group.parent instanceof Group && Vertexsnap.group.mesh.parent) {
+					Vertexsnap.group.mesh.parent.worldToLocal(vec);
 				}
 				let vec_array = vec.toArray()
-				vec_array.V3_add(element.parent.origin);
-				element.transferOrigin(vec_array)
-			})
+				vec_array.V3_add(Vertexsnap.group.parent.origin);
+				Vertexsnap.group.transferOrigin(vec_array)
+
+			} else {
+				Vertexsnap.elements.forEach(function(element) {
+					let vec = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
+
+					if (Format.bone_rig && element.parent instanceof Group && element.mesh.parent) {
+						element.mesh.parent.worldToLocal(vec);
+					}
+					let vec_array = vec.toArray()
+					vec_array.V3_add(element.parent.origin);
+					element.transferOrigin(vec_array)
+				})
+			}
 		} else {
 
 			var global_delta = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
@@ -448,7 +471,12 @@ const Vertexsnap = {
 		}
 
 		Vertexsnap.clearVertexGizmos()
-		Canvas.updateAllPositions()
+		Canvas.updateView({
+			elements: Vertexsnap.elements,
+			element_aspects: {transform: true, geometry: true},
+			groups: Vertexsnap.group ? [Vertexsnap.group] : undefined,
+			group_aspects: {transform: true}
+		})
 		Undo.finishEdit('Use vertex snap')
 		Vertexsnap.step1 = true
 	}

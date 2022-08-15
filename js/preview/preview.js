@@ -386,12 +386,8 @@ class Preview {
 				}
 			}
 		})
-		if (Vertexsnap.vertex_gizmos.children.length) {
-			Vertexsnap.vertex_gizmos.children.forEach(function(s) {
-				if (s.isVertex === true) {
-					objects.push(s)
-				}
-			})
+		if (Group.selected && Group.selected.mesh.vertex_points) {
+			objects.push(Group.selected.mesh.vertex_points);
 		}
 		if (Animator.open && settings.motion_trails.value && Group.selected) {
 			Animator.motion_trail.children.forEach(object => {
@@ -443,7 +439,7 @@ class Preview {
 					keyframe: keyframe
 				}
 			} else if (intersect_object.type == 'Points') {
-				var element = OutlinerNode.uuids[intersect_object.parent.parent.name];
+				var element = OutlinerNode.uuids[intersect_object.element_uuid];
 				let vertex = element instanceof Mesh
 					? Object.keys(element.vertices)[intersect.index]
 					: intersect_object.vertices[intersect.index];
@@ -1914,15 +1910,10 @@ function initCanvas() {
 	display_base.name = 'display_base'
 	display_area.name = 'display_area'
 
-	scene.add(Vertexsnap.vertex_gizmos)
-	Vertexsnap.vertex_gizmos.name = 'vertex_handles'
-	Canvas.gizmos.push(Vertexsnap.vertex_gizmos)
-
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
 	scene.add(Canvas.outlines)
 	Canvas.gizmos.push(Canvas.outlines)
-
 
 	canvas_scenes = {
 		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
