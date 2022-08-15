@@ -792,25 +792,27 @@
 
 			this.updateSelection = function() {
 				this.elements.empty()
-				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-					if (Outliner.selected.length) {
-						Outliner.selected.forEach(element => {
-							if (
-								(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-								((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
-								(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
-							) {
-								scope.attach(element);
-							}
-						})
-					} else if (Group.selected && getRotationObject() == Group.selected) {
-						scope.attach(Group.selected)
-					} else {
-						this.update()
-						return this;
+				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
+					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
+						if (Outliner.selected.length) {
+							Outliner.selected.forEach(element => {
+								if (
+									(element.movable && Toolbox.selected.transformerMode == 'translate') ||
+									((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
+									(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
+								) {
+									scope.attach(element);
+								}
+							})
+						} else if (Group.selected && getRotationObject() == Group.selected) {
+							scope.attach(Group.selected)
+						} else {
+							this.update()
+							return this;
+						}
 					}
+					this.center()
 				}
-				this.center()
 				this.update()
 				return this;
 			}

@@ -171,7 +171,7 @@ new ValidatorCheck('catmullrom_keyframes', {
 								}
 								if ((!keyframes[i-1] || keyframes[i-1].interpolation != 'catmullrom') && (!keyframes[i+1] || keyframes[i+1].interpolation != 'catmullrom')) {
 									this.warn({
-										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounted by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounded by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`
 									})
 								}
 							}

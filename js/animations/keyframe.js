@@ -960,6 +960,7 @@ BARS.defineActions(function() {
 				form: {
 					info: {type: 'info', text: 'dialog.flip_animation.info'},
 					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
+					show_in_timeline: {label: 'dialog.flip_animation.show_in_timeline', type: 'checkbox', value: true},
 				},
 				onConfirm(formResult) {
 					this.hide()
@@ -971,17 +972,20 @@ BARS.defineActions(function() {
 					let channels = ['rotation', 'position', 'scale'];
 
 					animators.forEach(animator => {
+						let opposite_animator;
 						channels.forEach(channel => {
 							if (!animator[channel]) return;
 							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
 							if (!kfs.length) return;
-							let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
-							let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
-							if (!opposite_bone) {
-								console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
-								return;
+							if (!opposite_animator) {
+								let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
+								let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
+								if (!opposite_bone) {
+									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
+									return;
+								}
+								opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
 							}
-							let opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
 
 							kfs.forEach(old_kf => {
 								let time = old_kf.time;
@@ -994,8 +998,10 @@ BARS.defineActions(function() {
 									new_keyframes.push(new_kf);
 								}
 							})
-
 						})
+						if (formResult.show_in_timeline && opposite_animator) {
+							opposite_animator.addToTimeline();
+						}
 					})
 					TickUpdates.keyframes = true;
 					Animator.preview();

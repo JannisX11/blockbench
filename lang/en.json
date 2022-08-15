@@ -566,6 +566,7 @@
 
 	"dialog.flip_animation.info": "Opposite bones are identified by the keywords 'left' and 'right' within their name.",
 	"dialog.flip_animation.offset": "Offset by half the animation length",
+	"dialog.flip_animation.show_in_timeline": "Show modified bones in timeline",
 
 	"dialog.export_private_settings.title": "Private Settings",
 	"dialog.export_private_settings.message": "Your file contains the following private informations: **%0**. Leave these values out if you plan to share the file with someone else.",

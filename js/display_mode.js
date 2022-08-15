@@ -1186,6 +1186,8 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
+	Canvas.global_light_side = 0;
+	Canvas.updateShading();
 	scene.remove(display_area)
 	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
 	display_base.children.forEachReverse(child => {
@@ -1238,10 +1240,6 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
 	Transformer.center()
-}
-
-DisplayMode.toggleGuiLight = function() {
-	Project.front_gui_light = !Project.front_gui_light;
 }
 
 
@@ -1319,9 +1317,12 @@ DisplayMode.updateGUILight = function() {
 	if (!display_mode) return;
 	if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
+		Canvas.global_light_side = 4;
 	} else {
 		lights.rotation.set(0, 0, 0);
+		Canvas.global_light_side = 0;
 	}
+	Canvas.updateShading();
 } 
 
 function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons

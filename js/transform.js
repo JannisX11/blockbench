@@ -471,14 +471,21 @@ const Vertexsnap = {
 		}
 
 		Vertexsnap.clearVertexGizmos()
-		Canvas.updateView({
+		let update_options = {
 			elements: Vertexsnap.elements,
 			element_aspects: {transform: true, geometry: true},
-			groups: Vertexsnap.group ? [Vertexsnap.group] : undefined,
-			group_aspects: {transform: true}
-		})
-		Undo.finishEdit('Use vertex snap')
-		Vertexsnap.step1 = true
+		};
+		if (Vertexsnap.group) {
+			update_options.elements = [...update_options.elements];
+			Vertexsnap.group.forEachChild(child => {
+				update_options.elements.safePush(child);
+			}, OutlinerElement);
+			update_options.groups = [Vertexsnap.group];
+			update_options.group_aspects = {transform: true};
+		}
+		Canvas.updateView(update_options);
+		Undo.finishEdit('Use vertex snap');
+		Vertexsnap.step1 = true;
 	}
 }
 //Scale
