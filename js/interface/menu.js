@@ -49,6 +49,7 @@ class Menu {
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
 		this.onClose = this.options.onClose;
+		this.onClose = this.options.onClose;
 	}
 	hover(node, event, expand) {
 		if (event) event.stopPropagation()
@@ -96,6 +97,9 @@ class Menu {
 			}
 		}
 	}
+	reveal(path) {
+
+	}
 	keyNavigate(e) {
 		var scope = this;
 		var used;
@@ -139,7 +143,7 @@ class Menu {
 			used = true;
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			obj.find('li.focused').click()
-			if (scope) {
+			if (scope && !this.options.keep_open) {
 				scope.hide()
 			}
 			used = true;
@@ -330,6 +334,9 @@ class Menu {
 					scope.hover(this, e)
 				})
 
+			} else if (s instanceof HTMLElement) {
+				parent.append(s);
+
 			} else if (typeof s === 'object') {
 				
 				let child_count;
@@ -400,7 +407,7 @@ class Menu {
 				position = position.parentElement;
 			}
 			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + position.clientHeight;
+			var offset_top  = $(position).offset().top + position.offsetHeight;
 		}
 
 		if (offset_left > window.innerWidth - el_width) {
@@ -430,7 +437,12 @@ class Menu {
 				ev.target.classList.contains('menu_search_bar') ||
 				(ev.target.parentNode && ev.target.parentNode.classList.contains('menu_search_bar'))
 			) {} else {
-				scope.hide()
+				if (this.options.keep_open) {
+					this.hide()
+					this.open(position, context);
+				} else {
+					this.hide()
+				}
 			}
 		})
 

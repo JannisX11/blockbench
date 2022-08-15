@@ -1573,6 +1573,15 @@
 	"menu.uv.mapping.mirror_y": "Mirror Y",
 	"menu.uv.texture": "Texture",
 
+	"menu.mirror_painting.axis": "Axis",
+	"menu.mirror_painting.axis.desc": "Select on which axis paint strokes will get mirrored",
+	"menu.mirror_painting.global": "Global Symmetry",
+	"menu.mirror_painting.global.desc": "Enabled mirror painting on the model in global space",
+	"menu.mirror_painting.local": "Local Symmetry",
+	"menu.mirror_painting.local.desc": "Enable mirror painting in local space for each element",
+	"menu.mirror_painting.texture_frames": "Animated Texture Frames",
+	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
+
 	"menu.toolbar.edit": "Customize",
 	"menu.toolbar.reset": "Reset",
 

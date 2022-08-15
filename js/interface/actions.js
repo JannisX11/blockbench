@@ -448,6 +448,34 @@ class Toggle extends Action {
 		this.menu_icon_node.innerText = this.value ? 'check_box' : 'check_box_outline_blank';
 	}
 }
+class ToggleWithOptions extends Toggle {
+	constructor(id, data) {
+		super(id, data);
+		this.menu = data.menu;
+		
+		let open_node = Blockbench.getIconNode('arrow_drop_down');
+		open_node.classList.add('action_more_options');
+		open_node.onclick = e => {
+			e.stopPropagation();
+			this.openMenu(e.target.parentElement);
+		}
+		this.node.append(open_node);
+	}
+	openMenu(target) {
+		this.menu.open(target);
+	}
+	getNode(ignore_disconnected) {
+		let clone = super.getNode(ignore_disconnected);
+		let options = clone.querySelector('.action_more_options');
+		if (options && !options.onclick) {
+			options.onclick = e => {
+				e.stopPropagation();
+				this.openMenu(e.target.parentElement);
+			}
+		}
+		return clone;
+	}
+}
 class Widget extends BarItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {

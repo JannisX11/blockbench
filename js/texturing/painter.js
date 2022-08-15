@@ -341,13 +341,15 @@ const Painter = {
 		let uvFactorY = texture.display_height / Project.texture_height;
 
 		if (Painter.mirror_painting && !is_opposite) {
-			let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag)
-			if (target) {
+			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
+			if (targets.length) {
 				let old_element = Painter.current.element;
 				let old_face = Painter.current.face;
-				Painter.current.element = target.element;
-				Painter.current.face = target.face;
-				Painter.useBrushlike(texture, target.x, target.y, event, target.uv_tag, true, true);
+				targets.forEach(target => {
+					Painter.current.element = target.element;
+					Painter.current.face = target.face;
+					Painter.useBrushlike(texture, target.x, target.y, event, target.uv_tag, true, true);
+				})
 				Painter.current.element = old_element;
 				Painter.current.face = old_face;
 			}
@@ -557,97 +559,155 @@ const Painter = {
 		ctx.globalAlpha = 1.0;
 		ctx.globalCompositeOperation = 'source-over'
 	},
-	getMirrorPaintTarget(texture, x, y, uvTag) {
+	getMirrorPaintTargets(texture, x, y, uvTag) {
 		if (!uvTag || !Painter.current.element) return;
-		let mirror_element = Painter.getMirrorElement(Painter.current.element);
-		let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius;
-		if (mirror_element instanceof Cube) {
-
-			let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
-			let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
-
-			let fkey = Painter.current.face;
-			let side_face = (fkey === 'west' || fkey === 'east')
-			if (side_face) fkey = CubeFace.opposite[fkey];
-			let face = mirror_element.faces[fkey];
-
-			if (side_face &&
-				uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
-				Math.min(uvTag[0], uvTag[2]) === Math.min(face.uv[0], face.uv[2])
-				//same face
-			) return;
-
-			//calculate original point
-			var point_on_uv = [
-				x - Math.min(uvTag[0], uvTag[2]) * uvFactorX,
-				y - Math.min(uvTag[1], uvTag[3]) * uvFactorY,
-			]
-			//calculate new point
-			if (face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) {
-				point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
-				if (even_brush_size) point_on_uv[0] += 1
-			} else {
-				point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
-			}
-			if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
-				point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
-			} else {
-				point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
-			}
-
-			return {
-				element: mirror_element,
-				x: point_on_uv[0],
-				y: point_on_uv[1],
-				uv_tag: face.uv,
-				face: fkey
-			}
-
-		} else if (mirror_element instanceof Mesh) {
-			
-			let mesh = mirror_element;
-
-			let clicked_face = mesh.faces[Painter.current.face];
-			let normal = clicked_face.getNormal(true);
-			let center = clicked_face.getCenter();
-			let e = 0.01;
-			let face;
-			let match_fkey;
-			for (let fkey in mesh.faces) {
-				let normal2 = mesh.faces[fkey].getNormal(true);
-				let center2 = mesh.faces[fkey].getCenter();
-				if (
-					Math.epsilon(normal[0], -normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
-					Math.epsilon(center[0], -center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
-				) {
-					face = mesh.faces[fkey];
-					match_fkey = fkey;
+		function getTargetWithOptions(symmetry_axes, local) {
+			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
+			console.log(mirror_element)
+			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius;
+			if (mirror_element instanceof Cube) {
+	
+				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
+				let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+	
+				let fkey = Painter.current.face;
+				let side_face = (symmetry_axes[0] && (fkey === 'west' || fkey === 'east'))
+							 || (symmetry_axes[1] && (fkey === 'up' || fkey === 'down'))
+							 || (symmetry_axes[2] && (fkey === 'south' || fkey === 'north'));
+				if (side_face) fkey = CubeFace.opposite[fkey];
+				console.log(side_face, fkey, Painter.current.face)
+				let face = mirror_element.faces[fkey];
+	
+				if (side_face &&
+					uvTag[1] === face.uv[1] && uvTag[3] === face.uv[3] &&
+					Math.min(uvTag[0], uvTag[2]) === Math.min(face.uv[0], face.uv[2]) &&
+					symmetry_axes.filter(v => v).length == 1
+					//same face
+				) return;
+	
+				//calculate original point
+				var point_on_uv = [
+					x - Math.min(uvTag[0], uvTag[2]) * uvFactorX,
+					y - Math.min(uvTag[1], uvTag[3]) * uvFactorY,
+				]
+				//calculate new point
+				let mirror_x = symmetry_axes[0] != symmetry_axes[2];
+				if ((face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) == mirror_x) {
+					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
+					if (even_brush_size) point_on_uv[0] += 1
+				} else {
+					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
+				}
+				let mirror_y = symmetry_axes[0] != symmetry_axes[2];
+				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
+					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
+				} else {
+					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
+				}
+	
+				return {
+					element: mirror_element,
+					x: point_on_uv[0],
+					y: point_on_uv[1],
+					uv_tag: face.uv,
+					face: fkey
+				}
+	
+			} else if (mirror_element instanceof Mesh) {
+				
+				let mesh = mirror_element;
+	
+				let clicked_face = mesh.faces[Painter.current.face];
+				let normal = clicked_face.getNormal(true);
+				let center = clicked_face.getCenter();
+				let e = 0.01;
+				let face;
+				let match_fkey;
+				console.log(symmetry_axes, normal, center);
+				for (let fkey in mesh.faces) {
+					let normal2 = mesh.faces[fkey].getNormal(true);
+					let center2 = mesh.faces[fkey].getCenter();
+					if (symmetry_axes[0]) normal2[0] *= -1; center2[0] *= -1;
+					if (symmetry_axes[1]) normal2[1] *= -1; center2[1] *= -1;
+					if (symmetry_axes[2]) normal2[2] *= -1; center2[2] *= -1;
+					console.log(normal2, center2);
+					if (
+						Math.epsilon(normal[0], normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
+						Math.epsilon(center[0], center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
+					) {
+						face = mesh.faces[fkey];
+						match_fkey = fkey;
+					}
+				}
+				if (!face) return;
+				
+				if (!even_brush_size) {
+					x += 0.5; y += 0.5;
+				}
+				let point_on_uv;
+				if (local) {
+					let vector = clicked_face.UVToLocal([x, y]);
+					if (symmetry_axes[0]) vector.x *= -1;
+					if (symmetry_axes[1]) vector.y *= -1;
+					if (symmetry_axes[2]) vector.z *= -1;
+					point_on_uv = face.localToUV(vector);
+				} else {
+					let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
+					if (symmetry_axes[0]) world_coord.x *= -1;
+					if (symmetry_axes[1]) world_coord.y *= -1;
+					if (symmetry_axes[2]) world_coord.z *= -1;
+					mesh.mesh.worldToLocal(world_coord);
+					point_on_uv = face.localToUV(world_coord);
+				}
+				
+				if (even_brush_size) {
+					point_on_uv = point_on_uv.map(v => Math.round(v))
+				} else {
+					point_on_uv = point_on_uv.map(v => Math.floor(v))
+				}
+				
+				return {
+					element: mesh,
+					x: point_on_uv[0],
+					y: point_on_uv[1],
+					uv_tag: face.uv,
+					face: match_fkey
 				}
 			}
-			if (!face) return;
-			
-			if (!even_brush_size) {
-				x += 0.5; y += 0.5;
-			}
-			let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
-			world_coord.x *= -1;
-			mesh.mesh.worldToLocal(world_coord);
-			let point_on_uv = face.localToUV(world_coord);
-			
-			if (even_brush_size) {
-				point_on_uv = point_on_uv.map(v => Math.round(v))
-			} else {
-				point_on_uv = point_on_uv.map(v => Math.floor(v))
-			}
-			
-			return {
-				element: mesh,
-				x: point_on_uv[0],
-				y: point_on_uv[1],
-				uv_tag: face.uv,
-				face: match_fkey
-			}
 		}
+		let targets = [];
+		let mirror_vectors = [[
+			Painter.mirror_painting_options.axis.x?1:0,
+			Painter.mirror_painting_options.axis.y?1:0,
+			Painter.mirror_painting_options.axis.z?1:0
+		]];
+		if (mirror_vectors[0].filter(v => v).length == 3) {
+			mirror_vectors = [
+				[1,0,0], [0,1,0], [0,0,1],
+				[1,1,0], [0,1,1], [1,0,1],
+				[1,1,1]
+			]
+		} else if (mirror_vectors[0].equals([1, 1, 0])) {
+			mirror_vectors = [[1,0,0], [0,1,0], [1,1,0]];
+
+		} else if (mirror_vectors[0].equals([0, 1, 1])) {
+			mirror_vectors = [[0,1,0], [0,0,1], [0,1,1]];
+
+		} else if (mirror_vectors[0].equals([1, 0, 1])) {
+			mirror_vectors = [[1,0,0], [0,0,1], [1,0,1]];
+		}
+		mirror_vectors.forEach((mirror_vector, i) => {
+			console.log(mirror_vector)
+			if (Painter.mirror_painting_options.global) {
+				targets.push(getTargetWithOptions(mirror_vector, false));
+			}
+			if (Painter.mirror_painting_options.local) {
+				targets.push(getTargetWithOptions(mirror_vector, true));
+			}
+		})
+		console.log(targets);
+		// Texture animation
+		return targets.filter(target => !!target);
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {
 		var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
@@ -803,14 +863,17 @@ const Painter = {
 			drawShape(Painter.startPixel[0], Painter.startPixel[1], x, y, uvTag);
 			
 			if (Painter.mirror_painting) {
-				let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag);
+				let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
 				if (target) {
-					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+					let start_targets = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
 					let old_face = Painter.current.face;
-					Painter.current.element = target.element;
-					Painter.current.face = target.face;
-					drawShape(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					targets.forEach((target, i) => {
+						let start_target = start_targets[i];
+						Painter.current.element = target.element;
+						Painter.current.face = target.face;
+						drawShape(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					})
 					Painter.current.element = old_element;
 					Painter.current.face = old_face;
 				}
@@ -883,13 +946,18 @@ const Painter = {
 			let [diff_x, diff_y] = drawGradient(Painter.startPixel[0], Painter.startPixel[1], x, y, uvTag);
 
 			if (Painter.mirror_painting) {
-				let target = Painter.getMirrorPaintTarget(texture, x, y, uvTag);
+				let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
 				if (target) {
-					let start_target = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+					let start_targets = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
-					Painter.current.element = target.element;
-					drawGradient(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					let old_face = Painter.current.face;
+					targets.forEach((target, i) => {
+						let start_target = start_targets[i];
+						Painter.current.element = target.element;
+						drawGradient(start_target.x, start_target.y, target.x, target.y, target.uv_tag)
+					})
 					Painter.current.element = old_element;
+					Painter.current.face = old_face;
 				}
 			}
 			ctx.globalCompositeOperation = 'source-over';
@@ -993,19 +1061,25 @@ const Painter = {
 		added.a = original_a
 		return mix;
 	},
-	getMirrorElement(element) {
+	getMirrorElement(element, symmetry_axes) {
 		let center = Format.centered_grid ? 0 : 8;
-		let e = 0.01
+		let e = 0.01;
+		symmetry_axes = symmetry_axes.map((v, i) => v ? i : false).filter(v => v !== false);
+		let off_axes = [0, 1, 2].filter(i => !symmetry_axes[i]);
 		if (element instanceof Cube) {
-			if (Math.epsilon(element.from[0]-center, center-element.to[0], e) && !element.rotation[1] && !element.rotation[2]) {
+			if (
+				!symmetry_axes.find(axis => !Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) &&
+				!off_axes.find(axis => element.rotation[axis])
+			) {
 				return element;
 			} else {
 				for (var element2 of Cube.all) {
 					if (
 						Math.epsilon(element.inflate, element2.inflate, e) &&
-						Math.epsilon(element.from[2], element2.from[2], e) && Math.epsilon(element.to[2], element2.to[2], e) &&
-						Math.epsilon(element.from[1], element2.from[1], e) && Math.epsilon(element.to[1], element2.to[1], e) &&
-						Math.epsilon(element.size(0), element2.size(0), e) && Math.epsilon(element.to[0]-center, center-element2.from[0], e)
+						!off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) &&
+						!off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) &&
+						!symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) &&
+						!symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e))
 					) {
 						return element2;
 					}
@@ -1013,7 +1087,7 @@ const Painter = {
 			}
 			return false;
 		} else if (element instanceof Mesh) {
-			if (element instanceof Mesh && Math.epsilon(element.origin[0], center, e) && !element.rotation[1] && !element.rotation[2]) {
+			if (element instanceof Mesh && Math.epsilon(element.origin[axis], center, e) && !element.rotation[off_axis_1] && !element.rotation[off_axis_2]) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {
@@ -1622,7 +1696,13 @@ BARS.defineActions(function() {
 			sample: true
 		}
 	})
-	new Toggle('mirror_painting', {
+
+	StateMemory.init('mirror_painting_options', 'object');
+	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
+	if (!Painter.mirror_painting_options.axis) {
+		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
+	}
+	new ToggleWithOptions('mirror_painting', {
 		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
@@ -1640,7 +1720,48 @@ BARS.defineActions(function() {
 					grid.geometry.dispose();
 				}, 1000)
 			}
-		}
+		},
+		menu: new Menu('mirror_painting', [
+			// Enabled
+			{
+				name: 'Enabled',
+				icon: () => Painter.mirror_painting,
+				click() {BarItems.mirror_painting.trigger()}
+			},
+			'_',
+			// Axis
+			{
+				name: 'menu.mirror_painting.axis',
+				description: 'menu.mirror_painting.axis.desc',
+				icon: 'call_split',
+				children: [
+					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {Painter.mirror_painting_options.axis.x = !Painter.mirror_painting_options.axis.x; StateMemory.save('mirror_painting_options')}},
+					{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {Painter.mirror_painting_options.axis.y = !Painter.mirror_painting_options.axis.y; StateMemory.save('mirror_painting_options')}},
+					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {Painter.mirror_painting_options.axis.z = !Painter.mirror_painting_options.axis.z; StateMemory.save('mirror_painting_options')}},
+				]
+			},
+			// Global
+			{
+				name: 'menu.mirror_painting.global',
+				description: 'menu.mirror_painting.global.desc',
+				icon: () => !!Painter.mirror_painting_options.global,
+				click() {Painter.mirror_painting_options.global = !Painter.mirror_painting_options.global; StateMemory.save('mirror_painting_options')}
+			},
+			// Local
+			{
+				name: 'menu.mirror_painting.local',
+				description: 'menu.mirror_painting.local.desc',
+				icon: () => !!Painter.mirror_painting_options.local,
+				click() {Painter.mirror_painting_options.local = !Painter.mirror_painting_options.local; StateMemory.save('mirror_painting_options')}
+			},
+			// Animated Texture Frames
+			{
+				name: 'menu.mirror_painting.texture_frames',
+				description: 'menu.mirror_painting.texture_frames.desc',
+				icon: () => !!Painter.mirror_painting_options.texture_frames,
+				click() {Painter.mirror_painting_options.texture_frames = !Painter.mirror_painting_options.texture_frames; StateMemory.save('mirror_painting_options')}
+			},
+		], {keep_open: true})
 	})
 	new Toggle('color_erase_mode', {
 		icon: 'remove_circle',

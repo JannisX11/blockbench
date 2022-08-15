@@ -52,6 +52,12 @@ const Blockbench = {
 		} else if (icon instanceof HTMLElement) {
 			//Node
 			node = icon
+		} else if (icon === true || icon === false) {
+			//Boolean
+			node = document.createElement('i');
+			node.classList.add('material-icons', 'icon');
+			node.innerText = icon ? 'check_box' : 'check_box_outline_blank';
+
 		} else if (icon === null) {
 			//Node
 			node = document.createElement('i');

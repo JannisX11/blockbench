@@ -495,6 +495,24 @@
 		transform: scale(0.6);
 	}
 
+	.tool.mirror_painting {
+		width: 48px;
+	}
+	.tool.mirror_painting i.icon {
+		display: block;
+		margin-left: 6px;
+		float: left;
+	}
+	.tool.mirror_painting i.icon.action_more_options {
+		display: inline-block;
+		width: 19px;
+		color: var(--color-text);
+		margin-left: 0;
+	}
+	.tool.mirror_painting i.icon.action_more_options:hover {
+		color: inherit;
+	}
+
 /*(Context-)Menu*/
 	.contextMenu {
 		position: absolute;
