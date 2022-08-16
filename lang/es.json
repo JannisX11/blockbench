@@ -18,6 +18,7 @@
     "keys.shift": "Shift",
     "keys.alt": "Alt",
     "keys.meta": "CMD",
+    "keys.cmd": "CMD",
     "keys.delete": "Eliminar",
     "keys.space": "Espacio",
     "keys.leftclick": "Click Izquierdo",

@@ -149,6 +149,7 @@
 	"keys.shift": "Shift",
 	"keys.alt": "Alt",
 	"keys.meta": "Cmd",
+	"keys.cmd": "Cmd",
 	"keys.delete": "Delete",
 	"keys.space": "Space",
 	"keys.leftclick": "Left Click",

@@ -18,6 +18,7 @@
     "keys.shift": "Umschalt",
     "keys.alt": "Alt",
     "keys.meta": "Cmd",
+    "keys.cmd": "Cmd",
     "keys.delete": "Entfernen",
     "keys.space": "Leertaste",
     "keys.leftclick": "Linksklick",
