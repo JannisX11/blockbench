@@ -278,7 +278,7 @@ const Painter = {
 			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
 		}
-		if (Toolbox.selected.id == 'gradient_tool') {
+		if (Toolbox.selected.id == 'gradient_tool' || Toolbox.selected.id == 'draw_shape_tool') {
 			Blockbench.setStatusBarText();
 		}
 		delete Painter.current.alpha_matrix;
@@ -862,6 +862,12 @@ const Painter = {
 							}
 						}
 					})
+				}
+
+				if (shape === 'ellipse') {
+					Blockbench.setStatusBarText(`${diff_x*2 + 1} x ${diff_y*2 + 1}`);
+				} else {
+					Blockbench.setStatusBarText(`${diff_x + 1} x ${diff_y + 1}`);
 				}
 			}
 
