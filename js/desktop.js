@@ -144,17 +144,34 @@ function addRecentProject(data) {
 		path: data.path,
 		icon: data.icon,
 		favorite: former_entry ? former_entry.favorite : false,
-		day: new Date().dayOfYear()
+		day: new Date().dayOfYear(),
 	}
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
 	StartScreen.vue.updateThumbnails([data.path]);
 	updateRecentProjects()
 }
+function updateRecentProjectData() {
+	let project = Project.getProjectMemory();
+	if (!project) return;
+	
+	project.name = Project.name;
+
+	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
+
+	if (Format.animation_files) {
+		project.animation_files = [];
+		Animation.all.forEach(anim => {
+			if (anim.path) project.animation_files.safePush(anim.path);
+		})
+	}
+
+	Blockbench.dispatchEvent('update_recent_project_data', {data: project});
+	updateRecentProjects()
+}
 async function updateRecentProjectThumbnail() {
 	if (Outliner.elements.length == 0) return;
-	let path = Project.export_path || Project.save_path;
-	let project = recent_projects.find(p => p.path == path);
+	let project = Project.getProjectMemory();
 	if (!project) return;
 
 	MediaPreview.resize(180, 100)
@@ -168,10 +185,12 @@ async function updateRecentProjectThumbnail() {
 	let size = Math.max(box[0], box[1]*2)
 	MediaPreview.camera.position.multiplyScalar(size/50)
 	
+	let thumbnail;
 	await new Promise((resolve, reject) => {
 		MediaPreview.screenshot({crop: false}, url => {
 			let hash = project.path.hashCode().toString().replace(/^-/, '0');
 			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+			thumbnail = url;
 			Blockbench.writeFile(path, {
 				savetype: 'image',
 				content: url
@@ -181,6 +200,7 @@ async function updateRecentProjectThumbnail() {
 			project.path = store_path;
 		})
 	})
+	Blockbench.dispatchEvent('update_recent_project_thumbnail', {data: project, thumbnail});
 	StartScreen.vue.updateThumbnails([project.path]);
 
 	// Clean old files
@@ -203,6 +223,26 @@ async function updateRecentProjectThumbnail() {
 			}
 		})
 	}
+}
+function loadDataFromModelMemory() {
+	let project = Project.getProjectMemory();
+	if (!project) return;
+
+	if (project.textures) {
+		Blockbench.read(project.textures, {}, files => {
+			files.forEach(f => {
+				new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+			})
+		})
+	}
+	if (project.animation_files && Format.animation_files) {
+		Blockbench.read(project.animation_files, {}, files => {
+			files.forEach(file => {
+				Animator.importFile(file);
+			})
+		})
+	}
+	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
 //Window Controls
@@ -366,6 +406,7 @@ function createBackup(init) {
 window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
+		updateRecentProjectData()
 	} catch(err) {}
 
 

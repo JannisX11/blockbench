@@ -914,11 +914,13 @@ var codec = new Codec('bedrock', {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
+
+			loadDataFromModelMemory();
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
-			})
+			});
 		}
 		this.parse(model, file.path)
 	},

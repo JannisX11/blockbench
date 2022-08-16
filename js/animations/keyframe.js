@@ -906,8 +906,11 @@ BARS.defineActions(function() {
 				if (animator instanceof BoneAnimator == false) return;
 				channels.forEach(channel => {
 					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
-						let kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
-						new_keyframes.push(kf)
+						let kf = animator[channel].find(kf => Math.epsilon(kf.time, Timeline.time, 1e-5));
+						if (!kf) {
+							kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
+							new_keyframes.push(kf)
+						}
 						Timeline.selected.push(kf);
 						kf.selected = true;
 					}
