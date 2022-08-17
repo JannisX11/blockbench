@@ -563,6 +563,7 @@
 	}
 	.texture_drag_helper {
 		z-index: 100;
+		border: 2px solid var(--color-accent);
 		box-shadow: 0 0 16px black;
 	}
 	.icon_placeholder {

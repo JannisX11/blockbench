@@ -108,7 +108,7 @@
 		width: 180px;
 		height: 100px;
 		margin: auto;
-		cursor: pointer;
+		pointer-events: none;
 	}
 	#start_screen .recent_project.thumbnail:hover {
 		background-color: var(--color-accent);

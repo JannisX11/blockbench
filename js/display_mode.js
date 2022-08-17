@@ -1610,7 +1610,7 @@ BARS.defineActions(function() {
 		category: 'display',
 		condition: () => display_mode,
 		click: function (e) {
-			new Menu(this.children()).open(e.target)
+			new Menu('apply_display_preset', this.children(), {searchable: true}).open(e.target);
 		},
 		children: function() {
 			var presets = []
@@ -1627,6 +1627,9 @@ BARS.defineActions(function() {
 				presets.push({
 					icon: icon,
 					name: p.id ? tl('display.preset.'+p.id) : p.name,
+					click() {
+						DisplayMode.applyPreset(p)
+					},
 					children: [
 						{name: 'action.apply_display_preset.here', icon: 'done', click() {
 							DisplayMode.applyPreset(p)
