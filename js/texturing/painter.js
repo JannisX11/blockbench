@@ -1054,15 +1054,15 @@ const Painter = {
 
 				// Todo: Equations for remaining blend modes
 				case 'screen':
-				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
 
-				case 'hard_light':
-				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
-				break;
+				//case 'hard_light':
+				//mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				//break;
 
 				case 'difference':
-				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
+				mix[ch] = ((1-normal_base) * added.a * normal_added) + (normal_base * (1-(added.a*normal_added)));
 				break;
 
 			}
@@ -1683,8 +1683,7 @@ BARS.defineActions(function() {
 			divide: true,
 			add: true,
 			subtract: true,
-			overlay: true,
-			hard_light: true,
+			screen: true,
 			difference: true,
 		}
 	})
