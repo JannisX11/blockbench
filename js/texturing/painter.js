@@ -130,11 +130,12 @@ const Painter = {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
 		}
-		let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-		var x = data.intersects[0].uv.x * texture.img.naturalWidth + offset;
-		var y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight + offset;
-		if (!Toolbox.selected.brush || Toolbox.selected.brush.floor_coordinates !== false) {
-			x = Math.floor(x); y = Math.floor(y);
+		var x = data.intersects[0].uv.x * texture.img.naturalWidth;
+		var y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
+		if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+			x = Math.floor(x + offset);
+			y = Math.floor(y + offset);
 		}
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
@@ -150,9 +151,13 @@ const Painter = {
 			var texture = data.element.faces[data.face].getTexture()
 			if (texture) {
 				var x, y, new_face;
-				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-				x = Math.floor( data.intersects[0].uv.x * texture.img.naturalWidth + offset );
-				y = Math.floor( (1-data.intersects[0].uv.y) * texture.img.naturalHeight + offset );
+				x = data.intersects[0].uv.x * texture.img.naturalWidth;
+				y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
+				if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+					let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+					x = Math.floor(x + offset);
+					y = Math.floor(y + offset);
+				}
 				if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
 				if (x === Painter.current.x && y === Painter.current.y) {
@@ -604,7 +609,7 @@ const Painter = {
 					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
 				}
 				let mirror_y = symmetry_axes[0] != symmetry_axes[2];
-				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) {
+				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2] == mirror_y) {
 					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
 				} else {
 					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
@@ -729,8 +734,8 @@ const Painter = {
 		var i = Math.min(interval, length);
 		var x, y;
 		while (i <= length) {
-			x = Math.round(start_x + diff_x / length * i)
-			y = Math.round(start_y + diff_y / length * i)
+			x = length ? (start_x + diff_x / length * i) : end_x;
+			y = length ? (start_y + diff_y / length * i) : end_y;
 			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
 			i += interval;
 		}
@@ -1185,7 +1190,7 @@ const Painter = {
 	},
 	editCircle(ctx, x, y, r, s, editPx) {
 		r = Math.round(r+1)/2
-		Painter.scanCanvas(ctx, x-Math.ceil(r)-2, y-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
 				Painter.editing_area && 
@@ -1200,10 +1205,18 @@ const Painter = {
 				return;
 			}
 
-			px -= x - r%1;
-			py -= y - r%1;
+			let v_px = px - x;
+			let v_py = py - y;
 
-			var distance = Math.sqrt(px*px + py*py)
+			if (x%1) {
+				// Smooth
+				v_px += 0.5; v_py += 0.5;
+			} else if (r%1) {
+				// Pixel Perfect
+				v_px += 0.5; v_py += r%1;
+			}
+
+			var distance = Math.sqrt(v_px*v_px + v_py*v_py)
 			if (s*r != 0) {
 				var pos_on_gradient = (distance-(1-s)*r) / (s*r)
 			} else {
@@ -1221,7 +1234,7 @@ const Painter = {
 					g: pixel[1],
 					b: pixel[2],
 					a: pixel[3]/255
-				}, opacity, px+x, py+y)
+				}, opacity, px, py)
 				pixel[0] = result_color.r
 				pixel[1] = result_color.g
 				pixel[2] = result_color.b
@@ -1230,8 +1243,8 @@ const Painter = {
 		});
 	},
 	editSquare(ctx, x, y, r, s, editPx) {
-		r = Math.round(r+1)/2
-		Painter.scanCanvas(ctx, x-Math.ceil(r)-2, y-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		r = Math.round(r+1)/2;
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
 				Painter.editing_area && 
@@ -1246,10 +1259,18 @@ const Painter = {
 				return;
 			}
 
-			px -= x - r%1;
-			py -= y - r%1;
+			let v_px = px - x;
+			let v_py = py - y;
 
-			var distance = Math.max(Math.abs(px), Math.abs(py));
+			if (x%1) {
+				// Smooth
+				v_px += 0.5; v_py += 0.5;
+			} else if (r%1) {
+				// Pixel Perfect
+				v_px += 0.5; v_py += r%1;
+			}
+
+			var distance = Math.max(Math.abs(v_px), Math.abs(v_py));
 			if (s*r != 0) {
 				var pos_on_gradient = (distance-(1-s)*r) / (s*r)
 			} else {
@@ -1264,7 +1285,7 @@ const Painter = {
 					g: pixel[1],
 					b: pixel[2],
 					a: pixel[3]/255
-				}, opacity, px+x, py+y)
+				}, opacity, px, py)
 				pixel[0] = result_color.r
 				pixel[1] = result_color.g
 				pixel[2] = result_color.b
@@ -1338,6 +1359,7 @@ BARS.defineActions(function() {
 			softness: true,
 			opacity: true,
 			offset_even_radius: true,
+			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
 				var a = opacity * local_opacity;
@@ -1526,7 +1548,7 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
-			offset_even_radius: true,
+			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			changePixel(px, py, pxcolor, local_opacity, {opacity, ctx, x, y, size, softness, texture, event}) {
 				if (Painter.lock_alpha) return pxcolor;
 
