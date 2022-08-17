@@ -235,7 +235,7 @@ const Painter = {
 				//uv editor
 				is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
-			if (Toolbox.selected.brush.line == false) is_line = false;
+			if (Toolbox.selected.brush?.line == false) is_line = false;
 
 			texture.edit(canvas => {
 				if (is_line) {
@@ -428,13 +428,11 @@ const Painter = {
 
 		} else {
 			let shape = BarItems.brush_shape.value;
-			if (false) {
-				// Custom area
-			} else if (shape == 'square') {
+			if (shape == 'square') {
 				Painter.editSquare(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
+						if (!matrix[px] || !matrix[px][py]) {
 							return pxcolor;
 						}
 					}
@@ -444,7 +442,7 @@ const Painter = {
 				Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[Math.floor(px)] || !matrix[Math.floor(px)][Math.floor(py)]) {
+						if (!matrix[px] || !matrix[px][py]) {
 							return pxcolor;
 						}
 					}
@@ -573,8 +571,7 @@ const Painter = {
 		if (!uvTag || !Painter.current.element) return;
 		function getTargetWithOptions(symmetry_axes, local) {
 			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
-			console.log(mirror_element)
-			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius;
+			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius && Condition(Toolbox.selected.brush?.floor_coordinates);
 			if (mirror_element instanceof Cube) {
 	
 				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
@@ -585,7 +582,6 @@ const Painter = {
 							 || (symmetry_axes[1] && (fkey === 'up' || fkey === 'down'))
 							 || (symmetry_axes[2] && (fkey === 'south' || fkey === 'north'));
 				if (side_face) fkey = CubeFace.opposite[fkey];
-				console.log(side_face, fkey, Painter.current.face)
 				let face = mirror_element.faces[fkey];
 	
 				if (side_face &&
@@ -608,8 +604,8 @@ const Painter = {
 				} else {
 					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
 				}
-				let mirror_y = symmetry_axes[0] != symmetry_axes[2];
-				if (face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2] == mirror_y) {
+				let mirror_y = symmetry_axes[2] && (fkey === 'up' || fkey === 'down');
+				if ((face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) != mirror_y) {
 					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
 				} else {
 					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
@@ -633,14 +629,12 @@ const Painter = {
 				let e = 0.01;
 				let face;
 				let match_fkey;
-				console.log(symmetry_axes, normal, center);
 				for (let fkey in mesh.faces) {
 					let normal2 = mesh.faces[fkey].getNormal(true);
 					let center2 = mesh.faces[fkey].getCenter();
-					if (symmetry_axes[0]) normal2[0] *= -1; center2[0] *= -1;
-					if (symmetry_axes[1]) normal2[1] *= -1; center2[1] *= -1;
-					if (symmetry_axes[2]) normal2[2] *= -1; center2[2] *= -1;
-					console.log(normal2, center2);
+					if (symmetry_axes[0]) {normal2[0] *= -1; center2[0] *= -1;}
+					if (symmetry_axes[1]) {normal2[1] *= -1; center2[1] *= -1;}
+					if (symmetry_axes[2]) {normal2[2] *= -1; center2[2] *= -1;}
 					if (
 						Math.epsilon(normal[0], normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
 						Math.epsilon(center[0], center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
@@ -670,10 +664,12 @@ const Painter = {
 					point_on_uv = face.localToUV(world_coord);
 				}
 				
-				if (even_brush_size) {
-					point_on_uv = point_on_uv.map(v => Math.round(v))
-				} else {
-					point_on_uv = point_on_uv.map(v => Math.floor(v))
+				if (Condition(Toolbox.selected.brush?.floor_coordinates)) {
+					if (even_brush_size) {
+						point_on_uv = point_on_uv.map(v => Math.round(v))
+					} else {
+						point_on_uv = point_on_uv.map(v => Math.floor(v))
+					}
 				}
 				
 				return {
@@ -707,7 +703,6 @@ const Painter = {
 			mirror_vectors = [[1,0,0], [0,0,1], [1,0,1]];
 		}
 		mirror_vectors.forEach((mirror_vector, i) => {
-			console.log(mirror_vector)
 			if (Painter.mirror_painting_options.global) {
 				targets.push(getTargetWithOptions(mirror_vector, false));
 			}
@@ -715,7 +710,6 @@ const Painter = {
 				targets.push(getTargetWithOptions(mirror_vector, true));
 			}
 		})
-		console.log(targets);
 		// Texture animation
 		return targets.filter(target => !!target);
 	},
@@ -730,7 +724,7 @@ const Painter = {
 		if (new_face && !length) {
 			length = 1
 		}
-		var interval = Toolbox.selected.brush.line_interval || 1;
+		var interval = Toolbox.selected.brush?.line_interval || 1;
 		var i = Math.min(interval, length);
 		var x, y;
 		while (i <= length) {
@@ -1768,7 +1762,7 @@ BARS.defineActions(function() {
 				icon: 'call_split',
 				children: [
 					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {Painter.mirror_painting_options.axis.x = !Painter.mirror_painting_options.axis.x; StateMemory.save('mirror_painting_options')}},
-					{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {Painter.mirror_painting_options.axis.y = !Painter.mirror_painting_options.axis.y; StateMemory.save('mirror_painting_options')}},
+					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {Painter.mirror_painting_options.axis.y = !Painter.mirror_painting_options.axis.y; StateMemory.save('mirror_painting_options')}},
 					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {Painter.mirror_painting_options.axis.z = !Painter.mirror_painting_options.axis.z; StateMemory.save('mirror_painting_options')}},
 				]
 			},
