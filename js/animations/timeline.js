@@ -496,7 +496,6 @@ const Timeline = {
 				Timeline.pause()
 			} else {
 				Timeline.setTime(0)
-				Timeline.start()
 			}
 		}
 	},

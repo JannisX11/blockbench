@@ -568,7 +568,6 @@ const Painter = {
 		ctx.globalCompositeOperation = 'source-over'
 	},
 	getMirrorPaintTargets(texture, x, y, uvTag) {
-		if (!uvTag || !Painter.current.element) return;
 		function getTargetWithOptions(symmetry_axes, local) {
 			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
 			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius && Condition(Toolbox.selected.brush?.floor_coordinates);
@@ -681,36 +680,60 @@ const Painter = {
 				}
 			}
 		}
+		
 		let targets = [];
-		let mirror_vectors = [[
-			Painter.mirror_painting_options.axis.x?1:0,
-			Painter.mirror_painting_options.axis.y?1:0,
-			Painter.mirror_painting_options.axis.z?1:0
-		]];
-		if (mirror_vectors[0].filter(v => v).length == 3) {
-			mirror_vectors = [
-				[1,0,0], [0,1,0], [0,0,1],
-				[1,1,0], [0,1,1], [1,0,1],
-				[1,1,1]
-			]
-		} else if (mirror_vectors[0].equals([1, 1, 0])) {
-			mirror_vectors = [[1,0,0], [0,1,0], [1,1,0]];
+		if (uvTag & Painter.current.element) {
+			let mirror_vectors = [[
+				Painter.mirror_painting_options.axis.x?1:0,
+				Painter.mirror_painting_options.axis.y?1:0,
+				Painter.mirror_painting_options.axis.z?1:0
+			]];
+			if (mirror_vectors[0].filter(v => v).length == 3) {
+				mirror_vectors = [
+					[1,0,0], [0,1,0], [0,0,1],
+					[1,1,0], [0,1,1], [1,0,1],
+					[1,1,1]
+				]
+			} else if (mirror_vectors[0].equals([1, 1, 0])) {
+				mirror_vectors = [[1,0,0], [0,1,0], [1,1,0]];
 
-		} else if (mirror_vectors[0].equals([0, 1, 1])) {
-			mirror_vectors = [[0,1,0], [0,0,1], [0,1,1]];
+			} else if (mirror_vectors[0].equals([0, 1, 1])) {
+				mirror_vectors = [[0,1,0], [0,0,1], [0,1,1]];
 
-		} else if (mirror_vectors[0].equals([1, 0, 1])) {
-			mirror_vectors = [[1,0,0], [0,0,1], [1,0,1]];
+			} else if (mirror_vectors[0].equals([1, 0, 1])) {
+				mirror_vectors = [[1,0,0], [0,0,1], [1,0,1]];
+			}
+			mirror_vectors.forEach((mirror_vector, i) => {
+				if (Painter.mirror_painting_options.global) {
+					targets.push(getTargetWithOptions(mirror_vector, false));
+				}
+				if (Painter.mirror_painting_options.local) {
+					targets.push(getTargetWithOptions(mirror_vector, true));
+				}
+			})
 		}
-		mirror_vectors.forEach((mirror_vector, i) => {
-			if (Painter.mirror_painting_options.global) {
-				targets.push(getTargetWithOptions(mirror_vector, false));
-			}
-			if (Painter.mirror_painting_options.local) {
-				targets.push(getTargetWithOptions(mirror_vector, true));
-			}
-		})
 		// Texture animation
+		if (Painter.mirror_painting_options.texture_frames && Format.animated_textures && texture && texture.frameCount > 1) {
+			let spatial_targets = targets.slice();
+			for (let frame = 0; frame < texture.frameCount; frame++) {
+				if (frame == texture.currentFrame) continue;
+
+				targets.push({
+					element: Painter.current.element,
+					x,
+					y: y + (frame - texture.currentFrame) * texture.display_height,
+					face: Painter.current.face
+				});
+				spatial_targets.forEach(spatial => {
+					targets.push({
+						element: spatial.element,
+						x: spatial.x,
+						y: spatial.y + (frame - texture.currentFrame) * texture.display_height,
+						face: spatial.face
+					});
+				})
+			}
+		}
 		return targets.filter(target => !!target);
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {

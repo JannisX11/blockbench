@@ -1908,6 +1908,8 @@ Interface.definePanels(function() {
 					if (this.texture && this.texture.display_canvas) {
 						Vue.nextTick(() => {
 							let wrapper = this.$refs.texture_canvas_wrapper;
+							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
+							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 							wrapper.append(this.texture.canvas);
 						})
 					}
