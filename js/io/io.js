@@ -127,7 +127,7 @@ async function loadImages(files, event) {
 			preview.startMovingBackground();
 			
 		} else if (method == 'edit') {
-			Formats.image.new();
+			newProject(Formats.image);
 			Project.texture_width = img.naturalWidth;
 			Project.texture_height = img.naturalHeight;
 			files.forEach(function(f) {

@@ -685,7 +685,7 @@ class Texture {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}
-		if (Texture.all.length > 1 && Modes.paint && !UVEditor.getReferenceFace()) {
+		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
 		return this;
@@ -1226,25 +1226,25 @@ class Texture {
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
 				condition() {return !Project.single_texture && Outliner.selected.length > 0},
-				click: function(texture) {texture.apply()}
+				click(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
 				condition() {return !Project.single_texture && Outliner.selected.length > 0},
-				click: function(texture) {texture.apply('blank')}
+				click(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
 				name: 'menu.texture.elements',
 				condition() {return !Project.single_texture && Outliner.selected.length > 0},
-				click: function(texture) {texture.apply(true)}
+				click(texture) {texture.apply(true)}
 			},
 			{
 				icon: 'bubble_chart',
 				name: 'menu.texture.particle',
 				condition: {features: ['select_texture_for_particles']},
-				click: function(texture) {
+				click(texture) {
 					if (texture.particle) {
 						texture.particle = false
 					} else {
@@ -1307,50 +1307,69 @@ class Texture {
 			{
 				icon: 'edit',
 				name: 'menu.texture.edit',
-				condition: function(texture) {return texture.mode == 'link'},
-				click: function(texture) { texture.openEditor()}
+				condition: (texture) => texture.mode == 'link',
+				click(texture) { texture.openEditor() }
+			},
+			{
+				icon: 'edit',
+				name: 'menu.texture.edit_in_blockbench',
+				condition: (texture) => texture.path,
+				click(texture) {
+					newProject(Formats.image);
+					Project.texture_width = texture.naturalWidth;
+					Project.texture_height = texture.naturalHeight;
+
+					let copy = texture.getUndoCopy();
+					let new_texture = new Texture(copy).load().add(true);
+
+					UVEditor.vue.updateTexture();
+					Project.name = new_texture.name;
+					new_texture.load_callback = () => {
+						new_texture.select();
+					}
+				}
 			},
 			{
 				icon: 'folder',
 				name: 'menu.texture.folder',
 				condition: function(texture) {return isApp && texture.path},
-				click: function(texture) {texture.openFolder()}
+				click(texture) {texture.openFolder()}
 			},
 			{
 				icon: 'save',
 				name: 'menu.texture.save',
 				condition: function(texture) {return !texture.saved && texture.path},
-				click: function(texture) {texture.save()}
+				click(texture) {texture.save()}
 			},
 			{
 				icon: 'file_download',
 				name: 'menu.texture.export',
-				click: function(texture) {texture.save(true)}
+				click(texture) {texture.save(true)}
 			},
 			{
 				icon: 'flourescent',
 				name: 'dialog.export_emission_map.title',
 				condition: tex => tex.render_mode == 'emissive',
-				click: function(texture) {texture.exportEmissionMap()}
+				click(texture) {texture.exportEmissionMap()}
 			},
 			'_',
 			{
 				icon: 'refresh',
 				name: 'menu.texture.refresh',
 				condition: function(texture) {return texture.mode == 'link'},
-				click: function(texture) {texture.reloadTexture()}
+				click(texture) {texture.reloadTexture()}
 			},
 			{
 				icon: 'file_upload',
 				name: 'menu.texture.change',
-				click: function(texture) { texture.reopen()}
+				click(texture) { texture.reopen()}
 			},
 			'delete',
 			'_',
 			{
 				icon: 'list',
 				name: 'menu.texture.properties',
-				click: function(texture) { texture.openMenu()}
+				click(texture) { texture.openMenu()}
 			}
 	])
 	Texture.getDefault = function() {

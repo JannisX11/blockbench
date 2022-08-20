@@ -24,17 +24,3 @@ new ModelFormat({
 	animated_textures: true,
 	locators: true,
 })
-
-new ModelFormat('image', {
-	icon: 'image',
-	category: 'low_poly',
-	show_on_start_screen: false,
-	show_in_new_list: false,
-	can_convert_to: false,
-	model_identifier: false,
-	animated_textures: true,
-	edit_mode: false,
-	new() {
-		return newProject(this);
-	}
-})

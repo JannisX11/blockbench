@@ -163,7 +163,10 @@ const Painter = {
 				if (x === Painter.current.x && y === Painter.current.y) {
 					return
 				}
-				if (Painter.current.face !== data.face || Painter.current.element !== data.element) {
+				if (
+					Painter.current.element !== data.element ||
+					(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
+				) {
 					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 						return;
 					}
@@ -287,6 +290,7 @@ const Painter = {
 			Blockbench.setStatusBarText();
 		}
 		delete Painter.current.alpha_matrix;
+		delete Painter.current.rect;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -341,6 +345,7 @@ const Painter = {
 		} else {
 			rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
 		}
+		Painter.current.rect = rect;
 		return rect;
 	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
@@ -369,7 +374,7 @@ const Painter = {
 		ctx.save()
 
 		ctx.beginPath();
-		let rect = Painter.setupRectFromFace(uvTag, texture);
+		let rect = Painter.current.rect || Painter.setupRectFromFace(uvTag, texture);
 		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 		ctx.rect(rect[0], rect[1], w, h)
 
@@ -743,16 +748,27 @@ const Painter = {
 		var diff_x = end_x - start_x;
 		var diff_y = end_y - start_y;
 
-		var length = Math.round(Math.sqrt(diff_x*diff_x + diff_y*diff_y))
+		var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
+
 		if (new_face && !length) {
 			length = 1
 		}
 		var interval = Toolbox.selected.brush?.line_interval || 1;
 		var i = Math.min(interval, length);
 		var x, y;
+		if (Math.abs(diff_x) > Math.abs(diff_y)) {
+			interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+		} else {
+			interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+		}
+
 		while (i <= length) {
 			x = length ? (start_x + diff_x / length * i) : end_x;
 			y = length ? (start_y + diff_y / length * i) : end_y;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				x = Math.round(x);
+				y = Math.round(y);
+			}
 			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
 			i += interval;
 		}
@@ -1379,7 +1395,8 @@ BARS.defineActions(function() {
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
-				var a = opacity * local_opacity;
+				if (blend_mode == 'set_opacity') local_opacity = 1;
+				let a = opacity * local_opacity;
 
 				if (blend_mode == 'set_opacity') {
 					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
@@ -1712,7 +1729,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('blend_mode', {
 		category: 'paint',
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
 		options: {
 			default: true,
 			set_opacity: true,
@@ -1834,13 +1851,13 @@ BARS.defineActions(function() {
 	new Toggle('painting_grid', {
 		icon: 'grid_on',
 		category: 'view',
-		condition: () => Modes.paint,
+		condition: () => Modes.paint && Format.edit_mode,
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
 
 	new NumSlider('slider_brush_size', {
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.size) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.size == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
 		tool_setting: 'brush_size',
 		category: 'paint',
 		settings: {
@@ -1849,7 +1866,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_brush_softness', {
 		category: 'paint',
-		condition: () => (Toolbox && (Toolbox.selected.brush?.softness)),
+		condition: () => (Toolbox && (Toolbox.selected.brush?.softness == true)),
 		tool_setting: 'brush_softness',
 		settings: {
 			min: 0, max: 100, default: 0,
@@ -1869,7 +1886,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_brush_opacity', {
 		category: 'paint',
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.opacity) || ['fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.opacity == true) || ['fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id))),
 		tool_setting: 'brush_opacity',
 		settings: {
 			min: 0, max: 255, default: 255,

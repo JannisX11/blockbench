@@ -13,11 +13,12 @@ const TextureGenerator = {
 		south:	{c1: '#f8dd72', c2: '#FFF899', place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
 	},
 	addBitmapDialog() {
-		let type_options = {
-			template: 'dialog.create_texture.type.template'
-		}
-		if (!Project.box_uv) {
-			type_options.color_map = 'dialog.create_texture.type.color_map';
+		let type_options = {};
+		if (Format.edit_mode) {
+			type_options.template = 'dialog.create_texture.type.template'
+			if (!Project.box_uv) {
+				type_options.color_map = 'dialog.create_texture.type.color_map';
+			}
 		}
 		type_options.blank = 'dialog.create_texture.type.blank';
 		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Project.texture_width)*16 : 16;

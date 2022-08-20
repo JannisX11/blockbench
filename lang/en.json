@@ -139,6 +139,8 @@
 	"format.optifine_part": "OptiFine Part",
 	"format.optifine_part.desc": "JPM part for OptiFine entity models",
 
+	"format.image": "Image",
+
 	"format_category.low_poly": "Low-Poly",
 	"format_category.minecraft": "Minecraft",
 	"format_category.other": "Other",
@@ -1538,6 +1540,7 @@
 	"menu.texture.render_mode.layered": "Layered",
 	"menu.texture.merge_onto_texture": "Merge Onto Texture Above",
 	"menu.texture.edit": "Edit",
+	"menu.texture.edit_in_blockbench": "Edit in Blockbench",
 	"menu.texture.particle": "Use for Particles",
 	"menu.texture.export": "Save As",
 	"menu.texture.save": "Save",
