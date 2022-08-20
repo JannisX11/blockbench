@@ -60,9 +60,6 @@ const TextureGenerator = {
 				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
 				}
-				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
-					TextureGenerator.background_color.set('#ffffffff')
-				}
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';

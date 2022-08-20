@@ -778,7 +778,7 @@ onVueSetup(function() {
 
 				<template v-if="show_modifier_keys && !isMobile">
 					<div class="status_bar_modifier_key" v-if="modifier_keys.ctrl.length" @click="clickModifiers()">
-						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.cmd' : 'keys.ctrl')}</kbd>
+						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')}</kbd>
 						<span>{{ tl(modifier_keys.ctrl.last()) }}</span>
 					</div>
 					<div class="status_bar_modifier_key" v-if="modifier_keys.shift.length" @click="clickModifiers()">

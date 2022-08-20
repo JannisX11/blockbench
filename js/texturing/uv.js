@@ -393,7 +393,7 @@ const UVEditor = {
 	},
 	//Set
 	setZoom(zoom) {
-		zoom = Math.clamp(zoom, 0.5, UVEditor.max_zoom)
+		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, UVEditor.max_zoom)
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {

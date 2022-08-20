@@ -773,7 +773,7 @@ const Canvas = {
 				if ((aspects.uv || update_all)) {
 					if (controller.updateUV) controller.updateUV(element);
 				}
-				if ((aspects.painting_grid || update_all) && Modes.paint && settings.painting_grid.value) {
+				if ((aspects.painting_grid || aspects.geometry || aspects.transform || update_all) && Modes.paint && settings.painting_grid.value) {
 					if (controller.updatePaintingGrid) controller.updatePaintingGrid(element);
 				}
 				if (aspects.visibility || update_all) {

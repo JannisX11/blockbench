@@ -835,10 +835,6 @@ new NodePreviewController(Cube, {
 			mesh.scale[axis] = 1;
 		}
 
-		if (Modes.paint) {
-			element.preview_controller.updatePaintingGrid(element);
-		}
-
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {

@@ -1221,7 +1221,7 @@ const Painter = {
 			this.bitmap.data[idx + 3] = color.a
 		});
 	},
-	editCircle(ctx, x, y, r, s, editPx) {
+	editCircle(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
@@ -1250,8 +1250,9 @@ const Painter = {
 			}
 
 			var distance = Math.sqrt(v_px*v_px + v_py*v_py)
-			if (s*r != 0) {
-				var pos_on_gradient = (distance-(1-s)*r) / (s*r)
+			if (soft*r != 0) {
+				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
 				if (r < 8) {
 					distance *= 1.2;
@@ -1305,7 +1306,8 @@ const Painter = {
 
 			var distance = Math.max(Math.abs(v_px), Math.abs(v_py));
 			if (s*r != 0) {
-				var pos_on_gradient = (distance-(1-s)*r) / (s*r)
+				var pos_on_gradient = Math.clamp((distance-(1-s)*r) / (s*r), 0, 1)
+				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
 				var pos_on_gradient = Math.floor((distance)/r)
 			}
@@ -1396,14 +1398,14 @@ BARS.defineActions(function() {
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
 				if (blend_mode == 'set_opacity') local_opacity = 1;
-				let a = opacity * local_opacity;
+				let a = opacity * local_opacity * 0.24;
 
 				if (blend_mode == 'set_opacity') {
 					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					var before = Painter.getAlphaMatrix(texture, px, py)
+					var before = 0;//Painter.getAlphaMatrix(texture, px, py)
 					Painter.setAlphaMatrix(texture, px, py, a);
 					if (a > before) {
 						a = (a - before) / (1 - before);
@@ -1851,7 +1853,7 @@ BARS.defineActions(function() {
 	new Toggle('painting_grid', {
 		icon: 'grid_on',
 		category: 'view',
-		condition: () => Modes.paint && Format.edit_mode,
+		condition: () => Modes.paint && Format.id != 'image',
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
