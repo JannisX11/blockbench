@@ -1398,14 +1398,14 @@ BARS.defineActions(function() {
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
 				if (blend_mode == 'set_opacity') local_opacity = 1;
-				let a = opacity * local_opacity * 0.24;
+				let a = opacity * local_opacity;
 
 				if (blend_mode == 'set_opacity') {
 					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					var before = 0;//Painter.getAlphaMatrix(texture, px, py)
+					var before = Painter.getAlphaMatrix(texture, px, py)
 					Painter.setAlphaMatrix(texture, px, py, a);
 					if (a > before) {
 						a = (a - before) / (1 - before);
