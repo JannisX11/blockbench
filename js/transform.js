@@ -733,6 +733,10 @@ function moveElementsInSpace(difference, axis) {
 				} else {
 					if (el.movable) el.from[axis] += difference;
 					if (el.resizable && el.to) el.to[axis] += difference;
+					
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+						Format.cube_size_limiter.move(el);
+					}
 				}
 				
 			} else if (space instanceof Group) {
@@ -995,6 +999,9 @@ function rotateOnAxis(modify, axis, slider) {
 			obj.rotation[1] = Math.radToDeg(e.y);
 			obj.rotation[2] = Math.radToDeg(e.z);
 			
+		}
+		if (obj instanceof Cube && Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
+			Format.cube_size_limiter.move(obj);
 		}
 		if (obj instanceof Group) {
 			Canvas.updateView({groups: [obj]});

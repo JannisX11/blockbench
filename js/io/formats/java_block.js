@@ -483,9 +483,9 @@ var format = new ModelFormat({
 
 			return undefined !== from.find((v, i) => {
 				return (
-					to[i] + inflate > 40 ||
+					to[i] + inflate > 32 ||
 					to[i] + inflate < -16 ||
-					from[i] - inflate > 40 ||
+					from[i] - inflate > 32 ||
 					from[i] - inflate < -16
 				)
 			})
@@ -496,7 +496,7 @@ var format = new ModelFormat({
 			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
 			
 			[0, 1, 2].forEach((ax) => {
-				var overlap = to[ax] + inflate - 40
+				var overlap = to[ax] + inflate - 32
 				if (overlap > 0) {
 					//If positive site overlaps
 					from[ax] -= overlap
@@ -511,8 +511,8 @@ var format = new ModelFormat({
 						from[ax] -= overlap
 						to[ax] -= overlap
 
-						if (to[ax] + inflate > 40) {
-							to[ax] = 40 - inflate
+						if (to[ax] + inflate > 32) {
+							to[ax] = 32 - inflate
 						}
 					}
 				}
@@ -524,8 +524,8 @@ var format = new ModelFormat({
 			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
 			
 			[0, 1, 2].forEach((ax) => {
-				from[ax] = Math.clamp(from[ax] - inflate, -16, 40) + inflate;
-				to[ax] = Math.clamp(to[ax] + inflate, -16, 40) - inflate;
+				from[ax] = Math.clamp(from[ax] - inflate, -16, 32) + inflate;
+				to[ax] = Math.clamp(to[ax] + inflate, -16, 32) - inflate;
 			})
 		}
 	},

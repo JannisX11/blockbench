@@ -1241,6 +1241,119 @@ var block_format = new ModelFormat({
 	animation_files: false,
 	animation_mode: false,
 	texture_meshes: true,
+	cube_size_limiter: {
+		rotation_affected: true,
+		test(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = [
+				[from[0]-inflate, from[1]-inflate, from[2]-inflate],
+				[from[0]-inflate, from[1]-inflate, to[2] + inflate],
+				[from[0]-inflate, to[1] + inflate, from[2]-inflate],
+				[from[0]-inflate, to[1] + inflate, to[2] + inflate],
+				[to[0] + inflate, from[1]-inflate, from[2]-inflate],
+				[to[0] + inflate, from[1]-inflate, to[2] + inflate],
+				[to[0] + inflate, to[1] + inflate, from[2]-inflate],
+				[to[0] + inflate, to[1] + inflate, to[2] + inflate]
+			];
+			vertices.forEach(array => {
+				array.V3_subtract(cube.origin)
+				let vector = Reusable.vec1.set(...array);
+				cube.mesh.localToWorld(vector);
+				array.replace(vector.toArray());
+			});
+
+			return undefined !== vertices.find((v, i) => {
+				return Math.abs(v[0]) > 14 || Math.abs(v[1] - 8) > 14 || Math.abs(v[2]) > 14;
+			})
+		},
+		move(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = [
+				[from[0]-inflate, from[1]-inflate, from[2]-inflate],
+				[from[0]-inflate, from[1]-inflate, to[2] + inflate],
+				[from[0]-inflate, to[1] + inflate, from[2]-inflate],
+				[from[0]-inflate, to[1] + inflate, to[2] + inflate],
+				[to[0] + inflate, from[1]-inflate, from[2]-inflate],
+				[to[0] + inflate, from[1]-inflate, to[2] + inflate],
+				[to[0] + inflate, to[1] + inflate, from[2]-inflate],
+				[to[0] + inflate, to[1] + inflate, to[2] + inflate]
+			];
+			vertices.forEach(array => {
+				array.V3_subtract(cube.origin)
+				let vector = Reusable.vec1.set(...array);
+				cube.mesh.localToWorld(vector);
+				array.replace(vector.toArray());
+				array[1] -= 8;
+			});
+
+			let offset = [0, 0, 0];
+
+			vertices.forEach(v => {
+				v.forEach((val, i) => {
+					if (val > 14) offset[i] = Math.max(offset[i], val-14);
+					if (val < -14) offset[i] = Math.min(offset[i], val+14);
+				})
+			})
+
+			let quat = cube.mesh.getWorldQuaternion(Reusable.quat1).invert();
+			let required_offset = Reusable.vec2.set(...offset).applyQuaternion(quat).toArray();
+			
+			from.V3_subtract(required_offset);
+			to.V3_subtract(required_offset);
+						
+		},
+		clamp(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = [
+				[from[0]-inflate, from[1]-inflate, from[2]-inflate],
+				[from[0]-inflate, from[1]-inflate, to[2] + inflate],
+				[from[0]-inflate, to[1] + inflate, from[2]-inflate],
+				[from[0]-inflate, to[1] + inflate, to[2] + inflate],
+				[to[0] + inflate, from[1]-inflate, from[2]-inflate],
+				[to[0] + inflate, from[1]-inflate, to[2] + inflate],
+				[to[0] + inflate, to[1] + inflate, from[2]-inflate],
+				[to[0] + inflate, to[1] + inflate, to[2] + inflate]
+			];
+			vertices.forEach(array => {
+				array.V3_subtract(cube.origin)
+				let vector = Reusable.vec1.set(...array);
+				cube.mesh.localToWorld(vector);
+				array.replace(vector.toArray());
+				array[1] -= 8;
+			});
+
+			let offset_from = [0, 0, 0];
+			let offset_to = [0, 0, 0];
+
+			vertices.forEach((v, vi) => {
+				v.forEach((val, i) => {
+					if ((i == 0 && vi < 4) || (i == 1 && (vi % 4) < 2) || (i == 2 && (vi % 2) < 1)) {
+						if (val > 14) offset_from[i] = Math.max(offset_from[i], val-14);
+						if (val < -14) offset_from[i] = Math.min(offset_from[i], val+14);
+					} else {
+						if (val > 14) offset_to[i] = Math.max(offset_to[i], val-14);
+						if (val < -14) offset_to[i] = Math.min(offset_to[i], val+14);
+					}
+				})
+			})
+
+			let quat = cube.mesh.getWorldQuaternion(Reusable.quat1).invert();
+			let required_offset_from = Reusable.vec2.set(...offset_from).applyQuaternion(quat).toArray();
+			let required_offset_to = Reusable.vec3.set(...offset_to).applyQuaternion(quat).toArray();
+
+			to.V3_subtract(required_offset_to);
+			from.V3_subtract(required_offset_from);
+		}
+	},
 	codec,
 	onSetup(project) {
 		if (isApp) {
