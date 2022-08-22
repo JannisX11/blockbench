@@ -1770,7 +1770,7 @@ BARS.defineActions(function() {
 	if (!Painter.mirror_painting_options.axis) {
 		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
 	}
-	new ToggleWithOptions('mirror_painting', {
+	new Toggle('mirror_painting', {
 		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
@@ -1789,7 +1789,7 @@ BARS.defineActions(function() {
 				}, 1000)
 			}
 		},
-		menu: new Menu('mirror_painting', [
+		side_menu: new Menu('mirror_painting', [
 			// Enabled
 			{
 				name: 'Enabled',

@@ -495,21 +495,21 @@
 		transform: scale(0.6);
 	}
 
-	.tool.mirror_painting {
+	.tool.side_menu_tool {
 		width: 48px;
 	}
-	.tool.mirror_painting i.icon {
+	.tool.side_menu_tool i.icon {
 		display: block;
 		margin-left: 6px;
 		float: left;
 	}
-	.tool.mirror_painting i.icon.action_more_options {
+	.tool.side_menu_tool i.icon.action_more_options {
 		display: inline-block;
 		width: 19px;
 		color: var(--color-text);
 		margin-left: 0;
 	}
-	.tool.mirror_painting i.icon.action_more_options:hover {
+	.tool.side_menu_tool i.icon.action_more_options:hover {
 		color: inherit;
 	}
 

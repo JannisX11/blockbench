@@ -1684,6 +1684,7 @@
 		border: 1px dashed white;
 		margin: -1px;
 		mix-blend-mode: difference;
+		box-sizing: content-box;
 	}
 	#texture_pasting_overlay {
 		position: absolute;
@@ -1695,6 +1696,7 @@
 	#texture_pasting_overlay::before {
 		content: "";
 		display: block;
+		box-sizing: content-box;
 		position: absolute;
 		border: 1px dashed white;
 		margin: -1px;
