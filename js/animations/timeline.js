@@ -387,7 +387,7 @@ const Timeline = {
 		$('#timeline_vue').on('mousewheel scroll', function(e) {
 			e.preventDefault()
 			let event = e.originalEvent;
-			let body = $('#timeline_body').get(0)
+			let body = document.getElementById('timeline_body');
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 

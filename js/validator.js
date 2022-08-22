@@ -29,6 +29,7 @@ const Validator = {
 				id: 'validator',
 				title: 'action.validator_window',
 				singleButton: true,
+				width: 800,
 				component: {
 					data() {return {
 						warnings: Validator.warnings,
@@ -41,14 +42,15 @@ const Validator = {
 						}
 					},
 					methods: {
-						getIconNode: Blockbench.getIconNode
+						getIconNode: Blockbench.getIconNode,
+						marked
 					},
 					template: `
 						<template>
 							<ul>
 								<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
 									<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
-									<span>{{ problem.message }}</span>
+									<span class="markdown" v-html="marked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
 									<template v-if="problem.buttons">
 										<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
 											<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
@@ -166,17 +168,113 @@ new ValidatorCheck('catmullrom_keyframes', {
 							if (kf.interpolation == 'catmullrom') {
 								if (kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
 									this.fail({
-										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric value. Smooth keyframes cannot contain math expressions.`
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric value. Smooth keyframes cannot contain math expressions.`,
+										buttons: [{
+											name: 'Reveal Keyframe',
+											icon: 'icon-keyframe',
+											click() {
+												Dialog.open.close();
+												kf.showInTimeline();
+											}
+										}]
 									})
 								}
 								if ((!keyframes[i-1] || keyframes[i-1].interpolation != 'catmullrom') && (!keyframes[i+1] || keyframes[i+1].interpolation != 'catmullrom')) {
 									this.warn({
-										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounded by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounded by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`,
+										buttons: [{
+											name: 'Reveal Keyframe',
+											icon: 'icon-keyframe',
+											click() {
+												Dialog.open.close();
+												kf.showInTimeline();
+											}
+										}]
 									})
 								}
 							}
 						})
 					}
+				}
+			}
+		})
+	}
+})
+
+new ValidatorCheck('molang_syntax', {
+	condition: {features: ['animation_mode']},
+	update_triggers: ['update_keyframe_selection', 'edit_animation_properties'],
+	run() {
+		let check = this;
+		function validateMolang(string, message, instance) {
+			if (!string || typeof string !== 'string') return;
+			
+			let issues = [];
+			if (string.match(/([-+*/]\s*[+*/])|(\+\s*-)/)) {
+				issues.push('Two directly adjacent operators');
+			}
+			if (string.match(/[\w.]\s+[\w.]/)) {
+				issues.push('Two expressions with no operator in between');
+			}
+			if (string.match(/[^\w\s+\-*/().,[\]!?=<>&|]/)) {
+				issues.push('Invalid character: ' + string.match(/[^\w+\-*/().,[\]!?=<>&|]+/g).join(', '));
+			}
+			let left = string.match(/\(/g) || 0;
+			let right = string.match(/\)/g) || 0;
+			if (left.length !== right.length) {
+				issues.push('Brackets do not match');
+			}
+
+			if (issues.length) {
+				let button;
+				if (instance instanceof Animation) {
+					button = {
+						name: 'Edit Animation',
+						icon: 'movie',
+						click() {
+							Dialog.open.close();
+							instance.propertiesDialog();
+						}
+					}
+				} else {
+					button = {
+						name: 'Reveal Keyframe',
+						icon: 'icon-keyframe',
+						click() {
+							Dialog.open.close();
+							instance.showInTimeline();
+						}
+					}
+				}
+				check.fail({
+					message: `${message} ${issues.join('; ')}. Script: \`${string}\``,
+					buttons: [button]
+				})
+			}
+		}
+		Animation.all.forEach(animation => {
+			for (let key in Animation.properties) {
+				let property = Animation.properties[key];
+				if (Condition(property.condition, animation) && property.type == 'molang') {
+					let value = animation[key];
+					validateMolang(value, `Property "${key}" on animation "${animation.name}" contains invalid molang:`, animation);
+				}
+			}
+
+			for (let key in animation.animators) {
+				let animator = animation.animators[key];
+				for (let channel in animator.channels) {
+					animator[channel].forEach((kf, i) => {
+						kf.data_points.forEach(data_point => {
+							for (let key in KeyframeDataPoint.properties) {
+								let property = KeyframeDataPoint.properties[key];
+								if (Condition(property.condition, data_point) && property.type == 'molang') {
+									let value = data_point[key];
+									validateMolang(value, `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains invalid molang:`, kf);
+								}
+							}
+						})
+					})
 				}
 			}
 		})

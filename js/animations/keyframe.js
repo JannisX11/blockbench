@@ -362,6 +362,28 @@ class Keyframe {
 		Animator.preview()
 		return this;
 	}
+	
+	showInTimeline() {
+		if (!this.animator.animation.selected) {
+			this.animator.animation.select();
+		}
+		this.animator.addToTimeline();
+		this.select();
+
+		Vue.nextTick(() => {
+			let element = $(`.keyframe#${this.uuid}`);
+			let offset = element.offset();
+			if (!offset) return;
+
+			let body = document.getElementById('timeline_body');
+			let body_offset = $(body).offset();
+
+			$(body).animate({
+				scrollLeft: (offset.left - body_offset.left - 300),
+				scrollTop: (offset.top - body_offset.top - 120)
+			}, 200);
+		})
+	}
 	showContextMenu(event) {
 		if (!this.selected) {
 			this.select();

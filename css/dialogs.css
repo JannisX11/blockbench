@@ -1368,6 +1368,8 @@
 		padding: 3px 5px;
 		margin-bottom: 5px;
 		display: flex;
+		overflow-wrap: anywhere;
+		align-items: center;
 	}
 	li.validator_dialog_problem.validator_warning > i {
 		color: var(--color-warning);

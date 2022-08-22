@@ -682,6 +682,8 @@ class Animation {
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
+					Blockbench.dispatchEvent('edit_animation_properties', {animation: this})
+
 					Undo.finishEdit('Edit animation properties');
 				}
 			},
@@ -771,10 +773,10 @@ class Animation {
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
-	new Property(Animation, 'string', 'anim_time_update');
-	new Property(Animation, 'string', 'blend_weight');
-	new Property(Animation, 'string', 'start_delay');
-	new Property(Animation, 'string', 'loop_delay');
+	new Property(Animation, 'molang', 'anim_time_update');
+	new Property(Animation, 'molang', 'blend_weight');
+	new Property(Animation, 'molang', 'start_delay');
+	new Property(Animation, 'molang', 'loop_delay');
 
 Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;
