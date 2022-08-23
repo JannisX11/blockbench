@@ -3,25 +3,34 @@ const Validator = {
 
 	warnings: [],
 	errors: [],
+	_timeout: null,
 	validate(trigger) {
-		Validator.warnings.empty();
-		Validator.errors.empty();
-
+		if (this._timeout) {
+			clearTimeout(this._timeout);
+			this._timeout = null;
+		}
 		if (!Project) return;
-		Validator.checks.forEach(check => {
-			try {
-				if (!Condition(check.condition)) return;
 
-				if (!trigger || check.update_triggers.includes(trigger)) {
-					check.update();
+		this._timeout = setTimeout(() => {
+			this._timeout = null;
+			Validator.warnings.empty();
+			Validator.errors.empty();
+
+			Validator.checks.forEach(check => {
+				try {
+					if (!Condition(check.condition)) return;
+
+					if (!trigger || check.update_triggers.includes(trigger)) {
+						check.update();
+					}
+					Validator.warnings.push(...check.warnings);
+					Validator.errors.push(...check.errors);
+
+				} catch (error) {
+					console.error(error);
 				}
-				Validator.warnings.push(...check.warnings);
-				Validator.errors.push(...check.errors);
-
-			} catch (error) {
-				console.error(error);
-			}
-		})
+			})
+		}, 400)
 	},
 	openDialog() {
 		if (!Validator.dialog) {
@@ -208,16 +217,23 @@ new ValidatorCheck('molang_syntax', {
 		let check = this;
 		function validateMolang(string, message, instance) {
 			if (!string || typeof string !== 'string') return;
+			let clear_string = string.replace(/'.*'/g, '0');
 			
 			let issues = [];
-			if (string.match(/([-+*/]\s*[+*/])|(\+\s*-)/)) {
+			if (clear_string.match(/([-+*/]\s*[+*/])|(\+\s*-)/)) {
 				issues.push('Two directly adjacent operators');
 			}
-			if (string.match(/[\w.]\s+[\w.]/)) {
+			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
+				issues.push('Expression starts with an invalid character');
+			}
+			if (clear_string.match(/(?!')[a-df-z_]+\s*[-?]+\s*[a-z_]+/i)) {
+				issues.push('Invalid expression "' + clear_string.match(/(?!')[a-df-z_]+\s*[-?]+\s*[a-z_]+/i)[0] + '"');
+			}
+			if (clear_string.match(/[\w.]\s+[\w.]/)) {
 				issues.push('Two expressions with no operator in between');
 			}
-			if (string.match(/[^\w\s+\-*/().,[\]!?=<>&|]/)) {
-				issues.push('Invalid character: ' + string.match(/[^\w+\-*/().,[\]!?=<>&|]+/g).join(', '));
+			if (clear_string.match(/[^\w\s+\-*/().,;[\]!?=<>&|]/)) {
+				issues.push('Invalid character: ' + clear_string.match(/[^\w+\-*/().,;[\]!?=<>&|]+/g).join(', '));
 			}
 			let left = string.match(/\(/g) || 0;
 			let right = string.match(/\)/g) || 0;

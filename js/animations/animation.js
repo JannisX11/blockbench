@@ -773,10 +773,10 @@ class Animation {
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
-	new Property(Animation, 'molang', 'anim_time_update');
-	new Property(Animation, 'molang', 'blend_weight');
-	new Property(Animation, 'molang', 'start_delay');
-	new Property(Animation, 'molang', 'loop_delay');
+	new Property(Animation, 'molang', 'anim_time_update', {default: ''});
+	new Property(Animation, 'molang', 'blend_weight', {default: ''});
+	new Property(Animation, 'molang', 'start_delay', {default: ''});
+	new Property(Animation, 'molang', 'loop_delay', {default: ''});
 
 Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;

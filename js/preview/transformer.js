@@ -1374,7 +1374,7 @@
 						var round_num = getRotationInterval(event)
 					} else {
 						value = point[axis]
-						if (axis == 'e') value = point.length()/8 * Math.sign(point.y||point.x);
+						if (axis == 'e') value = point.length() * Math.sign(point.y||point.x);
 						var round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						if (Toolbox.selected.id === 'resize_tool') {
 							value *= (scope.direction) ? 0.1 : -0.1;
