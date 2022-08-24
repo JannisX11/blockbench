@@ -72,15 +72,19 @@ class UndoSystem {
 	}
 	closeAmendEditMenu() {
 		if (this.amend_edit_menu) {
-			this.amend_edit_menu.remove();
+			this.amend_edit_menu.node.remove();
 			delete this.amend_edit_menu;
 		}
 	}
 	amendEdit(form, callback) {
+		let scope = this;
 		let input_elements = {};
 		let dialog = document.createElement('div');
 		dialog.id = 'amend_edit_menu';
-		this.amend_edit_menu = dialog;
+		this.amend_edit_menu = {
+			node: dialog,
+			form: {}
+		};
 
 		let close_button = document.createElement('div');
 		close_button.append(Blockbench.getIconNode('clear'));
@@ -94,12 +98,15 @@ class UndoSystem {
 		function updateValue() {
 			let form_values = {};
 			for (let key in form) {
-				if (input_elements[key]) {
-					form_values[key] = input_elements[key].get();
+				let input = scope.amend_edit_menu.form[key];
+				if (input) {
+					if (input.type == 'number') {
+						form_values[key] = input.slider.get();
+					}
 				}
 			}
 			Undo.undo(null, true);
-			callback(form_values);
+			callback(form_values, scope.amend_edit_menu.form);
 		}
 
 		for (let key in form) {
@@ -108,22 +115,29 @@ class UndoSystem {
 			let line = document.createElement('div');
 			line.className = 'amend_edit_line';
 			dialog.append(line);
+			this.amend_edit_menu.form[key] = {
+				type: form_line.type || 'number',
+				label: form_line.label
+			}
 
-			let slider = new NumSlider({
-				id: 'amend_edit_slider',
-				name: tl(form_line.label),
-				private: true,
-				onChange: updateValue,
-				settings: {
-					default: form_line.value || 0,
-					min: form_line.min,
-					max: form_line.max,
-					step: form_line.step||1,
-				},
-			});
-			line.append(slider.node);
-			input_elements[key] = slider;
-			slider.update();
+			if (this.amend_edit_menu.form[key].type == 'number') {
+				let slider = new NumSlider({
+					id: 'amend_edit_slider',
+					name: tl(form_line.label),
+					private: true,
+					onChange: updateValue,
+					settings: {
+						default: form_line.value || 0,
+						min: form_line.min,
+						max: form_line.max,
+						step: form_line.step||1,
+					},
+				});
+				line.append(slider.node);
+				input_elements[key] = slider;
+				this.amend_edit_menu.form[key].slider = slider
+				slider.update();
+			}
 
 			let label = document.createElement('label');
 			label.innerText = tl(form_line.label);

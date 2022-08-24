@@ -964,8 +964,31 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'r', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
-			function runEdit(amended, offset = 50, direction = 0) {
+			let selected_face;
+			Mesh.selected.forEach(mesh => {
+				if (!selected_face) {
+					selected_face = mesh.faces[mesh.getSelectedFaces()[0]];
+				}
+			})
+			function getLength(direction = 0) {
+				if (selected_face) {
+					let vertices = selected_face.getSortedVertices();
+					let pos1 = Mesh.selected[0].vertices[vertices[0 + direction]];
+					let pos2 = Mesh.selected[0].vertices[vertices[1 + direction]];
+					return Math.sqrt(Math.pow(pos2[0] - pos1[0], 2) + Math.pow(pos2[1] - pos1[1], 2) + Math.pow(pos2[2] - pos1[2], 2));
+				} else {
+					let vertices = Mesh.selected[0].getSelectedVertices();
+					let pos1 = Mesh.selected[0].vertices[vertices[0]];
+					let pos2 = Mesh.selected[0].vertices[vertices[1]];
+					return Math.sqrt(Math.pow(pos2[0] - pos1[0], 2) + Math.pow(pos2[1] - pos1[1], 2) + Math.pow(pos2[2] - pos1[2], 2));
+				}
+	
+			}
+			let length = getLength();
+
+			function runEdit(amended, offset, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+				if (offset == undefined) offset = length/2;
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
@@ -987,7 +1010,7 @@ BARS.defineActions(function() {
 						let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
 						if (existing_key) return existing_key;
 
-						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], offset/100))
+						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], offset/length))
 						let [vkey] = mesh.addVertices(vector);
 						center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
 						return vkey;
@@ -1108,20 +1131,15 @@ BARS.defineActions(function() {
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 			}
 
-			let selected_face;
-			Mesh.selected.forEach(mesh => {
-				if (!selected_face) {
-					selected_face = mesh.getSelectedFaces()[0];
-				}
-			})
-
 			runEdit();
 
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
-			}, form => {
+				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length},
+			}, (form, form_options) => {
+				length = getLength(form.direction);
+				form_options.offset.slider.settings.max = length;
 				runEdit(true, form.offset, form.direction);
 			})
 		}
