@@ -783,6 +783,28 @@
 		background-color: var(--color-bright_ui) !important;
 		filter: brightness(1);
 	}
+	div#preview_copy_brush_outline {
+		height: 20px;
+		width: 20px;
+		margin: -10px;
+		position: absolute;
+		pointer-events: none;
+		mix-blend-mode: difference;
+		z-index: 1;
+	}
+	div#preview_copy_brush_outline::after {
+		content: "\2b";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 900;
+		font-size: 19px;
+		position: absolute;
+		margin: auto;
+		top: calc(50% - 15px);
+		right: -10px;
+		left: -10px;
+		color: white;
+		width: 16px;
+	}
 /* GIF Recorder */
 	#gif_recording_frame {
 		pointer-events: none;

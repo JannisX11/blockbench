@@ -192,11 +192,17 @@ const Painter = {
 	startPaintTool(texture, x, y, uvTag, event, data) {
 		//Called directly by startPaintToolCanvas and startBrushUV
 
-		if (settings.paint_with_stylus_only.value && !(event.touches && event.touches[0] && event.touches[0].touchType == 'stylus')) return;
-
+		delete Painter.paint_stroke_canceled;
+		if (settings.paint_with_stylus_only.value && !(event.touches && event.touches[0] && event.touches[0].touchType == 'stylus')) {
+			Painter.paint_stroke_canceled = true;
+			return;
+		}
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeStart) {
 			let result = Toolbox.selected.brush.onStrokeStart({texture, x, y, uv: uvTag, event, raycast_data: data});
-			if (result == false) return;
+			if (result == false) {
+				Painter.paint_stroke_canceled = true;
+				return;
+			}
 		}
 
 		if (Toolbox.selected.id === 'color_picker') {
@@ -254,6 +260,7 @@ const Painter = {
 	},
 	movePaintTool(texture, x, y, event, new_face, uv) {
 		// Called directly from movePaintToolCanvas and moveBrushUV
+		if (Painter.paint_stroke_canceled) return;
 		
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeMove) {
 			let result = Toolbox.selected.brush.onStrokeMove({texture, x, y, uv, event, raycast_data: data});
@@ -278,6 +285,11 @@ const Painter = {
 	},
 	stopPaintTool() {
 		//Called directly by stopPaintToolCanvas and stopBrushUV
+		if (Painter.paint_stroke_canceled) {
+			delete Painter.paint_stroke_canceled;
+			return;
+		}
+
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
 			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
 			if (result == false) return;
@@ -1455,7 +1467,7 @@ BARS.defineActions(function() {
 			softness: true,
 			opacity: true,
 			offset_even_radius: true,
-			onStrokeStart({texture, event, x, y}) {
+			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 					if (!Painter.current.canvas) {
 						Painter.current.canvas = Painter.getCanvas(texture);
@@ -1473,6 +1485,16 @@ BARS.defineActions(function() {
 						x, y,
 						size,
 						texture: texture.uuid
+					}
+					Preview.all.forEach(preview => {
+						preview.removeAnnotation('copy_brush');
+					})
+					if (raycast_data) {
+						let node = Interface.createElement('div', {id: 'preview_copy_brush_outline'})
+						node.style.setProperty('--radius', '30px');
+						let object = new THREE.Object3D();
+						object.position.copy(raycast_data.intersects[0].point);
+						Preview.selected.addAnnotation('copy_brush', {object, node})
 					}
 					return false;
 				} else {
@@ -1545,6 +1567,9 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.draw_line');
 			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.set_copy_source');
 			UVEditor.vue.copy_brush_source = null;
+			Preview.all.forEach(preview => {
+				preview.removeAnnotation('copy_brush');
+			})
 		}
 	})
 	BarItems.copy_brush.tool_settings.brush_size = 16;
