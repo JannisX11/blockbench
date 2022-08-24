@@ -687,7 +687,7 @@ const Painter = {
 		}
 		
 		let targets = [];
-		if (uvTag & Painter.current.element) {
+		if (uvTag && Painter.current.element) {
 			let mirror_vectors = [[
 				Painter.mirror_painting_options.axis.x?1:0,
 				Painter.mirror_painting_options.axis.y?1:0,
