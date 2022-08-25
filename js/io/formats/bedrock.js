@@ -1266,7 +1266,7 @@ var block_format = new ModelFormat({
 			});
 
 			return undefined !== vertices.find((v, i) => {
-				return Math.abs(v[0]) > 14 || Math.abs(v[1] - 8) > 14 || Math.abs(v[2]) > 14;
+				return Math.abs(v[0]) > 22 || Math.abs(v[1] - 8) > 22 || Math.abs(v[2]) > 22;
 			})
 		},
 		move(cube, values = 0) {
@@ -1296,8 +1296,8 @@ var block_format = new ModelFormat({
 
 			vertices.forEach(v => {
 				v.forEach((val, i) => {
-					if (val > 14) offset[i] = Math.max(offset[i], val-14);
-					if (val < -14) offset[i] = Math.min(offset[i], val+14);
+					if (val > 22) offset[i] = Math.max(offset[i], val-22);
+					if (val < -22) offset[i] = Math.min(offset[i], val+22);
 				})
 			})
 
@@ -1337,11 +1337,11 @@ var block_format = new ModelFormat({
 			vertices.forEach((v, vi) => {
 				v.forEach((val, i) => {
 					if ((i == 0 && vi < 4) || (i == 1 && (vi % 4) < 2) || (i == 2 && (vi % 2) < 1)) {
-						if (val > 14) offset_from[i] = Math.max(offset_from[i], val-14);
-						if (val < -14) offset_from[i] = Math.min(offset_from[i], val+14);
+						if (val > 22) offset_from[i] = Math.max(offset_from[i], val-22);
+						if (val < -22) offset_from[i] = Math.min(offset_from[i], val+22);
 					} else {
-						if (val > 14) offset_to[i] = Math.max(offset_to[i], val-14);
-						if (val < -14) offset_to[i] = Math.min(offset_to[i], val+14);
+						if (val > 22) offset_to[i] = Math.max(offset_to[i], val-22);
+						if (val < -22) offset_to[i] = Math.min(offset_to[i], val+22);
 					}
 				})
 			})

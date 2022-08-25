@@ -1517,6 +1517,7 @@
 							if (Toolbox.selected.id == 'pivot_tool') {
 								Undo.finishEdit('Move pivot')
 							} else if (Toolbox.selected.id == 'rotate_tool') {
+								afterRotateOnAxis();
 								Undo.finishEdit('Rotate selection')
 							} else {
 								Undo.finishEdit('Move selection')

@@ -75,18 +75,6 @@ function getSelectionCenter(all = false) {
 	}
 	return center;
 }
-function limitToBox(val, inflate) {
-	if (typeof inflate != 'number') inflate = 0;
-	if (!(Format.cube_size_limiter && !settings.deactivate_size_limit.value)) {
-		return val;
-	} else if (val + inflate > 32) {
-		return 32 - inflate;
-	} else if (val - inflate < -16) {
-		return -16 + inflate;
-	} else {
-		return val;
-	}
-}
 //Movement
 function moveElementsRelative(difference, index, event) { //Multiple
 	if (!quad_previews.current || !Outliner.selected.length) {
@@ -636,8 +624,10 @@ function centerElements(axis, update) {
 
 	Outliner.selected.forEach(function(obj) {
 		if (obj.movable) obj.origin[axis] += difference;
-		if (obj.to) obj.to[axis] = limitToBox(obj.to[axis] + difference, obj.inflate);
-		if (obj instanceof Cube) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
+		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
+		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+			Format.cube_size_limiter.move(obj);
+		}
 	})
 	Group.all.forEach(group => {
 		if (!group.selected) return;
@@ -1000,13 +990,19 @@ function rotateOnAxis(modify, axis, slider) {
 			obj.rotation[2] = Math.radToDeg(e.z);
 			
 		}
-		if (obj instanceof Cube && Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
-			Format.cube_size_limiter.move(obj);
-		}
 		if (obj instanceof Group) {
 			Canvas.updateView({groups: [obj]});
 		}
 	})
+}
+function afterRotateOnAxis() {
+	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
+		Cube.all.forEach(cube => {
+			Format.cube_size_limiter.move(cube);
+			Format.cube_size_limiter.clamp(cube);
+		})
+		Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
+	}
 }
 
 BARS.defineActions(function() {
@@ -1061,17 +1057,15 @@ BARS.defineActions(function() {
 			} else if (obj.movable) {
 				var val = modify(obj.from[axis]);
 
-				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-					var size = obj.to ? obj.size(axis) : 0;
-					val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
-				}
-
 				var before = obj.from[axis];
 				obj.from[axis] = val;
 				if (obj.to) {
 					obj.to[axis] += (val - before);
 				}
 				if (obj instanceof Cube) {
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+						Format.cube_size_limiter.move(obj);
+					}
 					obj.mapAutoUV()
 				}
 				obj.preview_controller.updateTransform(obj);
@@ -1249,16 +1243,37 @@ BARS.defineActions(function() {
 		},
 		change: function(modify) {
 			Cube.selected.forEach(function(obj, i) {
-				var v = modify(obj.inflate)
+				let v_before = obj.inflate;
+				var v = modify(obj.inflate);
+
 				if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-					v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
-					v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
-					v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);
-					v = Math.clamp(obj.to[0]+v, -16, 32) - obj.to[0];
-					v = Math.clamp(obj.to[1]+v, -16, 32) - obj.to[1];
-					v = Math.clamp(obj.to[2]+v, -16, 32) - obj.to[2];
+					if (Format.cube_size_limiter.coordinate_limits) {
+						let limits = Format.cube_size_limiter.coordinate_limits;
+						v = obj.from[0] - Math.clamp(obj.from[0]-v, limits[0], limits[1]);
+						v = obj.from[1] - Math.clamp(obj.from[1]-v, limits[0], limits[1]);
+						v = obj.from[2] - Math.clamp(obj.from[2]-v, limits[0], limits[1]);
+						v = Math.clamp(obj.to[0]+v, limits[0], limits[1]) - obj.to[0];
+						v = Math.clamp(obj.to[1]+v, limits[0], limits[1]) - obj.to[1];
+						v = Math.clamp(obj.to[2]+v, limits[0], limits[1]) - obj.to[2];
+
+						obj.inflate = v;
+					} else {
+						if (Format.cube_size_limiter.test(obj, {inflate: v})) {
+							obj.inflate = v;
+						} else {
+							let step = Math.sign(v - v_before) * 0.1;
+							let steps = (v - v_before) / step;
+							for (let i = 0; i < steps; i++) {
+								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)})) {
+									obj.inflate = v_before + i * steps;
+									break;
+								}
+							}
+						}
+					}
+				} else {
+					obj.inflate = v;
 				}
-				obj.inflate = v
 			})
 			Canvas.updatePositions()
 		},
@@ -1294,6 +1309,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Cube.selected, group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
@@ -1321,6 +1337,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
@@ -1348,6 +1365,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: selected, group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval

@@ -476,6 +476,7 @@ var format = new ModelFormat({
 	display_mode: true,
 	texture_folder: true,
 	cube_size_limiter: {
+		coordinate_limits: [-16, 32],
 		test(cube, values = 0) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
