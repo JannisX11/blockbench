@@ -1122,6 +1122,16 @@
 					_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
 					var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate');
 
+					if (Toolbox.selected.id == 'move_tool') {
+						if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+							Cube.selected.forEach(function(obj) {
+								if (Format.cube_size_limiter.test(obj)) {
+									Format.cube_size_limiter.move(obj);
+								}
+							})
+						}
+					}
+
 					if (rotate_group) {
 						Undo.initEdit({group: Group.selected})
 					} else if (_has_groups) {

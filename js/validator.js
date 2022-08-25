@@ -136,6 +136,30 @@ BARS.defineActions(function() {
 	})
 })
 
+new ValidatorCheck('cube_size_limit', {
+	condition: () => Format.cube_size_limiter && settings.deactivate_size_limit.value,
+	update_triggers: ['update_selection'],
+	run() {
+		Cube.all.forEach(cube => {
+			if (Format.cube_size_limiter.test(cube)) {
+				this.warn({
+					message: `The cube "${cube.name}" is outside the allowed size restrictions. It may not work correctly on the target platform.`,
+					buttons: [
+						{
+							name: 'Select Cube',
+							icon: 'fa-cube',
+							click() {
+								Validator.dialog.hide();
+								cube.select();
+							}
+						}
+					]
+				})
+			}
+		})
+	}
+})
+
 new ValidatorCheck('texture_names', {
 	condition: {formats: ['java_block']},
 	update_triggers: ['add_texture', 'change_texture_path'],
