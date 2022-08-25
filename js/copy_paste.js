@@ -338,33 +338,13 @@ const Clipbench = {
 		}
 
 		//Canvas Limit
-		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			elements.forEach(s => {
-				if (s instanceof Cube == false) return;
-				//Push elements into 3x3 block box
-				[0, 1, 2].forEach(function(ax) {
-					var overlap = s.to[ax] + s.inflate - 32
-					if (overlap > 0) {
-						//If positive site overlaps
-						s.from[ax] -= overlap
-						s.to[ax] -= overlap
-
-						if (16 + s.from[ax] - s.inflate < 0) {
-							s.from[ax] = -16 + s.inflate
-						}
-					} else {
-						overlap = s.from[ax] - s.inflate + 16
-						if (overlap < 0) {
-							s.from[ax] -= overlap
-							s.to[ax] -= overlap
-
-							if (s.to[ax] + s.inflate > 32) {
-								s.to[ax] = 32 - s.inflate
-							}
-						}
-					}
-				})
+				if (s instanceof Cube) {
+					//Push elements into 3x3 block box
+					Format.cube_size_limiter.move(s);
+				}
 			})
 			Canvas.updateView({elements, element_aspects: {transform: true, geometry: true}});
 		}

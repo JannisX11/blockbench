@@ -75,18 +75,6 @@ function getSelectionCenter(all = false) {
 	}
 	return center;
 }
-function limitToBox(val, inflate) {
-	if (typeof inflate != 'number') inflate = 0;
-	if (!(Format.canvas_limit && !settings.deactivate_size_limit.value)) {
-		return val;
-	} else if (val + inflate > 32) {
-		return 32 - inflate;
-	} else if (val - inflate < -16) {
-		return -16 + inflate;
-	} else {
-		return val;
-	}
-}
 //Movement
 function moveElementsRelative(difference, index, event) { //Multiple
 	if (!quad_previews.current || !Outliner.selected.length) {
@@ -232,6 +220,7 @@ function mirrorSelected(axis) {
 
 const Vertexsnap = {
 	step1: true,
+	vertex_gizmos: new THREE.Object3D(),
 	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
 	elements_with_vertex_gizmos: [],
 	hovering: false,
@@ -258,7 +247,6 @@ const Vertexsnap = {
 			vectors.push([0, 0, 0]);
 			
 			let points = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial().copy(Canvas.meshVertexMaterial));
-			points.element_uuid = element.uuid;
 			points.vertices = vectors;
 			let vector_positions = [];
 			vectors.forEach(vector => vector_positions.push(...vector));
@@ -430,10 +418,13 @@ const Vertexsnap = {
 
 					for (i=0; i<3; i++) {
 						if (m[i] === 1) {
-							obj.to[i] = limitToBox(obj.to[i] + cube_pos.getComponent(i), obj.inflate)
+							obj.to[i] = obj.to[i] + cube_pos.getComponent(i);
 						} else {
-							obj.from[i] = limitToBox(obj.from[i] + cube_pos.getComponent(i), -obj.inflate)
+							obj.from[i] = obj.from[i] + cube_pos.getComponent(i);
 						}
+					}
+					if (Format.cube_size_limiter) {
+						Format.cube_size_limiter.clamp(obj)
 					}
 					if (Project.box_uv && obj.visibility) {
 						Canvas.updateUV(obj)
@@ -521,14 +512,10 @@ function scaleAll(save, size) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
-					if (obj.from[i] + ogn > 32 || obj.from[i] + ogn < -16) overflow.push(obj);
-					obj.from[i] = limitToBox(obj.from[i] + obj.inflate + ogn, -obj.inflate);
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
-					if (obj.to[i] + ogn > 32 || obj.to[i] + ogn < -16) overflow.push(obj);
-					obj.to[i] = limitToBox(obj.to[i] - obj.inflate + ogn, obj.inflate);
 					if (Format.integer_size) {
 						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
 					}
@@ -558,6 +545,14 @@ function scaleAll(save, size) {
 				}
 			}
 		})
+		if (obj instanceof Cube && Format.cube_size_limiter) {
+			if (Format.cube_size_limiter.test(obj)) {
+				overflow.push(obj);
+			}
+			if (!settings.deactivate_size_limit.value) {
+				Format.cube_size_limiter.clamp(obj);
+			}
+		}
 		if (save === true) {
 			delete obj.before
 		}
@@ -573,7 +568,7 @@ function scaleAll(save, size) {
 			delete g.old_origin
 		}
 	}, Group)
-	if (overflow.length && Format.canvas_limit && !settings.deactivate_size_limit.value) {
+	if (overflow.length && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 		scaleAll.overflow = overflow;
 		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
 		$('#scale_overflow_btn').css('display', 'inline-block')
@@ -664,8 +659,10 @@ function centerElements(axis, update) {
 
 	Outliner.selected.forEach(function(obj) {
 		if (obj.movable) obj.origin[axis] += difference;
-		if (obj.to) obj.to[axis] = limitToBox(obj.to[axis] + difference, obj.inflate);
-		if (obj instanceof Cube) obj.from[axis] = limitToBox(obj.from[axis] + difference, obj.inflate);
+		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
+		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+			Format.cube_size_limiter.move(obj);
+		}
 	})
 	Group.all.forEach(group => {
 		if (!group.selected) return;
@@ -761,6 +758,10 @@ function moveElementsInSpace(difference, axis) {
 				} else {
 					if (el.movable) el.from[axis] += difference;
 					if (el.resizable && el.to) el.to[axis] += difference;
+					
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+						Format.cube_size_limiter.move(el);
+					}
 				}
 				
 			} else if (space instanceof Group) {
@@ -1033,6 +1034,15 @@ function rotateOnAxis(modify, axis, slider) {
 		}
 	})
 }
+function afterRotateOnAxis() {
+	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
+		Cube.all.forEach(cube => {
+			Format.cube_size_limiter.move(cube);
+			Format.cube_size_limiter.clamp(cube);
+		})
+		Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
+	}
+}
 
 BARS.defineActions(function() {
 
@@ -1086,17 +1096,15 @@ BARS.defineActions(function() {
 			} else if (obj.movable) {
 				var val = modify(obj.from[axis]);
 
-				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-					var size = obj.to ? obj.size(axis) : 0;
-					val = limitToBox(limitToBox(val, -obj.inflate) + size, obj.inflate) - size
-				}
-
 				var before = obj.from[axis];
 				obj.from[axis] = val;
 				if (obj.to) {
 					obj.to[axis] += (val - before);
 				}
 				if (obj instanceof Cube) {
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+						Format.cube_size_limiter.move(obj);
+					}
 					obj.mapAutoUV()
 				}
 				obj.preview_controller.updateTransform(obj);
@@ -1278,16 +1286,37 @@ BARS.defineActions(function() {
 		},
 		change: function(modify) {
 			Cube.selected.forEach(function(obj, i) {
-				var v = modify(obj.inflate)
-				if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-					v = obj.from[0] - Math.clamp(obj.from[0]-v, -16, 32);
-					v = obj.from[1] - Math.clamp(obj.from[1]-v, -16, 32);
-					v = obj.from[2] - Math.clamp(obj.from[2]-v, -16, 32);
-					v = Math.clamp(obj.to[0]+v, -16, 32) - obj.to[0];
-					v = Math.clamp(obj.to[1]+v, -16, 32) - obj.to[1];
-					v = Math.clamp(obj.to[2]+v, -16, 32) - obj.to[2];
+				let v_before = obj.inflate;
+				var v = modify(obj.inflate);
+
+				if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+					if (Format.cube_size_limiter.coordinate_limits) {
+						let limits = Format.cube_size_limiter.coordinate_limits;
+						v = obj.from[0] - Math.clamp(obj.from[0]-v, limits[0], limits[1]);
+						v = obj.from[1] - Math.clamp(obj.from[1]-v, limits[0], limits[1]);
+						v = obj.from[2] - Math.clamp(obj.from[2]-v, limits[0], limits[1]);
+						v = Math.clamp(obj.to[0]+v, limits[0], limits[1]) - obj.to[0];
+						v = Math.clamp(obj.to[1]+v, limits[0], limits[1]) - obj.to[1];
+						v = Math.clamp(obj.to[2]+v, limits[0], limits[1]) - obj.to[2];
+
+						obj.inflate = v;
+					} else {
+						if (Format.cube_size_limiter.test(obj, {inflate: v})) {
+							obj.inflate = v;
+						} else {
+							let step = Math.sign(v - v_before) * 0.1;
+							let steps = (v - v_before) / step;
+							for (let i = 0; i < steps; i++) {
+								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)})) {
+									obj.inflate = v_before + i * steps;
+									break;
+								}
+							}
+						}
+					}
+				} else {
+					obj.inflate = v;
 				}
-				obj.inflate = v
 			})
 			Canvas.updatePositions()
 		},
@@ -1323,6 +1352,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
@@ -1350,6 +1380,7 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
@@ -1377,10 +1408,17 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), group: Group.selected})
 		},
 		onAfter: function() {
+			afterRotateOnAxis();
 			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
+	function rotateCondition() {
+		return (Modes.edit && (
+			(Format.bone_rig && Group.selected) ||
+			(Format.rotate_cubes && Cube.selected.length)
+		))
+	}
 	let slider_vector_rotation = [BarItems.slider_rotation_x, BarItems.slider_rotation_y, BarItems.slider_rotation_z];
 	slider_vector_rotation.forEach(slider => slider.slider_vector = slider_vector_rotation);
 

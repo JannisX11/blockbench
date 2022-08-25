@@ -1222,16 +1222,13 @@
 							var difference = point[axis] - previousValue
 
 							var overlapping = false
-							if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-								selected.forEach(function(obj) {
-									if (obj.movable && obj.resizable) {
-										overlapping = overlapping || (
-											obj.to[axisNumber] + difference + obj.inflate > 32 ||
-											obj.to[axisNumber] + difference + obj.inflate < -16 ||
-											obj.from[axisNumber] + difference - obj.inflate > 32 ||
-											obj.from[axisNumber] + difference - obj.inflate < -16
-										)
-									}
+							if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+								Cube.selected.forEach(function(obj) {
+									let from = obj.from.slice();
+									let to = obj.to.slice();
+									from[axisNumber] += difference;
+									to[axisNumber] += difference;
+									overlapping = overlapping || Format.cube_size_limiter.test(obj, {from, to});
 								})
 							}
 							if (!overlapping) {
@@ -1589,6 +1586,7 @@
 							if (Toolbox.selected.id == 'pivot_tool') {
 								Undo.finishEdit('Move pivot')
 							} else if (Toolbox.selected.id == 'rotate_tool') {
+								afterRotateOnAxis();
 								Undo.finishEdit('Rotate selection')
 							} else {
 								Undo.finishEdit('Move selection')
