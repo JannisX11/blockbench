@@ -1035,12 +1035,12 @@ BARS.defineActions(function() {
 							]
 
 							let c1_uv_coords = [
-								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/100),
-								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/100),
+								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
 							];
 							let c2_uv_coords = [
-								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/100),
-								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/100),
+								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/length),
+								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/length),
 							];
 
 							let new_face = new MeshFace(mesh, face).extend({

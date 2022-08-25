@@ -870,7 +870,8 @@ const Animator = {
 		if (Group.selected) {
 			Group.selected.select();
 		}
-		Animator.preview()
+		BarItems.slider_animation_length.update();
+		Animator.preview();
 	},
 	leave() {
 		Timeline.pause()

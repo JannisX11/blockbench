@@ -278,7 +278,6 @@ const MenuBar = {
 			'_',
 			'flip_texture_x',
 			'flip_texture_y',
-			'mirror_painting',
 			'resize_texture'
 		], {
 			condition: {modes: ['paint']}
