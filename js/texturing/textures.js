@@ -1311,10 +1311,17 @@ class Texture {
 				click(texture) { texture.openEditor() }
 			},
 			{
-				icon: 'edit',
+				icon: 'draw',
 				name: 'menu.texture.edit_in_blockbench',
-				condition: (texture) => texture.path,
+				condition: (texture) => Format.id !== 'image' && texture.path,
 				click(texture) {
+					let existing_tab = ModelProject.all.find(project => project.format.id == 'image' && project.textures.find(t => t.path && t.path == texture.path));
+					if (existing_tab) {
+						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
+						existing_tab.select();
+						tex2.select();
+						return;
+					}
 					newProject(Formats.image);
 					Project.texture_width = texture.naturalWidth;
 					Project.texture_height = texture.naturalHeight;
