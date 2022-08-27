@@ -189,6 +189,16 @@ new ValidatorCheck('catmullrom_keyframes', {
 	condition: {features: ['animation_files']},
 	update_triggers: ['update_keyframe_selection'],
 	run() {
+		function getButtons(kf) {
+			return [{
+				name: 'Reveal Keyframe',
+				icon: 'icon-keyframe',
+				click() {
+					Dialog.open.close();
+					kf.showInTimeline();
+				}
+			}]
+		}
 		Animation.all.forEach(animation => {
 			for (let key in animation.animators) {
 				let animator = animation.animators[key];
@@ -201,30 +211,42 @@ new ValidatorCheck('catmullrom_keyframes', {
 							if (kf.interpolation == 'catmullrom') {
 								if (kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
 									this.fail({
-										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric value. Smooth keyframes cannot contain math expressions.`,
-										buttons: [{
-											name: 'Reveal Keyframe',
-											icon: 'icon-keyframe',
-											click() {
-												Dialog.open.close();
-												kf.showInTimeline();
-											}
-										}]
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric values. Smooth keyframes cannot contain math expressions.`,
+										buttons: getButtons(kf)
 									})
+
 								}
 								if ((!keyframes[i-1] || keyframes[i-1].interpolation != 'catmullrom') && (!keyframes[i+1] || keyframes[i+1].interpolation != 'catmullrom')) {
 									this.warn({
 										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is not surrounded by smooth keyframes. Multiple smooth keyframes are required to create a smooth spline.`,
-										buttons: [{
-											name: 'Reveal Keyframe',
-											icon: 'icon-keyframe',
-											click() {
-												Dialog.open.close();
-												kf.showInTimeline();
-											}
-										}]
+										buttons: getButtons(kf)
 									})
+
+								} else if (!keyframes[i+1] && animation.length && (kf.time+0.01) < animation.length && kf.data_points.find(dp => parseFloat(dp.x) || parseFloat(dp.y) || parseFloat(dp.z))) {
+									this.warn({
+										message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" is the last smooth keyframe, but does not line up with the end of the animation. The last keyframe should either be linear, or line up with the animation end.`,
+										buttons: getButtons(kf)
+									})
+
 								}
+							} else if (keyframes[i+1] && keyframes[i+1].interpolation == 'catmullrom' && kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
+								this.fail({
+									message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric values. Keyframes that are adjacent to smooth keyframes cannot contain math expressions.`,
+									buttons: getButtons(kf)
+								})
+
+							} else if (keyframes[i-1] && keyframes[i-1].interpolation == 'catmullrom' && kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
+								this.fail({
+									message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric values. Keyframes that are adjacent to smooth keyframes cannot contain math expressions.`,
+									buttons: getButtons(kf)
+								})
+
+							} else if (keyframes[i-2] && keyframes[i-2].interpolation == 'catmullrom' && kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
+								this.warn({
+									message: `${animator.channels[channel].name} keyframe at ${kf.time.toFixed(2)} on "${animator.name}" in "${animation.name}" contains non-numeric values. Keyframes that are adjacent to smooth keyframes cannot contain math expressions.`,
+									buttons: getButtons(kf)
+								})
+
 							}
 						})
 					}

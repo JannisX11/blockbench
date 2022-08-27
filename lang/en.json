@@ -1603,7 +1603,7 @@
 	"menu.animation.properties": "Properties...",
 	"menu.animation.file": "File",
 	"menu.animation.snapping": "Snapping",
-	"menu.animation.open_location": "Open File Location",
+	"menu.animation.open_location": "Show in File Explorer",
 	"menu.animation.unload": "Unload",
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 

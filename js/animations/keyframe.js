@@ -1012,17 +1012,34 @@ BARS.defineActions(function() {
 								opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
 							}
 
+							let center_keyframe;
+							if (formResult.offset && !kfs.find(kf => Math.epsilon(kf.time, Timeline.snapTime(Animation.selected.length/2), 0.004))) {
+								center_keyframe = animator.createKeyframe(null, Timeline.snapTime(Animation.selected.length/2), channel, false, false);
+								kfs.push(center_keyframe);
+							}
+							kfs.sort((a, b) => a.time - b.time);
+							let occupied_times = [];
 							kfs.forEach(old_kf => {
 								let time = old_kf.time;
 								if (formResult.offset) {
 									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
 								}
-								let new_kf = opposite_animator.createKeyframe(old_kf, Timeline.snapTime(time), channel, false, false)
+								time = Timeline.snapTime(time);
+								if (occupied_times.includes(time)) return;
+								occupied_times.push(time);
+								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
 								if (new_kf) {
 									new_kf.flip(0);
 									new_keyframes.push(new_kf);
 								}
 							})
+							if (formResult.offset && !occupied_times.includes(0)) {
+								let new_kf = opposite_animator.createKeyframe(new_keyframes.last(), 0, channel, false, false)
+								if (new_kf) {
+									new_keyframes.push(new_kf);
+								}
+							}
+							if (center_keyframe) center_keyframe.remove();
 						})
 						if (formResult.show_in_timeline && opposite_animator) {
 							opposite_animator.addToTimeline();
