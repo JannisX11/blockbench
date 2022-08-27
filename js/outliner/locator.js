@@ -15,6 +15,7 @@ class Locator extends OutlinerElement {
 		return this.from;
 	}
 	extend(object) {
+		if (object.from) Locator.properties.position.V3_set(object.from);
 		for (var key in Locator.properties) {
 			Locator.properties[key].merge(this, object)
 		}
@@ -115,7 +116,7 @@ class Locator extends OutlinerElement {
 		])
 	
 new Property(Locator, 'string', 'name', {default: 'locator'})
-new Property(Locator, 'vector', 'from')
+new Property(Locator, 'vector', 'position')
 new Property(Locator, 'vector', 'rotation')
 new Property(Locator, 'boolean', 'ignore_inherited_scale')
 new Property(Locator, 'boolean', 'locked');

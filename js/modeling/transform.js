@@ -746,11 +746,11 @@ function moveElementsInSpace(difference, axis) {
 		} else {
 		
 			if (space == 2 && !group_m) {
-				if (el instanceof Locator) {
+				if (el.position) {
 					let m = vector.set(0, 0, 0);
 					m[getAxisLetter(axis)] = difference;
 					m.applyQuaternion(el.mesh.quaternion);
-					el.from.V3_add(m.x, m.y, m.z);
+					el.position.V3_add(m.x, m.y, m.z);
 
 				} else if (el instanceof TextureMesh) {
 					el.local_pivot[axis] += difference;
@@ -759,7 +759,7 @@ function moveElementsInSpace(difference, axis) {
 					if (el.movable) el.from[axis] += difference;
 					if (el.resizable && el.to) el.to[axis] += difference;
 					
-					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+					if (el instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 						Format.cube_size_limiter.move(el);
 					}
 				}
@@ -767,7 +767,7 @@ function moveElementsInSpace(difference, axis) {
 			} else if (space instanceof Group) {
 				if (el.movable && el instanceof Mesh == false) el.from[axis] += difference;
 				if (el.resizable && el.to) el.to[axis] += difference;
-				if (el.rotatable && el instanceof Locator == false) el.origin[axis] += difference;
+				if (el.rotatable && !el.position) el.origin[axis] += difference;
 			} else {
 				let move_origin = !!group;
 				if (group_m) {
@@ -787,7 +787,7 @@ function moveElementsInSpace(difference, axis) {
 						move_origin = true;
 					} else {
 						var rotation = new THREE.Quaternion();
-						if (el.mesh && el instanceof Locator == false && el instanceof Mesh == false) {
+						if (el.mesh && !el.position && el instanceof Mesh == false) {
 							el.mesh.getWorldQuaternion(rotation);
 						} else if (el.parent instanceof Group) {
 							el.parent.mesh.getWorldQuaternion(rotation);
@@ -799,7 +799,7 @@ function moveElementsInSpace(difference, axis) {
 				if (el.movable && (el instanceof Mesh == false || !move_origin)) el.from.V3_add(m.x, m.y, m.z);
 				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
 				if (move_origin) {
-					if (el.rotatable && el instanceof Locator == false && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.rotatable && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
 			}
 		}
