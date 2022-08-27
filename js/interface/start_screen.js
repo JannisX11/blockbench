@@ -452,7 +452,6 @@ ModelLoader.loaders = {};
 		dataType: 'json'
 	});
 	documentReady.then(() => {
-		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
 		//Backup Model
 		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {

@@ -55,11 +55,11 @@
 		scrollbar-width: none;
 	}
 	body.is_mobile .mobile_scrollbar {
-		scrollbar-width: thin;
+		scrollbar-width: initial;
 	}
 	body.is_mobile .mobile_scrollbar::-webkit-scrollbar {
-		width: 12px;
-		height: 12px;
+		width: 20px;
+		height: 20px;
 	}
 	/*Assistant Font*/
 	@font-face {
@@ -353,6 +353,7 @@
 		outline-color: var(--color-accent);
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
+		forced-color-adjust: none;
 	}
 	div {
 		cursor: default;

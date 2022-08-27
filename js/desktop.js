@@ -39,6 +39,11 @@ function initializeDesktopApp() {
 		return true;
 	});
 
+	if (Blockbench.startup_count <= 1 && electron.nativeTheme.inForcedColorsMode) {
+		let theme = CustomTheme.themes.find(t => t.id == 'contrast');
+		CustomTheme.loadTheme(theme);
+	}
+
 	function makeUtilFolder(name) {
 		let path = PathModule.join(app.getPath('userData'), name)
 		if (!fs.existsSync(path)) fs.mkdirSync(path)
