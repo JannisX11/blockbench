@@ -290,7 +290,8 @@ class Menu {
 				} else {
 					entry.on('click', (e) => {s.trigger(e)});
 					if (s.side_menu) {
-						createChildList(s, entry, s.side_menu.structure);
+						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
+						createChildList(s, entry, content_list);
 					}
 				}
 
@@ -387,7 +388,8 @@ class Menu {
 			return entry;
 		}
 
-		populateList(scope.structure, ctxmenu, this.options.searchable);
+		let content_list = typeof this.structure == 'function' ? this.structure(context) : this.structure;
+		populateList(content_list, ctxmenu, this.options.searchable);
 
 		var el_width = ctxmenu.width()
 		var el_height = ctxmenu.height()
@@ -472,7 +474,7 @@ class Menu {
 		return Condition(this.condition);
 	}
 	addAction(action, path) {
-
+		if (this.structure instanceof Array == false) return;
 		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
 		var track = path.split('.')
@@ -500,6 +502,7 @@ class Menu {
 		}
 	}
 	removeAction(path) {
+		if (this.structure instanceof Array == false) return;
 		var scope = this;
 		if (path instanceof Action) {
 			let action = path;

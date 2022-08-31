@@ -1524,6 +1524,10 @@
 
 	"menu.group.sort": "Sort",
 
+	"menu.brush_presets.dialog": "Brush Presets...",
+	"menu.brush_presets.pixel_brush": "Pixel Brush",
+	"menu.brush_presets.smooth_brush": "Smooth Brush",
+
 	"menu.palette.load.default": "Default",
 	"menu.palette.load.empty": "Blank",
 	"menu.palette.load.update": "Update Palette",

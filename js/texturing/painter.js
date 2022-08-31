@@ -1,3 +1,4 @@
+StateMemory.init('brush_presets', 'array')
 const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
@@ -1376,15 +1377,170 @@ const Painter = {
 		})
 	},
 	openBrushOptions() {
-		new Dialog({
+		let current_preset = 0;
+		let dialog = new Dialog({
 			id: 'brush_options',
+			title: 'menu.brush_presets.dialog',
+			singleButton: true,
+			part_order: ['component', 'form'],
+			component: {
+				data() {return {
+					presets: StateMemory.brush_presets,
+					selected_preset: null,
+				}},
+				methods: {
+					addPreset() {
+						let new_preset = {
+							name: 'Preset',
+							size: 1,
+							softness: 0,
+							opacity: null,
+							color: null,
+							shape: 'square',
+							blend_mode: 'default'
+						};
+						this.presets.push(new_preset);
+						this.selectPreset(new_preset);
+						return new_preset;
+					},
+					removePreset(preset) {
+						if (!preset) preset = this.selected_preset;
+						let index = this.presets.indexOf(preset);
+						this.presets.remove(preset);
+						this.selected_preset = null;
+						current_preset = 0;
+						dialog.object.classList.remove('preset_selected');
+						this.save();
+						if (this.presets[index] || this.presets[index-1]) {
+							this.selectPreset(this.presets[index] || this.presets[index-1]);
+						}
+					},
+					selectPreset(preset) {
+						this.selected_preset = preset;
+						current_preset = preset;
+						dialog.object.classList.add('preset_selected');
+						dialog.setFormValues({
+							name: preset.name,
+							use_size: preset.size !== null,
+							size: preset.size == null ? BarItems.slider_brush_size.get() : preset.size,
+							use_softness: preset.softness !== null,
+							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
+							use_opacity: preset.opacity !== null,
+							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
+							use_color: preset.color !== null,
+							color: preset.color == null ? ColorPanel.get() : preset.color,
+							shape: preset.shape ? preset.shape : 'unset',
+							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
+						});
+					},
+					save() {
+						StateMemory.save('brush_presets');
+					},
+					getBrushStyle(preset) {
+						return {
+							color: preset.color,
+							opacity: preset.opacity == null ? 1 : (preset.opacity/255),
+							filter: preset.softness ? `blur(${preset.softness/24}px)` : undefined
+						}
+					}
+				},
+				template: `
+					<ul id="brush_preset_bar">
+						<li v-for="preset in presets" :class="{selected: preset == selected_preset}" @click="selectPreset(preset)">
+							<i class="icon material-icons" v-if="preset.shape == 'circle'" :style="getBrushStyle(preset)"">circle</i>
+							<i class="fa_big icon fas fa-square" v-else :style="getBrushStyle(preset)""></i>
+						</li>
+						<li class="add_brush_preset" @click="addPreset()">
+							<i class="material-icons">add</i>
+						</li>
+					</ul>
+				`
+			},
+			form: {
+				name: {label: 'generic.name', type: 'text'},
+				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', description: 'action.brush_shape.desc', type: 'select', options: {
+					unset: 'generic.unset',
+					square: 'action.brush_shape.square',
+					circle: 'action.brush_shape.circle'
+				}},
+				blend_mode: {label: 'action.blend_mode', description: 'action.blend_mode.desc', type: 'select', options: {
+					unset: 'generic.unset',
+					default: 'action.blend_mode.default',
+					set_opacity: 'action.blend_mode.set_opacity',
+					color: 'action.blend_mode.color',
+					behind: 'action.blend_mode.behind',
+					multiply: 'action.blend_mode.multiply',
+					divide: 'action.blend_mode.divide',
+					add: 'action.blend_mode.add',
+					subtract: 'action.blend_mode.subtract',
+					screen: 'action.blend_mode.screen',
+					difference: 'action.blend_mode.difference',
+				}},
+				use_size: {label: 'action.slider_brush_size', description: 'action.slider_brush_size.desc', type: 'checkbox'},
+				size: {label: ' ', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
+				use_opacity: {label: 'action.slider_brush_opacity', description: 'action.slider_brush_opacity.desc', type: 'checkbox'},
+				opacity: {label: ' ', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
+				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
+				softness: {label: ' ', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
+				use_color: {label: 'data.color', type: 'checkbox'},
+				color: {label: ' ', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
+				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
+					dialog.content_vue.removePreset();
+				}}
+			},
+			onFormChange(form) {
+				let preset = this.content_vue.selected_preset;
+				preset.name = form.name;
 
+				if (form.use_size) {
+					preset.size = form.size;
+				} else {
+					preset.size = null;
+				}
+				if (form.use_softness) {
+					preset.softness = form.softness;
+				} else {
+					preset.softness = null;
+				}
+				if (form.use_opacity) {
+					preset.opacity = form.opacity;
+				} else {
+					preset.opacity = null;
+				}
+				if (form.use_color) {
+					preset.color = form.color.toHexString();
+				} else {
+					preset.color = null;
+				}
+				
+				if (form.shape !== 'unset') {
+					preset.shape = form.shape;
+				} else {
+					preset.shape = null;
+				}
+				if (form.blend_mode !== 'unset') {
+					preset.blend_mode = form.blend_mode;
+				} else {
+					preset.blend_mode = null;
+				}
+			},
+			onConfirm() {
+				StateMemory.save('brush_presets');
+				if (current_preset) Painter.loadBrushPreset(current_preset);
+			},
+			onOpen() {
+				Vue.nextTick(() => {
+					if (this.content_vue.presets[0]) {
+						this.content_vue.selectPreset(this.content_vue.presets[0]);
+					}
+				})
+			}
 		}).show();
 	},
 	loadBrushPreset(preset) {
-		if (preset.size) 		BarItems.slider_brush_size.setValue(preset.size);
-		if (preset.softness) 	BarItems.slider_brush_softness.setValue(preset.softness);
-		if (preset.opacity) 	BarItems.slider_brush_opacity.setValue(preset.opacity);
+		if (typeof preset.size == 'number') 	BarItems.slider_brush_size.setValue(preset.size);
+		if (typeof preset.softness == 'number') BarItems.slider_brush_softness.setValue(preset.softness);
+		if (typeof preset.opacity == 'number') 	BarItems.slider_brush_opacity.setValue(preset.opacity);
 		if (preset.color) 		ColorPanel.set(preset.color);
 		if (preset.shape) {
 			BarItems.brush_shape.set(preset.shape);
@@ -1399,14 +1555,18 @@ const Painter = {
 			}
 		}
 	},
-	brush_presets: [
+	default_brush_presets: [
 		{
+			name: 'menu.brush_presets.pixel_brush',
+			default: true,
 			size: 1,
 			softness: 0,
 			shape: 'square',
 			blend_mode: 'default'
 		},
 		{
+			name: 'menu.brush_presets.smooth_brush',
+			default: true,
 			size: 5,
 			softness: 70,
 			shape: 'circle',
@@ -1414,8 +1574,6 @@ const Painter = {
 		}
 	]
 }
-
-StateMemory.init('brush_presets', 'array')
 
 BARS.defineActions(function() {
 
@@ -1477,14 +1635,37 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
-		side_menu: new Menu('brush_tool', [
-			{id: 'mode_edit', name: 'Pixel Brush', icon: 'mode_edit', click() {Painter.loadBrushPreset(Painter.brush_presets[0])}},
-			{id: 'brush', name: 'Smooth Brush', icon: 'fa-paint-brush', click() {Painter.loadBrushPreset(Painter.brush_presets[1])}},
-			/*'_',
-			{id: 'brush_settings', name: 'Brush Options...', icon: 'tune', click() {
-				Painter.openBrushOptions();
-			}},*/
-		]),
+		side_menu: new Menu('brush_tool', () => {
+			
+			let list = [
+				{name: 'menu.brush_presets.pixel_brush', icon: 'mode_edit', click() {
+					BarItems.brush_tool.select();
+					Painter.loadBrushPreset(Painter.default_brush_presets[0])
+				}},
+				{name: 'menu.brush_presets.smooth_brush', icon: 'fa-paint-brush', click() {
+					BarItems.brush_tool.select();
+					Painter.loadBrushPreset(Painter.default_brush_presets[1])
+				}},
+			];
+			StateMemory.brush_presets.forEach((preset) => {
+				let menu_entry = {
+					name: preset.name,
+					icon: preset.shape == 'circle' ? 'circle' : 'fas.fa-square',
+					color: preset.color || undefined,
+					click() {
+						Painter.loadBrushPreset(preset);
+					}
+				}
+				list.push(menu_entry);
+			})
+			list.push(
+				'_',
+				{id: 'brush_settings', name: 'menu.brush_presets.dialog', icon: 'tune', click() {
+					Painter.openBrushOptions();
+				}}
+			)
+			return list;
+		}),
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
 		},

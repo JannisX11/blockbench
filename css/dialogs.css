@@ -1430,6 +1430,42 @@
 		color: inherit;
 	}
 
+/* Custom Brush Options */
+	dialog#brush_options:not(.preset_selected) div.form_bar,
+	dialog#brush_options:not(.preset_selected) hr {
+		display: none !important;
+	}
+	ul#brush_preset_bar {
+		display: flex;
+		overflow-y: hidden;
+		overflow-x: auto;
+		margin-bottom: 26px;
+		background-color: var(--color-back);
+	}
+	ul#brush_preset_bar > li {
+		flex-grow: 0;
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+		padding: 8px 4px;
+		text-align: center;
+		cursor: pointer;
+	}
+	ul#brush_preset_bar > li * {
+		pointer-events: none;
+	}
+	ul#brush_preset_bar > li:hover {
+		color: var(--color-light);
+	}
+	ul#brush_preset_bar > li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	ul#brush_preset_bar > li:last-child {
+		position: sticky;
+		right: 0;
+		background: var(--color-back);
+	}
+
 /* Texture Edit */
 	div.texture_adjust_previews {
 		overflow: auto;
