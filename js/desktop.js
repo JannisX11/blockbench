@@ -35,7 +35,7 @@ function initializeDesktopApp() {
 	//Setup
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
-		shell.openExternal(event.target.href);
+		shell.openExternal(event.currentTarget.href);
 		return true;
 	});
 

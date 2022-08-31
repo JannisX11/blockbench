@@ -15,7 +15,7 @@ function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
-		window.open(event.target.href, '_blank');
+		window.open(event.currentTarget.href, '_blank');
 	});
 	if (location.host == 'blockbench-dev.netlify.app') {
 		let button = $(`<a href="https://www.netlify.com/" style="padding: 3px 8px; color: white; cursor: pointer; text-decoration: none;" target="_blank" rel="noopener">
