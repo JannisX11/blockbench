@@ -611,7 +611,7 @@ function calculateVisibleBox() {
 				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
-					new Locator({from: coords, name: key, rotation}).addTo(group).init();
+					new Locator({position: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 		}
@@ -832,7 +832,7 @@ function calculateVisibleBox() {
 				} else if (obj instanceof Locator || obj instanceof NullObject) {
 					let key = obj.name;
 					if (obj instanceof NullObject) key = '_null_' + key;
-					let offset = obj.from.slice();
+					let offset = obj.position.slice();
 					offset[0] *= -1;
 
 					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {

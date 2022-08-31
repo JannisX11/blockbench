@@ -228,6 +228,12 @@ new ValidatorCheck('catmullrom_keyframes', {
 										buttons: getButtons(kf)
 									})
 
+								} else if (!keyframes[i+1] && animation.loop === 'hold' && kf.data_points.find(dp => parseFloat(dp.x) || parseFloat(dp.y) || parseFloat(dp.z))) {
+									this.warn({
+										message: `${animator.channels[channel].name} keyframe on "${animator.name}" in "${animation.name}" is the last keyframe, and is smooth. The last keyframe per channel on "hold on last frame" animations should generally be set to linear, since splines cannot hold their value past the last keyframe.`,
+										buttons: getButtons(kf)
+									})
+
 								}
 							} else if (keyframes[i+1] && keyframes[i+1].interpolation == 'catmullrom' && kf.data_points.find(dp => isNaN(dp.x) || isNaN(dp.y) || isNaN(dp.z))) {
 								this.fail({

@@ -12,10 +12,10 @@ class Locator extends OutlinerElement {
 		}
 	}
 	get origin() {
-		return this.from;
+		return this.position;
 	}
 	extend(object) {
-		if (object.from) Locator.properties.position.V3_set(object.from);
+		if (object.from) this.position.V3_set(object.from);
 		for (var key in Locator.properties) {
 			Locator.properties[key].merge(this, object)
 		}
