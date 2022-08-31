@@ -1374,9 +1374,48 @@ const Painter = {
 				this.bitmap.data[idx + 3] = color.a*opacity
 			}
 		})
-	}
+	},
+	openBrushOptions() {
+		new Dialog({
+			id: 'brush_options',
+
+		}).show();
+	},
+	loadBrushPreset(preset) {
+		if (preset.size) 		BarItems.slider_brush_size.setValue(preset.size);
+		if (preset.softness) 	BarItems.slider_brush_softness.setValue(preset.softness);
+		if (preset.opacity) 	BarItems.slider_brush_opacity.setValue(preset.opacity);
+		if (preset.color) 		ColorPanel.set(preset.color);
+		if (preset.shape) {
+			BarItems.brush_shape.set(preset.shape);
+			if (BarItems.brush_shape.onChange) {
+				BarItems.brush_shape.onChange(BarItems.brush_shape);
+			}
+		}
+		if (preset.blend_mode) {
+			BarItems.blend_mode.set(preset.blend_mode);
+			if (BarItems.blend_mode.onChange) {
+				BarItems.blend_mode.onChange(BarItems.blend_modeis);
+			}
+		}
+	},
+	brush_presets: [
+		{
+			size: 1,
+			softness: 0,
+			shape: 'square',
+			blend_mode: 'default'
+		},
+		{
+			size: 5,
+			softness: 70,
+			shape: 'circle',
+			blend_mode: 'default'
+		}
+	]
 }
 
+StateMemory.init('brush_presets', 'array')
 
 BARS.defineActions(function() {
 
@@ -1438,6 +1477,14 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
+		side_menu: new Menu('brush_tool', [
+			{id: 'mode_edit', name: 'Pixel Brush', icon: 'mode_edit', click() {Painter.loadBrushPreset(Painter.brush_presets[0])}},
+			{id: 'brush', name: 'Smooth Brush', icon: 'fa-paint-brush', click() {Painter.loadBrushPreset(Painter.brush_presets[1])}},
+			/*'_',
+			{id: 'brush_settings', name: 'Brush Options...', icon: 'tune', click() {
+				Painter.openBrushOptions();
+			}},*/
+		]),
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
 		},
