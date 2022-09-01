@@ -303,7 +303,7 @@ const Painter = {
 			Blockbench.setStatusBarText();
 		}
 		delete Painter.current.alpha_matrix;
-		delete Painter.current.rect;
+		delete Painter.editing_area;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -358,7 +358,6 @@ const Painter = {
 		} else {
 			rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
 		}
-		Painter.current.rect = rect;
 		return rect;
 	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
@@ -387,7 +386,7 @@ const Painter = {
 		ctx.save()
 
 		ctx.beginPath();
-		let rect = Painter.current.rect || Painter.setupRectFromFace(uvTag, texture);
+		let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
 		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 		ctx.rect(rect[0], rect[1], w, h)
 
@@ -703,7 +702,7 @@ const Painter = {
 		if (uvTag && Painter.current.element) {
 			let mirror_vectors = [[
 				Painter.mirror_painting_options.axis.x?1:0,
-				Painter.mirror_painting_options.axis.y?1:0,
+				0, //Painter.mirror_painting_options.axis.y?1:0,
 				Painter.mirror_painting_options.axis.z?1:0
 			]];
 			if (mirror_vectors[0].filter(v => v).length == 3) {
@@ -1130,18 +1129,18 @@ const Painter = {
 		let off_axes = [0, 1, 2].filter(i => !symmetry_axes[i]);
 		if (element instanceof Cube) {
 			if (
-				!symmetry_axes.find(axis => !Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) &&
-				!off_axes.find(axis => element.rotation[axis])
+				symmetry_axes.find((axis) => Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) == undefined &&
+				off_axes.find(axis => element.rotation[axis]) == undefined
 			) {
 				return element;
 			} else {
 				for (var element2 of Cube.all) {
 					if (
 						Math.epsilon(element.inflate, element2.inflate, e) &&
-						!off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) &&
-						!off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) &&
-						!symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) &&
-						!symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e))
+						off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined
 					) {
 						return element2;
 					}
