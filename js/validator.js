@@ -160,6 +160,52 @@ new ValidatorCheck('cube_size_limit', {
 	}
 })
 
+new ValidatorCheck('box_uv', {
+	condition: () => Project.box_uv,
+	update_triggers: ['update_selection'],
+	run() {
+		Cube.all.forEach(cube => {
+			let size = cube.size();
+			let invalid_size_axes = size.filter(value => value < 1 && (value+cube.inflate*2) > 0.005);
+			if (invalid_size_axes.length) {
+				let buttons = [
+					{
+						name: 'Select Cube',
+						icon: 'fa-cube',
+						click() {
+							Validator.dialog.hide();
+							cube.select();
+						}
+					}
+				];
+				if (Format.optional_box_uv) {
+					buttons.push({
+						name: 'Switch to Per-face UV',
+						icon: 'toggle_on',
+						click() {
+							Validator.dialog.hide();
+							
+							save = Undo.initEdit({uv_mode: true})
+							Project.box_uv = false;
+							Canvas.updateAllUVs()
+							updateSelection()
+							Undo.finishEdit('Change project UV settings')
+							BARS.updateConditions()
+							if (Project.EditSession) {
+								Project.EditSession.sendAll('change_project_meta', JSON.stringify({box_uv: false}));
+							}
+						}
+					})
+				}
+				this.warn({
+					message: `The cube "${cube.name}" has ${invalid_size_axes*2} faces that are smaller than one unit along an axis, which may render incorrectly in Box UV. Increase the size of the cube to at least 1 or switch to Per-face UV to fix this.`,
+					buttons
+				})
+			}
+		})
+	}
+})
+
 new ValidatorCheck('texture_names', {
 	condition: {formats: ['java_block']},
 	update_triggers: ['add_texture', 'change_texture_path'],

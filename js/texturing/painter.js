@@ -925,8 +925,8 @@ const Painter = {
 			
 			if (Painter.mirror_painting) {
 				let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
-				if (target) {
-					let start_targets = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+				if (targets) {
+					let start_targets = Painter.getMirrorPaintTargets(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
 					let old_face = Painter.current.face;
 					targets.forEach((target, i) => {
@@ -1008,8 +1008,8 @@ const Painter = {
 
 			if (Painter.mirror_painting) {
 				let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
-				if (target) {
-					let start_targets = Painter.getMirrorPaintTarget(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
+				if (targets) {
+					let start_targets = Painter.getMirrorPaintTargets(texture, Painter.startPixel[0], Painter.startPixel[1], uvTag);
 					let old_element = Painter.current.element;
 					let old_face = Painter.current.face;
 					targets.forEach((target, i) => {
