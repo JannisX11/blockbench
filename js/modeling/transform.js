@@ -247,6 +247,7 @@ const Vertexsnap = {
 			vectors.push([0, 0, 0]);
 			
 			let points = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial().copy(Canvas.meshVertexMaterial));
+			points.element_uuid = element.uuid;
 			points.vertices = vectors;
 			let vector_positions = [];
 			vectors.forEach(vector => vector_positions.push(...vector));

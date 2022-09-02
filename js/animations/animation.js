@@ -1217,6 +1217,7 @@ const Animator = {
 									ba.addKeyframe({
 										time: 0,
 										channel,
+										uniform: !(b[channel] instanceof Array),
 										data_points: getKeyframeDataPoints(b[channel]),
 									})
 								} else if (typeof b[channel] === 'object' && b[channel].post) {
@@ -1224,6 +1225,7 @@ const Animator = {
 										time: 0,
 										channel,
 										interpolation: b[channel].lerp_mode,
+										uniform: !(b[channel].post instanceof Array),
 										data_points: getKeyframeDataPoints(b[channel]),
 									});
 								} else if (typeof b[channel] === 'object') {
@@ -1232,6 +1234,7 @@ const Animator = {
 											time: parseFloat(timestamp),
 											channel,
 											interpolation: b[channel][timestamp].lerp_mode,
+											uniform: !(b[channel][timestamp] instanceof Array),
 											data_points: getKeyframeDataPoints(b[channel][timestamp]),
 										});
 									}

@@ -21,6 +21,7 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, texture.width, texture.height);
 					ctx.filter = 'invert(1)';
 					ctx.drawImage(canvas, 0, 0);
 
@@ -56,6 +57,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									ctx.clearRect(0, 0, texture.width, texture.height);
 									ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									ctx.drawImage(original_imgs[i], 0, 0);
 
@@ -130,6 +132,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									ctx.clearRect(0, 0, texture.width, texture.height);
 									ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									ctx.drawImage(original_imgs[i], 0, 0);
 
