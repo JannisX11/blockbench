@@ -28,7 +28,6 @@ const UVEditor = {
 	size: 320,
 	zoom: 1,
 	grid: 1,
-	max_zoom: 16,
 	auto_grid: true,
 	panel: null,
 	sliders: {},
@@ -397,7 +396,8 @@ const UVEditor = {
 	},
 	//Set
 	setZoom(zoom) {
-		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, UVEditor.max_zoom)
+		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
+		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64))
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
@@ -1740,7 +1740,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		expand_button: true,
-		condition: {modes: ['edit', 'paint']},
+		condition: {modes: ['edit', 'paint'], method: () => Format.id != 'image'},
 		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
@@ -1752,14 +1752,14 @@ Interface.definePanels(function() {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.hidden = !this.isVisible();
+			UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
 			Vue.nextTick(() => {
 				UVEditor.vue.updateSize();
 			})
 		},
 		onFold: function() {
 			Vue.nextTick(() => {
-				UVEditor.vue.hidden = !this.isVisible();
+				UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
 			})
 		},
 		component: {
@@ -1843,10 +1843,16 @@ Interface.definePanels(function() {
 				updateSize() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
-					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+					let size = Format.id == 'image'
+							? Math.floor(Math.clamp(Interface.center_screen.clientWidth - 10, 64, 1e5))
+							: Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
 					this.width = size;
-					if (Panels.uv.slot.includes('_bar')) {
+					if (Format.id == 'image') {
+						this.height = Interface.center_screen.clientHeight - 38;
+
+					} else if (Panels.uv.slot.includes('_bar')) {
 						this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+
 					} else {
 						this.height = Math.clamp(
 							UVEditor.panel.height

@@ -11,5 +11,14 @@ new ModelFormat('image', {
 			TextureGenerator.addBitmapDialog();
 			return true;
 		}
+	},
+	onActivation() {
+		Interface.preview.style.display = 'none';
+		UVEditor.vue.hidden = false;
+		Interface.center_screen.append(document.getElementById('UVEditor'))
+	},
+	onDeactivation() {
+		Interface.preview.style.display = null;
+		Panels.uv.node.append(document.getElementById('UVEditor'))
 	}
 })

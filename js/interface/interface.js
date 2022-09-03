@@ -83,12 +83,6 @@ const Interface = {
 				float_size: [500, 600],
 				height: window.innerHeight/2-50
 			},
-			paint_2d: {
-				slot: 'top',
-				float_position: [50, 0],
-				float_size: [800, 600],
-				height: 3000
-			},
 			color_2d: {
 				slot: 'left_bar',
 				float_position: [50, 0],
@@ -518,6 +512,9 @@ function resizeWindow(event) {
 			prev.resize()
 		}
 	})
+	if (Format.id == 'image') {
+		UVEditor.updateSize();
+	}
 	var dialog = $('dialog#'+open_dialog)
 	if (dialog.length) {
 		if (dialog.outerWidth() + dialog.offset().left > window.innerWidth) {

@@ -511,6 +511,7 @@ class Texture {
 		return this;
 	}
 	updateMaterial() {
+		if (Format.id == 'image') return this;
 		let mat = this.getMaterial();
 		mat.name = this.name;
 		mat.map.image = this.img;
@@ -1327,7 +1328,7 @@ class Texture {
 					Project.texture_height = texture.naturalHeight;
 
 					let copy = texture.getUndoCopy();
-					let new_texture = new Texture(copy).load().add(true);
+					let new_texture = new Texture(copy).load().add(false);
 
 					UVEditor.vue.updateTexture();
 					Project.name = new_texture.name;

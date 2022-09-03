@@ -150,16 +150,13 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
-			let old_uv_slot = Panels.uv.slot;
 			if (Format.id == 'image') {
-				Panels.uv.position_data = Interface.data.panels.paint_2d;
 				let old_color_slot = Panels.color.slot;
 				Panels.color.position_data = Interface.data.panels.color_2d;
 				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
-			} else {
-				Panels.uv.position_data = Interface.data.panels.paint;
 			}
-			if (Panels.uv.slot !== old_uv_slot) Panels.uv.moveTo(Panels.uv.slot);
+			Panels.uv.position_data = Interface.data.panels.paint;
+			if (Panels.uv.slot !== Interface.data.panels.uv.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
@@ -169,9 +166,8 @@ BARS.defineActions(function() {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
-			let old_uv_slot = Panels.uv.slot;
 			Panels.uv.position_data = Interface.data.panels.uv;
-			if (Panels.uv.slot !== old_uv_slot) Panels.uv.moveTo(Panels.uv.slot);
+			if (Panels.uv.slot !== Interface.data.panels.paint.slot) Panels.uv.moveTo(Panels.uv.slot);
 			if (Panels.color.position_data == Interface.data.panels.color_2d) {
 				let old_color_slot = Panels.color.slot;
 				Panels.color.position_data = Interface.data.panels.color;

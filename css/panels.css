@@ -1303,33 +1303,16 @@
 		--color-background: var(--color-back);
 		--color-frame: var(--color-ui);
 	}
-	#center .UVEditor {
+	#center > .UVEditor {
 		--color-background: var(--color-dark);
 		--color-frame: var(--color-back);
+		background-color: var(--color-background);
+	}
+	#center > .UVEditor > #uv_title_bar {
+		display: none;
 	}
 	.UVEditor > .toolbar {
 		margin-top: 3px;
-	}
-	.uv_headline .uv_title {
-		float: left;
-		padding-top: 3px;
-		padding-left: 10px;
-	}
-	.uv_headline {
-		height: 30px;
-		background-color: var(--color-back);
-		margin-left: -8px;
-		margin-right: -8px;
-	}
-	#UVEditor_all .UVEditor.selected {
-		border-color: var(--color-accent);
-		z-index: 21;
-	}
-	.UVEditor.selected .uv_headline {
-		background-color: var(--color-button);
-	}
-	.uv_headline .tool {
-		float: right;
 	}
 	#project_resolution_status {
 		margin: 3px;
