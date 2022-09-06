@@ -48,8 +48,8 @@ class Locator extends OutlinerElement {
 		return this;
 	}
 	flip(axis, center) {
-		var offset = this.from[axis] - center
-		this.from[axis] = center - offset;
+		var offset = this.position[axis] - center
+		this.position[axis] = center - offset;
 		this.rotation.forEach((n, i) => {
 			if (i != axis) this.rotation[i] = -n;
 		})
@@ -71,7 +71,7 @@ class Locator extends OutlinerElement {
 			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
 			pos.sub(offset2);
 		}
-		var offset = Reusable.vec3.fromArray(this.from).applyQuaternion(q);
+		var offset = Reusable.vec3.fromArray(this.position).applyQuaternion(q);
 		pos.add(offset);
 
 		return pos;

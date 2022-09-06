@@ -660,6 +660,7 @@ function centerElements(axis, update) {
 
 	Outliner.selected.forEach(function(obj) {
 		if (obj.movable) obj.origin[axis] += difference;
+		if (obj.from) obj.from[axis] = obj.from[axis] + difference;
 		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
 		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 			Format.cube_size_limiter.move(obj);
@@ -1095,10 +1096,11 @@ BARS.defineActions(function() {
 				obj.preview_controller.updateGeometry(obj);
 
 			} else if (obj.movable) {
-				var val = modify(obj.from[axis]);
+				let main_pos = obj.from || obj.position;
+				var val = modify(main_pos[axis]);
 
-				var before = obj.from[axis];
-				obj.from[axis] = val;
+				var before = main_pos[axis];
+				main_pos[axis] = val;
 				if (obj.to) {
 					obj.to[axis] += (val - before);
 				}

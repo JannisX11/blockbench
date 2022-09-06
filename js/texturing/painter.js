@@ -1836,6 +1836,7 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			offset_even_radius: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			changePixel(px, py, pxcolor, local_opacity, {opacity, ctx, x, y, size, softness, texture, event}) {
 				if (Painter.lock_alpha) return pxcolor;
