@@ -11,6 +11,7 @@ const Clipbench = {
 		texture: 'texture',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
+		image: 'image',
 	},
 	type_icons: {
 		face: 'aspect_ratio',
@@ -53,6 +54,9 @@ const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (!Project) {
+			return Clipbench.types.image;
 		}
 	},
 	async getPasteType() {
@@ -110,6 +114,9 @@ const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (!Project) {
+			return Clipbench.types.image;
 		}
 	},
 	copy(event, cut) {
@@ -188,6 +195,9 @@ const Clipbench = {
 				break;
 			case 'outliner':
 				Clipbench.pasteOutliner(event);
+				break;
+			case 'image':
+				Clipbench.pasteImage(event);
 				break;
 		}
 	},
@@ -364,6 +374,35 @@ const Clipbench = {
 		}
 
 		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
+	},
+	pasteImage() {
+		function loadFromDataUrl(dataUrl) {
+			if (!dataUrl || dataUrl.length < 32) return;
+			
+			newProject(Formats.image);
+			var texture = new Texture({name: 'image'}).fromDataURL(dataUrl).add(false);
+			UVEditor.vue.updateTexture()
+			Project.name = 'image';
+			texture.load_callback = () => {
+				texture.select();
+				Project.texture_width = texture.width;
+				Project.texture_height = texture.height;
+			}
+		}
+	
+		if (isApp) {
+			var image = clipboard.readImage().toDataURL();
+			loadFromDataUrl(image);
+		} else {
+			navigator.clipboard.read().then(content => {
+				if (content && content[0] && content[0].types.includes('image/png')) {
+					content[0].getType('image/png').then(blob => {
+						let url = URL.createObjectURL(blob);
+						loadFromDataUrl(url);
+					})
+				}
+			}).catch(() => {})
+		}
 	}
 }
 
