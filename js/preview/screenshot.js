@@ -264,7 +264,7 @@ const Screencam = {
 	
 			}, interval)
 			gif.on('finished', blob => {
-
+				delete Screencam.processing_gif;
 				var reader = new FileReader();
 				reader.onload = () => {
 					if (!options.silent) {
@@ -290,6 +290,7 @@ const Screencam = {
 				gif.render();
 				if (!options.silent) {
 					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+					Screencam.processing_gif = gif;
 				}
 			}
 			if (Animator.open && Timeline.playing) {
@@ -470,13 +471,24 @@ BARS.defineActions(function() {
 		icon: 'photo_camera',
 		category: 'view',
 		keybind: new Keybind({key: 'p', ctrl: true}),
-		click: function () {Preview.selected.screenshot()}
+		click() {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
 		icon: 'local_movies',
 		category: 'view',
-		click: function () {
+		click() {
 			Screencam.gif_options_dialog.show();
+		}
+	})
+	new Action('cancel_gif', {
+		icon: 'close',
+		category: 'view',
+		condition: () => Screencam.processing_gif,
+		click() {
+			Screencam.processing_gif.abort();
+			delete Screencam.processing_gif;
+			Blockbench.setProgress();
+			Blockbench.setStatusBarText();
 		}
 	})
 	Screencam.timelapse_dialog = new Dialog({
@@ -501,7 +513,7 @@ BARS.defineActions(function() {
 		icon: 'timelapse',
 		category: 'view',
 		condition: isApp,
-		click: function () {
+		click() {
 			if (!Prop.recording) {
 				Screencam.timelapse_dialog.show();
 			} else {
@@ -513,6 +525,6 @@ BARS.defineActions(function() {
 		icon: 'icon-bb_interface',
 		category: 'view',
 		condition: isApp,
-		click: function () {Screencam.fullScreen()}
+		click() {Screencam.fullScreen()}
 	})
 })

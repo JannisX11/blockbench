@@ -374,6 +374,7 @@ function setupInterface() {
 		'open_backup_folder',
 		'save',
 		'timelapse',
+		'cancel_gif',
 	])
 	
 	if (Blockbench.isMobile) {

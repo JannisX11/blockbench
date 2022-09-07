@@ -179,6 +179,7 @@ onVueSetup(function() {
 						this.thumbnails[project.path] = path + '?' + Math.round(Math.random()*255);
 					}
 				})
+				this.$forceUpdate();
 			},
 			setListType(type) {
 				this.list_type = type;

@@ -330,6 +330,9 @@ new ValidatorCheck('molang_syntax', {
 			if (clear_string.match(/[\w.]\s+[\w.]/)) {
 				issues.push('Two expressions with no operator in between');
 			}
+			if (clear_string.match(/(^|[^a-z0-9_])[\d.]+[a-z_]+/i)) {
+				issues.push('Invalid token ' + clear_string.match(/(^|[^a-z0-9_])[\d.]+[a-z_]+/i)[0].replace(/[^a-z0-9._]/g, ''));
+			}
 			if (clear_string.match(/[^\w\s+\-*/().,;[\]!?=<>&|]/)) {
 				issues.push('Invalid character: ' + clear_string.match(/[^\w+\-*/().,;[\]!?=<>&|]+/g).join(', '));
 			}

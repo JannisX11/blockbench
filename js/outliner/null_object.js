@@ -179,6 +179,7 @@ BARS.defineActions(function() {
 		icon: 'fa-paperclip',
 		category: 'edit',
 		condition: () => NullObject.selected.length,
+		searchable: true,
 		children() {
 			let nodes = [];
 			iterate(NullObject.selected[0].getParentArray(), 0);
@@ -197,7 +198,8 @@ BARS.defineActions(function() {
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
-					icon: node instanceof Locator ? 'fa-anchor' : 'fas.fa-folder',
+					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
 					click() {
 						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {
@@ -209,7 +211,7 @@ BARS.defineActions(function() {
 			})
 		},
 		click(event) {
-			new Menu(this.children()).show(event.target);
+			new Menu('set_ik_target', this.children(this), {searchable: true}).show(event.target, this);
 		}
 	})
 })

@@ -1286,6 +1286,7 @@
 	"action.screenshot_model.desc": "Take a cropped screenshot of the model from the current angle",
 	"action.record_model_gif": "Record GIF...",
 	"action.record_model_gif.desc": "Record an animated GIF of the model from the current angle",
+	"action.cancel_gif": "Cancel GIF",
 	"action.timelapse": "Timelapse...",
 	"action.timelapse.desc": "Record a timelapse of your modeling process",
 	"action.screenshot_app": "Screenshot App",
