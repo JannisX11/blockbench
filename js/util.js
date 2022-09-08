@@ -70,7 +70,6 @@ class oneLiner {
 		}
 	}
 }
-var templog = console.log
 var asyncLoop = function(o){
 	var i=-1;
 	var async_loop = function(){

@@ -194,7 +194,7 @@ var codec = new Codec('project', {
 			model.history_index = Undo.index;
 		}
 
-		Blockbench.dispatchEvent('save_project', {model});
+		Blockbench.dispatchEvent('save_project', {model, options});
 		this.dispatchEvent('compile', {model, options})
 
 		if (options.raw) {

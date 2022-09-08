@@ -716,7 +716,7 @@ class Cube extends OutlinerElement {
 			}
 		}
 		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-			Format.cube_size_limiter.clamp(this);
+			Format.cube_size_limiter.clamp(this, {}, axis, bidirectional ? null : !!negative);
 		}
 		this.mapAutoUV();
 		if (Project.box_uv) {
