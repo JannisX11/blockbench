@@ -421,8 +421,9 @@ const Painter = {
 
 			// Stylus
 			var touch = event.touches[0];
-			if (touch.force == 1) touch.force == Painter.current.force || 0;
+			if (touch.force > 0.992) touch.force == Painter.current.force || 0;
 			Painter.current.force = touch.force;
+			window.ErrorLog.push({message: Math.roundTo(touch.force, 7), file: '', line: ''})
 
 			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
 				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
