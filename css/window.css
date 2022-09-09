@@ -115,6 +115,10 @@
 	.quad_canvas_wrapper:not(.qcw_y) {
 		bottom: 0;
 	}
+	#preview.image_mode > .single_canvas_wrapper,
+	#preview.image_mode > .quad_canvas_wrapper {
+		display: none !important;
+	}
 
 	.resizer {
 		position: absolute !important;

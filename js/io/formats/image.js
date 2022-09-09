@@ -13,12 +13,12 @@ new ModelFormat('image', {
 		}
 	},
 	onActivation() {
-		Interface.preview.style.display = 'none';
+		Interface.preview.classList.add('image_mode');
 		UVEditor.vue.hidden = false;
-		Interface.center_screen.append(document.getElementById('UVEditor'))
+		Interface.preview.append(document.getElementById('UVEditor'))
 	},
 	onDeactivation() {
-		Interface.preview.style.display = null;
+		Interface.preview.classList.remove('image_mode');
 		Panels.uv.node.append(document.getElementById('UVEditor'))
 	}
 })

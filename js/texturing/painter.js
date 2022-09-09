@@ -1148,7 +1148,10 @@ const Painter = {
 			}
 			return false;
 		} else if (element instanceof Mesh) {
-			if (element instanceof Mesh && Math.epsilon(element.origin[axis], center, e) && !element.rotation[off_axis_1] && !element.rotation[off_axis_2]) {
+			if (
+				symmetry_axes.find((axis) => Math.epsilon(element.origin[axis], center, e)) == undefined &&
+				off_axes.find(axis => element.rotation[axis]) == undefined
+			) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {

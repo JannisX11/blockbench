@@ -629,11 +629,10 @@ BARS.defineActions(function() {
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
-				startpath = recent_projects[0].path;
+				let first_recent_project = recent_projects.find(p => !p.favorite) || recent_projects[0];
+				startpath = first_recent_project.path;
 				if (typeof startpath == 'string') {
-					startpath = startpath.split(osfs);
-					startpath.pop();
-					startpath = startpath.join(osfs);
+					startpath = startpath.replace(/[\\\/][^\\\/]+$/, '');
 				}
 			}
 			Blockbench.import({
