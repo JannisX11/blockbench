@@ -198,7 +198,7 @@ new ValidatorCheck('box_uv', {
 					})
 				}
 				this.warn({
-					message: `The cube "${cube.name}" has ${invalid_size_axes*2} faces that are smaller than one unit along an axis, which may render incorrectly in Box UV. Increase the size of the cube to at least 1 or switch to Per-face UV to fix this.`,
+					message: `The cube "${cube.name}" has ${invalid_size_axes.length*2} faces that are smaller than one unit along an axis, which may render incorrectly in Box UV. Increase the size of the cube to at least 1 or switch to Per-face UV and resize the UV to fix this.`,
 					buttons
 				})
 			}

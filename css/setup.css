@@ -11,6 +11,7 @@
 	a:-webkit-any-link {
 	    color: inherit;
 	    text-decoration: underline;
+		cursor: pointer;
 	}
 	a:-webkit-any-link:hover {
 	    color: var(--color-light);
