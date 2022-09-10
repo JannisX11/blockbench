@@ -61,6 +61,9 @@
 		width: 20px;
 		height: 20px;
 	}
+	body.is_mobile .mobile_scrollbar::-webkit-scrollbar-thumb {
+		border-radius: 10px;
+	}
 	/*Assistant Font*/
 	@font-face {
 		font-family: 'Assistant';
@@ -669,10 +672,14 @@
 	label.toggle_panel {
 		height: 30px;
 		width: 56px;
-		padding: 2px;
+		padding: 4px;
 		display: inline-block;
 		background-color: var(--color-back);
 		text-align: center;
+		cursor: pointer;
+	}
+	label.toggle_panel:hover {
+		color: var(--color-light);
 	}
 	input:checked + label.toggle_panel {
 		background-color: var(--color-selected);

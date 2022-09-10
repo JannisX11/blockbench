@@ -123,6 +123,7 @@
 	.resizer {
 		position: absolute !important;
 		z-index: 12;
+		opacity: 0;
 	}
 	.resizer.vertical { /*	|	*/
 		cursor: ew-resize;
@@ -137,11 +138,24 @@
 	.resizer.disabled {
 		pointer-events: none;
 	}
-	/*
 	.resizer:hover, .resizer.ui-draggable-dragging {
 	    background-color: var(--color-accent);
-	    opacity: 0.2;
-	}*/
+		opacity: 0.3;
+	}
+	.resizer:hover:not(.ui-draggable-dragging) {
+		animation: resize_line_fade_in 1s;
+	}
+	@keyframes resize_line_fade_in {
+		0% {
+			opacity: 0;
+		}
+		80% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 0.3;
+		}
+	}
 
 /* Toast Notification */
 	#toast_notification_list {
