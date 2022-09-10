@@ -530,7 +530,6 @@ class Panel {
 					if (this.folded) this.width = 72;
 				} else {
 					let opposite_panel = this.slot == 'top' ? Interface.getBottomPanel() : Interface.getTopPanel();
-					if (Format.id == 'image') this.position_data.height = 3000; 
 					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight - (opposite_panel ? opposite_panel.height : 0));
 					if (this.folded) this.height = this.handle.clientHeight;
 					this.width = Interface.work_screen.clientWidth - Interface.left_bar_width - Interface.right_bar_width;

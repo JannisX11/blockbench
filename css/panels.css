@@ -1303,12 +1303,12 @@
 		--color-background: var(--color-back);
 		--color-frame: var(--color-ui);
 	}
-	#center > .UVEditor {
+	#preview > .UVEditor {
 		--color-background: var(--color-dark);
 		--color-frame: var(--color-back);
 		background-color: var(--color-background);
 	}
-	#center > .UVEditor > #uv_title_bar {
+	#preview > .UVEditor > #uv_title_bar {
 		display: none;
 	}
 	.UVEditor > .toolbar {

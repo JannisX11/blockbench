@@ -417,22 +417,18 @@ const Painter = {
 				}
 			}
 		}
-		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force) {
-
+		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force !== undefined) {
 			// Stylus
 			var touch = event.touches[0];
-			if (touch.force > 0.992) touch.force == Painter.current.force || 0;
-			Painter.current.force = touch.force;
-			window.ErrorLog.push({message: Math.roundTo(touch.force, 7), file: '', line: ''})
 
-			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force) {
+			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force !== undefined) {
 				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
 
 			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
 				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
-			if (settings.brush_size_modifier.value == 'pressure' && touch.force) {
+			if (settings.brush_size_modifier.value == 'pressure' && touch.force !== undefined) {
 				size = Math.clamp(touch.force * size * 2, 1, 20);
 
 			} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
@@ -1436,6 +1432,17 @@ const Painter = {
 							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
 						});
 					},
+					openContextMenu(preset, event) {
+						new Menu([
+							{
+								name: 'generic.delete',
+								icon: 'delete',
+								click: () => {
+									this.removePreset(preset);
+								}
+							}
+						]).open(event);
+					},
 					save() {
 						StateMemory.save('brush_presets');
 					},
@@ -1449,7 +1456,7 @@ const Painter = {
 				},
 				template: `
 					<ul id="brush_preset_bar">
-						<li v-for="preset in presets" :class="{selected: preset == selected_preset}" @click="selectPreset(preset)">
+						<li v-for="preset in presets" :class="{selected: preset == selected_preset}" @click="selectPreset(preset)" @contextmenu="openContextMenu(preset, $event)">
 							<i class="icon material-icons" v-if="preset.shape == 'circle'" :style="getBrushStyle(preset)"">circle</i>
 							<i class="fa_big icon fas fa-square" v-else :style="getBrushStyle(preset)""></i>
 						</li>
