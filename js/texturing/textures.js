@@ -405,7 +405,7 @@ class Texture {
 		this.path = path
 		this.name = pathToName(path, true)
 		this.mode = 'link'
-		this.saved = true
+		this.saved = true;
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
@@ -428,6 +428,12 @@ class Texture {
 				})
 			}
 		}
+
+		let duplicate = Texture.all.find(tex => (tex !== this && tex.path === this.path && tex.saved));
+		if (duplicate && isApp) {
+			duplicate.remove(false);
+		}
+
 		this.startWatcher()
 		Painter.current = {}
 		
@@ -1087,7 +1093,11 @@ class Texture {
 				scope.fromPath(scope.path)
 			} else {
 				var find_path;
-				if (Format.bone_rig && Project.geometry_name && Project.BedrockEntityManager) {
+				if (Texture.all.find(t => t => t != this && t.saved)) {
+					let ref_tex = Texture.all.find(t => t => t != this && t.saved);
+					find_path = PathModule.join(PathModule.dirname(ref_tex.path), this.name);
+				}
+				if (!find_path && Format.bone_rig && Project.geometry_name && Project.BedrockEntityManager) {
 					find_path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, true)
 				}
 				if (!find_path && Project.export_path) {
