@@ -143,13 +143,13 @@
 		opacity: 0.3;
 	}
 	.resizer:hover:not(.ui-draggable-dragging) {
-		animation: resize_line_fade_in 1s;
+		animation: resize_line_fade_in 500ms;
 	}
 	@keyframes resize_line_fade_in {
 		0% {
 			opacity: 0;
 		}
-		80% {
+		75% {
 			opacity: 0;
 		}
 		100% {

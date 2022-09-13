@@ -45,9 +45,7 @@ class ModelFormat {
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
-		if (Blockbench.setup_successful && StartScreen.vue) {
-			StartScreen.vue.$forceUpdate();
-		}
+		Blockbench.dispatchEvent('construct_format', {format: this});
 	}
 	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -85,6 +83,7 @@ class ModelFormat {
 		updateInterfacePanels()
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
+		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
 		return this;
 	}
 	new() {
@@ -231,7 +230,7 @@ class ModelFormat {
 	delete() {
 		delete Formats[this.id];
 		if (this.codec && this.codec.format == this) delete this.codec.format;
-		StartScreen.vue.$forceUpdate();
+		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
 }
 

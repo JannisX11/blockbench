@@ -408,6 +408,10 @@ onVueSetup(function() {
 			</div>
 		`
 	})
+
+	Blockbench.on('construct_format delete_format', () => {
+		StartScreen.vue.$forceUpdate();
+	})
 });
 
 

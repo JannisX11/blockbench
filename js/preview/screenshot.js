@@ -170,7 +170,7 @@ const Screencam = {
 						extensions: [is_gif ? 'gif' : 'png'],
 						type: tl('data.image'),
 						savetype: is_gif ? 'binary' : 'image',
-						name: Project.name.replace(/\.geo$/, ''),
+						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
 						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
 				}
@@ -470,12 +470,14 @@ BARS.defineActions(function() {
 	new Action('screenshot_model', {
 		icon: 'photo_camera',
 		category: 'view',
+		condition: () => !!Project,
 		keybind: new Keybind({key: 'p', ctrl: true}),
 		click() {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
 		icon: 'local_movies',
 		category: 'view',
+		condition: () => !!Project,
 		click() {
 			Screencam.gif_options_dialog.show();
 		}
@@ -512,7 +514,7 @@ BARS.defineActions(function() {
 	new Action('timelapse', {
 		icon: 'timelapse',
 		category: 'view',
-		condition: isApp,
+		condition: isApp && (() => !!Project),
 		click() {
 			if (!Prop.recording) {
 				Screencam.timelapse_dialog.show();
