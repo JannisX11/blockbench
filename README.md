@@ -14,7 +14,7 @@ Website and download: [blockbench.net](https://www.blockbench.net)
 
 ## Contribution
 
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](code_of_conduct.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.MD)
 
 If you are contributing to Blockbench in any way, you must adhere to the [Code of Conduct](https://github.com/JannisX11/blockbench/blob/master/CODE_OF_CONDUCT.MD).
 
