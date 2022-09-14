@@ -743,7 +743,6 @@ class NumSlider extends Widget {
 
 			if (this.slider_vector && text.split(/\s+/g).length == this.slider_vector.length) {
 				let components = text.split(/\s+/g);
-				console.log(text, components);
 
 				components.forEach((number, axis) => {
 					let slider = this.slider_vector[axis];

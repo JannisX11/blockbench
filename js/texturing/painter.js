@@ -1099,7 +1099,6 @@ const Painter = {
 				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
 				break;
 
-				// Todo: Equations for remaining blend modes
 				case 'screen':
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;

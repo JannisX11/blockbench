@@ -1267,7 +1267,7 @@ var block_format = new ModelFormat({
 
 			let center = [-7, 1, -7, 7, 15, 7];
 			Cube.all.forEach(cube => {
-				//if (exclude_cubes.includes(cube)) return;
+				if (exclude_cubes.includes(cube)) return;
 				let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, cube);
 
 				vertices.forEach(array => {
