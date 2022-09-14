@@ -249,6 +249,9 @@
 		display: block;
 		margin: auto;
 	}
+	#start_screen .start_screen_features > li > img {
+		border-radius: 5px;
+	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;
 	}
