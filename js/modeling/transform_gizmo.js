@@ -792,25 +792,27 @@
 
 			this.updateSelection = function() {
 				this.elements.empty()
-				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-					if (Outliner.selected.length) {
-						Outliner.selected.forEach(element => {
-							if (
-								(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-								((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
-								(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
-							) {
-								scope.attach(element);
-							}
-						})
-					} else if (Group.selected && getRotationObject() == Group.selected) {
-						scope.attach(Group.selected)
-					} else {
-						this.update()
-						return this;
+				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
+					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
+						if (Outliner.selected.length) {
+							Outliner.selected.forEach(element => {
+								if (
+									(element.movable && Toolbox.selected.transformerMode == 'translate') ||
+									((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
+									(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
+								) {
+									scope.attach(element);
+								}
+							})
+						} else if (Group.selected && getRotationObject() == Group.selected) {
+							scope.attach(Group.selected)
+						} else {
+							this.update()
+							return this;
+						}
 					}
+					this.center()
 				}
-				this.center()
 				this.update()
 				return this;
 			}
@@ -1120,6 +1122,16 @@
 					_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
 					var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate');
 
+					if (Toolbox.selected.id == 'move_tool') {
+						if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+							Cube.selected.forEach(function(obj) {
+								if (Format.cube_size_limiter.test(obj)) {
+									Format.cube_size_limiter.move(obj);
+								}
+							})
+						}
+					}
+
 					if (rotate_group) {
 						Undo.initEdit({group: Group.selected})
 					} else if (_has_groups) {
@@ -1220,16 +1232,13 @@
 							var difference = point[axis] - previousValue
 
 							var overlapping = false
-							if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
-								selected.forEach(function(obj) {
-									if (obj.movable && obj.resizable) {
-										overlapping = overlapping || (
-											obj.to[axisNumber] + difference + obj.inflate > 32 ||
-											obj.to[axisNumber] + difference + obj.inflate < -16 ||
-											obj.from[axisNumber] + difference - obj.inflate > 32 ||
-											obj.from[axisNumber] + difference - obj.inflate < -16
-										)
-									}
+							if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+								Cube.selected.forEach(function(obj) {
+									let from = obj.from.slice();
+									let to = obj.to.slice();
+									from[axisNumber] += difference;
+									to[axisNumber] += difference;
+									overlapping = overlapping || Format.cube_size_limiter.test(obj, {from, to});
 								})
 							}
 							if (!overlapping) {
@@ -1372,7 +1381,7 @@
 						var round_num = getRotationInterval(event)
 					} else {
 						value = point[axis]
-						if (axis == 'e') value = point.length()/8 * Math.sign(point.y||point.x);
+						if (axis == 'e') value = point.length() * Math.sign(point.y||point.x);
 						var round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						if (Toolbox.selected.id === 'resize_tool') {
 							value *= (scope.direction) ? 0.1 : -0.1;
@@ -1444,14 +1453,19 @@
 							scope.keyframes[0].offset('z', offset_vec.z);
 
 						} else if (Toolbox.selected.id === 'resize_tool' && axis == 'e') {
-				
+
 							scope.keyframes[0].offset('x', difference);
-							scope.keyframes[0].offset('y', difference);
-							scope.keyframes[0].offset('z', difference);
+							if (!scope.keyframes[0].uniform) {
+								scope.keyframes[0].offset('y', difference);
+								scope.keyframes[0].offset('z', difference);
+							}
 
 						} else {
 							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
 								difference *= -1
+							}
+							if (Toolbox.selected.id === 'resize_tool') {
+								scope.keyframes[0].uniform = false;	
 							}
 							scope.keyframes[0].offset(axis, difference);
 						}
@@ -1582,6 +1596,7 @@
 							if (Toolbox.selected.id == 'pivot_tool') {
 								Undo.finishEdit('Move pivot')
 							} else if (Toolbox.selected.id == 'rotate_tool') {
+								afterRotateOnAxis();
 								Undo.finishEdit('Rotate selection')
 							} else {
 								Undo.finishEdit('Move selection')

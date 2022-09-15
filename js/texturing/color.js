@@ -82,7 +82,7 @@ Interface.definePanels(() => {
 				this.vue.$refs.square_picker.style.display = 'none';
 				let max = this.isInSidebar()
 					? 460
-					: Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.265 : 1));
+					: Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.572 : 1));
 				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
@@ -208,7 +208,7 @@ Interface.definePanels(() => {
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
 						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 							<li
 								class="color" v-for="color in palette"
 								:title="color" :key="color"
@@ -928,6 +928,9 @@ BARS.defineActions(function() {
 			ColorPanel.updateFromHsv();
 		}
 	})
+	let slider_vector_color = [BarItems.slider_color_h, BarItems.slider_color_s, BarItems.slider_color_v];
+	slider_vector_color.forEach(slider => slider.slider_vector = slider_vector_color);
+
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',

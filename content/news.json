@@ -5,19 +5,24 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.3 - The Start Screen Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.3.0)!"}
+			{"text": "Welcome to Blockbench 4.4 - The Brush Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.4.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/start_screen.png",
-				"title": "Improved Start Screen",
-				"text": "Formats are now organized into categories, and provide detailed descriptions. Also, recent models can be pinned as favorites!"
+				"image": "https://web.blockbench.net/content/custom_brushes.png",
+				"title": "Custom Brushes",
+				"text": "Create custom brushes, change the blend mode and brush shape, or use the brand new Copy Brush!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/preview_scenes.png",
-				"title": "Preview Scenes",
-				"text": "Preview your model in a different environment. Check out how it looks in a Minecraft biome, or in a studio setting!"
+				"image": "https://web.blockbench.net/content/image_editor.png",
+				"title": "2D Image Editor",
+				"text": "Edit textures or create pixel art in the new built-in 2D image editor!"
+			},
+			{
+				"image": "https://web.blockbench.net/content/validator.png",
+				"title": "Validator",
+				"text": "The new Validator will automatically spot common issues with your model so that you can catch them early!"
 			}
 		]
 	}

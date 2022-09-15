@@ -28,7 +28,6 @@ const UVEditor = {
 	size: 320,
 	zoom: 1,
 	grid: 1,
-	max_zoom: 16,
 	auto_grid: true,
 	panel: null,
 	sliders: {},
@@ -63,12 +62,21 @@ const UVEditor = {
 		}
 
 		if (Toolbox.selected.id === 'copy_paste_tool') {
-			result.x = Math.round(mouse_coords[0]/pixel_size*1);
-			result.y = Math.round(mouse_coords[1]/pixel_size*1);
+			if (settings.nearest_rectangle_select.value) {
+				result.x = Math.round(mouse_coords[0]/pixel_size*1);
+				result.y = Math.round(mouse_coords[1]/pixel_size*1);
+			} else {
+				result.x = Math.floor(mouse_coords[0]/pixel_size*1);
+				result.y = Math.floor(mouse_coords[1]/pixel_size*1);
+			}
 		} else {
-			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
-			result.x = Math.floor(mouse_coords[0]/pixel_size*1 + offset);
-			result.y = Math.floor(mouse_coords[1]/pixel_size*1 + offset);
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+			result.x = mouse_coords[0]/pixel_size*1 + offset;
+			result.y = mouse_coords[1]/pixel_size*1 + offset;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				result.x = Math.floor(result.x);
+				result.y = Math.floor(result.y);
+			}
 		}
 		if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
 		if (!tex.frameCount && tex.ratio != Project.texture_width / Project.texture_height) result.y /= tex.ratio;
@@ -173,10 +181,18 @@ const UVEditor = {
 		let m = UVEditor.inner_width / UVEditor.texture.width;
 
 		if (!Painter.selection.overlay) {
+			let {start_x, start_y} = Painter.selection;
+			if (!settings.nearest_rectangle_select.value) {
+				if (x >= Painter.selection.start_x) x++;
+				if (y >= Painter.selection.start_y) y++;
+				if (x < Painter.selection.start_x) start_x++;
+				if (y < Painter.selection.start_y) start_y++;
+			}
 			if (x === Painter.current.x && y === Painter.current.y) return;
 			Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
 			Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);
-			let calcrect = getRectangle(Painter.selection.start_x, Painter.selection.start_y, x, y)
+			
+			let calcrect = getRectangle(start_x, start_y, x, y)
 			if (!calcrect.x && !calcrect.y) return;
 			UVEditor.vue.copy_overlay.state = 'select';
 			Painter.selection.calcrect = calcrect;
@@ -380,7 +396,8 @@ const UVEditor = {
 	},
 	//Set
 	setZoom(zoom) {
-		zoom = Math.clamp(zoom, 0.5, UVEditor.max_zoom)
+		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
+		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64))
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
@@ -1723,7 +1740,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		expand_button: true,
-		condition: {modes: ['edit', 'paint']},
+		condition: {modes: ['edit', 'paint'], method: () => Format.id != 'image'},
 		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
@@ -1735,14 +1752,14 @@ Interface.definePanels(function() {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.hidden = !this.isVisible();
+			UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
 			Vue.nextTick(() => {
 				UVEditor.vue.updateSize();
 			})
 		},
 		onFold: function() {
 			Vue.nextTick(() => {
-				UVEditor.vue.hidden = !this.isVisible();
+				UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
 			})
 		},
 		component: {
@@ -1758,7 +1775,9 @@ Interface.definePanels(function() {
 				uv_overlay: false,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
+				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
+				brush_type: BarItems.brush_shape.value,
 				selection_rect: {
 					pos_x: 0,
 					pos_y: 0,
@@ -1824,10 +1843,16 @@ Interface.definePanels(function() {
 				updateSize() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
-					let size = Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+					let size = Format.id == 'image'
+							? Math.floor(Math.clamp(Interface.center_screen.clientWidth - 10, 64, 1e5))
+							: Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
 					this.width = size;
-					if (Panels.uv.slot.includes('_bar')) {
+					if (Format.id == 'image') {
+						this.height = Interface.center_screen.clientHeight - 38;
+
+					} else if (Panels.uv.slot.includes('_bar')) {
 						this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+
 					} else {
 						this.height = Math.clamp(
 							UVEditor.panel.height
@@ -1893,6 +1918,8 @@ Interface.definePanels(function() {
 					if (this.texture && this.texture.display_canvas) {
 						Vue.nextTick(() => {
 							let wrapper = this.$refs.texture_canvas_wrapper;
+							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
+							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 							wrapper.append(this.texture.canvas);
 						})
 					}
@@ -1905,9 +1932,13 @@ Interface.definePanels(function() {
 						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
 						this.mouse_coords.y = Math.round(event.offsetY/pixel_size*1);
 					} else {
-						let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0.5 : 0;
-						this.mouse_coords.x = Math.floor(event.offsetX/pixel_size*1 + offset);
-						this.mouse_coords.y = Math.floor(event.offsetY/pixel_size*1 + offset);
+						this.mouse_coords.x = event.offsetX/pixel_size*1;
+						this.mouse_coords.y = event.offsetY/pixel_size*1;
+						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+							let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+							this.mouse_coords.x = Math.floor(this.mouse_coords.x + offset);
+							this.mouse_coords.y = Math.floor(this.mouse_coords.y + offset);
+						}
 					}
 					if (this.texture && this.texture.frameCount) {
 						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
@@ -1959,7 +1990,6 @@ Interface.definePanels(function() {
 				},
 				onMouseDown(event) {
 					setActivePanel('uv');
-					if (event.target && event.target.id === 'uv_viewport') return;
 					let scope = this;
 					let second_touch;
 					let original_zoom = this.zoom;
@@ -2018,9 +2048,12 @@ Interface.definePanels(function() {
 						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 						event.preventDefault();
+						$(getFocusedTextInput()).trigger('blur');
 						return false;
+
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						// Paint
+						if (event.target && event.target.id === 'uv_viewport') return;
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;
@@ -2825,14 +2858,35 @@ Interface.definePanels(function() {
 					return [...min, ...max];
 				},
 				getBrushOutlineStyle() {
-					if (Toolbox.selected.brushTool) {
+					if (Toolbox.selected.brush) {
 						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
 						//pos
-						let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brushTool ? 0 : 0.5;
+						let offset = 0;
+						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+							offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
+						}
 						let left = (this.mouse_coords.x + offset) * pixel_size;
 						let top =  (this.mouse_coords.y + offset) * pixel_size;
 						//size
 						var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
+						return {
+							'--radius': radius,
+							left: left+'px',
+							top: top+'px'
+						}
+					} else {
+						return {display: 'none'};
+					}
+				},
+				getCopyBrushOutlineStyle() {
+					if (Toolbox.selected.brush) {
+						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
+						//pos
+						let offset = this.copy_brush_source.size%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
+						let left = (this.copy_brush_source.x + offset) * pixel_size;
+						let top =  (this.copy_brush_source.y + offset) * pixel_size;
+						//size
+						var radius = (this.copy_brush_source.size/2) * pixel_size;
 						return {
 							'--radius': radius,
 							left: left+'px',
@@ -2996,7 +3050,9 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
-							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :style="getBrushOutlineStyle()"></div>
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :class="brush_type" :style="getBrushOutlineStyle()"></div>
+
+							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
 							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1 && !texture.display_canvas" :src="texture.source">
 							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>
@@ -3019,7 +3075,7 @@ Interface.definePanels(function() {
 
 						<template v-else>
 							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
-							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (mouse_coords.x + ', ' + mouse_coords.y) }}</span>
+							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) }}</span>
 							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>

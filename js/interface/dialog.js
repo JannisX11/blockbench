@@ -82,6 +82,7 @@ function buildForm(dialog) {
 							dialog.updateFormValues();
 						}
 					});
+					data.select_input = select_input;
 					bar.append(select_input.node)
 					break;
 
@@ -455,7 +456,7 @@ window.Dialog = class Dialog {
 						data.bar.find('textarea').val(value);
 						break;
 					case 'select':
-						data.bar.find(`select option#${value}`).attr('selected', 'selected');
+						data.select_input.set(value);
 						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
@@ -480,6 +481,7 @@ window.Dialog = class Dialog {
 						} else {
 							data.content = value;
 						}
+						data.bar.find('input').val(value);
 						break;
 				}
 			}

@@ -13,13 +13,15 @@ const TextureGenerator = {
 		south:	{c1: '#f8dd72', c2: '#FFF899', place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
 	},
 	addBitmapDialog() {
-		let type_options = {
-			template: 'dialog.create_texture.type.template'
-		}
-		if (!Project.box_uv) {
-			type_options.color_map = 'dialog.create_texture.type.color_map';
+		let type_options = {};
+		if (Format.edit_mode) {
+			type_options.template = 'dialog.create_texture.type.template'
+			if (!Project.box_uv) {
+				type_options.color_map = 'dialog.create_texture.type.color_map';
+			}
 		}
 		type_options.blank = 'dialog.create_texture.type.blank';
+		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Project.texture_width)*16 : 16;
 
 		TextureGenerator.background_color.set('#00000000')
 		var dialog = new Dialog({
@@ -32,7 +34,7 @@ const TextureGenerator = {
 				type:	{label: 'dialog.create_texture.type', type: 'select', options: type_options},
 				section2:    "_",
 
-				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: 16, condition: (form) => (form.type == 'template'), options: {
+				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution, condition: (form) => (form.type == 'template'), options: {
 					16: '16x',
 					32: '32x',
 					64: '64x',
@@ -40,7 +42,7 @@ const TextureGenerator = {
 					256: '256x',
 					512: '512x',
 				}},
-				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [16, 16], min: 16, max: 2048},
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
@@ -57,9 +59,6 @@ const TextureGenerator = {
 			onFormChange(form) {
 				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
 					TextureGenerator.background_color.set('#00000000')
-				}
-				if (form.type == 'blank' && TextureGenerator.background_color.get().toHex8() === '00000000') {
-					TextureGenerator.background_color.set('#ffffffff')
 				}
 			},
 			onConfirm: function(results) {

@@ -143,6 +143,7 @@ onVueSetup(function() {
 			search_term: '',
 			isApp,
 			mobile_layout: Blockbench.isMobile,
+			thumbnails: {},
 			getIconNode: Blockbench.getIconNode
 		},
 		methods: {
@@ -167,11 +168,18 @@ onVueSetup(function() {
 					loadModelFile(files[0]);
 				})
 			},
-			getThumbnail(model_path) {
-				let hash = model_path.hashCode().toString().replace(/^-/, '0');
-				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-				if (!fs.existsSync(path)) return;
-				return path + '?' + Math.round(Math.random()*255);
+			updateThumbnails(model_paths) {
+				this.recent.forEach(project => {
+					if (model_paths && !model_paths.includes(project.path)) return;
+					let hash = project.path.hashCode().toString().replace(/^-/, '0');
+					let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
+					if (!fs.existsSync(path)) {
+						delete this.thumbnails[project.path];
+					} else {
+						this.thumbnails[project.path] = path + '?' + Math.round(Math.random()*255);
+					}
+				})
+				this.$forceUpdate();
 			},
 			setListType(type) {
 				this.list_type = type;
@@ -186,6 +194,14 @@ onVueSetup(function() {
 						icon: recent_project.favorite ? 'fas.fa-star' : 'far.fa-star',
 						click: () => {
 							this.toggleProjectFavorite(recent_project);
+						}
+					},
+					{
+						id: 'open_folder',
+						name: 'menu.texture.folder',
+						icon: 'folder',
+						click() {
+							shell.showItemInFolder(recent_project.path)
 						}
 					},
 					{
@@ -253,6 +269,9 @@ onVueSetup(function() {
 					))
 				})
 			}
+		},
+		mounted() {
+			this.updateThumbnails();
 		},
 		template: `
 			<div id="start_screen">
@@ -371,7 +390,7 @@ onVueSetup(function() {
 									@click="openProject(project, $event)"
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
-									<img class="thumbnail_image" v-if="getThumbnail(project.path)" :src="getThumbnail(project.path)" />
+									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" />
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
@@ -388,6 +407,10 @@ onVueSetup(function() {
 				</content>
 			</div>
 		`
+	})
+
+	Blockbench.on('construct_format delete_format', () => {
+		StartScreen.vue.$forceUpdate();
 	})
 });
 
@@ -434,7 +457,6 @@ ModelLoader.loaders = {};
 		dataType: 'json'
 	});
 	documentReady.then(() => {
-		Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0)
 
 		//Backup Model
 		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
@@ -467,10 +489,10 @@ ModelLoader.loaders = {};
 			"text_color": '#000000',
 			"graphic": {
 				"type": "image",
-				"source": "./assets/splash_art.png?43",
+				"source": "./assets/splash_art.png?44",
 				"width": 1000,
-				"aspect_ratio": "21/9",
-				"description": "Splash Art by [MisterGriimm](https://twitter.com/MisterGriimm) and [MidnitePixel_](https://twitter.com/MidnitePixel_)",
+				"aspect_ratio": "64/27",
+				"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
 				"text_color": '#cfcfcf'
 			}
 		})

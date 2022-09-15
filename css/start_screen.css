@@ -108,7 +108,7 @@
 		width: 180px;
 		height: 100px;
 		margin: auto;
-		cursor: pointer;
+		pointer-events: none;
 	}
 	#start_screen .recent_project.thumbnail:hover {
 		background-color: var(--color-accent);
@@ -248,6 +248,9 @@
 		font-weight: 300;
 		display: block;
 		margin: auto;
+	}
+	#start_screen .start_screen_features > li > img {
+		border-radius: 5px;
 	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;

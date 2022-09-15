@@ -106,7 +106,7 @@ function parseGeometry(data) {
 						rotation = b.locators[key].rotation;
 					}
 					coords[0] *= -1
-					var locator = new Locator({from: coords, name: key, rotation}).addTo(group).init();
+					var locator = new Locator({position: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 			var parent_group = 'root';
@@ -136,6 +136,7 @@ function parseGeometry(data) {
 	if (isApp && Project.geometry_name) {
 		Project.BedrockEntityManager.initEntity()
 	}
+	Validator.validate()
 	updateSelection()
 }
 
@@ -227,7 +228,7 @@ var codec = new Codec('bedrock_old', {
 
 					} else if (obj instanceof Locator) {
 
-						locators[obj.name] = obj.from.slice();
+						locators[obj.name] = obj.position.slice();
 						locators[obj.name][0] *= -1;
 					}
 				}

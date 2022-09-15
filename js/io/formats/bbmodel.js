@@ -194,7 +194,7 @@ var codec = new Codec('project', {
 			model.history_index = Undo.index;
 		}
 
-		Blockbench.dispatchEvent('save_project', {model});
+		Blockbench.dispatchEvent('save_project', {model, options});
 		this.dispatchEvent('compile', {model, options})
 
 		if (options.raw) {
@@ -329,6 +329,7 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Validator.validate()
 		this.dispatchEvent('parsed', {model})
 	},
 	merge(model, path) {

@@ -15,6 +15,7 @@ class ModelFormat {
 		this.category = data.category || 'other';
 		this.target = data.target;
 		this.show_on_start_screen = true;
+		this.show_in_new_list = true;
 		this.can_convert_to = true;
 		this.confidential = false;
 
@@ -22,6 +23,7 @@ class ModelFormat {
 			ModelFormat.properties[id].reset(this);
 		}
 		this.render_sides = data.render_sides;
+		this.cube_size_limiter = data.cube_size_limiter;
 
 		this.codec = data.codec;
 		this.onSetup = data.onSetup;
@@ -31,8 +33,11 @@ class ModelFormat {
 		this.format_page = data.format_page;
 		Merge.string(this, data, 'icon');
 		Merge.boolean(this, data, 'show_on_start_screen');
+		Merge.boolean(this, data, 'show_in_new_list');
 		Merge.boolean(this, data, 'can_convert_to');
 		Merge.boolean(this, data, 'confidential');
+
+		if (data.new) this.new = data.new;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
@@ -40,9 +45,7 @@ class ModelFormat {
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
-		if (Blockbench.setup_successful && StartScreen.vue) {
-			StartScreen.vue.$forceUpdate();
-		}
+		Blockbench.dispatchEvent('construct_format', {format: this});
 	}
 	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -80,6 +83,7 @@ class ModelFormat {
 		updateInterfacePanels()
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
+		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
 		return this;
 	}
 	new() {
@@ -166,7 +170,7 @@ class ModelFormat {
 		}
 
 		//Canvas Limit
-		if (Format.canvas_limit && !old_format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			Cube.all.forEach(function(s, i) {
 				//Push elements into 3x3 block box
@@ -226,7 +230,7 @@ class ModelFormat {
 	delete() {
 		delete Formats[this.id];
 		if (this.codec && this.codec.format == this) delete this.codec.format;
-		StartScreen.vue.$forceUpdate();
+		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
 }
 
@@ -244,13 +248,14 @@ new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
-new Property(ModelFormat, 'boolean', 'canvas_limit');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
+new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');

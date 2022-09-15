@@ -26,7 +26,7 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '4.3.1';
+		const appVersion = '4.4.0';
 
 		
 		if (localStorage.getItem('theme')) {
@@ -84,13 +84,14 @@
 		<script src="js/interface/menu.js"></script>
 		<script src="js/interface/actions.js"></script>
 		<script src="js/interface/themes.js"></script>
-		<script src="js/blockbench.js"></script>
+		<script src="js/misc.js"></script>
 		<script src="js/modes.js"></script>
 		<script src="js/api.js"></script>
 		<script src="js/file_system.js"></script>
 		<script src="js/interface/vue_components.js"></script>
 		<script src="js/interface/panels.js"></script>
 		<script src="js/interface/interface.js"></script>
+		<script src="js/interface/menu_bar.js"></script>
 		<script src="js/interface/start_screen.js"></script>
 		<script src="js/interface/keyboard.js"></script>
 		<script src="js/interface/settings.js"></script>
@@ -119,8 +120,9 @@
 		<script src="js/preview/preview.js"></script>
 		<script src="js/preview/screenshot.js"></script>
 		<script src="js/preview/canvas.js"></script>
-		<script src="js/preview/transformer.js"></script>
-		<script src="js/transform.js"></script>
+		<script src="js/modeling/transform_gizmo.js"></script>
+		<script src="js/modeling/transform.js"></script>
+		<script src="js/modeling/mesh_editing.js"></script>
 		<script src="js/texturing/textures.js"></script>
 		<script src="js/texturing/uv.js"></script>
 		<script src="js/texturing/painter.js"></script>
@@ -133,6 +135,7 @@
 		<script src="js/animations/keyframe.js"></script>
 		<script src="js/animations/timeline.js"></script>
 		<script src="js/preview/preview_scenes.js"></script>
+		<script src="js/validator.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
 		<script src="js/io/codec.js"></script>
@@ -151,6 +154,7 @@
 		<script src="js/io/formats/optifine_jem.js"></script>
 		<script src="js/io/formats/optifine_jpm.js"></script>
 		<script src="js/io/formats/skin.js"></script>
+		<script src="js/io/formats/image.js"></script>
 		<script src="js/globals.js"></script>
 
 		<script>if (window.module) module = window.module;</script>
@@ -424,7 +428,7 @@
 				<div class="toolbar_wrapper narrow tools"></div>
 
 				<div class="toolbar_wrapper narrow tool_options"></div>
-				<ul id="mode_selector">
+				<ul id="mode_selector" v-if="showModes()">
 					<li
 						v-for="mode in options"
 						v-if="Condition(mode.condition)"

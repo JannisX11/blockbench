@@ -246,22 +246,22 @@ class refModel {
 			case 'armor_stand':
 				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(-2, 6, -6, -90, 0, 90, 1, 1, 1)
+						setDisplayArea(6, 12, -2, -90, 0, 0, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-2, 6, 6, -90, 0, 90, 1, 1, 1)
+						setDisplayArea(-6, 12, -2, -90, 0, 0, 1, 1, 1)
 					} else if (display_slot === 'head') {
-						setDisplayArea(0, 21, 0, 0, 90, 0, 0.625, 0.625, 0.625)
+						setDisplayArea(0, 27, 0, 0, 0, 0, 0.625, 0.625, 0.625)
 					}
 				}
 				break;
 			case 'armor_stand_small':
 				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(-1, 0, -3, -90, 0, 90, 0.5, 0.5, 0.5)
+						setDisplayArea(3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-1, 0, 3, -90, 0, 90, 0.5, 0.5, 0.5)
+						setDisplayArea(-3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'head') {
-						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
+						setDisplayArea(0, 14.5, 0, 0, 0, 0, 0.4635, 0.4635, 0.4635)
 					}
 				}
 				break;
@@ -307,7 +307,7 @@ class refModel {
 				break;
 		}
 	}
-	buildModel(things, texture) {
+	buildModel(things, texture, texture_res = [16, 16]) {
 		var scope = this;
 		if (texture === 'black') {
 			var mat = new THREE.MeshBasicMaterial({color: 0x101013});
@@ -349,10 +349,10 @@ class refModel {
 
 			function getUVArray(face) {
 				var arr = [
-					[face.uv[0]/16, 1-(face.uv[1]/16)],
-					[face.uv[2]/16, 1-(face.uv[1]/16)],
-					[face.uv[0]/16, 1-(face.uv[3]/16)],
-					[face.uv[2]/16, 1-(face.uv[3]/16)]
+					[face.uv[0]/texture_res[0], 1-(face.uv[1]/texture_res[1])],
+					[face.uv[2]/texture_res[0], 1-(face.uv[1]/texture_res[1])],
+					[face.uv[0]/texture_res[0], 1-(face.uv[3]/texture_res[1])],
+					[face.uv[2]/texture_res[0], 1-(face.uv[3]/texture_res[1])]
 				]
 				var rot = (face.rotation+0)
 				while (rot > 0) {
@@ -668,229 +668,229 @@ class refModel {
 		this.buildModel(JSON.parse(`[
 			{
 				"size": [12, 1, 12],
-				"pos": [0, -5.5, 0],
+				"pos": [0, 0.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0, 11, 3, 11.25]},
-				"east": {"uv": [3, 11, 6, 11.25]},
-				"south": {"uv": [6, 11, 9, 11.25]},
-				"west": {"uv": [9, 11, 12, 11.25]},
-				"up": {"uv": [3, 8, 6, 11],"rotation": 90},
-				"down": {"uv": [6, 8, 9, 11], "rotation": 270}
+				"north": {"uv": [12, 44, 24, 45]},
+				"east": {"uv": [0, 44, 12, 45]},
+				"south": {"uv": [36, 44, 48, 45]},
+				"west": {"uv": [24, 44, 36, 45]},
+				"up": {"uv": [24, 44, 12, 32]},
+				"down": {"uv": [36, 32, 24, 44]}
 			},
 			{
-				"size": [2, 11, 2],
-				"pos": [0, 0.5, -2],
+				"size": [12, 3, 3],
+				"pos": [0, 22.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
-			},
-			{
-				"size": [2, 11, 2],
-				"pos": [0, 0.5, 2],
-				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
-			},
-			{
-				"size": [2, 2, 8],
-				"pos": [0, 7, 0],
-				"origin": [0, 0, 0],
-				"north": {"uv": [0.25, 5.75, 0.75, 6.25], "texture": "#0"},
-				"east": {"uv": [0.25, 5.75, 2.25, 6.25], "texture": "#0"},
-				"south": {"uv": [4.75, 5.75, 5.25, 6.25], "texture": "#0"},
-				"west": {"uv": [2.75, 5.75, 4.75, 6.25], "texture": "#0"},
-				"up": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90,"rotation": 90},
-				"down": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90, "rotation": 270}
+				"north": {"uv": [3, 29, 15, 32]},
+				"east": {"uv": [0, 29, 3, 32]},
+				"south": {"uv": [18, 29, 30, 32]},
+				"west": {"uv": [15, 29, 18, 32]},
+				"up": {"uv": [15, 29, 3, 26]},
+				"down": {"uv": [27, 26, 15, 29]}
 			},
 			{
 				"size": [2, 7, 2],
-				"pos": [0, 11.5, 2],
+				"pos": [2, 17.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
+				"north": {"uv": [18, 2, 20, 9]},
+				"east": {"uv": [16, 2, 18, 9]},
+				"south": {"uv": [22, 2, 24, 9]},
+				"west": {"uv": [20, 2, 22, 9]},
+				"up": {"uv": [20, 2, 18, 0]},
+				"down": {"uv": [22, 0, 20, 2]}
 			},
 			{
 				"size": [2, 7, 2],
-				"pos": [0, 11.5, -2],
+				"pos": [-2, 17.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
+				"north": {"uv": [50, 18, 52, 25]},
+				"east": {"uv": [48, 18, 50, 25]},
+				"south": {"uv": [54, 18, 56, 25]},
+				"west": {"uv": [52, 18, 54, 25]},
+				"up": {"uv": [52, 18, 50, 16]},
+				"down": {"uv": [54, 16, 52, 18]}
 			},
 			{
-				"size": [3, 3, 12],
-				"pos": [0, 16.505, 0],
+				"size": [8, 2, 2],
+				"pos": [0, 13, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [3, 7.25, 3.75, 8]},
-				"east": {"uv": [3.75, 7.25, 6.75, 8], "texture": "#0"},
-				"south": {"uv": [6.75, 7.25, 7.5, 8], "texture": "#0"},
-				"west": {"uv": [0, 7.25, 3, 8]},
-				"up": {"uv": [0.75, 6.5, 3.75, 7.25], "texture": "#0", "rotation": 90,"rotation": 90},
-				"down": {"uv": [3.75, 6.5, 6.75, 7.25], "texture": "#0", "rotation": 90, "rotation": 270}
+				"north": {"uv": [2, 50, 10, 52]},
+				"east": {"uv": [0, 50, 2, 52]},
+				"south": {"uv": [12, 50, 20, 52]},
+				"west": {"uv": [10, 50, 12, 52]},
+				"up": {"uv": [10, 50, 2, 48]},
+				"down": {"uv": [18, 48, 10, 50]}
 			},
 			{
-				"size": [2, 6, 2],
-				"pos": [0, 21, 0],
+				"size": [2, 7, 2],
+				"pos": [0, 26.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0.5, 0.5, 1, 2.25]},
-				"east": {"uv": [1, 0.5, 1.5, 2.25]},
-				"south": {"uv": [1.5, 0.5, 2, 2.25]},
-				"west": {"uv": [0, 0.5, 0.5, 2.25]},
-				"up": {"uv": [0.5, 0, 1, 0.5],"rotation": 90},
-				"down": {"uv": [1, 0, 1.5, 0.5], "rotation": 270}
-			},
-			{
-				"size": [2, 12, 2],
-				"pos": [0, 12, -6],
-				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5]},
-				"east": {"uv": [6.5, 0.5, 6, 3.5]},
-				"south": {"uv": [7.5, 0.5, 8, 3.5]},
-				"west": {"uv": [6, 0.5, 6.5, 3.5]},
-				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
+				"north": {"uv": [2, 2, 4, 9]},
+				"east": {"uv": [0, 2, 2, 9]},
+				"south": {"uv": [6, 2, 8, 9]},
+				"west": {"uv": [4, 2, 6, 9]},
+				"up": {"uv": [4, 2, 2, 0]},
+				"down": {"uv": [6, 0, 4, 2]}
 			},
 			{
 				"size": [2, 12, 2],
-				"pos": [0, 12, 6],
+				"pos": [-6, 18, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5]},
-				"east": {"uv": [6.5, 0.5, 7, 3.5]},
-				"south": {"uv": [7.5, 0.5, 8, 3.5]},
-				"west": {"uv": [6.5, 0.5, 6, 3.5]},
-				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5],"rotation": 270}
+				"north": {"uv": [36, 18, 34, 30]},
+				"east": {"uv": [38, 18, 36, 30]},
+				"south": {"uv": [40, 18, 38, 30]},
+				"west": {"uv": [34, 18, 32, 30]},
+				"up": {"uv": [34, 18, 36, 16]},
+				"down": {"uv": [36, 16, 38, 18]}
+			},
+			{
+				"size": [2, 11, 2],
+				"pos": [-1.9, 6.5, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [44, 18, 42, 29]},
+				"east": {"uv": [46, 18, 44, 29]},
+				"south": {"uv": [48, 18, 46, 29]},
+				"west": {"uv": [42, 18, 40, 29]},
+				"up": {"uv": [42, 18, 44, 16]},
+				"down": {"uv": [44, 16, 46, 18]}
+			},
+			{
+				"size": [2, 12, 2],
+				"pos": [6, 18, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [26, 2, 28, 14]},
+				"east": {"uv": [24, 2, 26, 14]},
+				"south": {"uv": [30, 2, 32, 14]},
+				"west": {"uv": [28, 2, 30, 14]},
+				"up": {"uv": [28, 2, 26, 0]},
+				"down": {"uv": [30, 0, 28, 2]}
+			},
+			{
+				"size": [2, 11, 2],
+				"pos": [1.9, 6.5, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [10, 2, 12, 13]},
+				"east": {"uv": [8, 2, 10, 13]},
+				"south": {"uv": [14, 2, 16, 13]},
+				"west": {"uv": [12, 2, 14, 13]},
+				"up": {"uv": [12, 2, 10, 0]},
+				"down": {"uv": [14, 0, 12, 2]}
 			}
-		]`), 'assets/armor_stand.png')
+		]`), 'assets/armor_stand.png', [64, 64])
 	}
 	buildArmorStandSmall() {
 		this.buildModel(JSON.parse(`[
 			{
 				"size": [6, 0.5, 6],
-				"pos": [0, -5.75, 0],
+				"pos": [0, 0.25, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [0, 11, 3, 11.25]},
-				"east": {"uv": [3, 11, 6, 11.25]},
-				"south": {"uv": [6, 11, 9, 11.25]},
-				"west": {"uv": [9, 11, 12, 11.25]},
-				"up": {"uv": [3, 8, 6, 11],"rotation": 90},
-				"down": {"uv": [6, 8, 9, 11], "rotation": 270}
+				"north": {"uv": [12, 44, 24, 45]},
+				"east": {"uv": [0, 44, 12, 45]},
+				"south": {"uv": [36, 44, 48, 45]},
+				"west": {"uv": [24, 44, 36, 45]},
+				"up": {"uv": [24, 44, 12, 32]},
+				"down": {"uv": [36, 32, 24, 44]}
 			},
 			{
-				"size": [1, 5.5, 1],
-				"pos": [0, -2.75, -1],
+				"size": [6, 1.5, 1.5],
+				"pos": [0, 11.25, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
-			},
-			{
-				"size": [1, 5.5, 1],
-				"pos": [0, -2.75, 1],
-				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
-			},
-			{
-				"size": [1, 1, 4],
-				"pos": [0, 0.5, 0],
-				"origin": [0, 0, 0],
-				"north": {"uv": [0.25, 5.75, 0.75, 6.25], "texture": "#0"},
-				"east": {"uv": [0.25, 5.75, 2.25, 6.25], "texture": "#0"},
-				"south": {"uv": [4.75, 5.75, 5.25, 6.25], "texture": "#0"},
-				"west": {"uv": [2.75, 5.75, 4.75, 6.25], "texture": "#0"},
-				"up": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90},
-				"down": {"uv": [0, 12.5, 2, 13], "texture": "#0", "rotation": 90}
+				"north": {"uv": [3, 29, 15, 32]},
+				"east": {"uv": [0, 29, 3, 32]},
+				"south": {"uv": [18, 29, 30, 32]},
+				"west": {"uv": [15, 29, 18, 32]},
+				"up": {"uv": [15, 29, 3, 26]},
+				"down": {"uv": [27, 26, 15, 29]}
 			},
 			{
 				"size": [1, 3.5, 1],
-				"pos": [0, 2.75, 1],
+				"pos": [1, 8.75, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
+				"north": {"uv": [18, 2, 20, 9]},
+				"east": {"uv": [16, 2, 18, 9]},
+				"south": {"uv": [22, 2, 24, 9]},
+				"west": {"uv": [20, 2, 22, 9]},
+				"up": {"uv": [20, 2, 18, 0]},
+				"down": {"uv": [22, 0, 20, 2]}
 			},
 			{
 				"size": [1, 3.5, 1],
-				"pos": [0, 2.75, -1],
+				"pos": [-1, 8.75, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [8.5, 4.5, 9, 7.5]},
-				"east": {"uv": [9, 4.5, 9.5, 7.5]},
-				"south": {"uv": [9.5, 4.5, 10, 7.5]},
-				"west": {"uv": [8, 4.5, 8.5, 7.5]},
-				"up": {"uv": [8.5, 4, 9, 4.5],"rotation": 90},
-				"down": {"uv": [9, 4, 9.5, 4.5], "rotation": 270}
+				"north": {"uv": [50, 18, 52, 25]},
+				"east": {"uv": [48, 18, 50, 25]},
+				"south": {"uv": [54, 18, 56, 25]},
+				"west": {"uv": [52, 18, 54, 25]},
+				"up": {"uv": [52, 18, 50, 16]},
+				"down": {"uv": [54, 16, 52, 18]}
 			},
 			{
-				"size": [1.5, 1.5, 6],
-				"pos": [0, 5.255, 0],
+				"size": [4, 1, 1],
+				"pos": [0, 6.5, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [3, 7.25, 3.75, 8]},
-				"east": {"uv": [3.75, 7.25, 6.75, 8], "texture": "#0"},
-				"south": {"uv": [6.75, 7.25, 7.5, 8], "texture": "#0"},
-				"west": {"uv": [0, 7.25, 3, 8]},
-				"up": {"uv": [0.75, 6.5, 3.75, 7.25], "texture": "#0", "rotation": 90},
-				"down": {"uv": [3.75, 6.5, 6.75, 7.25], "texture": "#0", "rotation": 90}
+				"north": {"uv": [2, 50, 10, 52]},
+				"east": {"uv": [0, 50, 2, 52]},
+				"south": {"uv": [12, 50, 20, 52]},
+				"west": {"uv": [10, 50, 12, 52]},
+				"up": {"uv": [10, 50, 2, 48]},
+				"down": {"uv": [18, 48, 10, 50]}
 			},
 			{
-				"size": [1.5, 4.5, 1.5],
-				"pos": [0, 8.27, 0],
-				"origin": [0, 0, 0],
-				"north": {"uv": [0.5, 0.5, 1, 2.25]},
-				"east": {"uv": [1, 0.5, 1.5, 2.25]},
-				"south": {"uv": [1.5, 0.5, 2, 2.25]},
-				"west": {"uv": [0, 0.5, 0.5, 2.25]},
-				"up": {"uv": [0.5, 0, 1, 0.5],"rotation": 90},
-				"down": {"uv": [1, 0, 1.5, 0.5], "rotation": 270}
-			},
-			{
-				"size": [1, 6, 1],
-				"pos": [0, 3, -3],
-				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5]},
-				"east": {"uv": [6.5, 0.5, 6, 3.5]},
-				"south": {"uv": [7.5, 0.5, 8, 3.5]},
-				"west": {"uv": [6, 0.5, 6.5, 3.5]},
-				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
+				"size": [1.5, 5.25, 1.48],
+				"pos": [0, 13.875, 0],
+				"origin": [0, 12, 0],
+				"north": {"uv": [2, 2, 4, 9]},
+				"east": {"uv": [0, 2, 2, 9]},
+				"south": {"uv": [6, 2, 8, 9]},
+				"west": {"uv": [4, 2, 6, 9]},
+				"up": {"uv": [4, 2, 2, 0]},
+				"down": {"uv": [6, 0, 4, 2]}
 			},
 			{
 				"size": [1, 6, 1],
-				"pos": [0, 3, 3],
+				"pos": [-3, 9, 0],
 				"origin": [0, 0, 0],
-				"north": {"uv": [7, 0.5, 7.5, 3.5]},
-				"east": {"uv": [6.5, 0.5, 7, 3.5]},
-				"south": {"uv": [7.5, 0.5, 8, 3.5]},
-				"west": {"uv": [6.5, 0.5, 6, 3.5]},
-				"up": {"uv": [6.5, 0, 7, 0.5],"rotation": 90},
-				"down": {"uv": [7, 0, 7.5, 0.5], "rotation": 270}
+				"north": {"uv": [36, 18, 34, 30]},
+				"east": {"uv": [38, 18, 36, 30]},
+				"south": {"uv": [40, 18, 38, 30]},
+				"west": {"uv": [34, 18, 32, 30]},
+				"up": {"uv": [34, 18, 36, 16]},
+				"down": {"uv": [36, 16, 38, 18]}
+			},
+			{
+				"size": [1, 5.5, 1],
+				"pos": [-0.95, 3.25, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [44, 18, 42, 29]},
+				"east": {"uv": [46, 18, 44, 29]},
+				"south": {"uv": [48, 18, 46, 29]},
+				"west": {"uv": [42, 18, 40, 29]},
+				"up": {"uv": [42, 18, 44, 16]},
+				"down": {"uv": [44, 16, 46, 18]}
+			},
+			{
+				"size": [1, 6, 1],
+				"pos": [3, 9, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [26, 2, 28, 14]},
+				"east": {"uv": [24, 2, 26, 14]},
+				"south": {"uv": [30, 2, 32, 14]},
+				"west": {"uv": [28, 2, 30, 14]},
+				"up": {"uv": [28, 2, 26, 0]},
+				"down": {"uv": [30, 0, 28, 2]}
+			},
+			{
+				"size": [1, 5.5, 1],
+				"pos": [0.95, 3.25, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [10, 2, 12, 13]},
+				"east": {"uv": [8, 2, 10, 13]},
+				"south": {"uv": [14, 2, 16, 13]},
+				"west": {"uv": [12, 2, 14, 13]},
+				"up": {"uv": [12, 2, 10, 0]},
+				"down": {"uv": [14, 0, 12, 2]}
 			}
-		]`), 'assets/armor_stand.png')
+		]`), 'assets/armor_stand.png', [64, 64])
 	}
 	buildZombie() {
 		this.buildModel(JSON.parse(`[
@@ -1186,6 +1186,8 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
+	Canvas.global_light_side = 0;
+	Canvas.updateShading();
 	scene.remove(display_area)
 	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
 	display_base.children.forEachReverse(child => {
@@ -1238,10 +1240,6 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
 	Transformer.center()
-}
-
-DisplayMode.toggleGuiLight = function() {
-	Project.front_gui_light = !Project.front_gui_light;
 }
 
 
@@ -1319,9 +1317,12 @@ DisplayMode.updateGUILight = function() {
 	if (!display_mode) return;
 	if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
+		Canvas.global_light_side = 4;
 	} else {
 		lights.rotation.set(0, 0, 0);
+		Canvas.global_light_side = 0;
 	}
+	Canvas.updateShading();
 } 
 
 function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
@@ -1609,7 +1610,7 @@ BARS.defineActions(function() {
 		category: 'display',
 		condition: () => display_mode,
 		click: function (e) {
-			new Menu(this.children()).open(e.target)
+			new Menu('apply_display_preset', this.children(), {searchable: true}).open(e.target);
 		},
 		children: function() {
 			var presets = []
@@ -1626,6 +1627,9 @@ BARS.defineActions(function() {
 				presets.push({
 					icon: icon,
 					name: p.id ? tl('display.preset.'+p.id) : p.name,
+					click() {
+						DisplayMode.applyPreset(p)
+					},
 					children: [
 						{name: 'action.apply_display_preset.here', icon: 'done', click() {
 							DisplayMode.applyPreset(p)

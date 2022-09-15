@@ -387,7 +387,7 @@ const Timeline = {
 		$('#timeline_vue').on('mousewheel scroll', function(e) {
 			e.preventDefault()
 			let event = e.originalEvent;
-			let body = $('#timeline_body').get(0)
+			let body = document.getElementById('timeline_body');
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
@@ -496,7 +496,6 @@ const Timeline = {
 				Timeline.pause()
 			} else {
 				Timeline.setTime(0)
-				Timeline.start()
 			}
 		}
 	},
@@ -855,6 +854,7 @@ Interface.definePanels(() => {
 
 					function slide(e2) {
 						convertTouchEvent(e2);
+						e2.preventDefault();
 						let offset = [
 							e2.clientX - e1.clientX,
 							e2.clientY - e1.clientY,
@@ -964,7 +964,7 @@ Interface.definePanels(() => {
 							}, 20);
 						}
 					}
-					addEventListeners(document, 'mousemove touchmove', slide);
+					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,

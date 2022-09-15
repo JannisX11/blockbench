@@ -21,8 +21,9 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, texture.width, texture.height);
 					ctx.filter = 'invert(1)';
-					ctx.drawImage(canvas, 0, 0);
+					ctx.drawImage(texture.img, 0, 0);
 
 				}, {no_undo: true});
 			})
@@ -56,8 +57,14 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									ctx.clearRect(0, 0, texture.width, texture.height);
 									ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									ctx.drawImage(original_imgs[i], 0, 0);
+
+									let ref_ctx = this.$refs.canvas[i].getContext('2d');
+									ref_ctx.clearRect(0, 0, texture.width, texture.height);
+									ref_ctx.drawImage(canvas, 0, 0);
+
 								}, {no_undo: true, use_cache: true});
 							})
 						},
@@ -67,8 +74,8 @@ BARS.defineActions(function() {
 					},
 					template: `
 						<div>
-							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
-								<img v-for="texture in textures" :src="texture.source" />
+							<div class="texture_adjust_previews checkerboard" ref="preview_list" :class="{folded: !show_preview}">
+								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
@@ -80,7 +87,14 @@ BARS.defineActions(function() {
 								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
 							</div>
 						</div>
-					`
+					`,
+					mounted() {
+						textures.forEach((texture, i) => {
+							let ref_ctx = this.$refs.canvas[i].getContext('2d');
+							ref_ctx.clearRect(0, 0, texture.width, texture.height);
+							ref_ctx.drawImage(texture.img, 0, 0);
+						})
+					}
 				},
 				onConfirm() {
 					Undo.finishEdit('Adjust brightness and contrast');
@@ -118,8 +132,14 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									ctx.clearRect(0, 0, texture.width, texture.height);
 									ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									ctx.drawImage(original_imgs[i], 0, 0);
+
+									let ref_ctx = this.$refs.canvas[i].getContext('2d');
+									ref_ctx.clearRect(0, 0, texture.width, texture.height);
+									ref_ctx.drawImage(canvas, 0, 0);
+
 								}, {no_undo: true, use_cache: true});
 							})
 						},
@@ -130,7 +150,7 @@ BARS.defineActions(function() {
 					template: `
 						<div>
 							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
-								<img v-for="texture in textures" :src="texture.source" />
+								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
@@ -142,7 +162,14 @@ BARS.defineActions(function() {
 								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 							</div>
 						</div>
-					`
+					`,
+					mounted() {
+						textures.forEach((texture, i) => {
+							let ref_ctx = this.$refs.canvas[i].getContext('2d');
+							ref_ctx.clearRect(0, 0, texture.width, texture.height);
+							ref_ctx.drawImage(texture.img, 0, 0);
+						})
+					}
 				},
 				onConfirm() {
 					Undo.finishEdit('Adjust saturation and hue');

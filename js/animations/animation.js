@@ -682,6 +682,8 @@ class Animation {
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
+					Blockbench.dispatchEvent('edit_animation_properties', {animation: this})
+
 					Undo.finishEdit('Edit animation properties');
 				}
 			},
@@ -771,10 +773,10 @@ class Animation {
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
-	new Property(Animation, 'string', 'anim_time_update');
-	new Property(Animation, 'string', 'blend_weight');
-	new Property(Animation, 'string', 'start_delay');
-	new Property(Animation, 'string', 'loop_delay');
+	new Property(Animation, 'molang', 'anim_time_update', {default: ''});
+	new Property(Animation, 'molang', 'blend_weight', {default: ''});
+	new Property(Animation, 'molang', 'start_delay', {default: ''});
+	new Property(Animation, 'molang', 'loop_delay', {default: ''});
 
 Blockbench.on('finish_edit', event => {
 	if (!Format.animation_files) return;
@@ -868,7 +870,8 @@ const Animator = {
 		if (Group.selected) {
 			Group.selected.select();
 		}
-		Animator.preview()
+		BarItems.slider_animation_length.update();
+		Animator.preview();
 	},
 	leave() {
 		Timeline.pause()
@@ -1214,6 +1217,7 @@ const Animator = {
 									ba.addKeyframe({
 										time: 0,
 										channel,
+										uniform: !(b[channel] instanceof Array),
 										data_points: getKeyframeDataPoints(b[channel]),
 									})
 								} else if (typeof b[channel] === 'object' && b[channel].post) {
@@ -1221,6 +1225,7 @@ const Animator = {
 										time: 0,
 										channel,
 										interpolation: b[channel].lerp_mode,
+										uniform: !(b[channel].post instanceof Array),
 										data_points: getKeyframeDataPoints(b[channel]),
 									});
 								} else if (typeof b[channel] === 'object') {
@@ -1229,6 +1234,7 @@ const Animator = {
 											time: parseFloat(timestamp),
 											channel,
 											interpolation: b[channel][timestamp].lerp_mode,
+											uniform: !(b[channel][timestamp] instanceof Array),
 											data_points: getKeyframeDataPoints(b[channel][timestamp]),
 										});
 									}
@@ -1495,7 +1501,7 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Animation.selected.time;
+		return Animation.selected ? Animation.selected.time : Timeline.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;

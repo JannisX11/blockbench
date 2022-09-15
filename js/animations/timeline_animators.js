@@ -132,13 +132,18 @@ GeneralAnimator.addChannel = function(channel, options) {
 		mutable: typeof options.mutable === 'boolean' ? options.mutable : true,
 		max_data_points: options.max_data_points || 0
 	}
-	Timeline.animators.forEach(animator => {
-		if (animator instanceof this && !animator[channel]) {
-			Vue.set(animator, channel, []);
-			if (this.prototype.channels[channel].mutable) {
-				Vue.set(animator.muted, channel, false);
-			}
-		}
+	ModelProject.all.forEach(project => {
+		if (!project.animations)
+		project.animations.forEach(animation => {
+			animation.animators.forEach(animator => {
+				if (animator instanceof this && !animator[channel]) {
+					Vue.set(animator, channel, []);
+					if (this.prototype.channels[channel].mutable) {
+						Vue.set(animator.muted, channel, false);
+					}
+				}
+			})
+		})
 	})
 	Timeline.vue.$forceUpdate();
 }
@@ -148,9 +153,9 @@ class BoneAnimator extends GeneralAnimator {
 		this.uuid = uuid;
 		this._name = name;
 
-		this.rotation = [];
-		this.position = [];
-		this.scale = [];
+		for (let channel in this.channels) {
+			this[channel] = [];
+		}
 	}
 	get name() {
 		var group = this.getGroup();

@@ -611,7 +611,7 @@ function calculateVisibleBox() {
 				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
-					new Locator({from: coords, name: key, rotation}).addTo(group).init();
+					new Locator({position: coords, name: key, rotation}).addTo(group).init();
 				}
 			}
 		}
@@ -728,6 +728,7 @@ function calculateVisibleBox() {
 			if (Format.id == 'bedrock') Project.BedrockEntityManager.initEntity();
 			if (Format.id == 'bedrock_block') Project.BedrockBlockManager.initBlock();
 		}
+		Validator.validate()
 		updateSelection()
 	}
 
@@ -831,7 +832,7 @@ function calculateVisibleBox() {
 				} else if (obj instanceof Locator || obj instanceof NullObject) {
 					let key = obj.name;
 					if (obj instanceof NullObject) key = '_null_' + key;
-					let offset = obj.from.slice();
+					let offset = obj.position.slice();
 					offset[0] *= -1;
 
 					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
@@ -913,11 +914,13 @@ var codec = new Codec('bedrock', {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
+
+			loadDataFromModelMemory();
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
-			})
+			});
 		}
 		this.parse(model, file.path)
 	},
@@ -1255,6 +1258,124 @@ var block_format = new ModelFormat({
 	animation_files: false,
 	animation_mode: false,
 	texture_meshes: true,
+	cube_size_limiter: {
+		rotation_affected: true,
+		getModelCenter(exclude_cubes = []) {
+			if (block_format.cube_size_limiter.cached_center) {
+				return block_format.cube_size_limiter.cached_center;
+			}
+
+			let center = [-7, 1, -7, 7, 15, 7];
+			Cube.all.forEach(cube => {
+				if (exclude_cubes.includes(cube)) return;
+				let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, cube);
+
+				vertices.forEach(array => {
+					center[3] = Math.min(center[3], array[0] + 15);		center[0] = Math.max(center[0], array[0] - 15);
+					center[4] = Math.min(center[4], array[1] + 15);		center[1] = Math.max(center[1], array[1] - 15);
+					center[5] = Math.min(center[5], array[2] + 15);		center[2] = Math.max(center[2], array[2] - 15);
+				})
+			})
+			block_format.cube_size_limiter.cached_center = center;
+			setTimeout(() => {
+				delete block_format.cube_size_limiter.cached_center;
+			}, 2)
+			return center;
+		},
+		getCubeVertexCoordinates(cube, values) {
+			let {from, to, inflate} = values;
+
+			let vertices = [
+				[from[0]-inflate, from[1]-inflate, from[2]-inflate],
+				[from[0]-inflate, from[1]-inflate, to[2] + inflate],
+				[from[0]-inflate, to[1] + inflate, from[2]-inflate],
+				[from[0]-inflate, to[1] + inflate, to[2] + inflate],
+				[to[0] + inflate, from[1]-inflate, from[2]-inflate],
+				[to[0] + inflate, from[1]-inflate, to[2] + inflate],
+				[to[0] + inflate, to[1] + inflate, from[2]-inflate],
+				[to[0] + inflate, to[1] + inflate, to[2] + inflate]
+			];
+			vertices.forEach(array => {
+				array.V3_subtract(cube.origin)
+				let vector = Reusable.vec1.set(...array);
+				cube.mesh.localToWorld(vector);
+				array.replace(vector.toArray());
+			});
+			return vertices;
+		},
+		test(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
+			let center = block_format.cube_size_limiter.getModelCenter([cube]);
+
+			return undefined !== vertices.find((v, i) => {
+				return (v[0] > center[3]+15 || v[0] < center[0]-15)
+					|| (v[1] > center[4]+15 || v[1] < center[1]-15)
+					|| (v[2] > center[5]+15 || v[2] < center[2]-15);
+			})
+		},
+		move(cube, values = 0) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
+			let center = block_format.cube_size_limiter.getModelCenter([cube]);
+
+			let offset = [0, 0, 0];
+
+			vertices.forEach(v => {
+				v.forEach((val, i) => {
+					if (val > center[i+3] + 15) offset[i] = Math.max(offset[i], val - (center[i+3] + 15));
+					if (val < center[i] - 15) offset[i] = Math.min(offset[i], val - (center[i] - 15));
+				})
+			})
+
+			let quat = cube.mesh.getWorldQuaternion(Reusable.quat1).invert();
+			let required_offset = Reusable.vec2.set(...offset).applyQuaternion(quat).toArray();
+			
+			from.V3_subtract(required_offset);
+			to.V3_subtract(required_offset);
+						
+		},
+		clamp(cube, values = 0, axis, direction) {
+			let from = values.from || cube.from;
+			let to = values.to || cube.to;
+			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
+
+			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
+			let center = block_format.cube_size_limiter.getModelCenter();
+
+			let offset_from = [0, 0, 0];
+			let offset_to = [0, 0, 0];
+
+			vertices.forEach((v, vi) => {
+				v.forEach((val, i) => {
+					if (axis !== undefined && axis !== i) return;
+					if ((i == 0 && vi < 4) || (i == 1 && (vi % 4) < 2) || (i == 2 && (vi % 2) < 1)) {
+						if (val > center[i+3] + 15) offset_from[i] = Math.max(offset_from[i], val - (center[i+3] + 15));
+						if (val < center[i] - 15) offset_from[i] = Math.min(offset_from[i], val - (center[i] - 15));
+					} else {
+						if (val > center[i+3] + 15) offset_to[i] = Math.max(offset_to[i], val - (center[i+3] + 15));
+						if (val < center[i] - 15) offset_to[i] = Math.min(offset_to[i], val - (center[i] - 15));
+					}
+				})
+			})
+
+			let quat = cube.mesh.getWorldQuaternion(Reusable.quat1).invert();
+			if (direction !== true) {
+				let required_offset_to = Reusable.vec3.set(...offset_to).applyQuaternion(quat).toArray();
+				to.V3_subtract(required_offset_to);
+			}
+			if (direction !== false) {
+				let required_offset_from = Reusable.vec2.set(...offset_from).applyQuaternion(quat).toArray();
+				from.V3_subtract(required_offset_from);
+			}
+		}
+	},
 	codec,
 	onSetup(project) {
 		if (isApp) {

@@ -609,6 +609,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	var used = false;
 	var input_focus = getFocusedTextInput()
 
+	// Fix #1427
+	if (e.code == 'PageUp' || e.code == 'PageDown') {
+		e.preventDefault();
+	}
+
 	if (input_focus) {
 		//User Editing Anything
 

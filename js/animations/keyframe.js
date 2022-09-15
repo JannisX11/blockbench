@@ -362,6 +362,28 @@ class Keyframe {
 		Animator.preview()
 		return this;
 	}
+	
+	showInTimeline() {
+		if (!this.animator.animation.selected) {
+			this.animator.animation.select();
+		}
+		this.animator.addToTimeline();
+		this.select();
+
+		Vue.nextTick(() => {
+			let element = $(`.keyframe#${this.uuid}`);
+			let offset = element.offset();
+			if (!offset) return;
+
+			let body = document.getElementById('timeline_body');
+			let body_offset = $(body).offset();
+
+			$(body).animate({
+				scrollLeft: (offset.left - body_offset.left - 300),
+				scrollTop: (offset.top - body_offset.top - 120)
+			}, 200);
+		})
+	}
 	showContextMenu(event) {
 		if (!this.selected) {
 			this.select();
@@ -435,7 +457,7 @@ class Keyframe {
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
-	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: true})
+	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
 	Keyframe.selected = [];
 	Keyframe.interpolation = {
@@ -906,8 +928,11 @@ BARS.defineActions(function() {
 				if (animator instanceof BoneAnimator == false) return;
 				channels.forEach(channel => {
 					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
-						let kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
-						new_keyframes.push(kf)
+						let kf = animator[channel].find(kf => Math.epsilon(kf.time, Timeline.time, 1e-5));
+						if (!kf) {
+							kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
+							new_keyframes.push(kf)
+						}
 						Timeline.selected.push(kf);
 						kf.selected = true;
 					}
@@ -960,6 +985,7 @@ BARS.defineActions(function() {
 				form: {
 					info: {type: 'info', text: 'dialog.flip_animation.info'},
 					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
+					show_in_timeline: {label: 'dialog.flip_animation.show_in_timeline', type: 'checkbox', value: true},
 				},
 				onConfirm(formResult) {
 					this.hide()
@@ -971,31 +997,53 @@ BARS.defineActions(function() {
 					let channels = ['rotation', 'position', 'scale'];
 
 					animators.forEach(animator => {
+						let opposite_animator;
 						channels.forEach(channel => {
 							if (!animator[channel]) return;
 							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
 							if (!kfs.length) return;
-							let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
-							let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
-							if (!opposite_bone) {
-								console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
-								return;
+							if (!opposite_animator) {
+								let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
+								let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
+								if (!opposite_bone) {
+									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
+									return;
+								}
+								opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
 							}
-							let opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
 
+							let center_keyframe;
+							if (formResult.offset && !kfs.find(kf => Math.epsilon(kf.time, Timeline.snapTime(Animation.selected.length/2), 0.004))) {
+								center_keyframe = animator.createKeyframe(null, Timeline.snapTime(Animation.selected.length/2), channel, false, false);
+								kfs.push(center_keyframe);
+							}
+							kfs.sort((a, b) => a.time - b.time);
+							let occupied_times = [];
 							kfs.forEach(old_kf => {
 								let time = old_kf.time;
 								if (formResult.offset) {
 									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
 								}
-								let new_kf = opposite_animator.createKeyframe(old_kf, Timeline.snapTime(time), channel, false, false)
+								time = Timeline.snapTime(time);
+								if (occupied_times.includes(time)) return;
+								occupied_times.push(time);
+								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
 								if (new_kf) {
 									new_kf.flip(0);
 									new_keyframes.push(new_kf);
 								}
 							})
-
+							if (formResult.offset && !occupied_times.includes(0)) {
+								let new_kf = opposite_animator.createKeyframe(new_keyframes.last(), 0, channel, false, false)
+								if (new_kf) {
+									new_keyframes.push(new_kf);
+								}
+							}
+							if (center_keyframe) center_keyframe.remove();
 						})
+						if (formResult.show_in_timeline && opposite_animator) {
+							opposite_animator.addToTimeline();
+						}
 					})
 					TickUpdates.keyframes = true;
 					Animator.preview();

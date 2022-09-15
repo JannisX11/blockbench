@@ -163,7 +163,8 @@ Object.assign(Blockbench, {
 						} else {
 							results[this_i] = {
 								name: pathToName(file, true),
-								path: file
+								path: file,
+								content: file
 							}
 							result_count++;
 							if (result_count === files.length) {
@@ -413,19 +414,16 @@ document.body.ondrop = function(event) {
 	forDragHandlers(event, function(handler, el) {
 		var fileNames = event.dataTransfer.files
 
-		var input = this;
-		var results = [];
-		var result_count = 0;
-		var i = 0;
-		var errant;
-		var paths = []
+		var paths = [];
 		if (isApp) {
 			for (var file of fileNames) {
-				paths.push(file.path)
+				if (file.path) paths.push(file.path)
 			}
 		} else {
 			paths = fileNames
 		}
+		if (!paths.length) return;
+
 		Blockbench.read(paths, handler, (content) => {
 			handler.cb(content, event)
 		})

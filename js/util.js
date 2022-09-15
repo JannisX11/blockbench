@@ -70,7 +70,6 @@ class oneLiner {
 		}
 	}
 }
-var templog = console.log
 var asyncLoop = function(o){
 	var i=-1;
 	var async_loop = function(){
@@ -224,9 +223,9 @@ Math.snapToValues = function(val, snap_points, epsilon = 12) {
 		return val
 	}
 }
-function trimFloatNumber(val) {
+function trimFloatNumber(val, max_digits = 4) {
 	if (val == '') return val;
-	var string = val.toFixed(4)
+	var string = val.toFixed(max_digits)
 	string = string.replace(/0+$/g, '').replace(/\.$/g, '')
 	if (string == -0) return 0;
 	return string;

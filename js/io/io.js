@@ -34,20 +34,9 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
 		function(files, event) {
-			var texture_li = $(event.target).parents('li.texture')
-			if (texture_li.length) {
-				var tex = Texture.all.findInArray('uuid', texture_li.attr('texid'))
-				if (tex) {
-					tex.fromFile(files[0])
-					TickUpdates.selection = true;
-					return;
-				}
-			}
-			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
+			loadImages(files, event)
 		}
 	)
 }
@@ -85,6 +74,105 @@ function loadModelFile(file) {
 		if (success) return;
 	}
 }
+
+async function loadImages(files, event) {
+	let options = {};
+	let texture_li = event && $(event.target).parents('li.texture');
+	let replace_texture;
+
+	let img = new Image();
+	await new Promise((resolve, reject) => {
+		img.src = isApp ? files[0].path : files[0].content;
+		img.onload = resolve;
+		img.onerror = reject;
+	})
+
+	if (Project && texture_li && texture_li.length) {
+		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
+		if (replace_texture) {
+			options.replace_texture = 'menu.texture.change';
+		}
+	}
+	if (Project) {
+		options.texture = 'action.import_texture';
+		options.background = 'menu.view.background';
+	}
+	options.edit = 'message.load_images.edit_image';
+	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
+		options.minecraft_skin = 'format.skin';
+	}
+	if (Project && !Project.box_uv) {
+		options.extrude_with_cubes = 'dialog.extrude.title';
+	}
+
+	function doLoadImages(method) {
+		if (method == 'texture') {
+			files.forEach(function(f) {
+				new Texture().fromFile(f).add().fillParticle()
+			})
+
+		} else if (method == 'replace_texture') {
+			replace_texture.fromFile(files[0])
+			updateSelection();
+			
+		} else if (method == 'background') {
+			let preview = Preview.selected;
+			let image = isApp ? files[0].path : files[0].content;
+			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
+				image = image + '?' + Math.floor(Math.random() * 1000);
+			}
+			preview.background.image = image;
+			preview.loadBackground();
+			Settings.saveLocalStorages();
+			preview.startMovingBackground();
+			
+		} else if (method == 'edit') {
+			newProject(Formats.image);
+			Project.texture_width = img.naturalWidth;
+			Project.texture_height = img.naturalHeight;
+			files.forEach(function(f) {
+				new Texture().fromFile(f).add();
+			})
+			UVEditor.vue.updateTexture()
+			let last = Texture.all.last();
+			Project.name = last.name;
+			last.load_callback = () => {
+				last.select();
+			}
+
+			
+		} else if (method == 'minecraft_skin') {
+			Formats.skin.setup_dialog.show();
+			Formats.skin.setup_dialog.setFormValues({
+				texture: isApp ? files[0].path : files[0].content
+			})
+
+		} else if (method == 'extrude_with_cubes') {
+			showDialog('image_extruder');
+			Extruder.drawImage(files[0]);
+		}
+	}
+
+	let all_methods = Object.keys(options);
+	if (all_methods.length == 1) {
+		doLoadImages(all_methods[0]);
+
+	} else if (all_methods.length) {
+		let title = tl('message.load_images.title');
+		let message = `${files[0].name}`;
+		if (files.length > 1) message += ` (${files.length})`;
+		Blockbench.showMessageBox({
+			id: 'load_images',
+			commands: options,
+			title, message,
+			icon: img,
+			buttons: ['dialog.cancel'],
+		}, result => {
+			doLoadImages(result);
+		})
+	}
+}
+
 //Extruder
 var Extruder = {
 	drawImage: function(file) {
@@ -541,11 +629,10 @@ BARS.defineActions(function() {
 		click: function () {
 			var startpath;
 			if (isApp && recent_projects && recent_projects.length) {
-				startpath = recent_projects[0].path;
+				let first_recent_project = recent_projects.find(p => !p.favorite) || recent_projects[0];
+				startpath = first_recent_project.path;
 				if (typeof startpath == 'string') {
-					startpath = startpath.split(osfs);
-					startpath.pop();
-					startpath = startpath.join(osfs);
+					startpath = startpath.replace(/[\\\/][^\\\/]+$/, '');
 				}
 			}
 			Blockbench.import({

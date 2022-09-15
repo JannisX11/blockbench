@@ -53,8 +53,8 @@ console.log('%cBlockbench ' + appVersion + (isApp
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
-var startups = parseInt(localStorage.getItem('startups')||0);
-localStorage.setItem('startups', startups+1);
+Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0) + 1;
+localStorage.setItem('startups', Blockbench.startup_count);
 
 document.getElementById('blackout').addEventListener('click', event => {
 	if (typeof open_interface.cancel == 'function') {

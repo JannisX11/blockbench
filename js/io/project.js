@@ -131,6 +131,12 @@ class ModelProject {
 	getDisplayName() {
 		return this.name || this.model_identifier || this.format.name;
 	}
+	getProjectMemory() {
+		if (!isApp) return;
+		let path = this.export_path || this.save_path;
+		let data = recent_projects.find(p => p.path == path);
+		return data;
+	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
 	}
@@ -225,6 +231,7 @@ class ModelProject {
 		setStartScreen(!Project);
 		updateInterface();
 		updateProjectResolution();
+		Validator.validate();
 		Vue.nextTick(() => {
 			loadTextureDraggable();
 
@@ -314,9 +321,17 @@ class ModelProject {
 		}
 
 		if (force || await saveWarning()) {
-			if (isApp) await updateRecentProjectThumbnail();
+			try {
+				if (isApp) {
+					updateRecentProjectData();
+					await updateRecentProjectThumbnail();
+				}
 	
-			Blockbench.dispatchEvent('close_project');
+				Blockbench.dispatchEvent('close_project');
+
+			} catch (err) {
+				console.error(err);
+			}
 
 			if (this.EditSession) {
 				this.EditSession.quit();
@@ -426,7 +441,11 @@ function setupProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
-	Modes.options.edit.select();
+	if (format.edit_mode) {
+		Modes.options.edit.select();
+	} else if (format.paint_mode) {
+		Modes.options.paint.select();
+	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, false)
 	}
@@ -438,7 +457,11 @@ function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
-	Modes.options.edit.select();
+	if (format.edit_mode) {
+		Modes.options.edit.select();
+	} else if (format.paint_mode) {
+		Modes.options.paint.select();
+	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, true)
 	}

@@ -209,6 +209,7 @@ var part_codec = new Codec('optifine_part', {
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones()
+		Validator.validate()
 	}
 })
 

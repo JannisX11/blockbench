@@ -175,6 +175,7 @@ const format = new ModelFormat('skin', {
 	single_texture: true,
 	integer_size: true,
 	rotate_cubes: false,
+	edit_mode: false,
 	pose_mode: true,
 	codec
 })
@@ -282,6 +283,7 @@ const skin_dialog = new Dialog({
 		Format = 0;
 	}
 });
+format.setup_dialog = skin_dialog;
 
 
 BARS.defineActions(function() {

@@ -112,6 +112,13 @@ onVueSetup(function() {
 			options: Modes.options
 		},
 		methods: {
+			showModes() {
+				let count = 0;
+				for (let key in this.options) {
+					if (Condition(this.options[key].condition)) count++;
+				}
+				return count > 1;
+			},
 			Condition
 		}
 	})
@@ -120,7 +127,7 @@ BARS.defineActions(function() {
 	new Mode('edit', {
 		default_tool: 'move_tool',
 		category: 'navigate',
-		condition: () => Format && !Format.pose_mode,
+		condition: () => Format && Format.edit_mode,
 		onUnselect: () => {
 			if (Undo) Undo.closeAmendEditMenu();
 		}
@@ -128,7 +135,7 @@ BARS.defineActions(function() {
 	new Mode('paint', {
 		default_tool: 'brush_tool',
 		category: 'navigate',
-		condition: () => Format,
+		condition: () => Format && Format.paint_mode,
 		onSelect: () => {
 			if (Modes.previous_id == 'animate') {
 				Animator.preview();
@@ -142,6 +149,12 @@ BARS.defineActions(function() {
 			BarItems.slider_color_v.update();
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+
+			if (Format.id == 'image') {
+				let old_color_slot = Panels.color.slot;
+				Panels.color.position_data = Interface.data.panels.color_2d;
+				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
+			}
 			Panels.uv.position_data = Interface.data.panels.paint;
 			if (Panels.uv.slot !== Interface.data.panels.uv.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
@@ -155,6 +168,11 @@ BARS.defineActions(function() {
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
 			Panels.uv.position_data = Interface.data.panels.uv;
 			if (Panels.uv.slot !== Interface.data.panels.paint.slot) Panels.uv.moveTo(Panels.uv.slot);
+			if (Panels.color.position_data == Interface.data.panels.color_2d) {
+				let old_color_slot = Panels.color.slot;
+				Panels.color.position_data = Interface.data.panels.color;
+				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
+			}
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},

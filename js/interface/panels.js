@@ -131,7 +131,6 @@ class Panel {
 			})
 
 
-
 			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
 				convertTouchEvent(e1);
 				let started = false;

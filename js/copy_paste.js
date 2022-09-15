@@ -11,6 +11,7 @@ const Clipbench = {
 		texture: 'texture',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
+		image: 'image',
 	},
 	type_icons: {
 		face: 'aspect_ratio',
@@ -53,6 +54,9 @@ const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (!Project) {
+			return Clipbench.types.image;
 		}
 	},
 	async getPasteType() {
@@ -110,6 +114,9 @@ const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (!Project) {
+			return Clipbench.types.image;
 		}
 	},
 	copy(event, cut) {
@@ -188,6 +195,9 @@ const Clipbench = {
 				break;
 			case 'outliner':
 				Clipbench.pasteOutliner(event);
+				break;
+			case 'image':
+				Clipbench.pasteImage(event);
 				break;
 		}
 	},
@@ -296,7 +306,8 @@ const Clipbench = {
 		if (Clipbench.group) {
 			function iterate(obj, parent) {
 				if (obj.children) {
-					var copy = new Group(obj).addTo(parent).init()
+					var copy = new Group(obj).addTo(parent).init();
+					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
 
@@ -337,33 +348,13 @@ const Clipbench = {
 		}
 
 		//Canvas Limit
-		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			elements.forEach(s => {
-				if (s instanceof Cube == false) return;
-				//Push elements into 3x3 block box
-				[0, 1, 2].forEach(function(ax) {
-					var overlap = s.to[ax] + s.inflate - 32
-					if (overlap > 0) {
-						//If positive site overlaps
-						s.from[ax] -= overlap
-						s.to[ax] -= overlap
-
-						if (16 + s.from[ax] - s.inflate < 0) {
-							s.from[ax] = -16 + s.inflate
-						}
-					} else {
-						overlap = s.from[ax] - s.inflate + 16
-						if (overlap < 0) {
-							s.from[ax] -= overlap
-							s.to[ax] -= overlap
-
-							if (s.to[ax] + s.inflate > 32) {
-								s.to[ax] = 32 - s.inflate
-							}
-						}
-					}
-				})
+				if (s instanceof Cube) {
+					//Push elements into 3x3 block box
+					Format.cube_size_limiter.move(s);
+				}
 			})
 			Canvas.updateView({elements, element_aspects: {transform: true, geometry: true}});
 		}
@@ -383,6 +374,35 @@ const Clipbench = {
 		}
 
 		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
+	},
+	pasteImage() {
+		function loadFromDataUrl(dataUrl) {
+			if (!dataUrl || dataUrl.length < 32) return;
+			
+			newProject(Formats.image);
+			var texture = new Texture({name: 'image'}).fromDataURL(dataUrl).add(false);
+			UVEditor.vue.updateTexture()
+			Project.name = 'image';
+			texture.load_callback = () => {
+				texture.select();
+				Project.texture_width = texture.width;
+				Project.texture_height = texture.height;
+			}
+		}
+	
+		if (isApp) {
+			var image = clipboard.readImage().toDataURL();
+			loadFromDataUrl(image);
+		} else {
+			navigator.clipboard.read().then(content => {
+				if (content && content[0] && content[0].types.includes('image/png')) {
+					content[0].getType('image/png').then(blob => {
+						let url = URL.createObjectURL(blob);
+						loadFromDataUrl(url);
+					})
+				}
+			}).catch(() => {})
+		}
 	}
 }
 

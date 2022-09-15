@@ -58,7 +58,7 @@ CubeFace.opposite = {
 class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
-		let size = canvasGridSize();
+		let size = Settings.get('default_cube_size');
 		this.from = [0, 0, 0];
 		this.to = [size, size, size];
 		this.shade = true;
@@ -277,7 +277,7 @@ class Cube extends OutlinerElement {
 		}
 
 		// Check limits
-		if (Format.canvas_limit && !settings.deactivate_size_limit.value) {
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 			let from = this.from.slice(), to = this.to.slice();
 			for (let check_steps = steps; check_steps > 0; check_steps--) {
 				switch(axis) {
@@ -288,7 +288,7 @@ class Cube extends OutlinerElement {
 				from.V3_set(rotateCoord(from));
 				to.V3_set(rotateCoord(to));
 			}
-			if ([...from, ...to].find(value => (value > 32 || value < -16))) {
+			if (Format.cube_size_limiter.test(this, {from, to})) {
 				return false;
 			}
 		}
@@ -656,13 +656,15 @@ class Cube extends OutlinerElement {
 			val += scope.from[i];
 
 			var val_before = val;
-			val = limitToBox(limitToBox(val, -scope.inflate) + size, scope.inflate) - size
 			if (Math.abs(val_before - val) >= 1e-4) in_box = false;
 			val -= scope.from[i]
 
 			scope.from[i] += val;
 			scope.to[i] += val;
 		})
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+			Format.cube_size_limiter.move(this);
+		}
 		if (update) {
 			this.mapAutoUV()
 			this.preview_controller.updateTransform(this);
@@ -682,8 +684,8 @@ class Cube extends OutlinerElement {
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
-			var from = limitToBox(center - (before/2) - difference, this.inflate);
-			var to = limitToBox(center + (before/2) + difference, this.inflate);
+			var from = center - (before/2) - difference;
+			var to = center + (before/2) + difference;
 
 			if (Format.integer_size) {
 				from = Math.round(from-this.from[axis])+this.from[axis];
@@ -693,7 +695,7 @@ class Cube extends OutlinerElement {
 			this.to[axis] = to;
 
 		} else if (!negative) {
-			var pos = limitToBox(this.from[axis] + modify(before), this.inflate);
+			var pos = this.from[axis] + modify(before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];
 			}
@@ -703,7 +705,7 @@ class Cube extends OutlinerElement {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			var pos = limitToBox(this.to[axis] + modify(-before), this.inflate);
+			var pos = this.to[axis] + modify(-before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.to[axis])+this.to[axis];
 			}
@@ -712,6 +714,9 @@ class Cube extends OutlinerElement {
 			} else {
 				this.from[axis] = this.to[axis];
 			}
+		}
+		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+			Format.cube_size_limiter.clamp(this, {}, axis, bidirectional ? null : !!negative);
 		}
 		this.mapAutoUV();
 		if (Project.box_uv) {
@@ -833,10 +838,6 @@ new NodePreviewController(Cube, {
 			var rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
 			mesh.scale.set(rescale, rescale, rescale);
 			mesh.scale[axis] = 1;
-		}
-
-		if (Modes.paint) {
-			element.preview_controller.updatePaintingGrid(element);
 		}
 
 		this.dispatchEvent('update_transform', {element});
@@ -1195,6 +1196,7 @@ BARS.defineActions(function() {
 			var base_cube = new Cube({
 				autouv: (settings.autouv.value ? 1 : 0)
 			}).init()
+			if (!Project.box_uv) base_cube.mapAutoUV()
 			var group = getCurrentGroup();
 			base_cube.addTo(group)
 
@@ -1206,11 +1208,20 @@ BARS.defineActions(function() {
 			}
 			if (Format.bone_rig) {
 				var pos1 = group ? group.origin.slice() : [0, 0, 0];
-				base_cube.extend({
-					from:[ pos1[0]-1, pos1[1]-0, pos1[2]-1 ],
-					to:[   pos1[0]+1, pos1[1]+2, pos1[2]+1 ],
-					origin: pos1.slice()
-				})
+				let size = Settings.get('default_cube_size');
+				if (size % 2 == 0) {
+					base_cube.extend({
+						from:[ pos1[0] - size/2, pos1[1] - 0,    pos1[2] - size/2 ],
+						to:[   pos1[0] + size/2, pos1[1] + size, pos1[2] + size/2 ],
+						origin: pos1.slice()
+					})
+				} else {
+					base_cube.extend({
+						from:[ pos1[0], pos1[1], pos1[2] ],
+						to:[   pos1[0]+size, pos1[1]+size, pos1[2]+size ],
+						origin: pos1.slice()
+					})
+				}
 			}
 
 			if (Group.selected) Group.selected.unselect()

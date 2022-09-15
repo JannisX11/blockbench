@@ -52,6 +52,12 @@ const Blockbench = {
 		} else if (icon instanceof HTMLElement) {
 			//Node
 			node = icon
+		} else if (icon === true || icon === false) {
+			//Boolean
+			node = document.createElement('i');
+			node.classList.add('material-icons', 'icon');
+			node.innerText = icon ? 'check_box' : 'check_box_outline_blank';
+
 		} else if (icon === null) {
 			//Node
 			node = document.createElement('i');
@@ -206,12 +212,30 @@ const Blockbench = {
 				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
 			</dialog>`)
 
-		jq_dialog.append('<div class="dialog_content"><div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-			marked(tl(options.message))+
-			'</div></div>'
-		)
+		let content = $('<div class="dialog_content"></div>');
+		jq_dialog.append(content);
+
+		if (options.message) {
+			content.append('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+				marked(tl(options.message))+
+			'</div></div>')
+		}
 		if (options.icon) {
 			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		if (options.commands) {
+			let list = Interface.createElement('ul');
+			for (let id in options.commands) {
+				let command = options.commands[id];
+				let text = tl(typeof command == 'string' ? command : command.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				entry.addEventListener('click', e => {
+					close(id);
+				})
+				list.append(entry);
+			}
+			content.append(list);
 		}
 
 		function close(button) {
@@ -348,13 +372,18 @@ const Blockbench = {
 	//Events
 	dispatchEvent(event_name, data) {
 		let list = this.events[event_name];
-		if (!list) return;
-		let results = [];
-		for (let i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				let result = list[i](data);
-				results.push(result);
+		let results;
+		if (list) {
+			results = [];
+			for (let i = 0; i < list.length; i++) {
+				if (typeof list[i] === 'function') {
+					let result = list[i](data);
+					results.push(result);
+				}
 			}
+		}
+		if (Validator.triggers.includes(event_name)) {
+			Validator.validate(event_name);
 		}
 		return results;
 	},

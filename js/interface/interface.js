@@ -56,13 +56,13 @@ class ResizeLine {
 		if (data.top !== undefined) {
 			jq.css('top', data.top+'px')
 		}
-		if (data.bottom !== undefined && (!data.horizontal || data.top === undefined)) {
+		if (data.bottom !== undefined && (!this.horizontal || data.top === undefined)) {
 			jq.css('bottom', data.bottom+'px')
 		}
 		if (data.left !== undefined) {
 			jq.css('left', data.left+'px')
 		}
-		if (data.right !== undefined && (data.horizontal || data.left === undefined)) {
+		if (data.right !== undefined && (this.horizontal || data.left === undefined)) {
 			jq.css('right', data.right+'px')
 		}
 	}
@@ -74,7 +74,7 @@ const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
-		left_bar: ['uv', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
 			paint: {
@@ -82,6 +82,12 @@ const Interface = {
 				float_position: [300, 0],
 				float_size: [500, 600],
 				height: window.innerHeight/2-50
+			},
+			color_2d: {
+				slot: 'left_bar',
+				float_position: [50, 0],
+				float_size: [300, 400],
+				height: 400
 			}
 		}
 	},
@@ -368,6 +374,7 @@ function setupInterface() {
 		'open_backup_folder',
 		'save',
 		'timelapse',
+		'cancel_gif',
 	])
 	
 	if (Blockbench.isMobile) {
@@ -435,7 +442,7 @@ function setupInterface() {
 	Interface.text_edit_menu = new Menu([
 		{
 			id: 'copy',
-			name: 'Copy',
+			name: 'action.copy',
 			icon: 'fa-copy',
 			click() {
 				document.execCommand('copy');
@@ -443,7 +450,7 @@ function setupInterface() {
 		},
 		{
 			id: 'paste',
-			name: 'Paste',
+			name: 'action.paste',
 			icon: 'fa-paste',
 			click() {
 				document.execCommand('paste');
@@ -506,6 +513,9 @@ function resizeWindow(event) {
 			prev.resize()
 		}
 	})
+	if (Format.id == 'image') {
+		UVEditor.updateSize();
+	}
 	var dialog = $('dialog#'+open_dialog)
 	if (dialog.length) {
 		if (dialog.outerWidth() + dialog.offset().left > window.innerWidth) {
@@ -677,6 +687,8 @@ onVueSetup(function() {
 			selection_info: '',
 			Format: null,
 			show_modifier_keys: settings.status_bar_modifier_keys.value,
+			warnings: Validator.warnings,
+			errors: Validator.errors,
 			modifier_keys: {
 				ctrl: [],
 				shift: [],
@@ -733,6 +745,9 @@ onVueSetup(function() {
 			clickModifiers() {
 				ActionControl.select(`setting: ${tl('settings.status_bar_modifier_keys')}`);
 			},
+			openValidator() {
+				Validator.openDialog();
+			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode,
 			tl
@@ -761,7 +776,7 @@ onVueSetup(function() {
 
 				<template v-if="show_modifier_keys && !isMobile">
 					<div class="status_bar_modifier_key" v-if="modifier_keys.ctrl.length" @click="clickModifiers()">
-						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.cmd' : 'keys.ctrl')}</kbd>
+						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')}</kbd>
 						<span>{{ tl(modifier_keys.ctrl.last()) }}</span>
 					</div>
 					<div class="status_bar_modifier_key" v-if="modifier_keys.shift.length" @click="clickModifiers()">
@@ -775,6 +790,12 @@ onVueSetup(function() {
 				</template>
 
 				<div class="status_selection_info">{{ selection_info }}</div>
+
+				
+				<div class="f_right" id="validator_status" v-if="warnings.length || errors.length" @click="openValidator()">
+					<span v-if="warnings.length" style="color: var(--color-warning)">{{ warnings.length }}<i class="material-icons">warning</i></span>
+					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
+				</div>
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>

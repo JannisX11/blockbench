@@ -11,6 +11,7 @@
 	a:-webkit-any-link {
 	    color: inherit;
 	    text-decoration: underline;
+		cursor: pointer;
 	}
 	a:-webkit-any-link:hover {
 	    color: var(--color-light);
@@ -55,11 +56,14 @@
 		scrollbar-width: none;
 	}
 	body.is_mobile .mobile_scrollbar {
-		scrollbar-width: thin;
+		scrollbar-width: initial;
 	}
 	body.is_mobile .mobile_scrollbar::-webkit-scrollbar {
-		width: 12px;
-		height: 12px;
+		width: 20px;
+		height: 20px;
+	}
+	body.is_mobile .mobile_scrollbar::-webkit-scrollbar-thumb {
+		border-radius: 10px;
 	}
 	/*Assistant Font*/
 	@font-face {
@@ -117,8 +121,8 @@
 		font-family: 'icomoon';
 		font-weight: normal;
 		font-style: normal;
-		src: url('../font/icomoon.ttf') format('truetype'),
-			 url('../font/icomoon.woff?t564px') format('woff');
+		src: url('../font/icomoon.ttf?aswqub') format('truetype'),
+			 url('../font/icomoon.woff?aswqub') format('woff');
 	}
 
 /*Icons*/
@@ -317,7 +321,10 @@
 
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
+		--color-error: #ff2a51;
+		--color-warning: #ffc400;
 		--color-stream: #6442A4;
+		
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
@@ -350,6 +357,7 @@
 		outline-color: var(--color-accent);
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
+		forced-color-adjust: none;
 	}
 	div {
 		cursor: default;
@@ -665,10 +673,14 @@
 	label.toggle_panel {
 		height: 30px;
 		width: 56px;
-		padding: 2px;
+		padding: 4px;
 		display: inline-block;
 		background-color: var(--color-back);
 		text-align: center;
+		cursor: pointer;
+	}
+	label.toggle_panel:hover {
+		color: var(--color-light);
 	}
 	input:checked + label.toggle_panel {
 		background-color: var(--color-selected);

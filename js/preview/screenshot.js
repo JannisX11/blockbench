@@ -12,8 +12,8 @@ const Screencam = {
 				animation: 'dialog.create_gif.length_mode.animation',
 				turntable: 'dialog.create_gif.length_mode.turntable',
 			}},
-			length: {label: 'dialog.create_gif.length', type: 'number', value: 10, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
-			fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 20},
+			length: {label: 'dialog.create_gif.length', type: 'number', value: 10, min: 0, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
+			fps: 	{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 1, max: 120},
 			quality:{label: 'dialog.create_gif.compression', type: 'number', value: 20, min: 1, max: 80},
 			color:  {label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
 			turn:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
@@ -170,7 +170,7 @@ const Screencam = {
 						extensions: [is_gif ? 'gif' : 'png'],
 						type: tl('data.image'),
 						savetype: is_gif ? 'binary' : 'image',
-						name: Project.name.replace(/\.geo$/, ''),
+						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
 						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
 				}
@@ -264,7 +264,7 @@ const Screencam = {
 	
 			}, interval)
 			gif.on('finished', blob => {
-
+				delete Screencam.processing_gif;
 				var reader = new FileReader();
 				reader.onload = () => {
 					if (!options.silent) {
@@ -290,6 +290,7 @@ const Screencam = {
 				gif.render();
 				if (!options.silent) {
 					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+					Screencam.processing_gif = gif;
 				}
 			}
 			if (Animator.open && Timeline.playing) {
@@ -469,14 +470,27 @@ BARS.defineActions(function() {
 	new Action('screenshot_model', {
 		icon: 'photo_camera',
 		category: 'view',
+		condition: () => !!Project,
 		keybind: new Keybind({key: 'p', ctrl: true}),
-		click: function () {Preview.selected.screenshot()}
+		click() {Preview.selected.screenshot()}
 	})
 	new Action('record_model_gif', {
 		icon: 'local_movies',
 		category: 'view',
-		click: function () {
+		condition: () => !!Project,
+		click() {
 			Screencam.gif_options_dialog.show();
+		}
+	})
+	new Action('cancel_gif', {
+		icon: 'close',
+		category: 'view',
+		condition: () => Screencam.processing_gif,
+		click() {
+			Screencam.processing_gif.abort();
+			delete Screencam.processing_gif;
+			Blockbench.setProgress();
+			Blockbench.setStatusBarText();
 		}
 	})
 	Screencam.timelapse_dialog = new Dialog({
@@ -500,8 +514,8 @@ BARS.defineActions(function() {
 	new Action('timelapse', {
 		icon: 'timelapse',
 		category: 'view',
-		condition: isApp,
-		click: function () {
+		condition: isApp && (() => !!Project),
+		click() {
 			if (!Prop.recording) {
 				Screencam.timelapse_dialog.show();
 			} else {
@@ -513,6 +527,6 @@ BARS.defineActions(function() {
 		icon: 'icon-bb_interface',
 		category: 'view',
 		condition: isApp,
-		click: function () {Screencam.fullScreen()}
+		click() {Screencam.fullScreen()}
 	})
 })

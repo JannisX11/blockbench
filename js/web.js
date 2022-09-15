@@ -15,7 +15,7 @@ function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
-		window.open(event.target.href, '_blank');
+		window.open(event.currentTarget.href, '_blank');
 	});
 	if (location.host == 'blockbench-dev.netlify.app') {
 		let button = $(`<a href="https://www.netlify.com/" style="padding: 3px 8px; color: white; cursor: pointer; text-decoration: none;" target="_blank" rel="noopener">
@@ -32,6 +32,37 @@ function initializeWebApp() {
 		document.body.style.imageRendering = 'crisp-edges'
 	}
 }
+addEventListener('load', function() {
+	window.history.pushState({}, '')
+})
+addEventListener('popstate', e => {
+	if (ModelProject.all.length == 0) {
+		return;
+	}
+
+	if (open_interface) {
+		if (typeof open_interface.cancel == 'function') {
+			open_interface.cancel(event);
+		} else if (typeof open_interface == 'string' && open_dialog) {
+			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		}
+		
+	} else if (Interface.tab_bar.new_tab.visible) {
+		Interface.tab_bar.new_tab.close()
+		
+	} else if (open_menu) {
+		open_menu.hide()
+
+	} else if (Undo && Undo.index) {
+		Undo.undo()
+
+	} else if (!Blockbench.isMobile) {
+		return;
+	}
+
+	window.history.pushState({}, '');
+})
+
 try {
 	window.matchMedia('(display-mode: standalone)').addEventListener('change', (evt) => {
 		if (!Blockbench.isMobile) $('#web_download_button').toggle(!evt.matches);

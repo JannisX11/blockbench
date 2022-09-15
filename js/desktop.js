@@ -35,9 +35,14 @@ function initializeDesktopApp() {
 	//Setup
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
-		shell.openExternal(event.target.href);
+		shell.openExternal(event.currentTarget.href);
 		return true;
 	});
+
+	if (Blockbench.startup_count <= 1 && electron.nativeTheme.inForcedColorsMode) {
+		let theme = CustomTheme.themes.find(t => t.id == 'contrast');
+		CustomTheme.loadTheme(theme);
+	}
 
 	function makeUtilFolder(name) {
 		let path = PathModule.join(app.getPath('userData'), name)
@@ -72,20 +77,24 @@ function initializeDesktopApp() {
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
-	ipcRenderer.on('open-model', (event, path) => {
-		Blockbench.read([path], {}, function(files) {
-			files.forEach(file => {
-				loadModelFile(file);
+	function load(path) {
+		var extension = pathToExtension(path);
+		if (extension == 'png') {
+			Blockbench.read([path], {readtype: 'image'}, (files) => {
+				loadImages(files);
 			})
-		})
-	})
-	if (electron.process.argv.length >= 2) {
-		var extension = pathToExtension(electron.process.argv.last())
-		if (Codec.getAllExtensions().includes(extension)) {
-			Blockbench.read([electron.process.argv.last()], {}, (files) => {
+		} else if (Codec.getAllExtensions().includes(extension)) {
+			Blockbench.read([path], {}, (files) => {
 				loadModelFile(files[0])
 			})
 		}
+	}
+	ipcRenderer.on('open-model', (event, path) => {
+		load(path);
+	})
+	if (electron.process.argv.length >= 2) {
+		let path = electron.process.argv.last();
+		load(path);
 	}
 }
 (function() {
@@ -140,16 +149,34 @@ function addRecentProject(data) {
 		path: data.path,
 		icon: data.icon,
 		favorite: former_entry ? former_entry.favorite : false,
-		day: new Date().dayOfYear()
+		day: new Date().dayOfYear(),
 	}
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
+	StartScreen.vue.updateThumbnails([data.path]);
+	updateRecentProjects()
+}
+function updateRecentProjectData() {
+	let project = Project.getProjectMemory();
+	if (!project) return;
+	
+	project.name = Project.name;
+
+	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
+
+	if (Format.animation_files) {
+		project.animation_files = [];
+		Animation.all.forEach(anim => {
+			if (anim.path) project.animation_files.safePush(anim.path);
+		})
+	}
+
+	Blockbench.dispatchEvent('update_recent_project_data', {data: project});
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
 	if (Outliner.elements.length == 0) return;
-	let path = Project.export_path || Project.save_path;
-	let project = recent_projects.find(p => p.path == path);
+	let project = Project.getProjectMemory();
 	if (!project) return;
 
 	MediaPreview.resize(180, 100)
@@ -163,10 +190,12 @@ async function updateRecentProjectThumbnail() {
 	let size = Math.max(box[0], box[1]*2)
 	MediaPreview.camera.position.multiplyScalar(size/50)
 	
+	let thumbnail;
 	await new Promise((resolve, reject) => {
 		MediaPreview.screenshot({crop: false}, url => {
 			let hash = project.path.hashCode().toString().replace(/^-/, '0');
 			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+			thumbnail = url;
 			Blockbench.writeFile(path, {
 				savetype: 'image',
 				content: url
@@ -176,6 +205,8 @@ async function updateRecentProjectThumbnail() {
 			project.path = store_path;
 		})
 	})
+	Blockbench.dispatchEvent('update_recent_project_thumbnail', {data: project, thumbnail});
+	StartScreen.vue.updateThumbnails([project.path]);
 
 	// Clean old files
 	if (Math.random() < 0.2) {
@@ -197,6 +228,26 @@ async function updateRecentProjectThumbnail() {
 			}
 		})
 	}
+}
+function loadDataFromModelMemory() {
+	let project = Project.getProjectMemory();
+	if (!project) return;
+
+	if (project.textures) {
+		Blockbench.read(project.textures, {}, files => {
+			files.forEach(f => {
+				new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+			})
+		})
+	}
+	if (project.animation_files && Format.animation_files) {
+		Blockbench.read(project.animation_files, {}, files => {
+			files.forEach(file => {
+				Animator.importFile(file);
+			})
+		})
+	}
+	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
 //Window Controls
@@ -360,6 +411,7 @@ function createBackup(init) {
 window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectThumbnail()
+		updateRecentProjectData()
 	} catch(err) {}
 
 
@@ -399,7 +451,7 @@ function closeBlockbenchWindow() {
 
 
 ipcRenderer.on('update-available', (event, arg) => {
-	console.log('Found new update')
+	console.log('Found new update:', arg.version)
 	if (settings.automatic_updates.value) {
 		ipcRenderer.send('allow-auto-update');
 

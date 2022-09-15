@@ -495,6 +495,33 @@
 		transform: scale(0.6);
 	}
 
+	.tool.side_menu_tool {
+		width: 48px;
+	}
+	.tool.side_menu_tool i.icon {
+		display: block;
+		margin-left: 6px;
+		float: left;
+	}
+	.tool.side_menu_tool i.icon.action_more_options {
+		display: inline-block;
+		width: 19px;
+		color: var(--color-text);
+		margin-left: 0;
+	}
+	.tool.side_menu_tool i.icon.action_more_options:hover {
+		color: inherit;
+	}
+	.toolbar.vertical .tool.side_menu_tool {
+		height: 54px;
+	}
+	.toolbar.vertical .tool.side_menu_tool > .action_more_options {
+		max-width: 48px;
+		text-align: center;
+		width: 100%;
+		margin-top: 0px;
+	}
+
 /*(Context-)Menu*/
 	.contextMenu {
 		position: absolute;

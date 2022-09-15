@@ -242,6 +242,20 @@ class Action extends BarItem {
 
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
+
+		if (data.side_menu) {
+			this.side_menu = data.side_menu;
+			this.node.classList.add('side_menu_tool');
+			
+			let open_node = Blockbench.getIconNode('arrow_drop_down');
+			open_node.classList.add('action_more_options');
+			open_node.onclick = e => {
+				e.stopPropagation();
+				this.side_menu.open(e.target.parentElement);
+			}
+			this.node.append(open_node);
+		}
+
 		this.node.onclick = (e) => {
 			scope.trigger(e)
 		}
@@ -278,6 +292,19 @@ class Action extends BarItem {
 			node.querySelector('.keybinding_label').textContent = this.keybind || '';
 		});
 		return this;
+	}
+	getNode(ignore_disconnected) {
+		let clone = super.getNode(ignore_disconnected);
+		if (this.side_menu) {
+			let options = clone.querySelector('.action_more_options');
+			if (options && !options.onclick) {
+				options.onclick = e => {
+					e.stopPropagation();
+					this.side_menu.open(e.target.parentElement);
+				}
+			}
+		}
+		return clone;
 	}
 	setIcon(icon) {
 		var scope = this;
@@ -328,7 +355,7 @@ class Tool extends Action {
 		this.cursor = data.cursor;
 		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;
-		this.brushTool = data.brushTool;
+		this.brush = data.brush;
 		this.transformerMode = data.transformerMode;
 		this.animation_channel = data.animation_channel;
 		this.allowed_view_modes = data.allowed_view_modes || null;
@@ -580,13 +607,13 @@ class NumSlider extends Widget {
 			addEventListeners(document, 'mouseup touchend', stop);
 		})
 		//Input
-		.keypress(function (e) {
+		.on('keypress', function (e) {
 			if (e.keyCode === 10 || e.keyCode === 13) {
 				e.preventDefault();
 				scope.stopInput();
 			}
 		})
-		.keyup(function (e) {
+		.on('keyup', function (e) {
 			if (e.keyCode !== 10 && e.keyCode !== 13) {
 				scope.input()
 			}
@@ -598,15 +625,50 @@ class NumSlider extends Widget {
 				scope.update()
 			}
 		})
-		.focusout(function() {
+		.on('focusout', function() {
 			scope.stopInput()
 		})
-		.dblclick(function(event) {
+		.on('dblclick', function(event) {
 			if (event.target != this) return;
 			let value = scope.settings && scope.settings.default ? scope.settings.default.toString() : '0';
 			scope.jq_inner.text(value);
 			scope.stopInput()
 
+		})
+		.on('contextmenu', event => {
+			new Menu([
+				{
+					id: 'copy',
+					name: 'action.copy',
+					icon: 'fa-copy',
+					click: () => {
+						Clipbench.setText(this.value);
+					}
+				},
+				{
+					id: 'copy',
+					name: 'menu.text_edit.copy_vector',
+					icon: 'fa-copy',
+					condition: this.slider_vector instanceof Array,
+					click: () => {
+						let numbers = this.slider_vector.map(slider => slider.value);
+						let text = numbers.join(' ');
+						Clipbench.setText(text);
+					}
+				},
+				{
+					id: 'paste',
+					name: 'action.paste',
+					icon: 'fa-paste',
+					click: () => {
+						this.startInput()
+						document.execCommand('paste');
+						setTimeout(() => {
+							this.stopInput();
+						}, 20);
+					}
+				}
+			]).open(event);
 		});
 		//Arrows
 		this.jq_outer
@@ -678,6 +740,28 @@ class NumSlider extends Widget {
 			if (typeof this.onBefore === 'function') {
 				this.onBefore()
 			}
+
+			if (this.slider_vector && text.split(/\s+/g).length == this.slider_vector.length) {
+				let components = text.split(/\s+/g);
+
+				components.forEach((number, axis) => {
+					let slider = this.slider_vector[axis];
+					number = parseFloat(number);
+					if (isNaN(number)) {
+						number = 0;
+					}
+					slider.change(val => number);
+
+					this.jq_inner.removeClass('editing')
+					this.jq_inner.attr('contenteditable', 'false')
+					this.update()
+				})
+
+				this.onAfter()
+				return;
+			}
+
+
 			text = text.replace(/,(?=\d+$)/, '.');
 			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
 				var number = parseFloat(text);
@@ -743,6 +827,9 @@ class NumSlider extends Widget {
 			this.value = trimFloatNumber(value)
 		} else {
 
+		}
+		if (this.tool_setting) {
+			Toolbox.selected.tool_settings[this.tool_setting] = value;
 		}
 		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
 		if (this.settings && this.settings.show_bar) {
@@ -1482,6 +1569,7 @@ const BARS = {
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
 				category: 'tools',
+				selectFace: true,
 				transformerMode: 'translate',
 				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
 				alt_tool: 'rotate_tool',
@@ -1802,9 +1890,9 @@ const BARS = {
 						Undo.initEdit({keyframes});
 						keyframes.forEach(keyframe => {
 							keyframe.data_points.forEach(datapoint => {
-								if (datapoint.x) datapoint.x = replace(datapoint.x.toString());
-								if (datapoint.y) datapoint.y = replace(datapoint.y.toString());
-								if (datapoint.z) datapoint.z = replace(datapoint.z.toString());
+								if (datapoint.x != undefined) datapoint.x = replace(datapoint.x.toString());
+								if (datapoint.y != undefined) datapoint.y = replace(datapoint.y.toString());
+								if (datapoint.z != undefined) datapoint.z = replace(datapoint.z.toString());
 
 								if (datapoint.effect) datapoint.effect = replace(datapoint.effect);
 								if (datapoint.locator) datapoint.locator = replace(datapoint.locator);
@@ -1937,6 +2025,7 @@ const BARS = {
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',
+				'copy_brush',
 				'fill_tool',
 				'eraser',
 				'color_picker',
@@ -2144,23 +2233,27 @@ const BARS = {
 		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
 			Toolbars.main_tools.add(BarItems.selection_mode, -1);
 		})
+		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
+			delete BARS.stored.brush;
+		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			children: [
 				'fill_mode',
+				'copy_brush_mode',
 				'draw_shape_type',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'_',
+				'brush_shape',
+				'blend_mode',
 				'mirror_painting',
 				'color_erase_mode',
 				'lock_alpha',
 				'painting_grid',
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.brush.add(BarItems.color_erase_mode, -3);
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',

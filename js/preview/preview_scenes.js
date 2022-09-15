@@ -31,6 +31,7 @@ class PreviewScene {
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
 		PreviewScene.active = this;
+		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
 		Canvas.updateShading();
 	}
 	unselect() {
@@ -40,7 +41,12 @@ class PreviewScene {
 
 		Canvas.global_light_color.set(0xffffff);
 		Canvas.global_light_side = 0;
+		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
+	}
+	delete() {
+		delete PreviewScene.scenes[this.id];
+		delete PreviewScene.select_options[this.id];
 	}
 }
 PreviewScene.scenes = {};
@@ -52,6 +58,7 @@ PreviewScene.select_options = {
 class PreviewModel {
 	constructor(id, data) {
 		PreviewModel.models[id] = this;
+		this.id = id;
 		this.condition = data.condition;
 		this.model_3d = new THREE.Object3D();
 		this.onUpdate = data.onUpdate;
@@ -163,6 +170,9 @@ class PreviewModel {
 			this.model_3d.add(mesh);
 		})
 		return this;
+	}
+	delete() {
+		delete PreviewModel.models[id];
 	}
 }
 PreviewModel.models = {};
