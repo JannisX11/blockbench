@@ -237,10 +237,14 @@ onVueSetup(function() {
 					categories[format.category].entries.push(format);
 				}
 				for (let key in this.formats) {
-					add(key, this.formats[key])
+					if (this.formats[key].show_on_start_screen != false) {
+						add(key, this.formats[key]);
+					}
 				}
 				for (let key in this.loaders) {
-					add(key, this.loaders[key])
+					if (this.loaders[key].show_on_start_screen != false) {
+						add(key, this.loaders[key]);
+					}
 				}
 				return categories;
 			},
@@ -289,7 +293,7 @@ onVueSetup(function() {
 											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
-											v-if="format_entry.show_on_start_screen && (!redact_names || !format_entry.confidential)"
+											v-if="(!redact_names || !format_entry.confidential)"
 											@click="loadFormat(format_entry)"
 											@dblclick="confirmSetupScreen(format_entry)"
 										>
@@ -435,12 +439,14 @@ class ModelLoader {
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
+		Blockbench.dispatchEvent('construct_model_loader', {loader: this});
 	}
 	new() {
 		this.onStart();
 	}
 	delete() {
 		delete ModelLoader.loaders[this.id];
+		Blockbench.dispatchEvent('delete_model_loader', {loader: this});
 	}
 }
 ModelLoader.loaders = {};

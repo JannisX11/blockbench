@@ -939,7 +939,7 @@
 	"action.brush_tool": "Paint Brush",
 	"action.brush_tool.desc": "Colored brush to draw on textures",
 	"action.copy_brush": "Copy Brush",
-	"action.copy_brush.desc": "Brush to clone parts of your texture or draw patterns",
+	"action.copy_brush.desc": "Brush to clone parts of your texture or draw patterns. Hold Ctrl and click to select a copy source.",
 	"action.fill_tool": "Paint Bucket",
 	"action.fill_tool.desc": "Paint bucket to fill entire faces with one color",
 	"action.eraser": "Eraser",
