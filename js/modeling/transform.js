@@ -513,10 +513,12 @@ function scaleAll(save, size) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
+					obj.from[i] = obj.from[i] + obj.inflate + ogn;
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
+					obj.to[i] = obj.to[i] - obj.inflate + ogn;
 					if (Format.integer_size) {
 						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
 					}
@@ -557,7 +559,7 @@ function scaleAll(save, size) {
 		if (save === true) {
 			delete obj.before
 		}
-		if (Project.box_uv) {
+		if (Project.box_uv && obj instanceof Cube) {
 			Canvas.updateUV(obj)
 		}
 	})
@@ -609,7 +611,7 @@ function cancelScaleAll() {
 			}
 		}
 		delete obj.before
-		if (Project.box_uv) {
+		if (Project.box_uv && obj instanceof Cube) {
 			Canvas.updateUV(obj)
 		}
 	})
