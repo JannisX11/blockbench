@@ -301,7 +301,7 @@
 		margin-left: 24px;
 	}
 	#start_files div.start_screen_left > ul {
-		margin-bottom: 16px;
+		padding-bottom: 16px;
 		overflow-y: auto;
 	}
 	#start_files div.start_screen_right i {

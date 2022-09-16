@@ -251,6 +251,15 @@ onVueSetup(function() {
 			loadFormat(format_entry) {
 				this.selected_format_id = format_entry.id;
 				if (format_entry.onFormatPage) format_entry.onFormatPage();
+				Vue.nextTick(() => {
+					let button = document.querySelector('.start_screen_format_page button');
+					if (!button) return;
+					let offset = $(button).offset().top;
+					if (offset + 38 > window.innerHeight) {
+						let change = offset + 64 - window.innerHeight;
+						StartScreen.vue.$el.scrollTo({top: StartScreen.vue.$el.scrollTop + change, behavior: 'smooth'})
+					}
+				})
 			},
 			confirmSetupScreen(format_entry) {
 				this.selected_format_id = '';

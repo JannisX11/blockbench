@@ -618,8 +618,10 @@ BARS.defineActions(function() {
 
 				mesh.sortInBefore(cube).init();
 				new_meshes.push(mesh);
+				selected.push(mesh);
 				cube.remove();
 			})
+			updateSelection();
 			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes});
 		}
 	})
