@@ -453,7 +453,7 @@ const Vertexsnap = {
 							obj.origin.V3_add(cube_pos);
 						}
 						var in_box = obj.moveVector(cube_pos.toArray());
-						if (!in_box && Format.canvas_limit && !settings.deactivate_size_limit.value) {
+						if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
 						}
 					}

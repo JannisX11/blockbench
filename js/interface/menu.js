@@ -49,7 +49,6 @@ class Menu {
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
 		this.onClose = this.options.onClose;
-		this.onClose = this.options.onClose;
 	}
 	hover(node, event, expand) {
 		if (event) event.stopPropagation()
