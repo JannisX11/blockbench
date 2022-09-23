@@ -44,7 +44,8 @@ class Menu {
 		}
 		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
-		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node = document.createElement('ul');
+		this.node.classList.add('contextMenu');
 		this.structure = structure;
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
@@ -143,7 +144,7 @@ class Menu {
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			obj.find('li.focused').click()
 			if (scope && !this.options.keep_open) {
-				scope.hide()
+				//scope.hide()
 			}
 			used = true;
 		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
@@ -436,7 +437,7 @@ class Menu {
 			handleMenuOverflow(ctxmenu);
 		}
 
-		$(scope.node).on('click', (ev) => {
+		scope.node.onclick = (ev) => {
 			if (
 				ev.target.className.includes('parent') ||
 				(ev.target.parentNode && ev.target.parentNode.className.includes('parent')) ||
@@ -450,7 +451,7 @@ class Menu {
 					this.hide()
 				}
 			}
-		})
+		}
 
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope

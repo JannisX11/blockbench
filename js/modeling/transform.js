@@ -769,7 +769,11 @@ function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable && el instanceof Mesh == false) el.from[axis] += difference;
+				if (el.movable && el instanceof Cube) {
+					el.from[axis] += difference;
+				} else if (el.movable && el.position) {
+					el.position[axis] += difference;
+				}
 				if (el.resizable && el.to) el.to[axis] += difference;
 				if (el.rotatable && !el.position) el.origin[axis] += difference;
 			} else {
@@ -800,8 +804,15 @@ function moveElementsInSpace(difference, axis) {
 					}
 				}
 
-				if (el.movable && (el instanceof Mesh == false || !move_origin)) el.from.V3_add(m.x, m.y, m.z);
-				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
+				if (el instanceof Cube) {
+					el.from.V3_add(m.x, m.y, m.z);
+					el.to.V3_add(m.x, m.y, m.z);
+				} else if (el instanceof Mesh && move_origin) {
+					el.position.V3_add(m.x, m.y, m.z);
+					
+				} else if (el.position) {
+					el.position.V3_add(m.x, m.y, m.z);
+				} 
 				if (move_origin) {
 					if (el.rotatable && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
