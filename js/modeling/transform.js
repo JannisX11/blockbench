@@ -453,7 +453,7 @@ const Vertexsnap = {
 							obj.origin.V3_add(cube_pos);
 						}
 						var in_box = obj.moveVector(cube_pos.toArray());
-						if (!in_box && Format.canvas_limit && !settings.deactivate_size_limit.value) {
+						if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
 						}
 					}
@@ -513,10 +513,12 @@ function scaleAll(save, size) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
+					obj.from[i] = obj.from[i] + obj.inflate + ogn;
 				}
 
 				if (obj.to) {
 					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
+					obj.to[i] = obj.to[i] - obj.inflate + ogn;
 					if (Format.integer_size) {
 						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
 					}
@@ -767,7 +769,11 @@ function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable && el instanceof Mesh == false) el.from[axis] += difference;
+				if (el.movable && el instanceof Cube) {
+					el.from[axis] += difference;
+				} else if (el.movable && el.position) {
+					el.position[axis] += difference;
+				}
 				if (el.resizable && el.to) el.to[axis] += difference;
 				if (el.rotatable && !el.position) el.origin[axis] += difference;
 			} else {
@@ -798,8 +804,15 @@ function moveElementsInSpace(difference, axis) {
 					}
 				}
 
-				if (el.movable && (el instanceof Mesh == false || !move_origin)) el.from.V3_add(m.x, m.y, m.z);
-				if (el.resizable && el.to) el.to.V3_add(m.x, m.y, m.z);
+				if (el instanceof Cube) {
+					el.from.V3_add(m.x, m.y, m.z);
+					el.to.V3_add(m.x, m.y, m.z);
+				} else if (el instanceof Mesh && move_origin) {
+					el.position.V3_add(m.x, m.y, m.z);
+					
+				} else if (el.position) {
+					el.position.V3_add(m.x, m.y, m.z);
+				} 
 				if (move_origin) {
 					if (el.rotatable && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}

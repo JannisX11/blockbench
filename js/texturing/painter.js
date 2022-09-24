@@ -149,39 +149,42 @@ const Painter = {
 		convertTouchEvent(event);
 		var data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked) {
-			var texture = data.element.faces[data.face].getTexture()
-			if (texture) {
-				var x, y, new_face;
-				x = data.intersects[0].uv.x * texture.img.naturalWidth;
-				y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
-				if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-					let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-					x = Math.floor(x + offset);
-					y = Math.floor(y + offset);
-				}
-				if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
+			var texture = data.element.faces[data.face].getTexture();
+			if (!texture) return;
 
-				if (x === Painter.current.x && y === Painter.current.y) {
-					return
-				}
-				if (
-					Painter.current.element !== data.element ||
-					(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
-				) {
-					if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
-						return;
-					}
-					Painter.current.x = x
-					Painter.current.y = y
-					Painter.current.face = data.face
-					Painter.current.element = data.element
-					new_face = true
-					if (texture !== Painter.current.texture) {
-						Undo.current_save.addTexture(texture)
-					}
-				}
-				Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
+			var x, y, new_face;
+			x = data.intersects[0].uv.x * texture.img.naturalWidth;
+			y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
+
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+				x = Math.floor(x + offset);
+				y = Math.floor(y + offset);
 			}
+			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
+
+			if (x === Painter.current.x && y === Painter.current.y) {
+				return
+			}
+			if (
+				Painter.current.element !== data.element ||
+				(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
+			) {
+				if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
+					return;
+				}
+				Painter.current.x = x
+				Painter.current.y = y
+				Painter.current.face = data.face
+				Painter.current.element = data.element
+				new_face = true
+				if (texture !== Painter.current.texture) {
+					Undo.current_save.addTexture(texture)
+				}
+			} else {
+				Painter.current.face = data.face;
+			}
+			Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
 		}
 	},
 	stopPaintToolCanvas() {
@@ -594,7 +597,7 @@ const Painter = {
 				let side_face = (symmetry_axes[0] && (fkey === 'west' || fkey === 'east'))
 							 || (symmetry_axes[1] && (fkey === 'up' || fkey === 'down'))
 							 || (symmetry_axes[2] && (fkey === 'south' || fkey === 'north'));
-				if (side_face) fkey = CubeFace.opposite[fkey];
+				if (side_face && local !== null) fkey = CubeFace.opposite[fkey];
 				let face = mirror_element.faces[fkey];
 	
 				if (side_face &&
@@ -611,6 +614,7 @@ const Painter = {
 				]
 				//calculate new point
 				let mirror_x = symmetry_axes[0] != symmetry_axes[2];
+				if (local === null) mirror_x = !mirror_x;
 				if ((face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) == mirror_x) {
 					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
 					if (even_brush_size) point_on_uv[0] += 1
@@ -635,8 +639,8 @@ const Painter = {
 			} else if (mirror_element instanceof Mesh) {
 				
 				let mesh = mirror_element;
-	
-				let clicked_face = mesh.faces[Painter.current.face];
+				
+				let clicked_face = Painter.current.element.faces[Painter.current.face];
 				let normal = clicked_face.getNormal(true);
 				let center = clicked_face.getCenter();
 				let e = 0.01;
@@ -645,9 +649,11 @@ const Painter = {
 				for (let fkey in mesh.faces) {
 					let normal2 = mesh.faces[fkey].getNormal(true);
 					let center2 = mesh.faces[fkey].getCenter();
-					if (symmetry_axes[0]) {normal2[0] *= -1; center2[0] *= -1;}
-					if (symmetry_axes[1]) {normal2[1] *= -1; center2[1] *= -1;}
-					if (symmetry_axes[2]) {normal2[2] *= -1; center2[2] *= -1;}
+					if (local !== null) {
+						if (symmetry_axes[0]) {normal2[0] *= -1; center2[0] *= -1;}
+						if (symmetry_axes[1]) {normal2[1] *= -1; center2[1] *= -1;}
+						if (symmetry_axes[2]) {normal2[2] *= -1; center2[2] *= -1;}
+					}
 					if (
 						Math.epsilon(normal[0], normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
 						Math.epsilon(center[0], center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
@@ -658,18 +664,34 @@ const Painter = {
 				}
 				if (!face) return;
 				
-				if (!even_brush_size) {
-					x += 0.5; y += 0.5;
-				}
+				let source_uv = [
+					even_brush_size ? x : x + 0.5,
+					even_brush_size ? y : y + 0.5
+				];
+
 				let point_on_uv;
-				if (local) {
-					let vector = clicked_face.UVToLocal([x, y]);
+				if (local === null) {
+					let vector = clicked_face.UVToLocal(source_uv);
+					if (symmetry_axes[0]) vector.x *= -1;
+					if (symmetry_axes[1]) vector.y *= -1;
+					if (symmetry_axes[2]) vector.z *= -1;
+					let world_coord = Painter.current.element.mesh.localToWorld(vector);
+					if (symmetry_axes[0]) world_coord.x *= -1;
+					if (symmetry_axes[1]) world_coord.y *= -1;
+					if (symmetry_axes[2]) world_coord.z *= -1;
+					mesh.mesh.worldToLocal(world_coord);
+					point_on_uv = face.localToUV(world_coord);
+					
+
+				} else if (local) {
+					let vector = clicked_face.UVToLocal(source_uv);
 					if (symmetry_axes[0]) vector.x *= -1;
 					if (symmetry_axes[1]) vector.y *= -1;
 					if (symmetry_axes[2]) vector.z *= -1;
 					point_on_uv = face.localToUV(vector);
+					
 				} else {
-					let world_coord = mesh.mesh.localToWorld(clicked_face.UVToLocal([x, y]));
+					let world_coord = Painter.current.element.mesh.localToWorld(clicked_face.UVToLocal(source_uv));
 					if (symmetry_axes[0]) world_coord.x *= -1;
 					if (symmetry_axes[1]) world_coord.y *= -1;
 					if (symmetry_axes[2]) world_coord.z *= -1;
@@ -723,6 +745,9 @@ const Painter = {
 				}
 				if (Painter.mirror_painting_options.local) {
 					targets.push(getTargetWithOptions(mirror_vector, true));
+				}
+				if (Painter.mirror_painting_options.global && Painter.mirror_painting_options.local) {
+					targets.push(getTargetWithOptions(mirror_vector, null));
 				}
 			})
 		}
@@ -1099,7 +1124,6 @@ const Painter = {
 				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
 				break;
 
-				// Todo: Equations for remaining blend modes
 				case 'screen':
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
@@ -1123,10 +1147,10 @@ const Painter = {
 		let center = Format.centered_grid ? 0 : 8;
 		let e = 0.01;
 		symmetry_axes = symmetry_axes.map((v, i) => v ? i : false).filter(v => v !== false);
-		let off_axes = [0, 1, 2].filter(i => !symmetry_axes[i]);
+		let off_axes = [0, 1, 2].filter(i => !symmetry_axes.includes(i));
 		if (element instanceof Cube) {
 			if (
-				symmetry_axes.find((axis) => Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) == undefined &&
+				symmetry_axes.find((axis) => !Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) == undefined &&
 				off_axes.find(axis => element.rotation[axis]) == undefined
 			) {
 				return element;
@@ -1146,14 +1170,21 @@ const Painter = {
 			return false;
 		} else if (element instanceof Mesh) {
 			if (
-				symmetry_axes.find((axis) => Math.epsilon(element.origin[axis], center, e)) == undefined &&
+				symmetry_axes.find((axis) => !Math.epsilon(element.origin[axis], center, e)) == undefined &&
 				off_axes.find(axis => element.rotation[axis]) == undefined
 			) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {
 					if (Object.keys(element.vertices).length !== Object.keys(element2.vertices).length) continue;
-					return element2;
+					if (
+						symmetry_axes.find(axis => !Math.epsilon(element.origin[axis]-center, center-element2.origin[axis], e)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined
+					) {
+						return element2;
+					} else {
+						
+					}
 				}
 			}
 			return element;

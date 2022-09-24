@@ -23,7 +23,7 @@ BARS.defineActions(function() {
 					let ctx = canvas.getContext('2d');
 					ctx.clearRect(0, 0, texture.width, texture.height);
 					ctx.filter = 'invert(1)';
-					ctx.drawImage(canvas, 0, 0);
+					ctx.drawImage(texture.img, 0, 0);
 
 				}, {no_undo: true});
 			})

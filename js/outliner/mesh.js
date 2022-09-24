@@ -304,7 +304,7 @@ class Mesh extends OutlinerElement {
 			this.extend(data)
 		}
 	}
-	get from() {
+	get position() {
 		return this.origin;
 	}
 	get vertice_list() {

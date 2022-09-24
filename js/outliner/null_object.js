@@ -12,9 +12,10 @@ class NullObject extends OutlinerElement {
 		}
 	}
 	get origin() {
-		return this.from;
+		return this.position;
 	}
 	extend(object) {
+		if (object.from) this.position.V3_set(object.from);
 		for (var key in NullObject.properties) {
 			NullObject.properties[key].merge(this, object)
 		}
@@ -60,8 +61,8 @@ class NullObject extends OutlinerElement {
 		return super.unselect(...args);
 	}
 	flip(axis, center) {
-		var offset = this.from[axis] - center
-		this.from[axis] = center - offset;
+		var offset = this.position[axis] - center
+		this.position[axis] = center - offset;
 		// Name
 		if (axis == 0 && this.name.includes('right')) {
 			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
@@ -89,7 +90,7 @@ class NullObject extends OutlinerElement {
 				offset.z += this.parent.origin[2];
 			}
 		} else {
-			offset = Reusable.vec3.fromArray(this.from);
+			offset = Reusable.vec3.fromArray(this.position);
 		}
 		offset.applyQuaternion(q);
 		pos.add(offset);
@@ -133,7 +134,7 @@ class NullObject extends OutlinerElement {
 		])
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
-	new Property(NullObject, 'vector', 'from')
+	new Property(NullObject, 'vector', 'position')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'locked');
