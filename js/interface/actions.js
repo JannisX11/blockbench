@@ -678,7 +678,7 @@ class NumSlider extends Widget {
 				'<div class="nslide_arrow na_right"><i class="material-icons">navigate_next</i></div>'
 			)
 
-			var n = limitNumber(scope.width/2-24, 6, 1000)
+			var n = limitNumber(scope.node.clientWidth/2-24, 6, 1000)
 
 			scope.jq_outer.find('.nslide_arrow.na_left').click(function(e) {
 				scope.arrow(-1, e)

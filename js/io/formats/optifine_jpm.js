@@ -80,10 +80,8 @@ var part_codec = new Codec('optifine_part', {
 	},
 	parse(model, path, add) {
 		this.dispatchEvent('parse', {model});
-		
-		Project.box_uv = false;
+
 		var new_cubes = [];
-		var box_uv_changed = false;
 		var import_group = add ? new Group({
 			name: pathToName(path)
 		}).init() : 'root';
@@ -135,14 +133,12 @@ var part_codec = new Codec('optifine_part', {
 							origin
 						})
 						if (box.textureOffset) {
-							if (!add && !box_uv_changed) Project.box_uv = true;
-							box_uv_changed = true;
+							base_cube.box_uv = true;
 							base_cube.extend({
 								uv_offset: box.textureOffset
 							})
 						} else {
-							if (!add && !box_uv_changed) Project.box_uv = false;
-							box_uv_changed = true;
+							base_cube.box_uv = false;
 							base_cube.extend({
 								faces: {
 									north: {uv: box.uvNorth},
@@ -205,6 +201,8 @@ var part_codec = new Codec('optifine_part', {
 		}
 		if (add) {
 			Undo.finishEdit('Add JPM model')
+		} else {
+			Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 		}
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});

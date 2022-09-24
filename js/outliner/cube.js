@@ -75,6 +75,7 @@ class Cube extends OutlinerElement {
 			Cube.properties[key].reset(this);
 		}
 
+		this.box_uv = Project.box_uv;
 		this.faces = {
 			north: 	new CubeFace('north', null, this),
 			east: 	new CubeFace('east', null, this),
@@ -211,6 +212,7 @@ class Cube extends OutlinerElement {
 		var copy = new Cube(this)
 		if (aspects.uv_only) {
 			copy = {
+				box_uv: copy.box_uv,
 				uv_offset: copy.uv_offset,
 				faces: copy.faces,
 				mirror_uv: copy.mirror_uv,
@@ -328,7 +330,7 @@ class Cube extends OutlinerElement {
 			if (origin != this.origin) {
 				this.origin.V3_set(rotateCoord(this.origin))
 			}
-			if (!Project.box_uv) {
+			if (!this.box_uv) {
 				if (axis === 0) {
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 1)
 					this.faces.east.rotation = rotateUVFace(this.faces.east.rotation, 3)
@@ -480,6 +482,24 @@ class Cube extends OutlinerElement {
 		}
 		return pos;
 	}
+	setUVMode(box_uv) {
+		this.box_uv = !!box_uv;
+		if (this.box_uv) {
+			if (this.faces.west.uv[2] < this.faces.east.uv[0]) {
+				this.mirror_uv = true;
+				this.uv_offset[0] = this.faces.west.uv[2];
+			} else {
+				this.mirror_uv = false;
+				this.uv_offset[0] = this.faces.east.uv[0];
+			}
+			this.uv_offset[1] = this.faces.up.uv[3];
+		} else {
+			for (let fkey in this.faces) {
+				this.faces[fkey].rotation = 0;
+			}
+		}
+		this.preview_controller.updateUV(this);
+	}
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
@@ -488,7 +508,7 @@ class Cube extends OutlinerElement {
 	}
 	applyTexture(texture, faces) {
 		var scope = this;
-		if (faces === true || Project.box_uv) {
+		if (faces === true || this.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
 			var sides = [UVEditor.face]
@@ -719,7 +739,7 @@ class Cube extends OutlinerElement {
 			Format.cube_size_limiter.clamp(this, {}, axis, bidirectional ? null : !!negative);
 		}
 		this.mapAutoUV();
-		if (Project.box_uv) {
+		if (this.box_uv) {
 			Canvas.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
@@ -740,6 +760,7 @@ class Cube extends OutlinerElement {
 		'rename',
 		'convert_to_mesh',
 		'update_autouv',
+		'cube_uv_mode',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -791,6 +812,7 @@ class Cube extends OutlinerElement {
 	];
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
+new Property(Cube, 'boolean', 'box_uv');
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
 
@@ -946,7 +968,7 @@ new NodePreviewController(Cube, {
 		var mesh = element.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
-		if (Project.box_uv) {
+		if (element.box_uv) {
 
 			var size = element.size(undefined, true)
 			
@@ -1196,7 +1218,7 @@ BARS.defineActions(function() {
 			var base_cube = new Cube({
 				autouv: (settings.autouv.value ? 1 : 0)
 			}).init()
-			if (!Project.box_uv) base_cube.mapAutoUV()
+			if (!base_cube.box_uv) base_cube.mapAutoUV()
 			var group = getCurrentGroup();
 			base_cube.addTo(group)
 
@@ -1243,7 +1265,7 @@ BARS.defineActions(function() {
 		id: 'edit_material_instances',
 		icon: 'fas.fa-adjust',
 		category: 'edit',
-		condition: {modes: ['edit'], formats: ['bedrock_block'], method: () => !Project.box_uv && Cube.selected.length},
+		condition: {modes: ['edit'], formats: ['bedrock_block'], method: () => Cube.selected.length && !Cube.selected.find(cube => cube.box_uv)},
 		click: function () {
 			let form = {};
 
@@ -1279,6 +1301,30 @@ BARS.defineActions(function() {
 				}
 			})
 			dialog.show();
+		}
+	})
+
+	new BarSelect('cube_uv_mode', {
+		name: 'dialog.project.uv_mode',
+		category: 'uv',
+		condition: () => Cube.selected.length && Format.optional_box_uv,
+		options: {
+			face_uv: 'dialog.project.uv_mode.face_uv',
+			box_uv: 'dialog.project.uv_mode.box_uv',
+		},
+		onChange() {
+			let box_uv = this.value == 'box_uv';
+			Undo.initEdit({elements: Cube.selected, uv_only: true});
+			Cube.selected.forEach(cube => {
+				cube.setUVMode(box_uv);
+			})
+			Undo.finishEdit('Change UV mode')
+			updateSelection();
+		}
+	})
+	Blockbench.on('update_selection', () => {
+		if (Condition(BarItems.cube_uv_mode)) {
+			BarItems.cube_uv_mode.set(Cube.selected[0].box_uv ? 'box_uv' : 'face_uv');
 		}
 	})
 })

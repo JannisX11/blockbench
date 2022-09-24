@@ -797,7 +797,7 @@ class Texture {
 
 		affected.forEach(function(obj) {
 			for (var face in obj.faces) {
-				if (all || Project.box_uv || UVEditor.vue.selected_faces.includes(face)) {
+				if (all || obj.box_uv || UVEditor.vue.selected_faces.includes(face)) {
 					var f = obj.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid

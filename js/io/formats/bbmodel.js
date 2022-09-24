@@ -419,7 +419,7 @@ var codec = new Codec('project', {
 						} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
 							copy.faces[face].texture = default_texture.uuid
 						}
-						if (!Project.box_uv) {
+						if (!copy.box_uv) {
 							copy.faces[face].uv[0] *= Project.texture_width / width;
 							copy.faces[face].uv[2] *= Project.texture_width / width;
 							copy.faces[face].uv[1] *= Project.texture_height / height;

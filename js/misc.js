@@ -60,13 +60,17 @@ function updateNslideValues() {
 		BarItems.slider_pos_y.update()
 		BarItems.slider_pos_z.update()
 
-		BarItems.slider_size_x.update()
-		BarItems.slider_size_y.update()
-		BarItems.slider_size_z.update()
+		if (Condition(BarItems.slider_size_x)) {
+			BarItems.slider_size_x.update()
+			BarItems.slider_size_y.update()
+			BarItems.slider_size_z.update()
+		}
 
-		BarItems.slider_inflate.update()
+		if (Condition(BarItems.slider_inflate)) {
+			BarItems.slider_inflate.update()
+		}
 
-		if (!Project.box_uv) {
+		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}
 	}

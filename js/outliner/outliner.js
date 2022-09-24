@@ -36,9 +36,18 @@ const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			get title() {return Project.box_uv ? tl('switches.mirror') : tl('switches.shade')},
-			get icon() {return Project.box_uv ? 'fa fa-star' : 'fa fa-star'},
-			get icon_off() {return Project.box_uv ? 'fas fa-star-half-alt' : 'far fa-star'},
+			condition: () => Format.java_face_properties,
+			title: tl('switches.shade'),
+			icon: 'fa fa-star',
+			icon_off: 'far fa-star',
+			advanced_option: true
+		},
+		mirror_uv: {
+			id: 'mirror_uv',
+			condition: (cube) => cube.box_uv,
+			title: tl('switches.mirror'),
+			icon: 'fa fa-star',
+			icon_off: 'fas fa-star-half-alt',
 			advanced_option: true
 		},
 		autouv: {
@@ -333,12 +342,6 @@ class OutlinerNode {
 			return false;
 		}
 		return iterate(this.parent, 0)
-	}
-	get mirror_uv() {
-		return !this.shade;
-	}
-	set mirror_uv(val) {
-		this.shade = !val;
 	}
 }
 class OutlinerElement extends OutlinerNode {
@@ -938,7 +941,7 @@ function toggleCubeProperty(key) {
 	if (key === 'visibility') {
 		Canvas.updateVisibility()
 	}
-	if (key === 'shade' && Project.box_uv) {
+	if (key === 'mirror_uv') {
 		Canvas.updateUVs();
 	}
 	Undo.finishEdit('Toggle ' + key)
@@ -1260,7 +1263,7 @@ Interface.definePanels(function() {
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
+					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
 					:title="btn.title"
@@ -1306,11 +1309,11 @@ Interface.definePanels(function() {
 			getBtnClasses: function (btn, node) {
 				let value = node.isIconEnabled(btn);
 				if (value === true) {
-					return [btn.icon];
+					return [(typeof btn.icon == 'function' ? btn.icon(node) : btn.icon)];
 				} else if (value === false) {
-					return [btn.icon_off, 'icon_off'];
+					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
 				} else {
-					return [btn.icon_alt];
+					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
 				}
 			},
 			doubleClickIcon(node) {
@@ -1318,7 +1321,8 @@ Interface.definePanels(function() {
 					node.isOpen = !node.isOpen;
 				}
 			},
-			renameOutliner
+			renameOutliner,
+			Condition
 		}
 	});
 	Vue.component('vue-tree-item', VueTreeItem);
@@ -1421,7 +1425,7 @@ Interface.definePanels(function() {
 									affected.push(node);
 									previous_values[node.uuid] = node[key];
 									node[key] = value;
-									if (key == 'shade' && node instanceof Cube) Canvas.updateUV(node);
+									if (key == 'mirror_uv' && node instanceof Cube) Canvas.updateUV(node);
 								})
 								// Update
 								if (key == 'visibility') Canvas.updateVisibility();

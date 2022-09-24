@@ -1209,7 +1209,7 @@ const Canvas = {
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
-		if (Project.box_uv) {
+		if (cube.box_uv) {
 
 			var size = cube.size(undefined, true)
 			

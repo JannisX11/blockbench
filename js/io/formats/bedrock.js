@@ -525,9 +525,9 @@ function calculateVisibleBox() {
 		if (s.uv instanceof Array) {
 			base_cube.uv_offset[0] = s.uv[0]
 			base_cube.uv_offset[1] = s.uv[1]
-			Project.box_uv = true;
+			base_cube.box_uv = true;
 		} else if (s.uv) {
-			Project.box_uv = false;
+			base_cube.box_uv = false;
 			for (var key in base_cube.faces) {
 				var face = base_cube.faces[key]
 				if (s.uv[key]) {
@@ -716,6 +716,8 @@ function calculateVisibleBox() {
 			})
 		}
 
+		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
+
 		codec.dispatchEvent('parsed', {model: data.object});
 
 		pe_list_data.length = 0;
@@ -734,36 +736,36 @@ function calculateVisibleBox() {
 
 // Compile
 
-	function compileCube(obj, bone) {
+	function compileCube(cube, bone) {
 		var template = {
-			origin: obj.from.slice(),
-			size: obj.size(),
-			inflate: obj.inflate||undefined,
+			origin: cube.from.slice(),
+			size: cube.size(),
+			inflate: cube.inflate||undefined,
 		}
-		if (Project.box_uv) {
+		if (cube.box_uv) {
 			template = new oneLiner(template);
 		}
 		template.origin[0] = -(template.origin[0] + template.size[0])
 
-		if (!obj.rotation.allEqual(0)) {
-			template.pivot = obj.origin.slice();
+		if (!cube.rotation.allEqual(0)) {
+			template.pivot = cube.origin.slice();
 			template.pivot[0] *= -1;
 			
-			template.rotation = obj.rotation.slice();
+			template.rotation = cube.rotation.slice();
 			template.rotation.forEach(function(br, axis) {
 				if (axis != 2) template.rotation[axis] *= -1
 			})
 		}
 
-		if (Project.box_uv) {
-			template.uv = obj.uv_offset;
-			if (obj.mirror_uv === !bone.mirror) {
-				template.mirror = obj.mirror_uv
+		if (cube.box_uv) {
+			template.uv = cube.uv_offset;
+			if (cube.mirror_uv === !bone.mirror) {
+				template.mirror = cube.mirror_uv
 			}
 		} else {
 			template.uv = {};
-			for (var key in obj.faces) {
-				var face = obj.faces[key];
+			for (var key in cube.faces) {
+				var face = cube.faces[key];
 				if (face.texture !== null) {
 					template.uv[key] = new oneLiner({
 						uv: [

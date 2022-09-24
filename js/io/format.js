@@ -103,7 +103,12 @@ class ModelFormat {
 		Modes.options.edit.select()
 
 		// Box UV
-		if (!this.optional_box_uv) Project.box_uv = this.box_uv;
+		if (!this.optional_box_uv) {
+			Project.box_uv = this.box_uv;
+			Cube.all.forEach(cube => {
+				cube.setUVMode(this.box_uv);
+			})
+		}
 
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {

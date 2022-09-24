@@ -78,7 +78,7 @@ var codec = new Codec('optifine_entity', {
 					if (!obj.export) return;
 					if (obj.type === 'cube') {
 
-						if (Project.box_uv) {
+						if (obj.box_uv) {
 							var box = new oneLiner()
 						} else {
 							var box = {};
@@ -97,7 +97,7 @@ var codec = new Codec('optifine_entity', {
 							box.coordinates[1] -= p_model.translate[1];
 							box.coordinates[2] -= p_model.translate[2];
 						}
-						if (Project.box_uv) {
+						if (obj.box_uv) {
 							box.textureOffset = obj.uv_offset
 						} else {
 							for (var face in obj.faces) {
@@ -247,7 +247,6 @@ var codec = new Codec('optifine_entity', {
 								 || box.uvUp
 								 || box.uvDown
 							)) {
-								Project.box_uv = false;
 								base_cube.extend({faces: {
 									north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
 									east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
@@ -293,6 +292,7 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
+		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 		importTexture(model.texture);
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();

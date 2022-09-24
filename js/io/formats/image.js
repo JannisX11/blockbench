@@ -4,6 +4,7 @@ new ModelFormat('image', {
 	show_in_new_list: true,
 	can_convert_to: false,
 	model_identifier: false,
+	single_texture: true,
 	animated_textures: true,
 	edit_mode: false,
 	new() {

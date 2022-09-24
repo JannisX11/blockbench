@@ -8,7 +8,7 @@ class ModelProject {
 		this.locked = false;
 		this.thumbnail = '';
 
-		this._box_uv = options.format ? options.format.box_uv : false;
+		this.box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
 		this._texture_height = 16;
 
@@ -67,13 +67,6 @@ class ModelProject {
 	extend() {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].merge(this, object)
-		}
-	}
-	get box_uv() {return Project._box_uv}
-	set box_uv(v) {
-		if (Project._box_uv != v) {
-			Project._box_uv = v;
-			switchBoxUV(v);
 		}
 	}
 	get texture_width() {return this._texture_width}
@@ -507,7 +500,7 @@ function setProjectResolution(width, height, modify_uv) {
 					})
 				}
 
-			} else if (Project.box_uv) {
+			} else if (element.box_uv) {
 				element.uv_offset[axis] *= multiplier[axis];
 			} else {
 				for (let face in element.faces) {
@@ -815,11 +808,11 @@ BARS.defineActions(function() {
 						Project.texture_width != texture_width ||
 						Project.texture_height != texture_height
 					) {
-						if (!Project.box_uv && !box_uv
-							&& (Project.texture_width != texture_width
-							|| Project.texture_height != texture_height)
+						// Adjust UV Mapping if resolution changed
+						if (!Project.box_uv && !box_uv &&
+							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
-							save = Undo.initEdit({uv_only: true, elements: [...Cube.all, ...Mesh.all], uv_mode: true})
+							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
 							Cube.all.forEach(cube => {
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
@@ -838,7 +831,20 @@ BARS.defineActions(function() {
 									}
 								}
 							})
-						} else {
+						}
+						// Convert UV mode per element
+						if (Project.box_uv != box_uv &&
+							((box_uv && !Cube.all.find(cube => cube.box_uv)) ||
+							(!box_uv && !Cube.all.find(cube => !cube.box_uv)))
+						) {
+							if (!save) {
+								save = Undo.initEdit({elements: Cube.all, uv_only: true, uv_mode: true})
+							}
+							Cube.all.forEach(cube => {
+								cube.setUVMode(box_uv);
+							})
+						}
+						if (!save) {
 							save = Undo.initEdit({uv_mode: true})
 						}
 						Project.texture_width = texture_width;

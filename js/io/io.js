@@ -101,7 +101,7 @@ async function loadImages(files, event) {
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
 		options.minecraft_skin = 'format.skin';
 	}
-	if (Project && !Project.box_uv) {
+	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
 		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
 
@@ -344,6 +344,7 @@ var Extruder = {
 						autouv: 0,
 						from: [rect.x*scale_i, 0, rect.y*scale_i],
 						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
+						box_uv: false,
 						faces: {
 							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
 							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
@@ -673,7 +674,7 @@ BARS.defineActions(function() {
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => Format && !Project.box_uv,
+		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',

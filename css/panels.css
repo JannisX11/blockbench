@@ -1584,6 +1584,12 @@
 		z-index: 1;
 	}
 
+	.bar.uv_editor_sliders {
+		display: flex;
+	}
+	.bar.uv_editor_sliders > .tool {
+		flex-grow: 1;
+	}
 	.uv_painter_info {
 		display: flex;
 	}

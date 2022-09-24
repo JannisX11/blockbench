@@ -208,7 +208,7 @@ function mirrorSelected(axis) {
 		}
 		selected.forEach(function(obj) {
 			obj.flip(axis, center, false)
-			if (Project.box_uv && obj instanceof Cube && axis === 0) {
+			if (obj instanceof Cube && obj.box_uv && axis === 0) {
 				obj.shade = !obj.shade
 				Canvas.updateUV(obj)
 			}
@@ -427,7 +427,7 @@ const Vertexsnap = {
 					if (Format.cube_size_limiter) {
 						Format.cube_size_limiter.clamp(obj)
 					}
-					if (Project.box_uv && obj.visibility) {
+					if (obj.box_uv && obj.visibility) {
 						Canvas.updateUV(obj)
 					}
 				})
@@ -557,7 +557,7 @@ function scaleAll(save, size) {
 		if (save === true) {
 			delete obj.before
 		}
-		if (Project.box_uv) {
+		if (obj instanceof Cube && obj.box_uv) {
 			Canvas.updateUV(obj)
 		}
 	})
@@ -609,7 +609,7 @@ function cancelScaleAll() {
 			}
 		}
 		delete obj.before
-		if (Project.box_uv) {
+		if (obj instanceof Cube && obj.box_uv) {
 			Canvas.updateUV(obj)
 		}
 	})
@@ -1789,19 +1789,19 @@ BARS.defineActions(function() {
 	new Action('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => !Project.box_uv && Modes.edit,
+		condition: () => Format.java_face_properties && Modes.edit,
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
-		condition: () => Project.box_uv && (Modes.edit || Modes.paint),
+		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
 		click: function () {toggleCubeProperty('shade')}
 	})
 	new Action('update_autouv', {
 		icon: 'brightness_auto',
 		category: 'transform',
-		condition: () => !Project.box_uv && Modes.edit,
+		condition: () => !odes.edit && UVEditor.isFaceUV(),
 		click: function () {
 			if (Cube.selected.length) {
 				Undo.initEdit({elements: Cube.selected[0].forSelected(), selection: true})
