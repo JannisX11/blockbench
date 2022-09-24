@@ -42,6 +42,14 @@ var Prop = {
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
+// Browser compatibility check
+try {
+	eval('window?.document');
+} catch (err) {
+	let error_element = document.querySelector('#loading_error_detail')
+	error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
+}
+
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
 		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
