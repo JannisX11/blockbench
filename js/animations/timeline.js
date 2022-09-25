@@ -1015,7 +1015,7 @@ Interface.definePanels(() => {
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
 								<div class="animator_head_bar">
-									<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)">
+									<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
@@ -1046,6 +1046,7 @@ Interface.definePanels(() => {
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 										v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
 										@click.stop="selectChannel(animator, channel);"
+										@contextmenu.stop="animator.showContextMenu($event)"
 									>
 										<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
 											<template v-if="channel === 'sound'">

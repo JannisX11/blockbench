@@ -49,8 +49,10 @@ class Animation {
 				var animator;
 				if (!this.animators[key]) {
 					if (key == 'effects') {
+						// Effects
 						animator = this.animators[key] = new EffectAnimator(this);
 					} else if (animator_blueprint.type && animator_blueprint.type !== 'bone') {
+						// Element
 						let uuid = isUUID(key) && key;
 						let element;
 						if (!uuid) {
@@ -61,13 +63,15 @@ class Animation {
 						if (!element) element = Outliner.elements.find(element => element.constructor.animator && element.uuid == uuid);
 						animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name)
 					} else {
+						// Bone
 						let uuid = isUUID(key) && key;
 						if (!uuid) {
 							let lowercase_bone_name = key.toLowerCase();
 							let group_match = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)
 							uuid = group_match ? group_match.uuid : guid();
 						}
-						animator = this.animators[uuid] = new BoneAnimator(uuid, this, animator_blueprint.name)
+						animator = this.animators[uuid] = new BoneAnimator(uuid, this, animator_blueprint.name);
+						if (animator_blueprint.rotation_global) animator.rotation_global = true;
 					}
 				} else {
 					animator = this.animators[key];
@@ -113,10 +117,11 @@ class Animation {
 			for (var uuid in this.animators) {
 				let ba = this.animators[uuid]
 				var kfs = ba.keyframes
-				if (kfs && kfs.length) {
+				if ((kfs && kfs.length) || ba.rotation_global) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
 						type: ba.type,
+						rotation_global: ba.rotation_global ? true : undefined,
 						keyframes: []
 					}
 					kfs.forEach(kf => {
@@ -146,7 +151,7 @@ class Animation {
 
 		for (var uuid in this.animators) {
 			var animator = this.animators[uuid];
-			if (!animator.keyframes.length) continue;
+			if (!animator.keyframes.length && !animator.rotation_global) continue;
 			if (animator instanceof EffectAnimator) {
 
 				animator.sound.sort((kf1, kf2) => (kf1.time - kf2.time)).forEach(kf => {
@@ -167,6 +172,9 @@ class Animation {
 				var group = animator.getGroup(); 
 				var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
 				var channels = {};
+				if (animator.rotation_global) {
+					bone_tag.relative_to = {rotation: 'entity'};
+				}
 				//Saving Keyframes
 				animator.keyframes.forEach(function(kf) {
 					if (!channels[kf.channel]) {
@@ -1212,32 +1220,31 @@ const Animator = {
 						animation.animators[uuid] = ba;
 						//Channels
 						for (var channel in b) {
-							if (BoneAnimator.prototype.channels[channel]) {
-								if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
+							if (!BoneAnimator.prototype.channels[channel]) continue;
+							if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
+								ba.addKeyframe({
+									time: 0,
+									channel,
+									uniform: !(b[channel] instanceof Array),
+									data_points: getKeyframeDataPoints(b[channel]),
+								})
+							} else if (typeof b[channel] === 'object' && b[channel].post) {
+								ba.addKeyframe({
+									time: 0,
+									channel,
+									interpolation: b[channel].lerp_mode,
+									uniform: !(b[channel].post instanceof Array),
+									data_points: getKeyframeDataPoints(b[channel]),
+								});
+							} else if (typeof b[channel] === 'object') {
+								for (var timestamp in b[channel]) {
 									ba.addKeyframe({
-										time: 0,
+										time: parseFloat(timestamp),
 										channel,
-										uniform: !(b[channel] instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel]),
-									})
-								} else if (typeof b[channel] === 'object' && b[channel].post) {
-									ba.addKeyframe({
-										time: 0,
-										channel,
-										interpolation: b[channel].lerp_mode,
-										uniform: !(b[channel].post instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel]),
+										interpolation: b[channel][timestamp].lerp_mode,
+										uniform: !(b[channel][timestamp] instanceof Array),
+										data_points: getKeyframeDataPoints(b[channel][timestamp]),
 									});
-								} else if (typeof b[channel] === 'object') {
-									for (var timestamp in b[channel]) {
-										ba.addKeyframe({
-											time: parseFloat(timestamp),
-											channel,
-											interpolation: b[channel][timestamp].lerp_mode,
-											uniform: !(b[channel][timestamp] instanceof Array),
-											data_points: getKeyframeDataPoints(b[channel][timestamp]),
-										});
-									}
 								}
 							}
 							// Set step interpolation
@@ -1253,6 +1260,9 @@ const Animator = {
 									kf.interpolation = 'step';
 								}
 							})
+						}
+						if (b.relative_to && b.relative_to.rotation == 'entity') {
+							ba.rotation_global = true;
 						}
 					}
 				}

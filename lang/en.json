@@ -1617,6 +1617,8 @@
 	"menu.animation_file.unload": "Unload Animation File",
 	"menu.animation_file.import_remaining": "Import Remaining Animations",
 
+	"menu.animator.rotation_global": "Rotate in Global Space",
+
 	"menu.keyframe.quaternion": "Quaternion",
 
 	"menu.timeline_marker.set_time": "Set Time...",
