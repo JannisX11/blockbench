@@ -545,21 +545,26 @@ const UVEditor = {
 		Mesh.selected.forEach(mesh => {
 			let selected_vertices = Project.selected_vertices[mesh.uuid];
 			
-			if (!selected_vertices) {
-				selected_vertices = [];
+			if (selected_vertices) {
 				UVEditor.vue.selected_faces.forEach(fkey => {
-					if (mesh.faces[fkey]) {
-						selected_vertices.safePush(...mesh.faces[fkey].vertices);
-					}
+					if (!mesh.faces[fkey]) return
+					selected_vertices.forEach(vkey => {
+						if (!mesh.faces[fkey].vertices.includes(vkey)) return;
+						mesh.faces[fkey].uv[vkey][axis] = modify(mesh.faces[fkey].uv[vkey][axis]);
+					})
+				})
+			} else {
+				UVEditor.vue.selected_faces.forEach(fkey => {
+					if (!mesh.faces[fkey]) return
+					let face = mesh.faces[fkey];
+					let face_rect = face.getBoundingRect();
+					let face_start = [face_rect.ax, face_rect.ay];
+					let offset = modify(face_start[axis]) - face_start[axis];
+					face.vertices.forEach(vkey => {
+						face.uv[vkey][axis] += offset;
+					})
 				})
 			}
-			UVEditor.vue.selected_faces.forEach(fkey => {
-				if (!mesh.faces[fkey]) return
-				selected_vertices.forEach(vkey => {
-					if (!mesh.faces[fkey].vertices.includes(vkey)) return;
-					mesh.faces[fkey].uv[vkey][axis] = modify(mesh.faces[fkey].uv[vkey][axis]);
-				})
-			})
 			mesh.preview_controller.updateUV(mesh);
 		})
 		this.displayTools()
@@ -1952,7 +1957,8 @@ Interface.definePanels(function() {
 							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
 							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
 
-							if (this.zoom == 1 && Panels.uv.isInSidebar()) {
+							let diagonal_offset = Math.sqrt(Math.pow(margin[0] - viewport.scrollLeft, 2), Math.pow(margin[1] - viewport.scrollTop, 2));
+							if (this.zoom == 1 && Panels.uv.isInSidebar() && diagonal_offset/UVEditor.width < 0.12) {
 								this.centerView();
 							}
 							this.updateMouseCoords(event)
