@@ -474,6 +474,46 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Flip texture Y')
 		}
 	})
+	new Action('rotate_texture_cw', {
+		icon: 'rotate_right',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				texture.edit((canvas) => {
+
+					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.rotate(Math.PI/2);
+					ctx.drawImage(texture.img, 0, -canvas.height);
+
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Rotate texture clockwise')
+		}
+	})
+	new Action('rotate_texture_ccw', {
+		icon: 'rotate_left',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				texture.edit((canvas) => {
+
+					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.rotate(-Math.PI/2);
+					ctx.drawImage(texture.img, -canvas.width, 0);
+
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Rotate texture counter-clockwise')
+		}
+	})
 	new Action('resize_texture', {
 		icon: 'photo_size_select_large',
 		category: 'textures',

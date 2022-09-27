@@ -94,7 +94,9 @@ async function loadImages(files, event) {
 		}
 	}
 	if (Project) {
-		options.texture = 'action.import_texture';
+		if (Condition(Panels.textures.condition)) {
+			options.texture = 'action.import_texture';
+		}
 		options.background = 'menu.view.background';
 	}
 	options.edit = 'message.load_images.edit_image';

@@ -1237,6 +1237,8 @@
 	"action.adjust_curves.desc": "Adjust the brightness curves of the selected texture",
 	"action.flip_texture_x": "Flip Texture Horizontally",
 	"action.flip_texture_y": "Flip Texture Vertically",
+	"action.rotate_texture_cw": "Rotate Texture Clockwise",
+	"action.rotate_texture_ccw": "Rotate Texture Counter-clockwise",
 	"action.resize_texture": "Resize Texture...",
 
 	"action.add_display_preset": "New Preset",
@@ -1546,7 +1548,8 @@
 	"menu.texture.render_mode.emissive": "Emissive",
 	"menu.texture.render_mode.layered": "Layered",
 	"menu.texture.merge_onto_texture": "Merge Onto Texture Above",
-	"menu.texture.edit": "Edit Externally",
+	"menu.texture.edit": "Edit",
+	"menu.texture.edit_externally": "Edit Externally",
 	"menu.texture.edit_in_blockbench": "Edit in Blockbench",
 	"menu.texture.particle": "Use for Particles",
 	"menu.texture.export": "Save As",

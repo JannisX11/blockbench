@@ -1317,7 +1317,7 @@ class Texture {
 			'_',
 			{
 				icon: 'edit',
-				name: 'menu.texture.edit',
+				name: 'menu.texture.edit_externally',
 				condition: (texture) => texture.mode == 'link',
 				click(texture) { texture.openEditor() }
 			},
@@ -1345,6 +1345,14 @@ class Texture {
 					new_texture.load_callback = () => {
 						new_texture.select();
 					}
+				}
+			},
+			{
+				icon: 'tune',
+				name: 'menu.texture.edit',
+				condition: {modes: ['paint']},
+				children() {
+					return MenuBar.menus.texture.structure
 				}
 			},
 			{
