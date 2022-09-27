@@ -751,6 +751,31 @@ const Painter = {
 				}
 			})
 		}
+		// 2D
+		if (Painter.mirror_painting_options.texture && !Painter.current.element) {
+			let offset = 0;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
+			}
+			if (Painter.mirror_painting_options.axis.x) {
+				targets.push({
+					x: texture.width - x - offset,
+					y: y
+				});
+			}
+			if (Painter.mirror_painting_options.axis.z) {
+				targets.push({
+					x: x,
+					y: texture.display_height - y - offset
+				});
+			}
+			if (Painter.mirror_painting_options.axis.x && Painter.mirror_painting_options.axis.z) {
+				targets.push({
+					x: texture.width - x - offset,
+					y: texture.display_height - y - offset
+				});
+			}
+		}
 		// Texture animation
 		if (Painter.mirror_painting_options.texture_frames && Format.animated_textures && texture && texture.frameCount > 1) {
 			let spatial_targets = targets.slice();
@@ -2116,6 +2141,13 @@ BARS.defineActions(function() {
 				description: 'menu.mirror_painting.local.desc',
 				icon: () => !!Painter.mirror_painting_options.local,
 				click() {Painter.mirror_painting_options.local = !Painter.mirror_painting_options.local; StateMemory.save('mirror_painting_options')}
+			},
+			// Texture
+			{
+				name: 'menu.mirror_painting.texture',
+				description: 'menu.mirror_painting.texture.desc',
+				icon: () => !!Painter.mirror_painting_options.texture,
+				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
 			},
 			// Animated Texture Frames
 			{

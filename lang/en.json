@@ -1591,6 +1591,8 @@
 	"menu.mirror_painting.global.desc": "Enabled mirror painting on the model in global space",
 	"menu.mirror_painting.local": "Local Symmetry",
 	"menu.mirror_painting.local.desc": "Enable mirror painting in local space for each element",
+	"menu.mirror_painting.texture": "2D Editor Symmetry",
+	"menu.mirror_painting.texture.desc": "Enable mirror painting in 2D space on the image or texture",
 	"menu.mirror_painting.texture_frames": "Animated Texture Frames",
 	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
 
