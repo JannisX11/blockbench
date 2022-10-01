@@ -852,6 +852,7 @@ var codec = new Codec('modded_entity', {
 				path: path,
 				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
 			});
+			updateRecentProjectThumbnail();
 		} else if (!open_interface) {
 			askToSaveProject();
 		}

@@ -69,9 +69,9 @@ class Mode extends KeybindItem {
 		updateInterface()
 		Canvas.updateRenderSides()
 		if (BarItems[this.default_tool]) {
-			BarItems[this.default_tool].select()
+			if (!BarItems[this.default_tool].selected) BarItems[this.default_tool].select()
 		} else {
-			BarItems.move_tool.select()
+			if (!BarItems.move_tool.selected) BarItems.move_tool.select()
 		}
 		TickUpdates.selection = true;
 		Blockbench.dispatchEvent('select_mode', {mode: this})

@@ -72,6 +72,7 @@ var codec = new Codec('project', {
 				path: file.path,
 				icon: 'icon-blockbench_file'
 			})
+			updateRecentProjectThumbnail();
 		}
 		this.parse(model, file.path)
 	},
