@@ -53,7 +53,7 @@ class UndoSystem {
 		}
 		this.index = this.history.length
 		if (!aspects || !aspects.keep_saved) {
-			Project.saved = false; console.log('unsave');
+			Project.saved = false;
 		}
 		Blockbench.dispatchEvent('finished_edit', {aspects})
 		if (Project.EditSession && Project.EditSession.active) {

@@ -2065,6 +2065,30 @@ BARS.defineActions(function() {
 	if (!Painter.mirror_painting_options.axis) {
 		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
 	}
+	function toggleMirrorPaintingAxis(axis) {
+		let axes = Painter.mirror_painting_options.axis
+		axes[axis] = !axes[axis];
+		if (!axes.x && !axes.z) {
+			if (axis == 'x') {
+				axes.z = true;
+			} else {
+				axes.x = true;
+			}
+		}
+		StateMemory.save('mirror_painting_options');
+	}
+	function toggleMirrorPaintingSpace(space) {
+		let options = Painter.mirror_painting_options;
+		options[space] = !options[space];
+		if (!options.global && !options.local && !options.texture_frames) {
+			if (space == 'global') {
+				options.local = true;
+			} else {
+				options.global = true;
+			}
+		}
+		StateMemory.save('mirror_painting_options');
+	}
 	new Toggle('mirror_painting', {
 		icon: 'flip',
 		category: 'paint',
@@ -2098,9 +2122,9 @@ BARS.defineActions(function() {
 				description: 'menu.mirror_painting.axis.desc',
 				icon: 'call_split',
 				children: [
-					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {Painter.mirror_painting_options.axis.x = !Painter.mirror_painting_options.axis.x; StateMemory.save('mirror_painting_options')}},
-					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {Painter.mirror_painting_options.axis.y = !Painter.mirror_painting_options.axis.y; StateMemory.save('mirror_painting_options')}},
-					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {Painter.mirror_painting_options.axis.z = !Painter.mirror_painting_options.axis.z; StateMemory.save('mirror_painting_options')}},
+					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {toggleMirrorPaintingAxis('x')}},
+					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {toggleMirrorPaintingAxis('y')}},
+					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
 				]
 			},
 			// Global
@@ -2108,21 +2132,21 @@ BARS.defineActions(function() {
 				name: 'menu.mirror_painting.global',
 				description: 'menu.mirror_painting.global.desc',
 				icon: () => !!Painter.mirror_painting_options.global,
-				click() {Painter.mirror_painting_options.global = !Painter.mirror_painting_options.global; StateMemory.save('mirror_painting_options')}
+				click() {toggleMirrorPaintingSpace('global')}
 			},
 			// Local
 			{
 				name: 'menu.mirror_painting.local',
 				description: 'menu.mirror_painting.local.desc',
 				icon: () => !!Painter.mirror_painting_options.local,
-				click() {Painter.mirror_painting_options.local = !Painter.mirror_painting_options.local; StateMemory.save('mirror_painting_options')}
+				click() {toggleMirrorPaintingSpace('local')}
 			},
 			// Animated Texture Frames
 			{
 				name: 'menu.mirror_painting.texture_frames',
 				description: 'menu.mirror_painting.texture_frames.desc',
 				icon: () => !!Painter.mirror_painting_options.texture_frames,
-				click() {Painter.mirror_painting_options.texture_frames = !Painter.mirror_painting_options.texture_frames; StateMemory.save('mirror_painting_options')}
+				click() {toggleMirrorPaintingSpace('texture_frames')}
 			},
 		], {keep_open: true})
 	})
