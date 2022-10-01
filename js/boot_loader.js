@@ -120,6 +120,8 @@ localStorage.setItem('last_version', Blockbench.version);
 	let proceeded = false;
 	function proceed() {
 		if (proceeded) return;
+
+		Settings.saveLocalStorages();
 		if (isApp) {
 			loadOpenWithBlockbenchFile();
 		} else {

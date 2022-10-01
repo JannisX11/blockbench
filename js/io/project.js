@@ -244,8 +244,16 @@ class ModelProject {
 		return true;
 	}
 	unselect(closing) {
-		if (!closing) this.thumbnail = Preview.selected.canvas.toDataURL();
+		if (!closing) {
+			if (Format.edit_mode) {
+				this.thumbnail = Preview.selected.canvas.toDataURL();
+			} else if (Texture.all.length) {
+				this.thumbnail = Texture.getDefault()?.source;
+			}
+		}
 		Interface.tab_bar.last_opened_project = this.uuid;
+
+		UVEditor.saveViewportOffset();
 
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
@@ -260,8 +268,6 @@ class ModelProject {
 				angle: preview.angle,
 			}
 		})
-
-		UVEditor.saveViewportOffset();
 
 		this.undo.closeAmendEditMenu();
 		Preview.all.forEach(preview => {
