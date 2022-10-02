@@ -216,6 +216,9 @@ class ModelFormat {
 			Animator.animations.length = 0;
 		}
 
+		Project.saved = false;
+		setProjectTitle();
+
 		Blockbench.dispatchEvent('convert_format', {format: this, old_format})
 
 		if (typeof this.onSetup == 'function') {

@@ -34,14 +34,17 @@ class Codec {
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 			
-			loadDataFromModelMemory();
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
 			})
+			setTimeout(() => {
+				updateRecentProjectThumbnail();
+			}, 200)
 		}
 		this.parse(model, file.path)
+		loadDataFromModelMemory();
 	}
 	//parse(model, path)
 
@@ -100,6 +103,7 @@ class Codec {
 				path: path,
 				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
 			});
+			updateRecentProjectThumbnail();
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
 	}

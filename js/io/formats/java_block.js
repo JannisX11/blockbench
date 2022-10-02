@@ -296,22 +296,28 @@ var codec = new Codec('java_block', {
 
 			var texture_arr = model.textures
 
-			for (var tex in texture_arr) {
-				if (texture_arr.hasOwnProperty(tex)) {
-					if (tex != 'particle') {
-						var t = new Texture({id: tex}).fromJavaLink(texture_arr[tex], path_arr.slice()).add();
-						texture_paths[texture_arr[tex]] = texture_ids[tex] = t
-						new_textures.push(t);
+			for (var key in texture_arr) {
+				if (typeof texture_arr[key] === 'string' && key != 'particle') {
+					let link = texture_arr[key];
+					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
+						link = texture_arr[link.substring(1)];
 					}
+					let texture = new Texture({id: key}).fromJavaLink(texture_arr[key], path_arr.slice()).add();
+					texture_paths[texture_arr[key]] = texture_ids[key] = texture;
+					new_textures.push(texture);
 				}
 			}
 			if (texture_arr.particle) {
-				if (texture_paths[texture_arr.particle]) {
-					texture_paths[texture_arr.particle].enableParticle()
+				let link = texture_arr.particle;
+				if (link.startsWith('#') && texture_arr[link.substring(1)]) {
+					link = texture_arr[link.substring(1)];
+				}
+				if (texture_paths[link]) {
+					texture_paths[link].enableParticle()
 				} else {
-					var t = new Texture({id: 'particle'}).fromJavaLink(texture_arr.particle, path_arr.slice()).enableParticle().add();
-					texture_paths[texture_arr.particle] = texture_ids.particle = t;
-					new_textures.push(t);
+					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice()).enableParticle().add();
+					texture_paths[link] = texture_ids.particle = texture;
+					new_textures.push(texture);
 				}
 			}
 			//Get Rid Of ID overlapping

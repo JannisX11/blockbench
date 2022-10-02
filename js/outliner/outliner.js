@@ -861,6 +861,7 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		updateSelection()
 		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true})
 	} else {
+		Transformer.updateSelection()
 		Undo.finishEdit('Move elements in outliner')
 	}
 }

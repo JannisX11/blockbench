@@ -569,7 +569,7 @@ ModelLoader.loaders = {};
 				methods: {
 					tl,
 					close() {
-						obj.remove();
+						this.$el.remove();
 					},
 					reload() {
 						Blockbench.reload();

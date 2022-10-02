@@ -22,6 +22,7 @@ class ModelProject {
 		this.undo = new UndoSystem();
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
+		this.tool = '';
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
@@ -199,6 +200,9 @@ class ModelProject {
 		UVEditor.loadViewportOffset();
 
 		Modes.options[this.mode].select();
+		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
+			BarItems[this.tool].select();
+		}
 
 		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
 		BarItems.lock_motion_trail.updateEnabledState();
@@ -244,7 +248,16 @@ class ModelProject {
 		return true;
 	}
 	unselect(closing) {
-		if (!closing) this.thumbnail = Preview.selected.canvas.toDataURL();
+		if (!closing) {
+			if (Format.edit_mode) {
+				this.thumbnail = Preview.selected.canvas.toDataURL();
+			} else if (Texture.all.length) {
+				this.thumbnail = Texture.getDefault()?.source;
+			}
+
+			this.tool = Toolbox.selected.id;
+			UVEditor.saveViewportOffset();
+		}
 		Interface.tab_bar.last_opened_project = this.uuid;
 
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -260,8 +273,6 @@ class ModelProject {
 				angle: preview.angle,
 			}
 		})
-
-		UVEditor.saveViewportOffset();
 
 		this.undo.closeAmendEditMenu();
 		Preview.all.forEach(preview => {
@@ -324,7 +335,6 @@ class ModelProject {
 			try {
 				if (isApp) {
 					updateRecentProjectData();
-					await updateRecentProjectThumbnail();
 				}
 	
 				Blockbench.dispatchEvent('close_project');
