@@ -2075,6 +2075,7 @@ BARS.defineActions(function() {
 				axes.x = true;
 			}
 		}
+		highlightMirrorPaintingAxes();
 		StateMemory.save('mirror_painting_options');
 	}
 	function toggleMirrorPaintingSpace(space) {
@@ -2089,24 +2090,38 @@ BARS.defineActions(function() {
 		}
 		StateMemory.save('mirror_painting_options');
 	}
+	function highlightMirrorPaintingAxes() {
+		if (!Painter.mirror_painting) return;
+		
+		let grids = new THREE.Object3D();
+		let size = 16*16;
+		if (Painter.mirror_painting_options.axis.x) {
+			var grid = new THREE.GridHelper(size, 16*2, new THREE.LineBasicMaterial({color: gizmo_colors.r}));
+			grid.rotation.z = Math.PI/2;
+			grid.position.y = size/2;
+			grid.position.x = Format.centered_grid ? 0 : 8;
+			grids.add(grid);
+		}
+		if (Painter.mirror_painting_options.axis.z) {
+			var grid = new THREE.GridHelper(size, 16*2, new THREE.LineBasicMaterial({color: gizmo_colors.b}));
+			grid.rotation.x = Math.PI/2;
+			grid.position.y = size/2;
+			grid.position.z = Format.centered_grid ? 0 : 8;
+			grids.add(grid);
+		}
+		scene.add(grids);
+		setTimeout(() => {
+			scene.remove(grids);
+			grid.geometry.dispose();
+		}, 1000)
+	}
 	new Toggle('mirror_painting', {
 		icon: 'flip',
 		category: 'paint',
 		condition: () => Modes.paint,
 		onChange: function (value) {
 			Painter.mirror_painting = value;
-			if (value) {
-				let size = 16*16;
-				var grid = new THREE.GridHelper(size, 16*2, new THREE.LineBasicMaterial({color: gizmo_colors.outline}));
-				grid.rotation.z = Math.PI/2;
-				grid.position.y = size/2;
-				grid.position.x = Format.centered_grid ? 0 : 8;
-				scene.add(grid);
-				setTimeout(() => {
-					scene.remove(grid);
-					grid.geometry.dispose();
-				}, 1000)
-			}
+			highlightMirrorPaintingAxes();
 		},
 		side_menu: new Menu('mirror_painting', [
 			// Enabled
