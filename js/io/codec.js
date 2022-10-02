@@ -39,7 +39,9 @@ class Codec {
 				path: file.path,
 				icon: Format.icon
 			})
-			updateRecentProjectThumbnail();
+			setTimeout(() => {
+				updateRecentProjectThumbnail();
+			}, 200)
 		}
 		this.parse(model, file.path)
 		loadDataFromModelMemory();

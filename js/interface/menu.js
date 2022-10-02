@@ -180,7 +180,7 @@ class Menu {
 
 				populateList(list, childlist, object.searchable);
 
-				if (typeof object.click == 'function' && (object instanceof Action == false || object.side_menu)) {
+				if ((typeof object.click == 'function' || object instanceof Tool) && (object instanceof Action == false || object.side_menu)) {
 					if (node.find('> .menu_more_button').length == 0) {
 						node.addClass('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));

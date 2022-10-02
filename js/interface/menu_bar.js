@@ -332,7 +332,7 @@ const MenuBar = {
 		
 		new BarMenu('tools', [
 			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
-				let tools = Toolbox.children.filter(tool => tool instanceof Tool);
+				let tools = Toolbox.children.filter(tool => tool instanceof Tool && tool.condition !== false);
 				tools.forEach(tool => {
 					let old_condition = tool.condition;
 					tool.condition = () => {
