@@ -931,13 +931,20 @@ BARS.defineActions(function() {
 						type: 'select',
 						options,
 					},
+					create_copy: {type: 'checkbox', label: 'dialog.convert_project.create_copy', value: true}
 				},
 				onConfirm: function(formResult) {
 					var format = Formats[formResult.format]
-					if (format && format != Format) {
-						format.convertTo()
+					if (!format || format == Format) return;
+					
+					if (formResult.create_copy) {
+						let model = Codecs.project.compile({raw: true});
+						setupProject(Format)
+						Codecs.project.parse(model);
+						if (Project.name) Project.name += ' - Converted'
 					}
-					dialog.hide()
+					
+					format.convertTo()
 				}
 			})
 			dialog.show()
