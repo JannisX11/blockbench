@@ -170,9 +170,10 @@ class NullObject extends OutlinerElement {
 		},
 		updateTransform(element) {
 			NodePreviewController.prototype.updateTransform(element);
-			let size = 0.019 / (window.devicePixelRatio||1);
-			element.mesh.scale.set(size, size, size);
+
 			element.mesh.fix_position.copy(element.mesh.position);
+
+			this.updateWindowSize(element);
 
 			this.dispatchEvent('update_transform', {element});
 		},
@@ -182,6 +183,10 @@ class NullObject extends OutlinerElement {
 			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
 	
 			this.dispatchEvent('update_selection', {element});
+		},
+		updateWindowSize(element) {
+			let size = 17 / Preview.selected.height;
+			element.mesh.scale.set(size, size, size);
 		}
 	})
 	

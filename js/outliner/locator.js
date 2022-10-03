@@ -150,8 +150,7 @@ OutlinerElement.registerType(Locator, 'locator');
 		},
 		updateTransform(element) {
 			NodePreviewController.prototype.updateTransform(element);
-			let size = 0.02 / (window.devicePixelRatio||1);
-			element.mesh.scale.set(size, size, size);
+			this.updateWindowSize(element);
 		},
 		updateSelection(element) {
 			let {mesh} = element;
@@ -159,6 +158,10 @@ OutlinerElement.registerType(Locator, 'locator');
 			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
 
 			this.dispatchEvent('update_selection', {element});
+		},
+		updateWindowSize(element) {
+			let size = 18 / Preview.selected.height;
+			element.mesh.scale.set(size, size, size);
 		}
 	})
 

@@ -513,6 +513,11 @@ function resizeWindow(event) {
 			prev.resize()
 		}
 	})
+	Outliner.elements.forEach(element => {
+		if (element.preview_controller.updateWindowSize) {
+			element.preview_controller.updateWindowSize(element);
+		}
+	})
 	if (Format.id == 'image') {
 		UVEditor.updateSize();
 	}
