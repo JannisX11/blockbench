@@ -2065,6 +2065,9 @@ BARS.defineActions(function() {
 	if (!Painter.mirror_painting_options.axis) {
 		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
 	}
+	if (!Painter.mirror_painting_options.global && !Painter.mirror_painting_options.local) {
+		Painter.mirror_painting_options.global = true;
+	}
 	function toggleMirrorPaintingAxis(axis) {
 		let axes = Painter.mirror_painting_options.axis
 		axes[axis] = !axes[axis];
