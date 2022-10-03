@@ -932,7 +932,7 @@ const Canvas = {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
 			var mesh = obj.mesh;
-			if (!mesh || !mesh.geometry) return;
+			if (!mesh || !mesh.geometry || !mesh.outline) return;
 
 			var copy = mesh.outline.clone();
 			copy.geometry = mesh.outline.geometry.clone();

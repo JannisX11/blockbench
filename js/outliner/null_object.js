@@ -107,6 +107,7 @@ class NullObject extends OutlinerElement {
 	NullObject.prototype.buttons = [
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
@@ -137,24 +138,54 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'vector', 'position')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
+	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 
+(function() {
+
+	const map = new THREE.TextureLoader().load( 'assets/null_object.png' );
+	map.magFilter = map.minFilter = THREE.NearestFilter;
+	
 	new NodePreviewController(NullObject, {
 		setup(element) {
-			NodePreviewController.prototype.setup(element);
+			let material = new THREE.SpriteMaterial({
+				map,
+				alphaTest: 0.1,
+				sizeAttenuation: false
+			});
+			var mesh = new THREE.Sprite(material);
+			Project.nodes_3d[element.uuid] = mesh;
+			mesh.name = element.uuid;
+			mesh.type = element.type;
+			mesh.isElement = true;
+			mesh.visible = element.visibility;
+			mesh.rotation.order = 'ZYX';
 			element.mesh.fix_position = new THREE.Vector3();
-
+			this.updateTransform(element);
+	
+			this.dispatchEvent('setup', {element});
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateTransform(element) {
 			NodePreviewController.prototype.updateTransform(element);
+			let size = 0.019 / (window.devicePixelRatio||1);
+			element.mesh.scale.set(size, size, size);
 			element.mesh.fix_position.copy(element.mesh.position);
 
 			this.dispatchEvent('update_transform', {element});
+		},
+		updateSelection(element) {
+			let {mesh} = element;
+	
+			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+	
+			this.dispatchEvent('update_selection', {element});
 		}
 	})
+	
+})()
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
