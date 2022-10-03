@@ -385,8 +385,8 @@ const Clipbench = {
 			Project.name = 'image';
 			texture.load_callback = () => {
 				texture.select();
+				Project.texture_height = texture.display_height;
 				Project.texture_width = texture.width;
-				Project.texture_height = texture.height;
 			}
 		}
 	

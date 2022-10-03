@@ -1154,16 +1154,19 @@ class Preview {
 								is_on_screen = true;
 							}
 						}
+						if (is_on_screen && extend_selection) {
+							for (let vkey in element.vertices) {
+								if (extend_selection && this.selection.old_vertices_selected[element.uuid] && this.selection.old_vertices_selected[element.uuid].includes(vkey)) {
+									selected_vertices.safePush(vkey);
+								}
+							}
+						}
 						if (!is_on_screen) {
-
 						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
-								if (
-									(extend_selection && this.selection.old_vertices_selected[element.uuid] && this.selection.old_vertices_selected[element.uuid].includes(vkey)) ||
-									pointInRectangle(point, rect_start, rect_end)
-								) {
-									selected_vertices.safePush(vkey);
+								if (!selected_vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+									selected_vertices.push(vkey);
 								}
 							}
 

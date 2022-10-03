@@ -212,10 +212,10 @@ new ValidatorCheck('texture_names', {
 	update_triggers: ['add_texture', 'change_texture_path'],
 	run() {
 		Texture.all.forEach(texture => {
-			let characters = (texture.folder + texture.name).match(/[^a-z0-9._/\\-]/)
+			let characters = (texture.folder + texture.name).replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
 			if (characters) {
 				this.warn({
-					message: `Texture "${texture.name}" contains the following invalid characters: "${characters.join('')}"`,
+					message: `Texture "${texture.name}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
 					buttons: [
 						{
 							name: 'Select Texture',

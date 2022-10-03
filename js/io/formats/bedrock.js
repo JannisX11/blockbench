@@ -917,14 +917,17 @@ var codec = new Codec('bedrock', {
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 
-			loadDataFromModelMemory();
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
 			});
+			setTimeout(() => {
+				updateRecentProjectThumbnail();
+			}, 200)
 		}
 		this.parse(model, file.path)
+		loadDataFromModelMemory();
 	},
 	compile(options) {
 		if (options === undefined) options = {}

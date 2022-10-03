@@ -236,12 +236,15 @@ function loadDataFromModelMemory() {
 	if (project.textures) {
 		Blockbench.read(project.textures, {}, files => {
 			files.forEach(f => {
-				new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+				if (!Texture.all.find(t => t.path == f.path)) {
+					new Texture({name: f.name}).fromFile(f).add(false).fillParticle();
+				}
 			})
 		})
 	}
 	if (project.animation_files && Format.animation_files) {
-		Blockbench.read(project.animation_files, {}, files => {
+		let files = project.animation_files.filter(path => !Animation.all.find(a => a.path == path));
+		Blockbench.read(files, {}, files => {
 			files.forEach(file => {
 				Animator.importFile(file);
 			})
@@ -410,7 +413,6 @@ function createBackup(init) {
 
 window.onbeforeunload = function (event) {
 	try {
-		updateRecentProjectThumbnail()
 		updateRecentProjectData()
 	} catch(err) {}
 
