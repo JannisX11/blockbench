@@ -248,7 +248,7 @@ const MenuBar = {
 				'center_x',
 				'center_y',
 				'center_z',
-				'center_all'
+				'center_lateral'
 			]},
 			{name: 'menu.transform.properties', id: 'properties', icon: 'navigate_next', children: [
 				'toggle_visibility',

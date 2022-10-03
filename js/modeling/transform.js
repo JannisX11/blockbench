@@ -651,9 +651,8 @@ function scaleAllSelectOverflow() {
 }
 //Center
 function centerElementsAll(axis) {
-	centerElements(0, false)
-	centerElements(1, false)
-	centerElements(2, false)
+	centerElements(0, false);
+	centerElements(2, false);
 }
 function centerElements(axis, update) {
 	if (!Outliner.selected.length) return;
@@ -1700,7 +1699,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Center selection on Z axis')
 		}
 	})
-	new Action('center_all', {
+	new Action('center_lateral', {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click: function () {
