@@ -291,6 +291,25 @@ const Timeline = {
 				Timeline.setTime(time);
 				Animator.preview();
 				Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
+				if (e.shiftKey || Pressing.overrides.shift) {
+					time = Timeline.snapTime(time);
+
+					if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) Timeline.selected.empty();
+
+					for (let i = 0; i < Timeline.animators.length; i++) {
+						let animator = Timeline.animators[i];
+						for (let channel in animator.channels) {
+							if (Timeline.vue.channels[channel] !== false) {
+								let match = animator[channel].find(kf => Math.epsilon(kf.time, time, 0.01));
+								if (match && !match.selected) {
+									match.selected = true;
+									Timeline.selected.push(match);
+								}
+							}
+						}
+					}
+					updateKeyframeSelection();
+				}
 			}
 		})
 		$(document).on('mousemove touchmove', e => {
