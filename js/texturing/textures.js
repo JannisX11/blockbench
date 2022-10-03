@@ -1132,6 +1132,9 @@ class Texture {
 				scope.saved = true;
 			})
 		}
+		if (Format.id == 'image' && !Texture.all.find(t => !t.saved)) {
+			Project.saved = true;
+		}
 		return this;
 	}
 	exportEmissionMap() {

@@ -1234,6 +1234,8 @@
 	"action.adjust_saturation_hue.desc": "Adjust the saturation and hue of the selected texture",
 	"action.invert_colors": "Invert Colors",
 	"action.invert_colors.desc": "Invert all colors of the selected texture",
+	"action.adjust_opacity": "Adjust Opacity...",
+	"action.adjust_opacity.desc": "Adjust the opacity of the selected texture",
 	"action.adjust_curves": "Adjust Curves...",
 	"action.adjust_curves.desc": "Adjust the brightness curves of the selected texture",
 	"action.flip_texture_x": "Flip Texture Horizontally",

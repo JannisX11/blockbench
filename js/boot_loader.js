@@ -57,7 +57,7 @@ Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0) + 1;
 localStorage.setItem('startups', Blockbench.startup_count);
 
 document.getElementById('blackout').addEventListener('click', event => {
-	if (typeof open_interface.cancel == 'function') {
+	if (typeof open_interface.cancel == 'function' && open_interface.cancel_on_click_outside !== false) {
 		open_interface.cancel(event);
 	} else if (typeof open_interface == 'string' && open_dialog) {
 		$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');

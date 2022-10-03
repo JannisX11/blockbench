@@ -407,6 +407,7 @@ window.Dialog = class Dialog {
 		this.width = options.width
 		this.draggable = options.draggable
 		this.darken = options.darken !== false
+		this.cancel_on_click_outside = options.cancel_on_click_outside !== false
 		this.singleButton = options.singleButton
 		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
 		this.form_first = options.form_first;

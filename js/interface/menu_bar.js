@@ -273,6 +273,7 @@ const MenuBar = {
 		new BarMenu('texture', [
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',
+			'adjust_opacity',
 			'invert_colors',
 			'adjust_curves',
 			'_',
