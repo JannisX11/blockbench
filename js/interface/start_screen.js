@@ -507,7 +507,7 @@ ModelLoader.loaders = {};
 				"source": "./assets/splash_art.png?44",
 				"width": 1000,
 				"aspect_ratio": "64/27",
-				"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
+				"description": tl("menu.main.splash_art.one", ["[Wacky](https://twitter.com/wackyblocks)"]),
 				"text_color": '#cfcfcf'
 			}
 		})

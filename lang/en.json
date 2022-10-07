@@ -1496,6 +1496,9 @@
 	"menu.view.background": "Background",
 	"menu.view.screenshot": "Screenshot",
 
+	"menu.main.splash_art.one": "Splash Art by %0",
+	"menu.main.splash_art.two": "Splash Art by %0 and %1",
+
 	"menu.help.discord": "Discord Server",
 	"menu.help.wiki": "Blockbench Wiki",
 	"menu.help.quickstart": "Quickstart Wizard",
