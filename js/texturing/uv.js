@@ -211,6 +211,14 @@ const UVEditor = {
 		}
 		Painter.selection.canvas = canvas;
 
+		Painter.selection.move_mode = BarItems.copy_paste_tool_mode.value == 'move';
+		if (Painter.selection.move_mode) {
+			UVEditor.texture.edit((canvas) => {
+				var ctx = canvas.getContext('2d');
+				ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
+			}, {no_undo_finish: true});
+		}
+
 		UVEditor.addPastingOverlay();
 	},
 	addPastingOverlay() {
@@ -228,7 +236,7 @@ const UVEditor = {
 						let y = (Painter.selection.y % scope.texture.display_height);
 						if (scope.texture.frameCount > 1) y += scope.texture.currentFrame * scope.texture.display_height;
 						ctx.drawImage(Painter.selection.canvas, Painter.selection.x, y)
-					})
+					}, {no_undo_init: Painter.selection.move_mode})
 				}
 			},
 			hide() {

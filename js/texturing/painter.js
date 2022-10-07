@@ -8,7 +8,7 @@ const Painter = {
 	lock_alpha: false,
 	erase_mode: false,
 	edit(texture, cb, options) {
-		if (!options.no_undo) {
+		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (texture.mode === 'link') {
@@ -38,7 +38,7 @@ const Painter = {
 			if (options.method === 'jimp') {
 				Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 					texture.updateSource(dataUrl)
-					if (!options.no_undo) {
+					if (!options.no_undo && !options.no_undo_finish) {
 						Undo.finishEdit(edit_name)
 					}
 				})
@@ -51,7 +51,9 @@ const Painter = {
 					UVEditor.vue.updateTextureCanvas();
 				} else {
 					texture.updateSource(instance.toDataURL())
-					Undo.finishEdit(edit_name)
+					if (!options.no_undo_finish) {
+						Undo.finishEdit(edit_name)
+					}
 				}
 			}
 		} else {
@@ -62,7 +64,7 @@ const Painter = {
 					Painter.current.image = image
 					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 						texture.updateSource(dataUrl)
-						if (!options.no_undo) {
+						if (!options.no_undo && !options.no_undo_finish) {
 							Undo.finishEdit(edit_name)
 						}
 					})
@@ -74,7 +76,7 @@ const Painter = {
 				c = cb(c) || c;
 
 				texture.updateSource(c.toDataURL())
-				if (!options.no_undo) {
+				if (!options.no_undo && !options.no_undo_finish) {
 					Undo.finishEdit(edit_name)
 				}
 			}
@@ -2082,6 +2084,14 @@ BARS.defineActions(function() {
 			copy: true,
 			pattern: true,
 			sample: true
+		}
+	})
+	new BarSelect('copy_paste_tool_mode', {
+		category: 'paint',
+		condition: {tools: ['copy_paste_tool']},
+		options: {
+			copy: true,
+			move: true,
 		}
 	})
 

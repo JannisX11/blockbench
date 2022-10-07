@@ -1273,6 +1273,17 @@ class Toolbar {
 		var items = data.children
 		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
 			items = BARS.stored[scope.id]
+			if (data.children) {
+				// Add new actions to existing toolbars
+				data.children.forEach((key, index) => {
+					if (typeof key == 'string' && key.length > 1 && !items.includes(key) && !Keybinds.stored[key] && BarItems[key]) {
+						// Figure out best index based on item before. Otherwise use index from original array
+						let prev_index = items.indexOf(data.children[index-1]);
+						if (prev_index != -1) index = prev_index+1;
+						items.splice(index, 0, key);
+					}
+				})
+			}
 		}
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
@@ -1454,7 +1465,10 @@ class Toolbar {
 				arr.push(c.id)
 			}
 		})
-		BARS.stored[this.id] = arr
+		BARS.stored[this.id] = arr;
+		if (arr.equals(this.default_children)) {
+			delete BARS.stored[this.id];
+		}
 		localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
 		return this;
 	}
@@ -2242,6 +2256,7 @@ const BARS = {
 				'fill_mode',
 				'copy_brush_mode',
 				'draw_shape_type',
+				'copy_paste_tool_mode',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',

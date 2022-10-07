@@ -662,6 +662,7 @@ const Canvas = {
 		Canvas.pivot_marker.add(helper1)
 		Canvas.pivot_marker.add(helper2)
 
+		Canvas.pivot_marker.name = 'pivot_marker';
 		Canvas.pivot_marker.rotation.order = 'ZYX';
 		Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
 		Canvas.pivot_marker.no_export = true;
