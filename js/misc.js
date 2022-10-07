@@ -295,6 +295,10 @@ const TickUpdates = {
 				delete TickUpdates.keybind_conflicts;
 				updateKeybindConflicts();
 			}
+			if (TickUpdates.interface) {
+				delete TickUpdates.interface;
+				updateInterface();
+			}
 		} catch (err) {
 			console.error(err);
 		}

@@ -258,8 +258,6 @@ var codec = new Codec('java_block', {
 			})
 			return;
 		}
-		Formats.java_block.select()
-		Settings.save()
 
 		this.dispatchEvent('parse', {model});
 
