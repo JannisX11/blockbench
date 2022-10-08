@@ -2011,10 +2011,6 @@ const BARS = {
 				'cube_counter'
 			]
 		})
-		Blockbench.onUpdateTo('4.0.0-beta.0', () => {
-			Toolbars.outliner.add(BarItems.add_mesh, 1);
-			Toolbars.outliner.add('+', -1);
-		})
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
@@ -2049,10 +2045,6 @@ const BARS = {
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
-		})
-		Blockbench.onUpdateTo('4.2.0-beta.2', () => {
-			Toolbars.tools.add(BarItems.seam_tool, 5);
-			Toolbars.tools.add(BarItems.pan_tool, 6);
 		})
 
 		Toolbars.element_position = new Toolbar({
@@ -2123,9 +2115,6 @@ const BARS = {
 				'pick_screen_color'
 			]
 		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			Toolbars.color_picker.add(BarItems.pick_screen_color);
-		})
 
 
 		Toolbars.display = new Toolbar({
@@ -2154,14 +2143,6 @@ const BARS = {
 				'toggle_mirror_uv',
 			]
 		})
-		Blockbench.onUpdateTo('4.1.0', () => {
-			Toolbars.uv_editor.remove(BarItems.uv_grid);
-			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
-			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
-		})
-		Blockbench.onUpdateTo('4.1.0-beta.0', () => {
-			Toolbars.uv_editor.add(BarItems.move_texture_with_uv, 0);
-		})
 		//Animations
 		Toolbars.animations = new Toolbar({
 			id: 'animations',
@@ -2170,9 +2151,6 @@ const BARS = {
 				'load_animation_file',
 				'slider_animation_length',
 			]
-		})
-		Blockbench.onUpdateTo('3.8', () => {
-			Toolbars.animations.add(BarItems.load_animation_file, 1);
 		})
 		Toolbars.keyframe = new Toolbar({
 			id: 'keyframe',
@@ -2183,12 +2161,6 @@ const BARS = {
 				'change_keyframe_file',
 				'reset_keyframe'
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
-		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			delete BARS.stored.timeline;
 		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
@@ -2223,13 +2195,6 @@ const BARS = {
 				'invert_face',
 			]
 		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			Toolbars.main_tools.add(BarItems.extrude_mesh_selection);
-			Toolbars.main_tools.add(BarItems.inset_mesh_selection);
-			Toolbars.main_tools.add(BarItems.loop_cut);
-			Toolbars.main_tools.add(BarItems.create_face);
-			Toolbars.main_tools.add(BarItems.invert_face);
-		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
@@ -2241,12 +2206,6 @@ const BARS = {
 				})
 			})
 		}
-		Blockbench.onUpdateTo('3.7', () => {
-			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
-		})
-		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
-			Toolbars.main_tools.add(BarItems.selection_mode, -1);
-		})
 		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
 			delete BARS.stored.brush;
 		})
@@ -2282,9 +2241,6 @@ const BARS = {
 			children: [
 				'select_seam'
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.vertex_snap.add(BarItems.selection_mode);
 		})
 
 		Toolbox = Toolbars.tools;
@@ -2473,10 +2429,6 @@ const BARS = {
 				Toolbars[key].update()
 			}
 		}
-		/*
-		UVEditor.all_editors.forEach((editor) => {
-			editor.updateInterface()
-		})*/
 	}
 }
 
