@@ -1507,7 +1507,7 @@ function loadTextureDraggable() {
 								if (tex && elements) {
 									Undo.initEdit({elements})
 									elements.forEach(element => {
-										element.applyTexture(tex, data.shiftKey || Pressing.overrides.shift || [data.face])
+										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
 									})
 									Undo.finishEdit('Apply texture')
 								}

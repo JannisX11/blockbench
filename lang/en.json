@@ -232,6 +232,8 @@
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
 	"message.child_model_only.title": "Empty Child Model",
 	"message.child_model_only.message": "This file is a child of %0 and does not contain a model.",
+	"message.child_model_only.open": "Open Parent",
+	"message.child_model_only.open_with_textures": "Open Parent & Adopt Textures",
 	"message.invalid_link": "Invalid or Expired Model Link",
 
 	"message.drag_background": "Drag the background to move its position. Hold shift and drag up and down to change its size. Click here to save the position.",

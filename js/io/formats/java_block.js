@@ -433,7 +433,43 @@ var codec = new Codec('java_block', {
 			Blockbench.showMessageBox({
 				translateKey: 'child_model_only',
 				icon: 'info',
-				message: tl('message.child_model_only.message', [model.parent])
+				message: tl('message.child_model_only.message', [model.parent]),
+				commands: isApp && {
+					open: 'message.child_model_only.open',
+					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
+				}
+			}, (result) => {
+				if (result) {
+					let textures;
+					if (result == 'open_with_textures') {
+						textures = {};
+						Texture.all.forEach(tex => {
+							textures[tex.id] = tex;
+						})
+					}
+					let parent = model.parent.replace(/\w+:/, '');
+					let path_arr = path.split(osfs);
+					let index = path_arr.length - path_arr.indexOf('models');
+					path_arr.splice(-index);
+					path_arr.push('models', ...parent.split('/'));
+					let parent_path = path_arr.join(osfs) + '.json';
+
+					Blockbench.read([parent_path], {}, (files) => {
+						loadModelFile(files[0]);
+
+						if (result == 'open_with_textures') {
+							Texture.all.forEach(tex => {
+								if (tex.error == 3 && tex.name.startsWith('#')) {
+									let loaded_tex = textures[tex.name.replace(/#/, '')];
+									if (loaded_tex) {
+										tex.fromPath(loaded_tex.path);
+										tex.namespace = loaded_tex.namespace;
+									}
+								}
+							})
+						}
+					})
+				}
 			})
 		}
 		updateSelection()
