@@ -1157,6 +1157,7 @@ const Animator = {
 					let existing_variables = [
 						'query.anim_time',
 						'query.life_time',
+						'query.time_stamp',
 						'query.delta_time',
 						'query.camera_rotation',
 						'query.rotation_to_camera',
@@ -1515,6 +1516,9 @@ Animator.MolangParser.global_variables = {
 	},
 	get 'query.life_time'() {
 		return Timeline.time;
+	},
+	get 'query.time_stamp'() {
+		return Math.floor(Timeline.time * 20) / 20;
 	},
 	'query.camera_rotation'(axis) {
 		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];

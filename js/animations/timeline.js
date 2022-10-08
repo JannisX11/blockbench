@@ -789,9 +789,18 @@ Interface.definePanels(() => {
 				selectChannel(animator, channel) {
 					if (this.graph_editor_channel == channel && animator.selected) return;
 					if (!animator.channels[channel].transform) return;
-					animator.select();
-					if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
-						animator[channel][0].select();
+					if (!animator.selected) animator.select();
+					// Select keyframe in new channel
+					if (animator[channel].length && Keyframe.selected.length > 0) {
+						if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+							animator[channel][0].select();
+						} else if (animator[channel].find(kf => Math.epsilon(kf.time, Keyframe.selected[0].time))) {
+							let kf = animator[channel].find(kf => Math.epsilon(kf.time, Keyframe.selected[0].time, 0.002));
+							kf.select();
+						} else {
+							let kf = animator[channel].slice().sort((a, b) => Math.abs(a.time - Timeline.time) - Math.abs(b.time - Timeline.time))[0];
+							kf.select();
+						}
 					}
 					this.graph_editor_channel = channel;
 				},
@@ -987,8 +996,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
-				trimFloatNumber,
-				a() {console.trace('nee')}
+				trimFloatNumber
 			},
 			watch: {
 				size() {this.updateTimecodes()},
