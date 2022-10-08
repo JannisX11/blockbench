@@ -643,7 +643,8 @@ const Painter = {
 				let clicked_face = Painter.current.element.faces[Painter.current.face];
 				let normal = clicked_face.getNormal(true);
 				let center = clicked_face.getCenter();
-				let e = 0.01;
+				let ep = 0.5;
+				let en = 0.1;
 				let face;
 				let match_fkey;
 				for (let fkey in mesh.faces) {
@@ -655,8 +656,8 @@ const Painter = {
 						if (symmetry_axes[2]) {normal2[2] *= -1; center2[2] *= -1;}
 					}
 					if (
-						Math.epsilon(normal[0], normal2[0], e) && Math.epsilon(normal[1], normal2[1], e) && Math.epsilon(normal[2], normal2[2], e) &&
-						Math.epsilon(center[0], center2[0], e) && Math.epsilon(center[1], center2[1], e) && Math.epsilon(center[2], center2[2], e)
+						Math.epsilon(normal[0], normal2[0], en) && Math.epsilon(normal[1], normal2[1], en) && Math.epsilon(normal[2], normal2[2], en) &&
+						Math.epsilon(center[0], center2[0], ep) && Math.epsilon(center[1], center2[1], ep) && Math.epsilon(center[2], center2[2], ep)
 					) {
 						face = mesh.faces[fkey];
 						match_fkey = fkey;
@@ -1169,21 +1170,25 @@ const Painter = {
 			}
 			return false;
 		} else if (element instanceof Mesh) {
+			let ep = 0.5;
+			let this_center = element.getCenter(true);
 			if (
 				symmetry_axes.find((axis) => !Math.epsilon(element.origin[axis], center, e)) == undefined &&
+				symmetry_axes.find((axis) => !Math.epsilon(this_center[axis], center, ep)) == undefined &&
 				off_axes.find(axis => element.rotation[axis]) == undefined
 			) {
 				return element;
 			} else {
 				for (var element2 of Mesh.all) {
+					let other_center = element2.getCenter(true);
 					if (Object.keys(element.vertices).length !== Object.keys(element2.vertices).length) continue;
 					if (
 						symmetry_axes.find(axis => !Math.epsilon(element.origin[axis]-center, center-element2.origin[axis], e)) == undefined &&
-						off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined
+						symmetry_axes.find(axis => !Math.epsilon(this_center[axis]-center, center-other_center[axis], ep)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(this_center[axis], other_center[axis], ep)) == undefined
 					) {
 						return element2;
-					} else {
-						
 					}
 				}
 			}
