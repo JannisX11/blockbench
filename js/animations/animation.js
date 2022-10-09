@@ -641,19 +641,19 @@ class Animation {
 				template: 
 					`<div id="animation_properties_vue">
 						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.anim_time_update')}</label>
+							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.blend_weight')}</label>
+							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.start_delay')}</label>
+							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
-							<label class="name_space_left">${tl('menu.animation.loop_delay')}</label>
+							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
 							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
 						</div>
 					</div>`

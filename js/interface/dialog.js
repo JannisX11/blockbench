@@ -2,22 +2,29 @@
 
 function buildForm(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
-	for (var form_id in dialog.form) {
+	for (let form_id in dialog.form) {
 		let data = dialog.form[form_id]
 		form_id = form_id.replace(/"/g, '');
 		if (data === '_') {
 			dialog_content.append('<hr />')
 			
 		} else {
-			var bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
+			let bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
+			let label;
 			if (data.label) {
-				bar.append(`<label class="name_space_left" for="${form_id}">${tl(data.label)+(data.nocolon?'':':')}</label>`)
-				dialog.max_label_width = Math.max(getStringWidth(tl(data.label)), dialog.max_label_width)
+				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
+				bar.append(label);
+				if (!data.full_width) {
+					dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
+				}
+			}
+			if (data.full_width) {
+				bar.addClass('full_width_dialog_bar');
 			}
 			if (data.description) {
 				bar.attr('title', tl(data.description))
 			}
-			var input_element;
+			let input_element;
 
 			switch (data.type) {
 				default:
@@ -88,9 +95,9 @@ function buildForm(dialog) {
 
 
 				case 'radio':
-					var el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
-					for (var key in data.options) {
-						var name = tl(data.options[key])
+					let el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
+					for (let key in data.options) {
+						let name = tl(data.options[key])
 						el.append(`<div class="form_bar_radio">
 							<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${(data.default || data.value) === key ? 'selected' : ''}>
 							<label for="${key}">${name}</label>
@@ -136,10 +143,26 @@ function buildForm(dialog) {
 					break;
 
 
+				case 'range':
+					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
+						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
+					bar.append(input_element)
+					let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
+					bar.append(display);
+					input_element.on('input', () => {
+						let result = dialog.getFormResult();
+						display.textContent = trimFloatNumber(result[form_id]);
+					})
+					input_element.on('change', () => {
+						dialog.updateFormValues();
+					})
+					break;
+
+
 				case 'vector':
 					let group = $(`<div class="dialog_vector_group half"></div>`)
 					bar.append(group)
-					for (var i = 0; i < (data.dimensions || 3); i++) {
+					for (let i = 0; i < (data.dimensions || 3); i++) {
 						input_element = $(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
 							value="${data.value ? parseFloat(data.value[i]): 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
 						group.append(input_element)
@@ -259,15 +282,16 @@ function buildLines(dialog) {
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && (l.label || l.widget)) {
 
-			var bar = $('<div class="dialog_bar"></div>')
+			let bar = $('<div class="dialog_bar"></div>')
 			if (l.label) {
-				bar.append('<label class="name_space_left">'+tl(l.label)+(l.nocolon?'':':')+'</label>')
-				dialog.max_label_width = Math.max(getStringWidth(tl(l.label)), dialog.max_label_width)
+				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label)+(l.nocolon?'':':'))
+				bar.append(label);
+				dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
 			}
 			if (l.node) {
 				bar.append(l.node)
 			} else if (l.widget) {
-				var widget = l.widget
+				let widget = l.widget
 				if (typeof l.widget === 'string') {
 					widget = BarItems[l.widget]
 				} else if (typeof l.widget === 'function') {
@@ -296,7 +320,7 @@ function getStringWidth(string, size) {
 	document.body.append(node);
 	let width = node.clientWidth;
 	node.remove();
-	return width;
+	return width + 1;
 };
 
 const toggle_sidebar = window.innerWidth < 640;
@@ -431,7 +455,7 @@ window.Dialog = class Dialog {
 	}
 	updateFormValues(initial) {
 		let form_result = this.getFormResult();
-		for (var form_id in this.form) {
+		for (let form_id in this.form) {
 			let data = this.form[form_id];
 			if (typeof data == 'object' && data.bar) {
 				let show = Condition(data.condition, form_result);
@@ -441,9 +465,10 @@ window.Dialog = class Dialog {
 		if (!initial && typeof this.onFormChange == 'function') {
 			this.onFormChange(form_result)
 		}
+		return form_result;
 	}
 	setFormValues(values) {
-		for (var form_id in this.form) {
+		for (let form_id in this.form) {
 			let data = this.form[form_id];
 			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
 				let value = values[form_id];
@@ -462,11 +487,11 @@ window.Dialog = class Dialog {
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
 						break;
-					case 'number':
+					case 'number': case 'range':
 						data.bar.find('input').val(value);
 						break;
 					case 'vector':
-						for (var i = 0; i < (data.dimensions || 3); i++) {
+						for (let i = 0; i < (data.dimensions || 3); i++) {
 							data.bar.find(`input#${form_id}_${i}`).val(value[i])
 						}
 						break;
@@ -490,10 +515,10 @@ window.Dialog = class Dialog {
 		this.updateFormValues();
 	}
 	getFormResult() {
-		var result = {}
+		let result = {}
 		if (this.form) {
-			for (var form_id in this.form) {
-				var data = this.form[form_id]
+			for (let form_id in this.form) {
+				let data = this.form[form_id]
 				if (typeof data === 'object') {
 					switch (data.type) {
 						default:
@@ -513,9 +538,12 @@ window.Dialog = class Dialog {
 						case 'number':
 							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
 							break;
+						case 'range':
+							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							break;
 						case 'vector':
 							result[form_id] = [];
-							for (var i = 0; i < (data.dimensions || 3); i++) {
+							for (let i = 0; i < (data.dimensions || 3); i++) {
 								let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
 								result[form_id].push(num)
 							}
@@ -611,14 +639,14 @@ window.Dialog = class Dialog {
 		})
 
 		if (this.max_label_width) {
-			document.styleSheets[0].insertRule('.dialog#'+this.id+' .dialog_bar label {width: '+(this.max_label_width+8)+'px}')
+			this.object.style.setProperty('--max_label_width', Math.clamp(this.max_label_width, 0, (this.width||540)* 0.5) + 'px');
 		}
 
 		if (this.buttons.length) {
 
-			var buttons = []
+			let buttons = []
 			this.buttons.forEach((b, i) => {
-				var btn = $('<button type="button">'+tl(b)+'</button> ')
+				let btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
 				btn.on('click', (event) => {
 					this.close(i, event);
@@ -681,7 +709,7 @@ window.Dialog = class Dialog {
 			jq_dialog.css('width', this.width+'px');
 		}
 		if (this.draggable !== false) {
-			var x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+			let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
 			jq_dialog.css('left', x+'px')
 		}
 		if (!Blockbench.isTouch) {

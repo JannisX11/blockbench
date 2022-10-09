@@ -1813,7 +1813,7 @@ BARS.defineActions(function() {
 	new Action('update_autouv', {
 		icon: 'brightness_auto',
 		category: 'transform',
-		condition: () => !odes.edit && UVEditor.isFaceUV(),
+		condition: () => !Modes.edit && UVEditor.isFaceUV(),
 		click: function () {
 			if (Cube.selected.length) {
 				Undo.initEdit({elements: Cube.selected[0].forSelected(), selection: true})

@@ -37,7 +37,7 @@
 		cursor: pointer;
 	}
 	.dialog_close_button:hover {
-		color: var(--color-light);
+		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
 	.dialog_sidebar_menu_button {
@@ -120,8 +120,26 @@
 	.dialog_bar.form_bar {
 		display: flex;
 	}
+	label.name_space_left {
+		float: left;
+		min-width: 140px;
+		padding-top: 4px;
+		padding-left: 1px;
+		padding-right: 8px;
+		flex-shrink: 0;
+		overflow-wrap: break-word;
+	}
+	.dialog_bar.form_bar.full_width_dialog_bar {
+		flex-wrap: wrap;
+	}
+	.dialog_bar.form_bar.full_width_dialog_bar > label {
+		width: 100% !important;
+	}
 	.dialog_bar.form_bar .half {
 		flex-grow: 1;
+	}
+	.dialog_bar > label {
+		width: var(--max_label_width);
 	}
 	.dialog_bar::after {
 		content: "";
@@ -135,12 +153,12 @@
 		text-align: right;
 		flex: 0 0 auto;
 	}
-	.dialog_bar button.large {
+	.dialog_bar > button.large {
 		margin-bottom: 0;
 		margin-top: 16px;
 		margin: 16px 4px 0 4px;
 	}
-	.dialog_bar button.confirm_btn:not(:hover) {
+	.dialog_bar > button.confirm_btn:not(:hover) {
 		background-color: var(--color-selected);
 	}
 	.dialog_bar input[type=checkbox] {
@@ -168,6 +186,14 @@
 	}
 	.dialog_vector_group > input:not(:last-child) {
 		margin-right: 3px;
+	}
+	.dialog_bar > .range_input_label {
+		overflow: hidden;
+		width: 58px;
+		flex-grow: 0;
+		flex-shrink: 0;
+		padding-top: 4px;
+		padding-left: 6px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -928,15 +954,6 @@
 		padding: 6px;
 		padding-top: 2px;
 		height: 30px;
-	}
-	label.name_space_left {
-		float: left;
-		min-width: 155px;
-		margin-top: 4px;
-		margin-left: 1px;
-		margin-right: 8px;
-		flex-shrink: 0;
-		overflow-wrap: break-word;
 	}
 
 	/*PE Import Dialog*/

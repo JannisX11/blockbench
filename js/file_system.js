@@ -261,6 +261,9 @@ Object.assign(Blockbench, {
 			}
 		}
 	},
+	readFile(...args) {
+		return Blockbench.read(...args);
+	},
 	export(options, cb) {
 		if (!options) return;
 		/*	

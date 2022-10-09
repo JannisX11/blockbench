@@ -302,6 +302,7 @@
 		background-color: var(--color-selected);
 	}
 	#windows_window_menu li.wwm_r:hover {
+		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
 	#windows_window_menu li i:not(.material-icons) {
