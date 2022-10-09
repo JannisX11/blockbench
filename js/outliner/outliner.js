@@ -1098,22 +1098,22 @@ BARS.defineActions(function() {
 				title: 'dialog.select.title',
 				form_first: true,
 				form: {
-					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
+					mode: {label: 'dialog.select.mode', type: 'select', options: {
+						new: 'dialog.select.mode.new',
+						add: 'dialog.select.mode.add',
+						remove: 'dialog.select.mode.remove',
+						in_selection: 'dialog.select.mode.in_selection',
+					}},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
 					separate: '_',
 					name: {label: 'dialog.select.name', type: 'text'},
 					type: {label: 'dialog.select.type', type: 'select', options: type_options},
 					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options},
 					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
+					random: {label: 'dialog.select.random', type: 'range', min: 0, max: 100, step: 1, value: 100}
 				},
-				lines: [
-					`<div class="dialog_bar form_bar">
-						<label class="name_space_left">${tl('dialog.select.random')}</label>
-						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
-					</div>`
-				],
 				onConfirm(formData) {
-					if (formData.new) {
+					if (formData.mode == 'new' || formData.mode == 'in_selection') {
 						selected.empty();
 					}
 					let selected_group = Group.selected;
@@ -1122,11 +1122,13 @@ BARS.defineActions(function() {
 					}
 					var name_seg = formData.name.toUpperCase()
 					var tex_seg = formData.texture.toLowerCase()
-					var rdm = $('#selgen_random').val()/100
 				
 					var array = Outliner.elements;
-					if ($('#selgen_group').is(':checked') && selected_group) {
+					if (formData.group && selected_group) {
 						array = selected_group.children
+					}
+					if (formData.mode == 'in_selection' || formData.mode == 'remove') {
+						array = array.slice().filter(el => el.selected);
 					}
 				
 					array.forEach(function(obj) {
@@ -1145,8 +1147,12 @@ BARS.defineActions(function() {
 						if (formData.color != '-1') {
 							if (obj.setColor == undefined || obj.color.toString() != formData.color) return;
 						}
-						if (Math.random() > rdm) return;
-						selected.safePush(obj)
+						if (Math.random() > formData.random/100) return;
+						if (formData.mode == 'remove') {
+							selected.remove(obj);
+						} else {
+							selected.safePush(obj);
+						}
 					})
 					updateSelection()
 					if (selected.length) {

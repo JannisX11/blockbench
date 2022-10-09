@@ -404,11 +404,15 @@
 	"dialog.display_preset.create": "Create",
 
 	"dialog.select.title": "Select",
-	"dialog.select.new": "New Selection",
+	"dialog.select.mode": "Mode",
+	"dialog.select.mode.new": "New Selection",
+	"dialog.select.mode.add": "Add to Selected",
+	"dialog.select.mode.remove": "Remove from Selected",
+	"dialog.select.mode.in_selection": "Select only from Selected",
 	"dialog.select.group": "In Selected Group",
 	"dialog.select.name": "Name Contains",
 	"dialog.select.type": "Element Type",
-	"dialog.select.random": "Random",
+	"dialog.select.random": "Random Chance (%)",
 	"dialog.select.select": "Select",
 
 	"dialog.find_replace.target": "Target",
