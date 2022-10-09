@@ -1969,8 +1969,10 @@ Interface.definePanels(function() {
 							if (this.zoom == 1 && Panels.uv.isInSidebar() && diagonal_offset/UVEditor.width < 0.12) {
 								this.centerView();
 							}
-							this.updateMouseCoords(event)
-							//if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
+							
+							if (this.mode == 'paint') {
+								this.mouse_coords.x = -1;
+							}
 						}
 						if (n > 0) {
 							Vue.nextTick(updateScroll);

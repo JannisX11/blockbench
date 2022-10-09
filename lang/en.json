@@ -118,7 +118,7 @@
 	"format.java_block.info.animation": "This format does not support animations in vanilla Minecraft. If you are creating a mod, you can use GeckoLib to animate models. If not, the only way to animate is to switch out the model using commands or animated textures.",
 	
 	"format.bedrock": "Bedrock Entity",
-	"format.bedrock.desc": "Entity model for Minecraft Bedrock Edition",
+	"format.bedrock.desc": "Minecraft Bedrock Edition model for entities and item attachables",
 	"format.bedrock.info.textures": "Each model can only have one texture",
 
 	"format.bedrock_block": "Bedrock Block",

@@ -271,15 +271,24 @@ const skin_dialog = new Dialog({
 	},
 	draggable: true,
 	onConfirm(result) {
-		if (newProject(format)) {
-			let preset = skin_presets[result.model];
-			let model = JSON.parse(preset.model || (result.variant == 'java_edition' ? preset.model_java : preset.model_bedrock));
-			codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
+		if (result.model == 'flat_texture') {
+			if (newProject(Formats.image)) {
+				if (result.texture) {
+					new Texture().fromPath(result.texture).add(false);
+				} else {
+					TextureGenerator.addBitmapDialog();
+				}
+			}
+
+		} else {
+			if (newProject(format)) {
+				let preset = skin_presets[result.model];
+				let model = JSON.parse(preset.model || (result.variant == 'java_edition' ? preset.model_java : preset.model_bedrock));
+				codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
+			}
 		}
-		this.hide();
 	},
 	onCancel() {
-		this.hide();
 		Format = 0;
 	}
 });
