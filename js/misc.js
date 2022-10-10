@@ -163,6 +163,11 @@ function updateSelection(options = {}) {
 			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
 		}
 	}
+	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
+		if (!Outliner.selected[0] || Outliner.selected[0].type !== 'cube' || Outliner.selected[0].box_uv) {
+			UVEditor.vue.mode = 'uv';
+		}
+	}
 	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
 		UVEditor.selected_faces.forEachReverse((fkey, i) => {
 			if (!UVEditor.getMappableElements().find(el => el.faces[fkey])) {

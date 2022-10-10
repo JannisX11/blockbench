@@ -1021,7 +1021,6 @@ const UVEditor = {
 		Canvas.updateSelectedFaces()
 	},
 	switchCullface(event) {
-		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
 		var val = BarItems.cullface.get()
 		if (val === 'off') val = false
@@ -1399,7 +1398,7 @@ const UVEditor = {
 					UVEditor.message('uv_editor.reset')
 					Undo.finishEdit('Apply blank texture')
 				}},
-				{icon: 'clear', name: 'menu.cube.texture.transparent', condition: () => UVEditor.getReferenceFace() instanceof CubeFace, click: function() {UVEditor.clear(event)}},
+				{icon: 'clear', name: 'menu.cube.texture.transparent', condition: () => UVEditor.getReferenceFace() instanceof CubeFace, click: function(event) {UVEditor.clear(event)}},
 			]
 			Texture.all.forEach(function(t) {
 				arr.push({
@@ -1793,6 +1792,15 @@ Interface.definePanels(function() {
 				display_uv: 'selected_elements',
 
 				face_names: {
+					north: tl('face.north'),
+					south: tl('face.south'),
+					west: tl('face.west'),
+					east: tl('face.east'),
+					up: tl('face.up'),
+					down: tl('face.down'),
+				},
+				cullface_options: {
+					'': tl('uv_editor.no_faces'),
 					north: tl('face.north'),
 					south: tl('face.south'),
 					west: tl('face.west'),
@@ -2897,6 +2905,67 @@ Interface.definePanels(function() {
 						Math.floor(gap_y + this.height/2),
 					];
 					return style ? `${margin[1]}px ${margin[0]}px` : margin;
+				},
+
+				checkFormat(values) {
+					for (let key in values) {
+						if (Format[key] != values[key]) return false;
+					}
+					return true;
+				},
+				toggleFaceEnabled(key, event) {
+					let value = this.mappable_elements[0].faces[key].texture === null;
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.forCubes(obj => {
+						UVEditor.getFaces(obj, event).forEach(function(side) {
+							if (value) {
+								if (obj.faces[side].texture === null) obj.faces[side].texture = false;
+							} else {
+								obj.faces[side].texture = null;
+							}
+						})
+						obj.preview_controller.updateFaces(obj);
+					})
+					UVEditor.loadData()
+					Undo.finishEdit('Toggle face')
+					Canvas.updateSelectedFaces()
+				},
+				openFaceTextureMenu(event) {
+					let menu = new Menu(Texture.all.map(tex => {
+						return {
+							name: tex.name,
+							icon: tex.img,
+							click(event) {
+								UVEditor.applyTexture(tex);
+							}
+						}
+					}))
+					menu.open(event.target);
+				},
+				toggleFaceTint(key, event) {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.switchTint(event)
+					Undo.finishEdit('Toggle face tint')
+				},
+				changeFaceTint(key, event) {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.setTint(event, parseInt(event.target.value));
+					Undo.finishEdit('Toggle face tint');
+				},
+				setCullface(key, value) {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.forCubes(obj => {
+						UVEditor.selected_faces.forEach(face => {
+							obj.faces[face].cullface = value;
+						})
+					})
+					Undo.finishEdit(value ? `Set cullface to ${value}` : 'Disable cullface');
+				},
+				startInputMaterialInstance(event) {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+				},
+				endInputMaterialInstance(event) {
+					Undo.finishEdit('Change material instances');
 				}
 			},
 			template: `
@@ -2912,7 +2981,77 @@ Interface.definePanels(function() {
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>
+						<li @click="mode = 'face_properties'" class="tool face_properties_toggle">
+							<div class="tooltip">${tl('uv_editor.face_properties')}</div>
+							<i class="material-icons">checklist</i>
+						</li>
 					</div>
+
+
+					<div id="uv_face_properties" v-if="mode === 'face_properties' && mappable_elements[0] && mappable_elements[0].type == 'cube'">
+						<div class="bar" id="face_properties_header_bar">
+							<li></li>
+							<li @click="mode = 'uv'" class="tool face_properties_toggle">
+								<i class="material-icons">clear</i>
+							</li>
+						</div>
+
+						<div class="uv_face_properties_labels">
+								
+							<label style="width: 76px;">Enabled</label>
+
+							<label style="width: 120px;" class="flexible">Texture</label>
+
+							<template v-if="checkFormat({java_face_properties: true})">
+								<label style="width: 58px;">${tl('action.face_tint')}</label>
+
+								<label style="width: 50px;" class="flexible">${tl('action.cullface')}</label>
+							</template>
+
+							<template v-if="checkFormat({id: 'bedrock_block'})">
+								<label style="width: 100px;" class="flexible">${tl('uv_editor.face_properties.material_instance')}</label>
+							</template>
+						</div>
+
+
+						<ul>
+							<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
+								class="uv_face_properties_line"
+								:class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}"
+								@mousedown="selectFace(key, $event, false, true)"
+							>
+								
+								<input type="checkbox" :checked="mappable_elements[0].faces[key].texture !== null" @change="toggleFaceEnabled(key, $event)">
+
+								<label>{{ face_names[key] }}</label>
+
+								<div class="face_properties_texture" :face_texture="face_texture = mappable_elements[0].faces[key].getTexture()" @click="openFaceTextureMenu($event)">
+									<img :src="face_texture.source" class="texture_icon" width="32px" height="32px" alt="" v-if="face_texture && face_texture.show_icon" />
+									<div class="texture_dummy_icon" v-else></div>
+									{{ face_texture ? face_texture.name : '${tl('menu.cube.texture.blank')}' }}
+								</div>
+
+								<template v-if="checkFormat({java_face_properties: true})">
+									<div style="width: 58px; display: flex; justify-content: center;">
+										<input type="checkbox" title="${tl('action.face_tint')}" :checked="mappable_elements[0].faces[key].tint > -1" @change="toggleFaceTint(key, $event)">
+										<input type="number" title="${tl('action.face_tint')}" style="width: 30px;" :value="mappable_elements[0].faces[key].tint" min="0" step="1" @input="changeFaceTint(key, $event)" v-if="mappable_elements[0].faces[key].tint > -1">
+									</div>
+
+									<select-input class="flexible" title="${tl('action.cullface')}" :value="mappable_elements[0].faces[key].cullface" @input="setCullface(key, $event)" :options="cullface_options" />
+								</template>
+
+								<template v-if="checkFormat({id: 'bedrock_block'})">
+									<input type="text" style="width: 100px;" class="flexible dark_bordered"
+										title="${tl('uv_editor.face_properties.material_instance')}"
+										v-model="mappable_elements[0].faces[key].material_name"
+										@focus="startInputMaterialInstance($event)"
+										@focusout="endInputMaterialInstance($event)"
+									>
+								</template>
+							</li>
+						</ul>
+					</div>
+
 
 					<div id="uv_viewport"
 						@contextmenu="contextMenu($event)"
@@ -2921,7 +3060,7 @@ Interface.definePanels(function() {
 						@mousewheel="onMouseWheel($event)"
 						class="checkerboard_target"
 						ref="viewport"
-						v-if="!hidden"
+						v-if="!hidden && mode !== 'face_properties'"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
@@ -3075,11 +3214,7 @@ Interface.definePanels(function() {
 
 						<div v-show="copy_overlay.state !== 'move'" id="toggle_uv_overlay_anchor"></div>
 					</div>
-					
-					<div v-if="mode == 'properties'">
-						
-					
-					</div>
+
 					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">
 						<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
 						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>

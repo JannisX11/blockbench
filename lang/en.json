@@ -1717,6 +1717,8 @@
 	"panel.bone.ik": "Inverse Kinematics (Experimental)",
 
 	"uv_editor.title": "UV Editor",
+	"uv_editor.face_properties": "Face Froperties",
+	"uv_editor.face_properties.material_instance": "Material Instance",
 	"uv_editor.show_all_faces": "Show All Faces",
 	"uv_editor.show_selected_faces": "Show Selected Faces",
 	"uv_editor.all_faces": "All",
