@@ -14,8 +14,8 @@ var codec = new Codec('optifine_entity', {
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}
-		if (settings.credit.value) {
-			entitymodel.credit = settings.credit.value
+		if (Project.credit || settings.credit.value) {
+			entitymodel.credit = Project.credit || settings.credit.value
 		}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
@@ -188,6 +188,7 @@ var codec = new Codec('optifine_entity', {
 			return new Texture().fromPath(texture_path).add(false);
 		}
 
+		if (typeof model.credit == 'string') Project.credit = model.credit;
 		if (model.textureSize) {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;

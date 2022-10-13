@@ -16,8 +16,8 @@ var part_codec = new Codec('optifine_part', {
 		}
 		jpm.textureSize = [Project.texture_width, Project.texture_height]
 
-		if (settings.credit.value) {
-			jpm.credit = settings.credit.value
+		if (Project.credit || settings.credit.value) {
+			jpm.credit = Project.credit || settings.credit.value
 		}
 
 		var submodels = []
@@ -90,6 +90,7 @@ var part_codec = new Codec('optifine_part', {
 			Undo.initEdit({elements: new_cubes, outliner: true, uv_mode: true})
 		}
 
+		if (typeof model.credit == 'string') Project.credit = model.credit;
 		var resolution = model.textureSize;
 		if (resolution.length == 2) {
 			Project.texture_width = parseInt(resolution[0])||0;

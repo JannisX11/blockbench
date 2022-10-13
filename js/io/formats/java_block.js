@@ -192,8 +192,8 @@ var codec = new Codec('java_block', {
 		}
 
 		var blockmodel = {}
-		if (checkExport('comment', settings.credit.value)) {
-			blockmodel.credit = settings.credit.value
+		if (checkExport('comment', Project.credit || settings.credit.value)) {
+			blockmodel.credit = Project.credit || settings.credit.value
 		}
 		if (checkExport('parent', Project.parent != '')) {
 			blockmodel.parent = Project.parent
@@ -271,6 +271,7 @@ var codec = new Codec('java_block', {
 		}
 
 		//Load
+		if (typeof (model.credit || model.__comment) == 'string') Project.credit = (model.credit || model.__comment);
 		if (model.texture_size instanceof Array && !add) {
 			Project.texture_width  = Math.clamp(parseInt(model.texture_size[0]), 1, Infinity)
 			Project.texture_height = Math.clamp(parseInt(model.texture_size[1]), 1, Infinity)

@@ -352,7 +352,7 @@
 	"dialog.project.name": "File Name",
 	"dialog.project.parent": "Parent Model",
 	"dialog.project.geoname": "Model Identifier",
-	"dialog.project.openparent": "Open Parent",
+	"dialog.project.credit": "Credit",
 	"dialog.project.modded_entity_version": "Export Version",
 	"dialog.project.modded_entity_flip_y": "Flip Y Axis",
 	"dialog.project.ao": "Ambient Occlusion",

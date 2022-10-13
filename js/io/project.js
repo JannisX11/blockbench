@@ -392,6 +392,10 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 		return options;
 	}
 });
+new Property(ModelProject, 'string', 'credit', {
+	label: 'dialog.project.credit',
+	condition: () => Project.credit && Project.credit !== settings.credit.value
+});
 new Property(ModelProject, 'boolean', 'modded_entity_flip_y', {
 	label: 'dialog.project.modded_entity_flip_y',
 	default: true,
@@ -768,7 +772,7 @@ BARS.defineActions(function() {
 			
 			for (var key in ModelProject.properties) {
 				let property = ModelProject.properties[key];
-				if (property.exposed == false || !Condition(property.condition)) continue;
+				if (property.exposed === false || !Condition(property.condition)) continue;
 
 				let entry = form[property.name] = {
 					label: property.label,
