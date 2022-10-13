@@ -140,6 +140,7 @@
 	"format.optifine_part.desc": "JPM part for OptiFine entity models",
 
 	"format.image": "Image",
+	"format.image.desc": "Edit images in the 2D image editor",
 
 	"format_category.low_poly": "Low-Poly",
 	"format_category.minecraft": "Minecraft",
