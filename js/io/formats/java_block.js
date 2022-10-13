@@ -525,6 +525,7 @@ var format = new ModelFormat({
 	java_face_properties: true,
 	animated_textures: true,
 	select_texture_for_particles: true,
+	texture_mcmeta: true,
 	display_mode: true,
 	texture_folder: true,
 	cube_size_limiter: {

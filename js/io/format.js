@@ -260,6 +260,7 @@ new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
+new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});

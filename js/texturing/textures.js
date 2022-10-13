@@ -330,6 +330,7 @@ class Texture {
 			this.load();
 			return this;
 		}
+		// Backwards compatibility
 		if (link.substr(0, 22) === 'data:image/png;base64,') {
 			this.fromDataURL(link)
 			return this;
@@ -426,6 +427,46 @@ class Texture {
 						settings.dialog_invalid_characters.set(false);
 					}
 				})
+			}
+		}
+		if (isApp && Format.texture_mcmeta) {
+			let mcmeta_path = this.path + '.mcmeta';
+			if (fs.existsSync(mcmeta_path)) {
+				let mcmeta;
+				try {
+					let text = fs.readFileSync(mcmeta_path, 'utf8');
+					mcmeta = autoParseJSON(text, true);
+				} catch (err) {
+					console.error(err);
+				}
+				if (mcmeta && mcmeta.animation) {
+					let frame_order_type = 'loop';
+					let {frames} = mcmeta.animation;
+					if (frames instanceof Array) {
+						frame_order_type = 'custom';
+						if (!frames.find(v => typeof v !== 'number')) {
+							
+							if (frames.findIndex((val, index) => val != index) == -1) {
+								frame_order_type = 'loop';
+
+							} else if (frames.findIndex((val, index) => val != (frames.length-index-1)) == -1) {
+								frame_order_type = 'backwards';
+								
+							} else if (frames.findIndex((val, index) => {
+								return index < (frames.length/2 + 1)
+									? val != index
+									: val != (frames.length-index);
+							}) == -1) {
+								frame_order_type = 'back_and_forth';
+							}
+						}
+					}
+					this.extend({
+						frame_time: mcmeta.animation.frametime,
+						frame_order_type,
+						frame_order: frame_order_type ? undefined : (frames instanceof Array ? frames.join(' ') : '')
+					})
+				}
 			}
 		}
 
@@ -863,7 +904,26 @@ class Texture {
 			arr.splice(-1)
 			path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
 		}
-
+		let form = {
+			name: 		{label: 'generic.name', value: scope.name},
+			variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
+			folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
+			namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
+		};
+		if (Format.texture_mcmeta) {
+			Object.assign(form, {
+				'texture_mcmeta': '_',
+				frame_time: {label: 'dialog.texture.frame_time', type: 'number', value: scope.frame_time, min: 1, step: 1, description: 'dialog.texture.frame_time.desc'},
+				frame_interpolate: {label: 'dialog.texture.frame_interpolate', type: 'checkbox', value: scope.frame_interpolate, description: 'dialog.texture.frame_interpolate.desc'},
+				frame_order_type: {label: 'dialog.texture.frame_order_type', type: 'select', value: scope.frame_order_type, options: {
+					loop: 'dialog.texture.frame_order_type.loop',
+					backwards: 'dialog.texture.frame_order_type.backwards',
+					back_and_forth: 'dialog.texture.frame_order_type.back_and_forth',
+					custom: 'dialog.texture.frame_order_type.custom',
+				}},
+				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: scope.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
+			});
+		}
 		var dialog = new Dialog({
 			id: 'texture_edit',
 			title,
@@ -873,21 +933,13 @@ class Texture {
 					<p class="multiline_text" id="te_path">${settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path}</p>
 				</div>`
 			],
-			form: {
-				name: 		{label: 'generic.name', value: scope.name},
-				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
-				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
-				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
-			},
+			form,
 			onConfirm: function(results) {
 
 				dialog.hide();
-				if (
-					(scope.name === results.name) &&
-					(results.variable === undefined || scope.id === results.variable) &&
-					(results.folder === undefined || scope.folder === results.folder) &&
-					(results.namespace === undefined || scope.namespace === results.namespace)
-				) {
+				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => {
+					return results[key] !== undefined && results[key] !== scope[key];
+				}) == undefined) {
 					return;
 				}
 
@@ -897,7 +949,17 @@ class Texture {
 				if (results.variable !== undefined) scope.id = results.variable;
 				if (results.folder !== undefined) scope.folder = results.folder;
 				if (results.namespace !== undefined) scope.namespace = results.namespace;
-				
+
+				if (Format.texture_mcmeta) {
+					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => scope[key] !== results[key])) {
+						scope.saved = false;
+					}
+					scope.frame_time = results.frame_time;
+					scope.frame_interpolate = results.frame_interpolate;
+					scope.frame_order_type = results.frame_order_type;
+					scope.frame_order = results.frame_order;
+					TextureAnimator.updateSpeed();
+				}
 
 				Undo.finishEdit('Edit texture metadata')
 			}
@@ -1074,6 +1136,42 @@ class Texture {
 		}
 		return link;
 	}
+	getMCMetaContent() {
+		let mcmeta = {};
+		if (this.frameCount > 1) {
+			let animation = mcmeta.animation = {
+				frametime: this.frame_time
+			}
+
+			if (Project.texture_width != Project.texture_height) {
+				animation.width = Project.texture_width;
+				animation.height = Project.texture_height;
+			}
+
+			if (this.frame_interpolate) animation.interpolate = true;
+
+			let indices = this.getAnimationFrameIndices();
+			if (indices) animation.frames = indices;
+
+		}
+		return mcmeta;
+	}
+	getAnimationFrameIndices() {
+		let frame_count = this.frameCount;
+		if (this.frame_order_type == 'backwards') {
+			return Array(frame_count).fill(1).map((v, i) => frame_count - 1 - i);
+
+		} else if (this.frame_order_type == 'back_and_forth') {
+			return Array(frame_count * 2 - 2).fill(1).map((v, i) => {
+				return i >= frame_count-1
+					? (frame_count*2 - 2 - i)
+					: i;
+			});
+
+		} else if (this.frame_order_type == 'custom') {
+			if (this.frame_order.trim()) return this.frame_order.split(/\s+/).map(v => parseInt(v));
+		}
+	}
 	save(as) {
 		var scope = this;
 		if (scope.saved && !as) {
@@ -1088,9 +1186,21 @@ class Texture {
 				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
+
+			function postSave(path) {
+				if (Format.texture_mcmeta && scope.frameCount > 1) {
+					let mcmeta_content = scope.getMCMetaContent();
+					Blockbench.writeFile(path + '.mcmeta', {content: compileJSON(mcmeta_content)})
+				}
+			}
+
 			if (!as && this.path && fs.existsSync(this.path)) {
 				fs.writeFileSync(this.path, image);
-				scope.fromPath(scope.path)
+				postSave(this.path);
+				this.mode = 'link'
+				this.saved = true;
+				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version
+
 			} else {
 				var find_path;
 				if (Texture.all.find(t => t => t != this && t.saved)) {
@@ -1117,6 +1227,7 @@ class Texture {
 					startpath: find_path,
 					savetype: 'image'
 				}, function(path) {
+					postSave(path);
 					scope.fromPath(path)
 				})
 			}
@@ -1424,6 +1535,11 @@ class Texture {
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'string', 'render_mode', {default: 'default'})
+	
+	new Property(Texture, 'number', 'frame_time', {default: 1})
+	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})
+	new Property(Texture, 'string', 'frame_order')
+	new Property(Texture, 'boolean', 'frame_interpolate')
 
 	Object.defineProperty(Texture, 'all', {
 		get() {
@@ -1629,11 +1745,18 @@ Clipbench.pasteTextures = function() {
 TextureAnimator = {
 	isPlaying: false,
 	interval: false,
+	frame_total: 0,
 	start() {
 		clearInterval(TextureAnimator.interval)
 		TextureAnimator.isPlaying = true
+		TextureAnimator.frame_total = 0;
 		TextureAnimator.updateButton()
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
+		let frametime = 1000/settings.texture_fps.value;
+		if (Format.texture_mcmeta && Texture.getDefault()) {
+			let tex = Texture.getDefault();
+			frametime = Math.max(tex.frame_time, 1) * 50;
+		}
+		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
 	},
 	stop() {
 		TextureAnimator.isPlaying = false
@@ -1655,12 +1778,20 @@ TextureAnimator = {
 	},
 	nextFrame() {
 		var animated_textures = []
+		TextureAnimator.frame_total++;
 		Texture.all.forEach(tex => {
 			if (tex.frameCount > 1) {
-				if (tex.currentFrame >= tex.frameCount-1) {
-					tex.currentFrame = 0
+				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
+				if (custom_indices) {
+					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
+					tex.currentFrame = index;
+
 				} else {
-					tex.currentFrame++;
+					if (tex.currentFrame >= tex.frameCount-1) {
+						tex.currentFrame = 0
+					} else {
+						tex.currentFrame++;
+					}
 				}
 				animated_textures.push(tex)
 			}
@@ -1840,7 +1971,12 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: textureAnimationCondition,
 		click() {
-			settings.texture_fps.trigger()
+			if (Format.texture_mcmeta && Texture.all.length) {
+				Texture.getDefault().openMenu()
+				$('dialog div.form_bar_frame_time input').trigger('focus');
+			} else {
+				settings.texture_fps.trigger();
+			}
 		}
 	})
 })
