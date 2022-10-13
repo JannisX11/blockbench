@@ -829,6 +829,9 @@ function moveElementsInSpace(difference, axis) {
 	})
 }
 
+function getSpatialInterval(event = 0) {
+	return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+}
 //Rotate
 function getRotationInterval(event) {
 	if (Format.rotation_limit) {
@@ -1092,10 +1095,6 @@ BARS.defineActions(function() {
 			updateSelection();
 		}
 	})
-	let grid_locked_interval = function(event) {
-		event = event||0;
-		return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
-	}
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
@@ -1148,7 +1147,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			return getPos(0);
 		},
@@ -1168,7 +1167,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			return getPos(1);
 		},
@@ -1188,7 +1187,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		condition: () => (selected.length && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			return getPos(2);
 		},
@@ -1223,7 +1222,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[0]
@@ -1247,7 +1246,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[1]
@@ -1271,7 +1270,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable)&& Outliner.selected[0] instanceof Mesh == false  && Modes.edit),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[2]
@@ -1295,7 +1294,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_inflate', {
 		category: 'transform',
 		condition: function() {return Cube.selected.length && Modes.edit},
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			return Cube.selected[0].inflate
 		},
@@ -1473,7 +1472,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[0];
@@ -1499,7 +1498,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[1];
@@ -1525,7 +1524,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: grid_locked_interval,
+		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
 				return Group.selected.origin[2];

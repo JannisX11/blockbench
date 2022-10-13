@@ -1520,6 +1520,7 @@
 	.face_properties_texture img {
 		vertical-align: middle;
 		pointer-events: none;
+		object-fit: cover;
 		margin-right: 2px;
 	}
 	.face_properties_texture .texture_dummy_icon {
