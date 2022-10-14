@@ -839,11 +839,28 @@ class Preview {
 							});
 						} else {
 							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
-								selected_vertices.empty();
-								UVEditor.vue.selected_faces.empty();
 							}
-							Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
-							UVEditor.vue.selected_faces.safePush(data.face);
+							let face_vkeys = data.element.faces[data.face].vertices;
+							
+							if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+								if (face_vkeys.allAre(vkey => selected_vertices.includes(vkey))) {
+									let selected_faces = data.element.getSelectedFaces();
+									let vkeys_to_remove = face_vkeys.filter(vkey => {
+										return !selected_faces.find(fkey => {
+											return fkey !== data.face && data.element.faces[fkey].vertices.includes(vkey)
+										})
+									})
+									if (vkeys_to_remove.length == 0) vkeys_to_remove.push(face_vkeys[0]);
+									selected_vertices.remove(...vkeys_to_remove);
+									UVEditor.vue.selected_faces.remove(data.face);
+								} else {
+									selected_vertices.safePush(...face_vkeys);
+									UVEditor.vue.selected_faces.safePush(data.face);
+								}
+							} else {
+								selected_vertices.replace(face_vkeys);
+								UVEditor.vue.selected_faces.replace([data.face]);
+							}
 						}
 
 					} else {
