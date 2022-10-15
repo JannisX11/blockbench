@@ -1170,7 +1170,11 @@ const UVEditor = {
 				addToClipboard(key);
 			})
 		}
-		this.message('uv_editor.copied_x', [UVEditor.clipboard.length])
+		if (UVEditor.clipboard.length > 1) {
+			this.message('uv_editor.copied_x', [UVEditor.clipboard.length])
+		} else {
+			this.message('uv_editor.copied')
+		}
 	},
 	paste(event) {
 		let elements = UVEditor.getMappableElements();
