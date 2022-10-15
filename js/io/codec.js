@@ -44,7 +44,7 @@ class Codec {
 			}, 200)
 		}
 		this.parse(model, file.path)
-		loadDataFromModelMemory();
+		if (isApp) loadDataFromModelMemory();
 	}
 	//parse(model, path)
 

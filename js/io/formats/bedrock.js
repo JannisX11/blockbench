@@ -925,7 +925,7 @@ var codec = new Codec('bedrock', {
 			}, 200)
 		}
 		this.parse(model, file.path)
-		loadDataFromModelMemory();
+		if (isApp) loadDataFromModelMemory();
 	},
 	compile(options) {
 		if (options === undefined) options = {}
