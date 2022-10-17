@@ -365,7 +365,7 @@ const Clipbench = {
 				if (cube instanceof Cube == false) return;
 				if (!cube.rotation.allEqual(0)) {
 					var axis = getAxisNumber(cube.rotationAxis()) || 0;
-					var cube_rotation = Format.rotation_snap ? Math.round(cube_rotation/22.5)*22.5 : cube.rotation[axis];
+					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
 					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0);
 					cube.rotation[axis] = angle;
