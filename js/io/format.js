@@ -252,6 +252,7 @@ new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
+new Property(ModelFormat, 'boolean', 'rotation_snap', {default: true});
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
