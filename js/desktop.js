@@ -315,7 +315,7 @@ function changeImageEditor(texture, from_settings) {
 function selectImageEditorFile(texture) {
 	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
+		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop']}]
 	})
 	if (filePaths) {
 		settings.image_editor.value = filePaths[0]

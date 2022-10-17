@@ -1262,7 +1262,7 @@ var block_format = new ModelFormat({
 			}
 		]
 	},
-	show_on_start_screen: true,//new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
+	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
