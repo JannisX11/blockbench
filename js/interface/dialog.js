@@ -680,6 +680,14 @@ window.Dialog = class Dialog {
 			})
 			jq_dialog.css('position', 'absolute')
 		}
+		let sanitizePosition = () => {
+			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
+				this.object.style.top = Math.max(Interface.page_wrapper.clientHeight - this.object.clientHeight + 26, 26) + 'px';
+				console.log(this.object.style.top, Interface.page_wrapper.clientHeight, this.object.clientHeight)
+			}
+		}
+		sanitizePosition();
+		this.resize_observer = new ResizeObserver(sanitizePosition).observe(this.object);
 
 		if (typeof this.onBuild == 'function') {
 			this.onBuild(this.object);

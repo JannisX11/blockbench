@@ -616,6 +616,10 @@
 	input[type=radio][disabled=disabled] {
 		color: var(--color-subtle_text);
 	}
+	input:-webkit-autofill,
+	input:-webkit-autofill:focus {
+		transition: background-color 600000s 0s, color 600000s 0s;
+	}
 
 	div.nslide {
 		position: relative;
