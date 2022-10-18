@@ -1275,6 +1275,7 @@ var block_format = new ModelFormat({
 	texture_meshes: true,
 	cube_size_limiter: {
 		rotation_affected: true,
+		box_marker_size: [30, 30, 30],
 		updateBoxMarker() {
 			let center = Format.cube_size_limiter.getModelCenter();
 			three_grid.size_limit_box.position.set(center[0] + center[3], center[1] + center[4], center[2] + center[5]).divideScalar(2);

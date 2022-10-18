@@ -666,8 +666,8 @@ const Painter = {
 				if (!face) return;
 				
 				let source_uv = [
-					even_brush_size ? x : x + 0.5,
-					even_brush_size ? y : y + 0.5
+					(even_brush_size ? x : x + 0.5) * (Project.texture_width / texture.width),
+					(even_brush_size ? y : y + 0.5) * (Project.texture_height / texture.height)
 				];
 
 				let point_on_uv;
@@ -699,6 +699,9 @@ const Painter = {
 					mesh.mesh.worldToLocal(world_coord);
 					point_on_uv = face.localToUV(world_coord);
 				}
+
+				point_on_uv[0] /= Project.texture_width / texture.width;
+				point_on_uv[1] /= Project.texture_height / texture.height;
 				
 				if (Condition(Toolbox.selected.brush?.floor_coordinates)) {
 					if (even_brush_size) {

@@ -524,7 +524,8 @@ const Canvas = {
 			}
 		}
 		if (settings.large_box.value === true) {
-			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(30, 30, 30));
+			let size = Format.cube_size_limiter?.box_marker_size || [48, 48, 48];
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(...size));
 
 			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 			var large_box = new THREE.LineSegments( geometry_box, line_material);
