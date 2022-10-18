@@ -1648,5 +1648,8 @@
     "menu.mirror_painting.local": "Symétrie locale",
     "menu.mirror_painting.local.desc": "Permettre la peinture miroir dans l'espace local pour chaque élément",
     "menu.mirror_painting.texture_frames": "Images de texture animées",
-    "menu.mirror_painting.texture_frames.desc": "Refléter les coups de pinceau pour chaque image des textures animées"
+    "menu.mirror_painting.texture_frames.desc": "Refléter les coups de pinceau pour chaque image des textures animées",
+    "format.bedrock_block.info.size_limit": "Size total size of a block is limited to 30 pixels in all dimensions. The limit can be off-centered in all directions by 7 pixels from the block center.",
+    "format.bedrock_block.info.textures": "Multiple textures can be applied to different cubes in Blockbench, but require additional setup in the behavior pack to work correctly in-game.",
+    "format.image.desc": "Edit images in the 2D image editor"
 }
