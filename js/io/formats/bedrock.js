@@ -912,6 +912,7 @@ var codec = new Codec('bedrock', {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
+			let project = Project;
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 
@@ -921,7 +922,7 @@ var codec = new Codec('bedrock', {
 				icon: Format.icon
 			});
 			setTimeout(() => {
-				updateRecentProjectThumbnail();
+				if (Project == project) updateRecentProjectThumbnail();
 			}, 200)
 		}
 		this.parse(model, file.path)

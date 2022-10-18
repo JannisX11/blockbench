@@ -65,6 +65,7 @@ var codec = new Codec('project', {
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
+			let project = Project;
 			Project.save_path = file.path;
 			Project.name = pathToName(name, false);
 			addRecentProject({
@@ -73,7 +74,7 @@ var codec = new Codec('project', {
 				icon: 'icon-blockbench_file'
 			})
 			setTimeout(() => {
-				updateRecentProjectThumbnail();
+				if (Project == project) updateRecentProjectThumbnail();
 			}, 200)
 		}
 		this.parse(model, file.path)
