@@ -1648,5 +1648,8 @@
     "menu.mirror_painting.local": "지역 대칭",
     "menu.mirror_painting.local.desc": "각 요소에 대해 로컬 공간에서 반전 칠하기 사용",
     "menu.mirror_painting.texture_frames": "애니메이션 텍스쳐 프레임",
-    "menu.mirror_painting.texture_frames.desc": "애니메이션 텍스처의 모든 프레임에 대한 반전 페인트 스트로크"
+    "menu.mirror_painting.texture_frames.desc": "애니메이션 텍스처의 모든 프레임에 대한 반전 페인트 스트로크",
+    "format.bedrock_block.info.size_limit": "Size total size of a block is limited to 30 pixels in all dimensions. The limit can be off-centered in all directions by 7 pixels from the block center.",
+    "format.bedrock_block.info.textures": "Multiple textures can be applied to different cubes in Blockbench, but require additional setup in the behavior pack to work correctly in-game.",
+    "format.image.desc": "Edit images in the 2D image editor"
 }
