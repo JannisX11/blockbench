@@ -1074,7 +1074,7 @@ class Preview {
 			}
 			return;
 		};
-		if (Modes.edit && event.type !== 'touchstart') {} else {
+		if (Modes.edit && event.type !== 'touchstart') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
