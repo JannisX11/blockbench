@@ -499,8 +499,10 @@
 		min-width: 50px;
 		padding-top: 4px;
 		padding-left: 8px;
-	    padding-right: 24px;
-	    color: var(--color-text);
+		padding-right: 24px;
+		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
 	}
 	bb-select:hover{
 		color: var(--color-light);
@@ -586,6 +588,9 @@
 
 	input[type=password] {
 		font-size: 1.2em;
+	}
+	input[type=checkbox]::before {
+		text-align: center;
 	}
 	input[type=checkbox]::before {
 		content: "\f0c8";

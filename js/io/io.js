@@ -513,7 +513,7 @@ function compileJSON(object, options) {
 	function escape(string) {
 		return string.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t')
 	}
-	function handleVar(o, tabs) {
+	function handleVar(o, tabs, breaks = true) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
@@ -553,12 +553,12 @@ function compileJSON(object, options) {
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
-			var breaks = o.constructor.name !== 'oneLiner';
+			breaks = breaks && o.constructor.name !== 'oneLiner';
 			var has_content = false
 			out += '{'
 			for (var key in o) {
 				if (o.hasOwnProperty(key)) {
-					var compiled = handleVar(o[key], tabs+1)
+					var compiled = handleVar(o[key], tabs+1, breaks)
 					if (compiled) {
 						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
 						if (breaks) {out += newLine(tabs)}

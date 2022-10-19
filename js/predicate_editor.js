@@ -1,19 +1,20 @@
-
 const PredicateOverrideEditor = {
 	dialog: null,
 	showDialog() {
+		let previous_overrides;
 		PredicateOverrideEditor.dialog = PredicateOverrideEditor.dialog || new Dialog({
 			id: 'predicate_overrides',
 			title: 'action.predicate_overrides',
-			width: 700,
+			width: 750,
 			component: {
 				data() {return {
 					overrides: [],
 					name: '',
 					search_term: '',
 					model_options: [],
+					max_height: window.innerHeight - 350,
 					predicate_options: {
-						custom_model_data: {type: 'number'},
+						custom_model_data: {type: 'int'},
 						damage: {type: 'number'},
 						damaged: {type: 'checkbox'},
 						lefthanded: {type: 'checkbox'},
@@ -33,9 +34,60 @@ const PredicateOverrideEditor = {
 					}
 				}},
 				methods: {
-					
+					addOverride() {
+						this.overrides.push({
+							model: '',
+							predicate: {custom_model_data: 0},
+							_uuid: guid()
+						});
+					},
+					removeOverride(override) {
+						this.overrides.remove(override);
+					},
+					addPredicate(override) {
+						let options = Object.keys(this.available_predicate_options);
+						let key = options.find(option => override.predicate[option] === undefined);
+						if (!key) return;
+						Vue.set(override.predicate, key, 0);
+					},
+					changePredicateType(override, new_key, value, key) {
+						if (key !== new_key) {
+							Vue.set(override.predicate, new_key, value);
+							Vue.delete(override.predicate, key);
+						}
+					},
+					changePredicateValue(override, key, event) {
+						let data = this.predicate_options[key];
+						if (data.type == 'checkbox') {
+							override.predicate[key] = event.target.checked ? 1 : 0;
+						} else {
+							override.predicate[key] = parseFloat(event.target.value);
+						}
+					},
+					removePredicate(override, key) {
+						Vue.delete(override.predicate, key);
+					},
+					hasMultiplePredicates(override) {
+						return Object.keys(override.predicate).length > 1
+					},
+
+					sort(event) {
+						if (this.search_term) return false;
+						var item = this.overrides.splice(event.oldIndex, 1)[0];
+						this.overrides.splice(event.newIndex, 0, item);
+					}
 				},
 				computed: {
+					filtered_overrides() {
+						if (!this.search_term) {
+							return this.overrides;
+						} else {
+							let search = this.search_term.toLowerCase();
+							return this.overrides.filter(override => {
+								return override.model.toLowerCase().includes(search) || Object.keys(override.predicate).find(key => key.includes(search));
+							})
+						}
+					},
 					available_predicate_options() {
 						let options = {};
 						for (let key in this.predicate_options) {
@@ -48,35 +100,87 @@ const PredicateOverrideEditor = {
 				},
 				template: `
 					<div style="margin-top: 10px;">
-						<div class="bar">
+						<div class="predicate_override_top_bar">
+							<span>${tl('action.predicate_overrides.desc')}</span>
 							<search-bar id="predicate_search_bar" v-model="search_term"></search-bar>
 						</div>
-						<div class="bar" style="display: flex;">
+						<div class="bar flex">
 							<div>Model</div>
 							<div>Predicates</div>
 						</div>
 
-						<ul class="list" id="predicate_list">
-							<li v-for="override in overrides">
-								<div>
-									<input type="text" v-model="override.model" class="dark_bordered" list="predicate_model_list">
+						<ul class="list" id="predicate_override_list" v-sortable="{onUpdate: sort, animation: 160, handle: '.predicate_drag_handle'}" :style="{maxHeight: max_height + 'px'}">
+							<li v-for="override in filtered_overrides" :key="override._uuid">
+								<div class="predicate_drag_handle" v-show="!search_term"></div>
+								<div class="predicate_model">
+									<input type="text" v-model="override.model" class="dark_bordered" list="predicate_model_list" placeholder="item/custom_model">
+								</div>
+								<ul class="predicate_list"> 
+									<li v-for="(value, key) in override.predicate" :key="key">
+										<div class="tool" @click="removePredicate(override, key)" v-if="hasMultiplePredicates(override)">
+											<i class="material-icons">clear</i>
+										</div>
+										<div class="tool" @click="addPredicate(override)" v-else>
+											<i class="material-icons">add</i>
+										</div>
+
+										<select-input :value="key" @input="changePredicateType(override, $event, value, key)" :options="available_predicate_options" />
+										<input type="checkbox" :checked="value > 0" @input="changePredicateValue(override, key, $event)" v-if="predicate_options[key] && predicate_options[key].type == 'checkbox'">
+										<input type="number" :value="value" @input="changePredicateValue(override, key, $event)" class="dark_bordered" v-else>
+
+									</li>
+									<div class="tool" @click="addPredicate(override)" v-if="hasMultiplePredicates(override)">
+										<i class="material-icons">add</i>
+									</div>
+								</ul>
+								<div class="tool" @click="removeOverride(override)">
+									<i class="material-icons">delete</i>
 								</div>
 							</li>
 						</ul>
+						<div id="predicate_override_add" @click="addOverride()" style="width: 100%;">
+							<i class="material-icons">add</i>
+						</div>
 					</div>
 				`
 			},
-			onClose() {
+			cancel_on_click_outside: false,
+			onConfirm() {
 				Project.saved = false;
 				if (Project.overrides instanceof Array == false) Project.overrides = [];
+				dialog.content_vue.overrides.forEach(override => delete override._uuid);
 				Project.overrides.replace(dialog.content_vue.overrides);
+			},
+			onCancel() {
+				if (previous_overrides) {
+					if (Project.overrides instanceof Array == false) Project.overrides = [];
+					Project.overrides.replace(JSON.parse(previous_overrides))
+				} else {
+					Project.overrides = [];
+				}
+			},
+			onClose() {
 				model_options_datalist.remove();
 			}
 		});
+
 		let model_options_datalist = Interface.createElement('datalist', {id: 'predicate_model_list'});
 		let model_options = [];
 		let {dialog} = PredicateOverrideEditor;
 		dialog.show();
+
+		if (Project.overrides instanceof Array) {
+			previous_overrides = JSON.stringify(Project.overrides);
+			Project.overrides.forEachReverse((override, i) => {
+				if (typeof override !== 'object' || override instanceof Array) {
+					Project.overrides.splice(i, 1);
+					return;
+				}
+				if (!override.model) override.model = '';
+				if (!override.predicate) override.predicate = {};
+				override._uuid = guid();
+			})
+		}
 		dialog.content_vue.name = Project.name;
 		dialog.content_vue.overrides.replace(Project.overrides || []);
 
@@ -113,8 +217,6 @@ const PredicateOverrideEditor = {
 
 
 BARS.defineActions(function() {
-
-	
 	new Action('predicate_overrides', {
 		icon: 'format_list_bulleted',
 		category: 'tools',
