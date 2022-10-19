@@ -537,6 +537,7 @@ const Canvas = {
 			large_box.name = 'grid'
 			three_grid.add(large_box)
 			three_grid.size_limit_box = large_box;
+			if (Format.cube_size_limiter?.updateBoxMarker) Format.cube_size_limiter.updateBoxMarker();
 		}
 		scene.add(three_grid)
 

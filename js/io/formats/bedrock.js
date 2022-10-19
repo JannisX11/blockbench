@@ -1279,7 +1279,7 @@ var block_format = new ModelFormat({
 		box_marker_size: [30, 30, 30],
 		updateBoxMarker() {
 			let center = Format.cube_size_limiter.getModelCenter();
-			three_grid.size_limit_box.position.set(center[0] + center[3], center[1] + center[4], center[2] + center[5]).divideScalar(2);
+			if (three_grid.size_limit_box) three_grid.size_limit_box.position.set(center[0] + center[3], center[1] + center[4], center[2] + center[5]).divideScalar(2);
 		},
 		getModelCenter(exclude_cubes = []) {
 			let cache_key = exclude_cubes.length > 0 ? 'cached_center' : 'cached_center_all'

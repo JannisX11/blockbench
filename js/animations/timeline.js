@@ -969,8 +969,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
-				trimFloatNumber,
-				a() {console.trace('nee')}
+				trimFloatNumber
 			},
 			watch: {
 				size() {this.updateTimecodes()},
