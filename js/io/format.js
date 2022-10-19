@@ -171,31 +171,11 @@ class ModelFormat {
 
 		//Canvas Limit
 		if (Format.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-
-			Cube.all.forEach(function(s, i) {
-				//Push elements into 3x3 block box
-				[0, 1, 2].forEach(function(ax) {
-					var overlap = s.to[ax] + s.inflate - 32
-					if (overlap > 0) {
-						//If positive site overlaps
-						s.from[ax] -= overlap
-						s.to[ax] -= overlap
-
-						if (16 + s.from[ax] - s.inflate < 0) {
-							s.from[ax] = -16 + s.inflate
-						}
-					} else {
-						overlap = s.from[ax] - s.inflate + 16
-						if (overlap < 0) {
-							s.from[ax] -= overlap
-							s.to[ax] -= overlap
-
-							if (s.to[ax] + s.inflate > 32) {
-								s.to[ax] = 32 - s.inflate
-							}
-						}
-					}
-				})
+			Cube.all.forEach(cube => {
+				Format.cube_size_limiter.move(cube);
+			})
+			Cube.all.forEach(cube => {
+				Format.cube_size_limiter.clamp(cube);
 			})
 		}
 

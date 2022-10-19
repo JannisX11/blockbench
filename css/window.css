@@ -654,10 +654,14 @@
 		background-color: var(--color-back);
 		position: absolute;
 		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
+		min-width: 200px;
 		max-width: 240px;
 		image-rendering: auto;
 		animation: fade_in_thumbnail 700ms;
 		transition: left 100ms ease-in-out;
+	}
+	.project_thumbnail.pixelated {
+		image-rendering: inherit;
 	}
 	@keyframes fade_in_thumbnail {
 		0% {

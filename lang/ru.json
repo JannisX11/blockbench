@@ -1632,7 +1632,7 @@
     "action.blend_mode.hard_light": "Hard Light",
     "action.blend_mode.difference": "Difference",
     "action.copy_brush": "Copy Brush",
-    "action.copy_brush.desc": "Brush to clone parts of your texture or draw patterns",
+    "action.copy_brush.desc": "Brush to clone parts of your texture or draw patterns. Hold Ctrl and click to select a copy source.",
     "action.validator_window": "View Model Issues...",
     "action.validator_window.desc": "Opens the validator, which lists issues with the current model.",
     "action.cancel_gif": "Cancel GIF",
@@ -1648,5 +1648,8 @@
     "menu.mirror_painting.local": "Local Symmetry",
     "menu.mirror_painting.local.desc": "Enable mirror painting in local space for each element",
     "menu.mirror_painting.texture_frames": "Animated Texture Frames",
-    "menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures"
+    "menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
+    "format.bedrock_block.info.size_limit": "Size total size of a block is limited to 30 pixels in all dimensions. The limit can be off-centered in all directions by 7 pixels from the block center.",
+    "format.bedrock_block.info.textures": "Multiple textures can be applied to different cubes in Blockbench, but require additional setup in the behavior pack to work correctly in-game.",
+    "format.image.desc": "Edit images in the 2D image editor"
 }

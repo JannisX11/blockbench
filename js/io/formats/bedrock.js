@@ -912,6 +912,7 @@ var codec = new Codec('bedrock', {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
+			let project = Project;
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 
@@ -921,11 +922,11 @@ var codec = new Codec('bedrock', {
 				icon: Format.icon
 			});
 			setTimeout(() => {
-				updateRecentProjectThumbnail();
+				if (Project == project) updateRecentProjectThumbnail();
 			}, 200)
 		}
 		this.parse(model, file.path)
-		loadDataFromModelMemory();
+		if (isApp) loadDataFromModelMemory();
 	},
 	compile(options) {
 		if (options === undefined) options = {}
@@ -1250,7 +1251,19 @@ var block_format = new ModelFormat({
 	category: 'minecraft',
 	extension: 'json',
 	icon: 'icon-format_bedrock',
-	show_on_start_screen: false,
+	target: 'Minecraft: Bedrock Edition',
+	format_page: {
+		content: [
+			{type: 'h3', text: tl('mode.start.format.informations')},
+			{text: `* ${tl('format.bedrock_block.info.size_limit')}`},
+			{text: `* ${tl('format.bedrock_block.info.textures')}`},
+			{type: 'h3', text: tl('mode.start.format.resources')},
+			{text: `* [Article on implementing custom blocks](https://learn.microsoft.com/en-us/minecraft/creator/documents/customblock)
+					* [Modeling Tutorial Series](https://www.youtube.com/watch?v=U9FLteWmFzg&list=PLvULVkjBtg2SezfUA8kHcPUGpxIS26uJR)`.replace(/\t+/g, '')
+			}
+		]
+	},
+	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
@@ -1263,9 +1276,15 @@ var block_format = new ModelFormat({
 	texture_meshes: true,
 	cube_size_limiter: {
 		rotation_affected: true,
+		box_marker_size: [30, 30, 30],
+		updateBoxMarker() {
+			let center = Format.cube_size_limiter.getModelCenter();
+			if (three_grid.size_limit_box) three_grid.size_limit_box.position.set(center[0] + center[3], center[1] + center[4], center[2] + center[5]).divideScalar(2);
+		},
 		getModelCenter(exclude_cubes = []) {
-			if (block_format.cube_size_limiter.cached_center) {
-				return block_format.cube_size_limiter.cached_center;
+			let cache_key = exclude_cubes.length > 0 ? 'cached_center' : 'cached_center_all'
+			if (block_format.cube_size_limiter[cache_key]) {
+				return block_format.cube_size_limiter[cache_key];
 			}
 
 			let center = [-7, 1, -7, 7, 15, 7];
@@ -1279,9 +1298,9 @@ var block_format = new ModelFormat({
 					center[5] = Math.min(center[5], array[2] + 15);		center[2] = Math.max(center[2], array[2] - 15);
 				})
 			})
-			block_format.cube_size_limiter.cached_center = center;
+			block_format.cube_size_limiter[cache_key] = center;
 			setTimeout(() => {
-				delete block_format.cube_size_limiter.cached_center;
+				delete block_format.cube_size_limiter[cache_key];
 			}, 2)
 			return center;
 		},

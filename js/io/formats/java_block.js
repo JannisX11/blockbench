@@ -303,7 +303,7 @@ var codec = new Codec('java_block', {
 						link = texture_arr[link.substring(1)];
 					}
 					let texture = new Texture({id: key}).fromJavaLink(texture_arr[key], path_arr.slice()).add();
-					texture_paths[texture_arr[key]] = texture_ids[key] = texture;
+					texture_paths[texture_arr[key].replace(/^minecraft:/, '')] = texture_ids[key] = texture;
 					new_textures.push(texture);
 				}
 			}
@@ -312,11 +312,11 @@ var codec = new Codec('java_block', {
 				if (link.startsWith('#') && texture_arr[link.substring(1)]) {
 					link = texture_arr[link.substring(1)];
 				}
-				if (texture_paths[link]) {
-					texture_paths[link].enableParticle()
+				if (texture_paths[link.replace(/^minecraft:/, '')]) {
+					texture_paths[link.replace(/^minecraft:/, '')].enableParticle()
 				} else {
 					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice()).enableParticle().add();
-					texture_paths[link] = texture_ids.particle = texture;
+					texture_paths[link.replace(/^minecraft:/, '')] = texture_ids.particle = texture;
 					new_textures.push(texture);
 				}
 			}

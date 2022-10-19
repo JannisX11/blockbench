@@ -222,7 +222,7 @@ async function updateRecentProjectThumbnail() {
 					if (existing_names.includes(name.replace(/\..+$/, '')) == false) {
 						try {
 							fs.unlinkSync(folder_path +osfs+ name)
-						} catch (err) {console.log(err)}
+						} catch (err) {}
 					}
 				})
 			}
@@ -315,7 +315,7 @@ function changeImageEditor(texture, from_settings) {
 function selectImageEditorFile(texture) {
 	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe', 'app']}]
+		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop']}]
 	})
 	if (filePaths) {
 		settings.image_editor.value = filePaths[0]
@@ -370,23 +370,23 @@ function findExistingFile(paths) {
 function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
 
-	var duration = parseInt(settings.backup_retain.value)+1
-	var folder_path = app.getPath('userData')+osfs+'backups'
-	var d = new Date()
-	var days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
+	let duration = parseInt(settings.backup_retain.value)+1
+	let folder_path = app.getPath('userData')+osfs+'backups'
+	let d = new Date()
+	let days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
 
 	if (init) {
 		//Clear old backups
 		fs.readdir(folder_path, (err, files) => {
 			if (!err) {
 				files.forEach((name, i) => {
-					var date = name.split('_')[1]
+					let date = name.split('_')[1]
 					if (date) {
-						var nums = date.split('.')
+						let nums = date.split('.')
 						nums.forEach((n, ni) => {
 							nums[ni] = parseInt(n)
 						})
-						var b_days = nums[0] + nums[1]*30.44 + nums[2]*365.25
+						let b_days = nums[0] + nums[1]*30.44 + nums[2]*365.25
 						if (!isNaN(b_days) && days - b_days > duration) {
 							try {
 								fs.unlinkSync(folder_path +osfs+ name)
@@ -399,9 +399,11 @@ function createBackup(init) {
 	}
 	if (init || elements.length === 0) return;
 
-	var model = Codecs.project.compile({compressed: true, backup: true})
-	var file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes()
-	var file_path = folder_path+osfs+file_name+'.bbmodel'
+	let model = Codecs.project.compile({compressed: true, backup: true});
+	let short_name = Project.name.replace(/[.]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 16);
+	if (short_name) short_name = '_' + short_name;
+	let file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes() + short_name;
+	let file_path = folder_path+osfs+file_name+'.bbmodel';
 
 	fs.writeFile(file_path, model, function (err) {
 		if (err) {

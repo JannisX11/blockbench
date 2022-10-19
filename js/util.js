@@ -382,6 +382,11 @@ Array.prototype.replace = function(items) {
 	this.splice(0, Infinity, ...items);
 	return this;
 }
+Array.prototype.allAre = function(cb) {
+	return !this.find((item, index) => {
+		return !cb(item, index);
+	})
+}
 Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {
 		if (this[i][key] === value) return this[i]

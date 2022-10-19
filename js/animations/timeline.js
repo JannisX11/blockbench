@@ -672,6 +672,7 @@ Interface.definePanels(() => {
 						if (snap_kf) {
 							Timeline.time = snap_kf.time;
 						}
+						Animator.resetLastValues();
 						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
 						if (snap_kf) snap_kf.display_value = value;
 						
@@ -968,8 +969,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				clamp: Math.clamp,
-				trimFloatNumber,
-				a() {console.trace('nee')}
+				trimFloatNumber
 			},
 			watch: {
 				size() {this.updateTimecodes()},
