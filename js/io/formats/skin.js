@@ -272,12 +272,10 @@ const skin_dialog = new Dialog({
 	draggable: true,
 	onConfirm(result) {
 		if (result.model == 'flat_texture') {
-			if (newProject(Formats.image)) {
-				if (result.texture) {
-					new Texture().fromPath(result.texture).add(false);
-				} else {
-					TextureGenerator.addBitmapDialog();
-				}
+			if (result.texture) {
+				Codecs.image.load(dataUrl);
+			} else {
+				Formats.image.new();
 			}
 
 		} else {

@@ -12,6 +12,7 @@ class ModelFormat {
 		this.id = id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
+		if (this.description == 'format.'+this.id+'.desc') this.description = '';
 		this.category = data.category || 'other';
 		this.target = data.target;
 		this.show_on_start_screen = true;

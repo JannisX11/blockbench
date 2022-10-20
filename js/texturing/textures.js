@@ -1244,7 +1244,11 @@ class Texture {
 			})
 		}
 		if (Format.id == 'image' && !Texture.all.find(t => !t.saved)) {
-			Project.saved = true;
+			if (isApp) {
+				Format.codec.afterSave();
+			} else {
+				Project.saved = true;
+			}
 		}
 		return this;
 	}
@@ -1447,18 +1451,8 @@ class Texture {
 						tex2.select();
 						return;
 					}
-					newProject(Formats.image);
-					Project.texture_width = texture.naturalWidth;
-					Project.texture_height = texture.naturalHeight;
-
 					let copy = texture.getUndoCopy();
-					let new_texture = new Texture(copy).load().add(false);
-
-					UVEditor.vue.updateTexture();
-					Project.name = new_texture.name;
-					new_texture.load_callback = () => {
-						new_texture.select();
-					}
+					Codecs.image.load(copy, texture.path, [texture.naturalWidth, texture.naturalHeight]);
 				}
 			},
 			{

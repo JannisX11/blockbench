@@ -767,7 +767,7 @@ BARS.defineActions(function() {
 		click: function () {
 
 			let form = {
-				format: {type: 'info', label: 'data.format', text: Format.name||'unknown'}
+				format: {type: 'info', label: 'data.format', text: Format.name||'unknown', description: Format.description}
 			}
 			
 			for (var key in ModelProject.properties) {

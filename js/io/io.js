@@ -64,6 +64,11 @@ function loadModelFile(file) {
 
 	// Text
 	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'image', file.content);
+		if (success) return;
+	}
+	// Text
+	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'text', file.content);
 		if (success) return;
 	}
@@ -129,19 +134,7 @@ async function loadImages(files, event) {
 			preview.startMovingBackground();
 			
 		} else if (method == 'edit') {
-			newProject(Formats.image);
-			Project.texture_width = img.naturalWidth;
-			Project.texture_height = img.naturalHeight;
-			files.forEach(function(f) {
-				new Texture().fromFile(f).add();
-			})
-			UVEditor.vue.updateTexture()
-			let last = Texture.all.last();
-			Project.name = last.name;
-			last.load_callback = () => {
-				last.select();
-			}
-
+			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
 			
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
