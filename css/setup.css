@@ -453,6 +453,7 @@
 	}
 	button > i {
 		pointer-events: none;
+		vertical-align: middle;
 	}
 	select {
 		-webkit-appearance: none;
@@ -499,8 +500,10 @@
 		min-width: 50px;
 		padding-top: 4px;
 		padding-left: 8px;
-	    padding-right: 24px;
-	    color: var(--color-text);
+		padding-right: 24px;
+		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
 	}
 	bb-select:hover{
 		color: var(--color-light);
@@ -588,6 +591,9 @@
 		font-size: 1.2em;
 	}
 	input[type=checkbox]::before {
+		text-align: center;
+	}
+	input[type=checkbox]::before {
 		content: "\f0c8";
 		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
@@ -615,6 +621,10 @@
 	}
 	input[type=radio][disabled=disabled] {
 		color: var(--color-subtle_text);
+	}
+	input:-webkit-autofill,
+	input:-webkit-autofill:focus {
+		transition: background-color 600000s 0s, color 600000s 0s;
 	}
 
 	div.nslide {

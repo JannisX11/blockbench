@@ -358,6 +358,7 @@ const MenuBar = {
 			'swap_tools',
 			'action_control',
 			'_',
+			'predicate_overrides',
 			'convert_to_mesh',
 			'remove_blank_faces',
 		])

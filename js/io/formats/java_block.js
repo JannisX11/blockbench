@@ -213,8 +213,9 @@ var codec = new Codec('java_block', {
 		if (checkExport('front_gui_light', Project.front_gui_light)) {
 			blockmodel.gui_light = 'front';
 		}
-		if (checkExport('overrides', Project.overrides)) {
-			blockmodel.overrides = Project.overrides;
+		if (checkExport('overrides', Project.overrides instanceof Array && Project.overrides.length)) {
+			Project.overrides.forEach(override => delete override._uuid)
+			blockmodel.overrides = Project.overrides.map(override => new oneLiner(override));
 		}
 		if (checkExport('display', Object.keys(Project.display_settings).length >= 1)) {
 			var new_display = {}
@@ -430,12 +431,14 @@ var codec = new Codec('java_block', {
 			texture_mesh.locked = true;
 
 			new_cubes.push(texture_mesh);
+
 		} else if (!model.elements && model.parent) {
+			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
 			Blockbench.showMessageBox({
 				translateKey: 'child_model_only',
 				icon: 'info',
 				message: tl('message.child_model_only.message', [model.parent]),
-				commands: isApp && {
+				commands: can_open && {
 					open: 'message.child_model_only.open',
 					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
 				}

@@ -438,9 +438,9 @@ window.Dialog = class Dialog {
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
 	
-		this.onConfirm = options.onConfirm
-		this.onCancel = options.onCancel
-		this.onButton = options.onButton;
+		this.onConfirm = options.onConfirm;
+		this.onCancel = options.onCancel;
+		this.onButton = options.onButton || options.onClose;
 		this.onFormChange = options.onFormChange;
 		this.onOpen = options.onOpen;
 		this.onBuild = options.onBuild;
@@ -680,6 +680,14 @@ window.Dialog = class Dialog {
 			})
 			jq_dialog.css('position', 'absolute')
 		}
+		let sanitizePosition = () => {
+			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
+				this.object.style.top = Math.max(Interface.page_wrapper.clientHeight - this.object.clientHeight + 26, 26) + 'px';
+				console.log(this.object.style.top, Interface.page_wrapper.clientHeight, this.object.clientHeight)
+			}
+		}
+		sanitizePosition();
+		this.resize_observer = new ResizeObserver(sanitizePosition).observe(this.object);
 
 		if (typeof this.onBuild == 'function') {
 			this.onBuild(this.object);
