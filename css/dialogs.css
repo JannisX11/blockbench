@@ -1626,7 +1626,7 @@
 		flex-grow: 1;
 	}
 	#predicate_override_list .predicate_list > li > input {
-		width: 70px;
+		width: 80px;
     	flex-shrink: 1;
 		text-align: center;
 	}
@@ -1645,14 +1645,26 @@
 		left: -32px;
 	}
 	#predicate_override_add {
-		background-color: var(--color-back);
-		border: 2px dashed var(--color-button);
-		color: var(--color-subtle_text);
-		cursor: pointer;
-		text-align: center;
-		height: 28px;
 		overflow: hidden;
+		display: flex;
+		gap: 4px;
 	}
-	#predicate_override_add:hover {
-		color: var(--color-light);
+	#predicate_override_add button {
+		overflow: hidden;
+		flex-grow: 1;
+	}
+	#predicate_override_generator {
+		margin-top: 10px;
+		display: flex;
+		border: 1px solid var(--color-accent);
+		height: 46px;
+		padding: 7px 4px;
+	}
+	#predicate_override_generator bb-select {
+		flex-grow: 1;
+	}
+	#predicate_override_generator label {
+		padding: 3px 4px;
+		margin-left: 8px;
+		white-space: nowrap;
 	}

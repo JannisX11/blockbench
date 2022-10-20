@@ -453,6 +453,7 @@
 	}
 	button > i {
 		pointer-events: none;
+		vertical-align: middle;
 	}
 	select {
 		-webkit-appearance: none;
