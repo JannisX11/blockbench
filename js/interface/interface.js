@@ -210,7 +210,7 @@ const Interface = {
 				var p = document.getElementById('preview')
 				this.setPosition({
 					top: 32,
-					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
+					bottom: p ? window.innerHeight - (p.clientHeight + $(p).offset().top) : 0,
 					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
 				}
 			)}
