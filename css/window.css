@@ -620,7 +620,7 @@
 		width: 32px;
 		text-align: center;
 		cursor: pointer;
-		padding-top: 4px;
+		padding-top: 6px;
 		flex-shrink: 0;
 	}
 	#new_tab_button:hover {

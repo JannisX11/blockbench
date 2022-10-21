@@ -146,6 +146,7 @@ new NodePreviewController(TextureMesh, {
 		let outline_positions = [];
 		let uvs = [1, 1, 1, 0, 0, 0, 0, 1,   1, 1, 1, 0, 0, 0, 0, 1];
 		let normals = [];
+		let colors = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 		function addNormal(x, y, z) {
 			normals.push(x, y, z);
 			normals.push(x, y, z);
@@ -230,6 +231,7 @@ new NodePreviewController(TextureMesh, {
 					sx / canvas.width, 1 - (ey / canvas.height),
 					sx / canvas.width, 1 - (sy / canvas.height),
 				)
+				colors.push(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
 			}
 
@@ -275,7 +277,9 @@ new NodePreviewController(TextureMesh, {
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(mesh.geometry.attributes.position.count), 1));
 		mesh.geometry.setIndex(indices);
 		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
+		mesh.geometry.attributes.color.needsUpdate = true;
 		mesh.geometry.attributes.normal.needsUpdate = true;
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
