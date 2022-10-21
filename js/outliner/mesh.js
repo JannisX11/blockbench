@@ -485,6 +485,20 @@ class Mesh extends OutlinerElement {
 		}
 		return new THREE.Euler();
 	}
+	getCenter(global) {
+		let center = [0, 0, 0];
+		let len = 0;
+		for (let vkey in this.vertices) {
+			center.V3_add(this.vertices[vkey]);
+			len++;
+		}
+		center.V3_divide(len);
+		if (global) {
+			return this.mesh.localToWorld(Reusable.vec1.set(...center)).toArray();
+		} else {
+			return center;
+		}
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);

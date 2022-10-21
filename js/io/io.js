@@ -650,7 +650,7 @@ BARS.defineActions(function() {
 		click() {
 			Blockbench.textPrompt('action.open_from_link', '', link => {
 				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4 || link.length == 6) {
-					let code = link.replace(/[/]+/g, '').substr(-4);
+					let code = link.replace(/\/$/, '').split('/').last();
 					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
 						Codecs.project.load(model, {path: ''});
 					}).fail(error => {

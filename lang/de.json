@@ -1648,5 +1648,8 @@
     "menu.mirror_painting.local": "Lokale Symmetrie",
     "menu.mirror_painting.local.desc": "Gespiegeltes Malen lokal für jedes Element aktivieren",
     "menu.mirror_painting.texture_frames": "Frames von animierter Textur",
-    "menu.mirror_painting.texture_frames.desc": "Pinselstriche auf jeden Frame einer animierten Textur spiegeln"
+    "menu.mirror_painting.texture_frames.desc": "Pinselstriche auf jeden Frame einer animierten Textur spiegeln",
+    "format.bedrock_block.info.size_limit": "Die Größe eines Blockmodells ist begrenzt auf 20 Pixel in allen Dimensionen. Die Begrenzung kann sich jedoch vom Mittelpunkt aus bis zu 7 Pixel in alle Richtungen verschieben.",
+    "format.bedrock_block.info.textures": "Verschiedene Texturen können auf unterschiedliche Flächen angewendet werden, allerdings benötigt dies extra Änderungen im Behavior Pack, damit es im Spiel funktioniert.",
+    "format.image.desc": "Bearbeite Bilder in 2D-Bildbearbeitungsmodus"
 }

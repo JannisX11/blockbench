@@ -683,7 +683,6 @@ window.Dialog = class Dialog {
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
 				this.object.style.top = Math.max(Interface.page_wrapper.clientHeight - this.object.clientHeight + 26, 26) + 'px';
-				console.log(this.object.style.top, Interface.page_wrapper.clientHeight, this.object.clientHeight)
 			}
 		}
 		sanitizePosition();

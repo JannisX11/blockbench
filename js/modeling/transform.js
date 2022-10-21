@@ -500,16 +500,21 @@ function scaleAll(save, size) {
 	if (size === undefined) {
 		size = $('#model_scale_label').val()
 	}
-	var origin = [
+	let origin = [
 		parseFloat($('#scaling_origin_x').val())||0,
 		parseFloat($('#scaling_origin_y').val())||0,
 		parseFloat($('#scaling_origin_z').val())||0,
 	]
-	var overflow = [];
+	let axis_enabled = [
+		$('#model_scale_x_axis').is(':checked'),
+		$('#model_scale_y_axis').is(':checked'),
+		$('#model_scale_z_axis').is(':checked'),
+	];
+	let overflow = [];
 	Outliner.selected.forEach(function(obj) {
 		obj.autouv = 0;
 		origin.forEach(function(ogn, i) {
-			if ($('#model_scale_'+getAxisLetter(i)+'_axis').is(':checked')) {
+			if (axis_enabled[i]) {
 
 				if (obj.from) {
 					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
@@ -531,7 +536,7 @@ function scaleAll(save, size) {
 
 				if (obj instanceof Mesh) {
 					for (let key in obj.vertices) {
-						obj.vertices[key][i] = (obj.before.vertices[key][i] - ogn) * size + ogn;
+						obj.vertices[key][i] = obj.before.vertices[key][i] * size;
 					}
 				}
 			} else {

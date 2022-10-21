@@ -311,15 +311,16 @@ BARS.defineActions(function() {
 										let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
 
 										let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
-										let r = !curves.r ? brightness : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
-										let g = !curves.g ? brightness : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
-										let b = !curves.b ? brightness : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
-										let a = !curves.a ? brightness : (values.a[brightness] !== undefined ? values.a[brightness] : values.a[brightness] = curves.a.getPointAt(brightness / 255).y * 255);
+										let r = !curves.r ? Math.max(brightness, 1) : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
+										let g = !curves.g ? Math.max(brightness, 1) : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
+										let b = !curves.b ? Math.max(brightness, 1) : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
+										let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
+										brightness = Math.max(brightness, 1);
 									
-										image_data.data[i+0] = R * (r / brightness) * (rgb / brightness);
-										image_data.data[i+1] = G * (g / brightness) * (rgb / brightness);
-										image_data.data[i+2] = B * (b / brightness) * (rgb / brightness);
-										image_data.data[i+3] = A * (a / brightness);
+										image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
+										image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
+										image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
+										image_data.data[i+3] = a;
 									}
 									ctx.putImageData(image_data, 0, 0);
 
@@ -334,11 +335,14 @@ BARS.defineActions(function() {
 						dragPoint(point, e1) {
 							let scope = this;
 							let {points} = this.graphs[this.graph];
-							if (point == points[0] || point == points.last()) return;
 							let original_point = point.slice();
 							
 							function drag(e2) {
-								point[0] = Math.clamp(original_point[0] + (e2.clientX - e1.clientX) / scope.width, 0, 1);
+								if (point == points[0] || point == points.last()) {
+									point[0] = point == points[0] ? 0 : 1;
+								} else {
+									point[0] = Math.clamp(original_point[0] + (e2.clientX - e1.clientX) / scope.width, 0, 1);
+								}
 								point[1] = Math.clamp(original_point[1] - (e2.clientY - e1.clientY) / scope.height, 0, 1);
 								scope.updateGraph();
 								scope.change();
@@ -372,6 +376,8 @@ BARS.defineActions(function() {
 							}));
 						},
 						contextMenu(point, event) {
+							let {points} = this.graphs[this.graph];
+							if (point == points[0] || point == points.last()) return;
 							new Menu([{
 								id: 'remove',
 								name: 'Remove',

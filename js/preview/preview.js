@@ -839,11 +839,28 @@ class Preview {
 							});
 						} else {
 							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
-								selected_vertices.empty();
-								UVEditor.vue.selected_faces.empty();
 							}
-							Project.selected_vertices[data.element.uuid].safePush(...data.element.faces[data.face].vertices);
-							UVEditor.vue.selected_faces.safePush(data.face);
+							let face_vkeys = data.element.faces[data.face].vertices;
+							
+							if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+								if (face_vkeys.allAre(vkey => selected_vertices.includes(vkey))) {
+									let selected_faces = data.element.getSelectedFaces();
+									let vkeys_to_remove = face_vkeys.filter(vkey => {
+										return !selected_faces.find(fkey => {
+											return fkey !== data.face && data.element.faces[fkey].vertices.includes(vkey)
+										})
+									})
+									if (vkeys_to_remove.length == 0) vkeys_to_remove.push(face_vkeys[0]);
+									selected_vertices.remove(...vkeys_to_remove);
+									UVEditor.vue.selected_faces.remove(data.face);
+								} else {
+									selected_vertices.safePush(...face_vkeys);
+									UVEditor.vue.selected_faces.safePush(data.face);
+								}
+							} else {
+								selected_vertices.replace(face_vkeys);
+								UVEditor.vue.selected_faces.replace([data.face]);
+							}
 						}
 
 					} else {
@@ -1035,12 +1052,13 @@ class Preview {
 	}
 	//Selection Rectangle
 	startSelRect(event) {
+		if (this.sr_move_f) return;
 		var scope = this;
 		if (Modes.edit || this.movingBackground) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
-			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f, false)
-			addEventListeners(document, 'mouseup touchend', 	this.sr_stop_f, false)
+			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f)
+			addEventListeners(document, 'mouseup touchend', 	this.sr_stop_f)
 		}
 
 		this.selection.start_x = event.offsetX+0
@@ -1054,29 +1072,38 @@ class Preview {
 				y: this.background.y,
 				size: this.background.size
 			}
-			return
+			return;
 		};
-		if (!Modes.edit || event.type == 'touchstart') return;
+		if (Modes.edit && event.type !== 'touchstart') {
+			$(this.node).append(this.selection.box)
+			this.selection.activated = false;
+			this.selection.old_selected = Outliner.selected.slice();
+			this.selection.old_vertices_selected = {};
+			for (let uuid in Project.selected_vertices) {
+				this.selection.old_vertices_selected[uuid] = Project.selected_vertices[uuid].slice();
+			}
 
-		$(this.node).append(this.selection.box)
-		this.selection.activated = false;
-		this.selection.old_selected = Outliner.selected.slice();
-		this.selection.old_vertices_selected = {};
-		for (let uuid in Project.selected_vertices) {
-			this.selection.old_vertices_selected[uuid] = Project.selected_vertices[uuid].slice();
+			this.moveSelRect(event)
 		}
 
-		this.moveSelRect(event)
 	}
 	moveSelRect(event) {
 		var scope = this;
 		convertTouchEvent(event);
 
 		if (this.movingBackground) {
-			if (event.shiftKey || Pressing.overrides.shift || (event.touches && event.touches.length >= 2)) {
+			if (event.shiftKey || Pressing.overrides.shift) {
 				let diff = event.clientY - this.selection.client_y;
-				this.background.size = limitNumber( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
+				this.background.size = Math.clamp( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
+
 			} else {
+				if (event.touches && event.touches.length >= 2) {
+					
+					if (!this.second_touch) this.second_touch = event.touches[1];
+					let diff = Math.sqrt(Math.pow(event.touches[0].clientX - event.touches[1].clientX, 2) + Math.pow(event.touches[0].clientY - event.touches[1].clientY, 2))
+							 / Math.sqrt(Math.pow(event.touches[0].clientX - this.second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - this.second_touch.clientY, 2));
+					this.background.size = Math.clamp( this.background.before.size * diff, 40, 10e3)
+				}
 				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
 				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
 			}
@@ -1269,8 +1296,11 @@ class Preview {
 	stopSelRect(event) {
 		removeEventListeners(document, 'mousemove touchmove', this.sr_move_f);
 		removeEventListeners(document, 'mouseup touchend',	this.sr_stop_f);
+		delete this.sr_move_f;
+		delete this.sr_stop_f;
 		if (this.movingBackground) {
-			delete this.background.before
+			delete this.background.before;
+			delete this.second_touch;
 			return
 		};
 		this.selection.box.detach()

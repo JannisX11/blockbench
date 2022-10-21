@@ -207,6 +207,7 @@ function updateSelection(options = {}) {
 		});
 		BarItems.select_seam.set(value || 'auto');
 	}
+	if (Format.cube_size_limiter?.updateBoxMarker) Format.cube_size_limiter.updateBoxMarker();
 	Canvas.updatePivotMarker();
 	Transformer.updateSelection();
 	Preview.all.forEach(preview => {

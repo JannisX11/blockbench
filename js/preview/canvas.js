@@ -524,7 +524,8 @@ const Canvas = {
 			}
 		}
 		if (settings.large_box.value === true) {
-			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(48, 48, 48));
+			let size = Format.cube_size_limiter?.box_marker_size || [48, 48, 48];
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(...size));
 
 			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 			var large_box = new THREE.LineSegments( geometry_box, line_material);
@@ -535,6 +536,8 @@ const Canvas = {
 			}
 			large_box.name = 'grid'
 			three_grid.add(large_box)
+			three_grid.size_limit_box = large_box;
+			if (Format.cube_size_limiter?.updateBoxMarker) Format.cube_size_limiter.updateBoxMarker();
 		}
 		scene.add(three_grid)
 

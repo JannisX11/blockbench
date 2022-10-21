@@ -10,7 +10,7 @@ function getMtlFace(obj, index) {
 	} else if (!tex || typeof tex === 'string') {
 		return 'usemtl none'
 	} else {
-		return 'usemtl m_' + tex.id;
+		return 'usemtl m_' + tex.uuid;
 	}
 }
 const cube_face_normals = {
@@ -115,12 +115,12 @@ var codec = new Codec('obj', {
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
 						let tex = element.faces[key].getTexture()
-						if (tex && tex.uuid && !materials[tex.id]) {
-							materials[tex.id] = tex;
+						if (tex && tex.uuid && !materials[tex.uuid]) {
+							materials[tex.uuid] = tex;
 						}
 						let mtl_new = (!tex || typeof tex === 'string')
 							? 'none'
-							: 'm_' + tex.id;
+							: 'm_' + tex.uuid;
 						if (mtl_new != mtl) {
 							mtl = mtl_new;
 							output.push('usemtl '+mtl);
@@ -194,12 +194,12 @@ var codec = new Codec('obj', {
 						vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
 						nbNormals += 1;
 
-						if (tex && tex.uuid && !materials[tex.id]) {
-							materials[tex.id] = tex;
+						if (tex && tex.uuid && !materials[tex.uuid]) {
+							materials[tex.uuid] = tex;
 						}
 						let mtl_new = (!tex || typeof tex === 'string')
 							? 'none'
-							: 'm_' + tex.id;
+							: 'm_' + tex.uuid;
 						if (mtl_new != mtl) {
 							mtl = mtl_new;
 							faces.push('usemtl '+mtl);
@@ -317,8 +317,8 @@ var codec = new Codec('obj', {
 				// material
 				for (let key in element.faces) {
 					let tex = element.faces[key].getTexture()
-					if (tex && tex.uuid && !materials[tex.id]) {
-						materials[tex.id] = tex
+					if (tex && tex.uuid && !materials[tex.uuid]) {
+						materials[tex.uuid] = tex
 					}
 				}
 

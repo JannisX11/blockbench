@@ -145,7 +145,7 @@ const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
 				for (let p of Interface.data.left_bar) {
-					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
+					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'left_bar') {
 						return true;
 					}
 				}
@@ -176,7 +176,7 @@ const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				for (let p of Interface.data.right_bar) {
-					if (Interface.Panels[p] && BARS.condition(Interface.Panels[p].condition)) {
+					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'right_bar') {
 						return true;
 					}
 				}

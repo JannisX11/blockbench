@@ -617,7 +617,6 @@ BARS.defineActions(function() {
 			'load_plugin_from_url'
 		]),
 		click(e) {
-			console.trace(e)
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
