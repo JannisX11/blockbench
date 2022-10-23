@@ -1973,7 +1973,7 @@ Interface.definePanels(function() {
 							viewport.scrollLeft += ((viewport.scrollLeft + offsetX) * zoom_diff) / old_zoom + margin[0] - original_margin[0];
 							viewport.scrollTop  += ((viewport.scrollTop  + offsetY) * zoom_diff) / old_zoom + margin[1] - original_margin[1];
 
-							let diagonal_offset = Math.sqrt(Math.pow(margin[0] - viewport.scrollLeft, 2), Math.pow(margin[1] - viewport.scrollTop, 2));
+							let diagonal_offset = Math.sqrt(Math.pow(margin[0] - viewport.scrollLeft, 2) + Math.pow(margin[1] - viewport.scrollTop, 2));
 							if (this.zoom == 1 && Panels.uv.isInSidebar() && diagonal_offset/UVEditor.width < 0.12) {
 								this.centerView();
 							}
@@ -2966,6 +2966,13 @@ Interface.definePanels(function() {
 				},
 				endInputMaterialInstance(event) {
 					Undo.finishEdit('Change material instances');
+				},
+				showInfoBox(title, text) {
+					Blockbench.showMessageBox({
+						title: tl(title),
+						message: tl(text),
+						icon: 'info'
+					})
 				}
 			},
 			template: `
@@ -3003,13 +3010,22 @@ Interface.definePanels(function() {
 							<label style="width: 120px;" class="flexible">Texture</label>
 
 							<template v-if="checkFormat({java_face_properties: true})">
-								<label style="width: 58px;">${tl('action.face_tint')}</label>
+								<label style="width: 58px;" @click="showInfoBox('action.face_tint', 'uv_editor.tint.info')" title="${tl('uv_editor.tint.info')}">
+									${tl('action.face_tint')}
+									<i class="material-icons">info</i>
+								</label>
 
-								<label style="width: 50px;" class="flexible">${tl('action.cullface')}</label>
+								<label style="width: 50px;" @click="showInfoBox('action.cullface', 'uv_editor.cullface.info')" title="${tl('uv_editor.cullface.info')}" class="flexible">
+									${tl('action.cullface')}
+									<i class="material-icons">info</i>
+								</label>
 							</template>
 
 							<template v-if="checkFormat({id: 'bedrock_block'})">
-								<label style="width: 100px;" class="flexible">${tl('uv_editor.face_properties.material_instance')}</label>
+								<label style="width: 100px;" class="flexible" @click="showInfoBox('uv_editor.face_properties.material_instance', 'uv_editor.material_instance.info')" title="${tl('uv_editor.material_instance.info')}">
+									${tl('uv_editor.face_properties.material_instance')}
+									<i class="material-icons">info</i>
+								</label>
 							</template>
 						</div>
 

@@ -1473,6 +1473,9 @@
 		flex-shrink: 1;
 		width: 50px;
 	}
+	.uv_face_properties_labels label > i {
+		vertical-align: top;
+	}
 	.uv_face_properties_line {
 		height: 44px;
 		display: flex;
