@@ -805,6 +805,7 @@ class Cube extends OutlinerElement {
 	]);
 	Cube.prototype.buttons = [
 		Outliner.buttons.autouv,
+		Outliner.buttons.mirror_uv,
 		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,

@@ -1556,7 +1556,7 @@ BARS.defineActions(function() {
 		icon: 'settings_overscan',
 		category: 'transform',
 		condition: () => (Modes.edit && selected.length),
-		click: function () {
+		click() {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')
 
@@ -1592,7 +1592,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_right',
 		color: 'x',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(0, 1);
 		}
 	})
@@ -1601,7 +1601,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_left',
 		color: 'x',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(0, 3);
 		}
 	})
@@ -1610,7 +1610,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_right',
 		color: 'y',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(1, 1);
 		}
 	})
@@ -1619,7 +1619,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_left',
 		color: 'y',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(1, 3);
 		}
 	})
@@ -1628,7 +1628,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_right',
 		color: 'z',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(2, 1);
 		}
 	})
@@ -1637,7 +1637,7 @@ BARS.defineActions(function() {
 		icon: 'rotate_left',
 		color: 'z',
 		category: 'transform',
-		click: function () {
+		click() {
 			rotateSelected(2, 3);
 		}
 	})
@@ -1647,7 +1647,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_x',
 		color: 'x',
 		category: 'transform',
-		click: function () {
+		click() {
 			mirrorSelected(0);
 		}
 	})
@@ -1656,7 +1656,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_y',
 		color: 'y',
 		category: 'transform',
-		click: function () {
+		click() {
 			mirrorSelected(1);
 		}
 	})
@@ -1665,7 +1665,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_z',
 		color: 'z',
 		category: 'transform',
-		click: function () {
+		click() {
 			mirrorSelected(2);
 		}
 	})
@@ -1675,7 +1675,7 @@ BARS.defineActions(function() {
 		icon: 'vertical_align_center',
 		color: 'x',
 		category: 'transform',
-		click: function () {
+		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(0);
 			Undo.finishEdit('Center selection on X axis')
@@ -1686,7 +1686,7 @@ BARS.defineActions(function() {
 		icon: 'vertical_align_center',
 		color: 'y',
 		category: 'transform',
-		click: function () {
+		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(1);
 			Undo.finishEdit('Center selection on Y axis')
@@ -1697,7 +1697,7 @@ BARS.defineActions(function() {
 		icon: 'vertical_align_center',
 		color: 'z',
 		category: 'transform',
-		click: function () {
+		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElements(2);
 			Undo.finishEdit('Center selection on Z axis')
@@ -1706,7 +1706,7 @@ BARS.defineActions(function() {
 	new Action('center_lateral', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		click: function () {
+		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
 			centerElementsAll();
 			Undo.finishEdit('Center selection')
@@ -1719,7 +1719,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
-		click: function (e) {
+		click(e) {
 			if (Prop.active_panel === 'uv') {
 				UVEditor.moveSelection([0, -1], e)
 			} else {
@@ -1732,7 +1732,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
-		click: function (e) {
+		click(e) {
 			if (Prop.active_panel === 'uv') {
 				UVEditor.moveSelection([0, 1], e)
 			} else {
@@ -1745,7 +1745,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 37, ctrl: null, shift: null}),
-		click: function (e) {
+		click(e) {
 			if (Prop.active_panel === 'uv') {
 				UVEditor.moveSelection([-1, 0], e)
 			} else {
@@ -1758,7 +1758,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 39, ctrl: null, shift: null}),
-		click: function (e) {
+		click(e) {
 			if (Prop.active_panel === 'uv') {
 				UVEditor.moveSelection([1, 0], e)
 			} else {
@@ -1771,54 +1771,54 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 33, ctrl: null, shift: null}),
-		click: function (e) {moveElementsRelative(-1, 1, e)}
+		click(e) {moveElementsRelative(-1, 1, e)}
 	})
 	new Action('move_back', {
 		icon: 'keyboard_arrow_down',
 		category: 'transform',
 		condition: {modes: ['edit'], method: () => (!open_menu && selected.length)},
 		keybind: new Keybind({key: 34, ctrl: null, shift: null}),
-		click: function (e) {moveElementsRelative(1, 1, e)}
+		click(e) {moveElementsRelative(1, 1, e)}
 	})
 
 	new Action('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
-		click: function () {toggleCubeProperty('visibility')}
+		click() {toggleCubeProperty('visibility')}
 	})
 	new Action('toggle_locked', {
 		icon: 'fas.fa-lock',
 		category: 'transform',
-		click: function () {toggleCubeProperty('locked')}
+		click() {toggleCubeProperty('locked')}
 	})
 	new Action('toggle_export', {
 		icon: 'save',
 		category: 'transform',
-		click: function () {toggleCubeProperty('export')}
+		click() {toggleCubeProperty('export')}
 	})
 	new Action('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		condition: {modes: ['edit']},
-		click: function () {toggleCubeProperty('autouv')}
+		click() {toggleCubeProperty('autouv')}
 	})
 	new Action('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => Format.java_face_properties && Modes.edit,
-		click: function () {toggleCubeProperty('shade')}
+		click() {toggleCubeProperty('shade')}
 	})
 	new Action('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
-		click: function () {toggleCubeProperty('shade')}
+		click() {toggleCubeProperty('mirror_uv')}
 	})
 	new Action('update_autouv', {
 		icon: 'brightness_auto',
 		category: 'transform',
 		condition: () => !Modes.edit && UVEditor.isFaceUV(),
-		click: function () {
+		click() {
 			if (Cube.selected.length) {
 				Undo.initEdit({elements: Cube.selected[0].forSelected(), selection: true})
 				Cube.selected[0].forSelected(function(cube) {
@@ -1832,13 +1832,13 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		condition: {modes: ['edit', 'animate']},
-		click: function () {origin2geometry()}
+		click() {origin2geometry()}
 	})
 	new Action('rescale_toggle', {
 		icon: 'check_box_outline_blank',
 		category: 'transform',
 		condition: function() {return Format.rotation_limit && Cube.selected.length;},
-		click: function () {
+		click() {
 			Undo.initEdit({elements: Cube.selected})
 			var value = !Cube.selected[0].rescale
 			Cube.selected.forEach(function(cube) {
@@ -1853,7 +1853,7 @@ BARS.defineActions(function() {
 		icon: 'check_box_outline_blank',
 		category: 'transform',
 		condition: function() {return Format.bone_rig && Group.selected;},
-		click: function () {
+		click() {
 			Undo.initEdit({group: Group.selected})
 			Group.selected.reset = !Group.selected.reset
 			updateNslideValues()
@@ -1864,7 +1864,7 @@ BARS.defineActions(function() {
 	new Action('remove_blank_faces', {
 		icon: 'cancel_presentation',
 		condition: () => !Format.box_uv,
-		click: function () {
+		click() {
 			let elements = Outliner.selected.filter(el => el.faces);
 			Undo.initEdit({elements})
 			var arr = elements.slice()

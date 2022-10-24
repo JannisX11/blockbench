@@ -46,8 +46,8 @@ const Outliner = {
 			id: 'mirror_uv',
 			condition: (cube) => cube.box_uv,
 			title: tl('switches.mirror'),
-			icon: 'fa fa-star',
-			icon_off: 'fas fa-star-half-alt',
+			icon: 'icon-mirror_x icon',
+			icon_off: 'icon-mirror_x icon',
 			advanced_option: true
 		},
 		autouv: {

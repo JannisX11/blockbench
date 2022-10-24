@@ -359,10 +359,14 @@
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
 	}
-	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
+	.outliner_node .outliner_object i {
 		flex: 0 0 20px;
 		text-align: center;
 		padding-top: 4px;
+		overflow: hidden;
+	}
+	.outliner_node .outliner_object i[class*=" icon-"]:not(.fa) {
+		padding-top: 0px;
 	}
 	.outliner_node .outliner_object i.icon_off {
 		color: var(--color-subtle_text);

@@ -376,6 +376,7 @@
 	"dialog.texture.title": "Texture",
 	"dialog.texture.variable": "Variable",
 	"dialog.texture.namespace": "Namespace",
+	"dialog.texture.folder": "Folder",
 	"dialog.texture.frame_time": "Frame Time",
 	"dialog.texture.frame_time.desc": "Set for how long each frame will be visible, in ticks. Each tick is 1/20th of a second.",
 	"dialog.texture.frame_interpolate": "Interpolate",

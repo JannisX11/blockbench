@@ -442,6 +442,7 @@ class Texture {
 				if (mcmeta && mcmeta.animation) {
 					let frame_order_type = 'loop';
 					let {frames} = mcmeta.animation;
+					let frame_string = '';
 					if (frames instanceof Array) {
 						frame_order_type = 'custom';
 						if (!frames.find(v => typeof v !== 'number')) {
@@ -460,11 +461,24 @@ class Texture {
 								frame_order_type = 'back_and_forth';
 							}
 						}
+						if (frame_order_type === 'custom') {
+							frame_string = frames.map(frame => {
+								if (typeof frame == 'object') {
+									if (frame.index !== undefined && frame.time) {
+										return `${frame.index}:${frame.time}`
+									} else {
+										return frame.index || 0;
+									}
+								} else {
+									return frame;
+								}
+							}).join(' ');
+						}
 					}
 					this.extend({
 						frame_time: mcmeta.animation.frametime,
 						frame_order_type,
-						frame_order: frame_order_type ? undefined : (frames instanceof Array ? frames.join(' ') : '')
+						frame_order: frame_string
 					})
 				}
 			}
@@ -1154,6 +1168,7 @@ class Texture {
 			if (indices) animation.frames = indices;
 
 		}
+		Blockbench.dispatchEvent('compile_texture_mcmeta', {mcmeta})
 		return mcmeta;
 	}
 	getAnimationFrameIndices() {
@@ -1168,8 +1183,15 @@ class Texture {
 					: i;
 			});
 
-		} else if (this.frame_order_type == 'custom') {
-			if (this.frame_order.trim()) return this.frame_order.split(/\s+/).map(v => parseInt(v));
+		} else if (this.frame_order_type == 'custom' && this.frame_order.trim()) {
+			return this.frame_order.split(/\s+/).map(v => {
+				if (v.includes(':')) {
+					let [index, time] = v.split(':').map(v2 => parseInt(v2));
+					return {index, time};
+				} else {
+					return parseInt(v)
+				}
+			});
 		}
 	}
 	save(as) {
