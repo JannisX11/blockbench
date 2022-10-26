@@ -1178,24 +1178,25 @@ Interface.definePanels(function() {
 							}
 							let val = Math.round((clientX - e1.clientX) / 40);
 							let difference = (val - last_val);
-							if (!difference) return;
-							if (Toolbox.selected.id === 'rotate_tool') {
-								difference *= getRotationInterval(e2);
-							} else {
-								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
-							}
+							if (difference) {
+								if (Toolbox.selected.id === 'rotate_tool') {
+									difference *= getRotationInterval(e2);
+								} else {
+									difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+								}
 							
-							Keyframe.selected.forEach(kf => {
-								kf.offset(axis, difference);
-							})
+								Keyframe.selected.forEach(kf => {
+									kf.offset(axis, difference);
+								})
 
-							last_val = val;
+								last_val = val;
+								total += difference;
+
+								Animator.preview()
+								Blockbench.setStatusBarText(trimFloatNumber(total));
+							}
 							last_event = e2;
-							total += difference;
 							move_calls++;
-
-							Animator.preview()
-							Blockbench.setStatusBarText(trimFloatNumber(total));
 						}
 					}
 					function off(e2) {

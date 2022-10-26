@@ -454,7 +454,7 @@ class ModelLoader {
 		this.onStart();
 	}
 	delete() {
-		delete ModelLoader.loaders[this.id];
+		Vue.delete(ModelLoader.loaders, this.id);
 		Blockbench.dispatchEvent('delete_model_loader', {loader: this});
 	}
 }
