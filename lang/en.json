@@ -1859,6 +1859,7 @@
 	"display.reference.crossbow": "Crossbow",
 	"display.reference.block": "Block",
 	"display.reference.frame": "Item Frame",
+	"display.reference.frame_invisible": "Item Frame (Invisible)",
 	"display.reference.inventory_nine": "3x3",
 	"display.reference.inventory_full": "Inventory",
 	"display.reference.hud": "HUD",
