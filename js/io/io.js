@@ -1,6 +1,13 @@
 //Import
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
+		'texture',
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		function(files, event) {
+			loadImages(files, event)
+		}
+	)
+	Blockbench.addDragHandler(
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
@@ -30,13 +37,6 @@ function setupDragHandlers() {
 			files.forEach(file => {
 				new Plugin().loadFromFile(file, true);
 			})
-		}
-	)
-	Blockbench.addDragHandler(
-		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
-		function(files, event) {
-			loadImages(files, event)
 		}
 	)
 }

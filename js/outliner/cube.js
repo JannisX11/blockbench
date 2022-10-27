@@ -483,6 +483,7 @@ class Cube extends OutlinerElement {
 		return pos;
 	}
 	setUVMode(box_uv) {
+		if (this.box_uv == !!box_uv) return this;
 		this.box_uv = !!box_uv;
 		if (this.box_uv) {
 			if (this.faces.west.uv[2] < this.faces.east.uv[0]) {
@@ -499,12 +500,14 @@ class Cube extends OutlinerElement {
 			}
 		}
 		this.preview_controller.updateUV(this);
+		return this;
 	}
 	setColor(index) {
 		this.color = index;
 		if (this.visibility) {
 			this.preview_controller.updateFaces(this);
 		}
+		return this;
 	}
 	applyTexture(texture, faces) {
 		var scope = this;
@@ -522,7 +525,9 @@ class Cube extends OutlinerElement {
 			value = texture;
 		}
 		sides.forEach(function(side) {
-			scope.faces[side].texture = value
+			if (scope.faces[side].texture !== null) {
+				scope.faces[side].texture = value;
+			}
 		})
 		if (selected.indexOf(this) === 0) {
 			UVEditor.loadData()
