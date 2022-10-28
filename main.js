@@ -8,6 +8,7 @@ require('@electron/remote/main').initialize()
 
 let orig_win;
 let all_wins = [];
+let load_project_data;
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
@@ -35,19 +36,21 @@ if (LaunchSettings.get('hardware_acceleration') == false) {
 	app.disableHardwareAcceleration();
 }
 
-function createWindow(second_instance) {
+function createWindow(second_instance, options = {}) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
 		app.quit()
 		return;
 	}
-	let win = new BrowserWindow({
-		icon:'icon.ico',
+	let win_options = {
+		icon: 'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
 		frame: LaunchSettings.get('native_window_frame') === true,
 		titleBarStyle: 'hidden',
 		minWidth: 640,
 		minHeight: 480,
+		width: 1080,
+		height: 720,
 		webPreferences: {
 			webgl: true,
 			webSecurity: true,
@@ -55,7 +58,12 @@ function createWindow(second_instance) {
 			contextIsolation: false,
 			enableRemoteModule: true
 		}
-	})
+	};
+	if (options.position) {
+		win_options.x = options.position[0] - 300;
+		win_options.y = Math.max(options.position[1] - 100, 0);
+	}
+	let win = new BrowserWindow(win_options)
 	if (!orig_win) orig_win = win;
 	all_wins.push(win);
 
@@ -133,7 +141,7 @@ function createWindow(second_instance) {
 		win.setMenu(null);
 	}
 	
-	win.maximize()
+	if (options.maximize !== false) win.maximize()
 	win.show()
 
 	win.loadURL(url.format({
@@ -184,8 +192,33 @@ ipcMain.on('edit-launch-setting', (event, arg) => {
 ipcMain.on('add-recent-project', (event, path) => {
 	app.addRecentDocument(path);
 })
-ipcMain.on('new-window', (event, path) => {
-	createWindow(true);
+ipcMain.on('new-window', (event, data, position) => {
+	if (typeof data == 'string') load_project_data = JSON.parse(data);
+	if (position) {
+		position = JSON.parse(position)
+		let place_in_window = all_wins.find(win => {
+			if (win.isDestroyed() || win.webContents == event.sender || win.isMinimized()) return false;
+			let pos = win.getPosition();
+			let size = win.getSize();
+			return (position.offset[0] >= pos[0] && position.offset[0] <= pos[0] + size[0]
+				 && position.offset[1] >= pos[1] && position.offset[1] <= pos[1] + size[1]);
+		})
+		if (place_in_window) {
+			place_in_window.send('load-tab', load_project_data);
+			load_project_data = null;
+		} else {
+			createWindow(true, {
+				maximize: false,
+				position: position.offset
+			});
+		}
+	} else {
+		createWindow(true);
+	}
+})
+ipcMain.on('close-detached-project', async (event, window_id, uuid) => {
+	let window = all_wins.find(win => win.id == window_id);
+	if (window) window.send('close-detached-project', uuid);
 })
 ipcMain.on('request-color-picker', async (event, arg) => {
 	const color = await getColorHexRGB().catch((error) => {
@@ -206,6 +239,11 @@ app.on('ready', () => {
 
 	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {
+
+		if (load_project_data) {
+			all_wins[all_wins.length-1].send('load-tab', load_project_data);
+			load_project_data = null;
+		}
 
 		if (app_was_loaded) {
 			console.log('[Blockbench] App reloaded')

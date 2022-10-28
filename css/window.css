@@ -675,6 +675,29 @@
 			opacity: 1;
 		}
 	}
+	#drag_out_window_helper {
+		width: 200px;
+		height: 120px;
+		position: absolute;
+		margin: -14px -40px;
+		background-color: var(--color-ui);
+		border: 3px solid var(--color-frame);
+		box-shadow: 1px 1px 10px rgb(0 0 0 / 40%);
+		background-image: url('../assets/logo_cutout.svg');
+		background-position: center 48px;
+		background-size: 40px;
+		background-repeat: no-repeat;
+		z-index: 200;
+		cursor: pointer;
+	}
+	#drag_out_window_helper > div {
+		width: 100%;
+		height: 26px;
+		text-align: center;
+		overflow: hidden;
+		white-space: nowrap;
+		background-color: var(--color-frame);
+	}
 
 
 /*Status Bar*/

@@ -122,6 +122,29 @@ var codec = new Codec('project', {
 		if (options.flag) {
 			model.flag = options.flag;
 		}
+
+		if (options.editor_state) {
+			Project.saveEditorState();
+			model.editor_state = {
+				save_path: Project.save_path,
+				export_path: Project.export_path,
+				saved: Project.saved,
+				added_models: Project.added_models,
+				mode: Project.mode,
+				tool: Project.tool,
+				display_uv: Project.display_uv,
+				exploded_view: Project.exploded_view,
+				uv_viewport: Project.uv_viewport,
+				previews: JSON.parse(JSON.stringify(Project.previews)),
+
+				selected_elements: Project.selected_elements.map(e => e.uuid),
+				selected_group: Project.selected_group?.uuid,
+				selected_vertices: JSON.parse(JSON.stringify(Project.selected_vertices)),
+				selected_faces: Project.selected_faces,
+				selected_texture: Project.selected_texture?.uuid,
+			};
+		}
+
 		model.elements = []
 		elements.forEach(el => {
 			var obj = el.getSaveCopy(model.meta)
@@ -335,6 +358,39 @@ var codec = new Codec('project', {
 		Canvas.updateAllPositions()
 		Validator.validate()
 		this.dispatchEvent('parsed', {model})
+
+		if (model.editor_state) {
+			let state = model.editor_state;
+			Merge.string(Project, state, 'save_path')
+			Merge.string(Project, state, 'export_path')
+			Merge.boolean(Project, state, 'saved')
+			Merge.number(Project, state, 'added_models')
+			Merge.string(Project, state, 'mode')
+			Merge.string(Project, state, 'tool')
+			Merge.string(Project, state, 'display_uv')
+			Merge.boolean(Project, state, 'exploded_view')
+			if (state.uv_viewport) {
+				Merge.number(Project.uv_viewport, state.uv_viewport, 'zoom')
+				Merge.arrayVector2(Project.uv_viewport = state.uv_viewport, 'offset');
+			}
+			if (state.previews) {
+				for (let id in state.previews) {
+					Project.previews[id] = state.previews[id];
+				}
+			}
+			state.selected_elements.forEach(uuid => {
+				let el = Outliner.elements.find(el2 => el2.uuid == uuid);
+				Project.selected_elements.push(el);
+			})
+			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
+			for (let key in state.selected_vertices) {
+				Project.selected_vertices[key] = state.selected_vertices[key];
+			}
+			Project.selected_faces.replace(state.selected_faces);
+			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
+
+			Project.loadEditorState();
+		}
 	},
 	merge(model, path) {
 

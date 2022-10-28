@@ -92,6 +92,19 @@ function loadOpenWithBlockbenchFile() {
 	ipcRenderer.on('open-model', (event, path) => {
 		load(path);
 	})
+	ipcRenderer.on('load-tab', (event, model) => {
+		let fake_file = {
+			path: model.editor_state?.save_path || ''
+		};
+		Codecs.project.load(model, fake_file);
+		if (model.detached_uuid) {
+			ipcRenderer.send('close-detached-project', model.detached_window_id, model.detached_uuid);
+		}
+	})
+	ipcRenderer.on('close-detached-project', (event, uuid) => {
+		let tab = ModelProject.all.find(project => project.uuid == uuid && project.detached);
+		if (tab) tab.close(true);
+	})
 	if (electron.process.argv.length >= 2) {
 		let path = electron.process.argv.last();
 		load(path);

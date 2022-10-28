@@ -142,15 +142,25 @@ class ModelProject {
 			this.on_next_upen.push(callback);
 		}
 	}
-	select() {
-		if (this === Project) return true;
-		if (this.locked || Project.locked) return false;
-		if (Project) {
-			Project.unselect();
-			Blockbench.addFlag('switching_project');
-		} else {
-			Interface.tab_bar.new_tab.visible = false;
-		}
+	saveEditorState() {
+		this.tool = Toolbox.selected.id;
+
+		UVEditor.saveViewportOffset();
+		
+		Preview.all.forEach(preview => {
+			this.previews[preview.id] = {
+				position: preview.camera.position.toArray(),
+				target: preview.controls.target.toArray(),
+				orthographic: preview.isOrtho,
+				zoom: preview.camOrtho.zoom,
+				angle: preview.angle,
+			}
+		})
+
+		Blockbench.dispatchEvent('save_editor_state', {project: this});
+		return this;
+	}
+	loadEditorState() {
 		Project = this;
 		Undo = this.undo;
 		this.selected = true;
@@ -209,9 +219,24 @@ class ModelProject {
 				if (data.zoom) preview.camOrtho.zoom = data.zoom;
 				if (data.angle) preview.setLockedAngle(data.angle);
 			} else if (preview.default_angle !== undefined) {
-				setTimeout(() => preview.loadAnglePreset(preview.default_angle), 0);
+				preview.loadAnglePreset(preview.default_angle);
 			}
 		})
+
+		Blockbench.dispatchEvent('load_editor_state', {project: this});
+		return this;
+	}
+	select() {
+		if (this === Project) return true;
+		if (this.locked || Project.locked) return false;
+		if (Project) {
+			Project.unselect();
+			Blockbench.addFlag('switching_project');
+		} else {
+			Interface.tab_bar.new_tab.visible = false;
+		}
+
+		this.loadEditorState();
 
 		if (this.EditSession) {
 			Interface.Panels.chat.inside_vue.chat_history = this.EditSession.chat_history;
@@ -248,24 +273,14 @@ class ModelProject {
 				this.thumbnail = Texture.getDefault()?.source;
 			}
 
-			this.tool = Toolbox.selected.id;
-			UVEditor.saveViewportOffset();
+			this.saveEditorState();
 		}
+		
 		Interface.tab_bar.last_opened_project = this.uuid;
 
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
-
-		Preview.all.forEach(preview => {
-			this.previews[preview.id] = {
-				position: preview.camera.position.toArray(),
-				target: preview.controls.target.toArray(),
-				orthographic: preview.isOrtho,
-				zoom: preview.camOrtho.zoom,
-				angle: preview.angle,
-			}
-		})
 
 		this.undo.closeAmendEditMenu();
 		Preview.all.forEach(preview => {
@@ -639,6 +654,8 @@ onVueSetup(() => {
 				let active = false;
 				let timeout;
 				let last_event = e1;
+				let outside_tab_bar = false;
+				let drag_out_window_helper;
 
 				let tab_node = e1.target;
 				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
@@ -674,6 +691,27 @@ onVueSetup(() => {
 
 						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
 						scope.drag_position_index = scope.drag_target_index + index_offset;
+
+						// Detach tab
+						let outside_tab_bar_before = outside_tab_bar; 
+						outside_tab_bar = isApp && Math.abs(e2.clientY - 42) > 60 || e2.clientX < 2 || e2.clientX > window.innerWidth;
+
+						if (outside_tab_bar !== outside_tab_bar_before) {
+							//setStartScreen(outside_tab_bar);
+							if (!drag_out_window_helper) {
+								drag_out_window_helper = Interface.createElement('div', {id: 'drag_out_window_helper'}, Interface.createElement('div', {}, tab.name));
+							}
+							if (outside_tab_bar) {
+								document.body.append(drag_out_window_helper);
+							} else {
+								document.body.removeChild(drag_out_window_helper);
+							}
+							tab_node.style.visibility = outside_tab_bar ? 'hidden' : 'visible';
+						}
+						if (outside_tab_bar) {
+							drag_out_window_helper.style.left = `${e2.clientX}px`;
+							drag_out_window_helper.style.top = `${e2.clientY}px`;
+						}
 					}
 					last_event = e2;
 				}
@@ -688,7 +726,34 @@ onVueSetup(() => {
 
 					if (Blockbench.isTouch) clearTimeout(timeout);
 
-					if (active && !open_menu) {
+					
+					if (isApp && outside_tab_bar && !tab.EditSession) {
+						let project = Codecs.project.compile({editor_state: true, history: true, uuids: true, bitmaps: true, raw: true})
+						let pos = currentwindow.getPosition()
+						project.detached_uuid = Project.uuid;
+						project.detached_window_id = currentwindow.id;
+						ipcRenderer.send('new-window', JSON.stringify(project), JSON.stringify({
+							offset: [
+								pos[0] + e2.clientX,
+								pos[1] + e2.clientY,
+							]
+						}));
+						drag_out_window_helper.remove();
+						//setStartScreen(false);
+						tab_node.style.visibility = null;
+						//tab.select();
+						tab.detached = true;
+						/*Blockbench.showMessageBox({
+							title: 'Project detached',
+							message: 'The tab was moved to another window. Do you want to close it here?',
+							buttons: ['dialog.ok', 'dialog.cancel']
+						}, val => {
+							if (val == 0) {
+								tab.close(true)
+							}
+						})*/
+
+					} else if (active && !open_menu) {
 						convertTouchEvent(e2);
 						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
 						if (index_offset) {
