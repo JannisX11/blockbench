@@ -390,6 +390,9 @@ class Tool extends Action {
 		Toolbox.selected = this;
 		delete Toolbox.original;
 		this.uses++;
+		if (Project) {
+			Project.tool = Mode.selected.tool = this.id;
+		}
 
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)

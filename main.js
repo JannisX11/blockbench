@@ -205,6 +205,7 @@ ipcMain.on('new-window', (event, data, position) => {
 		})
 		if (place_in_window) {
 			place_in_window.send('load-tab', load_project_data);
+			place_in_window.focus();
 			load_project_data = null;
 		} else {
 			createWindow(true, {
@@ -246,7 +247,7 @@ app.on('ready', () => {
 		}
 
 		if (app_was_loaded) {
-			console.log('[Blockbench] App reloaded')
+			console.log('[Blockbench] App reloaded or new window opened')
 			return;
 		}
 

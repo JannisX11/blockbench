@@ -184,7 +184,7 @@ class Plugin {
 				}).fail(reject)
 			} else {
 				try {
-					eval(file.content);
+					new Function(file.content)();
 				} catch (err) {
 					reject(err)
 				}

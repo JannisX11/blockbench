@@ -143,8 +143,6 @@ class ModelProject {
 		}
 	}
 	saveEditorState() {
-		this.tool = Toolbox.selected.id;
-
 		UVEditor.saveViewportOffset();
 		
 		Preview.all.forEach(preview => {
