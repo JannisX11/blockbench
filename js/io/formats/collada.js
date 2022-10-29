@@ -893,7 +893,7 @@ var codec = new Codec('collada', {
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_collada',
-		icon: 'fas.fa-sync-alt',
+		icon: 'icon-collada',
 		category: 'file',
 		click: function () {
 			codec.export()

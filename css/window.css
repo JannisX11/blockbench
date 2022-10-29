@@ -537,7 +537,6 @@
 		margin-right: auto;
 	}
 	#tab_bar .project_tab {
-		background-color: var(--color-back);
 		cursor: pointer;
 		width: 240px;
 		min-width: 120px;
@@ -556,6 +555,7 @@
 	}
 	#tab_bar .project_tab.selected {
 		background-color: var(--color-ui);
+		color: var(--color-text);
 		cursor: default;
 		border-top-color: var(--color-accent);
 	}
@@ -563,7 +563,7 @@
 		background-color: var(--color-dark);
 	}
 	#tab_bar .project_tab:not(.selected):hover {
-		background-color: var(--color-button);
+		background-color: var(--color-back);
 		color: var(--color-light);
 	}
 	#tab_bar .project_tab.dragging {

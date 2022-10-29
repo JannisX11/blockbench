@@ -124,6 +124,7 @@ localStorage.setItem('last_version', Blockbench.version);
 		Settings.saveLocalStorages();
 		if (isApp) {
 			loadOpenWithBlockbenchFile();
+			ipcRenderer.send('app-loaded');
 		} else {
 			loadInfoFromURL();
 		}

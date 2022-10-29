@@ -617,7 +617,7 @@ const Painter = {
 				//calculate new point
 				let mirror_x = symmetry_axes[0] != symmetry_axes[2];
 				if (local === null) mirror_x = !mirror_x;
-				if (fkey === 'up' || fkey === 'down') mirror_x = false;
+				if (fkey === 'up' || fkey === 'down') mirror_x = !!symmetry_axes[0];
 				if ((face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) == mirror_x) {
 					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
 					if (even_brush_size) point_on_uv[0] += 1

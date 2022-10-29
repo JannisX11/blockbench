@@ -33,7 +33,7 @@ app.setAppUserModelId('blockbench')
 function initializeDesktopApp() {
 
 	//Setup
-	$(document.body).on('click', 'a[href]', (event) => {
+	$(document.body).on('click auxclick', 'a[href]', (event) => {
 		event.preventDefault();
 		shell.openExternal(event.currentTarget.href);
 		return true;
@@ -71,9 +71,6 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
-
-	ipcRenderer.send('app-loaded')
-
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {

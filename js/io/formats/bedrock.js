@@ -1252,7 +1252,7 @@ var block_format = new ModelFormat({
 	id: 'bedrock_block',
 	category: 'minecraft',
 	extension: 'json',
-	icon: 'icon-format_bedrock',
+	icon: 'icon-format_bedrock_block',
 	target: 'Minecraft: Bedrock Edition',
 	format_page: {
 		content: [
