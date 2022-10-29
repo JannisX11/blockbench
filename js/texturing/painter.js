@@ -881,7 +881,7 @@ const Painter = {
 					ctx.beginPath();
 					var rect = getRectangle(start_x, start_y, start_x+diff_x, start_y+diff_y);
 					
-					if (hollow) {
+					if (hollow && rect.w > 0 && rect.h > 0) {
 						ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
 						ctx.stroke();
 					} else {
@@ -969,9 +969,9 @@ const Painter = {
 				}
 
 				if (shape === 'ellipse') {
-					Blockbench.setStatusBarText(`${diff_x*2 + 1} x ${diff_y*2 + 1}`);
+					Blockbench.setStatusBarText(`${Math.abs(diff_x*2) + 1} x ${Math.abs(diff_y*2) + 1}`);
 				} else {
-					Blockbench.setStatusBarText(`${diff_x + 1} x ${diff_y + 1}`);
+					Blockbench.setStatusBarText(`${Math.abs(diff_x) + 1} x ${Math.abs(diff_y) + 1}`);
 				}
 			}
 

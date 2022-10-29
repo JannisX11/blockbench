@@ -954,7 +954,7 @@ const Canvas = {
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
 			let bone = obj.mesh
-			if (bone) {
+			if (bone && obj instanceof Group) {
 
 				bone.rotation.order = 'ZYX';
 				bone.rotation.setFromDegreeArray(obj.rotation);

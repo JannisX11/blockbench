@@ -176,34 +176,32 @@ function mirrorSelected(axis) {
 			}
 			if (Group.selected && Group.selected.matchesSelection()) {
 				function flipGroup(group) {
-					if (group.type === 'group') {
-						for (var i = 0; i < 3; i++) {
-							if (i === axis) {
-								group.origin[i] *= -1
-							} else {
-								group.rotation[i] *= -1
-							}
+					for (var i = 0; i < 3; i++) {
+						if (i === axis) {
+							group.origin[i] *= -1
+						} else {
+							group.rotation[i] *= -1
 						}
-						function matchAndReplace(a, b) {
-							if (group.name.includes(a)) {
-								let name = group._original_name
-										 ? group._original_name.replace(a, b)
-										 : group.name.replace(a, b).replace(/2/, '');
-								if (!Group.all.find(g => g.name == name)) group.name = name;
-								return true;
-							}
+					}
+					function matchAndReplace(a, b) {
+						if (group.name.includes(a)) {
+							let name = group._original_name
+										? group._original_name.replace(a, b)
+										: group.name.replace(a, b).replace(/2/, '');
+							if (!Group.all.find(g => g.name == name)) group.name = name;
+							return true;
 						}
-						let pairs = flip_pairs[axis];
-						for (let a in pairs) {
-							let b = pairs[a];
-							if (matchAndReplace(a, b)) break;
-							if (matchAndReplace(b, a)) break;
-						}
+					}
+					let pairs = flip_pairs[axis];
+					for (let a in pairs) {
+						let b = pairs[a];
+						if (matchAndReplace(a, b)) break;
+						if (matchAndReplace(b, a)) break;
 					}
 					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
-				Group.selected.forEachChild(flipGroup)
+				Group.selected.forEachChild(flipGroup, Group)
 			}
 		}
 		selected.forEach(function(obj) {
