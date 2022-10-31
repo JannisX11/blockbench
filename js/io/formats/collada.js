@@ -837,7 +837,7 @@ var codec = new Codec('collada', {
 		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
-			if (tex.error == 1) return;
+			if (tex.error) return;
 			var name = tex.name;
 			if (name.substr(-4).toLowerCase() !== '.png') {
 				name += '.png';
@@ -870,7 +870,7 @@ var codec = new Codec('collada', {
 			archive.file((Project.name||'model')+'.dae', content)
 
 			Texture.all.forEach(tex => {
-				if (tex.error == 1) return;
+				if (tex.error) return;
 				var name = tex.name;
 				if (name.substr(-4).toLowerCase() !== '.png') {
 					name += '.png';
