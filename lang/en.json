@@ -863,6 +863,8 @@
 	"settings.animation_sample_rate.desc": "Sample rate in samples per second for curves that the respective format does not support natively",
 	"settings.credit": "Credit Comment",
 	"settings.credit.desc": "Add a credit comment to exported files",
+	"settings.model_export_scale": "Model Export Scale",
+	"settings.model_export_scale.desc": "Factor by which the scale of exported glTF, DAE, and FBX models gets reduced. The default is 16, which converts 16 Blockbench units into 1 meter in the export.",
 	"settings.sketchfab_token": "Sketchfab Token",
 	"settings.sketchfab_token.desc": "Token to authorize Blockbench to upload to your Sketchfab account",
 	"settings.default_path": "Default Minecraft Textures Path",

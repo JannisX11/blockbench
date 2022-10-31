@@ -6,6 +6,7 @@ var codec = new Codec('fbx', {
 	extension: 'fbx',
 	compile(options = 0) {
 		let scope = this;
+		let export_scale = Settings.get('model_export_scale');
 		let model = [
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
@@ -89,7 +90,7 @@ var codec = new Codec('fbx', {
 			if (element.parent instanceof Group) {
 				arr.V3_subtract(element.parent.origin);
 			}
-			return arr.V3_divide(16);
+			return arr.V3_divide(export_scale);
 		}
 		function addNodeBase(node, fbx_type) {
 			Objects[node.uuid] = {
@@ -141,7 +142,7 @@ var codec = new Codec('fbx', {
 			let indices = [];
 
 			function addPosition(x, y, z) {
-				positions.push(x/16, y/16, z/16);
+				positions.push(x/export_scale, y/export_scale, z/export_scale);
 			}
 
 			for (let vkey in mesh.vertices) {
@@ -287,7 +288,11 @@ var codec = new Codec('fbx', {
 			let indices = [];
 
 			function addPosition(x, y, z) {
-				positions.push((x - cube.origin[0]) / 16, (y - cube.origin[1]) / 16, (z - cube.origin[2]) / 16);
+				positions.push(
+					(x - cube.origin[0]) / export_scale,
+					(y - cube.origin[1]) / export_scale,
+					(z - cube.origin[2]) / export_scale
+				);
 			}
 
 			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
@@ -774,7 +779,7 @@ var codec = new Codec('fbx', {
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_fbx',
-		icon: 'fas.fa-cube',
+		icon: 'icon-fbx',
 		category: 'file',
 		click: function () {
 			codec.export()

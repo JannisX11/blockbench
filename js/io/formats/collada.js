@@ -159,7 +159,11 @@ var codec = new Codec('collada', {
 			let primitive = [];
 
 			function addPosition(x, y, z) {
-				positions.push((x - cube.origin[0]) / 16, (y - cube.origin[1]) / 16, (z - cube.origin[2]) / 16);
+				positions.push(
+					(x - cube.origin[0]) / export_scale,
+					(y - cube.origin[1]) / export_scale,
+					(z - cube.origin[2]) / export_scale
+				);
 			}
 
 			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
@@ -352,7 +356,7 @@ var codec = new Codec('collada', {
 			let vertex_keys = [];
 
 			function addPosition(x, y, z) {
-				positions.push(x/16, y/16, z/16);
+				positions.push(x/export_scale, y/export_scale, z/export_scale);
 			}
 
 			for (let vkey in mesh.vertices) {
@@ -530,7 +534,7 @@ var codec = new Codec('collada', {
 				},
 				content: [
 					{type: 'scale', attributes: {sid: 'scale'}, content: '1 1 1'},
-					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(16).join(' ')},
+					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(export_scale).join(' ')},
 				]
 			}
 			if (node.rotatable) {
@@ -665,7 +669,7 @@ var codec = new Codec('collada', {
 								if (!track_channel.values) track_channel.values = [];
 								let pos = group.origin.slice();
 								if (group.parent instanceof Group) pos.V3_subtract(group.parent.origin);
-								pos.V3_divide(16);
+								pos.V3_divide(export_scale);
 								track_channel.values.push(...pos, ...pos);
 							}
 						}

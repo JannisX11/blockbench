@@ -1,6 +1,7 @@
 (function() {
 
 function buildAnimationTracks(do_quaternions = true) {
+	let export_scale = Settings.get('model_export_scale');
 	let anims = [];
 	Animator.animations.forEach(animation => {
 
@@ -140,7 +141,7 @@ function buildAnimationTracks(do_quaternions = true) {
 							channel = 'quaternion';
 						} else if (channel == 'position') {
 							values.forEach((val, i) => {
-								values[i] = val/16;
+								values[i] = val/export_scale;
 							})
 						}
 						let track = new trackType(animator.group.mesh.uuid+'.'+channel, times, values, interpolation);
@@ -192,7 +193,7 @@ var codec = new Codec('gltf', {
 					trs: true,
 					truncateDrawRange: false,
 					forcePowerOfTwoTextures: true,
-					scale_factor: 1/16,
+					scale_factor: 1/Settings.get('model_export_scale'),
 					exportFaceColors: false,
 				});
 			})
