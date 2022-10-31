@@ -101,7 +101,9 @@ var codec = new Codec('fbx', {
 					P2: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
 					P3: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",0,0,0]},
 					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(node)]},
-					P5: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
+					P5: node.rotation ? {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "", 0, 0, 0]} : undefined,
+					P6: node.rotation ? {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...node.rotation]} : undefined,
+					P7: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
 				},
 				Shading: '_Y',
 				Culling: "CullingOff",
@@ -119,7 +121,12 @@ var codec = new Codec('fbx', {
 		Group.all.forEach(group => {
 			if (!group.export) return;
 			addNodeBase(group, 'Null');
-		})
+		});
+		// Groups
+		[...Locator.all, ...NullObject.all].forEach(group => {
+			if (!group.export) return;
+			addNodeBase(group, 'Null');
+		});
 
 		// Meshes
 		Mesh.all.forEach(mesh => {
@@ -141,15 +148,14 @@ var codec = new Codec('fbx', {
 				addPosition(...mesh.vertices[vkey]);
 				vertex_keys.push(vkey);
 			}
-			let texture;
+			let textures = [];
 
-			let i = 0;
 			for (let key in mesh.faces) {
 				if (mesh.faces[key].vertices.length >= 3) {
 					let face = mesh.faces[key];
 					let vertices = face.getSortedVertices();
 					let tex = mesh.faces[key].getTexture();
-					if (tex) texture = tex;
+					textures.push(tex);
 
 					vertices.forEach(vkey => {
 						uv.push(face.uv[vkey][0] / Project.texture_width, 1 - face.uv[vkey][1] / Project.texture_height);
@@ -162,11 +168,12 @@ var codec = new Codec('fbx', {
 						if (vi+1 == vertices.length) index = -1 -index;
 						indices.push(index);
 					})
-					i++;
 				}
 			}
 
 			DefinitionCounter.geometry++;
+
+			let used_textures = Texture.all.filter(t => textures.includes(t));
 
 			let geo_id = getID(mesh.uuid + '_geo')
 			let geometry = {
@@ -204,15 +211,26 @@ var codec = new Codec('fbx', {
 						a: uv
 					}
 				},
-				LayerElementMaterial: {
+				LayerElementMaterial: used_textures.length <= 1 ? {
 					_values: [0],
 					Version: 101,
 					Name: "",
 					MappingInformationType: "AllSame",
 					ReferenceInformationType: "IndexToDirect",
 					Materials: {
-						_values: [`_*${1}`],
+						_values: [`_*1`],
 						a: 0
+					},
+				} : {
+					// Multitexture
+					_values: [0],
+					Version: 101,
+					Name: "",
+					MappingInformationType: "ByPolygon",
+					ReferenceInformationType: "IndexToDirect",
+					Materials: {
+						_values: [`_*${textures.length}`],
+						a: textures.map(t => used_textures.indexOf(t))
 					},
 				},
 				Layer: {
@@ -241,12 +259,176 @@ var codec = new Codec('fbx', {
 				name: [`Geometry::${mesh.name}`, `Model::${mesh.name}`],
 				id: [geo_id, getID(mesh.uuid)],
 			})
-			if (texture) {
+			used_textures.forEach(tex => {
 				Connections.push({
-					name: [`Material::${texture.name}`, `Model::${mesh.name}`],
-					id: [getID(texture.uuid+'_m'), getID(mesh.uuid)],
+					name: [`Material::${tex.name}`, `Model::${cube.name}`],
+					id: [getID(tex.uuid+'_m'), getID(cube.uuid)],
 				})
+			})
+		})
+
+		// Cubes
+		const cube_face_normals = {
+			north: [0, 0, -1],
+			east: [1, 0, 0],
+			south: [0, 0, 1],
+			west: [-1, 0, 0],
+			up: [0, 1, 0],
+			down: [0, -1, 0],
+		}
+		Cube.all.forEach(cube => {
+			if (!cube.export) return;
+			addNodeBase(cube, 'cube');
+
+			// Geometry
+			let positions = [];
+			let normals = [];
+			let uv = [];
+			let indices = [];
+
+			function addPosition(x, y, z) {
+				positions.push((x - cube.origin[0]) / 16, (y - cube.origin[1]) / 16, (z - cube.origin[2]) / 16);
 			}
+
+			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
+
+			let textures = [];
+
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
+				texture = face.getTexture();
+				textures.push(texture);
+				normals.push(...cube_face_normals[fkey]);
+
+				let uv_outputs = [
+					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+					[face.uv[0] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+				];
+				var rot = face.rotation || 0;
+				while (rot > 0) {
+					uv_outputs.splice(0, 0, uv_outputs.pop());
+					rot -= 90;
+				}
+				uv_outputs.forEach(coord => {
+					uv.push(...coord);
+				})
+
+				let vertices;
+				switch (fkey) {
+					case 'north': 	vertices = [1, 4, 6, -1-3]; break;
+					case 'east': 	vertices = [0, 1, 3, -1-2]; break;
+					case 'south': 	vertices = [5, 0, 2, -1-7]; break;
+					case 'west': 	vertices = [4, 5, 7, -1-6]; break;
+					case 'up': 		vertices = [4, 1, 0, -1-5]; break;
+					case 'down': 	vertices = [7, 2, 3, -1-6]; break;
+				}
+				indices.push(...vertices);
+			}
+
+			DefinitionCounter.geometry++;
+
+			let used_textures = Texture.all.filter(t => textures.includes(t));
+
+			let geo_id = getID(cube.uuid + '_geo')
+			let geometry = {
+				_key: 'Geometry',
+				_values: [geo_id, `Geometry::${cube.name}`, 'Mesh'],
+
+				Vertices: {
+					_values: [`_*${positions.length}`],
+					a: positions
+				},
+				PolygonVertexIndex: {
+					_values: [`_*${indices.length}`],
+					a: indices
+				},
+				GeometryVersion: 124,
+				LayerElementNormal: {
+					_values: [0],
+					Version: 101,
+					Name: "",
+					MappingInformationType: "ByPolygon",
+					ReferenceInformationType: "Direct",
+					Normals: {
+						_values: [`_*${normals.length}`],
+						a: normals
+					}
+				},
+				LayerElementUV: {
+					_values: [0],
+					Version: 101,
+					Name: "",
+					MappingInformationType: "ByPolygonVertex",
+					ReferenceInformationType: "Direct",
+					UV: {
+						_values: [`_*${uv.length}`],
+						a: uv
+					}
+				},
+				LayerElementMaterial: used_textures.length <= 1 ? {
+					_values: [0],
+					Version: 101,
+					Name: "",
+					MappingInformationType: "AllSame",
+					ReferenceInformationType: "IndexToDirect",
+					Materials: {
+						_values: [`_*1`],
+						a: 0
+					},
+				} : {
+					// Multitexture
+					_values: [0],
+					Version: 101,
+					Name: "",
+					MappingInformationType: "ByPolygon",
+					ReferenceInformationType: "IndexToDirect",
+					Materials: {
+						_values: [`_*${textures.length}`],
+						a: textures.map(t => used_textures.indexOf(t))
+					},
+				},
+				Layer: {
+					_values: [0],
+					Version: 100,
+					LayerElement1: {
+						_key: 'LayerElement',
+						Type: "LayerElementNormal",
+						TypedIndex: 0
+					},
+					LayerElement2: {
+						_key: 'LayerElement',
+						Type: "LayerElementMaterial",
+						TypedIndex: 0
+					},
+					LayerElement3: {
+						_key: 'LayerElement',
+						Type: "LayerElementUV",
+						TypedIndex: 0
+					},
+				}
+			};
+			Objects[geo_id] = geometry;
+
+			Connections.push({
+				name: [`Geometry::${cube.name}`, `Model::${cube.name}`],
+				id: [geo_id, getID(cube.uuid)],
+			})
+			used_textures.forEach(tex => {
+				Connections.push({
+					name: [`Material::${tex.name}`, `Model::${cube.name}`],
+					id: [getID(tex.uuid+'_m'), getID(cube.uuid)],
+				})
+			})
 		})
 
 
@@ -536,7 +718,7 @@ var codec = new Codec('fbx', {
 		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
-			if (tex.error == 1) return;
+			if (tex.error) return;
 			var name = tex.name;
 			if (name.substr(-4).toLowerCase() !== '.png') {
 				name += '.png';
@@ -569,7 +751,7 @@ var codec = new Codec('fbx', {
 			archive.file((Project.name||'model')+'.fbx', content)
 
 			Texture.all.forEach(tex => {
-				if (tex.error == 1) return;
+				if (tex.error) return;
 				var name = tex.name;
 				if (name.substr(-4).toLowerCase() !== '.png') {
 					name += '.png';
