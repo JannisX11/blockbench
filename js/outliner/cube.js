@@ -39,6 +39,16 @@ class CubeFace extends Face {
 	getBoundingRect() {
 		return getRectangle(...this.uv);
 	}
+	getVertexIndices() {
+		switch (this.direction) {
+			case 'north': 	return [1, 4, 6, 3];
+			case 'east': 	return [0, 1, 3, 2];
+			case 'south': 	return [5, 0, 2, 7];
+			case 'west': 	return [4, 5, 7, 6];
+			case 'up': 		return [4, 1, 0, 5];
+			case 'down': 	return [7, 2, 3, 6];
+		}
+	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
@@ -481,6 +491,26 @@ class Cube extends OutlinerElement {
 			pos.add(THREE.fastWorldPosition(m, Reusable.vec2))
 		}
 		return pos;
+	}
+	getGlobalVertexPositions() {
+		let vertices = [
+			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
+			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
+			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
+			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
+			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
+		];
+		let vec = new THREE.Vector3();
+		return vertices.map(coords => {
+			vec.set(...coords.V3_subtract(this.origin));
+			vec.applyMatrix4( this.mesh.matrixWorld );
+			let arr = vec.toArray();
+			arr.V3_add(8, 8, 8);
+			return arr;
+		})
 	}
 	setUVMode(box_uv) {
 		if (this.box_uv == !!box_uv) return this;

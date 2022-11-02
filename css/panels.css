@@ -1471,6 +1471,7 @@
 		gap: 2px;
 		text-align: center;
 		color: var(--color-subtle_text);
+		white-space: nowrap;
 	}
 	.uv_face_properties_labels > .flexible {
 		flex-grow: 1;

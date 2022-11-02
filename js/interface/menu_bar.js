@@ -361,6 +361,7 @@ const MenuBar = {
 			'_',
 			'predicate_overrides',
 			'convert_to_mesh',
+			'auto_set_cullfaces',
 			'remove_blank_faces',
 		])
 		MenuBar.menus.filter = MenuBar.menus.tools;

@@ -1420,7 +1420,7 @@
 	"action.uv_reset.desc": "Resets the current face",
 	"action.cullface": "Cullface",
 	"action.cullface.desc": "Disables rendering for this face if the selected side of the model is covered",
-	"action.auto_cullface": "Auto Cullface",
+	"action.auto_cullface": "Enable Cullface",
 	"action.auto_cullface.desc": "Sets the cullface for this face to itself",
 	"action.face_tint": "Tint",
 	"action.face_tint.desc": "Enables the tint option for the current face",
@@ -1432,6 +1432,8 @@
 	"action.paint_mode_uv_overlay.desc": "Display the UV map as an overlay in paint mode",
 	"action.remove_blank_faces": "Remove Blank Faces",
 	"action.remove_blank_faces.desc": "Deletes all untextured faces of the selection",
+	"action.auto_set_cullfaces": "Set Cullfaces Automatically",
+	"action.auto_set_cullfaces.desc": "Automatically generate cullfaces to hide faces when they are covered by the neighboring block.",
 	"action.move_texture_with_uv": "Move Texture with UV",
 	"action.move_texture_with_uv.desc": "Move the texture of the face along when dragging UV faces",
 

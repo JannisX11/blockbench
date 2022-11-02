@@ -1553,12 +1553,17 @@ BARS.defineActions(function() {
 	new Action('scale', {
 		icon: 'settings_overscan',
 		category: 'transform',
-		condition: () => (Modes.edit && selected.length),
+		condition: () => (Modes.edit && Outliner.elements.length),
 		click() {
 			$('#model_scale_range, #model_scale_label').val(1)
 			$('#scaling_clipping_warning').text('')
 
-			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig})
+			if (Outliner.selected.length == 0) {
+				Prop.active_panel = 'preview';
+				selectAll();
+			}
+
+			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig});
 
 			Outliner.selected.forEach(function(obj) {
 				obj.before = {
@@ -1917,6 +1922,38 @@ BARS.defineActions(function() {
 				Canvas.updateView({elements, element_aspects: {geometry: true, faces: true, uv: true}})
 				Undo.finishEdit('Remove blank faces');
 			}
+		}
+	})
+	new Action('auto_set_cullfaces', {
+		icon: 'smart_button',
+		condition: () => Modes.edit && Format.java_face_properties,
+		click() {
+			if (!Cube.selected.length) {
+				selectAll();
+			}
+			Undo.initEdit({elements: Cube.selected});
+			
+			Cube.selected.forEach(cube => {
+				let vertices = cube.getGlobalVertexPositions();
+				['east', 'up', 'south', 'west', 'down', 'north'].forEach((fkey, index) => {
+					let axis = index % 3;
+					let face = cube.faces[fkey];
+					if (face.texture === null) return;
+					let face_corners = face.getVertexIndices().map(vindex => vertices[vindex]);
+					let offset = index < 3 ? [15.98, 32] : [-16, 0.02];
+
+					let culled = face_corners.allAre(corner => {
+						let off_axes = [0, 1, 2].filter(v => axis !== v);
+						return (corner[axis] > offset[0] && corner[axis] < offset[1]
+							&& corner[off_axes[0]] >= 0 && corner[off_axes[0]] <= 16
+							&& corner[off_axes[1]] >= 0 && corner[off_axes[1]] <= 16
+						);
+					})
+					face.cullface = culled ? fkey : '';
+				});
+			})
+
+			Undo.finishEdit('Automatically set cullfaces')
 		}
 	})
 })

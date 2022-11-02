@@ -69,20 +69,11 @@ var codec = new Codec('obj', {
 
 				output.push(`o ${element.name||'cube'}`)
 
-				function addVertex(x, y, z) {
-					vertex.set(x - element.origin[0], y - element.origin[1], z - element.origin[2]);
-					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16);
+				element.getGlobalVertexPositions().forEach((coords) => {
+					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(16);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
-				}
-				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
-				addVertex(element.to[0]   + element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
-				addVertex(element.to[0]   + element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.to[1] +	element.inflate, element.to[2]  	+ element.inflate);
-				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.from[2]  	- element.inflate);
-				addVertex(element.from[0] - element.inflate, element.from[1] -	element.inflate, element.to[2]  	+ element.inflate);
+				})
 
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
