@@ -1737,7 +1737,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		selection_only: true,
 		expand_button: true,
-		condition: {modes: ['edit', 'paint'], method: () => Format.id != 'image'},
+		condition: {modes: ['edit', 'paint'], method: () => !Format.image_editor},
 		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
@@ -1749,14 +1749,14 @@ Interface.definePanels(function() {
 			bottom: Toolbars.UVEditor
 		},
 		onResize: function() {
-			UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
+			UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
 			Vue.nextTick(() => {
 				UVEditor.vue.updateSize();
 			})
 		},
 		onFold: function() {
 			Vue.nextTick(() => {
-				UVEditor.vue.hidden = Format.id == 'image' ? false : !this.isVisible();
+				UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
 			})
 		},
 		component: {
@@ -1849,11 +1849,11 @@ Interface.definePanels(function() {
 				updateSize() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
-					let size = Format.id == 'image'
+					let size = Format.image_editor
 							? Math.floor(Math.clamp(Interface.center_screen.clientWidth - 10, 64, 1e5))
 							: Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
 					this.width = size;
-					if (Format.id == 'image') {
+					if (Format.image_editor) {
 						this.height = Interface.center_screen.clientHeight - 38;
 
 					} else if (Panels.uv.slot.includes('_bar')) {

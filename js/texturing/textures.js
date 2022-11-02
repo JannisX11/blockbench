@@ -572,7 +572,7 @@ class Texture {
 		return this;
 	}
 	updateMaterial() {
-		if (Format.id == 'image') return this;
+		if (Format.image_editor) return this;
 		let mat = this.getMaterial();
 		mat.name = this.name;
 		mat.map.image = this.img;
@@ -736,7 +736,7 @@ class Texture {
 		this.selected = true
 		Texture.selected = this;
 		this.scrollTo();
-		if (Format.id == 'image') {
+		if (Format.image_editor) {
 			Project.texture_height = this.display_height;
 			Project.texture_width = this.width;
 		}
@@ -1265,7 +1265,7 @@ class Texture {
 				scope.saved = true;
 			})
 		}
-		if (Format.id == 'image' && !Texture.all.find(t => !t.saved)) {
+		if (Format.image_editor && !Texture.all.find(t => !t.saved)) {
 			if (isApp) {
 				Format.codec.afterSave();
 			} else {
@@ -1464,9 +1464,9 @@ class Texture {
 			{
 				icon: 'draw',
 				name: 'menu.texture.edit_in_blockbench',
-				condition: (texture) => Format.id !== 'image' && texture.path,
+				condition: (texture) => !Format.image_editor && texture.path,
 				click(texture) {
-					let existing_tab = ModelProject.all.find(project => project.format.id == 'image' && project.textures.find(t => t.path && t.path == texture.path));
+					let existing_tab = ModelProject.all.find(project => project.Format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
 					if (existing_tab) {
 						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();

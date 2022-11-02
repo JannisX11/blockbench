@@ -265,7 +265,7 @@ class ModelProject {
 	}
 	unselect(closing) {
 		if (!closing) {
-			if (Format.id !== 'image') {
+			if (!Format.image_editor) {
 				this.thumbnail = Preview.selected.canvas.toDataURL();
 			} else if (Texture.all.length) {
 				this.thumbnail = Texture.getDefault()?.source;
@@ -795,7 +795,7 @@ onVueSetup(() => {
 					img.src = project.thumbnail;
 					img.attributes.width = '240px';
 					img.className = 'project_thumbnail';
-					if (project.format.id == 'image') img.classList.add('pixelated');
+					if (project.Format.image_editor) img.classList.add('pixelated');
 					let offset = $(event.target).offset();
 					img.style.left = (offset.left) + 'px';
 					img.style.top = (offset.top + event.target.clientHeight+2) + 'px';

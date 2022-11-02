@@ -90,6 +90,7 @@ new ModelFormat('image', {
 	single_texture: true,
 	animated_textures: true,
 	edit_mode: false,
+	image_editor: true,
 	new() {
 		if (newProject(this)) {
 			TextureGenerator.addBitmapDialog();

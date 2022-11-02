@@ -190,7 +190,7 @@ async function updateRecentProjectThumbnail() {
 
 	let thumbnail;
 
-	if (Format.id == 'image' && Texture.all.length) {		
+	if (Format.image_editor && Texture.all.length) {		
 		await new Promise((resolve, reject) => {
 			let tex = Texture.getDefault();
 			let frame = new CanvasFrame(180, 100);

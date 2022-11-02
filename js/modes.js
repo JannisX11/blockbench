@@ -152,7 +152,7 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
-			if (Format.id == 'image') {
+			if (Format.image_editor) {
 				let old_color_slot = Panels.color.slot;
 				Panels.color.position_data = Interface.data.panels.color_2d;
 				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);

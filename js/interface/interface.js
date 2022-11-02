@@ -518,7 +518,7 @@ function resizeWindow(event) {
 			element.preview_controller.updateWindowSize(element);
 		}
 	})
-	if (Format.id == 'image') {
+	if (Format.image_editor) {
 		UVEditor.updateSize();
 	}
 	var dialog = $('dialog#'+open_dialog)

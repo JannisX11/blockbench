@@ -2134,7 +2134,7 @@ BARS.defineActions(function() {
 	new Action('toggle_quad_view', {
 		icon: 'grid_view',
 		category: 'view',
-		condition: () => !Modes.display,
+		condition: () => !Modes.display && !Format.image_editor,
 		keybind: new Keybind({key: 9}),
 		click: function () {
 			main_preview.toggleFullscreen()
@@ -2143,6 +2143,7 @@ BARS.defineActions(function() {
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
+		condition: () => !Format.image_editor,
 		click: function () {
 			if (!Project) return;
 			if (Prop.active_panel == 'uv') {
