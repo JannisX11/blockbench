@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '4.0';
+let FORMATV = '4.5';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -35,6 +35,14 @@ function processCompatibility(model) {
 		model.elements = model.cubes;
 	}
 	if (model.geometry_name) model.model_identifier = model.geometry_name;
+
+	if (model.elements && model.meta.box_uv && compareVersions('4.5', model.meta.format_version)) {
+		model.elements.forEach(element => {
+			if (element.shade === false) {
+				element.mirror_uv = true;
+			}
+		})
+	}
 
 	if (model.outliner) {
 		if (compareVersions('3.2', model.meta.format_version)) {

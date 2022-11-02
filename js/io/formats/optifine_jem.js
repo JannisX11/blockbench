@@ -223,6 +223,7 @@ var codec = new Codec('optifine_entity', {
 								name: box.name || p_group.name,
 								autouv: 0,
 								uv_offset: box.textureOffset,
+								box_uv: !!box.textureOffset,
 								inflate: box.sizeAdd,
 								mirror_uv: p_group.mirror_uv
 							})
@@ -248,14 +249,17 @@ var codec = new Codec('optifine_entity', {
 								 || box.uvUp
 								 || box.uvDown
 							)) {
-								base_cube.extend({faces: {
-									north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
-									east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
-									south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
-									west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
-									up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
-									down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
-								}})
+								base_cube.extend({
+									box_uv: false,
+									faces: {
+										north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
+										east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
+										south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
+										west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
+										up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
+										down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
+									}
+								})
 							}
 							if (p_group.parent !== 'root') {
 								for (var i = 0; i < 3; i++) {

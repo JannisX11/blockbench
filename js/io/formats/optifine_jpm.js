@@ -136,11 +136,13 @@ var part_codec = new Codec('optifine_part', {
 						if (box.textureOffset) {
 							base_cube.box_uv = true;
 							base_cube.extend({
+								box_uv: true,
 								uv_offset: box.textureOffset
 							})
 						} else {
 							base_cube.box_uv = false;
 							base_cube.extend({
+								box_uv: false,
 								faces: {
 									north: {uv: box.uvNorth},
 									east: {uv: box.uvEast},
