@@ -99,6 +99,8 @@ THREE.OrbitControls = function ( object, preview ) {
 
 		return function update() {
 
+			if (scope.unlinked) return false;
+
 			var position = scope.object.position;
 
 			offset.copy( position ).sub( scope.target );

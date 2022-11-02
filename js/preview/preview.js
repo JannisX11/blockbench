@@ -1419,7 +1419,7 @@ class Preview {
 			title: tl('message.set_background_position.title'),
 			form: {
 				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 40, max: 10000}
+				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 20}
 			},
 			onConfirm(form) {
 				if (!scope.background) return;

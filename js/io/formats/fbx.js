@@ -32,6 +32,25 @@ var codec = new Codec('fbx', {
 			UUIDMap[uuid] = parseInt(s);
 			return UUIDMap[uuid];
 		}
+		let UniqueNames = {};
+		function getUniqueName(namespace, uuid, original_name) {
+			if (!UniqueNames[namespace]) UniqueNames[namespace] = {};
+			let names = UniqueNames[namespace];
+			if (names[uuid]) return names[uuid];
+
+			let existing_names = Object.values(names);
+			if (!existing_names.includes(original_name)) {
+				names[uuid] = original_name;
+				return names[uuid];
+			}
+
+			let i = 1;
+			while (existing_names.includes(original_name + '_' + i)) {
+				i++;
+			}
+			names[uuid] = original_name + '_' + i;
+			return names[uuid];
+		}
 
 		// FBXHeaderExtension
 		let date = new Date();
@@ -93,9 +112,10 @@ var codec = new Codec('fbx', {
 			return arr.V3_divide(export_scale);
 		}
 		function addNodeBase(node, fbx_type) {
+			let unique_name = getUniqueName('object', node.uuid, node.name);
 			Objects[node.uuid] = {
 				_key: 'Model',
-				_values: [getID(node.uuid), `Model::${node.name}`, fbx_type],
+				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
 				Version: 232,
 				Properties70: {
 					P1: {_key: 'P', _values: ["RotationActive", "bool", "", "",1]},
@@ -111,7 +131,7 @@ var codec = new Codec('fbx', {
 			};
 			let parent = node.parent == 'root' ? root : node.parent;
 			Connections.push({
-				name: [`Model::${node.name}`, `Model::${parent.name}`],
+				name: [`Model::${unique_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
 				id: [getID(node.uuid), getID(parent.uuid)],
 			});
 			DefinitionCounter.model++;
@@ -133,6 +153,7 @@ var codec = new Codec('fbx', {
 		Mesh.all.forEach(mesh => {
 			if (!mesh.export) return;
 			addNodeBase(mesh, 'Mesh');
+			let unique_name = getUniqueName('object', mesh.uuid, mesh.name);
 
 			// Geometry
 			let positions = [];
@@ -179,7 +200,7 @@ var codec = new Codec('fbx', {
 			let geo_id = getID(mesh.uuid + '_geo')
 			let geometry = {
 				_key: 'Geometry',
-				_values: [geo_id, `Geometry::${mesh.name}`, 'Mesh'],
+				_values: [geo_id, `Geometry::${unique_name}`, 'Mesh'],
 
 				Vertices: {
 					_values: [`_*${positions.length}`],
@@ -257,13 +278,13 @@ var codec = new Codec('fbx', {
 			Objects[geo_id] = geometry;
 
 			Connections.push({
-				name: [`Geometry::${mesh.name}`, `Model::${mesh.name}`],
+				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
 				id: [geo_id, getID(mesh.uuid)],
 			})
 			used_textures.forEach(tex => {
 				Connections.push({
-					name: [`Material::${tex.name}`, `Model::${cube.name}`],
-					id: [getID(tex.uuid+'_m'), getID(cube.uuid)],
+					name: [`Material::${getUniqueName('material', tex.uuid, tex.name)}`, `Model::${unique_name}`],
+					id: [getID(tex.uuid+'_m'), getID(mesh.uuid)],
 				})
 			})
 		})
@@ -279,7 +300,8 @@ var codec = new Codec('fbx', {
 		}
 		Cube.all.forEach(cube => {
 			if (!cube.export) return;
-			addNodeBase(cube, 'cube');
+			addNodeBase(cube, 'Mesh');
+			let unique_name = getUniqueName('object', cube.uuid, cube.name);
 
 			// Geometry
 			let positions = [];
@@ -347,7 +369,7 @@ var codec = new Codec('fbx', {
 			let geo_id = getID(cube.uuid + '_geo')
 			let geometry = {
 				_key: 'Geometry',
-				_values: [geo_id, `Geometry::${cube.name}`, 'Mesh'],
+				_values: [geo_id, `Geometry::${unique_name}`, 'Mesh'],
 
 				Vertices: {
 					_values: [`_*${positions.length}`],
@@ -425,12 +447,12 @@ var codec = new Codec('fbx', {
 			Objects[geo_id] = geometry;
 
 			Connections.push({
-				name: [`Geometry::${cube.name}`, `Model::${cube.name}`],
+				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
 				id: [geo_id, getID(cube.uuid)],
 			})
 			used_textures.forEach(tex => {
 				Connections.push({
-					name: [`Material::${tex.name}`, `Model::${cube.name}`],
+					name: [`Material::${getUniqueName('texture', tex.uuid, tex.name)}`, `Model::${unique_name}`],
 					id: [getID(tex.uuid+'_m'), getID(cube.uuid)],
 				})
 			})
@@ -442,9 +464,11 @@ var codec = new Codec('fbx', {
 			DefinitionCounter.texture++;
 			DefinitionCounter.image++;
 
+			let unique_name = getUniqueName('texture', tex.uuid, tex.name);
+
 			let mat_object = {
 				_key: 'Material',
-				_values: [getID(tex.uuid+'_m'), `Material::${tex.name}`, ''],
+				_values: [getID(tex.uuid+'_m'), `Material::${unique_name}`, ''],
 				Version: 102,
 				ShadingModel: "lambert",
 				MultiLayer: 0,
@@ -457,11 +481,11 @@ var codec = new Codec('fbx', {
 			};
 			let tex_object = {
 				_key: 'Texture',
-				_values: [getID(tex.uuid+'_t'), `Texture::${tex.name}`, ''],
+				_values: [getID(tex.uuid+'_t'), `Texture::${unique_name}`, ''],
 				Type: "TextureVideoClip",
 				Version: 202,
-				TextureName: `Texture::${tex.name}`,
-				Media: `Video::${tex.name}`,
+				TextureName: `Texture::${unique_name}`,
+				Media: `Video::${unique_name}`,
 				FileName: tex.path,
 				RelativeFilename: tex.name,
 				ModelUVTranslation: [0,0],
@@ -471,7 +495,7 @@ var codec = new Codec('fbx', {
 			};
 			let image_object = {
 				_key: 'Video',
-				_values: [getID(tex.uuid+'_i'), `Video::${tex.name}`, 'Clip'],
+				_values: [getID(tex.uuid+'_i'), `Video::${unique_name}`, 'Clip'],
 				Type: "Clip",
 				Properties70:  {
 					P: ["Path", "KString", "XRefUrl", "", tex.path || tex.name]
@@ -486,12 +510,12 @@ var codec = new Codec('fbx', {
 			Objects[tex.uuid+'_i'] = image_object;
 
 			Connections.push({
-				name: [`Texture::${tex.name}`,  `Material::${tex.name}`],
+				name: [`Texture::${unique_name}`,  `Material::${unique_name}`],
 				id: [getID(tex.uuid+'_t'), getID(tex.uuid+'_m'), "DiffuseColor"],
 				connector: 'OP'
 			});
 			Connections.push({
-				name: [`Video::${tex.name}`,  `Texture::${tex.name}`],
+				name: [`Video::${unique_name}`,  `Texture::${unique_name}`],
 				id: [getID(tex.uuid+'_i'), getID(tex.uuid+'_t')],
 			});
 		})
