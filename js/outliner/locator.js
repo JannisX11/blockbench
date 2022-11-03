@@ -156,6 +156,8 @@ OutlinerElement.registerType(Locator, 'locator');
 			let {mesh} = element;
 
 			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+			mesh.material.depthTest = !element.selected;
+			mesh.renderOrder = element.selected ? 100 : 0;
 
 			this.dispatchEvent('update_selection', {element});
 		},

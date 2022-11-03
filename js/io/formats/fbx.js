@@ -6,7 +6,7 @@ var codec = new Codec('fbx', {
 	extension: 'fbx',
 	compile(options = 0) {
 		let scope = this;
-		let export_scale = Settings.get('model_export_scale');
+		let export_scale = Settings.get('model_export_scale') / 100;
 		let model = [
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
@@ -81,13 +81,22 @@ var codec = new Codec('fbx', {
 			GlobalSettings: {
 				Version: 1000,
 				Properties60: {
-					P01: {_key: 'Property', _values: ["UpAxis", "int", "",1]},
-					P02: {_key: 'Property', _values: ["UpAxisSign", "int", "",1]},
-					P03: {_key: 'Property', _values: ["FrontAxis", "int", "",2]},
-					P04: {_key: 'Property', _values: ["FrontAxisSign", "int", "",1]},
-					P05: {_key: 'Property', _values: ["CoordAxis", "int", "",0]},
-					P06: {_key: 'Property', _values: ["CoordAxisSign", "int", "",1]},
-					P07: {_key: 'Property', _values: ["UnitScaleFactor", "double", "",1]},
+					P01: {_key: 'P', _values: ["UpAxis", "int", "",1]},
+					P02: {_key: 'P', _values: ["UpAxisSign", "int", "",1]},
+					P03: {_key: 'P', _values: ["FrontAxis", "int", "",2]},
+					P04: {_key: 'P', _values: ["FrontAxisSign", "int", "",1]},
+					P05: {_key: 'P', _values: ["CoordAxis", "int", "",0]},
+					P08: {_key: 'P', _values: ["CoordAxisSign", "int", "Integer", "",1]},
+					P09: {_key: 'P', _values: ["OriginalUpAxis", "int", "Integer", "",-1]},
+					P10: {_key: 'P', _values: ["OriginalUpAxisSign", "int", "Integer", "",1]},
+					P11: {_key: 'P', _values: ["UnitScaleFactor", "double", "Number", "",1]},
+					P12: {_key: 'P', _values: ["OriginalUnitScaleFactor", "double", "Number", "",1]},
+					P13: {_key: 'P', _values: ["AmbientColor", "ColorRGB", "Color", "",0,0,0]},
+					P14: {_key: 'P', _values: ["DefaultCamera", "KString", "", "", "Producer Perspective"]},
+					P15: {_key: 'P', _values: ["TimeMode", "enum", "", "",0]},
+					P16: {_key: 'P', _values: ["TimeSpanStart", "KTime", "Time", "",0]},
+					P17: {_key: 'P', _values: ["TimeSpanStop", "KTime", "Time", "",46186158000]},
+					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",-1]},
 				}
 			}
 		});
@@ -336,15 +345,15 @@ var codec = new Codec('fbx', {
 				normals.push(...cube_face_normals[fkey]);
 
 				let uv_outputs = [
-					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
 					[face.uv[0] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
 				];
 				var rot = face.rotation || 0;
 				while (rot > 0) {
 					uv_outputs.splice(0, 0, uv_outputs.pop());
-					rot -= 90;
+					rot += 90;
 				}
 				uv_outputs.forEach(coord => {
 					uv.push(...coord);
@@ -352,12 +361,12 @@ var codec = new Codec('fbx', {
 
 				let vertices;
 				switch (fkey) {
-					case 'north': 	vertices = [1, 4, 6, -1-3]; break;
-					case 'east': 	vertices = [0, 1, 3, -1-2]; break;
-					case 'south': 	vertices = [5, 0, 2, -1-7]; break;
-					case 'west': 	vertices = [4, 5, 7, -1-6]; break;
-					case 'up': 		vertices = [4, 1, 0, -1-5]; break;
-					case 'down': 	vertices = [7, 2, 3, -1-6]; break;
+					case 'north': 	vertices = [3, 6, 4, -1-1]; break;
+					case 'east': 	vertices = [2, 3, 1, -1-0]; break;
+					case 'south': 	vertices = [7, 2, 0, -1-5]; break;
+					case 'west': 	vertices = [6, 7, 5, -1-4]; break;
+					case 'up': 		vertices = [5, 0, 1, -1-4]; break;
+					case 'down': 	vertices = [6, 3, 2, -1-7]; break;
 				}
 				indices.push(...vertices);
 			}

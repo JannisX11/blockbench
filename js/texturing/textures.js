@@ -1466,7 +1466,7 @@ class Texture {
 				name: 'menu.texture.edit_in_blockbench',
 				condition: (texture) => !Format.image_editor && texture.path,
 				click(texture) {
-					let existing_tab = ModelProject.all.find(project => project.Format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
+					let existing_tab = ModelProject.all.find(project => project.format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
 					if (existing_tab) {
 						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();
