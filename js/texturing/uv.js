@@ -2734,7 +2734,7 @@ Interface.definePanels(function() {
 									face.vertices.forEach(vertex_key => {
 										if (this.selected_vertices[element.uuid] && this.selected_vertices[element.uuid].includes(vertex_key)) {
 											x = Math.clamp(x, -face.uv[vertex_key][0], Project.texture_width - face.uv[vertex_key][0]);
-											y = Math.clamp(y, -face.uv[vertex_key][1], Project.texture_width - face.uv[vertex_key][1]);
+											y = Math.clamp(y, -face.uv[vertex_key][1], Project.texture_height - face.uv[vertex_key][1]);
 										}
 									})
 								})

@@ -9,7 +9,15 @@ class BarItem {
 	constructor(id, data) {
 		this.id = id;
 		if (!data.private) {
-			BarItems[this.id] = this;
+			if (this.id && !BarItems[this.id]) {
+				BarItems[this.id] = this;
+			} else {
+				if (!BarItems[this.id]) {
+					console.warn(`${this.constructor.name} ${this.id} has a duplicate ID`)
+				} else {
+					console.warn(`${this.constructor.name} defined without a vaild ID`)
+				}
+			}
 		}
 		this.name = tl('action.'+this.id)
 		if (data.name) this.name = tl(data.name);

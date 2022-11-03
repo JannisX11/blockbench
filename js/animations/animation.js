@@ -906,7 +906,9 @@ const Animator = {
 			var mesh = node.mesh;
 			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
 			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
-			mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+			if (node.constructor.animator.prototype.channels && node.constructor.animator.prototype.channels.scale) {
+				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+			}
 		})
 		if (!no_matrix_update) scene.updateMatrixWorld()
 	},

@@ -67,7 +67,7 @@ class Mode extends KeybindItem {
 		}
 
 		Canvas.updateRenderSides()
-		if (BarItems[this.tool] && Condition(BarItems[this.tool])) {
+		if (this.tool && BarItems[this.tool] && Condition(BarItems[this.tool])) {
 			BarItems[this.tool].select();
 		} else if (BarItems[this.default_tool]) {
 			if (!BarItems[this.default_tool].selected) BarItems[this.default_tool].select();
