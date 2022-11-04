@@ -705,6 +705,8 @@ onVueSetup(() => {
 								document.body.removeChild(drag_out_window_helper);
 							}
 							tab_node.style.visibility = outside_tab_bar ? 'hidden' : 'visible';
+							ipcRenderer.send('dragging-tab', outside_tab_bar);
+
 						}
 						if (outside_tab_bar) {
 							drag_out_window_helper.style.left = `${e2.clientX}px`;
@@ -730,6 +732,7 @@ onVueSetup(() => {
 						let pos = currentwindow.getPosition()
 						project.detached_uuid = Project.uuid;
 						project.detached_window_id = currentwindow.id;
+						ipcRenderer.send('dragging-tab', false);
 						ipcRenderer.send('new-window', JSON.stringify(project), JSON.stringify({
 							offset: [
 								pos[0] + e2.clientX,
@@ -737,19 +740,8 @@ onVueSetup(() => {
 							]
 						}));
 						drag_out_window_helper.remove();
-						//setStartScreen(false);
 						tab_node.style.visibility = null;
-						//tab.select();
 						tab.detached = true;
-						/*Blockbench.showMessageBox({
-							title: 'Project detached',
-							message: 'The tab was moved to another window. Do you want to close it here?',
-							buttons: ['dialog.ok', 'dialog.cancel']
-						}, val => {
-							if (val == 0) {
-								tab.close(true)
-							}
-						})*/
 
 					} else if (active && !open_menu) {
 						convertTouchEvent(e2);

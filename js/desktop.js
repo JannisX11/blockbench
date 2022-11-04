@@ -98,6 +98,9 @@ function loadOpenWithBlockbenchFile() {
 			ipcRenderer.send('close-detached-project', model.detached_window_id, model.detached_uuid);
 		}
 	})
+	ipcRenderer.on('accept-detached-tab', (event, value) => {
+		Interface.page_wrapper.classList.toggle('accept_detached_tab', value);
+	})
 	ipcRenderer.on('close-detached-project', (event, uuid) => {
 		let tab = ModelProject.all.find(project => project.uuid == uuid && project.detached);
 		if (tab) tab.close(true);

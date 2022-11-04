@@ -192,6 +192,12 @@ ipcMain.on('edit-launch-setting', (event, arg) => {
 ipcMain.on('add-recent-project', (event, path) => {
 	app.addRecentDocument(path);
 })
+ipcMain.on('dragging-tab', (event, value) => {
+	all_wins.forEach(win => {
+		if (win.isDestroyed() || win.id == event.sender.id) return;
+		win.webContents.send('accept-detached-tab', JSON.parse(value));
+	})
+})
 ipcMain.on('new-window', (event, data, position) => {
 	if (typeof data == 'string') load_project_data = JSON.parse(data);
 	if (position) {

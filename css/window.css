@@ -12,6 +12,21 @@
 	#page_wrapper.invisible {
 		visibility: hidden;
 	}
+	#page_wrapper.accept_detached_tab > * {
+		filter: brightness(0.4);
+	}
+	#page_wrapper.accept_detached_tab::after {
+		content: "+";
+		font-weight: 300;
+		font-size: 120px;
+		position: absolute;
+		margin: auto;
+		top: calc(50% - 100px);
+		right: -10px;
+		left: -10px;
+		width: 50px;
+		color: var(--color-text);
+	}
 	body {
 		background-image: url('../assets/logo_cutout.svg');
 		background-repeat: no-repeat;
@@ -548,7 +563,7 @@
 		margin-left: 2px;
 		border-top: 3px solid transparent;
 		left: 0;
-		--tabwidth: 202px;
+		--tabwidth: 242px;
 	}
 	#tab_bar.drag_mode .project_tab {
 		transition: left 100ms ease;
