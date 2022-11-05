@@ -1156,7 +1156,7 @@ class Preview {
 				isSelected = true
 
 			} else if (element.visibility) {
-				if (element.mesh && element.mesh.geometry) {
+				if (element.mesh && element.resizable) {
 					let {mesh} = element;
 					
 					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {

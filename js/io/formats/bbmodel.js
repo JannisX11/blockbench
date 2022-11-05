@@ -450,6 +450,11 @@ var codec = new Codec('project', {
 				tex.uuid = tex_uuid_map[tex.uuid];
 			}
 			var tex_copy = new Texture(tex, tex.uuid).add(false);
+			let c = 0;
+			while (Texture.all.find(t => t !== tex_copy && t.id == c)) {
+				c++;
+				tex_copy.id = c.toString();
+			}
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
 				tex_copy.fromPath(tex.path)
 				return tex_copy;
