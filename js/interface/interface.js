@@ -238,6 +238,7 @@ const Interface = {
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
 				panel.position_data.height = limitNumber(o + diff, 150);
+				if (panel.folded) panel.fold(false);
 				panel.update();
 				if (Interface.getBottomPanel()) Interface.getBottomPanel().update();
 			},
@@ -255,8 +256,10 @@ const Interface = {
 				return panel.folded ? panel.handle.clientHeight : panel.height;
 			},
 			set(o, diff) {
-				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150);
-				Interface.getBottomPanel().update();
+				let panel = Interface.getBottomPanel();
+				panel.position_data.height = limitNumber(o - diff, 150);
+				if (panel.folded) panel.fold(false);
+				panel.update();
 				if (Interface.getTopPanel()) Interface.getTopPanel().update();
 			},
 			position() {this.setPosition({

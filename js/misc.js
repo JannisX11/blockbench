@@ -122,6 +122,9 @@ function updateSelection(options = {}) {
 			}
 		}
 	})
+	if (Modes.pose && !Group.selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
+		Outliner.selected[0].parent.select();
+	}
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 

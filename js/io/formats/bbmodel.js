@@ -153,12 +153,14 @@ var codec = new Codec('project', {
 			};
 		}
 
-		model.elements = []
-		elements.forEach(el => {
-			var obj = el.getSaveCopy(model.meta)
-			model.elements.push(obj)
-		})
-		model.outliner = compileGroups(true)
+		if (!(Format.id == 'skin' && model.skin_model)) {
+			model.elements = []
+			elements.forEach(el => {
+				var obj = el.getSaveCopy(model.meta)
+				model.elements.push(obj)
+			})
+			model.outliner = compileGroups(true)
+		}
 
 		model.textures = [];
 		Texture.all.forEach(tex => {
@@ -299,6 +301,10 @@ var codec = new Codec('project', {
 					tex_copy.fromDataURL(tex.source)
 				}
 			})
+		}
+
+		if (model.skin_model) {
+			Codecs.skin_model.rebuild(model.skin_model);
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
@@ -465,6 +471,9 @@ var codec = new Codec('project', {
 			new_textures.replace(model.textures.map(loadTexture))
 		}
 
+		if (model.skin_model) {
+			Codecs.skin_model.rebuild(model.skin_model);
+		}
 		if (model.elements) {
 			let default_texture = new_textures[0] || Texture.getDefault();
 			let format = Formats[model.meta.model_format] || Format

@@ -438,6 +438,11 @@ new Property(ModelProject, 'number', 'shadow_size', {
 	condition: {formats: ['optifine_entity']},
 	default: 1
 });
+new Property(ModelProject, 'string', 'skin_model', {
+	exposed: false,
+	condition: {formats: ['skin']},
+	default: 'steve'
+});
 new Property(ModelProject, 'string', 'skin_pose', {
 	exposed: false,
 	condition: {formats: ['skin']},

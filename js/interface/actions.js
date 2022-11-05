@@ -1553,7 +1553,7 @@ const BARS = {
 				animation_channel: 'position',
 				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
 				alt_tool: 'resize_tool',
-				modes: ['edit', 'display', 'animate'],
+				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'v'}),
 			})
 			new Tool('resize_tool', {

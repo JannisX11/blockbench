@@ -1474,7 +1474,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1486,6 +1486,7 @@ BARS.defineActions(function() {
 			if (ref) return ref.origin[0];
 		},
 		change: function(modify) {
+			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 0)
 		},
 		onBefore: function() {
@@ -1500,7 +1501,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1512,6 +1513,7 @@ BARS.defineActions(function() {
 			if (ref) return ref.origin[1];
 		},
 		change: function(modify) {
+			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 1)
 		},
 		onBefore: function() {
@@ -1526,7 +1528,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.selected) {
@@ -1538,6 +1540,7 @@ BARS.defineActions(function() {
 			if (ref) return ref.origin[2];
 		},
 		change: function(modify) {
+			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 2)
 		},
 		onBefore: function() {

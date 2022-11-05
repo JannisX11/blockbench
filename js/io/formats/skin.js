@@ -91,6 +91,7 @@ const codec = new Codec('skin_model', {
 				
 				group.mirror_uv = b.mirror === true
 				group.reset = b.reset === true
+				group.skin_original_origin = group.origin.slice();
 
 				if (b.cubes) {
 					b.cubes.forEach(function(cube) {
@@ -122,7 +123,7 @@ const codec = new Codec('skin_model', {
 		}
 		if (texture_path) {
 			var texture = new Texture().fromPath(texture_path).add(false);
-		} else {
+		} else if (resolution) {
 			var texture = generateTemplate(
 				Project.texture_width*resolution,
 				Project.texture_height*resolution,
@@ -137,8 +138,10 @@ const codec = new Codec('skin_model', {
 				Cube.all[index].visibility = false;
 			}
 		}
-		texture.load_callback = function() {
-			Modes.options.paint.select();
+		if (texture) {
+			texture.load_callback = function() {
+				Modes.options.paint.select();
+			}
 		}
 		if (data.camera_angle) {
 			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
@@ -151,6 +154,12 @@ const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
+codec.rebuild = function(model_id) {
+	let [preset_id, variant] = model_id.split('.');
+	let preset = skin_presets[preset_id];
+	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock));
+	codec.parse(model);
+}
 
 
 const format = new ModelFormat('skin', {
@@ -283,6 +292,7 @@ const skin_dialog = new Dialog({
 				let preset = skin_presets[result.model];
 				let model = JSON.parse(preset.model || (result.variant == 'java_edition' ? preset.model_java : preset.model_bedrock));
 				codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
+				Project.skin_model = result.model + '.' + (result.variant == 'java_edition' ? 'java' : 'bedrock');
 			}
 		}
 	},
@@ -429,7 +439,7 @@ Interface.definePanels(function() {
 			}},
 			methods: {
 				setPose(pose) {
-					let old_angles = poses[this.pose];
+					/*let old_angles = poses[this.pose];
 					for (let name in old_angles) {
 						if (old_angles[name].offset) {
 							let group = Group.all.find(g => g.name == name);
@@ -437,7 +447,17 @@ Interface.definePanels(function() {
 								group.origin.V3_subtract(old_angles[name].offset);
 							}
 						}
-					}
+					}*/
+					Group.all.forEach(group => {
+						if (!group.skin_original_origin) return;
+						let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
+						group.forEachChild(cube => {
+							cube.from.V3_add(offset);
+							cube.to.V3_add(offset);
+							cube.origin.V3_add(offset);
+						}, Cube)
+						group.origin.V3_set(group.skin_original_origin);
+					})
 					this.pose = pose;
 					Project.skin_pose = pose;
 					let angles = poses[pose];
