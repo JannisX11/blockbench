@@ -81,11 +81,11 @@ var codec = new Codec('fbx', {
 			GlobalSettings: {
 				Version: 1000,
 				Properties60: {
-					P01: {_key: 'P', _values: ["UpAxis", "int", "",1]},
-					P02: {_key: 'P', _values: ["UpAxisSign", "int", "",1]},
-					P03: {_key: 'P', _values: ["FrontAxis", "int", "",2]},
-					P04: {_key: 'P', _values: ["FrontAxisSign", "int", "",1]},
-					P05: {_key: 'P', _values: ["CoordAxis", "int", "",0]},
+					P01: {_key: 'P', _values: ["UpAxis", "int", "Integer", "",1]},
+					P02: {_key: 'P', _values: ["UpAxisSign", "int", "Integer", "",1]},
+					P03: {_key: 'P', _values: ["FrontAxis", "int", "Integer", "",2]},
+					P04: {_key: 'P', _values: ["FrontAxisSign", "int", "Integer", "",1]},
+					P05: {_key: 'P', _values: ["CoordAxis", "int", "Integer", "",0]},
 					P08: {_key: 'P', _values: ["CoordAxisSign", "int", "Integer", "",1]},
 					P09: {_key: 'P', _values: ["OriginalUpAxis", "int", "Integer", "",-1]},
 					P10: {_key: 'P', _values: ["OriginalUpAxisSign", "int", "Integer", "",1]},
@@ -96,7 +96,7 @@ var codec = new Codec('fbx', {
 					P15: {_key: 'P', _values: ["TimeMode", "enum", "", "",0]},
 					P16: {_key: 'P', _values: ["TimeSpanStart", "KTime", "Time", "",0]},
 					P17: {_key: 'P', _values: ["TimeSpanStop", "KTime", "Time", "",46186158000]},
-					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",-1]},
+					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",24]},
 				}
 			}
 		});
@@ -108,9 +108,16 @@ var codec = new Codec('fbx', {
 			material: 0,
 			texture: 0,
 			image: 0,
+			animation_stack: 0,
+			animation_layer: 0,
+			animation_curve_node: 0,
+			animation_curve: 0,
 		};
 		let Objects = {};
 		let Connections = [];
+		let Takes = {
+			Current: ''
+		};
 		let root = {name: 'RootNode', uuid: 0};
 
 		function getElementPos(element) {
@@ -152,7 +159,7 @@ var codec = new Codec('fbx', {
 			if (!group.export) return;
 			addNodeBase(group, 'Null');
 		});
-		// Groups
+		// Locators + Null Objects
 		[...Locator.all, ...NullObject.all].forEach(group => {
 			if (!group.export) return;
 			addNodeBase(group, 'Null');
@@ -467,7 +474,7 @@ var codec = new Codec('fbx', {
 			})
 		})
 
-
+		// Textures
 		Texture.all.forEach(tex => {
 			DefinitionCounter.material++;
 			DefinitionCounter.texture++;
@@ -520,8 +527,8 @@ var codec = new Codec('fbx', {
 
 			Connections.push({
 				name: [`Texture::${unique_name}`,  `Material::${unique_name}`],
-				id: [getID(tex.uuid+'_t'), getID(tex.uuid+'_m'), "DiffuseColor"],
-				connector: 'OP'
+				id: [getID(tex.uuid+'_t'), getID(tex.uuid+'_m')],
+				property: "DiffuseColor"
 			});
 			Connections.push({
 				name: [`Video::${unique_name}`,  `Texture::${unique_name}`],
@@ -529,6 +536,126 @@ var codec = new Codec('fbx', {
 			});
 		})
 
+		// Animations
+		let anim_clips = Codecs.gltf.buildAnimationTracks(false); // Handles sampling of math based curves etc.
+		let time_factor = 46186158000; // Arbitrary factor, found in three.js FBX importer
+		anim_clips.forEach(clip => {
+			DefinitionCounter.animation_stack++;
+			DefinitionCounter.animation_layer++;
+
+			let stack_id = getID(clip.uuid+'_s');
+			let layer_id = getID(clip.uuid+'_l');
+			let unique_name = getUniqueName('animation', clip.uuid, clip.name);
+			let fbx_duration = Math.round(clip.duration * time_factor);
+
+			let stack = {
+				_key: 'AnimationStack',
+				_values: [stack_id, `AnimStack::${unique_name}`, ''],
+				Properties70: {
+					p1: {_key: 'P', _values: ['LocalStop', 'KTime', 'Time', '', fbx_duration]},
+					p2: {_key: 'P', _values: ['ReferenceStop', 'KTime', 'Time', '', fbx_duration]},
+				}
+			};
+			let layer = {
+				_key: 'AnimationLayer',
+				_values: [layer_id, `AnimLayer::${unique_name}`, ''],
+				_force_compound: true
+			};
+			Objects[clip.uuid+'_s'] = stack;
+			Objects[clip.uuid+'_l'] = layer;
+			Connections.push({
+				name: [`AnimLayer::${unique_name}`, `AnimStack::${unique_name}`],
+				id: [layer_id, stack_id],
+			});
+
+			clip.tracks.forEach(track => {
+				// Track = CurveNode
+				DefinitionCounter.animation_curve_node++;
+				let track_id = getID(clip.uuid + '.' + track.name)
+				let track_name = `AnimCurveNode::${unique_name}.${track.channel[0].toUpperCase()}`;
+				let curve_node = {
+					_key: 'AnimationCurveNode',
+					_values: [track_id, track_name, ''],
+					Properties70: {
+						p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', 1]},
+						p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', 1]},
+						p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', 1]},
+					}
+				};
+				let timecodes = track.times.map(second => Math.round(second * time_factor));
+				Objects[clip.uuid + '.' + track.name] = curve_node;
+
+				// Connect to bone
+				Connections.push({
+					name: [track_name, `Model::${getUniqueName('object', track.group_uuid)}`],
+					id: [track_id, getID(track.group_uuid)],
+					property: track.channel == 'position' ? "Lcl Translation" : (track.channel == 'rotation' ? "Lcl Rotation" : "Lcl Scaling")
+				});
+				// Connect to layer
+				Connections.push({
+					name: [track_name, `AnimLayer::${unique_name}`],
+					id: [track_id, layer_id],
+				});
+
+
+				['X', 'Y', 'Z'].forEach((axis_letter, axis_number) => {
+					DefinitionCounter.animation_curve++;
+
+					let curve_id = getID(clip.uuid + '.' + track.name + '.' + axis_letter);
+					let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`;
+
+					let values = track.values.filter((val, i) => (i % 3) == axis_number);
+					if (track.channel == 'position') {
+						values.forEach((v, i) => values[i] = v * 100);
+					}
+					if (track.channel == 'rotation') {
+						values.forEach((v, i) => values[i] = Math.radToDeg(v));
+					}
+					let curve = {
+						_key: 'AnimationCurve',
+						_values: [curve_id, curve_name, ''],
+						Default: 0,
+						KeyVer: 4008,
+						KeyTime: {
+							_values: [`_*${timecodes.length}`],
+							a: timecodes
+						},
+						KeyValueFloat: {
+							_values: [`_*${values.length}`],
+							a: values
+						},
+						KeyAttrFlags: {
+							_values: [`_*${1}`],
+							a: [24836]
+						},
+						KeyAttrDataFloat: {
+							_values: [`_*${4}`],
+							a: [0,0,255790911,0]
+						},
+						KeyAttrRefCount: {
+							_values: [`_*${1}`],
+							a: [timecodes.length]
+						},
+					};
+					Objects[clip.uuid + '.' + track.name + axis_letter] = curve;
+
+					// Connect to track
+					Connections.push({
+						name: [curve_name, track_name],
+						id: [curve_id, track_id],
+						property: `d|${axis_letter}`
+					});
+				});
+			})
+
+			Takes[clip.uuid] = {
+				_key: 'Take',
+				_values: [unique_name],
+				FileName: `${unique_name}.tak`,
+				LocalTime: [0, fbx_duration],
+				ReferenceTime: [0, fbx_duration],
+			};
+		})
 
 		// Object definitions
 		model += formatFBXComment('Object definitions');
@@ -698,7 +825,7 @@ var codec = new Codec('fbx', {
 				image: DefinitionCounter.image ? {
 					_key: 'ObjectType',
 					_values: ['Video'],
-					Count: 1,
+					Count: DefinitionCounter.image,
 					PropertyTemplate: {
 						_values: ['FbxVideo'],
 						Properties70: {
@@ -719,6 +846,58 @@ var codec = new Codec('fbx', {
 							P15: {_key: 'P', _values: ["AccessMode", "enum", "", "",0]},
 						}
 					}
+				} : undefined,
+
+
+				animation_stack: DefinitionCounter.animation_stack ? {
+					_key: 'ObjectType',
+					_values: ['AnimationStack'],
+					Count: DefinitionCounter.animation_stack,
+					PropertyTemplate: {
+						_values: ['FbxAnimStack'],
+						Properties70: {
+							P01: {_key: 'P', _values: ["Description", "KString", "", "", ""]},
+							P02: {_key: 'P', _values: ["LocalStart", "KTime", "Time", "",0]},
+							P03: {_key: 'P', _values: ["LocalStop", "KTime", "Time", "",0]},
+							P04: {_key: 'P', _values: ["ReferenceStart", "KTime", "Time", "",0]},
+							P05: {_key: 'P', _values: ["ReferenceStop", "KTime", "Time", "",0]},
+						}
+					}
+				} : undefined,
+				animation_layer: DefinitionCounter.animation_layer ? {
+					_key: 'ObjectType',
+					_values: ['AnimationLayer'],
+					Count: DefinitionCounter.animation_layer,
+					PropertyTemplate: {
+						_values: ['FbxAnimLayer'],
+						Properties70: {
+							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",100]},
+							P02: {_key: 'P', _values: ["Mute", "bool", "", "",0]},
+							P03: {_key: 'P', _values: ["Solo", "bool", "", "",0]},
+							P04: {_key: 'P', _values: ["Lock", "bool", "", "",0]},
+							P05: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",0.8,0.8,0.8]},
+							P06: {_key: 'P', _values: ["BlendMode", "enum", "", "",0]},
+							P07: {_key: 'P', _values: ["RotationAccumulationMode", "enum", "", "",0]},
+							P08: {_key: 'P', _values: ["ScaleAccumulationMode", "enum", "", "",0]},
+							P09: {_key: 'P', _values: ["BlendModeBypass", "ULongLong", "", "",0]},
+						}
+					}
+				} : undefined,
+				animation_curve_node: DefinitionCounter.animation_curve_node ? {
+					_key: 'ObjectType',
+					_values: ['AnimationCurveNode'],
+					Count: DefinitionCounter.animation_curve_node,
+					PropertyTemplate: {
+						_values: ['FbxAnimCurveNode'],
+						Properties70: {
+							P01: {_key: 'P', _values: ["d", "Compound", "", ""]},
+						}
+					}
+				} : undefined,
+				animation_curve: DefinitionCounter.animation_curve ? {
+					_key: 'ObjectType',
+					_values: ['AnimationCurve'],
+					Count: DefinitionCounter.animation_curve,
 				} : undefined
 			}
 		})
@@ -732,17 +911,16 @@ var codec = new Codec('fbx', {
 		model += formatFBXComment('Object connections');
 		model += `Connections:  {\n\n`;
 		Connections.forEach(connection => {
+			let property = connection.property ? `, "${connection.property}"` : '';
 			model += `\t;${connection.name.join(', ')}\n`;
-			model += `\tC: "${connection.connector || 'OO'}",${connection.id.join(',')}\n\n`;
+			model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
 		})
 		model += `}\n`;
 
 		// Takes
 		model += formatFBXComment('Takes section');
 		model += compileASCIIFBXSection({
-			Takes: {
-				Current: ''
-			}
+			Takes
 		})
 
 		scope.dispatchEvent('compile', {model, options});
@@ -860,7 +1038,7 @@ function compileASCIIFBXSection(object) {
 			if (object._key) key = object._key;
 
 			let values = '';
-			if (object instanceof Array) {
+			if (typeof object == 'object' && typeof object.map === 'function') {
 				values = joinArray(object.map(handleValue));
 			} else if (typeof object !== 'object') {
 				values = handleValue(object);
@@ -871,12 +1049,12 @@ function compileASCIIFBXSection(object) {
 			output += `${indent()}${key}: ${values}`;
 
 			let content;
-			if (typeof object == 'object' && object instanceof Array == false) {
+			if (typeof object == 'object' && typeof object.map !== 'function') {
 				depth++;
 				content = handleObjectChildren(object);
 				depth--;
 			}
-			if (content) {
+			if (content || object._force_compound) {
 				output += ` {\n${content}${indent()}}\n`;
 			} else {
 				output += '\n';
