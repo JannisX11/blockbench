@@ -911,12 +911,16 @@ class Texture {
 		scope.select()
 
 		let title = `${scope.name} (${scope.width} x ${scope.height})`;
-		var path = '';
+		let path = [];
 
 		if (scope.path) {
 			var arr = scope.path.split(osfs)
-			arr.splice(-1)
-			path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
+			arr.splice(-1);
+			arr.forEach(dir => {
+				path.push(dir);
+				path.push(Interface.createElement('span', {class: 'slash'}, '/'));
+			})
+			path.push(Interface.createElement('span', {class: 'accent_color'}, scope.name));
 		}
 		let form = {
 			name: 		{label: 'generic.name', value: scope.name},
@@ -938,15 +942,16 @@ class Texture {
 				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: scope.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
 			});
 		}
+		let preview_img = new Image();
+		preview_img.src = this.img.src;
+		let header = Interface.createElement('div', {style: 'height: 140px;'}, [
+			Interface.createElement('div', {id: 'texture_menu_thumbnail'}, preview_img),
+			Interface.createElement('p', {class: 'multiline_text', id: 'te_path'}, settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path),
+		])
 		var dialog = new Dialog({
 			id: 'texture_edit',
 			title,
-			lines: [
-				`<div style="height: 140px;">
-					<div id="texture_menu_thumbnail">${scope.img.outerHTML}</div>
-					<p class="multiline_text" id="te_path">${settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path}</p>
-				</div>`
-			],
+			lines: [header],
 			form,
 			onConfirm: function(results) {
 

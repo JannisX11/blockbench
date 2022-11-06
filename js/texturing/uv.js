@@ -3081,7 +3081,7 @@ Interface.definePanels(function() {
 								</div>
 
 								<template v-if="checkFormat({java_face_properties: true})">
-									<div style="width: 58px; display: flex; justify-content: center;">
+									<div style="width: 58px; display: flex;">
 										<input type="checkbox" title="${tl('action.face_tint')}" :checked="mappable_elements[0].faces[key].tint > -1" @change="toggleFaceTint(key, $event)">
 										<input type="number" title="${tl('action.face_tint')}" style="width: 30px;" :value="mappable_elements[0].faces[key].tint" min="0" step="1" @input="changeFaceTint(key, $event)" v-if="mappable_elements[0].faces[key].tint > -1">
 									</div>

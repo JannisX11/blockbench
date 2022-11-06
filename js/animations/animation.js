@@ -112,6 +112,7 @@ class Animation {
 		if (this.markers.length) {
 			copy.markers = this.markers.map(marker => marker.getUndoCopy());
 		}
+		if (options.absolute_paths == false) delete copy.path;
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
 			for (var uuid in this.animators) {
@@ -125,7 +126,7 @@ class Animation {
 						keyframes: []
 					}
 					kfs.forEach(kf => {
-						ba_copy.keyframes.push(kf.getUndoCopy(true));
+						ba_copy.keyframes.push(kf.getUndoCopy(true, {absolute_paths: options.absolute_paths}));
 					})
 				}
 			}

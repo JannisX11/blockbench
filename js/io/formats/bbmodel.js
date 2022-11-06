@@ -174,13 +174,14 @@ var codec = new Codec('project', {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
 			}
+			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
 
 		if (Animator.animations.length) {
 			model.animations = [];
 			Animator.animations.forEach(a => {
-				model.animations.push(a.getUndoCopy({bone_names: true}, true))
+				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
 			})
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {

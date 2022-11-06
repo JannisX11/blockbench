@@ -438,7 +438,7 @@ class Keyframe {
 		}
 		return edited;
 	}
-	getUndoCopy(save) {
+	getUndoCopy(save, options = {}) {
 		var copy = {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			channel: this.channel,
@@ -452,7 +452,9 @@ class Keyframe {
 			Keyframe.properties[key].copy(this, copy)
 		}
 		this.data_points.forEach(data_point => {
-			copy.data_points.push(data_point.getUndoCopy())
+			let point_copy = data_point.getUndoCopy();
+			if (options.absolute_paths == false) delete point_copy.file;
+			copy.data_points.push(point_copy);
 		})
 		return copy;
 	}

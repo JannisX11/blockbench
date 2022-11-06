@@ -1508,6 +1508,9 @@
 		padding: 0 6px;
 		gap: 2px;
 	}
+	.uv_face_properties_line.selected > label:first-of-type {
+		text-decoration: underline;
+	}
 	.uv_face_properties_line:nth-child(even) {
 		background-color: var(--color-back);
 	}

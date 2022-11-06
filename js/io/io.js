@@ -793,7 +793,7 @@ BARS.defineActions(function() {
 		
 					let name = formResult.name;
 					let expire_time = formResult.expire_time;
-					let model = Codecs.project.compile({compressed: false});
+					let model = Codecs.project.compile({compressed: false, absolute_paths: false});
 					let data = {name, expire_time, model}
 					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
