@@ -268,8 +268,9 @@ const Settings = {
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
 		//new Setting('display_grid',		{category: 'grid', value: false});
-		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
+		new Setting('painting_grid',	{category: 'grid', value: true, onChange(value) {
 			Canvas.updatePaintingGrid();
+			UVEditor.vue.pixel_grid = value;
 		}});
 		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;

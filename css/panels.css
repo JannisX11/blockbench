@@ -1377,6 +1377,24 @@
 		object-fit: cover;
 		object-position: 0 0;
 	}
+	#uv_texture_grid {
+		position: absolute;
+		pointer-events: none;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		left: 0;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#uv_texture_grid path {
+		fill: none;
+		stroke-width: 0.4px;
+		stroke: var(--color-grid);
+	}
+	#uv_texture_grid path.bold_grid {
+		stroke-width: 0.8px;
+	}
 	div#uv_brush_outline {
 		border: 2px solid white;
 		width: calc(var(--radius) * 2px);

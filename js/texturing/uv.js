@@ -1769,6 +1769,7 @@ Interface.definePanels(function() {
 				zoom: 1,
 				centered_view: true,
 				checkerboard: settings.uv_checkerboard.value,
+				pixel_grid: settings.painting_grid.value,
 				uv_overlay: false,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
@@ -1826,6 +1827,38 @@ Interface.definePanels(function() {
 				},
 				all_mappable_elements() {
 					return this.all_elements.filter(element => element.faces && !element.locked);
+				},
+				textureGrid() {
+					if (!this.texture) return '';
+					let lines = [];
+					let size = UVEditor.getPixelSize();
+					if (size <= 5) return '';
+					// =
+					for (let y = 1; y < this.texture.display_height; y++) {
+						if (y % 16 == 0) continue;
+						lines.push(`M${0} ${y*size} L${this.inner_width} ${y*size}`);
+					}
+					// ||
+					for (let x = 1; x < this.texture.width; x++) {
+						if (x % 16 == 0) continue;
+						lines.push(`M${x*size} ${0} L${x*size} ${this.inner_height}`);
+					}
+					return lines.join(' ');
+				},
+				textureGridBold() {
+					if (!this.texture) return '';
+					let lines = [];
+					let size = UVEditor.getPixelSize();
+					let interval = 16;
+					// =
+					for (let y = interval; y < this.texture.display_height; y += interval) {
+						lines.push(`M${0} ${y*size} L${this.inner_width} ${y*size}`);
+					}
+					// ||
+					for (let x = interval; x < this.texture.width; x += interval) {
+						lines.push(`M${x*size} ${0} L${x*size} ${this.inner_height}`);
+					}
+					return lines.join(' ');
 				}
 			},
 			watch: {
@@ -3202,9 +3235,17 @@ Interface.definePanels(function() {
 
 							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
-							<img :style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}" v-if="texture && texture.error != 1 && !texture.display_canvas" :src="texture.source">
+							<img
+								:style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}"
+								v-if="texture && texture.error != 1 && !texture.display_canvas"
+								:src="texture.source"
+							>
 							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
+							<svg id="uv_texture_grid" v-if="pixel_grid && mode == 'paint' && texture && texture.width">
+								<path :d="textureGrid" />
+								<path :d="textureGridBold" class="bold_grid" />
+							</svg>
 						</div>
 
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>
