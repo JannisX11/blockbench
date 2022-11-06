@@ -1481,9 +1481,18 @@ class Texture {
 				icon: 'tune',
 				name: 'menu.texture.edit',
 				condition: {modes: ['paint']},
-				children() {
-					return MenuBar.menus.texture.structure
-				}
+				children: [
+					'adjust_brightness_contrast',
+					'adjust_saturation_hue',
+					'adjust_opacity',
+					'invert_colors',
+					'adjust_curves',
+					'_',
+					'flip_texture_x',
+					'flip_texture_y',
+					'rotate_texture_cw',
+					'rotate_texture_ccw'
+				]
 			},
 			{
 				icon: 'folder',

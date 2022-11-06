@@ -385,6 +385,7 @@ const Vertexsnap = {
 					if (Format.bone_rig && element.parent instanceof Group && element.mesh.parent) {
 						element.mesh.parent.worldToLocal(vec);
 					}
+					vec.sub(Canvas.scene.position);
 					let vec_array = vec.toArray()
 					vec_array.V3_add(element.parent.origin);
 					element.transferOrigin(vec_array)

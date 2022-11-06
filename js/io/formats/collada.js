@@ -16,6 +16,8 @@ var codec = new Codec('collada', {
 		let images = [];
 		let materials = [];
 
+		let export_scale = Settings.get('model_export_scale');
+
 		// Structure
 		let model = {
 			type: 'COLLADA',

@@ -1312,7 +1312,9 @@
 		--color-frame: var(--color-back);
 		background-color: var(--color-background);
 	}
-	#preview > .UVEditor > #uv_title_bar {
+	#preview > .UVEditor > #uv_title_bar
+	#preview > .UVEditor > #toggle_uv_overlay_anchor
+	{
 		display: none;
 	}
 	.UVEditor > .toolbar {
