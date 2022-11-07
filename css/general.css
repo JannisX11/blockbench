@@ -328,6 +328,11 @@
 		width: 16px;
 		margin-left: -5px;
 	}
+	.toolbar.vertical > .tool.toolbar_menu > i {
+		width: auto;
+		margin-right: auto;
+		margin-left: auto;
+	}
 	.tool {
 		height: 30px;
 		width: 36px;
