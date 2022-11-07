@@ -75,7 +75,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		if (scope.preview.isOrtho === true && scope.preview.camOrtho.axis && scope.preview.background.image !== false) {
 			scope.preview.updateBackground()
 		}
-		Transformer.update()
+		if (Transformer.visible) Transformer.update()
 		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
 	};
 

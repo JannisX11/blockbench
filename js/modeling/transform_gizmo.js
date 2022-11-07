@@ -896,7 +896,7 @@
 							var arr = rotation_object instanceof Array ? rotation_object : selected;
 							rotation_object = undefined;
 							for (var obj of arr) {
-								if (obj.visibility) {
+								if (obj.visibility !== false) {
 									rotation_object = obj;
 									break;
 								}

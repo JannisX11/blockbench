@@ -772,12 +772,12 @@ function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable && el instanceof Cube) {
+				if (el.movable && el.from instanceof Array) {
 					el.from[axis] += difference;
 				} else if (el.movable && el.position) {
 					el.position[axis] += difference;
 				}
-				if (el.resizable && el.to) el.to[axis] += difference;
+				if (el.resizable && el.to instanceof Array) el.to[axis] += difference;
 				if (el.rotatable && !el.position) el.origin[axis] += difference;
 			} else {
 				let move_origin = !!group;
@@ -807,9 +807,9 @@ function moveElementsInSpace(difference, axis) {
 					}
 				}
 
-				if (el instanceof Cube) {
+				if (el.from) {
 					el.from.V3_add(m.x, m.y, m.z);
-					el.to.V3_add(m.x, m.y, m.z);
+					if (el.to) el.to.V3_add(m.x, m.y, m.z);
 				} else if (el instanceof Mesh && move_origin) {
 					el.position.V3_add(m.x, m.y, m.z);
 					
@@ -1139,7 +1139,7 @@ BARS.defineActions(function() {
 			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);
 			return sum / vertices.length;
 
-		} else if (element instanceof Cube) {
+		} else if (element.from) {
 			return element.from[axis];
 		} else {
 			return element.origin[axis]
