@@ -96,7 +96,7 @@ class Animation {
 		}
 		return this;
 	}
-	getUndoCopy(options, save) {
+	getUndoCopy(options = 0, save) {
 		var copy = {
 			uuid: this.uuid,
 			name: this.name,

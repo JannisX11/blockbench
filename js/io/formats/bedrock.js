@@ -79,9 +79,20 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			let {materials} = this.client_entity.description;
 			if (materials) {
 				let [key] = Object.keys(materials);
-				if (typeof materials[key] == 'string' && materials[key].includes('emissive')) {
-					render_mode = 'emissive'
+				if (typeof materials[key] == 'string') {
+					if (materials[key].includes('emissive')) {
+						render_mode = 'emissive'
+					} else if (materials[key].includes('multitexture')) {
+						render_mode = 'layered';
+					}
 				}
+			}
+			function updateLayeredTextures() {
+				Texture.all.forEach((tex, i) => {
+					tex.visible = i < 3
+				})
+				Interface.Panels.textures.inside_vue.$forceUpdate()
+				Canvas.updateLayeredTextures();
 			}
 
 			// Textures
@@ -102,6 +113,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				}
 				if (valid_textures_list.length == 1) {
 					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					if (render_mode == 'layered') {
+						updateLayeredTextures();
+					}
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -174,6 +188,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 									selected_textures.forEach(path => {
 										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
+								}
+								if (render_mode == 'layered') {
+									updateLayeredTextures();
 								}
 							}
 						}).show()

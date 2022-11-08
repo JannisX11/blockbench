@@ -106,7 +106,7 @@
 	},
 	"devDependencies": {
 		"blockbench-types": "^4.0.0",
-		"electron": "^21.1.0",
+		"electron": "^21.2.2",
 		"electron-builder": "^23.1.0",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.74.0",
