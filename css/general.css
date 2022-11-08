@@ -316,17 +316,19 @@
 		width: 40px;
 		padding: 2px;
 	}
+	.toolbar > .tool.toolbar_menu {
+		float: right;
+		width: 12px;
+		color: var(--color-subtle_text);
+	}
 	.toolbar.vertical .toolbar_menu {
 		height: 24px;
 		padding: 0;
 	}
-	.toolbar > .tool.toolbar_menu {
-		float: right;
-		width: 14px;
-	}
 	.toolbar > .tool.toolbar_menu > i {
 		width: 16px;
 		margin-left: -5px;
+		font-size: 20px;
 	}
 	.toolbar.vertical > .tool.toolbar_menu > i {
 		width: auto;
@@ -370,7 +372,7 @@
 		padding: 0;
 	}
 	.tool.widget.bar_text {
-		padding: 2px 3px;
+		padding: 3px;
 	}
 	.tool.has_label {
 		width: auto;

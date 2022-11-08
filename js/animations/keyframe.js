@@ -279,7 +279,7 @@ class Keyframe {
 				}
 			})
 			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''));
-			scripts = scripts.map(line => line.match(/;\s*$/) ? line : (line+';'));
+			scripts = scripts.map(line => (line.match(/;\s*$/) || line.startsWith('/')) ? line : (line+';'));
 			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];

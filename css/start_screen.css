@@ -443,6 +443,7 @@
 		padding: 20px 24px;
 		display: block;
 		border-bottom: 5px solid var(--color-border);
+		border-top: 5px solid var(--color-border);
 	}
 	section#quick_setup > h2 {
 		display: block;

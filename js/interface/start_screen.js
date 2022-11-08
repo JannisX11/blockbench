@@ -425,6 +425,25 @@ onVueSetup(function() {
 	Blockbench.on('construct_format delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
+
+	
+	if (settings.streamer_mode.value) {
+		updateStreamerModeNotification()
+	}
+	addStartScreenSection('splash_screen', {
+		"text_color": '#000000',
+		"graphic": {
+			"type": "image",
+			"source": "./assets/splash_art.png?44",
+			"width": 1000,
+			"aspect_ratio": "64/27",
+			"description": "Splash Art by [Wan_win](https://twitter.com/Wan_w1n)",
+			"text_color": '#cfcfcf'
+		}
+	})
+	if (!Blockbench.hasFlag('after_update')) {
+		document.getElementById('start_screen').scrollTop = 100;
+	}
 });
 
 
@@ -480,6 +499,7 @@ ModelLoader.loaders = {};
 			let section = addStartScreenSection({
 				color: 'var(--color-back)',
 				graphic: {type: 'icon', icon: 'fa-archive'},
+				insert_after: 'splash_screen',
 				text: [
 					{type: 'h2', text: tl('message.recover_backup.title')},
 					{text: tl('message.recover_backup.message')},
@@ -496,23 +516,6 @@ ModelLoader.loaders = {};
 					}}
 				]
 			})
-		}
-		if (settings.streamer_mode.value) {
-			updateStreamerModeNotification()
-		}
-		addStartScreenSection('splash_screen', {
-			"text_color": '#000000',
-			"graphic": {
-				"type": "image",
-				"source": "./assets/splash_art.png?44",
-				"width": 1000,
-				"aspect_ratio": "64/27",
-				"description": "Splash Art by [Wan_win](https://twitter.com/Wan_w1n)",
-				"text_color": '#cfcfcf'
-			}
-		})
-		if (!Blockbench.hasFlag('after_update')) {
-			document.getElementById('start_screen').scrollTop = 100;
 		}
 
 		//Twitter
@@ -548,7 +551,7 @@ ModelLoader.loaders = {};
 		if (Blockbench.startup_count <= 1) {
 			
 			let section = Interface.createElement('section', {id: 'quick_setup'});
-			$('#start_screen > content').prepend(section);
+			document.querySelector('#start_screen #splash_screen').after(section);
 
 			new Vue({
 				data() {return {
