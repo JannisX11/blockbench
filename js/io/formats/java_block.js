@@ -486,6 +486,7 @@ var format = new ModelFormat({
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
 	rotation_limit: true,
+	rotation_snap: true,
 	optional_box_uv: true,
 	uv_rotation: true,
 	java_face_properties: true,

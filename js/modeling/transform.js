@@ -837,7 +837,7 @@ function moveElementsInSpace(difference, axis) {
 
 //Rotate
 function getRotationInterval(event) {
-	if (Format.rotation_limit && Format.rotation_snap) {
+	if (Format.rotation_snap) {
 		return 22.5;
 	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
 		return 0.25;
