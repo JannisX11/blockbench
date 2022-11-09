@@ -815,6 +815,9 @@
 	}
 
 /*Specific Dialogs*/
+	dialog#model_stats .form_bar  {
+		margin: 0;
+	}
 	.dialog#texture_edit p.multiline_text {
 		width: 344px;
 		min-height: 51px;

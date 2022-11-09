@@ -787,6 +787,12 @@ Interface.definePanels(() => {
 				removeAnimator(animator) {
 					Timeline.animators.remove(animator);
 				},
+				toggleGlobalSpace(animator) {
+					Undo.initEdit({animations: [Animation.selected]});
+					animator.rotation_global = !animator.rotation_global;
+					Undo.finishEdit('Toggle rotation in global space');
+					Animator.preview();
+				},
 				selectChannel(animator, channel) {
 					if (this.graph_editor_channel == channel && animator.selected) return;
 					if (!animator.channels[channel].transform) return;
@@ -1088,6 +1094,14 @@ Interface.definePanels(() => {
 										</div>
 										<div class="text_button" v-else></div>
 										<span>{{ channel_options.name }}</span>
+										<div
+											class="text_button rotation_global" :class="{off: !animator.rotation_global}"
+											v-if="channel == 'rotation' && animator.type == 'bone'"
+											title="${tl('menu.animator.rotation_global')}"
+											@click.stop="toggleGlobalSpace(animator)"
+										>
+											<i class="material-icons">{{ animator.rotation_global ? 'public' : 'public_off' }}</i>
+										</div>
 										<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
 											<i class="material-icons">add</i>
 										</div>

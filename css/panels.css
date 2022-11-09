@@ -1220,12 +1220,22 @@
 	.animator_channel_bar .channel_head .text_button {
 		float: right;
 	}
+	.animator_channel_bar .channel_head .text_button.off {
+		color: var(--color-subtle_text);
+	}
 	.animator_channel_bar .channel_head .text_button .channel_mute {
 		font-size: 11pt;
 	}
 	.animator_channel_bar .channel_head .text_button .fa-eye-slash,
 	.animator_channel_bar .channel_head .text_button .fa-volume-mute {
 		color: var(--color-subtle_text);
+	}
+	.animator_channel_bar .channel_head .text_button.rotation_global {
+		width: 20px;
+	}
+	.animator_channel_bar .channel_head .text_button.rotation_global > i {
+		font-size: 18px;
+		margin: 2px;
 	}
 	.channel_head span {
 		flex-grow: 1;
