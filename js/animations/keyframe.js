@@ -279,7 +279,7 @@ class Keyframe {
 				}
 			})
 			scripts = scripts.filter(script => !!script.replace(/[\n\s;.]+/g, ''));
-			scripts = scripts.map(line => line.match(/;\s*$/) ? line : (line+';'));
+			scripts = scripts.map(line => (line.match(/;\s*$/) || line.startsWith('/')) ? line : (line+';'));
 			return scripts.length <= 1 ? scripts[0] : scripts;
 		} else {
 			let points = [];
@@ -322,17 +322,40 @@ class Keyframe {
 		}
 		if (event && (event.shiftKey || Pressing.overrides.shift) && Timeline.selected.length) {
 			var last = Timeline.selected[Timeline.selected.length-1]
-			if (last && last.channel === scope.channel && last.animator == scope.animator) {
+			if (last && last.channel === this.channel && last.animator == this.animator) {
 				Timeline.keyframes.forEach((kf) => {
-					if (kf.channel === scope.channel &&
-						kf.animator === scope.animator &&
-						Math.isBetween(kf.time, last.time, scope.time) &&
+					if (kf.channel === this.channel &&
+						kf.animator === this.animator &&
+						Math.isBetween(kf.time, last.time, this.time) &&
 						!kf.selected
 					) {
 						kf.selected = true
 						Timeline.selected.push(kf)
 					}
 				})
+			} else if (last && Math.epsilon(this.time, last.time, 0.01)) {
+				let animators = Timeline.animators;
+				let vertical_index_last = animators.indexOf(last.animator);
+				let vertical_index_this = animators.indexOf(this.animator);
+				let sign = Math.sign(vertical_index_this - vertical_index_last);
+
+				let active = false;
+				for (let i = vertical_index_last; (sign == 1 ? (i <= vertical_index_this) : (i >= vertical_index_this)) && animators[i]; i += sign) {
+					let animator = animators[i];
+					let channels = Object.keys(animator.channels);
+					if (sign !== 1) channels.reverse();
+					for (let channel of channels) {
+						if (active && channel == this.channel && animator == this.animator) active = false;
+						if (active && Timeline.vue.channels[channel] !== false) {
+							let match = animator[channel].find(kf => Math.epsilon(this.time, kf.time, 0.01));
+							if (match && !match.selected) {
+								match.selected = true;
+								Timeline.selected.push(match);
+							}
+						}
+						if (!active && channel == last.channel && animator == last.animator) active = true;
+					}
+				}
 			}
 		}
 		Timeline.selected.safePush(this);
@@ -346,7 +369,7 @@ class Keyframe {
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
-			if (kf.channel != scope.channel) select_tool = false;
+			if (kf.channel != this.channel) select_tool = false;
 		})
 		if (select_tool) {
 			switch (this.channel) {
@@ -415,7 +438,7 @@ class Keyframe {
 		}
 		return edited;
 	}
-	getUndoCopy(save) {
+	getUndoCopy(save, options = {}) {
 		var copy = {
 			animator: save ? undefined : this.animator && this.animator.uuid,
 			channel: this.channel,
@@ -429,7 +452,9 @@ class Keyframe {
 			Keyframe.properties[key].copy(this, copy)
 		}
 		this.data_points.forEach(data_point => {
-			copy.data_points.push(data_point.getUndoCopy())
+			let point_copy = data_point.getUndoCopy();
+			if (options.absolute_paths == false) delete point_copy.file;
+			copy.data_points.push(point_copy);
 		})
 		return copy;
 	}
@@ -1155,24 +1180,25 @@ Interface.definePanels(function() {
 							}
 							let val = Math.round((clientX - e1.clientX) / 40);
 							let difference = (val - last_val);
-							if (!difference) return;
-							if (Toolbox.selected.id === 'rotate_tool') {
-								difference *= getRotationInterval(e2);
-							} else {
-								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
-							}
+							if (difference) {
+								if (Toolbox.selected.id === 'rotate_tool') {
+									difference *= getRotationInterval(e2);
+								} else {
+									difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+								}
 							
-							Keyframe.selected.forEach(kf => {
-								kf.offset(axis, difference);
-							})
+								Keyframe.selected.forEach(kf => {
+									kf.offset(axis, difference);
+								})
 
-							last_val = val;
+								last_val = val;
+								total += difference;
+
+								Animator.preview()
+								Blockbench.setStatusBarText(trimFloatNumber(total));
+							}
 							last_event = e2;
-							total += difference;
 							move_calls++;
-
-							Animator.preview()
-							Blockbench.setStatusBarText(trimFloatNumber(total));
 						}
 					}
 					function off(e2) {

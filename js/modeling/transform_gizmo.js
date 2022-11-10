@@ -896,7 +896,7 @@
 							var arr = rotation_object instanceof Array ? rotation_object : selected;
 							rotation_object = undefined;
 							for (var obj of arr) {
-								if (obj.visibility) {
+								if (obj.visibility !== false) {
 									rotation_object = obj;
 									break;
 								}
@@ -1405,7 +1405,7 @@
 
 						let {mesh} = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
 
-						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E')) {
+						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E' || (Timeline.selected_animator?.rotation_global && Transformer.getTransformSpace() == 2))) {
 
 							let normal = scope.axis == 'E'
 								? rotate_normal
@@ -1415,8 +1415,10 @@
 							rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
 							rotWorldMatrix.multiply(mesh.matrixWorld)
 
-							let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
-							rotWorldMatrix.premultiply(inverse)
+							if (Timeline.selected_animator?.rotation_global !== true) {
+								let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
+								rotWorldMatrix.premultiply(inverse)
+							}
 
 							mesh.matrix.copy(rotWorldMatrix)
 							mesh.setRotationFromMatrix(rotWorldMatrix)

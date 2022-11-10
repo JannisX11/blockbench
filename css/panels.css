@@ -359,10 +359,14 @@
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
 	}
-	.outliner_node .outliner_object i, .outliner_object i[class^="icon-"] {
+	.outliner_node .outliner_object i {
 		flex: 0 0 20px;
 		text-align: center;
 		padding-top: 4px;
+		overflow: hidden;
+	}
+	.outliner_node .outliner_object i[class*=" icon-"]:not(.fa) {
+		padding-top: 0px;
 	}
 	.outliner_node .outliner_object i.icon_off {
 		color: var(--color-subtle_text);
@@ -1216,12 +1220,22 @@
 	.animator_channel_bar .channel_head .text_button {
 		float: right;
 	}
+	.animator_channel_bar .channel_head .text_button.off {
+		color: var(--color-subtle_text);
+	}
 	.animator_channel_bar .channel_head .text_button .channel_mute {
 		font-size: 11pt;
 	}
 	.animator_channel_bar .channel_head .text_button .fa-eye-slash,
 	.animator_channel_bar .channel_head .text_button .fa-volume-mute {
 		color: var(--color-subtle_text);
+	}
+	.animator_channel_bar .channel_head .text_button.rotation_global {
+		width: 20px;
+	}
+	.animator_channel_bar .channel_head .text_button.rotation_global > i {
+		font-size: 18px;
+		margin: 2px;
 	}
 	.channel_head span {
 		flex-grow: 1;
@@ -1308,7 +1322,9 @@
 		--color-frame: var(--color-back);
 		background-color: var(--color-background);
 	}
-	#preview > .UVEditor > #uv_title_bar {
+	#preview > .UVEditor > #uv_title_bar,
+	#preview > .UVEditor > #toggle_uv_overlay_anchor
+	{
 		display: none;
 	}
 	.UVEditor > .toolbar {
@@ -1372,6 +1388,24 @@
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+	}
+	#uv_texture_grid {
+		position: absolute;
+		pointer-events: none;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		left: 0;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#uv_texture_grid path {
+		fill: none;
+		stroke-width: 0.4px;
+		stroke: var(--color-grid);
+	}
+	#uv_texture_grid path.bold_grid {
+		stroke-width: 0.8px;
 	}
 	div#uv_brush_outline {
 		border: 2px solid white;
@@ -1437,6 +1471,107 @@
 		transform: scaleY(-1);
 		font-size: 16px;
 		padding-top: 2px;
+	}
+
+	.face_properties_toggle {
+		width: 32px;
+		flex-grow: 0 !important;
+	}
+	.face_properties_toggle > i {
+		margin: 1px auto;
+	}
+	#face_properties_header_bar {
+		display: flex;
+		height: 28px;
+		color: var(--color-subtle_text);
+	}
+	#face_properties_header_bar li:first-child {
+		flex-grow: 1;
+		text-align: center;
+	}
+	#uv_face_properties > ul {
+		overflow-y: auto;
+		margin-bottom: 8px;
+	}
+	.uv_face_properties_labels {
+		height: 28px;
+		display: flex;
+		align-items: center;
+		padding: 0 6px;
+		gap: 2px;
+		text-align: center;
+		color: var(--color-subtle_text);
+		white-space: nowrap;
+	}
+	.uv_face_properties_labels > .flexible {
+		flex-grow: 1;
+		flex-shrink: 1;
+		width: 50px;
+	}
+	.uv_face_properties_labels label > i {
+		vertical-align: top;
+	}
+	.uv_face_properties_line {
+		height: 44px;
+		display: flex;
+		align-items: center;
+		padding: 0 6px;
+		gap: 2px;
+	}
+	.uv_face_properties_line.selected > label:first-of-type {
+		text-decoration: underline;
+	}
+	.uv_face_properties_line:nth-child(even) {
+		background-color: var(--color-back);
+	}
+	.uv_face_properties_line:nth-child(even) .dark_bordered {
+		background-color: var(--color-ui);
+	}
+	.uv_face_properties_line.disabled {
+		color: var(--color-subtle_text);
+		opacity: 0.64;
+	}
+	.uv_face_properties_line > * {
+		flex-grow: 0;
+		flex-shrink: 0;
+	}
+	.uv_face_properties_line > .flexible {
+		flex-grow: 1;
+		flex-shrink: 1;
+		width: 50px;
+	}
+	.uv_face_properties_line label {
+		width: 48px;
+	}
+	.uv_face_properties_line input[type=checkbox] {
+		width: 28px;
+    	text-align: center;
+	}
+	.face_properties_texture {
+		width: 120px;
+		flex-grow: 1;
+		overflow: hidden;
+		white-space: nowrap;
+		cursor: pointer;
+		color: var(--color-subtle_text);
+	}
+	.face_properties_texture:hover {
+		color: var(--color-text);
+	}
+	.face_properties_texture img {
+		vertical-align: middle;
+		pointer-events: none;
+		object-fit: cover;
+		margin-right: 2px;
+	}
+	.face_properties_texture .texture_dummy_icon {
+		vertical-align: middle;
+		pointer-events: none;
+		margin-right: 2px;
+		display: inline-block;
+		width: 32px;
+		height: 32px;
+		background-color: var(--color-dark);
 	}
 
 	.cube_box_uv {
@@ -1584,6 +1719,12 @@
 		z-index: 1;
 	}
 
+	.bar.uv_editor_sliders {
+		display: flex;
+	}
+	.bar.uv_editor_sliders > .tool {
+		flex-grow: 1;
+	}
 	.uv_painter_info {
 		display: flex;
 	}

@@ -1156,7 +1156,7 @@ class Preview {
 				isSelected = true
 
 			} else if (element.visibility) {
-				if (element.mesh && element.mesh.geometry) {
+				if (element.mesh && element.resizable) {
 					let {mesh} = element;
 					
 					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
@@ -1419,7 +1419,7 @@ class Preview {
 			title: tl('message.set_background_position.title'),
 			form: {
 				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 40, max: 10000}
+				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 20}
 			},
 			onConfirm(form) {
 				if (!scope.background) return;
@@ -2134,7 +2134,7 @@ BARS.defineActions(function() {
 	new Action('toggle_quad_view', {
 		icon: 'grid_view',
 		category: 'view',
-		condition: () => !Modes.display,
+		condition: () => !Modes.display && !Format.image_editor,
 		keybind: new Keybind({key: 9}),
 		click: function () {
 			main_preview.toggleFullscreen()
@@ -2143,6 +2143,7 @@ BARS.defineActions(function() {
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
+		condition: () => !Format.image_editor,
 		click: function () {
 			if (!Project) return;
 			if (Prop.active_panel == 'uv') {

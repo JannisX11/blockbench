@@ -291,6 +291,25 @@ const Timeline = {
 				Timeline.setTime(time);
 				Animator.preview();
 				Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
+				if (e.shiftKey || Pressing.overrides.shift) {
+					time = Timeline.snapTime(time);
+
+					if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) Timeline.selected.empty();
+
+					for (let i = 0; i < Timeline.animators.length; i++) {
+						let animator = Timeline.animators[i];
+						for (let channel in animator.channels) {
+							if (Timeline.vue.channels[channel] !== false) {
+								let match = animator[channel].find(kf => Math.epsilon(kf.time, time, 0.01));
+								if (match && !match.selected) {
+									match.selected = true;
+									Timeline.selected.push(match);
+								}
+							}
+						}
+					}
+					updateKeyframeSelection();
+				}
 			}
 		})
 		$(document).on('mousemove touchmove', e => {
@@ -768,12 +787,27 @@ Interface.definePanels(() => {
 				removeAnimator(animator) {
 					Timeline.animators.remove(animator);
 				},
+				toggleGlobalSpace(animator) {
+					Undo.initEdit({animations: [Animation.selected]});
+					animator.rotation_global = !animator.rotation_global;
+					Undo.finishEdit('Toggle rotation in global space');
+					Animator.preview();
+				},
 				selectChannel(animator, channel) {
 					if (this.graph_editor_channel == channel && animator.selected) return;
 					if (!animator.channels[channel].transform) return;
-					animator.select();
-					if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
-						animator[channel][0].select();
+					if (!animator.selected) animator.select();
+					// Select keyframe in new channel
+					if (animator[channel].length && Keyframe.selected.length > 0) {
+						if (animator[channel].length == 1 && Math.epsilon(animator[channel][0].time, Timeline.time, 0.002)) {
+							animator[channel][0].select();
+						} else if (animator[channel].find(kf => Math.epsilon(kf.time, Keyframe.selected[0].time))) {
+							let kf = animator[channel].find(kf => Math.epsilon(kf.time, Keyframe.selected[0].time, 0.002));
+							kf.select();
+						} else {
+							let kf = animator[channel].slice().sort((a, b) => Math.abs(a.time - Timeline.time) - Math.abs(b.time - Timeline.time))[0];
+							kf.select();
+						}
 					}
 					this.graph_editor_channel = channel;
 				},
@@ -1015,7 +1049,7 @@ Interface.definePanels(() => {
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
 								<div class="animator_head_bar">
-									<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)">
+									<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
@@ -1046,6 +1080,7 @@ Interface.definePanels(() => {
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
 										v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
 										@click.stop="selectChannel(animator, channel);"
+										@contextmenu.stop="animator.showContextMenu($event)"
 									>
 										<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
 											<template v-if="channel === 'sound'">
@@ -1059,6 +1094,14 @@ Interface.definePanels(() => {
 										</div>
 										<div class="text_button" v-else></div>
 										<span>{{ channel_options.name }}</span>
+										<div
+											class="text_button rotation_global" :class="{off: !animator.rotation_global}"
+											v-if="channel == 'rotation' && animator.type == 'bone'"
+											title="${tl('menu.animator.rotation_global')}"
+											@click.stop="toggleGlobalSpace(animator)"
+										>
+											<i class="material-icons">{{ animator.rotation_global ? 'public' : 'public_off' }}</i>
+										</div>
 										<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
 											<i class="material-icons">add</i>
 										</div>

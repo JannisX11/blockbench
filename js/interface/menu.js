@@ -288,7 +288,10 @@ class Menu {
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
 					createChildList(s, entry)
 				} else {
-					entry.on('click', (e) => {s.trigger(e)});
+					entry.on('click', (e) => {
+						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
+						s.trigger(e)
+					});
 					if (s.side_menu) {
 						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
@@ -439,8 +442,8 @@ class Menu {
 
 		scope.node.onclick = (ev) => {
 			if (
-				ev.target.className.includes('parent') ||
-				(ev.target.parentNode && ev.target.parentNode.className.includes('parent')) ||
+				ev.target.classList.contains('parent') ||
+				(ev.target.parentNode && ev.target.parentNode.classList.contains('parent')) ||
 				ev.target.classList.contains('menu_search_bar') ||
 				(ev.target.parentNode && ev.target.parentNode.classList.contains('menu_search_bar'))
 			) {} else {

@@ -330,6 +330,7 @@ class Texture {
 			this.load();
 			return this;
 		}
+		// Backwards compatibility
 		if (link.substr(0, 22) === 'data:image/png;base64,') {
 			this.fromDataURL(link)
 			return this;
@@ -428,6 +429,60 @@ class Texture {
 				})
 			}
 		}
+		if (isApp && Format.texture_mcmeta) {
+			let mcmeta_path = this.path + '.mcmeta';
+			if (fs.existsSync(mcmeta_path)) {
+				let mcmeta;
+				try {
+					let text = fs.readFileSync(mcmeta_path, 'utf8');
+					mcmeta = autoParseJSON(text, true);
+				} catch (err) {
+					console.error(err);
+				}
+				if (mcmeta && mcmeta.animation) {
+					let frame_order_type = 'loop';
+					let {frames} = mcmeta.animation;
+					let frame_string = '';
+					if (frames instanceof Array) {
+						frame_order_type = 'custom';
+						if (!frames.find(v => typeof v !== 'number')) {
+							
+							if (frames.findIndex((val, index) => val != index) == -1) {
+								frame_order_type = 'loop';
+
+							} else if (frames.findIndex((val, index) => val != (frames.length-index-1)) == -1) {
+								frame_order_type = 'backwards';
+								
+							} else if (frames.findIndex((val, index) => {
+								return index < (frames.length/2 + 1)
+									? val != index
+									: val != (frames.length-index);
+							}) == -1) {
+								frame_order_type = 'back_and_forth';
+							}
+						}
+						if (frame_order_type === 'custom') {
+							frame_string = frames.map(frame => {
+								if (typeof frame == 'object') {
+									if (frame.index !== undefined && frame.time) {
+										return `${frame.index}:${frame.time}`
+									} else {
+										return frame.index || 0;
+									}
+								} else {
+									return frame;
+								}
+							}).join(' ');
+						}
+					}
+					this.extend({
+						frame_time: mcmeta.animation.frametime,
+						frame_order_type,
+						frame_order: frame_string
+					})
+				}
+			}
+		}
 
 		let duplicate = Texture.all.find(tex => (tex !== this && tex.path === this.path && tex.saved));
 		if (duplicate && isApp) {
@@ -517,7 +572,7 @@ class Texture {
 		return this;
 	}
 	updateMaterial() {
-		if (Format.id == 'image') return this;
+		if (Format.image_editor) return this;
 		let mat = this.getMaterial();
 		mat.name = this.name;
 		mat.map.image = this.img;
@@ -681,7 +736,7 @@ class Texture {
 		this.selected = true
 		Texture.selected = this;
 		this.scrollTo();
-		if (Format.id == 'image') {
+		if (Format.image_editor) {
 			Project.texture_height = this.display_height;
 			Project.texture_width = this.width;
 		}
@@ -797,7 +852,7 @@ class Texture {
 
 		affected.forEach(function(obj) {
 			for (var face in obj.faces) {
-				if (all || Project.box_uv || UVEditor.vue.selected_faces.includes(face)) {
+				if (all || obj.box_uv || UVEditor.vue.selected_faces.includes(face)) {
 					var f = obj.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid
@@ -856,38 +911,54 @@ class Texture {
 		scope.select()
 
 		let title = `${scope.name} (${scope.width} x ${scope.height})`;
-		var path = '';
+		let path = [];
 
 		if (scope.path) {
 			var arr = scope.path.split(osfs)
-			arr.splice(-1)
-			path = arr.join('<span class="slash">/</span>') + '<span class="slash">/</span><span class="accent_color">' + scope.name + '</span>'
+			arr.splice(-1);
+			arr.forEach(dir => {
+				path.push(dir);
+				path.push(Interface.createElement('span', {class: 'slash'}, '/'));
+			})
+			path.push(Interface.createElement('span', {class: 'accent_color'}, scope.name));
 		}
-
+		let form = {
+			name: 		{label: 'generic.name', value: scope.name},
+			variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
+			folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
+			namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
+		};
+		if (Format.texture_mcmeta) {
+			Object.assign(form, {
+				'texture_mcmeta': '_',
+				frame_time: {label: 'dialog.texture.frame_time', type: 'number', value: scope.frame_time, min: 1, step: 1, description: 'dialog.texture.frame_time.desc'},
+				frame_interpolate: {label: 'dialog.texture.frame_interpolate', type: 'checkbox', value: scope.frame_interpolate, description: 'dialog.texture.frame_interpolate.desc'},
+				frame_order_type: {label: 'dialog.texture.frame_order_type', type: 'select', value: scope.frame_order_type, options: {
+					loop: 'dialog.texture.frame_order_type.loop',
+					backwards: 'dialog.texture.frame_order_type.backwards',
+					back_and_forth: 'dialog.texture.frame_order_type.back_and_forth',
+					custom: 'dialog.texture.frame_order_type.custom',
+				}},
+				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: scope.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
+			});
+		}
+		let preview_img = new Image();
+		preview_img.src = this.img.src;
+		let header = Interface.createElement('div', {style: 'height: 140px;'}, [
+			Interface.createElement('div', {id: 'texture_menu_thumbnail'}, preview_img),
+			Interface.createElement('p', {class: 'multiline_text', id: 'te_path'}, settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path),
+		])
 		var dialog = new Dialog({
 			id: 'texture_edit',
 			title,
-			lines: [
-				`<div style="height: 140px;">
-					<div id="texture_menu_thumbnail">${scope.img.outerHTML}</div>
-					<p class="multiline_text" id="te_path">${settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : path}</p>
-				</div>`
-			],
-			form: {
-				name: 		{label: 'generic.name', value: scope.name},
-				variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
-				folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
-				namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
-			},
+			lines: [header],
+			form,
 			onConfirm: function(results) {
 
 				dialog.hide();
-				if (
-					(scope.name === results.name) &&
-					(results.variable === undefined || scope.id === results.variable) &&
-					(results.folder === undefined || scope.folder === results.folder) &&
-					(results.namespace === undefined || scope.namespace === results.namespace)
-				) {
+				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => {
+					return results[key] !== undefined && results[key] !== scope[key];
+				}) == undefined) {
 					return;
 				}
 
@@ -897,7 +968,17 @@ class Texture {
 				if (results.variable !== undefined) scope.id = results.variable;
 				if (results.folder !== undefined) scope.folder = results.folder;
 				if (results.namespace !== undefined) scope.namespace = results.namespace;
-				
+
+				if (Format.texture_mcmeta) {
+					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => scope[key] !== results[key])) {
+						scope.saved = false;
+					}
+					scope.frame_time = results.frame_time;
+					scope.frame_interpolate = results.frame_interpolate;
+					scope.frame_order_type = results.frame_order_type;
+					scope.frame_order = results.frame_order;
+					TextureAnimator.updateSpeed();
+				}
 
 				Undo.finishEdit('Edit texture metadata')
 			}
@@ -1074,6 +1155,50 @@ class Texture {
 		}
 		return link;
 	}
+	getMCMetaContent() {
+		let mcmeta = {};
+		if (this.frameCount > 1) {
+			let animation = mcmeta.animation = {
+				frametime: this.frame_time
+			}
+
+			if (Project.texture_width != Project.texture_height) {
+				animation.width = Project.texture_width;
+				animation.height = Project.texture_height;
+			}
+
+			if (this.frame_interpolate) animation.interpolate = true;
+
+			let indices = this.getAnimationFrameIndices();
+			if (indices) animation.frames = indices;
+
+		}
+		Blockbench.dispatchEvent('compile_texture_mcmeta', {mcmeta})
+		return mcmeta;
+	}
+	getAnimationFrameIndices() {
+		let frame_count = this.frameCount;
+		if (this.frame_order_type == 'backwards') {
+			return Array(frame_count).fill(1).map((v, i) => frame_count - 1 - i);
+
+		} else if (this.frame_order_type == 'back_and_forth') {
+			return Array(frame_count * 2 - 2).fill(1).map((v, i) => {
+				return i >= frame_count-1
+					? (frame_count*2 - 2 - i)
+					: i;
+			});
+
+		} else if (this.frame_order_type == 'custom' && this.frame_order.trim()) {
+			return this.frame_order.split(/\s+/).map(v => {
+				if (v.includes(':')) {
+					let [index, time] = v.split(':').map(v2 => parseInt(v2));
+					return {index, time};
+				} else {
+					return parseInt(v)
+				}
+			});
+		}
+	}
 	save(as) {
 		var scope = this;
 		if (scope.saved && !as) {
@@ -1088,9 +1213,21 @@ class Texture {
 				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
+
+			function postSave(path) {
+				if (Format.texture_mcmeta && scope.frameCount > 1) {
+					let mcmeta_content = scope.getMCMetaContent();
+					Blockbench.writeFile(path + '.mcmeta', {content: compileJSON(mcmeta_content)})
+				}
+			}
+
 			if (!as && this.path && fs.existsSync(this.path)) {
 				fs.writeFileSync(this.path, image);
-				scope.fromPath(scope.path)
+				postSave(this.path);
+				this.mode = 'link'
+				this.saved = true;
+				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version
+
 			} else {
 				var find_path;
 				if (Texture.all.find(t => t => t != this && t.saved)) {
@@ -1117,6 +1254,7 @@ class Texture {
 					startpath: find_path,
 					savetype: 'image'
 				}, function(path) {
+					postSave(path);
 					scope.fromPath(path)
 				})
 			}
@@ -1131,6 +1269,13 @@ class Texture {
 			}, function() {
 				scope.saved = true;
 			})
+		}
+		if (Format.image_editor && !Texture.all.find(t => !t.saved)) {
+			if (isApp) {
+				Format.codec.afterSave();
+			} else {
+				Project.saved = true;
+			}
 		}
 		return this;
 	}
@@ -1317,35 +1462,42 @@ class Texture {
 			'_',
 			{
 				icon: 'edit',
-				name: 'menu.texture.edit',
+				name: 'menu.texture.edit_externally',
 				condition: (texture) => texture.mode == 'link',
 				click(texture) { texture.openEditor() }
 			},
 			{
 				icon: 'draw',
 				name: 'menu.texture.edit_in_blockbench',
-				condition: (texture) => Format.id !== 'image' && texture.path,
+				condition: (texture) => !Format.image_editor && texture.path,
 				click(texture) {
-					let existing_tab = ModelProject.all.find(project => project.format.id == 'image' && project.textures.find(t => t.path && t.path == texture.path));
+					let existing_tab = ModelProject.all.find(project => project.format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
 					if (existing_tab) {
 						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();
 						tex2.select();
 						return;
 					}
-					newProject(Formats.image);
-					Project.texture_width = texture.naturalWidth;
-					Project.texture_height = texture.naturalHeight;
-
 					let copy = texture.getUndoCopy();
-					let new_texture = new Texture(copy).load().add(false);
-
-					UVEditor.vue.updateTexture();
-					Project.name = new_texture.name;
-					new_texture.load_callback = () => {
-						new_texture.select();
-					}
+					Codecs.image.load(copy, texture.path, [texture.naturalWidth, texture.naturalHeight]);
 				}
+			},
+			{
+				icon: 'tune',
+				name: 'menu.texture.edit',
+				condition: {modes: ['paint']},
+				children: [
+					'adjust_brightness_contrast',
+					'adjust_saturation_hue',
+					'adjust_opacity',
+					'invert_colors',
+					'adjust_curves',
+					'_',
+					'flip_texture_x',
+					'flip_texture_y',
+					'rotate_texture_cw',
+					'rotate_texture_ccw'
+				]
 			},
 			{
 				icon: 'folder',
@@ -1413,6 +1565,11 @@ class Texture {
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'string', 'render_mode', {default: 'default'})
+	
+	new Property(Texture, 'number', 'frame_time', {default: 1})
+	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})
+	new Property(Texture, 'string', 'frame_order')
+	new Property(Texture, 'boolean', 'frame_interpolate')
 
 	Object.defineProperty(Texture, 'all', {
 		get() {
@@ -1496,7 +1653,7 @@ function loadTextureDraggable() {
 								if (tex && elements) {
 									Undo.initEdit({elements})
 									elements.forEach(element => {
-										element.applyTexture(tex, data.shiftKey || Pressing.overrides.shift || [data.face])
+										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
 									})
 									Undo.finishEdit('Apply texture')
 								}
@@ -1618,11 +1775,18 @@ Clipbench.pasteTextures = function() {
 TextureAnimator = {
 	isPlaying: false,
 	interval: false,
+	frame_total: 0,
 	start() {
 		clearInterval(TextureAnimator.interval)
 		TextureAnimator.isPlaying = true
+		TextureAnimator.frame_total = 0;
 		TextureAnimator.updateButton()
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, 1000/settings.texture_fps.value)
+		let frametime = 1000/settings.texture_fps.value;
+		if (Format.texture_mcmeta && Texture.getDefault()) {
+			let tex = Texture.getDefault();
+			frametime = Math.max(tex.frame_time, 1) * 50;
+		}
+		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
 	},
 	stop() {
 		TextureAnimator.isPlaying = false
@@ -1644,12 +1808,20 @@ TextureAnimator = {
 	},
 	nextFrame() {
 		var animated_textures = []
+		TextureAnimator.frame_total++;
 		Texture.all.forEach(tex => {
 			if (tex.frameCount > 1) {
-				if (tex.currentFrame >= tex.frameCount-1) {
-					tex.currentFrame = 0
+				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
+				if (custom_indices) {
+					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
+					tex.currentFrame = index;
+
 				} else {
-					tex.currentFrame++;
+					if (tex.currentFrame >= tex.frameCount-1) {
+						tex.currentFrame = 0
+					} else {
+						tex.currentFrame++;
+					}
 				}
 				animated_textures.push(tex)
 			}
@@ -1829,7 +2001,12 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: textureAnimationCondition,
 		click() {
-			settings.texture_fps.trigger()
+			if (Format.texture_mcmeta && Texture.all.length) {
+				Texture.getDefault().openMenu()
+				$('dialog div.form_bar_frame_time input').trigger('focus');
+			} else {
+				settings.texture_fps.trigger();
+			}
 		}
 	})
 })

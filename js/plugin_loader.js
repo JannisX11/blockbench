@@ -184,7 +184,7 @@ class Plugin {
 				}).fail(reject)
 			} else {
 				try {
-					eval(file.content);
+					new Function(file.content)();
 				} catch (err) {
 					reject(err)
 				}
@@ -587,9 +587,9 @@ BARS.defineActions(function() {
 							</div>
 							<div class="plugin_version">{{ plugin.version }}</div>
 							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
-								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span class="tl">${tl('dialog.plugins.uninstall')}</span></button>
-								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span class="tl">${tl('dialog.plugins.install')}</span></button>
-								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span class="tl">${tl('dialog.plugins.reload')}</span></button>
+								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
+								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
+								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
 							</div>
 							<div class="button_bar tiny" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
 
@@ -612,7 +612,11 @@ BARS.defineActions(function() {
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
-		click: function () {
+		side_menu: new Menu('plugins_window', [
+			'load_plugin',
+			'load_plugin_from_url'
+		]),
+		click(e) {
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
@@ -629,14 +633,14 @@ BARS.defineActions(function() {
 	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
-		click: function () {
+		click() {
 			Plugins.devReload()
 		}
 	})
 	new Action('load_plugin', {
 		icon: 'fa-file-code',
 		category: 'blockbench',
-		click: function () {
+		click() {
 			Blockbench.import({
 				resource_id: 'dev_plugin',
 				extensions: ['js'],
@@ -649,7 +653,7 @@ BARS.defineActions(function() {
 	new Action('load_plugin_from_url', {
 		icon: 'cloud_download',
 		category: 'blockbench',
-		click: function () {
+		click() {
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})
@@ -658,14 +662,14 @@ BARS.defineActions(function() {
 	new Action('add_plugin', {
 		icon: 'add',
 		category: 'blockbench',
-		click: function () {
+		click() {
 			setTimeout(_ => ActionControl.select('+plugin: '), 1);
 		}
 	})
 	new Action('remove_plugin', {
 		icon: 'remove',
 		category: 'blockbench',
-		click: function () {
+		click() {
 			setTimeout(_ => ActionControl.select('-plugin: '), 1);
 		}
 	})

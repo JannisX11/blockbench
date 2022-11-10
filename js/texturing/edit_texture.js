@@ -439,6 +439,80 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+	new Action('adjust_opacity', {
+		icon: 'gradient',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			let original_imgs = textures.map(tex => {
+				return tex.img.cloneNode();
+			})
+			Undo.initEdit({textures, bitmap: true});
+
+			new Dialog({
+				id: 'adjust_opacity',
+				title: 'action.adjust_opacity',
+				darken: false,
+				component: {
+					data() {return {
+						show_preview,
+						opacity: 100,
+						textures
+					}},
+					methods: {
+						change() {
+							textures.forEach((texture, i) => {
+								texture.edit((canvas) => {
+									let ctx = canvas.getContext('2d');
+									ctx.clearRect(0, 0, texture.width, texture.height);
+									ctx.filter = `opacity(${this.opacity}%)`;
+									ctx.drawImage(original_imgs[i], 0, 0);
+									if (this.opacity > 100) {
+										ctx.filter = `opacity(${this.opacity-100}%)`;
+										ctx.drawImage(original_imgs[i], 0, 0);
+									}
+
+									let ref_ctx = this.$refs.canvas[i].getContext('2d');
+									ref_ctx.clearRect(0, 0, texture.width, texture.height);
+									ref_ctx.drawImage(canvas, 0, 0);
+
+								}, {no_undo: true, use_cache: true});
+							})
+						},
+						togglePreview() {
+							this.show_preview = show_preview = !this.show_preview;
+						}
+					},
+					template: `
+						<div>
+							<div class="texture_adjust_previews checkerboard" :class="{folded: !show_preview}">
+								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
+							</div>
+							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model="opacity" @input="change()">
+								<input lang="en" type="number" class="tool" style="width: 64px;" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+							</div>
+						</div>
+					`,
+					mounted() {
+						textures.forEach((texture, i) => {
+							let ref_ctx = this.$refs.canvas[i].getContext('2d');
+							ref_ctx.clearRect(0, 0, texture.width, texture.height);
+							ref_ctx.drawImage(texture.img, 0, 0);
+						})
+					}
+				},
+				onConfirm() {
+					Undo.finishEdit('Adjust opacity');
+				},
+				onCancel() {
+					Undo.cancelEdit();
+				}
+			}).show();
+		}
+	})
 
 	new Action('flip_texture_x', {
 		icon: 'icon-mirror_x',
@@ -478,6 +552,46 @@ BARS.defineActions(function() {
 				}, {no_undo: true});
 			})
 			Undo.finishEdit('Flip texture Y')
+		}
+	})
+	new Action('rotate_texture_cw', {
+		icon: 'rotate_right',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				texture.edit((canvas) => {
+
+					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.rotate(Math.PI/2);
+					ctx.drawImage(texture.img, 0, -canvas.height);
+
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Rotate texture clockwise')
+		}
+	})
+	new Action('rotate_texture_ccw', {
+		icon: 'rotate_left',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				texture.edit((canvas) => {
+
+					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.rotate(-Math.PI/2);
+					ctx.drawImage(texture.img, -canvas.width, 0);
+
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Rotate texture counter-clockwise')
 		}
 	})
 	new Action('resize_texture', {

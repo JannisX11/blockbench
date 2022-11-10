@@ -79,9 +79,20 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			let {materials} = this.client_entity.description;
 			if (materials) {
 				let [key] = Object.keys(materials);
-				if (typeof materials[key] == 'string' && materials[key].includes('emissive')) {
-					render_mode = 'emissive'
+				if (typeof materials[key] == 'string') {
+					if (materials[key].includes('emissive')) {
+						render_mode = 'emissive'
+					} else if (materials[key].includes('multitexture')) {
+						render_mode = 'layered';
+					}
 				}
+			}
+			function updateLayeredTextures() {
+				Texture.all.forEach((tex, i) => {
+					tex.visible = i < 3
+				})
+				Interface.Panels.textures.inside_vue.$forceUpdate()
+				Canvas.updateLayeredTextures();
 			}
 
 			// Textures
@@ -102,6 +113,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				}
 				if (valid_textures_list.length == 1) {
 					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					if (render_mode == 'layered') {
+						updateLayeredTextures();
+					}
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -174,6 +188,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 									selected_textures.forEach(path => {
 										new Texture({keep_size: true, render_mode}).fromPath(path).add()
 									})
+								}
+								if (render_mode == 'layered') {
+									updateLayeredTextures();
 								}
 							}
 						}).show()
@@ -525,9 +542,9 @@ function calculateVisibleBox() {
 		if (s.uv instanceof Array) {
 			base_cube.uv_offset[0] = s.uv[0]
 			base_cube.uv_offset[1] = s.uv[1]
-			Project.box_uv = true;
+			base_cube.box_uv = true;
 		} else if (s.uv) {
-			Project.box_uv = false;
+			base_cube.box_uv = false;
 			for (var key in base_cube.faces) {
 				var face = base_cube.faces[key]
 				if (s.uv[key]) {
@@ -716,6 +733,8 @@ function calculateVisibleBox() {
 			})
 		}
 
+		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
+
 		codec.dispatchEvent('parsed', {model: data.object});
 
 		pe_list_data.length = 0;
@@ -734,36 +753,36 @@ function calculateVisibleBox() {
 
 // Compile
 
-	function compileCube(obj, bone) {
+	function compileCube(cube, bone) {
 		var template = {
-			origin: obj.from.slice(),
-			size: obj.size(),
-			inflate: obj.inflate||undefined,
+			origin: cube.from.slice(),
+			size: cube.size(),
+			inflate: cube.inflate||undefined,
 		}
-		if (Project.box_uv) {
+		if (cube.box_uv) {
 			template = new oneLiner(template);
 		}
 		template.origin[0] = -(template.origin[0] + template.size[0])
 
-		if (!obj.rotation.allEqual(0)) {
-			template.pivot = obj.origin.slice();
+		if (!cube.rotation.allEqual(0)) {
+			template.pivot = cube.origin.slice();
 			template.pivot[0] *= -1;
 			
-			template.rotation = obj.rotation.slice();
+			template.rotation = cube.rotation.slice();
 			template.rotation.forEach(function(br, axis) {
 				if (axis != 2) template.rotation[axis] *= -1
 			})
 		}
 
-		if (Project.box_uv) {
-			template.uv = obj.uv_offset;
-			if (obj.mirror_uv === !bone.mirror) {
-				template.mirror = obj.mirror_uv
+		if (cube.box_uv) {
+			template.uv = cube.uv_offset;
+			if (cube.mirror_uv === !bone.mirror) {
+				template.mirror = cube.mirror_uv
 			}
 		} else {
 			template.uv = {};
-			for (var key in obj.faces) {
-				var face = obj.faces[key];
+			for (var key in cube.faces) {
+				var face = cube.faces[key];
 				if (face.texture !== null) {
 					template.uv[key] = new oneLiner({
 						uv: [
@@ -1250,7 +1269,7 @@ var block_format = new ModelFormat({
 	id: 'bedrock_block',
 	category: 'minecraft',
 	extension: 'json',
-	icon: 'icon-format_bedrock',
+	icon: 'icon-format_bedrock_block',
 	target: 'Minecraft: Bedrock Edition',
 	format_page: {
 		content: [

@@ -1,6 +1,13 @@
 //Import
 function setupDragHandlers() {
 	Blockbench.addDragHandler(
+		'texture',
+		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		function(files, event) {
+			loadImages(files, event)
+		}
+	)
+	Blockbench.addDragHandler(
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
@@ -32,13 +39,6 @@ function setupDragHandlers() {
 			})
 		}
 	)
-	Blockbench.addDragHandler(
-		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
-		function(files, event) {
-			loadImages(files, event)
-		}
-	)
 }
 
 function loadModelFile(file) {
@@ -62,6 +62,11 @@ function loadModelFile(file) {
 		}
 	}
 
+	// Text
+	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'image', file.content);
+		if (success) return;
+	}
 	// Text
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'text', file.content);
@@ -94,14 +99,16 @@ async function loadImages(files, event) {
 		}
 	}
 	if (Project) {
-		options.texture = 'action.import_texture';
+		if (Condition(Panels.textures.condition)) {
+			options.texture = 'action.import_texture';
+		}
 		options.background = 'menu.view.background';
 	}
 	options.edit = 'message.load_images.edit_image';
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
 		options.minecraft_skin = 'format.skin';
 	}
-	if (Project && !Project.box_uv) {
+	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
 		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
 
@@ -127,19 +134,7 @@ async function loadImages(files, event) {
 			preview.startMovingBackground();
 			
 		} else if (method == 'edit') {
-			newProject(Formats.image);
-			Project.texture_width = img.naturalWidth;
-			Project.texture_height = img.naturalHeight;
-			files.forEach(function(f) {
-				new Texture().fromFile(f).add();
-			})
-			UVEditor.vue.updateTexture()
-			let last = Texture.all.last();
-			Project.name = last.name;
-			last.load_callback = () => {
-				last.select();
-			}
-
+			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
 			
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
@@ -344,6 +339,7 @@ var Extruder = {
 						autouv: 0,
 						from: [rect.x*scale_i, 0, rect.y*scale_i],
 						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
+						box_uv: false,
 						faces: {
 							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
 							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
@@ -510,7 +506,7 @@ function compileJSON(object, options) {
 	function escape(string) {
 		return string.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t')
 	}
-	function handleVar(o, tabs) {
+	function handleVar(o, tabs, breaks = true) {
 		var out = ''
 		if (typeof o === 'string') {
 			//String
@@ -550,12 +546,12 @@ function compileJSON(object, options) {
 			out += ']'
 		} else if (typeof o === 'object') {
 			//Object
-			var breaks = o.constructor.name !== 'oneLiner';
+			breaks = breaks && o.constructor.name !== 'oneLiner';
 			var has_content = false
 			out += '{'
 			for (var key in o) {
 				if (o.hasOwnProperty(key)) {
-					var compiled = handleVar(o[key], tabs+1)
+					var compiled = handleVar(o[key], tabs+1, breaks)
 					if (compiled) {
 						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
 						if (breaks) {out += newLine(tabs)}
@@ -673,7 +669,7 @@ BARS.defineActions(function() {
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
-		condition: _ => Format && !Project.box_uv,
+		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
 		click: function () {
 			Blockbench.import({
 				resource_id: 'texture',
@@ -797,7 +793,7 @@ BARS.defineActions(function() {
 		
 					let name = formResult.name;
 					let expire_time = formResult.expire_time;
-					let model = Codecs.project.compile({compressed: false});
+					let model = Codecs.project.compile({compressed: false, absolute_paths: false});
 					let data = {name, expire_time, model}
 					if (formResult.thumbnail) data.thumbnail = thumbnail;
 

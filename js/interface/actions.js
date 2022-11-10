@@ -9,7 +9,15 @@ class BarItem {
 	constructor(id, data) {
 		this.id = id;
 		if (!data.private) {
-			BarItems[this.id] = this;
+			if (this.id && !BarItems[this.id]) {
+				BarItems[this.id] = this;
+			} else {
+				if (!BarItems[this.id]) {
+					console.warn(`${this.constructor.name} ${this.id} has a duplicate ID`)
+				} else {
+					console.warn(`${this.constructor.name} defined without a vaild ID`)
+				}
+			}
 		}
 		this.name = tl('action.'+this.id)
 		if (data.name) this.name = tl(data.name);
@@ -390,6 +398,9 @@ class Tool extends Action {
 		Toolbox.selected = this;
 		delete Toolbox.original;
 		this.uses++;
+		if (Project) {
+			Project.tool = Mode.selected.tool = this.id;
+		}
 
 		if (this.transformerMode) {
 			Transformer.setMode(this.transformerMode)
@@ -678,7 +689,7 @@ class NumSlider extends Widget {
 				'<div class="nslide_arrow na_right"><i class="material-icons">navigate_next</i></div>'
 			)
 
-			var n = limitNumber(scope.width/2-24, 6, 1000)
+			var n = limitNumber(scope.node.clientWidth/2-24, 6, 1000)
 
 			scope.jq_outer.find('.nslide_arrow.na_left').click(function(e) {
 				scope.arrow(-1, e)
@@ -1273,6 +1284,17 @@ class Toolbar {
 		var items = data.children
 		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
 			items = BARS.stored[scope.id]
+			if (data.children) {
+				// Add new actions to existing toolbars
+				data.children.forEach((key, index) => {
+					if (typeof key == 'string' && key.length > 1 && !items.includes(key) && !Keybinds.stored[key] && BarItems[key]) {
+						// Figure out best index based on item before. Otherwise use index from original array
+						let prev_index = items.indexOf(data.children[index-1]);
+						if (prev_index != -1) index = prev_index+1;
+						items.splice(index, 0, key);
+					}
+				})
+			}
 		}
 		if (items && items.constructor.name === 'Array') {
 			var content = $(scope.node).find('div.content')
@@ -1454,7 +1476,10 @@ class Toolbar {
 				arr.push(c.id)
 			}
 		})
-		BARS.stored[this.id] = arr
+		BARS.stored[this.id] = arr;
+		if (arr.equals(this.default_children)) {
+			delete BARS.stored[this.id];
+		}
 		localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
 		return this;
 	}
@@ -1528,7 +1553,7 @@ const BARS = {
 				animation_channel: 'position',
 				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
 				alt_tool: 'resize_tool',
-				modes: ['edit', 'display', 'animate'],
+				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'v'}),
 			})
 			new Tool('resize_tool', {
@@ -1997,10 +2022,6 @@ const BARS = {
 				'cube_counter'
 			]
 		})
-		Blockbench.onUpdateTo('4.0.0-beta.0', () => {
-			Toolbars.outliner.add(BarItems.add_mesh, 1);
-			Toolbars.outliner.add('+', -1);
-		})
 
 		Toolbars.texturelist = new Toolbar({
 			id: 'texturelist',
@@ -2035,10 +2056,6 @@ const BARS = {
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
-		})
-		Blockbench.onUpdateTo('4.2.0-beta.2', () => {
-			Toolbars.tools.add(BarItems.seam_tool, 5);
-			Toolbars.tools.add(BarItems.pan_tool, 6);
 		})
 
 		Toolbars.element_position = new Toolbar({
@@ -2109,9 +2126,6 @@ const BARS = {
 				'pick_screen_color'
 			]
 		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			Toolbars.color_picker.add(BarItems.pick_screen_color);
-		})
 
 
 		Toolbars.display = new Toolbar({
@@ -2140,14 +2154,6 @@ const BARS = {
 				'toggle_mirror_uv',
 			]
 		})
-		Blockbench.onUpdateTo('4.1.0', () => {
-			Toolbars.uv_editor.remove(BarItems.uv_grid);
-			Toolbars.uv_editor.add(BarItems.uv_mirror_x, -2);
-			Toolbars.uv_editor.add(BarItems.uv_mirror_y, -2);
-		})
-		Blockbench.onUpdateTo('4.1.0-beta.0', () => {
-			Toolbars.uv_editor.add(BarItems.move_texture_with_uv, 0);
-		})
 		//Animations
 		Toolbars.animations = new Toolbar({
 			id: 'animations',
@@ -2156,9 +2162,6 @@ const BARS = {
 				'load_animation_file',
 				'slider_animation_length',
 			]
-		})
-		Blockbench.onUpdateTo('3.8', () => {
-			Toolbars.animations.add(BarItems.load_animation_file, 1);
 		})
 		Toolbars.keyframe = new Toolbar({
 			id: 'keyframe',
@@ -2169,12 +2172,6 @@ const BARS = {
 				'change_keyframe_file',
 				'reset_keyframe'
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.keyframe.add(BarItems.keyframe_uniform, 2);
-		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			delete BARS.stored.timeline;
 		})
 		Toolbars.timeline = new Toolbar({
 			id: 'timeline',
@@ -2209,13 +2206,6 @@ const BARS = {
 				'invert_face',
 			]
 		})
-		Blockbench.onUpdateTo('4.2.0-beta.0', () => {
-			Toolbars.main_tools.add(BarItems.extrude_mesh_selection);
-			Toolbars.main_tools.add(BarItems.inset_mesh_selection);
-			Toolbars.main_tools.add(BarItems.loop_cut);
-			Toolbars.main_tools.add(BarItems.create_face);
-			Toolbars.main_tools.add(BarItems.invert_face);
-		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
@@ -2227,12 +2217,6 @@ const BARS = {
 				})
 			})
 		}
-		Blockbench.onUpdateTo('3.7', () => {
-			Toolbars.main_tools.add(BarItems.lock_motion_trail, -1);
-		})
-		Blockbench.onUpdateTo('4.0.0-beta.1', () => {
-			Toolbars.main_tools.add(BarItems.selection_mode, -1);
-		})
 		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
 			delete BARS.stored.brush;
 		})
@@ -2242,6 +2226,7 @@ const BARS = {
 				'fill_mode',
 				'copy_brush_mode',
 				'draw_shape_type',
+				'copy_paste_tool_mode',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
@@ -2267,9 +2252,6 @@ const BARS = {
 			children: [
 				'select_seam'
 			]
-		})
-		Blockbench.onUpdateTo('4.0', () => {
-			Toolbars.vertex_snap.add(BarItems.selection_mode);
 		})
 
 		Toolbox = Toolbars.tools;
@@ -2458,10 +2440,6 @@ const BARS = {
 				Toolbars[key].update()
 			}
 		}
-		/*
-		UVEditor.all_editors.forEach((editor) => {
-			editor.updateInterface()
-		})*/
 	}
 }
 

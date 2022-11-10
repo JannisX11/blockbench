@@ -152,7 +152,7 @@ class EditSession {
 			this.hosting = false;
 		}
 		Interface.tab_bar.$forceUpdate();
-		updateInterface()
+		TickUpdates.interface = true;
 	}
 	copyToken() {
 		var input = $('#edit_session_token')

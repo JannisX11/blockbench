@@ -14,8 +14,8 @@ var codec = new Codec('optifine_entity', {
 	compile(options) {
 		if (options === undefined) options = {}
 		var entitymodel = {}
-		if (settings.credit.value) {
-			entitymodel.credit = settings.credit.value
+		if (Project.credit || settings.credit.value) {
+			entitymodel.credit = Project.credit || settings.credit.value
 		}
 		var geo_code = 'geometry.'+Project.geometry_name
 		if (Texture.getDefault()) {
@@ -78,7 +78,7 @@ var codec = new Codec('optifine_entity', {
 					if (!obj.export) return;
 					if (obj.type === 'cube') {
 
-						if (Project.box_uv) {
+						if (obj.box_uv) {
 							var box = new oneLiner()
 						} else {
 							var box = {};
@@ -97,7 +97,7 @@ var codec = new Codec('optifine_entity', {
 							box.coordinates[1] -= p_model.translate[1];
 							box.coordinates[2] -= p_model.translate[2];
 						}
-						if (Project.box_uv) {
+						if (obj.box_uv) {
 							box.textureOffset = obj.uv_offset
 						} else {
 							for (var face in obj.faces) {
@@ -188,6 +188,7 @@ var codec = new Codec('optifine_entity', {
 			return new Texture().fromPath(texture_path).add(false);
 		}
 
+		if (typeof model.credit == 'string') Project.credit = model.credit;
 		if (model.textureSize) {
 			Project.texture_width = parseInt(model.textureSize[0])||16;
 			Project.texture_height = parseInt(model.textureSize[1])||16;
@@ -222,6 +223,7 @@ var codec = new Codec('optifine_entity', {
 								name: box.name || p_group.name,
 								autouv: 0,
 								uv_offset: box.textureOffset,
+								box_uv: !!box.textureOffset,
 								inflate: box.sizeAdd,
 								mirror_uv: p_group.mirror_uv
 							})
@@ -247,15 +249,17 @@ var codec = new Codec('optifine_entity', {
 								 || box.uvUp
 								 || box.uvDown
 							)) {
-								Project.box_uv = false;
-								base_cube.extend({faces: {
-									north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
-									east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
-									south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
-									west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
-									up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
-									down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
-								}})
+								base_cube.extend({
+									box_uv: false,
+									faces: {
+										north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
+										east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
+										south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
+										west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
+										up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
+										down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
+									}
+								})
 							}
 							if (p_group.parent !== 'root') {
 								for (var i = 0; i < 3; i++) {
@@ -293,6 +297,7 @@ var codec = new Codec('optifine_entity', {
 				readContent(b, group, 0)
 			})
 		}
+		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 		importTexture(model.texture);
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();

@@ -967,6 +967,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
 			let selected_face;
+			let saved_direction = 0;
 			Mesh.selected.forEach(mesh => {
 				if (!selected_face) {
 					selected_face = mesh.faces[mesh.getSelectedFaces()[0]];
@@ -975,8 +976,8 @@ BARS.defineActions(function() {
 			function getLength(direction = 0) {
 				if (selected_face) {
 					let vertices = selected_face.getSortedVertices();
-					let pos1 = Mesh.selected[0].vertices[vertices[0 + direction]];
-					let pos2 = Mesh.selected[0].vertices[vertices[1 + direction]];
+					let pos1 = Mesh.selected[0].vertices[vertices[(0 + direction) % selected_face.vertices.length]];
+					let pos2 = Mesh.selected[0].vertices[vertices[(1 + direction) % selected_face.vertices.length]];
 					return Math.sqrt(Math.pow(pos2[0] - pos1[0], 2) + Math.pow(pos2[1] - pos1[1], 2) + Math.pow(pos2[2] - pos1[2], 2));
 				} else {
 					let vertices = Mesh.selected[0].getSelectedVertices();
@@ -984,13 +985,12 @@ BARS.defineActions(function() {
 					let pos2 = Mesh.selected[0].vertices[vertices[1]];
 					return Math.sqrt(Math.pow(pos2[0] - pos1[0], 2) + Math.pow(pos2[1] - pos1[1], 2) + Math.pow(pos2[2] - pos1[2], 2));
 				}
-	
 			}
 			let length = getLength();
 
 			function runEdit(amended, offset, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
-				if (offset == undefined) offset = length/2;
+				if (offset == undefined) offset = Math.floor(length/2);
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
@@ -1012,7 +1012,8 @@ BARS.defineActions(function() {
 						let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
 						if (existing_key) return existing_key;
 
-						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], offset/length))
+						let ratio = offset/length;
+						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], ratio))
 						let [vkey] = mesh.addVertices(vector);
 						center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
 						return vkey;
@@ -1071,18 +1072,25 @@ BARS.defineActions(function() {
 								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 								let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
 								if (vertices.length >= 2) {
-									splitFace(ref_face, opposite_vertices);
+									splitFace(ref_face, opposite_vertices, ref_face.vertices.length == 4);
 									break;
 								}
 							}
+
 							if (double_side) {
 								for (let fkey in mesh.faces) {
 									let ref_face = mesh.faces[fkey];
 									if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 									let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
 									if (vertices.length >= 2) {
-										splitFace(ref_face, side_vertices);
-										break;
+										let ref_sorted_vertices = ref_face.getSortedVertices();
+										let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+										
+										if(ref_opposite_vertices.length == 2)
+										{
+											splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4);
+											break;
+										}
 									}
 								}
 							}
@@ -1093,8 +1101,8 @@ BARS.defineActions(function() {
 							let center_vertex = getCenterVertex(side_vertices);
 
 							let c1_uv_coords = [
-								(face.uv[side_vertices[0]][0] + face.uv[side_vertices[1]][0]) / 2,
-								(face.uv[side_vertices[0]][1] + face.uv[side_vertices[1]][1]) / 2,
+								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
 							];
 
 							let new_face = new MeshFace(mesh, face).extend({
@@ -1118,8 +1126,7 @@ BARS.defineActions(function() {
 					}
 
 					let start_vertices = start_face.getSortedVertices().filter((vkey, i) => selected_vertices.includes(vkey));
-					let start_offset = direction % start_vertices.length;
-					let start_edge = start_vertices.slice(start_offset, start_offset+2);
+					let start_edge = [start_vertices[direction % start_vertices.length], start_vertices[(direction+1) % start_vertices.length]];
 					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
 
 					splitFace(start_face, start_edge, start_face.vertices.length == 4);
@@ -1138,11 +1145,21 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length},
+				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length},
 			}, (form, form_options) => {
 				length = getLength(form.direction);
+
 				form_options.offset.slider.settings.max = length;
-				runEdit(true, form.offset, form.direction);
+				if(saved_direction !== form.direction)
+				{
+					form_options.offset.slider.value = Math.floor(length/2);
+					form_options.offset.slider.update();
+					saved_direction = form.direction;
+				}
+
+				form_options.direction.slider.value = form.direction % selected_face.vertices.length;
+				
+				runEdit(true, form_options.offset.slider.value, form_options.direction.slider.value);
 			})
 		}
 	})

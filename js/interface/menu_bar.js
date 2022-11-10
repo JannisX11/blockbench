@@ -179,6 +179,7 @@ const MenuBar = {
 				'export_minecraft_skin',
 				'export_gltf',
 				'export_obj',
+				'export_fbx',
 				'export_collada',
 				'upload_sketchfab',
 				'share_model',
@@ -248,7 +249,7 @@ const MenuBar = {
 				'center_x',
 				'center_y',
 				'center_z',
-				'center_all'
+				'center_lateral'
 			]},
 			{name: 'menu.transform.properties', id: 'properties', icon: 'navigate_next', children: [
 				'toggle_visibility',
@@ -273,11 +274,14 @@ const MenuBar = {
 		new BarMenu('texture', [
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',
+			'adjust_opacity',
 			'invert_colors',
 			'adjust_curves',
 			'_',
 			'flip_texture_x',
 			'flip_texture_y',
+			'rotate_texture_cw',
+			'rotate_texture_ccw',
 			'resize_texture'
 		], {
 			condition: {modes: ['paint']}
@@ -355,7 +359,9 @@ const MenuBar = {
 			'swap_tools',
 			'action_control',
 			'_',
+			'predicate_overrides',
 			'convert_to_mesh',
+			'auto_set_cullfaces',
 			'remove_blank_faces',
 		])
 		MenuBar.menus.filter = MenuBar.menus.tools;

@@ -316,17 +316,24 @@
 		width: 40px;
 		padding: 2px;
 	}
+	.toolbar > .tool.toolbar_menu {
+		float: right;
+		width: 12px;
+		color: var(--color-subtle_text);
+	}
 	.toolbar.vertical .toolbar_menu {
 		height: 24px;
 		padding: 0;
 	}
-	.toolbar > .tool.toolbar_menu {
-		float: right;
-		width: 14px;
-	}
 	.toolbar > .tool.toolbar_menu > i {
 		width: 16px;
 		margin-left: -5px;
+		font-size: 20px;
+	}
+	.toolbar.vertical > .tool.toolbar_menu > i {
+		width: auto;
+		margin-right: auto;
+		margin-left: auto;
 	}
 	.tool {
 		height: 30px;
@@ -365,7 +372,7 @@
 		padding: 0;
 	}
 	.tool.widget.bar_text {
-		padding: 2px 3px;
+		padding: 3px;
 	}
 	.tool.has_label {
 		width: auto;
@@ -567,9 +574,11 @@
 		border-left: 5px solid var(--color-accent);
 	}
 	.contextMenu li.focused,
-	.contextMenu li.parent.opened,
-	.contextMenu li.hybrid_parent.opened {
+	.contextMenu li.parent.opened {
 		background-color: var(--color-accent);
+	}
+	.contextMenu li.hybrid_parent.opened {
+		background-color: transparent;
 	}
 	.contextMenu li > i {
 		margin-top: 1px; 
@@ -602,7 +611,6 @@
 		display: block;
 	}
 	.contextMenu .menu_more_button {
-		background-color: var(--color-bright_ui);
 		width: 28px;
 		margin: -4px -8px -4px 2px;
 		padding: 4px 0;

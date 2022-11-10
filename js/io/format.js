@@ -12,6 +12,7 @@ class ModelFormat {
 		this.id = id;
 		this.name = data.name || tl('format.'+this.id);
 		this.description = data.description || tl('format.'+this.id+'.desc');
+		if (this.description == 'format.'+this.id+'.desc') this.description = '';
 		this.category = data.category || 'other';
 		this.target = data.target;
 		this.show_on_start_screen = true;
@@ -39,6 +40,9 @@ class ModelFormat {
 
 		if (data.new) this.new = data.new;
 
+		if (data.rotation_limit && data.rotation_snap === undefined) {
+			data.rotation_snap = true;
+		}
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
 		}
@@ -103,7 +107,12 @@ class ModelFormat {
 		Modes.options.edit.select()
 
 		// Box UV
-		if (!this.optional_box_uv) Project.box_uv = this.box_uv;
+		if (!this.optional_box_uv) {
+			Project.box_uv = this.box_uv;
+			Cube.all.forEach(cube => {
+				cube.setUVMode(this.box_uv);
+			})
+		}
 
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
@@ -184,7 +193,8 @@ class ModelFormat {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
 					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
-					var angle = limitNumber( Math.round(cube.rotation[axis]/22.5)*22.5, -45, 45 );
+					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
+					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0)
 					cube.rotation[axis] = angle;
 				}
@@ -232,11 +242,14 @@ new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
+new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
+new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'boolean', 'image_editor');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'pose_mode');

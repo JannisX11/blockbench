@@ -33,7 +33,7 @@ app.setAppUserModelId('blockbench')
 function initializeDesktopApp() {
 
 	//Setup
-	$(document.body).on('click', 'a[href]', (event) => {
+	$(document.body).on('click auxclick', 'a[href]', (event) => {
 		event.preventDefault();
 		shell.openExternal(event.currentTarget.href);
 		return true;
@@ -71,9 +71,6 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
-
-	ipcRenderer.send('app-loaded')
-
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
@@ -91,6 +88,22 @@ function loadOpenWithBlockbenchFile() {
 	}
 	ipcRenderer.on('open-model', (event, path) => {
 		load(path);
+	})
+	ipcRenderer.on('load-tab', (event, model) => {
+		let fake_file = {
+			path: model.editor_state?.save_path || ''
+		};
+		Codecs.project.load(model, fake_file);
+		if (model.detached_uuid) {
+			ipcRenderer.send('close-detached-project', model.detached_window_id, model.detached_uuid);
+		}
+	})
+	ipcRenderer.on('accept-detached-tab', (event, value) => {
+		Interface.page_wrapper.classList.toggle('accept_detached_tab', value);
+	})
+	ipcRenderer.on('close-detached-project', (event, uuid) => {
+		let tab = ModelProject.all.find(project => project.uuid == uuid && project.detached);
+		if (tab) tab.close(true);
 	})
 	if (electron.process.argv.length >= 2) {
 		let path = electron.process.argv.last();
@@ -175,24 +188,29 @@ function updateRecentProjectData() {
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
-	if (Outliner.elements.length == 0) return;
 	let project = Project.getProjectMemory();
 	if (!project) return;
 
-	MediaPreview.resize(180, 100)
-	MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
-	MediaPreview.setFOV(30);
-	let center = getSelectionCenter(true);
-	MediaPreview.controls.target.fromArray(center);
-	MediaPreview.controls.target.add(scene.position);
-
-	let box = Canvas.getModelSize();
-	let size = Math.max(box[0], box[1]*2)
-	MediaPreview.camera.position.multiplyScalar(size/50)
-	
 	let thumbnail;
-	await new Promise((resolve, reject) => {
-		MediaPreview.screenshot({crop: false}, url => {
+
+	if (Format.image_editor && Texture.all.length) {		
+		await new Promise((resolve, reject) => {
+			let tex = Texture.getDefault();
+			let frame = new CanvasFrame(180, 100);
+			frame.ctx.imageSmoothingEnabled = false;
+
+			let {width, height} = tex;
+			if (width > 180)   {height /= width / 180;  width = 180;}
+			if (height > 100) {width /= height / 100; height = 100;}
+			if (width < 180 && height < 100) {
+				let factor = Math.min(180 / width, 100 / height);
+				factor *= 0.92;
+				height *= factor; width *= factor;
+			}
+			frame.ctx.drawImage(tex.img, (180 - width)/2, (100 - height)/2, width, height)
+
+			let url = frame.canvas.toDataURL();
+
 			let hash = project.path.hashCode().toString().replace(/^-/, '0');
 			let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
 			thumbnail = url;
@@ -200,11 +218,36 @@ async function updateRecentProjectThumbnail() {
 				savetype: 'image',
 				content: url
 			}, resolve)
-			let store_path = project.path;
-			project.path = '';
-			project.path = store_path;
 		})
-	})
+	} else {
+		if (Outliner.elements.length == 0) return;
+
+		MediaPreview.resize(180, 100)
+		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
+		MediaPreview.setFOV(30);
+		let center = getSelectionCenter(true);
+		MediaPreview.controls.target.fromArray(center);
+		MediaPreview.controls.target.add(scene.position);
+
+		let box = Canvas.getModelSize();
+		let size = Math.max(box[0], box[1]*2)
+		MediaPreview.camera.position.multiplyScalar(size/50)
+		
+		await new Promise((resolve, reject) => {
+			MediaPreview.screenshot({crop: false}, url => {
+				let hash = project.path.hashCode().toString().replace(/^-/, '0');
+				let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`)
+				thumbnail = url;
+				Blockbench.writeFile(path, {
+					savetype: 'image',
+					content: url
+				}, resolve)
+				let store_path = project.path;
+				project.path = '';
+				project.path = store_path;
+			})
+		})
+	}
 	Blockbench.dispatchEvent('update_recent_project_thumbnail', {data: project, thumbnail});
 	StartScreen.vue.updateThumbnails([project.path]);
 

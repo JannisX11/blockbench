@@ -487,7 +487,7 @@ class Panel {
 		
 		this.update();
 		if (Panels[this.id]) {
-			updateInterface()
+			TickUpdates.interface = true;
 			this.dispatchEvent('moved_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
 		}
 		return this;

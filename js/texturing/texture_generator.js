@@ -431,6 +431,7 @@ const TextureGenerator = {
 			if (options.rearrange_uv) {
 				t.obj.uv_offset[0] = t.posx;
 				t.obj.uv_offset[1] = t.posy;
+				t.obj.box_uv = true;
 				//if true, dupes must be flipped
 				let reverse_flip = t.obj.mirror_uv;
 				t.obj.mirror_uv = false;
@@ -619,7 +620,7 @@ const TextureGenerator = {
 			})
 		}
 
-		if (!Project.box_uv) {
+		if (!cube.box_uv) {
 			var size = cube.size(undefined, true);
 			size.forEach((n, i) => {
 				size[i] = n;

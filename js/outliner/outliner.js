@@ -36,9 +36,18 @@ const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			get title() {return Project.box_uv ? tl('switches.mirror') : tl('switches.shade')},
-			get icon() {return Project.box_uv ? 'fa fa-star' : 'fa fa-star'},
-			get icon_off() {return Project.box_uv ? 'fas fa-star-half-alt' : 'far fa-star'},
+			condition: () => Format.java_face_properties,
+			title: tl('switches.shade'),
+			icon: 'fa fa-star',
+			icon_off: 'far fa-star',
+			advanced_option: true
+		},
+		mirror_uv: {
+			id: 'mirror_uv',
+			condition: (cube) => cube.box_uv,
+			title: tl('switches.mirror'),
+			icon: 'icon-mirror_x icon',
+			icon_off: 'icon-mirror_x icon',
 			advanced_option: true
 		},
 		autouv: {
@@ -333,12 +342,6 @@ class OutlinerNode {
 			return false;
 		}
 		return iterate(this.parent, 0)
-	}
-	get mirror_uv() {
-		return !this.shade;
-	}
-	set mirror_uv(val) {
-		this.shade = !val;
 	}
 }
 class OutlinerElement extends OutlinerNode {
@@ -939,7 +942,7 @@ function toggleCubeProperty(key) {
 	if (key === 'visibility') {
 		Canvas.updateVisibility()
 	}
-	if (key === 'shade' && Project.box_uv) {
+	if (key === 'mirror_uv') {
 		Canvas.updateUVs();
 	}
 	Undo.finishEdit('Toggle ' + key)
@@ -1095,22 +1098,22 @@ BARS.defineActions(function() {
 				title: 'dialog.select.title',
 				form_first: true,
 				form: {
-					new: {label: 'dialog.select.new', type: 'checkbox', value: true},
+					mode: {label: 'dialog.select.mode', type: 'select', options: {
+						new: 'dialog.select.mode.new',
+						add: 'dialog.select.mode.add',
+						remove: 'dialog.select.mode.remove',
+						in_selection: 'dialog.select.mode.in_selection',
+					}},
 					group: {label: 'dialog.select.group', type: 'checkbox'},
 					separate: '_',
 					name: {label: 'dialog.select.name', type: 'text'},
 					type: {label: 'dialog.select.type', type: 'select', options: type_options},
 					color: {label: 'menu.cube.color', type: 'select', value: '-1', options: color_options},
 					texture: {label: 'data.texture', type: 'text', list: Texture.all.map(tex => tex.name)},
+					random: {label: 'dialog.select.random', type: 'range', min: 0, max: 100, step: 1, value: 100}
 				},
-				lines: [
-					`<div class="dialog_bar form_bar">
-						<label class="name_space_left">${tl('dialog.select.random')}</label>
-						<input type="range" min="0" max="100" step="1" value="100" class="tool half" style="width: 100%;" id="selgen_random">
-					</div>`
-				],
 				onConfirm(formData) {
-					if (formData.new) {
+					if (formData.mode == 'new' || formData.mode == 'in_selection') {
 						selected.empty();
 					}
 					let selected_group = Group.selected;
@@ -1119,11 +1122,13 @@ BARS.defineActions(function() {
 					}
 					var name_seg = formData.name.toUpperCase()
 					var tex_seg = formData.texture.toLowerCase()
-					var rdm = $('#selgen_random').val()/100
 				
 					var array = Outliner.elements;
-					if ($('#selgen_group').is(':checked') && selected_group) {
+					if (formData.group && selected_group) {
 						array = selected_group.children
+					}
+					if (formData.mode == 'in_selection' || formData.mode == 'remove') {
+						array = array.slice().filter(el => el.selected);
 					}
 				
 					array.forEach(function(obj) {
@@ -1142,8 +1147,12 @@ BARS.defineActions(function() {
 						if (formData.color != '-1') {
 							if (obj.setColor == undefined || obj.color.toString() != formData.color) return;
 						}
-						if (Math.random() > rdm) return;
-						selected.safePush(obj)
+						if (Math.random() > formData.random/100) return;
+						if (formData.mode == 'remove') {
+							selected.remove(obj);
+						} else {
+							selected.safePush(obj);
+						}
 					})
 					updateSelection()
 					if (selected.length) {
@@ -1261,7 +1270,7 @@ Interface.definePanels(function() {
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="(!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
+					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
 					:title="btn.title"
@@ -1307,11 +1316,11 @@ Interface.definePanels(function() {
 			getBtnClasses: function (btn, node) {
 				let value = node.isIconEnabled(btn);
 				if (value === true) {
-					return [btn.icon];
+					return [(typeof btn.icon == 'function' ? btn.icon(node) : btn.icon)];
 				} else if (value === false) {
-					return [btn.icon_off, 'icon_off'];
+					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
 				} else {
-					return [btn.icon_alt];
+					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
 				}
 			},
 			doubleClickIcon(node) {
@@ -1319,7 +1328,8 @@ Interface.definePanels(function() {
 					node.isOpen = !node.isOpen;
 				}
 			},
-			renameOutliner
+			renameOutliner,
+			Condition
 		}
 	});
 	Vue.component('vue-tree-item', VueTreeItem);
@@ -1354,7 +1364,7 @@ Interface.definePanels(function() {
 
 	new Panel('outliner', {
 		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => Format.id !== 'image'},
+		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => !Format.image_editor},
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -1422,7 +1432,7 @@ Interface.definePanels(function() {
 									affected.push(node);
 									previous_values[node.uuid] = node[key];
 									node[key] = value;
-									if (key == 'shade' && node instanceof Cube) Canvas.updateUV(node);
+									if (key == 'mirror_uv' && node instanceof Cube) Canvas.updateUV(node);
 								})
 								// Update
 								if (key == 'visibility') Canvas.updateVisibility();

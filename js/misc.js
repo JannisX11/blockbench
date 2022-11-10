@@ -68,13 +68,17 @@ function updateNslideValues() {
 		BarItems.slider_pos_y.update()
 		BarItems.slider_pos_z.update()
 
-		BarItems.slider_size_x.update()
-		BarItems.slider_size_y.update()
-		BarItems.slider_size_z.update()
+		if (Condition(BarItems.slider_size_x)) {
+			BarItems.slider_size_x.update()
+			BarItems.slider_size_y.update()
+			BarItems.slider_size_z.update()
+		}
 
-		BarItems.slider_inflate.update()
+		if (Condition(BarItems.slider_inflate)) {
+			BarItems.slider_inflate.update()
+		}
 
-		if (!Project.box_uv) {
+		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}
 	}
@@ -118,6 +122,9 @@ function updateSelection(options = {}) {
 			}
 		}
 	})
+	if (Modes.pose && !Group.selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
+		Outliner.selected[0].parent.select();
+	}
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 
@@ -157,6 +164,11 @@ function updateSelection(options = {}) {
 		}
 		if (Modes.paint) {
 			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
+		}
+	}
+	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
+		if (!Outliner.selected[0] || Outliner.selected[0].type !== 'cube' || Outliner.selected[0].box_uv) {
+			UVEditor.vue.mode = 'uv';
 		}
 	}
 	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
@@ -291,6 +303,10 @@ const TickUpdates = {
 			if (TickUpdates.keybind_conflicts) {
 				delete TickUpdates.keybind_conflicts;
 				updateKeybindConflicts();
+			}
+			if (TickUpdates.interface) {
+				delete TickUpdates.interface;
+				updateInterface();
 			}
 		} catch (err) {
 			console.error(err);

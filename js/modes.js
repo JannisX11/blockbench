@@ -66,13 +66,15 @@ class Mode extends KeybindItem {
 			Prop.active_panel = 'preview';
 		}
 
-		updateInterface()
 		Canvas.updateRenderSides()
-		if (BarItems[this.default_tool]) {
-			if (!BarItems[this.default_tool].selected) BarItems[this.default_tool].select()
+		if (this.tool && BarItems[this.tool] && Condition(BarItems[this.tool])) {
+			BarItems[this.tool].select();
+		} else if (BarItems[this.default_tool]) {
+			if (!BarItems[this.default_tool].selected) BarItems[this.default_tool].select();
 		} else {
-			if (!BarItems.move_tool.selected) BarItems.move_tool.select()
+			if (!BarItems.move_tool.selected) BarItems.move_tool.select();
 		}
+		TickUpdates.interface = true;
 		TickUpdates.selection = true;
 		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
@@ -150,7 +152,7 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
-			if (Format.id == 'image') {
+			if (Format.image_editor) {
 				let old_color_slot = Panels.color.slot;
 				Panels.color.position_data = Interface.data.panels.color_2d;
 				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);

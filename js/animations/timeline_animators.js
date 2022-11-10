@@ -100,6 +100,16 @@ class GeneralAnimator {
 		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
 		return {before, result};
 	}
+	showContextMenu(event) {
+		Prop.active_panel = 'timeline'
+		if (!this.selected) {
+			this.select()
+		}
+		if (this.menu) {
+			this.menu.open(event, this);
+		}
+		return this;
+	}
 	toggleMuted(channel) {
 		this.muted[channel] = !this.muted[channel];
 		if (this instanceof BoneAnimator) Animator.preview();
@@ -152,6 +162,7 @@ class BoneAnimator extends GeneralAnimator {
 		super(uuid, animation);
 		this.uuid = uuid;
 		this._name = name;
+		this.rotation_global = false;
 
 		for (let channel in this.channels) {
 			this[channel] = [];
@@ -295,16 +306,23 @@ class BoneAnimator extends GeneralAnimator {
 	displayRotation(arr, multiplier = 1) {
 		var bone = this.group.mesh
 
-		if (!arr) {
-		} else if (arr.length === 4) {
-			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-			bone.rotation.x -= added_rotation.x * multiplier
-			bone.rotation.y -= added_rotation.y * multiplier
-			bone.rotation.z += added_rotation.z * multiplier
-		} else {
-			arr.forEach((n, i) => {
-				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-			})
+		if (arr) {
+			if (arr.length === 4) {
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				bone.rotation.x -= added_rotation.x * multiplier
+				bone.rotation.y -= added_rotation.y * multiplier
+				bone.rotation.z += added_rotation.z * multiplier
+			} else {
+				arr.forEach((n, i) => {
+					bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
+				})
+			}
+		}
+		if (this.rotation_global) {
+			let quat = bone.parent.getWorldQuaternion(Reusable.quat1);
+			quat.invert();
+			bone.quaternion.premultiply(quat);
+			
 		}
 		return this;
 	}
@@ -416,6 +434,20 @@ class BoneAnimator extends GeneralAnimator {
 		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
 	}
 	Group.animator = BoneAnimator;
+	BoneAnimator.prototype.menu = new Menu('bone_animator', [
+		{
+			id: 'rotation_global',
+			name: 'menu.animator.rotation_global',
+			condition: animator => animator.type == 'bone',
+			icon: (animator) => animator.rotation_global,
+			click(animator) {
+				Undo.initEdit({animations: [Animation.selected]});
+				animator.rotation_global = !animator.rotation_global;
+				Undo.finishEdit('Toggle rotation in global space');
+				Animator.preview();
+			}
+		}
+	])
 
 class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {

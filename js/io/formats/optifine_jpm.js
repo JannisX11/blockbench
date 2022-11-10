@@ -16,8 +16,8 @@ var part_codec = new Codec('optifine_part', {
 		}
 		jpm.textureSize = [Project.texture_width, Project.texture_height]
 
-		if (settings.credit.value) {
-			jpm.credit = settings.credit.value
+		if (Project.credit || settings.credit.value) {
+			jpm.credit = Project.credit || settings.credit.value
 		}
 
 		var submodels = []
@@ -80,10 +80,8 @@ var part_codec = new Codec('optifine_part', {
 	},
 	parse(model, path, add) {
 		this.dispatchEvent('parse', {model});
-		
-		Project.box_uv = false;
+
 		var new_cubes = [];
-		var box_uv_changed = false;
 		var import_group = add ? new Group({
 			name: pathToName(path)
 		}).init() : 'root';
@@ -92,6 +90,7 @@ var part_codec = new Codec('optifine_part', {
 			Undo.initEdit({elements: new_cubes, outliner: true, uv_mode: true})
 		}
 
+		if (typeof model.credit == 'string') Project.credit = model.credit;
 		var resolution = model.textureSize;
 		if (resolution.length == 2) {
 			Project.texture_width = parseInt(resolution[0])||0;
@@ -135,15 +134,15 @@ var part_codec = new Codec('optifine_part', {
 							origin
 						})
 						if (box.textureOffset) {
-							if (!add && !box_uv_changed) Project.box_uv = true;
-							box_uv_changed = true;
+							base_cube.box_uv = true;
 							base_cube.extend({
+								box_uv: true,
 								uv_offset: box.textureOffset
 							})
 						} else {
-							if (!add && !box_uv_changed) Project.box_uv = false;
-							box_uv_changed = true;
+							base_cube.box_uv = false;
 							base_cube.extend({
+								box_uv: false,
 								faces: {
 									north: {uv: box.uvNorth},
 									east: {uv: box.uvEast},
@@ -205,6 +204,8 @@ var part_codec = new Codec('optifine_part', {
 		}
 		if (add) {
 			Undo.finishEdit('Add JPM model')
+		} else {
+			Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 		}
 		addSubmodel(model)
 		this.dispatchEvent('parsed', {model});

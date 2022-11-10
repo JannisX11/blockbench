@@ -132,7 +132,7 @@
 		padding: 2px;
 		color: var(--color-accent_text);
 		background-color: var(--color-accent);
-		top: 0;
+		top: -1px;
 	}
 	#start_screen .recent_project.thumbnail:hover .recent_project_name {
 		color: var(--color-accent_text);
@@ -443,6 +443,7 @@
 		padding: 20px 24px;
 		display: block;
 		border-bottom: 5px solid var(--color-border);
+		border-top: 5px solid var(--color-border);
 	}
 	section#quick_setup > h2 {
 		display: block;

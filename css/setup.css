@@ -121,8 +121,8 @@
 		font-family: 'icomoon';
 		font-weight: normal;
 		font-style: normal;
-		src: url('../font/icomoon.ttf?aswqub') format('truetype'),
-			 url('../font/icomoon.woff?aswqub') format('woff');
+		src: url('../font/icomoon.ttf?ulxgq0') format('truetype'),
+			 url('../font/icomoon.woff?ulxgq0') format('woff');
 	}
 
 /*Icons*/
@@ -141,6 +141,19 @@
 	  -moz-osx-font-smoothing: grayscale;
 	}
 
+
+	.icon-collada:before {
+	  content: "\e926";
+	}
+	.icon-fbx:before {
+	  content: "\e927";
+	}
+	.icon-format_bedrock_block:before {
+	  content: "\e928";
+	}
+	.icon-format_bedrock_entity:before {
+	  content: "\e929";
+	}
 	.icon-keyframe:before {
 	  content: "\e924";
 	}
@@ -410,7 +423,7 @@
 		appearance: none;
 		border: none;
 		background: transparent;
-		color: var(--color-text);
+		color: inherit;
 		font-size: 1em;
 		font-family: inherit;
 		outline: none;
@@ -453,6 +466,7 @@
 	}
 	button > i {
 		pointer-events: none;
+		vertical-align: middle;
 	}
 	select {
 		-webkit-appearance: none;
@@ -499,8 +513,10 @@
 		min-width: 50px;
 		padding-top: 4px;
 		padding-left: 8px;
-	    padding-right: 24px;
-	    color: var(--color-text);
+		padding-right: 24px;
+		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
 	}
 	bb-select:hover{
 		color: var(--color-light);
@@ -588,6 +604,9 @@
 		font-size: 1.2em;
 	}
 	input[type=checkbox]::before {
+		text-align: center;
+	}
+	input[type=checkbox]::before {
 		content: "\f0c8";
 		font-family: 'Font Awesome 6 Free';
     	font-weight: 300;
@@ -615,6 +634,10 @@
 	}
 	input[type=radio][disabled=disabled] {
 		color: var(--color-subtle_text);
+	}
+	input:-webkit-autofill,
+	input:-webkit-autofill:focus {
+		transition: background-color 600000s 0s, color 600000s 0s;
 	}
 
 	div.nslide {

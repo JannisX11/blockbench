@@ -228,6 +228,7 @@ const Blockbench = {
 			let list = Interface.createElement('ul');
 			for (let id in options.commands) {
 				let command = options.commands[id];
+				if (!Condition(command.condition)) continue;
 				let text = tl(typeof command == 'string' ? command : command.text);
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
 				entry.addEventListener('click', e => {

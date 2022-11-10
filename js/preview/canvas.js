@@ -665,6 +665,7 @@ const Canvas = {
 		Canvas.pivot_marker.add(helper1)
 		Canvas.pivot_marker.add(helper2)
 
+		Canvas.pivot_marker.name = 'pivot_marker';
 		Canvas.pivot_marker.rotation.order = 'ZYX';
 		Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
 		Canvas.pivot_marker.no_export = true;
@@ -935,7 +936,7 @@ const Canvas = {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
 			var mesh = obj.mesh;
-			if (!mesh || !mesh.geometry) return;
+			if (!mesh || !mesh.geometry || !mesh.outline) return;
 
 			var copy = mesh.outline.clone();
 			copy.geometry = mesh.outline.geometry.clone();
@@ -953,7 +954,7 @@ const Canvas = {
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
 			let bone = obj.mesh
-			if (bone) {
+			if (bone && obj instanceof Group) {
 
 				bone.rotation.order = 'ZYX';
 				bone.rotation.setFromDegreeArray(obj.rotation);
@@ -1212,7 +1213,7 @@ const Canvas = {
 		var mesh = cube.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
-		if (Project.box_uv) {
+		if (cube.box_uv) {
 
 			var size = cube.size(undefined, true)
 			

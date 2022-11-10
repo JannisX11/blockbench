@@ -192,8 +192,8 @@ var codec = new Codec('java_block', {
 		}
 
 		var blockmodel = {}
-		if (checkExport('comment', settings.credit.value)) {
-			blockmodel.credit = settings.credit.value
+		if (checkExport('comment', Project.credit || settings.credit.value)) {
+			blockmodel.credit = Project.credit || settings.credit.value
 		}
 		if (checkExport('parent', Project.parent != '')) {
 			blockmodel.parent = Project.parent
@@ -213,8 +213,9 @@ var codec = new Codec('java_block', {
 		if (checkExport('front_gui_light', Project.front_gui_light)) {
 			blockmodel.gui_light = 'front';
 		}
-		if (checkExport('overrides', Project.overrides)) {
-			blockmodel.overrides = Project.overrides;
+		if (checkExport('overrides', Project.overrides instanceof Array && Project.overrides.length)) {
+			Project.overrides.forEach(override => delete override._uuid)
+			blockmodel.overrides = Project.overrides.map(override => new oneLiner(override));
 		}
 		if (checkExport('display', Object.keys(Project.display_settings).length >= 1)) {
 			var new_display = {}
@@ -258,8 +259,6 @@ var codec = new Codec('java_block', {
 			})
 			return;
 		}
-		Formats.java_block.select()
-		Settings.save()
 
 		this.dispatchEvent('parse', {model});
 
@@ -273,6 +272,7 @@ var codec = new Codec('java_block', {
 		}
 
 		//Load
+		if (typeof (model.credit || model.__comment) == 'string') Project.credit = (model.credit || model.__comment);
 		if (model.texture_size instanceof Array && !add) {
 			Project.texture_width  = Math.clamp(parseInt(model.texture_size[0]), 1, Infinity)
 			Project.texture_height = Math.clamp(parseInt(model.texture_size[1]), 1, Infinity)
@@ -431,11 +431,49 @@ var codec = new Codec('java_block', {
 			texture_mesh.locked = true;
 
 			new_cubes.push(texture_mesh);
+
 		} else if (!model.elements && model.parent) {
+			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
 			Blockbench.showMessageBox({
 				translateKey: 'child_model_only',
 				icon: 'info',
-				message: tl('message.child_model_only.message', [model.parent])
+				message: tl('message.child_model_only.message', [model.parent]),
+				commands: can_open && {
+					open: 'message.child_model_only.open',
+					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
+				}
+			}, (result) => {
+				if (result) {
+					let textures;
+					if (result == 'open_with_textures') {
+						textures = {};
+						Texture.all.forEach(tex => {
+							textures[tex.id] = tex;
+						})
+					}
+					let parent = model.parent.replace(/\w+:/, '');
+					let path_arr = path.split(osfs);
+					let index = path_arr.length - path_arr.indexOf('models');
+					path_arr.splice(-index);
+					path_arr.push('models', ...parent.split('/'));
+					let parent_path = path_arr.join(osfs) + '.json';
+
+					Blockbench.read([parent_path], {}, (files) => {
+						loadModelFile(files[0]);
+
+						if (result == 'open_with_textures') {
+							Texture.all.forEach(tex => {
+								if (tex.error == 3 && tex.name.startsWith('#')) {
+									let loaded_tex = textures[tex.name.replace(/#/, '')];
+									if (loaded_tex) {
+										tex.fromPath(loaded_tex.path);
+										tex.namespace = loaded_tex.namespace;
+									}
+								}
+							})
+						}
+					})
+				}
 			})
 		}
 		updateSelection()
@@ -486,11 +524,13 @@ var format = new ModelFormat({
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
 	rotation_limit: true,
+	rotation_snap: true,
 	optional_box_uv: true,
 	uv_rotation: true,
 	java_face_properties: true,
 	animated_textures: true,
 	select_texture_for_particles: true,
+	texture_mcmeta: true,
 	display_mode: true,
 	texture_folder: true,
 	cube_size_limiter: {

@@ -37,7 +37,7 @@
 		cursor: pointer;
 	}
 	.dialog_close_button:hover {
-		color: var(--color-light);
+		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
 	.dialog_sidebar_menu_button {
@@ -120,8 +120,26 @@
 	.dialog_bar.form_bar {
 		display: flex;
 	}
+	label.name_space_left {
+		float: left;
+		min-width: 140px;
+		padding-top: 4px;
+		padding-left: 1px;
+		padding-right: 8px;
+		flex-shrink: 0;
+		overflow-wrap: break-word;
+	}
+	.dialog_bar.form_bar.full_width_dialog_bar {
+		flex-wrap: wrap;
+	}
+	.dialog_bar.form_bar.full_width_dialog_bar > label {
+		width: 100% !important;
+	}
 	.dialog_bar.form_bar .half {
 		flex-grow: 1;
+	}
+	.dialog_bar > label {
+		width: var(--max_label_width);
 	}
 	.dialog_bar::after {
 		content: "";
@@ -135,12 +153,12 @@
 		text-align: right;
 		flex: 0 0 auto;
 	}
-	.dialog_bar button.large {
+	.dialog_bar > button.large {
 		margin-bottom: 0;
 		margin-top: 16px;
 		margin: 16px 4px 0 4px;
 	}
-	.dialog_bar button.confirm_btn:not(:hover) {
+	.dialog_bar > button.confirm_btn:not(:hover) {
 		background-color: var(--color-selected);
 	}
 	.dialog_bar input[type=checkbox] {
@@ -168,6 +186,14 @@
 	}
 	.dialog_vector_group > input:not(:last-child) {
 		margin-right: 3px;
+	}
+	.dialog_bar > .range_input_label {
+		overflow: hidden;
+		width: 58px;
+		flex-grow: 0;
+		flex-shrink: 0;
+		padding-top: 4px;
+		padding-left: 6px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -789,6 +815,9 @@
 	}
 
 /*Specific Dialogs*/
+	dialog#model_stats .form_bar  {
+		margin: 0;
+	}
 	.dialog#texture_edit p.multiline_text {
 		width: 344px;
 		min-height: 51px;
@@ -928,15 +957,6 @@
 		padding: 6px;
 		padding-top: 2px;
 		height: 30px;
-	}
-	label.name_space_left {
-		float: left;
-		min-width: 155px;
-		margin-top: 4px;
-		margin-left: 1px;
-		margin-right: 8px;
-		flex-shrink: 0;
-		overflow-wrap: break-word;
 	}
 
 	/*PE Import Dialog*/
@@ -1557,4 +1577,97 @@
 		left: -6px;
 		top: -6px;
 		cursor: move;
+	}
+/* Predicate Overrides */
+	.predicate_override_top_bar {
+		margin-bottom: 22px;
+	}
+	.predicate_override_top_bar > span {
+		max-width: calc(100% - 240px);
+		display: inline-block;
+		color: var(--color-subtle_text);
+	}
+	dialog#predicate_overrides .bar.flex div {
+		flex: 1 1 0;
+		padding: 0 10px;
+		text-align: center;
+		color: var(--color-subtle_text);
+	}
+	#predicate_override_list > li {
+		background-color: var(--color-ui);
+		display: flex;
+		margin: 8px;
+	}
+	#predicate_override_list .predicate {
+		display: flex;
+	}
+	#predicate_override_list .predicate_model {
+		width: 50px;
+		flex-grow: 1;
+		padding: 4px;
+	}
+	#predicate_override_list .predicate_model input {
+		width: 100%;
+	}
+	#predicate_override_list .predicate_model .tool {
+		float: right;
+	}
+	#predicate_override_list > li > .tool {
+		margin: 4px;
+	}
+	#predicate_override_list .predicate_list {
+		flex-grow: 1;
+		width: 100px;
+		position: relative;
+	}
+	#predicate_override_list .predicate_list li {
+		display: flex;
+		gap: 6px;
+		padding: 4px;
+	}
+	#predicate_override_list .predicate_list > li > bb-select {
+		flex-grow: 1;
+	}
+	#predicate_override_list .predicate_list > li > input {
+		width: 80px;
+    	flex-shrink: 1;
+		text-align: center;
+	}
+	#predicate_override_list .predicate_list > li .tool {
+		width: 28px;
+	}
+	.predicate_drag_handle {
+		width: 18px;
+		cursor: move;
+		flex-shrink: 0;
+		background-color: var(--color-button);
+	}
+	#predicate_override_list .predicate_list > .tool {
+		position: absolute;
+		bottom: 4px;
+		left: -32px;
+	}
+	#predicate_override_add {
+		overflow: hidden;
+		display: flex;
+		gap: 4px;
+	}
+	#predicate_override_add button {
+		overflow: hidden;
+		flex-grow: 1;
+	}
+	#predicate_override_generator {
+		margin-top: 10px;
+		display: flex;
+		border: 1px solid var(--color-accent);
+		height: 46px;
+		padding: 7px 4px;
+	}
+	#predicate_override_generator bb-select {
+		flex-grow: 1;
+	}
+	#predicate_override_generator label {
+		padding: 3px 4px;
+		margin-left: 8px;
+		white-space: nowrap;
 	}

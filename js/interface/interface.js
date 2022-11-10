@@ -210,7 +210,7 @@ const Interface = {
 				var p = document.getElementById('preview')
 				this.setPosition({
 					top: 32,
-					bottom: p ? window.innerHeight - (p.clientHeight + p.offsetTop) : 0,
+					bottom: p ? window.innerHeight - (p.clientHeight + $(p).offset().top) : 0,
 					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
 				}
 			)}
@@ -238,6 +238,7 @@ const Interface = {
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
 				panel.position_data.height = limitNumber(o + diff, 150);
+				if (panel.folded) panel.fold(false);
 				panel.update();
 				if (Interface.getBottomPanel()) Interface.getBottomPanel().update();
 			},
@@ -255,8 +256,10 @@ const Interface = {
 				return panel.folded ? panel.handle.clientHeight : panel.height;
 			},
 			set(o, diff) {
-				Interface.getBottomPanel().position_data.height = limitNumber(o - diff, 150);
-				Interface.getBottomPanel().update();
+				let panel = Interface.getBottomPanel();
+				panel.position_data.height = limitNumber(o - diff, 150);
+				if (panel.folded) panel.fold(false);
+				panel.update();
 				if (Interface.getTopPanel()) Interface.getTopPanel().update();
 			},
 			position() {this.setPosition({
@@ -513,7 +516,12 @@ function resizeWindow(event) {
 			prev.resize()
 		}
 	})
-	if (Format.id == 'image') {
+	Outliner.elements.forEach(element => {
+		if (element.preview_controller.updateWindowSize) {
+			element.preview_controller.updateWindowSize(element);
+		}
+	})
+	if (Format.image_editor) {
 		UVEditor.updateSize();
 	}
 	var dialog = $('dialog#'+open_dialog)

@@ -268,8 +268,9 @@ const Settings = {
 		new Setting('large_box',		{category: 'grid', value: false});
 		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
 		//new Setting('display_grid',		{category: 'grid', value: false});
-		new Setting('painting_grid',	{category: 'grid', value: true, onChange() {
+		new Setting('painting_grid',	{category: 'grid', value: true, onChange(value) {
 			Canvas.updatePaintingGrid();
+			UVEditor.vue.pixel_grid = value;
 		}});
 		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;
@@ -337,13 +338,9 @@ const Settings = {
 			quads: tl('settings.obj_face_export_mode.quads'),
 		}});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number', min: 1, max: 640});
+		new Setting('model_export_scale',	{category: 'export', value: 16, type: 'number', min: 0.0001, max: 4096});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
-
-		Blockbench.onUpdateTo('3.8', () => {
-			settings.preview_checkerboard.value = true;
-			settings.uv_checkerboard.value = true;
-		})
 	},
 	addCategory(id, data = {}) {
 		Settings.structure[id] = {

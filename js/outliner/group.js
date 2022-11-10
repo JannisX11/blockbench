@@ -475,11 +475,12 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
-new Property(Group, 'string', 'bedrock_binding', {condition: () => Format.id == 'bedrock'});
-new Property(Group, 'array', 'cem_animations', {condition: () => Format.id == 'optifine_entity'});
-new Property(Group, 'boolean', 'cem_attach', {condition: () => Format.id == 'optifine_entity'});
-new Property(Group, 'string', 'texture', {condition: () => Format.id == 'optifine_entity'});
-new Property(Group, 'vector2', 'texture_size', {condition: () => Format.id == 'optifine_entity'});
+new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
+new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
 
 new NodePreviewController(Group, {

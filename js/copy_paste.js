@@ -64,6 +64,9 @@ const Clipbench = {
 		if (getFocusedTextInput()) {
 			return Clipbench.types.text;
 		}
+		if (!Project) {
+			return Clipbench.types.image;
+		}
 		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
 			return Clipbench.types.texture_selection;
 		}
@@ -114,9 +117,6 @@ const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
-		}
-		if (!Project) {
-			return Clipbench.types.image;
 		}
 	},
 	copy(event, cut) {
@@ -365,7 +365,8 @@ const Clipbench = {
 				if (cube instanceof Cube == false) return;
 				if (!cube.rotation.allEqual(0)) {
 					var axis = getAxisNumber(cube.rotationAxis()) || 0;
-					var angle = limitNumber( Math.round(cube.rotation[axis]/22.5)*22.5, -45, 45 );
+					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
+					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0);
 					cube.rotation[axis] = angle;
 				}
@@ -378,16 +379,8 @@ const Clipbench = {
 	pasteImage() {
 		function loadFromDataUrl(dataUrl) {
 			if (!dataUrl || dataUrl.length < 32) return;
-			
-			newProject(Formats.image);
-			var texture = new Texture({name: 'image'}).fromDataURL(dataUrl).add(false);
-			UVEditor.vue.updateTexture()
-			Project.name = 'image';
-			texture.load_callback = () => {
-				texture.select();
-				Project.texture_height = texture.display_height;
-				Project.texture_width = texture.width;
-			}
+
+			Codecs.image.load(dataUrl);
 		}
 	
 		if (isApp) {

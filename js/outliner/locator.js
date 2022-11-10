@@ -87,6 +87,7 @@ class Locator extends OutlinerElement {
 	Locator.prototype.buttons = [
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
@@ -119,11 +120,54 @@ new Property(Locator, 'string', 'name', {default: 'locator'})
 new Property(Locator, 'vector', 'position')
 new Property(Locator, 'vector', 'rotation')
 new Property(Locator, 'boolean', 'ignore_inherited_scale')
+new Property(Locator, 'boolean', 'visibility', {default: true});
 new Property(Locator, 'boolean', 'locked');
 
 OutlinerElement.registerType(Locator, 'locator');
 
-new NodePreviewController(Locator)
+(function() {
+
+	const map = new THREE.TextureLoader().load( 'assets/locator.png' );
+	map.magFilter = map.minFilter = THREE.NearestFilter;
+
+	new NodePreviewController(Locator, {
+		setup(element) {
+			let material = new THREE.SpriteMaterial({
+				map,
+				alphaTest: 0.1,
+				sizeAttenuation: false
+			});
+			var mesh = new THREE.Sprite(material);
+			Project.nodes_3d[element.uuid] = mesh;
+			mesh.name = element.uuid;
+			mesh.type = element.type;
+			mesh.isElement = true;
+			mesh.visible = element.visibility;
+			mesh.rotation.order = 'ZYX';
+			this.updateTransform(element);
+
+			this.dispatchEvent('setup', {element});
+		},
+		updateTransform(element) {
+			NodePreviewController.prototype.updateTransform(element);
+			this.updateWindowSize(element);
+		},
+		updateSelection(element) {
+			let {mesh} = element;
+
+			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+			mesh.material.depthTest = !element.selected;
+			mesh.renderOrder = element.selected ? 100 : 0;
+
+			this.dispatchEvent('update_selection', {element});
+		},
+		updateWindowSize(element) {
+			let size = 18 / Preview.selected.height;
+			element.mesh.scale.set(size, size, size);
+		}
+	})
+
+})()
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

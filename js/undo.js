@@ -121,11 +121,15 @@ class UndoSystem {
 			}
 
 			if (this.amend_edit_menu.form[key].type == 'number') {
+				let getInterval = form_line.getInterval;
+				if (form_line.interval_type == 'position') getInterval = getSpatialInterval;
+				if (form_line.interval_type == 'rotation') getInterval = getRotationInterval;
 				let slider = new NumSlider({
 					id: 'amend_edit_slider',
 					name: tl(form_line.label),
 					private: true,
 					onChange: updateValue,
+					getInterval,
 					settings: {
 						default: form_line.value || 0,
 						min: form_line.min,

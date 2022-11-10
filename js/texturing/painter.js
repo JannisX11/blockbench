@@ -8,7 +8,7 @@ const Painter = {
 	lock_alpha: false,
 	erase_mode: false,
 	edit(texture, cb, options) {
-		if (!options.no_undo) {
+		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (texture.mode === 'link') {
@@ -38,7 +38,7 @@ const Painter = {
 			if (options.method === 'jimp') {
 				Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 					texture.updateSource(dataUrl)
-					if (!options.no_undo) {
+					if (!options.no_undo && !options.no_undo_finish) {
 						Undo.finishEdit(edit_name)
 					}
 				})
@@ -51,7 +51,9 @@ const Painter = {
 					UVEditor.vue.updateTextureCanvas();
 				} else {
 					texture.updateSource(instance.toDataURL())
-					Undo.finishEdit(edit_name)
+					if (!options.no_undo_finish) {
+						Undo.finishEdit(edit_name)
+					}
 				}
 			}
 		} else {
@@ -62,7 +64,7 @@ const Painter = {
 					Painter.current.image = image
 					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
 						texture.updateSource(dataUrl)
-						if (!options.no_undo) {
+						if (!options.no_undo && !options.no_undo_finish) {
 							Undo.finishEdit(edit_name)
 						}
 					})
@@ -74,7 +76,7 @@ const Painter = {
 				c = cb(c) || c;
 
 				texture.updateSource(c.toDataURL())
-				if (!options.no_undo) {
+				if (!options.no_undo && !options.no_undo_finish) {
 					Undo.finishEdit(edit_name)
 				}
 			}
@@ -116,7 +118,7 @@ const Painter = {
 						let opacity = Math.floor(color.getAlpha()*256);
 						for (let id in BarItems) {
 							let tool = BarItems[id];
-							if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+							if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 								tool.tool_settings.brush_opacity = opacity;
 							}
 						}
@@ -587,6 +589,7 @@ const Painter = {
 	getMirrorPaintTargets(texture, x, y, uvTag) {
 		function getTargetWithOptions(symmetry_axes, local) {
 			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
+			let offset_pixel_brush = Condition(Toolbox.selected.brush?.floor_coordinates) ? 1 : 0;
 			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius && Condition(Toolbox.selected.brush?.floor_coordinates);
 			if (mirror_element instanceof Cube) {
 	
@@ -615,8 +618,10 @@ const Painter = {
 				//calculate new point
 				let mirror_x = symmetry_axes[0] != symmetry_axes[2];
 				if (local === null) mirror_x = !mirror_x;
+				if (fkey === 'up' || fkey === 'down') mirror_x = !!symmetry_axes[0];
+				
 				if ((face.uv[0] > face.uv[0+2] == uvTag[0] > uvTag[0+2]) == mirror_x) {
-					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - 1;
+					point_on_uv[0] = Math.max(face.uv[0], face.uv[0+2]) * uvFactorX - point_on_uv[0] - offset_pixel_brush;
 					if (even_brush_size) point_on_uv[0] += 1
 				} else {
 					point_on_uv[0] = Math.min(face.uv[0], face.uv[0+2]) * uvFactorX + point_on_uv[0];
@@ -625,7 +630,7 @@ const Painter = {
 				if ((face.uv[1] > face.uv[1+2] == uvTag[1] > uvTag[1+2]) != mirror_y) {
 					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
 				} else {
-					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - 1;
+					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - offset_pixel_brush;
 				}
 	
 				return {
@@ -755,6 +760,31 @@ const Painter = {
 				}
 			})
 		}
+		// 2D
+		if (Painter.mirror_painting_options.texture && !Painter.current.element) {
+			let offset = 0;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
+			}
+			if (Painter.mirror_painting_options.axis.x) {
+				targets.push({
+					x: texture.width - x - offset,
+					y: y
+				});
+			}
+			if (Painter.mirror_painting_options.axis.z) {
+				targets.push({
+					x: x,
+					y: texture.display_height - y - offset
+				});
+			}
+			if (Painter.mirror_painting_options.axis.x && Painter.mirror_painting_options.axis.z) {
+				targets.push({
+					x: texture.width - x - offset,
+					y: texture.display_height - y - offset
+				});
+			}
+		}
 		// Texture animation
 		if (Painter.mirror_painting_options.texture_frames && Format.animated_textures && texture && texture.frameCount > 1) {
 			let spatial_targets = targets.slice();
@@ -853,7 +883,7 @@ const Painter = {
 					ctx.beginPath();
 					var rect = getRectangle(start_x, start_y, start_x+diff_x, start_y+diff_y);
 					
-					if (hollow) {
+					if (hollow && rect.w > 0 && rect.h > 0) {
 						ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
 						ctx.stroke();
 					} else {
@@ -941,9 +971,9 @@ const Painter = {
 				}
 
 				if (shape === 'ellipse') {
-					Blockbench.setStatusBarText(`${diff_x*2 + 1} x ${diff_y*2 + 1}`);
+					Blockbench.setStatusBarText(`${Math.abs(diff_x*2) + 1} x ${Math.abs(diff_y*2) + 1}`);
 				} else {
-					Blockbench.setStatusBarText(`${diff_x + 1} x ${diff_y + 1}`);
+					Blockbench.setStatusBarText(`${Math.abs(diff_x) + 1} x ${Math.abs(diff_y) + 1}`);
 				}
 			}
 
@@ -1061,7 +1091,7 @@ const Painter = {
 			let opacity = Math.floor(color.getAlpha()*256);
 			for (let id in BarItems) {
 				let tool = BarItems[id];
-				if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+				if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 					tool.tool_settings.brush_opacity = opacity;
 				}
 			}
@@ -2067,6 +2097,14 @@ BARS.defineActions(function() {
 			sample: true
 		}
 	})
+	new BarSelect('copy_paste_tool_mode', {
+		category: 'paint',
+		condition: {tools: ['copy_paste_tool']},
+		options: {
+			copy: true,
+			move: true,
+		}
+	})
 
 	StateMemory.init('mirror_painting_options', 'object');
 	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
@@ -2167,6 +2205,13 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.local,
 				click() {toggleMirrorPaintingSpace('local')}
 			},
+			// Texture
+			{
+				name: 'menu.mirror_painting.texture',
+				description: 'menu.mirror_painting.texture.desc',
+				icon: () => !!Painter.mirror_painting_options.texture,
+				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
+			},
 			// Animated Texture Frames
 			{
 				name: 'menu.mirror_painting.texture_frames',
@@ -2198,7 +2243,7 @@ BARS.defineActions(function() {
 	new Toggle('painting_grid', {
 		icon: 'grid_on',
 		category: 'view',
-		condition: () => Modes.paint && Format.id != 'image',
+		condition: () => Modes.paint,
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})

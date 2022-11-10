@@ -16,6 +16,8 @@ var codec = new Codec('collada', {
 		let images = [];
 		let materials = [];
 
+		let export_scale = Settings.get('model_export_scale');
+
 		// Structure
 		let model = {
 			type: 'COLLADA',
@@ -159,7 +161,11 @@ var codec = new Codec('collada', {
 			let primitive = [];
 
 			function addPosition(x, y, z) {
-				positions.push((x - cube.origin[0]) / 16, (y - cube.origin[1]) / 16, (z - cube.origin[2]) / 16);
+				positions.push(
+					(x - cube.origin[0]) / export_scale,
+					(y - cube.origin[1]) / export_scale,
+					(z - cube.origin[2]) / export_scale
+				);
 			}
 
 			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
@@ -352,7 +358,7 @@ var codec = new Codec('collada', {
 			let vertex_keys = [];
 
 			function addPosition(x, y, z) {
-				positions.push(x/16, y/16, z/16);
+				positions.push(x/export_scale, y/export_scale, z/export_scale);
 			}
 
 			for (let vkey in mesh.vertices) {
@@ -530,7 +536,7 @@ var codec = new Codec('collada', {
 				},
 				content: [
 					{type: 'scale', attributes: {sid: 'scale'}, content: '1 1 1'},
-					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(16).join(' ')},
+					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(export_scale).join(' ')},
 				]
 			}
 			if (node.rotatable) {
@@ -665,7 +671,7 @@ var codec = new Codec('collada', {
 								if (!track_channel.values) track_channel.values = [];
 								let pos = group.origin.slice();
 								if (group.parent instanceof Group) pos.V3_subtract(group.parent.origin);
-								pos.V3_divide(16);
+								pos.V3_divide(export_scale);
 								track_channel.values.push(...pos, ...pos);
 							}
 						}
@@ -837,7 +843,7 @@ var codec = new Codec('collada', {
 		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
-			if (tex.error == 1) return;
+			if (tex.error) return;
 			var name = tex.name;
 			if (name.substr(-4).toLowerCase() !== '.png') {
 				name += '.png';
@@ -870,7 +876,7 @@ var codec = new Codec('collada', {
 			archive.file((Project.name||'model')+'.dae', content)
 
 			Texture.all.forEach(tex => {
-				if (tex.error == 1) return;
+				if (tex.error) return;
 				var name = tex.name;
 				if (name.substr(-4).toLowerCase() !== '.png') {
 					name += '.png';
@@ -893,7 +899,7 @@ var codec = new Codec('collada', {
 BARS.defineActions(function() {
 	codec.export_action = new Action({
 		id: 'export_collada',
-		icon: 'fas.fa-sync-alt',
+		icon: 'icon-collada',
 		category: 'file',
 		click: function () {
 			codec.export()

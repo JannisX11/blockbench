@@ -161,12 +161,13 @@ new ValidatorCheck('cube_size_limit', {
 })
 
 new ValidatorCheck('box_uv', {
-	condition: () => Project.box_uv,
+	condition: () => Cube.all.find(cube => cube.box_uv),
 	update_triggers: ['update_selection'],
 	run() {
 		Cube.all.forEach(cube => {
+			if (!cube.box_uv) return;
 			let size = cube.size();
-			let invalid_size_axes = size.filter(value => value < 1 && (value+cube.inflate*2) > 0.005);
+			let invalid_size_axes = size.filter(value => value < 0.999 && (value+cube.inflate*2) > 0.005);
 			if (invalid_size_axes.length) {
 				let buttons = [
 					{
@@ -323,9 +324,6 @@ new ValidatorCheck('molang_syntax', {
 			}
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character');
-			}
-			if (clear_string.match(/(?!')[a-df-z_]+\s*[-?]+\s*[a-z_]+/i)) {
-				issues.push('Invalid expression "' + clear_string.match(/(?!')[a-df-z_]+\s*[-?]+\s*[a-z_]+/i)[0] + '"');
 			}
 			if (clear_string.match(/[\w.]\s+[\w.]/)) {
 				issues.push('Two expressions with no operator in between');
