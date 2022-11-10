@@ -838,7 +838,7 @@ function getSpatialInterval(event = 0) {
 }
 //Rotate
 function getRotationInterval(event) {
-	if (Format.rotation_limit) {
+	if (Format.rotation_snap) {
 		return 22.5;
 	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
 		return 0.25;
@@ -986,13 +986,16 @@ function rotateOnAxis(modify, axis, slider) {
 				obj.rotation[(axis+1)%3] = 0
 				obj.rotation[(axis+2)%3] = 0
 				//Limit Angle
-				obj_val = Math.round(obj_val/22.5)*22.5
+				if (Format.rotation_snap) {
+					obj_val = Math.round(obj_val/22.5)*22.5
+				}
 				if (obj_val > 45 || obj_val < -45) {
 	
 					let f = obj_val > 45
 					let can_roll = obj.roll(axis, f!=(axis==1) ? 1 : 3);
 					if (can_roll) {
-						obj_val = f ? -22.5 : 22.5;
+						let roll_angle = Format.rotation_snap ? 22.5 : 90 - Math.abs(obj_val)
+						obj_val = f ? -roll_angle : roll_angle;
 					} else {
 						obj_val = Math.clamp(obj_val, -45, 45);
 					}

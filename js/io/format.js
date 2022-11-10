@@ -190,7 +190,8 @@ class ModelFormat {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
 					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
-					var angle = limitNumber( Math.round(cube.rotation[axis]/22.5)*22.5, -45, 45 );
+					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
+					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0)
 					cube.rotation[axis] = angle;
 				}
@@ -238,6 +239,7 @@ new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
+new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
