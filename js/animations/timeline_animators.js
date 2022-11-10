@@ -304,18 +304,19 @@ class BoneAnimator extends GeneralAnimator {
 		}
 	}
 	displayRotation(arr, multiplier = 1) {
-		if (!arr) return this;
 		var bone = this.group.mesh
 
-		if (arr.length === 4) {
-			var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-			bone.rotation.x -= added_rotation.x * multiplier
-			bone.rotation.y -= added_rotation.y * multiplier
-			bone.rotation.z += added_rotation.z * multiplier
-		} else {
-			arr.forEach((n, i) => {
-				bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-			})
+		if (arr) {
+			if (arr.length === 4) {
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				bone.rotation.x -= added_rotation.x * multiplier
+				bone.rotation.y -= added_rotation.y * multiplier
+				bone.rotation.z += added_rotation.z * multiplier
+			} else {
+				arr.forEach((n, i) => {
+					bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
+				})
+			}
 		}
 		if (this.rotation_global) {
 			let quat = bone.parent.getWorldQuaternion(Reusable.quat1);
