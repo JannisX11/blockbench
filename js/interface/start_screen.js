@@ -50,8 +50,9 @@ function addStartScreenSection(id, data) {
 		data.text.forEach(line => {
 			var content = line.text ? marked(tl(line.text)) : '';
 			switch (line.type) {
-				case 'h1': var tag = 'h2'; break;
+				case 'h1': var tag = 'h1'; break;
 				case 'h2': var tag = 'h3'; break;
+				case 'h3': var tag = 'h4'; break;
 				case 'list':
 					var tag = 'ul class="list_style"';
 					line.list.forEach(string => {
