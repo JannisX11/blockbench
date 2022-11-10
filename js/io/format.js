@@ -40,6 +40,9 @@ class ModelFormat {
 
 		if (data.new) this.new = data.new;
 
+		if (data.rotation_limit && data.rotation_snap === undefined) {
+			data.rotation_snap = true;
+		}
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
 		}
