@@ -118,7 +118,7 @@ const Painter = {
 						let opacity = Math.floor(color.getAlpha()*256);
 						for (let id in BarItems) {
 							let tool = BarItems[id];
-							if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+							if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 								tool.tool_settings.brush_opacity = opacity;
 							}
 						}
@@ -1091,7 +1091,7 @@ const Painter = {
 			let opacity = Math.floor(color.getAlpha()*256);
 			for (let id in BarItems) {
 				let tool = BarItems[id];
-				if (tool.tool_settings && tool.tool_settings.brush_opacity) {
+				if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 					tool.tool_settings.brush_opacity = opacity;
 				}
 			}
