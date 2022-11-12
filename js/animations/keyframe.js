@@ -338,6 +338,10 @@ class Keyframe {
 				let vertical_index_last = animators.indexOf(last.animator);
 				let vertical_index_this = animators.indexOf(this.animator);
 				let sign = Math.sign(vertical_index_this - vertical_index_last);
+				if (sign == 0) {
+					let channels = Object.keys(this.animator.channels);
+					sign = this.channel == channels[0] ? -1 : 1;
+				}
 
 				let active = false;
 				for (let i = vertical_index_last; (sign == 1 ? (i <= vertical_index_this) : (i >= vertical_index_this)) && animators[i]; i += sign) {

@@ -778,7 +778,7 @@ class Preview {
 					event = 0;
 				}
 				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
-					Animator.open ||
+					(Animator.open && !data.element.constructor.animator) ||
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
@@ -867,6 +867,8 @@ class Preview {
 						data.element.select(event)
 					}
 					updateSelection();
+				} else {
+					data.element.select(event);
 				}
 			} else if (Animator.open && data.type == 'keyframe') {
 				if (data.keyframe instanceof Keyframe) {
