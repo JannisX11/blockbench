@@ -533,7 +533,7 @@ function setProjectResolution(width, height, modify_uv) {
 				}
 
 			} else if (element.box_uv) {
-				element.uv_offset[axis] *= multiplier[axis];
+				element.uv_offset[axis] = Math.floor(element.uv_offset[axis] * multiplier[axis]);
 			} else {
 				for (let face in element.faces) {
 					let {uv} = element.faces[face];

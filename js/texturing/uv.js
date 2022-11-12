@@ -672,6 +672,7 @@ const UVEditor = {
 	moveSelection(offset, event) {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
 		let step = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl) / UVEditor.grid;
+		if (UVEditor.isBoxUV()) step = 1;
 		UVEditor.slidePos((old_val) => {
 			let sign = offset[offset[0] ? 0 : 1];
 			return old_val + step * sign;
@@ -2295,8 +2296,8 @@ Interface.definePanels(function() {
 							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
 							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
 						} else {	
-							let step_x = snap
-							let step_y = snap
+							let step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
+							let step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
 
 							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
 							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
@@ -2416,6 +2417,7 @@ Interface.definePanels(function() {
 
 					this.drag({
 						event,
+						snap: UVEditor.isBoxUV() ? 1 : undefined,
 						onDrag: (diff_x, diff_y) => {
 							elements.forEach(element => {
 								if (element instanceof Mesh) {
@@ -3304,7 +3306,11 @@ Interface.definePanels(function() {
 		Undo.finishEdit('Edit UV')
 	}
 	var getInterval = function(event) {
-		return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl) / UVEditor.grid;
+		if (UVEditor.isBoxUV()) {
+			return 1;
+		} else {
+			return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl) / UVEditor.grid;
+		}
 	}
 	function getPos(axis) {
 		let elements = UVEditor.getMappableElements();
