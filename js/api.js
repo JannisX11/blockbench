@@ -400,6 +400,27 @@ const Blockbench = {
 	on(event_name, cb) {
 		return Blockbench.addListener(event_name, cb) 
 	},
+	
+	/**
+	 * Listen for an event only once
+	 */
+	once(event_names, cb) {
+		/**
+		 * Blockbench.addListener supports registering multiple, space-separated events at once
+		 * We are parsing out a list of event names here to later unregister them correctly
+		 */ 
+		const events = event_names.split(' ');
+
+		const listener = (data) => {
+			cb(data);
+			// Remove all event listeners
+			events.forEach(event_name => {
+				Blockbench.removeListener(event_name, listener);
+			});
+		}
+
+		return Blockbench.on(event_names, listener);
+	},
 	removeListener(event_name, cb) {
 		if (!this.events[event_name]) return;
 		this.events[event_name].remove(cb);
