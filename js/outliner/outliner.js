@@ -44,7 +44,7 @@ const Outliner = {
 		},
 		mirror_uv: {
 			id: 'mirror_uv',
-			condition: (cube) => cube.box_uv,
+			condition: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv,
 			title: tl('switches.mirror'),
 			icon: 'icon-mirror_x icon',
 			icon_off: 'icon-mirror_x icon',

@@ -207,7 +207,7 @@ function mirrorSelected(axis) {
 		selected.forEach(function(obj) {
 			obj.flip(axis, center, false)
 			if (obj instanceof Cube && obj.box_uv && axis === 0) {
-				obj.shade = !obj.shade
+				obj.mirror_uv = !obj.mirror_uv
 				Canvas.updateUV(obj)
 			}
 		})

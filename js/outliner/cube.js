@@ -252,6 +252,7 @@ class Cube extends OutlinerElement {
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
 		if (!this.shade) el.shade = false;
+		if (this.mirror_uv) el.mirror_uv = true;
 		if (this.inflate) el.inflate = this.inflate;
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
