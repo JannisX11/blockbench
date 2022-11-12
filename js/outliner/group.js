@@ -11,6 +11,7 @@ class Group extends OutlinerNode {
 		this.children = []
 		this.reset = false;
 		this.shade = true;
+		this.mirror_uv = false;
 		this.selected = false;
 		this.locked = false;
 		this.visibility = true;
@@ -346,6 +347,7 @@ class Group extends OutlinerNode {
 		base_group.origin.V3_set(this.origin);
 		base_group.rotation.V3_set(this.rotation);
 		base_group.shade = this.shade;
+		base_group.mirror_uv = this.mirror_uv;
 		base_group.reset = this.reset;
 		base_group.locked = this.locked;
 		base_group.visibility = this.visibility;
@@ -367,6 +369,7 @@ class Group extends OutlinerNode {
 		if (undo) {
 			obj.uuid = this.uuid;
 			obj.export = this.export;
+			obj.mirror_uv = this.mirror_uv;
 			obj.isOpen = this.isOpen === true;
 			obj.locked = this.locked;
 			obj.visibility = this.visibility;
@@ -414,6 +417,7 @@ class Group extends OutlinerNode {
 	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
+		Outliner.buttons.mirror_uv,
 		Outliner.buttons.shade,
 		Outliner.buttons.export,
 		Outliner.buttons.locked,

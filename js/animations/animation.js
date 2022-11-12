@@ -892,14 +892,13 @@ const Animator = {
 
 		three_grid.position.z = three_grid.position.x;
 		Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+		Animator.showDefaultPose();
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
 
 		if (Panels.element) {
 			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
-
-		if (Project) Project.model_3d.scale.set(1, 1, 1);
-		Canvas.updateAllBones()
 	},
 	showDefaultPose(no_matrix_update) {
 		[...Group.all, ...Outliner.elements].forEach(node => {

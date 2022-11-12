@@ -294,8 +294,6 @@ const Timeline = {
 				if (e.shiftKey || Pressing.overrides.shift) {
 					time = Timeline.snapTime(time);
 
-					if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) Timeline.selected.empty();
-
 					for (let i = 0; i < Timeline.animators.length; i++) {
 						let animator = Timeline.animators[i];
 						for (let channel in animator.channels) {
