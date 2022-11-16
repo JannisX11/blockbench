@@ -154,11 +154,11 @@ const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
-codec.rebuild = function(model_id) {
+codec.rebuild = function(model_id, pose) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock));
-	codec.parse(model);
+	codec.parse(model, undefined, undefined, pose !== 'none');
 }
 
 

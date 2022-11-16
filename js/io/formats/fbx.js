@@ -360,7 +360,7 @@ var codec = new Codec('fbx', {
 				var rot = face.rotation || 0;
 				while (rot > 0) {
 					uv_outputs.splice(0, 0, uv_outputs.pop());
-					rot += 90;
+					rot -= 90;
 				}
 				uv_outputs.forEach(coord => {
 					uv.push(...coord);
@@ -693,7 +693,7 @@ var codec = new Codec('fbx', {
 							P12: {_key: 'P', _values: ["TranslationMaxX", "bool", "", "",0]},
 							P13: {_key: 'P', _values: ["TranslationMaxY", "bool", "", "",0]},
 							P14: {_key: 'P', _values: ["TranslationMaxZ", "bool", "", "",0]},
-							P15: {_key: 'P', _values: ["RotationOrder", "enum", "", "",0]},
+							P15: {_key: 'P', _values: ["RotationOrder", "enum", "", "",5]},
 							P16: {_key: 'P', _values: ["RotationSpaceForLimitOnly", "bool", "", "",0]},
 							P17: {_key: 'P', _values: ["RotationStiffnessX", "double", "Number", "",0]},
 							P18: {_key: 'P', _values: ["RotationStiffnessY", "double", "Number", "",0]},
