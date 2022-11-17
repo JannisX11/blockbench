@@ -217,7 +217,10 @@ BARS.defineActions(function() {
 	new Action('set_ik_target', {
 		icon: 'fa-paperclip',
 		category: 'edit',
-		condition: () => NullObject.selected.length,
+		condition() {
+			let action = BarItems.set_ik_target;
+			return NullObject.selected.length && action.children(action).length
+		},
 		searchable: true,
 		children() {
 			let nodes = [];
