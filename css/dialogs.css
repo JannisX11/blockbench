@@ -959,36 +959,34 @@
 		height: 30px;
 	}
 
-	/*PE Import Dialog*/
-    #pe_list {
-        max-height: 600px;
-        margin-bottom: 20px;
-        overflow-y: scroll;
-    }
-    #pe_list li {
+/*PE Import Dialog*/
+	dialog#bedrock_model_select .search_bar {
+		margin-bottom: 6px;
+	}
+    #model_select_list li {
         overflow: hidden;
+		cursor: pointer;
+		padding: 2px 0;
     }
-    #pe_list li > * {
+    #model_select_list li.selected {
+        background-color: var(--color-selected);
+        color: var(--color-light);
+    }
+    #model_select_list li:hover {
+        color: var(--color-light);
+    }
+    #model_select_list li > * {
         margin: 0;
         margin-left: 12px;
-        cursor: default;
-        overflow-x: hidden;
+        cursor: inherit;
     }
-    #pe_list li.selected {
-        background-color: var(--color-selected);
+    #model_select_list > li > label {
+        color: var(--color-subtle_text);
     }
-    #pe_list li > .pe_icon {
-        height: 48px;
-        width: 48px;
-        float: left;
-        margin: 4px;
-        margin-right: 8px;
-        margin-bottom: 0;
+    #model_select_list > li.selected > label {
+        color: var(--color-text);
     }
-    #pe_list li > h4 > span {
-        font-size: 0.7;
-    }
-	/* Screenshot */
+/* Screenshot */
 	dialog#screenshot content {
 		color: var(--color-subtle_text);
 	}

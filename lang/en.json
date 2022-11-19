@@ -487,10 +487,9 @@
 	"dialog.toolbar_edit.hidden": "Hidden",
 	"dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
 
-	"dialog.entitylist.title": "Open Entity Model",
-	"dialog.entitylist.text": "Select the model you want to import",
-	"dialog.entitylist.bones": "Bones",
-	"dialog.entitylist.cubes": "Cubes",
+	"dialog.select_model.title": "Select Model",
+	"dialog.select_model.bones": "Bones",
+	"dialog.select_model.cubes": "Cubes",
 	
 	"dialog.animation_import.title": "Select Animations to Import",
 	"dialog.animation_export.title": "Select Animations to Export",

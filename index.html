@@ -173,33 +173,6 @@
 		</div>
 	</div>
 
-	<dialog class="dialog draggable" id="entity_import">
-		<div class="dialog_handle">
-			<div class="dialog_title tl">dialog.entitylist.title</div>
-		</div>
-		<div class="dialog_content">
-			<div class="dialog_bar narrow tl">dialog.entitylist.text</div>
-				<div class="search_bar">
-					<input type="text" class="dark_bordered" id="pe_search_bar" oninput="pe_list._data.search_term = $(this).val().toUpperCase()">
-					<i class="material-icons" id="plugin_search_bar_icon">search</i>
-				</div>
-			<ul id="pe_list" class="list">
-				<li v-for="item in searched" v-bind:class="{ selected: item.selected }" v-on:click="selectE(item, $event)" v-on:dblclick="open(item)">
-					<img class="pe_icon" v-if="item.icon" v-bind:src="item.icon">
-					<div class="pe_icon" v-else></div>
-					<h4>{{ item.title }} <span>({{ item.name }})</span></h4>
-					<p>{{ item.bonecount+' '+tl('dialog.entitylist.bones') }}, {{ item.cubecount+' '+tl('dialog.entitylist.cubes') }}</p>
-				</li>
-			</ul>
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="tl confirm_btn" onclick="">dialog.import</button>
-			<button type="button" class="cancel_btn tl" onclick="hideDialog();BarItems.close_project.click()">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog();BarItems.close_project.click()"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<dialog class="dialog draggable" id="image_extruder">
 		<div class="dialog_handle">
 			<div class="dialog_title tl">dialog.extrude.title</div>

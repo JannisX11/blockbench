@@ -265,147 +265,77 @@ var codec = new Codec('bedrock_old', {
 		}
 	},
 	parse(data, path) {
-		pe_list_data.length = 0
-
-		var geometries = []
-		for (var key in data) {
-			if (typeof data[key] === 'object') {
-				geometries.push(key);
-			}
+		let geometries = [];
+		for (let key in data) {
+			if (typeof data[key] !== 'object') continue;
+			geometries.push({
+				name: key,
+				object: data[key]
+			});
 		}
 		if (geometries.length === 1) {
-			parseGeometry({object: data[geometries[0]], name: geometries[0]})
+			parseGeometry(geometries[0]);
 			return;
 		}
 
-		$('#pe_search_bar').val('')
-		if (pe_list && pe_list._data) {
-			pe_list._data.search_term = ''
-		}
+		geometries.forEach(geo => {
+			geo.uuid = guid();
 
-		function create_thumbnail(model_entry, isize) {
-			var included_bones = []
-			model_entry.object.bones.forEach(function(b) {
-				included_bones.push(b.name)
-			})
-			new Jimp(48, 48, 0x00000000, function(err, image) {
-				model_entry.object.bones.forEach(function(b) {
-					var rotation = b.rotation
-					if (!rotation || rotation[0] === undefined) {
-						if (entityMode.hardcodes[model_entry.name] && entityMode.hardcodes[model_entry.name][b.name]) {
-							rotation = entityMode.hardcodes[model_entry.name][b.name].rotation
-						}
-					}
-					if (b.cubes) {
-						b.cubes.forEach(function(c) {
-							if (c.origin && c.size) {
-								//Do cube
-								var inflate = c.inflate||0
-								var coords = {
-									x: (c.origin[2]-inflate)*isize+24,
-									y: 40-(c.origin[1]+c.size[1]+inflate)*isize,
-									w: (c.size[2]+2*inflate)*isize,
-									h: (c.size[1]+2*inflate)*isize
-								}
-								var shade = (limitNumber(c.origin[0], -24, 24)+24)/48*255
-								var color = parseInt('0xffffff'+shade.toString(16))
-								coords.x = limitNumber(coords.x, 0, 47)
-								coords.y = limitNumber(coords.y, 0, 47)
-								coords.w = limitNumber(coords.w, 0, 47 - coords.x)
-								coords.h = limitNumber(coords.h, 0, 47 - coords.y)
-								if (coords.h > 0 && coords.w > 0) {
-									if (rotation && rotation[0] !== 0 && b.pivot) {
-										Painter.drawRotatedRectangle(
-											image,
-											0xffffff88,
-											coords,
-											b.pivot[2]*isize+24,
-											40-b.pivot[1]*isize,
-											-rotation[0]
-										)
-									} else {
-										Painter.drawRectangle(image, 0xffffff88, coords)
-									}
-								}
-							}
+			geo.bonecount = 0;
+			geo.cubecount = 0;
+			if (geo.object.bones instanceof Array) {
+				geo.object.bones.forEach(bone => {
+					geo.bonecount++;
+					if (bone.cubes instanceof Array) geo.cubecount += bone.cubes.length;
+				})
+			}
+		})
+
+		let selected = null;
+		new Dialog({
+			id: 'bedrock_model_select',
+			title: 'dialog.select_model.title',
+			buttons: ['Import', 'dialog.cancel'],
+			component: {
+				data() {return {
+					search_term: '',
+					geometries,
+					selected: null,
+				}},
+				computed: {
+					filtered_geometries() {
+						if (!this.search_term) return this.geometries;
+						let term = this.search_term.toLowerCase();
+						return this.geometries.filter(geo => {
+							return geo.name.toLowerCase().includes(term)
 						})
 					}
-				})
-
-				//Send
-				image.getBase64("image/png", function(a, dataUrl){
-					model_entry.icon = dataUrl
-				})
-			})
-		}
-		for (var key in data) {
-			if (key.includes('geometry.') && data.hasOwnProperty(key)) {
-				var base_model = {name: key, bonecount: 0, cubecount: 0, selected: false, object: data[key], icon: false}
-				var oversize = 2;
-				var words = key.replace(/:.*/g, '').replace('geometry.', '').split(/[\._]/g)
-				words.forEach(function(w, wi) {
-					words[wi] = capitalizeFirstLetter(w)
-				})
-				base_model.title = words.join(' ')
-				if (data[key].bones) {
-					base_model.bonecount = data[key].bones.length
-					data[key].bones.forEach(function(b) {
-						if (b.cubes) {
-							base_model.cubecount += b.cubes.length
-							b.cubes.forEach(function(c) {
-								if (c.origin && c.size && (c.origin[2] < -12 || c.origin[2] + c.size[2] > 12 || c.origin[1] + c.size[1] > 22) && oversize === 2) oversize = 1
-								if (c.origin && c.size && (c.origin[2] < -24 || c.origin[2] + c.size[2] > 24)) oversize = 0.5
-							})
-						}
-					})
-					if (typeof base_model.cubecount !== 'number') {
-						base_model.cubecount = '[E]'
-					} else if (base_model.cubecount > 0) {
-
-						create_thumbnail(base_model, oversize)
-
-
-					}
-				}
-				pe_list_data.push(base_model)
-			}
-		}
-		if (pe_list == undefined) {
-			pe_list = new Vue({
-				el: '#pe_list',
-				data: {
-					search_term: '',
-					list: pe_list_data
 				},
 				methods: {
-					selectE: function(item, event) {
-						var index = pe_list_data.indexOf(item)
-						pe_list_data.forEach(function(s) {
-							s.selected = false;
-						})
-						pe_list_data[index].selected = true
+					selectGeometry(geo) {
+						this.selected = selected = geo;
 					},
-					open() {
-						parseGeometry()
+					open(geo) {
+						parseGeometry(geo);
 					},
 					tl
 				},
-				computed: {
-					searched() {
-						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(this.search_term)
-						})
-					}
-				}
-			})
-		}
-		showDialog('entity_import')
-		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
-		$('input#pe_search_bar').select()
-		$('#entity_import .confirm_btn').off('click')
-		$('#entity_import .confirm_btn').on('click', (e) => {
-			parseGeometry()
-		})
+				template: `
+					<div>
+						<search-bar v-model="search_term"></search-bar>
+						<ul class="list" id="model_select_list">
+							<li v-for="geometry in filtered_geometries" :key="geometry.uuid" :class="{selected: geometry == selected}" @click="selectGeometry(geometry)" @dblclick="open(geometry)">
+								<p>{{ geometry.name }}</p>
+								<label>{{ geometry.bonecount+' ${tl('dialog.select_model.bones')}' }}, {{ geometry.cubecount+' ${tl('dialog.select_model.cubes')}' }}</label>
+							</li>
+						</ul>
+					</div>
+				`
+			},
+			onConfirm() {
+				parseGeometry(selected);
+			}
+		}).show();
 	},
 	export() {
 		var scope = this;
