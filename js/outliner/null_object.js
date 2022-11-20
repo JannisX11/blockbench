@@ -198,7 +198,7 @@ BARS.defineActions(function() {
 	new Action('add_null_object', {
 		icon: 'far.fa-circle',
 		category: 'edit',
-		condition: () => Format.animation_mode,
+		condition: () => Format.animation_mode && Modes.edit,
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
