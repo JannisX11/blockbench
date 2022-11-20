@@ -16,8 +16,8 @@ const Painter = {
 			texture.mode = 'bitmap'
 			texture.saved = false
 		}
-		var instance = Painter.current[options.method === 'jimp' ? 'image' : 'canvas']
-		Painter.current[options.method === 'jimp' ? 'canvas' : 'image'] = undefined
+		var instance = Painter.current.canvas;
+		Painter.current.canvas = undefined
 
 		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 
@@ -26,59 +26,32 @@ const Painter = {
 			typeof instance === 'object'
 		) {
 			//IS CACHED
-			if (options.method === 'jimp') {
-				instance = cb(instance) || instance
-			} else {
-				instance = cb(instance) || instance
-			}
+			instance = cb(instance) || instance
 			if (options.no_update === true) {
 				return;
 			}
 
-			if (options.method === 'jimp') {
-				Painter.current.image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-					texture.updateSource(dataUrl)
-					if (!options.no_undo && !options.no_undo_finish) {
-						Undo.finishEdit(edit_name)
-					}
-				})
+			if (options.no_undo) {
+				let map = texture.getMaterial().map
+				map.image = Painter.current.canvas;
+				map.needsUpdate = true;
+				texture.display_canvas = true;
+				UVEditor.vue.updateTextureCanvas();
 			} else {
-				if (options.no_undo) {
-					let map = texture.getMaterial().map
-					map.image = Painter.current.canvas;
-					map.needsUpdate = true;
-					texture.display_canvas = true;
-					UVEditor.vue.updateTextureCanvas();
-				} else {
-					texture.updateSource(instance.toDataURL())
-					if (!options.no_undo_finish) {
-						Undo.finishEdit(edit_name)
-					}
+				texture.updateSource(instance.toDataURL())
+				if (!options.no_undo_finish) {
+					Undo.finishEdit(edit_name)
 				}
 			}
 		} else {
-			if (options.method === 'jimp') {
-				Painter.current.texture = texture
-				Jimp.read(Buffer.from(texture.source.replace('data:image/png;base64,', ''), 'base64')).then(function(image) {
-					image = cb(image) || image
-					Painter.current.image = image
-					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-						texture.updateSource(dataUrl)
-						if (!options.no_undo && !options.no_undo_finish) {
-							Undo.finishEdit(edit_name)
-						}
-					})
-				})
-			} else {
-				Painter.current.texture = texture
-				var c = Painter.current.canvas = Painter.getCanvas(texture)
-				Painter.current.ctx = c.getContext('2d');
-				c = cb(c) || c;
+			Painter.current.texture = texture
+			var c = Painter.current.canvas = Painter.getCanvas(texture)
+			Painter.current.ctx = c.getContext('2d');
+			c = cb(c) || c;
 
-				texture.updateSource(c.toDataURL())
-				if (!options.no_undo && !options.no_undo_finish) {
-					Undo.finishEdit(edit_name)
-				}
+			texture.updateSource(c.toDataURL())
+			if (!options.no_undo && !options.no_undo_finish) {
+				Undo.finishEdit(edit_name)
 			}
 		}
 	},
@@ -1100,8 +1073,8 @@ const Painter = {
 	},
 	// Util
 	combineColors(base, added, opacity) {
-		if (Math.isNumber(base)) base = Jimp.intToRGBA(base)
-		if (Math.isNumber(added)) added = Jimp.intToRGBA(added)
+		if (Math.isNumber(base)) base = intToRGBA(base)
+		if (Math.isNumber(added)) added = intToRGBA(added)
 
 		if (added.a*opacity == 1) return {r: added.r, g: added.g, b: added.b, a: added.a};
 
@@ -1118,8 +1091,8 @@ const Painter = {
 		return mix;
 	},
 	blendColors(base, added, opacity, blend_mode) {
-		if (Math.isNumber(base)) base = Jimp.intToRGBA(base)
-		if (Math.isNumber(added)) added = Jimp.intToRGBA(added)
+		if (Math.isNumber(base)) base = intToRGBA(base)
+		if (Math.isNumber(added)) added = intToRGBA(added)
 
 		var original_a = added.a
 		added.a = added.a*opacity
@@ -1293,15 +1266,6 @@ const Painter = {
 
 		ctx.putImageData(arr, x, y)
 	},
-	drawRectangle(image, color, rect) {
-		var color = Jimp.intToRGBA(color)
-		image.scan(rect.x, rect.y, rect.w, rect.h, function (x, y, idx) {
-			this.bitmap.data[idx + 0] = color.r
-			this.bitmap.data[idx + 1] = color.g
-			this.bitmap.data[idx + 2] = color.b
-			this.bitmap.data[idx + 3] = color.a
-		});
-	},
 	editCircle(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
@@ -1408,41 +1372,6 @@ const Painter = {
 				pixel[3] = result_color.a*255
 			}
 		});
-	},
-	drawRotatedRectangle(image, color, rect, cx, cy, angle) {
-		var color = Jimp.intToRGBA(color)
-		var sin = Math.sin(-Math.degToRad(angle))
-		var cos = Math.cos(-Math.degToRad(angle))
-		function rotatePoint(px, py) {
-			px -= cx
-			py -= cy
-			return {
-				x: (px * cos - py * sin) + cx,
-				y: (px * sin + py * cos) + cy
-			}
-		}
-		image.scan(0, 0, 48, 48, function (px, py, idx) {
-			var rotated = rotatePoint(px, py)
-			if (
-				rotated.x > rect.x-1 && rotated.x < rect.x + rect.w+2 &&
-				rotated.y > rect.y-1 && rotated.y < rect.y + rect.h+2 
-			) {
-				var opacity = 	limitNumber(rect.x - rotated.x, 0, 1) +
-								limitNumber(rotated.x - (rect.x + rect.w), 0, 1) +
-								limitNumber(rect.y - rotated.y, 0, 1) +
-								limitNumber(rotated.y - (rect.y + rect.h), 0, 1)
-
-				opacity = 1-limitNumber(opacity*1.61, 0, 1)
-				if (this.bitmap.data[idx + 3]) {
-					opacity = 1
-				}
-
-				this.bitmap.data[idx + 0] = color.r
-				this.bitmap.data[idx + 1] = color.g
-				this.bitmap.data[idx + 2] = color.b
-				this.bitmap.data[idx + 3] = color.a*opacity
-			}
-		})
 	},
 	openBrushOptions() {
 		let current_preset = 0;

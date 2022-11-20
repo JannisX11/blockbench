@@ -685,6 +685,24 @@ tinycolor.prototype.toInt = function() {
 	let {r, g, b, a} = this.toRgb();
 	return r * Math.pow(256, 3) + g * Math.pow(256, 2) + b * Math.pow(256, 1) + a * Math.pow(256, 0);
 }
+function intToRGBA(int) {
+	const rgba = {};
+
+	rgba.r = Math.floor(int / Math.pow(256, 3));
+	rgba.g = Math.floor((int - rgba.r * Math.pow(256, 3)) / Math.pow(256, 2));
+	rgba.b = Math.floor(
+		(int - rgba.r * Math.pow(256, 3) - rgba.g * Math.pow(256, 2)) /
+			Math.pow(256, 1)
+	);
+	rgba.a = Math.floor(
+		(int -
+			rgba.r * Math.pow(256, 3) -
+			rgba.g * Math.pow(256, 2) -
+			rgba.b * Math.pow(256, 1)) /
+			Math.pow(256, 0)
+	);
+	return rgba;
+}
 function getAverageRGB(imgEl, blockSize) {
 		
 	var defaultRGB = {r:0,g:0,b:0}, // for non-supporting envs
