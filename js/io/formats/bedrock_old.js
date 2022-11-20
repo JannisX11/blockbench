@@ -276,6 +276,8 @@ var codec = new Codec('bedrock_old', {
 		if (geometries.length === 1) {
 			parseGeometry(geometries[0]);
 			return;
+		} else if (BedrockEntityManager.CurrentContext?.geometry) {
+			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
 		}
 
 		geometries.forEach(geo => {

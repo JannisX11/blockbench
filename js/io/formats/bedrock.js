@@ -34,7 +34,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
-		this.root_path =  path.slice().join(osfs);
+		this.root_path = path.slice().join(osfs);
+
+		if (BedrockEntityManager.CurrentContext?.entity_file_path) {
+			var content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
+			if (content) {
+				return content;
+			}
+		}
+
 		path.push('entity');
 		path = path.join(osfs);
 		var entity_path = findExistingFile([
@@ -911,6 +919,99 @@ function calculateVisibleBox() {
 		return bone;
 	}
 
+let entity_file_codec = new Codec('bedrock_entity_file', {
+	name: 'Bedrock Entity',
+	extension: 'json',
+	remember: false,
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return model.format_version && model['minecraft:client_entity']
+		}
+	},
+	load(content, file, add) {
+		let description = content['minecraft:client_entity'].description;
+		let models = [];
+		for (let key in description.geometry) {
+			let model_id = description.geometry[key];
+			models.push(model_id);
+		}
+		if (!models[0]) return;
+
+		let path = file.path.split(osfs);
+		let name = path.pop().replace(/(\.entity)?\.json$/, '');
+		let root_index = path.indexOf('entity');
+		path.splice(root_index);
+
+		let entity_path = findExistingFile([
+			[...path, 'models', 'entity', name+'.geo.json'].join(osfs),
+			[...path, 'models', 'entity', name+'.json'].join(osfs),
+			[...path, 'models', 'block', name+'.geo.json'].join(osfs),
+			[...path, 'models', 'block', name+'.json'].join(osfs),
+		])
+
+		let matched_geo_path, matched_geo_content;
+		function checkGeoFile(geo_path) {
+			try {
+				var c = fs.readFileSync(geo_path, 'utf-8');
+				if (typeof c === 'string') {
+					c = autoParseJSON(c, false);
+					matched_geo_content = c;
+
+					if (c['minecraft:geometry'] instanceof Array) {
+						let geo = c['minecraft:geometry'].find(geo => {
+							return geo.description?.identifier == models[0];
+						})
+						if (geo) return geo;
+					} else if (c[models[0]]) {
+						return c[models[0]];
+					}
+				}
+			} catch (err) {
+				console.log(err);
+				return false;
+			}
+		}
+		if (entity_path) {
+			if (checkGeoFile(entity_path)) {
+				matched_geo_path = entity_path;
+			}
+		}
+		if (!matched_geo_path) {
+
+			let searchFolder = (path) => {
+				try {
+					let files = fs.readdirSync(path);
+					for (let name of files) {
+						let new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							let result = checkGeoFile(new_path);
+							if (result) return new_path;
+						} else if (!name.includes('.')) {
+							let result = searchFolder(new_path);
+							if (result) return result;
+						}
+					}
+				} catch (err) {
+					console.error(err)
+				}
+			}
+			matched_geo_path = searchFolder([...path, 'models', 'entity'].join(osfs)) || searchFolder([...path, 'models', 'block'].join(osfs));
+		}
+
+		if (matched_geo_path) {
+			BedrockEntityManager.CurrentContext = {
+				geometry: models[0],
+				entity_file_path: file.path,
+				type: 'entity'
+			};
+			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
+			codec.load(matched_geo_content, {path: matched_geo_path}, false);
+			delete BedrockEntityManager.CurrentContext;
+		}
+	},
+})
 
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
@@ -926,6 +1027,7 @@ var codec = new Codec('bedrock', {
 	},
 	load(model, file, add) {
 		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
+		if (BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
 		if (!add) {
 			setupProject(is_block ? block_format : entity_format);
 		}
@@ -1070,16 +1172,19 @@ var codec = new Codec('bedrock', {
 		let geometries = [];
 		for (let geo of data['minecraft:geometry']) {
 			if (typeof geo !== 'object') continue;
-			geometries.push({object: geo});
+			geometries.push({
+				object: geo,
+				name: geo.description?.identifier || ''
+			});
 		}
 		if (geometries.length === 1) {
 			return parseGeometry(geometries[0]);
+		} else if (BedrockEntityManager.CurrentContext?.geometry) {
+			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
 		}
 
 		geometries.forEach(geo => {
 			geo.uuid = guid();
-			geo.id = geo.object.description?.identifier || '';
-			geo.name =  geo.id;
 
 			geo.bonecount = 0;
 			geo.cubecount = 0;
@@ -1090,7 +1195,6 @@ var codec = new Codec('bedrock', {
 				})
 			}
 		})
-		console.log(geometries)
 
 		let selected = null;
 		new Dialog({
