@@ -2901,8 +2901,10 @@ Interface.definePanels(function() {
 						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
 							offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
 						}
-						let left = (this.mouse_coords.x + offset) * pixel_size;
-						let top =  (this.mouse_coords.y + offset) * pixel_size;
+						let left = this.mouse_coords.x;
+						let top =  this.mouse_coords.y % (this.texture ? this.texture.display_height : Project.texture_height);
+						left = (left + offset) * pixel_size;
+						top =  (top + offset) * pixel_size;
 						//size
 						var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
 						return {

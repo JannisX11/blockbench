@@ -305,7 +305,7 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
-			Codecs.skin_model.rebuild(model.skin_model);
+			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose);
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();

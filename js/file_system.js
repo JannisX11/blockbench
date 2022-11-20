@@ -414,6 +414,17 @@ document.ondragover = function(event) {
 }
 document.body.ondrop = function(event) {
 	event.preventDefault()
+	let text = event.dataTransfer.getData('text/plain');
+
+	if (text && text.startsWith('https://blckbn.ch/')) {
+		let code = text.replace(/\/$/, '').split('/').last();
+		$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+			Codecs.project.load(model, {path: ''});
+		}).fail(error => {
+			Blockbench.showQuickMessage('message.invalid_link')
+		})
+	}
+
 	forDragHandlers(event, function(handler, el) {
 		var fileNames = event.dataTransfer.files
 

@@ -20,11 +20,15 @@ function buildForm(dialog) {
 			}
 			if (data.full_width) {
 				bar.addClass('full_width_dialog_bar');
+				dialog.uses_wide_inputs = true;
 			}
 			if (data.description) {
 				bar.attr('title', tl(data.description))
 			}
 			let input_element;
+			if (['checkbox', 'buttons', 'color', 'info'].includes(data.type) == false) {
+				dialog.uses_wide_inputs = true;
+			}
 
 			switch (data.type) {
 				default:
@@ -300,6 +304,7 @@ function buildLines(dialog) {
 				bar.append(widget.getNode())
 				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
 			}
+			dialog.uses_wide_inputs = true;
 			dialog_content.append(bar)
 		} else {
 			dialog_content.append(l)
@@ -606,6 +611,7 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 		this.max_label_width = 0;
+		this.uses_wide_inputs = false;
 
 		let wrapper = document.createElement('div');
 		wrapper.className = 'dialog_wrapper';
@@ -639,7 +645,11 @@ window.Dialog = class Dialog {
 		})
 
 		if (this.max_label_width) {
-			this.object.style.setProperty('--max_label_width', Math.clamp(this.max_label_width, 0, (this.width||540)* 0.5) + 'px');
+			let width = (this.width||540)
+			let max_width = this.uses_wide_inputs
+				? Math.clamp(this.max_label_width+9, 0, width/2)
+				: Math.clamp(this.max_label_width+16, 0, width - 100);
+			this.object.style.setProperty('--max_label_width', max_width + 'px');
 		}
 
 		if (this.buttons.length) {

@@ -232,7 +232,7 @@ const Templates = {
 	},
 
 	'1.17': {
-		name: 'Forge 1.17 - 1.18 (Mojmaps)',
+		name: 'Forge 1.17+ (Mojmaps)',
 		remember: false,
 		use_layer_definition: true,
 		integer_size: false,

@@ -49,6 +49,7 @@ let codec = new Codec('image', {
 		Project.name = last.name || 'image';
 		if (last) {
 			last.load_callback = () => {
+				delete last.load_callback;
 				last.select();
 				if (resolution instanceof Array) {
 					Project.texture_width = resolution[0];
@@ -57,7 +58,7 @@ let codec = new Codec('image', {
 					Project.texture_height = last.display_height;
 					Project.texture_width = last.width;
 				}
-				updateRecentProjectThumbnail();
+				if (isApp) updateRecentProjectThumbnail();
 			}
 		}
 
@@ -80,6 +81,9 @@ let codec = new Codec('image', {
 		updateRecentProjectThumbnail();
 	}
 })
+codec.compile = null;
+codec.parse = null;
+codec.export = null;
 
 new ModelFormat('image', {
 	icon: 'image',

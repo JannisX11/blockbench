@@ -116,6 +116,20 @@ const Screencam = {
 			})
 		}, 40)
 	},
+	screenshot2DEditor(options = 0, cb) {
+		let canvas = document.createElement('canvas');
+		let ctx = canvas.getContext('2d');
+		canvas.width = options.width || UVEditor.vue.inner_width;
+		canvas.height = options.height || UVEditor.vue.inner_height;
+		ctx.imageSmoothingEnabled = false;
+		let tex = Texture.getDefault();
+		if (tex) {
+			ctx.drawImage(tex.img, 0, 0, canvas.width, canvas.height);
+		}
+		var dataUrl = canvas.toDataURL();
+		Screencam.returnScreenshot(dataUrl, cb);
+		return;
+	},
 	async returnScreenshot(dataUrl, cb, blob) {
 
 		if (cb) {
@@ -178,6 +192,7 @@ const Screencam = {
 		})
 		dialog.show();
 	},
+	// deprecated
 	cleanCanvas(options, cb) {
 		quad_previews.current.screenshot(options, cb)
 	},
@@ -472,12 +487,18 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: () => !!Project,
 		keybind: new Keybind({key: 'p', ctrl: true}),
-		click() {Preview.selected.screenshot()}
+		click() {
+			if (!Format.image_editor) {
+				Preview.selected.screenshot()
+			} else {
+				Screencam.screenshot2DEditor();
+			}
+		}
 	})
 	new Action('record_model_gif', {
 		icon: 'local_movies',
 		category: 'view',
-		condition: () => !!Project,
+		condition: () => Project && !Format.image_editor,
 		click() {
 			Screencam.gif_options_dialog.show();
 		}
