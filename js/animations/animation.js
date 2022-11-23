@@ -175,6 +175,7 @@ class Animation {
 				var channels = {};
 				if (animator.rotation_global) {
 					bone_tag.relative_to = {rotation: 'entity'};
+					bone_tag.rotation = [0, 0, 0.01];
 				}
 				//Saving Keyframes
 				animator.keyframes.forEach(function(kf) {
@@ -183,6 +184,9 @@ class Animation {
 					}
 					let timecode = kf.getTimecodeString();
 					channels[kf.channel][timecode] = kf.compileBedrockKeyframe()
+					if (animator.rotation_global && kf.channel == 'rotation' && channels[kf.channel][timecode] instanceof Array && channels[kf.channel][timecode].allEqual(0)) {
+						channels[kf.channel][timecode][2] = 0.01;
+					}
 				})
 				// Sorting + compressing keyframes
 				for (var channel in Animator.possible_channels) {
