@@ -3174,10 +3174,10 @@ Interface.definePanels(function() {
 									:class="{unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
 								>
-									<div class="uv_fill" :style="{left: '-1px', top: toPixels(element.size(2, true), -1), width: toPixels(element.size(2, true)*2 + element.size(0, true)*2, 2), height: toPixels(element.size(1, true), 2)}" />
-									<div class="uv_fill" :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true)*2, 2), height: toPixels(element.size(2, true), 2), borderBottom: 'none'}" />
-									<div :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true), 2), height: toPixels(element.size(2, true) + element.size(1, true), 2)}" />
-									<div :style="{left: toPixels(element.size(2, true)*2 + element.size(0, true), -1), top: toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels(element.size(1, true), 2)}" />
+									<div class="uv_fill" v-if="element.size(1, true) > 0" :style="{left: '-1px', top: toPixels(element.size(2, true), -1), width: toPixels(element.size(2, true)*2 + element.size(0, true)*2, 2), height: toPixels(element.size(1, true), 2)}" />
+									<div class="uv_fill" v-if="element.size(0, true) > 0" :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true)*2, 2), height: toPixels(element.size(2, true), 2), borderBottom: element.size(1, true) > 0 ? 'none' : undefined}" />
+									<div :style="{left: toPixels(element.size(2, true), -1), top: element.size(0, true) > 0 ? '-1px' : toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels( (element.size(0, true) > 0 ? element.size(2, true) : 0) + element.size(1, true), 2), borderRight: element.size(0, true) == 0 ? 'none' : undefined}" />
+									<div v-if="element.size(1, true) > 0 && element.size(0, true) > 0" :style="{left: toPixels(element.size(2, true)*2 + element.size(0, true), -1), top: toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels(element.size(1, true), 2)}" />
 								</div>
 
 								<template v-if="element.type == 'mesh'">
