@@ -288,9 +288,10 @@ const MenuBar = {
 		})
 
 		new BarMenu('animation', [
-			'add_marker',
+			'looped_animation_playback',
 			'lock_motion_trail',
 			'_',
+			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
 			'bake_animation_into_model',

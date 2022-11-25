@@ -505,14 +505,14 @@ const Timeline = {
 			Timeline.last_frame_timecode = Date.now();
 
 		} else {
-			if (Animation.selected.loop == 'once') {
+			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
+				Timeline.setTime(0)
+			} else if (Animation.selected.loop == 'once') {
 				Timeline.setTime(0)
 				Animator.preview()
 				Timeline.pause()
 			} else if (Animation.selected.loop == 'hold') {
 				Timeline.pause()
-			} else {
-				Timeline.setTime(0)
 			}
 		}
 	},
@@ -1215,6 +1215,12 @@ BARS.defineActions(function() {
 				Timeline.start()
 			}
 		}
+	})
+	new Toggle('looped_animation_playback', {
+		icon: 'fa-repeat',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		default: false
 	})
 	new NumSlider('slider_animation_speed', {
 		category: 'animation',
