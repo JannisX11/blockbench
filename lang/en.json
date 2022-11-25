@@ -483,6 +483,9 @@
 	"dialog.plugins.author": "by %0",
 	"dialog.plugins.show_less": "Show Less",
 
+	"dialog.load_plugins_from_query.title": "Load Plugins",
+	"dialog.load_plugins_from_query.text": "You used a link that requires plugins to be installed. Would you like to install them?",
+
 	"dialog.toolbar_edit.title": "Customize Toolbar",
 	"dialog.toolbar_edit.hidden": "Hidden",
 	"dialog.toolbar_edit.hidden_tools": "Some tools might be hidden because they are not available in the current mode, format, or situation.",
