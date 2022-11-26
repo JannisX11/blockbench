@@ -7,19 +7,19 @@ class Setting {
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
 		if (Settings.stored[id]) {
-			this.value = Settings.stored[id].value;
+			this.master_value = Settings.stored[id].value;
 
 		} else if (data.value != undefined) {
-			this.value = data.value
+			this.master_value = data.value
 
 		} else {
 			switch (this.type) {
-				case 'toggle': this.value = true; break;
-				case 'number': this.value = 0; break;
-				case 'text': this.value = ''; break;
-				case 'password': this.value = ''; break;
-				case 'select': this.value; break;
-				case 'click': this.value = false; break;
+				case 'toggle': this.master_value = true; break;
+				case 'number': this.master_value = 0; break;
+				case 'text': this.master_value = ''; break;
+				case 'password': this.master_value = ''; break;
+				case 'select': this.master_value; break;
+				case 'click': this.master_value = false; break;
 			}
 		}
 		this.condition = data.condition;
@@ -67,6 +67,22 @@ class Setting {
 			if (!this.icon) this.icon = 'settings';
 		}
 		this.keybind_label = tl('data.setting');
+	}
+	get value() {
+		let profile = Settings.profiles.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
+		if (profile) {
+			return profile.value;
+		} else {
+			return this.master_value;
+		}
+	}
+	set value(value) {
+		let profile = Settings.dialog.content_vue.profile && Settings.profiles.find(profile => profile.uuid == Settings.dialog.content_vue.profile);
+		if (profile) {
+			profile.value = value;
+		} else {
+			this.master_value = value;
+		}
 	}
 	delete() {
 		if (settings[this.id]) {
@@ -157,12 +173,45 @@ class Setting {
 	}
 }
 
+class SettingsProfile {
+	constructor(data) {
+		this.uuid = guid();
+		this.name = '';
+		this.conditions = {};
+		this.settings = {};
+		this.extend(data);
+		Settings.profiles.push(this);
+	}
+	extend(data) {
+		Merge.string(this, data, 'name');
+		if (data.conditions) this.conditions = data.conditions;
+		if (data.settings) {
+			for (let key in data.settings) {
+				let value = data.settings[key];
+				if (value === undefined || value === null) continue;
+				Vue.set(this.settings, key, value);
+			}
+		}
+	}
+	isActive() {
+		if (this.conditions.formats && !this.conditions.formats.includes(Format.id)) return false;
+		return true;
+	}
+}
+
 const Settings = {
 	structure: {},
 	stored: {},
+	profiles: [],
 	setup() {
 		if (localStorage.getItem('settings') != null) {
 			Settings.stored = JSON.parse(localStorage.getItem('settings'));
+		}
+		if (localStorage.getItem('settings_profiles') != null) {
+			let profiles = JSON.parse(localStorage.getItem('settings_profiles'));
+			profiles.forEach(profile => {
+				new SettingsProfile(profile);
+			})
 		}
 		
 		//General
@@ -357,6 +406,7 @@ const Settings = {
 			settings_copy[key] = {value: settings[key].value}
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
+		localStorage.setItem('settings_profiles', JSON.stringify(Settings.profiles));
 
 		if (window.canvas_scenes) {
 			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
@@ -561,12 +611,37 @@ onVueSetup(function() {
 		component: {
 			data() {return {
 				structure: Settings.structure,
+				profile: '',
 				open_category: 'general',
 				search_term: '',
 			}},
 			methods: {
 				saveSettings() {
 					Settings.saveLocalStorages();
+				},
+				showProfileMenu(event) {
+					let items = [
+						{
+							name: 'Master',
+							click: () => {
+								this.profile = '';
+							}
+						}
+					];
+					Settings.profiles.forEach(profile => {
+						items.push({
+							name: profile.name,
+							click: () => {
+								this.profile = profile.uuid;
+							}
+						})
+					})
+
+					items.push(
+						'_',
+						{name: 'Create Profile'}
+					)
+					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
 				},
 				getIconNode: Blockbench.getIconNode,
 				Condition
@@ -611,6 +686,11 @@ onVueSetup(function() {
 			},
 			template: `
 				<div>
+					<div>
+						Profile:
+						<div ref="profile_menu">{{  }}</div>
+					</div>
+
 					<h2 class="i_b">{{ title }}</h2>
 
 					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
