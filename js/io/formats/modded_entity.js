@@ -238,7 +238,7 @@ const Templates = {
 		integer_size: false,
 		file:
 			`// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.17 - 1.18 with Mojang mappings
+			// Exported for Minecraft version 1.17 or later with Mojang mappings
 			// Paste this class into your mod and generate all required imports
 
 
