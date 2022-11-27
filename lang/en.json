@@ -1879,6 +1879,7 @@
 	"display.preset.block": "Default Block",
 	"display.preset.handheld": "Default Weapon",
 	"display.preset.rod": "Default Rod",
+	"display.preset.armor_stand": "Ground (Armor Stand)",
 
 	"preview_scene.studio": "Studio",
 	"preview_scene.minecraft_overworld": "Minecraft Overworld",

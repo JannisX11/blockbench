@@ -17,7 +17,6 @@ const Painter = {
 			texture.saved = false
 		}
 		var instance = Painter.current.canvas;
-		Painter.current.canvas = undefined
 
 		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 

@@ -191,6 +191,24 @@ display_presets = [
 			scale: [ 0.68, 0.68, 0.68 ]
 		}
 	}
+	},
+	{id: 'armor_stand', fixed: true, areas: {
+		thirdperson_righthand: {
+			rotation: [ 90, 0, 0 ],
+			translation: [ -6, -2, -4 ],
+			scale: [ 1, 1, 1 ]
+		},
+		thirdperson_lefthand: {
+			rotation: [ 90, 0, 0 ],
+			translation: [ -6, -2, -4 ],
+			scale: [ 1, 1, 1 ]
+		},
+		head: {
+			rotation: [ 0, 0, 0 ],
+			translation: [ 0, -30.4, 0 ],
+			scale: [ 1.6, 1.6, 1.6 ]
+		}
+	}
 	}
 ]
 if (localStorage.getItem('display_presets') != null) {
@@ -1634,6 +1652,7 @@ BARS.defineActions(function() {
 						case 'block': icon = 'fa-cube'; break;
 						case 'handheld': icon = 'build'; break;
 						case 'rod': icon = 'remove'; break;
+						case 'armor_stand': icon = 'icon-armor_stand'; break;
 					}
 				}
 				presets.push({
