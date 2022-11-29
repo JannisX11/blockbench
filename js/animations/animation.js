@@ -57,11 +57,13 @@ class Animation {
 						let element;
 						if (!uuid) {
 							let lowercase_name = key.toLowerCase();
-							element = Outliner.elements.find(element => element.constructor.animator && element.name.toLowerCase() == lowercase_name)
+							element = Outliner.elements.find(element2 => element2.constructor.animator && element2.name.toLowerCase() == lowercase_name)
 							uuid = element ? element.uuid : guid();
 						}
 						if (!element) element = Outliner.elements.find(element => element.constructor.animator && element.uuid == uuid);
-						animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name)
+						if (element) {
+							animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name);
+						}
 					} else {
 						// Bone
 						let uuid = isUUID(key) && key;
