@@ -201,7 +201,7 @@ const Timeline = {
 		},
 	},
 	setTime(seconds, editing) {
-		seconds = limitNumber(seconds, 0, 1000)
+		seconds = limitNumber(seconds, 0, Infinity)
 		Timeline.vue._data.playhead = seconds
 		Timeline.time = seconds
 		if (!editing) {
