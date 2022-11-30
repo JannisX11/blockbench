@@ -2159,6 +2159,7 @@ const BARS = {
 			id: 'animations',
 			children: [
 				'add_animation',
+				'add_animation_controller',
 				'load_animation_file',
 				'slider_animation_length',
 			]
@@ -2190,6 +2191,13 @@ const BARS = {
 				'slider_animation_speed',
 			],
 			default_place: true
+		})
+		//Animation Controllers
+		Toolbars.animation_controllers = new Toolbar({
+			id: 'animation_controllers',
+			children: [
+				'add_animation_controller_state',
+			]
 		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({

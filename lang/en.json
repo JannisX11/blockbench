@@ -1441,6 +1441,8 @@
 
 	"action.add_animation": "Add Animation",
 	"action.add_animation.desc": "Create a blank animation",
+	"action.add_animation_controller": "Add Animation Controller",
+	"action.add_animation_controller.desc": "Create a blank animation controller",
 	"action.load_animation_file": "Import Animations",
 	"action.load_animation_file.desc": "Import an animation file",
 	"action.play_animation": "Play Animation",
@@ -1528,6 +1530,15 @@
 	"timeline.effects": "Effects",
 	"timeline.timeline": "Instructions",
 	"timeline.pre_effect_script": "Script",
+
+	"animation_controllers.state.animations": "Animations",
+	"animation_controllers.state.particles": "Particles",
+	"animation_controllers.state.sounds": "Sounds",
+	"animation_controllers.state.on_entry": "On Entry",
+	"animation_controllers.state.on_exit": "On Exit",
+	"animation_controllers.state.transitions": "Transitions",
+	"animation_controllers.state.blend_transition": "Blend Time",
+	"animation_controllers.state.shortest_path": "Blend by Shortest Path",
 
 	"menu.action_control.type.tab": "Tab",
 	"menu.action_control.type.angle": "Camera Angle",
@@ -1743,6 +1754,7 @@
 	"panel.outliner": "Outliner",
 	"panel.chat": "Chat",
 	"panel.animations": "Animations",
+	"panel.animation_controllers": "Animation Controller",
 	"panel.timeline": "Timeline",
 	"panel.keyframe": "Keyframe",
 	"panel.keyframe.type": "Keyframe (%0)",

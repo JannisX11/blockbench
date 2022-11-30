@@ -1310,6 +1310,46 @@
 		margin-top: 2px;
 	}
 
+/* Animation Controllers */
+#animation_controllers_wrapper {
+	flex-grow: 1;
+	background-color: var(--color-back);
+	display: flex;
+    flex-direction: column;
+}
+#animation_controllers_wrapper > ul {
+	height: 100%;
+	flex-grow: 1;
+	overflow: auto;
+	display: flex;
+    flex-direction: row;
+}
+#animation_controllers_wrapper .controller_state {
+	width: 280px;
+	flex-shrink: 0;
+	padding-bottom: 8px;
+	background-color: var(--color-ui);
+	margin: 12px 6px;
+	box-shadow: 0 0 10px rgb(0 0 0 / 22%);
+}
+.controller_state_title_bar {
+	padding: 2px 10px;
+	background-color: var(--color-button);
+}
+.controller_state_section_title {
+	cursor: pointer;
+	padding: 2px 10px;
+}
+.controller_state_section_title:hover {
+	color: var(--color-light);
+}
+.controller_state_section_title > i {
+	width: 18px;
+}
+.controller_state_section_title > label {
+	cursor: inherit;
+}
+
 
 /*UV*/
 	.UVEditor {

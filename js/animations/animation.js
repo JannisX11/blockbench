@@ -10,6 +10,7 @@ class Animation {
 		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
 		this.markers = [];
+		this.type = 'animation';
 		for (var key in Animation.properties) {
 			Animation.properties[key].reset(this);
 		}
@@ -1826,6 +1827,7 @@ Interface.definePanels(function() {
 			name: 'panel-animations',
 			data() { return {
 				animations: Animation.all,
+				animation_controllers: AnimationController.all,
 				files_folded: {},
 				animation_files_enabled: true
 			}},
@@ -1980,6 +1982,16 @@ Interface.definePanels(function() {
 						if (!animation.saved) files[key].saved = false;
 						files[key].animations.push(animation);
 					})
+					this.animation_controllers.forEach(controller => {
+						let key = controller.path || '';
+						if (!files[key]) files[key] = {
+							animations: [],
+							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
+							saved: true
+						};
+						if (!controller.saved) files[key].saved = false;
+						files[key].animations.push(controller);
+					})
 					return files;
 				},
 				common_namespace() {
@@ -2044,7 +2056,8 @@ Interface.definePanels(function() {
 								:key="animation.uuid"
 								@contextmenu.prevent.stop="animation.showContextMenu($event)"
 							>
-								<i class="material-icons">movie</i>
+								<i class="material-icons" v-if="animation.type == 'animation'">movie</i>
+								<i class="material-icons" v-else>list</i>
 								<label :title="animation.name">
 									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
 									<span v-if="common_namespace"> - {{ animation.name }}</span>
@@ -2065,6 +2078,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'add_animation',
+			'add_animation_controller',
 			'load_animation_file',
 			'paste',
 			'save_all_animations',

@@ -610,7 +610,7 @@ const Timeline = {
 Interface.definePanels(() => {
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => !AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
 			float_position: [100, 400],
