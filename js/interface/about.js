@@ -81,7 +81,7 @@ BARS.defineActions(() => {
 							<h4>SPECIAL THANKS TO</h4>
 							<ul class="multi_column_list special_thanks_mentions">
 								<li>Mojang Studios</li>
-								<li>All contributors</li>
+								<li><a class="open-in-browser" href="https://github.com/JannisX11/blockbench/graphs/contributors">All contributors</a></li>
 								<li>The community moderators</li>
 								<li>All donators</li>
 								<li>All translators</li>
