@@ -2146,7 +2146,8 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Format.image_editor,
-		click: function () {
+		keybind: new Keybind({shift: null}),
+		click(event = 0) {
 			if (!Project) return;
 			if (Prop.active_panel == 'uv') {
 				UVEditor.focusOnSelection()
@@ -2169,7 +2170,7 @@ BARS.defineActions(function() {
 				let interval = setInterval(() => {
 					preview.controls.target.sub(difference);
 
-					if (preview.angle != null) {
+					if (!event.shiftKey || preview.angle != null) {
 						preview.camera.position.sub(difference);
 					}
 					i++;
