@@ -462,7 +462,7 @@ function setupInterface() {
 	])
 
 	document.oncontextmenu = function (event) {
-		if (!$(event.target).hasClass('allow_default_menu') && event instanceof TouchEvent == false) {
+		if (!$(event.target).hasClass('allow_default_menu') && (!Blockbench.isTouch || event instanceof TouchEvent == false)) {
 			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
 			}
