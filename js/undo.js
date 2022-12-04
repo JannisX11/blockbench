@@ -292,8 +292,8 @@ class UndoSystem {
 			elements.forEach(function(obj) {
 				if (save.selection.includes(obj.uuid)) {
 					obj.selectLow()
-					if (save.selected_vertices[obj.uuid]) {
-						Project.selected_vertices[obj.uuid] = save.selected_vertices[obj.uuid];
+					if (save.mesh_selection[obj.uuid]) {
+						Project.mesh_selection[obj.uuid] = save.mesh_selection[obj.uuid];
 					}
 				}
 			})
@@ -474,11 +474,11 @@ UndoSystem.save = class {
 
 		if (aspects.selection) {
 			this.selection = [];
-			this.selected_vertices = {};
+			this.mesh_selection = {};
 			selected.forEach(obj => {
 				this.selection.push(obj.uuid);
-				if (obj instanceof Mesh) {
-					this.selected_vertices[obj.uuid] = Mesh.selected[0].getSelectedVertices().slice();
+				if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
+					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
 			if (Group.selected) {

@@ -1,3 +1,7 @@
+function sameMeshEdge(edge_a, edge_b) {
+	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
+}
+
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
 		id: 'add_primitive',
@@ -319,7 +323,7 @@ BARS.defineActions(function() {
 		onChange({value}) {
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
-					delete Project.selected_vertices[mesh.uuid];
+					delete Project.mesh_selection[mesh.uuid];
 				})
 			} else if (value === 'face') {
 				UVEditor.vue.selected_faces.empty();
@@ -653,19 +657,16 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
-					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					let original_vertices = mesh.getSelectedVertices().slice();
 					let new_vertices;
 					let new_face_keys = [];
-					let selected_faces = [];
-					let selected_face_keys = [];
+					let selected_face_keys = mesh.getSelectedFaces();
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
 					let combined_direction;
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey]; 
-						if (face.isSelected()) {
-							selected_faces.push(face);
-							selected_face_keys.push(fkey);
-						}
-					}
+
+					selected_faces.forEach(face => {
+						original_vertices.safePush(...face.vertices);
+					})
 
 					if (original_vertices.length >= 3 && !selected_faces.length) {
 						let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
@@ -738,7 +739,7 @@ BARS.defineActions(function() {
 						vector.V3_add(direction.map(v => v * extend));
 						return vector;
 					}))
-					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
 
 					// Move Faces
 					selected_faces.forEach(face => {
@@ -850,7 +851,7 @@ BARS.defineActions(function() {
 			function runEdit(amended, offset = 50) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 				Mesh.selected.forEach(mesh => {
-					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					let original_vertices = mesh.getSelectedVertices();
 					if (original_vertices.length < 3) return;
 					let new_vertices;
 					let selected_faces = [];
@@ -897,7 +898,7 @@ BARS.defineActions(function() {
 					}).filter(vec => vec instanceof Array))
 					if (!new_vertices.length) return;
 	
-					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
 	
 					// Move Faces
 					selected_faces.forEach(face => {
@@ -1458,6 +1459,7 @@ BARS.defineActions(function() {
 			Mesh.selected.forEach(mesh => {
 
 				let selected_vertices = mesh.getSelectedVertices();
+				let mesh_selection = Project.mesh_selection[mesh.uuid];
 
 				let copy = new Mesh(mesh);
 				elements.push(copy);
@@ -1494,8 +1496,8 @@ BARS.defineActions(function() {
 
 				copy.name += '_selection'
 				copy.sortInBefore(mesh, 1).init();
-				delete Project.selected_vertices[mesh.uuid];
-				Project.selected_vertices[copy.uuid] = selected_vertices;
+				delete Project.mesh_selection[mesh.uuid];
+				Project.mesh_selection[copy.uuid] = mesh_selection;
 				mesh.preview_controller.updateGeometry(mesh);
 				selected[selected.indexOf(mesh)] = copy;
 			})

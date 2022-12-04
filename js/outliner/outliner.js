@@ -1202,7 +1202,7 @@ BARS.defineActions(function() {
 		
 			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
 				Mesh.selected.forEach(mesh => {
-					delete Project.selected_vertices[mesh.uuid];
+					delete Project.mesh_selection[mesh.uuid];
 				})
 				updateSelection();
 		

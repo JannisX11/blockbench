@@ -803,6 +803,8 @@ class Preview {
 
 						let mesh = data.element;
 						let selected_vertices = mesh.getSelectedVertices(true);
+						let selected_edges = mesh.getSelectedEdges(true);
+						let selected_faces = mesh.getSelectedFaces(true);
 
 						if (event.altKey || Pressing.overrides.alt) {
 							
@@ -829,21 +831,22 @@ class Preview {
 
 							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
 								selected_vertices.empty();
+								selected_edges.empty();
+								selected_faces.empty();
 								UVEditor.vue.selected_faces.empty();
 							}
 
 							processed_faces.forEach(face => {
-								Project.selected_vertices[data.element.uuid].safePush(...face.vertices);
+								selected_vertices.safePush(...face.vertices);
 								let fkey = face.getFaceKey();
 								UVEditor.vue.selected_faces.push(fkey);
+								selected_faces.push(fkey);
 							});
 						} else {
-							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
-							}
 							let face_vkeys = data.element.faces[data.face].vertices;
 							
 							if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
-								if (face_vkeys.allAre(vkey => selected_vertices.includes(vkey))) {
+								if (selected_faces.includes(data.face)) {
 									let selected_faces = data.element.getSelectedFaces();
 									let vkeys_to_remove = face_vkeys.filter(vkey => {
 										return !selected_faces.find(fkey => {
@@ -853,13 +856,17 @@ class Preview {
 									if (vkeys_to_remove.length == 0) vkeys_to_remove.push(face_vkeys[0]);
 									selected_vertices.remove(...vkeys_to_remove);
 									UVEditor.vue.selected_faces.remove(data.face);
+									selected_faces.remove(data.face);
 								} else {
 									selected_vertices.safePush(...face_vkeys);
 									UVEditor.vue.selected_faces.safePush(data.face);
+									selected_faces.safePush(data.face);
 								}
 							} else {
+								selected_edges.empty();
 								selected_vertices.replace(face_vkeys);
 								UVEditor.vue.selected_faces.replace([data.face]);
+								selected_faces.replace([data.face]);
 							}
 						}
 
@@ -878,34 +885,38 @@ class Preview {
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 
-				if (!Project.selected_vertices[data.element.uuid]) {
-					Project.selected_vertices[data.element.uuid] = [];
-				}
-				let list = Project.selected_vertices[data.element.uuid];
+				let list = data.element.getSelectedVertices(true);
+				let edges = data.element.getSelectedEdges(true);
+				let faces = data.element.getSelectedEdges(true);
 
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					list.toggle(data.vertex);
 				} else {
-					unselectOtherNodes()
+					unselectOtherNodes();
 					list.replace([data.vertex]);
+					edges.empty();
+					faces.empty();
 				}
 				updateSelection();
 			} else if (data.type == 'line') {
 
-				if (!Project.selected_vertices[data.element.uuid]) {
-					Project.selected_vertices[data.element.uuid] = [];
-				}
-				let list = Project.selected_vertices[data.element.uuid];
+				let vertices = data.element.getSelectedVertices(true);
+				let edges = data.element.getSelectedEdges(true);
+				let faces = data.element.getSelectedEdges(true);
 
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
-					if (list.includes(data.vertices[0]) && list.includes(data.vertices[1])) {
-						list.remove(...data.vertices);
+					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
+					if (index >= 0) {
+						vertices.remove(...data.vertices);
+						edges.splice(index, 1);
 					} else {
-						list.remove(...data.vertices);
-						list.push(...data.vertices);
+						edges.push(data.vertices);
+						vertices.push(...data.vertices);
 					}
 				} else {
-					list.replace(data.vertices);
+					faces.empty();
+					edges.splice(0, Infinity, data.vertices);
+					vertices.replace(data.vertices);
 					unselectOtherNodes();
 				}
 				if (event.altKey || Pressing.overrides.alt) {
@@ -935,7 +946,8 @@ class Preview {
 						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
 						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
 
-						list.safePush(...side_vertices);
+						vertices.safePush(...side_vertices);
+						edges.push(side_vertices);
 
 						// Find next (and previous) face
 						function doNextFace(index) {
@@ -1080,10 +1092,7 @@ class Preview {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
-			this.selection.old_vertices_selected = {};
-			for (let uuid in Project.selected_vertices) {
-				this.selection.old_vertices_selected[uuid] = Project.selected_vertices[uuid].slice();
-			}
+			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
 
 			this.moveSelRect(event)
 		}
@@ -1163,15 +1172,15 @@ class Preview {
 					
 					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
 
-						let selected_vertices;
+						let mesh_selection;
 						if (selection_mode != 'object') {
 							isSelected = true;
-							if (!Project.selected_vertices[element.uuid]) {
-								selected_vertices = Project.selected_vertices[element.uuid] = [];
+							if (!Project.mesh_selection[element.uuid]) {
+								mesh_selection = Project.mesh_selection[element.uuid] = {vertices: [], edges: [], faces: []};
 							} else {
-								selected_vertices = Project.selected_vertices[element.uuid];
+								mesh_selection = Project.mesh_selection[element.uuid];
 							}
-							if (!extend_selection) selected_vertices.empty();
+							if (!extend_selection) mesh_selection.vertices.empty();
 						}
 
 						let vertex_points = {};
@@ -1183,19 +1192,17 @@ class Preview {
 								is_on_screen = true;
 							}
 						}
-						if (is_on_screen && extend_selection) {
-							for (let vkey in element.vertices) {
-								if (extend_selection && this.selection.old_vertices_selected[element.uuid] && this.selection.old_vertices_selected[element.uuid].includes(vkey)) {
-									selected_vertices.safePush(vkey);
-								}
-							}
+						if (extend_selection && this.selection.old_mesh_selection[element.uuid]) {
+							mesh_selection.vertices.safePush(...this.selection.old_mesh_selection[element.uuid].vertices);
+							mesh_selection.edges.safePush(...this.selection.old_mesh_selection[element.uuid].edges);
+							mesh_selection.faces.safePush(...this.selection.old_mesh_selection[element.uuid].faces);
 						}
 						if (!is_on_screen) {
 						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
-								if (!selected_vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
-									selected_vertices.push(vkey);
+								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+									mesh_selection.vertices.push(vkey);
 								}
 							}
 
@@ -1209,7 +1216,11 @@ class Preview {
 									let p1 = vertex_points[vkey];
 									let p2 = vertex_points[vkey2];
 									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
-										selected_vertices.safePush(vkey);
+										mesh_selection.vertices.safePush(vkey);
+										let edge = [vkey, vkey2];
+										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+											mesh_selection.edges.push(edge);
+										}
 									}
 								}
 							}
@@ -1229,16 +1240,18 @@ class Preview {
 										break;
 									}
 								}
-								if (face_intersects && selection_mode == 'object') {
+								if (selection_mode == 'object') {
 									if (face_intersects) {
 										isSelected = true;
 										break;
 									}
 								} else {
 									if (face_intersects) {
-										selected_vertices.safePush(...face.vertices);
+										mesh_selection.vertices.safePush(...face.vertices);
+										mesh_selection.faces.safePush(fkey);
 										UVEditor.vue.selected_faces.safePush(fkey);
 									} else {
+										mesh_selection.faces.remove(fkey);
 										UVEditor.vue.selected_faces.remove(fkey);
 									}
 								}

@@ -1695,31 +1695,30 @@ const BARS = {
 				icon: 'delete',
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
-				click: function () {
+				click() {
+					let mesh_selection = Project.mesh_selection[Mesh.selected[0].uuid];
 					if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
-					} else if (Modes.edit && Mesh.selected.length && Project.selected_vertices[Mesh.selected[0].uuid] && Project.selected_vertices[Mesh.selected[0].uuid].length < Mesh.selected[0].vertice_list.length) {
+					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
 						Undo.initEdit({elements: Mesh.selected})
 
 						Mesh.selected.forEach(mesh => {
-							let has_selected_faces = false;
 							let selected_vertices = mesh.getSelectedVertices();
-							for (let key in mesh.faces) {
-								has_selected_faces = has_selected_faces || mesh.faces[key].isSelected();
-							}
-							if (BarItems.selection_mode.value == 'face' && has_selected_faces) {
-								for (let key in mesh.faces) {
-									let face = mesh.faces[key];
-									if (face.isSelected()) {
-										delete mesh.faces[key];
-									}
-								}
-								selected_vertices.forEach(vertex_key => {
+							let selected_edges = mesh.getSelectedEdges();
+							let selected_faces = mesh.getSelectedFaces();
+
+							if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
+								let affected_vertices = [];
+								selected_faces.forEach(fkey => {
+									affected_vertices.safePush(...mesh.faces[fkey].vertices);
+									delete mesh.faces[fkey];
+								})
+								affected_vertices.forEach(vertex_key => {
 									let used = false;
 									for (let key in mesh.faces) {
 										let face = mesh.faces[key];
@@ -1729,31 +1728,35 @@ const BARS = {
 										delete mesh.vertices[vertex_key];
 									}
 								})
-							} else if (BarItems.selection_mode.value == 'edge' && selected_vertices.length) {
+							} else if (BarItems.selection_mode.value == 'edge') {
 								for (let key in mesh.faces) {
 									let face = mesh.faces[key];
 									let sorted_vertices = face.getSortedVertices();
-									let selected_corners = sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
-									if (selected_corners.length >= 2) {
-										let index_diff = (sorted_vertices.indexOf(selected_corners[0]) - sorted_vertices.indexOf(selected_corners[1])) % sorted_vertices.length;
-										if ((sorted_vertices.length < 4 || Math.abs(index_diff) !== 2)) {
-											delete mesh.faces[key];
-										}
+									let has_edge = sorted_vertices.find((vkey_a, i) => {
+										let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
+										let edge = [vkey_a, vkey_b];
+										return selected_edges.find(edge2 => sameMeshEdge(edge, edge2))
+									})
+									if (has_edge) {
+										delete mesh.faces[key];
 									}
 								}
-								selected_vertices.forEach(vertex_key => {
-									let used = false;
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (face.vertices.includes(vertex_key)) used = true;
-									}
-									if (!used) {
-										delete mesh.vertices[vertex_key];
-									}
+								selected_edges.forEachReverse(edge => {
+									edge.forEach(vkey => {
+										let used = false;
+										for (let key in mesh.faces) {
+											let face = mesh.faces[key];
+											if (face.vertices.includes(vkey)) used = true;
+										}
+										if (!used) {
+											delete mesh.vertices[vkey];
+											selected_vertices.remove(vkey);
+											selected_edges.remove(edge);
+										}
+									})
 								})
 
-							} else {
-								let selected_vertices = Project.selected_vertices[mesh.uuid];
+							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
 								selected_vertices.forEach(vertex_key => {
 									delete mesh.vertices[vertex_key];
 
@@ -1777,6 +1780,9 @@ const BARS = {
 										}
 									}
 								})
+							} else {
+								Mesh.selected.remove(mesh);
+								mesh.remove(false);
 							}
 						})
 

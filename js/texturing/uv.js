@@ -551,9 +551,9 @@ const UVEditor = {
 			obj.preview_controller.updateUV(obj);
 		})
 		Mesh.selected.forEach(mesh => {
-			let selected_vertices = Project.selected_vertices[mesh.uuid];
+			let selected_vertices = mesh.getSelectedVertices();
 			
-			if (selected_vertices) {
+			if (selected_vertices.length) {
 				UVEditor.vue.selected_faces.forEach(fkey => {
 					if (!mesh.faces[fkey]) return
 					selected_vertices.forEach(vkey => {
@@ -2344,7 +2344,7 @@ Interface.definePanels(function() {
 
 					UVEditor.getMappableElements().forEach(el => {
 						if (el instanceof Mesh) {
-							delete Project.selected_vertices[el.uuid];
+							delete Project.mesh_selection[el.uuid];
 						}
 					})
 
@@ -3328,7 +3328,7 @@ Interface.definePanels(function() {
 		} else if (elements[0] instanceof Mesh) {
 			var face = UVEditor.getReferenceFace();
 			if (face) {
-				let selected_vertices = Project.selected_vertices[elements[0].uuid];
+				let selected_vertices = elements[0].getSelectedVertices();
 				let has_selected_vertices = selected_vertices && face.vertices.find(vkey => selected_vertices.includes(vkey))
 				let min = Infinity;
 				face.vertices.forEach(vkey => {
