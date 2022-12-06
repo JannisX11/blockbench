@@ -1523,44 +1523,45 @@ DisplayMode.scrollSlider = function(type, value, el) {
 }
 
 window.changeDisplaySkin = function() {
-	var buttons = [
-		tl('message.display_skin.upload'),
-		tl('message.display_skin.reset')
-	]
-	if (isApp) {
-		buttons.splice(1, 0, tl('message.display_skin.name'))
-	}
-	buttons.push('dialog.cancel');
+	var commands = {
+		file: tl('message.display_skin.upload'),
+		name: isApp ? tl('message.display_skin.name') : undefined,
+		reset: tl('message.display_skin.reset'),
+	};
 	Blockbench.showMessageBox({
 		translateKey: 'display_skin',
 		icon: 'icon-player',
-		buttons: buttons,
-		confirm: 0,
-		cancel: buttons.length-1,
-	}, function(result) {
-		if (result === 0) {
+		commands,
+		buttons: ['dialog.cancel'],
+	}, (result) => {
+		if (result === 'file') {
 			Blockbench.import({
 				resource_id: 'minecraft_skin',
 				extensions: ['png'],
 				type: 'PNG Player Skin',
 				readtype: 'image'
-			}, function(files) {
+			}, (files) => {
 
+				let img_content = isApp ? files[0].path : files[0].content;
+				let img = new Image();
+				img.src = img_content;
 				Blockbench.showMessageBox({
 					translateKey: 'display_skin_model',
-					icon: 'icon-player',
-					buttons: [
-						tl('message.display_skin_model.classic'),
-						tl('message.display_skin_model.slim')
-					]
-				}, function(slim) {
-					if (files.length) {
-						settings.display_skin.value = (slim?'S':'C') +','+ (isApp ? files[0].path : files[0].content)
-						updateDisplaySkin()
+					icon: img,
+					commands: {
+						classic: tl('message.display_skin_model.classic'),
+						slim: tl('message.display_skin_model.slim')
+					},
+					buttons: ['dialog.cancel'],
+				}, (type) => {
+					if (files.length && type) {
+						settings.display_skin.value = (type == 'slim'?'S':'C') +','+ img_content;
+						updateDisplaySkin(true);
+						Settings.saveLocalStorages();
 					}
 				})
 			})
-		} else if (result === 1 && isApp) {
+		} else if (result === 'name' && isApp) {
 			if (typeof settings.display_skin.value === 'string' && settings.display_skin.value.substr(0, 9) === 'username:') {
 				var before = settings.display_skin.value.replace('username:', '')
 			} else {
@@ -1568,15 +1569,17 @@ window.changeDisplaySkin = function() {
 			}
 			Blockbench.textPrompt(tl('message.display_skin.name'), before, function(text) {
 				settings.display_skin.value = 'username:'+text
-				updateDisplaySkin()
+				updateDisplaySkin(true);
+				Settings.saveLocalStorages();
 			})
-		} else if (result < buttons.length-1) {
-			settings.display_skin.value = false
-			updateDisplaySkin()
+		} else if (result === 'reset') {
+			settings.display_skin.value = false;
+			updateDisplaySkin(true);
+			Settings.saveLocalStorages();
 		}
 	})
 }
-function updateDisplaySkin() {
+function updateDisplaySkin(feedback) {
 	var val = settings.display_skin.value
 	function setPSkin(skin, slim) {
 		if (!displayReferenceObjects.refmodels.player.material) {
@@ -1614,18 +1617,19 @@ function updateDisplaySkin() {
 						setPSkin(skin_path, is_slim)
 					}
 				})
+			} else if (feedback) {
+				Blockbench.showQuickMessage(tl('message.display_skin.invalid_name', [username]), 2000);
 			}
 		})
 	} else {
 		if (val.substr(1,1) === ',') {
-			var slim = val.substr(0,1) === 'S'
-			val = val.substr(2)
+			var slim = val.substr(0,1) === 'S';
+			val = val.substr(2);
 		} else {
-			var slim = false
+			var slim = false;
 		}
-		setPSkin(val, slim)
+		setPSkin(`${val}?${Math.floor(Math.random()*99)}`, slim);
 	}
-	//displayReferenceObjects.refmodels.player.material
 }
 
 BARS.defineActions(function() {
