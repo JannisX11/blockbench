@@ -386,7 +386,7 @@ class Animation {
 		Prop.active_panel = 'animations';
 		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
-		Animator.animations.forEach(function(a) {
+		[...Animation.all, ...AnimationController.all].forEach((a) => {
 			a.selected = a.playing = false;
 		})
 		Timeline.clear();
@@ -395,6 +395,7 @@ class Animation {
 		this.selected = true;
 		this.playing = true;
 		Animation.selected = this;
+		AnimationController.selected = null;
 		unselectAll();
 		BarItems.slider_animation_length.update();
 
@@ -1032,6 +1033,7 @@ const Animator = {
 	preview(in_loop) {
 		// Bones
 		Animator.showDefaultPose(true);
+		// Calculate blend value for each animation/controller from each active animation controller. These values will later be added to the regular blend value
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
@@ -1138,8 +1140,9 @@ const Animator = {
 						? string.replace(/;(?!$)/, ';\n')
 						: string
 		}
-		if (json && typeof json.animations === 'object') {
-			for (var ani_name in json.animations) {
+		if (!json) return new_animations;
+		if (typeof json.animations === 'object') {
+			for (let ani_name in json.animations) {
 				if (animation_filter && !animation_filter.includes(ani_name)) continue;
 				//Animation
 				var a = json.animations[ani_name]
@@ -1330,6 +1333,22 @@ const Animator = {
 				}
 				new_animations.push(animation)
 			}
+		} else if (typeof json.animation_controllers === 'object') {
+			for (let ani_name in json.animation_controllers) {
+				if (animation_filter && !animation_filter.includes(ani_name)) continue;
+				//Animation
+				let a = json.animation_controllers[ani_name]
+				let controller = new AnimationController({
+					name: ani_name,
+					saved_name: ani_name,
+					path,
+					states: a.states
+				}).add()
+				if (!Animation.selected && !AnimationController.selected && Animator.open) {
+					controller.select();
+				}
+				new_animations.push(controller)
+			}
 		}
 		return new_animations
 	},
@@ -1346,15 +1365,30 @@ const Animator = {
 			animations: animations
 		}
 	},
+	buildController(path_filter, name_filter) {
+		var controllers = {}
+		AnimationController.all.forEach(function(a) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+				let ani_tag = a.compileForBedrock();
+				controllers[a.name] = ani_tag;
+			}
+		})
+		return {
+			format_version: '1.19.0',
+			animation_controllers: controllers
+		}
+	},
 	importFile(file) {
 		let form = {};
 		let json = autoParseJSON(file.content)
 		let keys = [];
-		for (var key in json.animations) {
+		let is_controller = !!json.animation_controllers;
+		let entries = json.animations || json.animation_controllers;
+		for (var key in entries) {
 			// Test if already loaded
 			if (isApp && file.path) {
 				let is_already_loaded = false
-				for (var anim of Animation.all) {
+				for (var anim of is_controller ? Animation.all : AnimationController.all) {
 					if (anim.path == file.path && anim.name == key) {
 						is_already_loaded = true;
 						break;
@@ -1453,6 +1487,57 @@ const Animator = {
 				})
 			}, new_path => {
 				Animator.animations.forEach(function(a) {
+					if (a.path == filter_path) {
+						a.path = new_path;
+						a.saved = true;
+					}
+				})
+			})
+		}
+	},
+	exportAnimationControllerFile(path) {
+		let filter_path = path || '';
+
+		if (isApp && !path) {
+			path = Project.export_path
+			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
+			var m_index = path.search(exp)
+			if (m_index > 3) {
+				path = path.substr(0, m_index) + osfs + 'animation_controllers' + osfs +  pathToName(Project.export_path, true)
+			}
+			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
+		}
+
+		if (isApp && path && fs.existsSync(path)) {
+			AnimationController.all.forEach(function(a) {
+				if (a.path == filter_path && !a.saved) {
+					a.save();
+				}
+			})
+		} else {
+			let content = Animator.buildController(filter_path, true);
+			Blockbench.export({
+				resource_id: 'animation_controller',
+				type: 'JSON Animation Controller',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation_controllers',
+				startpath: path,
+				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path, cb) => {
+					if (new_path && fs.existsSync(new_path)) {
+						AnimationController.all.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(new_path, {content})
+						cb(new_path);
+					}
+				})
+			}, new_path => {
+				AnimationController.all.forEach(function(a) {
 					if (a.path == filter_path) {
 						a.path = new_path;
 						a.saved = true;
@@ -1582,7 +1667,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 }
 
 Blockbench.addDragHandler('animation', {
-	extensions: ['animation.json'],
+	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},
 }, async function(files) {
@@ -1650,7 +1735,7 @@ BARS.defineActions(function() {
 			Blockbench.import({
 				resource_id: 'animation',
 				extensions: ['json'],
-				type: 'JSON Animation',
+				type: 'JSON Animation, JSON Animation Controller',
 				multiple: true,
 				startpath: path
 			}, async function(files) {
@@ -2024,6 +2109,37 @@ Interface.definePanels(function() {
 						}
 						return name;
 					}
+				},
+				common_controller_namespace() {
+					if (!this.animation_controllers.length) {
+						return '';
+
+					} else if (this.animation_controllers.length == 1) {
+						let match = this.animation_controllers[0].name.match(/^.*[.:]/);
+						return match ? match[0] : '';
+
+					} else {
+						let name = this.animation_controllers[0].name;
+						if (name.search(/[.:]/) == -1) return '';
+
+						for (var anim of this.animation_controllers) {
+							if (anim == this.animation_controllers[0]) continue;
+
+							let segments = anim.name.split(/[.:]/);
+							let length = 0;
+
+							for (var segment of segments) {
+								if (segment == name.substr(length, segment.length)) {
+									length += segment.length + 1;
+								} else {
+									break;
+								}
+							}
+							name = name.substr(0, length);
+							if (name.length < 8) return '';
+						}
+						return name;
+					}
 				}
 			},
 			template: `
@@ -2058,9 +2174,13 @@ Interface.definePanels(function() {
 							>
 								<i class="material-icons" v-if="animation.type == 'animation'">movie</i>
 								<i class="material-icons" v-else>list</i>
-								<label :title="animation.name">
+								<label :title="animation.name" v-if="animation.type == 'animation'">
 									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
 									<span v-if="common_namespace"> - {{ animation.name }}</span>
+								</label>
+								<label :title="animation.name" v-else>
+									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
+									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
 								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>

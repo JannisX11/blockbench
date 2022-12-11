@@ -1531,6 +1531,7 @@
 	"timeline.timeline": "Instructions",
 	"timeline.pre_effect_script": "Script",
 
+	"animation_controllers.select_preset": "Select a controller preset...",
 	"animation_controllers.state.animations": "Animations",
 	"animation_controllers.state.particles": "Particles",
 	"animation_controllers.state.sounds": "Sounds",

@@ -188,7 +188,7 @@ class ModelProject {
 		scene.add(this.model_3d);
 
 		Panels.animations.inside_vue.animations = this.animations;
-		Panels.animation_controllers.inside_vue.animation_controllers = this.animation_controllers;
+		Panels.animations.inside_vue.animation_controllers = this.animation_controllers;
 		Timeline.animators = Timeline.vue.animators = [];
 		Animation.selected = null;
 		AnimationController.selected = null;

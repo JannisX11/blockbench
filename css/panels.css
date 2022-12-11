@@ -1314,40 +1314,123 @@
 #animation_controllers_wrapper {
 	flex-grow: 1;
 	background-color: var(--color-back);
-	display: flex;
-    flex-direction: column;
+	overflow: auto;
+}
+#animation_controller_presets {
+    width: 200px;
+    position: absolute;
+    margin: auto;
+    left: 0;
+    right: 0;
+    margin-top: 16px;
+}
+#animation_controller_presets li {
+    cursor: pointer;
+}
+#animation_controller_presets li:hover {
+    color: var(--color-light);
 }
 #animation_controllers_wrapper > ul {
-	height: 100%;
-	flex-grow: 1;
-	overflow: auto;
 	display: flex;
     flex-direction: row;
+	min-width: fit-content;
+	justify-content: center;
 }
 #animation_controllers_wrapper .controller_state {
-	width: 280px;
+	width: 300px;
 	flex-shrink: 0;
 	padding-bottom: 8px;
 	background-color: var(--color-ui);
 	margin: 12px 6px;
 	box-shadow: 0 0 10px rgb(0 0 0 / 22%);
+	border: 1px solid transparent;
+	transition: width 100ms ease-in-out;
+}
+#animation_controllers_wrapper .controller_state.selected {
+	width: min(100vw, 400px);
+	border-color: var(--color-accent);
+}
+#animation_controllers_wrapper .controller_state.folded {
+	width: 32px;
 }
 .controller_state_title_bar {
-	padding: 2px 10px;
+	height: 30px;
 	background-color: var(--color-button);
+	display: flex;
+	cursor: pointer;
+}
+.controller_state_title_bar > label {
+	padding: 3px 10px;
+	flex-grow: 1;
+	cursor: inherit;
+}
+.controller_state_title_bar > .tool {
+	width: 28px;
+}
+.controller_state.selected .controller_state_title_bar {
+	background-color: var(--color-accent);
+	color: var(--color-accent_text);
 }
 .controller_state_section_title {
 	cursor: pointer;
 	padding: 2px 10px;
+	height: 30px;
+	display: flex;
+	margin-top: 6px;
 }
 .controller_state_section_title:hover {
 	color: var(--color-light);
 }
 .controller_state_section_title > i {
 	width: 18px;
+	margin-top: 3px;
 }
 .controller_state_section_title > label {
 	cursor: inherit;
+	color: var(--color-subtle_text);
+}
+.controller_state_section_title > i:last-child {
+	margin-left: auto;
+}
+.controller_animation {
+	display: flex;
+}
+.controller_transition {
+	display: flex;
+}
+.controller_transition bb-select {
+	flex-grow: 1;
+}
+.controller_transition .prism-editor-wrapper {
+	width: calc(100% - 110px);
+}
+.controller_item_drag_handle {
+	width: 15px;
+	flex-grow: 0;
+	flex-shrink: 0;
+	cursor: grab;
+	background-color: var(--color-button);
+	margin-right: 2px;
+}
+span.controller_state_section_info {
+    margin: 0 8px;
+    color: var(--color-subtle_text);
+}
+.controller_add_column {
+	width: 20px;
+	cursor: pointer;
+	vertical-align: middle;
+	margin: 12px 0px;
+	position: relative;
+}
+.controller_add_column > i {
+	top: calc(50% - 26px);
+	left: -1px;
+    position: absolute;
+}
+.controller_add_column:hover {
+	color: var(--color-light);
+	background-color: var(--color-ui);
 }
 
 

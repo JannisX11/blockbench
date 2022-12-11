@@ -698,7 +698,7 @@ BARS.defineActions(function() {
 Interface.definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
-		condition: !Blockbench.isMobile && {modes: ['animate']},
+		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},
 		display_condition: () => Group.selected,
 		selection_only: true,
 		default_position: {

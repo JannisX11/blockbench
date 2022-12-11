@@ -1092,7 +1092,7 @@ Interface.definePanels(function() {
 	
 	new Panel('keyframe', {
 		icon: 'icon-keyframe',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => !AnimationController.selected},
 		default_position: {
 			slot: 'left_bar',
 			float_position: [0, 0],
