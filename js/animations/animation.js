@@ -1,5 +1,11 @@
-class Animation {
+class AnimationItem {
+	constructor() {
+
+	}
+}
+class Animation extends AnimationItem {
 	constructor(data) {
+		super(data);
 		this.name = '';
 		this.uuid = guid()
 		this.loop = 'once';
@@ -386,7 +392,7 @@ class Animation {
 		Prop.active_panel = 'animations';
 		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
-		[...Animation.all, ...AnimationController.all].forEach((a) => {
+		AnimationItem.all.forEach((a) => {
 			a.selected = a.playing = false;
 		})
 		Timeline.clear();
@@ -394,8 +400,7 @@ class Animation {
 		Timeline.vue._data.animation_length = this.length;
 		this.selected = true;
 		this.playing = true;
-		Animation.selected = this;
-		AnimationController.selected = null;
+		AnimationItem.selected = this;
 		unselectAll();
 		BarItems.slider_animation_length.update();
 
@@ -412,6 +417,7 @@ class Animation {
 		}
 		if (Modes.animate) {
 			Animator.preview();
+			updateInterface();
 		}
 		return this;
 	}
@@ -846,7 +852,7 @@ const Animator = {
 			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
 		}
 	},
-	join() {	
+	join() {
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
 			Project.BedrockEntityManager.initAnimations();
 		}
@@ -1928,11 +1934,18 @@ Interface.definePanels(function() {
 					Animator.exportAnimationFile(path)
 				},
 				addAnimation(path) {
-					let other_animation = Animation.all.find(a => a.path == path)
-					new Animation({
-						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-						path
-					}).add(true).propertiesDialog()
+					let other_animation = AnimationItem.all.find(a => a.path == path);
+					if (other_animation instanceof Animation) {
+						new Animation({
+							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+							path
+						}).add(true).propertiesDialog()
+					} else {
+						new AnimationController({
+							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+							path
+						}).add(true);
+					}
 				},
 				showFileContextMenu(event, id) {
 					Animation.prototype.file_menu.open(event, id);

@@ -1686,8 +1686,10 @@ const BARS = {
 				click: function () {
 					if (Modes.edit || Modes.paint) {
 						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && Animation.selected) {
-						Animation.selected.rename()
+					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
+						AnimationItem.selected.rename();
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.rename();
 					}
 				}
 			})
@@ -1807,6 +1809,9 @@ const BARS = {
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
 
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.remove(true);
+
 					} else if (Animator.open) {
 						removeSelectedKeyframes()
 					}
@@ -1815,7 +1820,7 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animation.selected && Modes.animate && Prop.active_panel == 'animations') || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
@@ -1827,6 +1832,13 @@ const BARS = {
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.saved = false;
 							animation.add(true).select();
+						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+							// Undo
+							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+							AnimationController.selected.states.remove(state);
+							AnimationController.selected.states.splice(index+1, 0, state);
+
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;

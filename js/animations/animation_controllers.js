@@ -11,7 +11,7 @@ class AnimationControllerState {
 			sounds: true,
 			on_entry: true,
 			on_exit: true,
-			transitions: false,
+			transitions: true,
 		};
 
 		for (var key in AnimationControllerState.properties) {
@@ -106,11 +106,11 @@ class AnimationControllerState {
 			})
 		}
 		['on_entry', 'on_exit'].forEach(type => {
-			if (!this[type]) return;
+			if (!this[type] || this[type] == '\\n') return;
 			let lines = this[type].split('\n');
 			lines = lines.filter(script => !!script.replace(/[\n\s;.]+/g, ''));
 			lines = lines.map(line => (line.match(/;\s*$/) || line.startsWith('/')) ? line : (line+';'));
-			return lines;
+			object[type] = lines;
 		})
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
@@ -118,10 +118,34 @@ class AnimationControllerState {
 				return new oneLiner({[state ? state.name : 'missing_state']: transition.condition})
 			})
 		}
+		if (this.blend_transition) object.blend_transition = this.blend_transition;
+		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
 		return object;
 	}
 	select() {
 		this.controller.selected_state = this;
+	}
+	rename() {
+		Blockbench.textPrompt('generic.rename', this.name, value => {
+			// Undo
+			this.name = value;
+			this.createUniqueName();
+		})
+	}
+	remove(undo) {
+		if (undo) {
+			Undo.initEdit({animations: [this.controller]});
+		}
+		this.controller.states.forEach(state => {
+			state.transitions.forEach(transition => {
+				if (transition.target == this.uuid) transition.target = '';
+			})
+		})
+		this.controller.states.remove(this);
+		if (this.controller.selected_state == this) this.controller.selected_state = null;
+		if (undo) {
+			Undo.finishEdit('Remove animation controller state');
+		}
 	}
 	createUniqueName() {
 		var scope = this;
@@ -170,7 +194,7 @@ class AnimationControllerState {
 		this.animations.splice(event.newIndex, 0, item);
 	}
 	openMenu(event) {
-		AnimationControllerState.prototype.menu.open(event);
+		AnimationControllerState.prototype.menu.open(event, this);
 	}
 }
 new Property(AnimationControllerState, 'array', 'animations');
@@ -182,12 +206,25 @@ new Property(AnimationControllerState, 'string', 'on_exit');
 new Property(AnimationControllerState, 'number', 'blend_transition');
 new Property(AnimationControllerState, 'boolean', 'blend_via_shortest_path');
 AnimationControllerState.prototype.menu = new Menu([
+	{
+		id: 'set_as_initial_state',
+		name: 'Initial State',
+		icon: (state) => (state == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
+		click(state) {
+			if (!AnimationController.selected) return;
+			// undo
+			AnimationController.selected.initial_state = state.uuid;
+		}
+	},
+	'_',
 	'duplicate',
+	'rename',
 	'delete',
 ]);
 
-class AnimationController {
+class AnimationController extends AnimationItem {
 	constructor(data) {
+		super(data);
 		this.name = '';
 		this.uuid = guid()
 		this.playing = false;
@@ -379,7 +416,7 @@ class AnimationController {
 	select() {
 		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
-		[...Animation.all, ...AnimationController.all].forEach((a) => {
+		AnimationItem.all.forEach((a) => {
 			a.selected = a.playing = false;
 		})
 
@@ -387,13 +424,12 @@ class AnimationController {
 
 		this.selected = true;
 		this.playing = true;
-		Animation.selected = null;
-		AnimationController.selected = this;
+		AnimationItem.selected = this;
 
 		if (Modes.animate) {
-			//Animator.preview();
+			Animator.preview();
+			updateInterface();
 		}
-		updateInterface();
 		return this;
 	}
 	createUniqueName(arr) {
@@ -650,14 +686,26 @@ class AnimationController {
 		}}
 	])
 	AnimationController.prototype.file_menu = Animation.prototype.file_menu;
-	new Property(AnimationController, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
-	new Property(AnimationController, 'string', 'path', {condition: () => isApp && Format.animation_files})
+	new Property(AnimationController, 'boolean', 'saved', {default: true})
+	new Property(AnimationController, 'string', 'path', {condition: () => isApp})
+	new Property(AnimationController, 'string', 'initial_state')
 
 AnimationController.presets = [
 	{
-		name: 'default',
+		name: 'empty',
 		states: {
 			default: {}
+		}
+	},
+	{
+		name: 'simple',
+		states: {
+			default: {
+				transitions: [{active: 'query.foo'}]
+			},
+			active: {
+				transitions: [{default: '!query.foo'}]
+			}
 		}
 	},
 	{
@@ -680,14 +728,16 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		onResize() {
-			Timeline.updateSize();
+			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
 		component: {
 			name: 'panel-animation-controllers',
 			components: {VuePrismEditor},
 			data() {return {
 				controller: null,
-				presets: AnimationController.presets
+				presets: AnimationController.presets,
+				zoom: 1,
+				connection_wrapper_offset: 0
 			}},
 			methods: {
 				loadPreset(preset) {
@@ -750,19 +800,126 @@ Interface.definePanels(() => {
 				getStateName(uuid) {
 					let state = this.controller.states.find(s => s.uuid == uuid);
 					return state ? state.name : '';
+				},
+				onMouseWheel(event) {
+					if (event.ctrlOrCmd) {
+						let delta = (event.deltaY < 0) ? 0.1 : -0.1;
+						this.zoom = Math.clamp(this.zoom + delta, 0.3, 1);
+						this.updateConnectionWrapperOffset();
+					}
+				},
+				updateConnectionWrapperOffset() {
+					Vue.nextTick(() => {
+						let first = document.querySelector('#animation_controllers_wrapper .controller_state');
+						this.connection_wrapper_offset = first ? first.offsetLeft : 0;
+					})
+				},
+				deselect(event) {
+					if (this.controller && event.target?.id == 'animation_controllers_wrapper' || event.target?.parentElement?.id == 'animation_controllers_wrapper') {
+						this.controller.selected_state = null;
+					}
+				},
+				selectConnection(connection, event) {
+					let state = this.controller.states[connection.state_index];
+					let target = this.controller.states[connection.target_index];
+					// todo: scroll to state
+					if (state == this.controller.selected_state) {
+						target.select();
+					} else {
+						state.select();
+					}
+				}
+			},
+			computed: {
+				connections() {
+					let connections = {
+						forward: [],
+						backward: [],
+						colors: {},
+						max_layer_top: 0,
+						max_layer_bottom: 0
+					};
+					if (!this.controller) return connections;
+					let {states, selected_state} = this.controller;
+					// todo: implement different state width
+					let selected_index = states.indexOf(selected_state);
+					let incoming_plugs = {};
+
+					let plug_gap = 16;
+
+					states.forEach((state, state_index) => {
+						state.transitions.forEach(transition => {
+							let target_index = states.findIndex(s => s.uuid == transition.target);
+							let target = states[target_index];
+							let selected = state == this.controller.selected_state || !this.controller.selected_state;
+							let relevant = target == this.controller.selected_state;
+							let back = target_index < state_index;
+							let range = back ? [target_index, state_index] : [state_index, target_index];
+							let connection_list = back ? connections.backward : connections.forward;
+							let color = markerColors[(connections.forward.length + connections.backward.length) % markerColors.length].standard;
+
+							if (!incoming_plugs[target.uuid]) incoming_plugs[target.uuid] = {top: 0, bottom: 0};
+
+							let layer = 0;
+							for (let i = range[0]; i < range[1]; i++) {
+								while (connection_list.find(c => c.layer == layer && i >= c.range[0] && i < c.range[1])) {
+									layer++;
+								}
+							}
+							let same_level_transitions = state.transitions.filter(t => {
+								return (state_index - states.findIndex(s => s.uuid == t.target) > 0) == back
+							});
+							let start_plug_offset = (same_level_transitions.indexOf(transition) - (same_level_transitions.length-1)/2) * Math.min(plug_gap, 200 / same_level_transitions.length);
+
+							let con = {
+								state_index, target_index,
+								layer, range,
+								selected, relevant, color,
+							}
+
+							if (back) {// Top
+								connections.max_layer_top = Math.max(connections.max_layer_top, layer);
+								con.end_x = state_index * 312 + 156 + start_plug_offset;
+								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * plug_gap);
+								incoming_plugs[target.uuid].top++;
+
+							} else {// Bottom
+								connections.max_layer_bottom = Math.max(connections.max_layer_bottom, layer);
+								con.start_x = state_index * 312 + 156 - start_plug_offset;
+								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * plug_gap;
+								incoming_plugs[target.uuid].bottom++;
+							}
+
+							connection_list.push(con);
+							connections.colors[transition.uuid] = color;
+						})
+					})
+					return connections;
+				}
+			},
+			watch: {
+				controller() {
+					this.updateConnectionWrapperOffset();
 				}
 			},
 			template: `
-				<div id="animation_controllers_wrapper">
+				<div id="animation_controllers_wrapper" @mousewheel="onMouseWheel($event)" :style="{zoom}" @click="deselect($event)">
+					<div class="controller_state_connection_wrapper_top" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
+						<div v-for="connection in connections.backward"
+							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
+							class="controller_state_connection backward" :class="{selected: connection.selected, relevant: connection.relevant}"
+							@click="selectConnection(connection, $event)"
+						></div>
+					</div>
 					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, animation: 160, handle: '.controller_state_title_bar'}">
 						<li v-for="state in controller.states" :key="state.uuid"
 							class="controller_state"
-							:class="{selected: controller.selected_state == state, folded: state.folded}"
+							:class="{selected: controller.selected_state == state, folded: state.folded, initial_state: controller.initial_state == state.uuid}"
 							@click="state.select()"
 							@contextmenu="state.openMenu($event)"
 						>
 							<div class="controller_state_title_bar">
-								<label v-if="!state.folded">{{ state.name }}</label>
+								<label @dblclick="state.rename()">{{ state.name }}</label>
 								<div class="tool" title="" @click="state.openMenu($event.target)" v-if="!state.folded"><i class="material-icons">drag_handle</i></div>
 								<div class="tool" title="" @click="state.folded = !state.folded"><i class="material-icons">{{ state.folded ? 'chevron_right' : 'chevron_left' }}</i></div>
 							</div>
@@ -849,7 +1006,7 @@ Interface.definePanels(() => {
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate: state.sortTransition, animation: 160, handle: '.controller_item_drag_handle'}">
 										<li v-for="transition in state.transitions" :key="transition.uuid" class="controller_transition">
-											<div class="controller_item_drag_handle"></div>
+											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
 												class="molang_input dark_bordered tab_target"
@@ -860,13 +1017,13 @@ Interface.definePanels(() => {
 											/>
 										</li>
 									</ul>
-									<div>
-										<input type="number" class="dark_bordered" style="width: 54px;" v-model="state.blend_transition" min="0" step="0.05">
+									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
+										<input type="number" class="dark_bordered" style="width: 70px;" v-model="state.blend_transition" min="0" step="0.05">
 									</div>
-									<div>
-										<input type="checkbox" :id="state.uuid + '_shortest_path'" style="width: 54px; text-align: center;" v-model="state.shortest_path">
+									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
+										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.shortest_path">
 									</div>
 								</template>
 							</template>
@@ -875,6 +1032,13 @@ Interface.definePanels(() => {
 							<i class="material-icons">add</i>
 						</li>
 					</ul>
+					<div class="controller_state_connection_wrapper_bottom" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
+						<div v-for="connection in connections.forward"
+							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
+							class="controller_state_connection forward" :class="{selected: connection.selected, relevant: connection.relevant}"
+							@click="selectConnection(connection, $event)"
+						></div>
+					</div>
 					<div v-else-if="controller" id="animation_controller_presets">
 						<h4>${tl('animation_controllers.select_preset')}</h4>
 						<ul>
@@ -889,6 +1053,28 @@ Interface.definePanels(() => {
 	})
 })
 
+Object.defineProperty(AnimationItem, 'all', {
+	get() {
+		return [...Animation.all, ...AnimationController.all]
+	},
+	set() {
+		console.warn('AnimationItem.all is read-only')
+	}
+})
+Object.defineProperty(AnimationItem, 'selected', {
+	get() {
+		return Animation.selected || AnimationController.selected
+	},
+	set(item) {
+		if (item instanceof Animation) {
+			Animation.selected = item;
+			AnimationController.selected = null;
+		} else {
+			Animation.selected = null;
+			AnimationController.selected = item;
+		}
+	}
+})
 
 BARS.defineActions(function() {
 	new Action('add_animation_controller', {

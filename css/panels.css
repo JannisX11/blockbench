@@ -1335,23 +1335,25 @@
     flex-direction: row;
 	min-width: fit-content;
 	justify-content: center;
+	gap: 12px;
+	padding-left: 12px;
+	padding-right: 12px;
 }
 #animation_controllers_wrapper .controller_state {
 	width: 300px;
 	flex-shrink: 0;
 	padding-bottom: 8px;
 	background-color: var(--color-ui);
-	margin: 12px 6px;
 	box-shadow: 0 0 10px rgb(0 0 0 / 22%);
 	border: 1px solid transparent;
 	transition: width 100ms ease-in-out;
 }
 #animation_controllers_wrapper .controller_state.selected {
-	width: min(100vw, 400px);
+	width: min(100vw, 300px);
 	border-color: var(--color-accent);
 }
 #animation_controllers_wrapper .controller_state.folded {
-	width: 32px;
+	width: 54px;
 }
 .controller_state_title_bar {
 	height: 30px;
@@ -1363,6 +1365,13 @@
 	padding: 3px 10px;
 	flex-grow: 1;
 	cursor: inherit;
+	overflow: hidden;
+}
+.controller_state_title_bar.folded > label {
+	padding: 3px 4px;
+}
+.initial_state .controller_state_title_bar > label {
+	text-decoration: underline;
 }
 .controller_state_title_bar > .tool {
 	width: 28px;
@@ -1394,9 +1403,18 @@
 }
 .controller_animation {
 	display: flex;
+	gap: 3px;
+	margin-bottom: 2px;
+}
+.controller_animation input {
+	background-color: transparent;
+	border: none;
+	width: 50%;
 }
 .controller_transition {
 	display: flex;
+	gap: 3px;
+	margin-bottom: 2px;
 }
 .controller_transition bb-select {
 	flex-grow: 1;
@@ -1412,9 +1430,26 @@
 	background-color: var(--color-button);
 	margin-right: 2px;
 }
+.controller_transition .controller_item_drag_handle {
+	background-color: var(--color-marker);
+}
 span.controller_state_section_info {
     margin: 0 8px;
     color: var(--color-subtle_text);
+}
+.controller_state_input_bar {
+	display: flex;
+	padding-right: 8px;
+}
+.controller_state_input_bar label {
+	flex-grow: 1;
+    padding: 3px 8px;
+}
+.controller_state .prism-editor-wrapper {
+	font-size: 0.9em;
+}
+.controller_state input[type=text] {
+	font-size: 0.96em;
 }
 .controller_add_column {
 	width: 20px;
@@ -1431,6 +1466,81 @@ span.controller_state_section_info {
 .controller_add_column:hover {
 	color: var(--color-light);
 	background-color: var(--color-ui);
+}
+
+.controller_state_connection_wrapper_top,
+.controller_state_connection_wrapper_bottom {
+	height: calc(20px + var(--max-layer) * 10px);
+	position: relative;
+}
+.controller_state_connection {
+	position: absolute;
+	height: calc(15px + var(--layer) * 10px);
+	--color-connection: var(--color-grid);
+	border: 2px solid var(--color-connection);
+	z-index: calc(19 - var(--layer));
+	--corner-radius: 5px;
+}
+.controller_state_connection_wrapper_top > .controller_state_connection {
+	border-bottom: none;
+	border-top-left-radius: var(--corner-radius);
+	border-top-right-radius: var(--corner-radius);
+	bottom: 0;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection {
+	border-top: none;
+	border-bottom-left-radius: var(--corner-radius);
+	border-bottom-right-radius: var(--corner-radius);
+}
+.controller_state_connection::before {
+	content: "\f0d9";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 20px;
+	display: block;
+	position: absolute;
+	margin: auto;
+	left: 0;
+	right: 0;
+	width: 8px;
+	color: var(--color-connection);
+}
+.controller_state_connection_wrapper_top > .controller_state_connection::before {
+	content: "\f0d9";
+	top: -15px;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection::before {
+	content: "\f0da";
+	bottom: -16px;
+}
+.controller_state_connection::after {
+	content: "\f0d9";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 21px;
+	display: block;
+	position: absolute;
+	width: 12px;
+	color: var(--color-connection);
+}
+.controller_state_connection_wrapper_top > .controller_state_connection::after {
+	content: "\f0d7";
+	bottom: -12px;
+    left: -8px;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection::after {
+	content: "\f0d8";
+	top: -12px;
+    right: -6px;
+}
+.controller_state_connection.relevant {
+	--color-connection: var(--color-text);
+}
+.controller_state_connection.selected {
+	--color-connection: var(--color-marker);
+}
+.controller_state_connection:hover {
+	--color-connection: var(--color-light);
 }
 
 
