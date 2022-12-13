@@ -124,6 +124,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
+					if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -200,6 +201,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
 								}
+								if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 							}
 						}).show()
 					})}, 2)
@@ -1043,7 +1045,7 @@ var codec = new Codec('bedrock', {
 				icon: Format.icon
 			});
 			setTimeout(() => {
-				if (Project == project) updateRecentProjectThumbnail();
+				if (Project == project) setTimeout(() => updateRecentProjectThumbnail(), 40);
 			}, 200)
 		}
 		this.parse(model, file.path)
