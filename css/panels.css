@@ -1347,10 +1347,12 @@
 	box-shadow: 0 0 10px rgb(0 0 0 / 22%);
 	border: 1px solid transparent;
 	transition: width 100ms ease-in-out;
+	position: relative;
 }
 #animation_controllers_wrapper .controller_state.selected {
 	width: min(100vw, 300px);
 	border-color: var(--color-accent);
+	z-index: 19;
 }
 #animation_controllers_wrapper .controller_state.folded {
 	width: 54px;
@@ -1416,6 +1418,10 @@
 	gap: 3px;
 	margin-bottom: 2px;
 }
+.controller_transition:focus-within {
+	width: calc(200% + 20px);
+	box-shadow: 0 0 0 1px var(--color-accent);
+}
 .controller_transition bb-select {
 	flex-grow: 1;
 }
@@ -1468,6 +1474,44 @@ span.controller_state_section_info {
 	background-color: var(--color-ui);
 }
 
+.controller_state_gate {
+	--height: 10px;
+	background-color: var(--color-button);
+	height: var(--height);
+	min-width: 28px;
+	border-radius: calc(var(--height) * 0.5);
+	position: absolute;
+	cursor: crosshair;
+	left: 0;
+    right: 0;
+    margin: auto;
+    z-index: 19;
+}
+.controller_state.selected .controller_state_gate {
+	background-color: var(--color-accent);
+}
+.controller_state_gate:hover {
+	background-color: var(--color-selected);
+}
+.controller_state_gate_top {
+	top: calc(var(--height) * -0.5);
+	box-shadow: 0 1px 0 var(--color-ui);
+}
+.controller_state_gate_bottom {
+	bottom: calc(var(--height) * -0.5);
+}
+#animation_controllers_pickwhip {
+	position: relative;
+	height: 2px;
+	transform-origin: left;
+	background-color: var(--color-accent);
+	pointer-events: none;
+	z-index: 50;
+}
+#animation_controllers_wrapper.connecting_controllers .controller_state:hover:not(.selected) {
+	border-color: var(--color-accent);
+}
+
 .controller_state_connection_wrapper_top,
 .controller_state_connection_wrapper_bottom {
 	height: calc(20px + var(--max-layer) * 10px);
@@ -1478,8 +1522,9 @@ span.controller_state_section_info {
 	height: calc(15px + var(--layer) * 10px);
 	--color-connection: var(--color-grid);
 	border: 2px solid var(--color-connection);
-	z-index: calc(19 - var(--layer));
+	z-index: calc(18 - var(--layer));
 	--corner-radius: 5px;
+	cursor: pointer;
 }
 .controller_state_connection_wrapper_top > .controller_state_connection {
 	border-bottom: none;
@@ -1499,19 +1544,20 @@ span.controller_state_section_info {
 	font-size: 20px;
 	display: block;
 	position: absolute;
-	margin: auto;
+	text-align: center;
 	left: 0;
 	right: 0;
-	width: 8px;
+	height: 13px;
+	line-height: 11px;
 	color: var(--color-connection);
 }
 .controller_state_connection_wrapper_top > .controller_state_connection::before {
 	content: "\f0d9";
-	top: -15px;
+	top: -7px;
 }
 .controller_state_connection_wrapper_bottom > .controller_state_connection::before {
 	content: "\f0da";
-	bottom: -16px;
+	bottom: -8px;
 }
 .controller_state_connection::after {
 	content: "\f0d9";
@@ -1521,16 +1567,18 @@ span.controller_state_section_info {
 	display: block;
 	position: absolute;
 	width: 12px;
+	line-height: 11px;
+	height: 10px;
 	color: var(--color-connection);
 }
 .controller_state_connection_wrapper_top > .controller_state_connection::after {
 	content: "\f0d7";
-	bottom: -12px;
+	bottom: -2px;
     left: -8px;
 }
 .controller_state_connection_wrapper_bottom > .controller_state_connection::after {
 	content: "\f0d8";
-	top: -12px;
+	top: -2px;
     right: -6px;
 }
 .controller_state_connection.relevant {

@@ -389,6 +389,28 @@ class UndoSystem {
 				}
 			}
 		}
+		if (save.animation_controllers) {
+			for (var uuid in save.animation_controllers) {
+
+				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? this.getItemByUUID(AnimationController.all, uuid) : null;
+				if (!controller) {
+					controller = new AnimationController();
+					controller.uuid = uuid;
+				}
+				controller.extend(save.animation_controllers[uuid]).add(false);
+				if (save.animation_controllers[uuid].selected) {
+					controller.select();
+				}
+			}
+			for (var uuid in reference.animation_controllers) {
+				if (!save.animation_controllers[uuid]) {
+					var controller = this.getItemByUUID(AnimationController.all, uuid);
+					if (controller) {
+						controller.remove(false);
+					}
+				}
+			}
+		}
 
 		if (save.keyframes) {
 			var animation = Animation.selected;
@@ -545,6 +567,12 @@ UndoSystem.save = class {
 			}
 			aspects.keyframes.forEach(kf => {
 				scope.keyframes[kf.uuid] = kf.getUndoCopy()
+			})
+		}
+		if (aspects.animation_controllers) {
+			this.animation_controllers = {}
+			aspects.animation_controllers.forEach(a => {
+				scope.animation_controllers[a.uuid] = a.getUndoCopy();
 			})
 		}
 

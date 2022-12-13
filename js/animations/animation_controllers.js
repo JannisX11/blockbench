@@ -32,7 +32,7 @@ class AnimationControllerState {
 			this.animations.empty();
 			data.animations.forEach(a => {
 				let animation;
-				if (typeof a == 'object' && typeof a.animation == 'string' && a.animation.length == 36) {
+				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
 					animation = {
 						uuid: a.uuid || guid(),
@@ -58,7 +58,7 @@ class AnimationControllerState {
 			this.transitions.empty();
 			data.transitions.forEach(a => {
 				let transition;
-				if (typeof a == 'object' && typeof a.target == 'string' && a.target.length == 36) {
+				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
 					transition = {
 						uuid: a.uuid || guid(),
@@ -124,17 +124,20 @@ class AnimationControllerState {
 	}
 	select() {
 		this.controller.selected_state = this;
+		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
+		if (node) node.scrollIntoView({behavior: 'smooth', block: 'nearest'})
 	}
 	rename() {
 		Blockbench.textPrompt('generic.rename', this.name, value => {
-			// Undo
+			Undo.initEdit({animation_controllers: [this.controller]});
 			this.name = value;
 			this.createUniqueName();
+			Undo.finishEdit('Rename animation controller state');
 		})
 	}
 	remove(undo) {
 		if (undo) {
-			Undo.initEdit({animations: [this.controller]});
+			Undo.initEdit({animation_controllers: [this.controller]});
 		}
 		this.controller.states.forEach(state => {
 			state.transitions.forEach(transition => {
@@ -168,18 +171,19 @@ class AnimationControllerState {
 		}
 		return false;
 	}
-	addAnimation() {
-		// Undo
-		let animation = {
-			key: '',
-			animation: '',// UUID
+	addAnimation(animation) {
+		Undo.initEdit({animation_controllers: [this.controller]});
+		let anim_link = {
+			key: animation ? animation.getShortName() : '',
+			animation: animation ? animation.uuid : '',
 			blend_value: ''
 		};
-		this.animations.push(animation);
+		this.animations.push(anim_link);
 		this.fold.animations = false;
+		Undo.finishEdit('Add animation to controller state');
 	}
 	addTransition(target = '') {
-		// Undo
+		Undo.initEdit({animation_controllers: [this.controller]});
 		let transition = {
 			uuid: guid(),
 			target, // UUID
@@ -187,11 +191,14 @@ class AnimationControllerState {
 		};
 		this.transitions.push(transition);
 		this.fold.transitions = false;
-	}
-	sortAnimation(event) {
-		// Undo
-		var item = this.animations.splice(event.oldIndex, 1)[0];
-		this.animations.splice(event.newIndex, 0, item);
+		Undo.finishEdit('Add transition to controller state');
+
+		Vue.nextTick(() => {
+			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_transition:last-child pre`);
+			if (node) {
+				$(node).trigger('focus');
+			}
+		})
 	}
 	openMenu(event) {
 		AnimationControllerState.prototype.menu.open(event, this);
@@ -209,11 +216,12 @@ AnimationControllerState.prototype.menu = new Menu([
 	{
 		id: 'set_as_initial_state',
 		name: 'Initial State',
-		icon: (state) => (state == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
+		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
 		click(state) {
 			if (!AnimationController.selected) return;
-			// undo
+			Undo.initEdit({animation_controllers: [AnimationController.selected]});
 			AnimationController.selected.initial_state = state.uuid;
+			Undo.finishEdit('Change animation controller initial state');
 		}
 	},
 	'_',
@@ -266,6 +274,13 @@ class AnimationController extends AnimationItem {
 					state = new AnimationControllerState(this, data.states[name]);
 				}
 				state.name = name;
+			}
+		}
+		if (typeof data.initial_state == 'string') {
+			if (data.initial_state.length == 36) {
+				this.initial_state = data.initial_state;
+			} else {
+				this.initial_state = this.states.find(s => s.name == data.initial_state)?.uuid || '';
 			}
 		}
 		if (typeof data.selected_state == 'string') {
@@ -462,10 +477,10 @@ class AnimationController extends AnimationItem {
 		var scope = this;
 		Blockbench.textPrompt('generic.rename', this.name, function(name) {
 			if (name && name !== scope.name) {
-				Undo.initEdit({animations: [scope]});
+				Undo.initEdit({animation_controllers: [scope]});
 				scope.name = name;
 				scope.createUniqueName();
-				Undo.finishEdit('Rename animation');
+				Undo.finishEdit('Rename animation controller');
 			}
 		})
 		return this;
@@ -486,24 +501,24 @@ class AnimationController extends AnimationItem {
 	}
 	add(undo) {
 		if (undo) {
-			Undo.initEdit({animations: []})
+			Undo.initEdit({animation_controllers: []})
 		}
 		if (!AnimationController.all.includes(this)) {
 			AnimationController.all.push(this)
 		}
 		if (undo) {
 			this.select()
-			Undo.finishEdit('Add animation controller', {animations: [this]})
+			Undo.finishEdit('Add animation controller', {animation_controllers: [this]})
 		}
 		return this;
 	}
 	remove(undo, remove_from_file = true) {
 		if (undo) {
-			Undo.initEdit({animations: [this]})
+			Undo.initEdit({animation_controllers: [this]})
 		}
 		AnimationController.all.remove(this)
 		if (undo) {
-			Undo.finishEdit('Remove animation', {animations: []})
+			Undo.finishEdit('Remove animation', {animation_controllers: []})
 
 			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
@@ -525,7 +540,7 @@ class AnimationController extends AnimationItem {
 				})
 			}
 		}
-		Blockbench.dispatchEvent('remove_animation', {animations: [this]})
+		Blockbench.dispatchEvent('remove_animation', {animation_controllers: [this]})
 		if (Animation.selected === this) {
 			Animation.selected = null;
 			Timeline.clear();
@@ -548,48 +563,7 @@ class AnimationController extends AnimationItem {
 					extensions: ['json'],
 					filetype: 'JSON Animation',
 					condition: Animation.properties.path.condition
-				},
-				loop: {
-					label: 'menu.animation.loop',
-					type: 'select',
-					value: this.loop,
-					options: {
-						once: 'menu.animation.loop.once',
-						hold: 'menu.animation.loop.hold',
-						loop: 'menu.animation.loop.loop',
-					},
-				},
-				override: {label: 'menu.animation.override', type: 'checkbox', value: this.override},
-				snapping: {label: 'menu.animation.snapping', type: 'number', value: this.snapping, step: 1, min: 10, max: 500},
-			},
-			component: {
-				components: {VuePrismEditor},
-				data: {
-					anim_time_update: this.anim_time_update,
-					blend_weight: this.blend_weight,
-					start_delay: this.start_delay,
-					loop_delay: this.loop_delay,
-					loop_mode: this.loop
-				},
-				template: 
-					`<div id="animation_properties_vue">
-						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
-						</div>
-						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
-						</div>
-						<div class="dialog_bar form_bar">
-							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
-						</div>
-						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
-							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
-						</div>
-					</div>`
+				}
 			},
 			onFormChange(form) {
 				this.component.data.loop_mode = form.loop;
@@ -600,32 +574,19 @@ class AnimationController extends AnimationItem {
 					form_data.loop != this.loop
 					|| form_data.name != this.name
 					|| (isApp && form_data.path != this.path)
-					|| form_data.loop != this.loop
-					|| form_data.override != this.override
-					|| form_data.snapping != this.snapping
-					|| dialog.component.data.anim_time_update != this.anim_time_update
-					|| dialog.component.data.blend_weight != this.blend_weight
-					|| dialog.component.data.start_delay != this.start_delay
-					|| dialog.component.data.loop_delay != this.loop_delay
 				) {
-					Undo.initEdit({animations: [this]});
+					Undo.initEdit({animation_controllers: [this]});
 
 					this.extend({
 						loop: form_data.loop,
 						name: form_data.name,
-						override: form_data.override,
-						snapping: form_data.snapping,
-						anim_time_update: dialog.component.data.anim_time_update.trim().replace(/\n/g, ''),
-						blend_weight: dialog.component.data.blend_weight.trim().replace(/\n/g, ''),
-						start_delay: dialog.component.data.start_delay.trim().replace(/\n/g, ''),
-						loop_delay: dialog.component.data.loop_delay.trim().replace(/\n/g, ''),
 					})
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Blockbench.dispatchEvent('edit_animation_properties', {animation: this})
+					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation: this})
 
-					Undo.finishEdit('Edit animation properties');
+					Undo.finishEdit('Edit animation controller properties');
 				}
 			},
 			onCancel() {
@@ -674,21 +635,21 @@ class AnimationController extends AnimationItem {
 			icon: 'remove',
 			condition: () => Format.animation_files,
 			click(animation) {
-				Undo.initEdit({animations: [animation]})
+				Undo.initEdit({animation_controllers: [animation]})
 				animation.remove(false, false);
-				Undo.finishEdit('Unload animation', {animations: []})
+				Undo.finishEdit('Unload animation', {animation_controllers: []})
 			}
 		},
 		'delete',
 		'_',
-		{name: 'menu.animation.properties', icon: 'list', click(animation) {
+		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
 	AnimationController.prototype.file_menu = Animation.prototype.file_menu;
 	new Property(AnimationController, 'boolean', 'saved', {default: true})
 	new Property(AnimationController, 'string', 'path', {condition: () => isApp})
-	new Property(AnimationController, 'string', 'initial_state')
+	new Property(AnimationController, 'string', 'initial_state', {default: ''})
 
 AnimationController.presets = [
 	{
@@ -737,12 +698,20 @@ Interface.definePanels(() => {
 				controller: null,
 				presets: AnimationController.presets,
 				zoom: 1,
-				connection_wrapper_offset: 0
+				connection_wrapper_offset: 0,
+				connecting: false,
+				pickwhip: {
+					start_x: 0,
+					start_y: 0,
+					length: 0,
+					angle: 0,
+				}
 			}},
 			methods: {
 				loadPreset(preset) {
 					this.controller.extend({
-						states: preset.states
+						states: preset.states,
+						initial_state: preset.initial_state
 					});
 				},
 				toggleStateSection(state, section) {
@@ -750,52 +719,94 @@ Interface.definePanels(() => {
 				},
 				openAnimationMenu(state, animation, target) {
 					let apply = anim => {
-						animation.key = anim.name.split(/\./).last();
+						animation.key = anim.getShortName();
 						animation.animation = anim.uuid;
 					}
 					let list = [];
-					Animation.all.forEach(anim => {
-						list.push({
-							name: anim.name,
-							icon: 'movie',
-							click: () => apply(anim)
-						})
-					})
-					list.push('_');
-					AnimationController.all.forEach(anim => {
+					AnimationItem.all.forEach((anim, i) => {
 						if (anim == this.controller) return;
+						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: 'list',
+							icon: animation.animation == anim.uuid ? 'radio_button_checked' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'radio_button_unchecked'),
 							click: () => apply(anim)
 						})
 					})
+					list.push(
+						'_',
+						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
+							Undo.initEdit({animation_controllers: [state.controller]});
+							state.animations.remove(animation);
+							Undo.finishEdit('Remove animation from controller state');
+						}}
+					);
 					let menu = new Menu('controller_state_animations', list, {searchable: list.length > 7});
 					menu.open(target);
 				},
-				openTransitionMenu(this_state, transition, event) {
+				openTransitionMenu(state, transition, event) {
 					let list = [];
-					this.controller.states.forEach(state => {
-						if (state == this_state) return;
+					this.controller.states.forEach(state2 => {
+						if (state2 == state) return;
 						list.push({
-							name: state.name,
-							icon: transition.target == state.uuid ? 'radio_button_checked' : 'radio_button_unchecked',
+							name: state2.name,
+							icon: transition.target == state2.uuid ? 'radio_button_checked' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'radio_button_unchecked'),
 							click: () => {
-								transition.target = state.uuid;
+								transition.target = state2.uuid;
 							}
 						})
 					})
-					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 7});
+					list.push(
+						'_',
+						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
+							Undo.initEdit({animation_controllers: [state.controller]});
+							state.transitions.remove(transition);
+							Undo.finishEdit('Remove animation from controller state');
+						}}
+					);
+					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
+					menu.open(event.target);
+				},
+				addAnimationButton(state, event) {
+					state.select();
+					let list = [];
+					AnimationItem.all.forEach((anim, i) => {
+						if (anim == this.controller) return;
+						if (i && anim instanceof AnimationController) list.push('_');
+						list.push({
+							name: anim.name,
+							icon: anim instanceof AnimationController ? 'cable' : 'movie',
+							click: () => {
+								state.addAnimation(anim);
+							}
+						})
+					})
+					let menu = new Menu('controller_state_animations', list, {searchable: list.length > 7});
+					menu.open(event.target);
+				},
+				addTransitionButton(state, event) {
+					state.select();
+					let list = [];
+					this.controller.states.forEach(state2 => {
+						if (state2 == state || state.transitions.find(t => t.target == state2.uuid)) return;
+						list.push({
+							name: state2.name,
+							icon: 'login',
+							click: () => {
+								state.addTransition(state2.uuid);
+							}
+						})
+					})
+					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
 				addState() {
 					BarItems.add_animation_controller_state.trigger();
 				},
 				sortStates(event) {
-					// Undo
+					Undo.initEdit({animation_controllers: [this.controller]});
 					var item = this.controller.states.splice(event.oldIndex, 1)[0];
-					console.log(item)
 					this.controller.states.splice(event.newIndex, 0, item);
+					Undo.finishEdit('Reorder animation controller states');
 				},
 				getStateName(uuid) {
 					let state = this.controller.states.find(s => s.uuid == uuid);
@@ -816,8 +827,20 @@ Interface.definePanels(() => {
 				},
 				deselect(event) {
 					if (this.controller && event.target?.id == 'animation_controllers_wrapper' || event.target?.parentElement?.id == 'animation_controllers_wrapper') {
-						this.controller.selected_state = null;
+						//this.controller.selected_state = null;
 					}
+				},
+				sortAnimation(state, event) {
+					Undo.initEdit({animation_controllers: [this.controller]});
+					var item = state.animations.splice(event.oldIndex, 1)[0];
+					state.animations.splice(event.newIndex, 0, item);
+					Undo.finishEdit('Reorder animations in controller state');
+				},
+				sortTransition(state, event) {
+					Undo.initEdit({animation_controllers: [this.controller]});
+					var item = state.transitions.splice(event.oldIndex, 1)[0];
+					state.transitions.splice(event.newIndex, 0, item);
+					Undo.finishEdit('Reorder transitions in controller state');
 				},
 				selectConnection(connection, event) {
 					let state = this.controller.states[connection.state_index];
@@ -827,7 +850,48 @@ Interface.definePanels(() => {
 						target.select();
 					} else {
 						state.select();
+						state.fold.transitions = false;
 					}
+				},
+				dragConnection(state, event) {
+					state.select();
+					let anchor = document.getElementById('animation_controllers_pickwhip_anchor');
+					let anchor_offset = $(anchor).offset();
+					let scope = this;
+					let {controller, pickwhip} = this;
+					this.connecting = true;
+					pickwhip.start_x = event.clientX - anchor_offset.left;
+					pickwhip.start_y = event.clientY - anchor_offset.top;
+					pickwhip.length = 0;
+
+					function move(e2) {
+						// Visually update connection line
+						let anchor_offset = $(anchor).offset();
+						let pos2_x = e2.clientX - anchor_offset.left;
+						let pos2_y = e2.clientY - anchor_offset.top;
+						pickwhip.length = Math.sqrt(Math.pow(pos2_x - pickwhip.start_x, 2) + Math.pow(pos2_y - pickwhip.start_y, 2))
+						pickwhip.angle = Math.radToDeg(Math.atan2(pos2_y - pickwhip.start_y, pos2_x - pickwhip.start_x));
+					}
+					function stop(e2) {
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						scope.connecting = false;
+
+						// find selected state
+						let target_uuid = document.querySelector('.controller_state:hover')?.attributes.uuid.value;
+						let target = controller.states.find(s => s.uuid == target_uuid);
+						if (target == state || !target) return;
+
+						// Create connection
+						state.fold.transitions = false;
+						state.addTransition(target_uuid);
+						// Focus connection text input
+						Vue.nextTick(() => {
+
+						})
+					}
+					addEventListeners(document, 'mousemove touchmove', move);
+					addEventListeners(document, 'mouseup touchend', stop);
 				}
 			},
 			computed: {
@@ -836,21 +900,33 @@ Interface.definePanels(() => {
 						forward: [],
 						backward: [],
 						colors: {},
+						outgoing_plugs: {},
 						max_layer_top: 0,
 						max_layer_bottom: 0
 					};
 					if (!this.controller) return connections;
 					let {states, selected_state} = this.controller;
 					// todo: implement different state width
-					let selected_index = states.indexOf(selected_state);
 					let incoming_plugs = {};
 
 					let plug_gap = 16;
 
 					states.forEach((state, state_index) => {
+						let transitions_forward = state.transitions.filter(t => {
+							return state_index < states.findIndex(s => s.uuid == t.target)
+						});
+						let transitions_backward = state.transitions.filter(t => !transitions_forward.includes(t));
+						connections.outgoing_plugs[state.uuid] = {
+							top: transitions_backward.length,
+							bottom: transitions_forward.length
+						}
+						//transitions_forward.sort((a, b) => states.findIndex(s => s.uuid == a.target) - states.findIndex(s => s.uuid == b.target));
+						//transitions_backward.sort((a, b) => states.findIndex(s => s.uuid == b.target) - states.findIndex(s => s.uuid == a.target));
+
 						state.transitions.forEach(transition => {
 							let target_index = states.findIndex(s => s.uuid == transition.target);
 							let target = states[target_index];
+							if (!target) return;
 							let selected = state == this.controller.selected_state || !this.controller.selected_state;
 							let relevant = target == this.controller.selected_state;
 							let back = target_index < state_index;
@@ -866,26 +942,25 @@ Interface.definePanels(() => {
 									layer++;
 								}
 							}
-							let same_level_transitions = state.transitions.filter(t => {
-								return (state_index - states.findIndex(s => s.uuid == t.target) > 0) == back
-							});
+							let same_level_transitions = back ? transitions_backward : transitions_forward;
 							let start_plug_offset = (same_level_transitions.indexOf(transition) - (same_level_transitions.length-1)/2) * Math.min(plug_gap, 200 / same_level_transitions.length);
 
 							let con = {
 								state_index, target_index,
 								layer, range,
 								selected, relevant, color,
+								condition: transition.condition
 							}
 
 							if (back) {// Top
 								connections.max_layer_top = Math.max(connections.max_layer_top, layer);
-								con.end_x = state_index * 312 + 156 + start_plug_offset;
+								con.end_x = state_index * 312 + 150 + start_plug_offset;
 								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * plug_gap);
 								incoming_plugs[target.uuid].top++;
 
 							} else {// Bottom
 								connections.max_layer_bottom = Math.max(connections.max_layer_bottom, layer);
-								con.start_x = state_index * 312 + 156 - start_plug_offset;
+								con.start_x = state_index * 312 + 150 - start_plug_offset;
 								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * plug_gap;
 								incoming_plugs[target.uuid].bottom++;
 							}
@@ -903,18 +978,29 @@ Interface.definePanels(() => {
 				}
 			},
 			template: `
-				<div id="animation_controllers_wrapper" @mousewheel="onMouseWheel($event)" :style="{zoom}" @click="deselect($event)">
-					<div class="controller_state_connection_wrapper_top" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
+				<div id="animation_controllers_wrapper" @mousewheel="onMouseWheel($event)" :style="{zoom}" @click="deselect($event)" :class="{connecting_controllers: connecting}">
+
+					<div style="position: relative;" id="animation_controllers_pickwhip_anchor" style="height: 0px;">
+						<div id="animation_controllers_pickwhip"
+							v-if="connecting"
+							:style="{left: pickwhip.start_x + 'px', top: pickwhip.start_y + 'px', width: pickwhip.length + 'px', rotate: pickwhip.angle + 'deg'}"
+						></div>
+					</div>
+
+					<div v-if="controller && controller.states.length" class="controller_state_connection_wrapper_top" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
 						<div v-for="connection in connections.backward"
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection backward" :class="{selected: connection.selected, relevant: connection.relevant}"
+							:title="connection.condition"
 							@click="selectConnection(connection, $event)"
 						></div>
 					</div>
+
 					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, animation: 160, handle: '.controller_state_title_bar'}">
 						<li v-for="state in controller.states" :key="state.uuid"
 							class="controller_state"
 							:class="{selected: controller.selected_state == state, folded: state.folded, initial_state: controller.initial_state == state.uuid}"
+							:uuid="state.uuid"
 							@click="state.select()"
 							@contextmenu="state.openMenu($event)"
 						>
@@ -926,13 +1012,18 @@ Interface.definePanels(() => {
 
 							<template v-if="!state.folded">
 
+								<div class="controller_state_gate controller_state_gate_top"
+									:style="{width: (10 + connections.outgoing_plugs[state.uuid].top * 16)+'px'}"
+									@mousedown="dragConnection(state, $event)" @touchstart="dragConnection(state, $event)"
+								></div>
+
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'animations')">
 									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.animations, "fa-angle-down": !state.fold.animations}\'></i>
 									<label>${tl('animation_controllers.state.animations')}</label>
 									<span class="controller_state_section_info" v-if="state.animations.length">{{ state.animations.length }}</span>
-									<i v-if="!state.fold.animations" class="icon fa fa-plus" @click.stop="state.addAnimation()"></i>
+									<i class="icon fa fa-plus" @click.stop="addAnimationButton(state, $event)"></i>
 								</div>
-								<ul v-if="!state.fold.animations" v-sortable="{onUpdate: state.sortAnimation, animation: 160, handle: '.controller_item_drag_handle'}">
+								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
 									<li v-for="animation in state.animations" :key="animation.uuid" class="controller_animation">
 										<div class="controller_item_drag_handle"></div>
 										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
@@ -1001,10 +1092,10 @@ Interface.definePanels(() => {
 									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.transitions, "fa-angle-down": !state.fold.transitions}\'></i>
 									<label>${tl('animation_controllers.state.transitions')}</label>
 									<span class="controller_state_section_info" v-if="state.transitions.length">{{ state.transitions.length }}</span>
-									<i v-if="!state.fold.transitions" class="icon fa fa-plus" @click.stop="state.addTransition()"></i>
+									<i class="icon fa fa-plus" @click.stop="addTransitionButton(state, $event)"></i>
 								</div>
 								<template v-if="!state.fold.transitions">
-									<ul v-sortable="{onUpdate: state.sortTransition, animation: 160, handle: '.controller_item_drag_handle'}">
+									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
 										<li v-for="transition in state.transitions" :key="transition.uuid" class="controller_transition">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
@@ -1026,20 +1117,28 @@ Interface.definePanels(() => {
 										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.shortest_path">
 									</div>
 								</template>
+
+								<div class="controller_state_gate controller_state_gate_bottom"
+									:style="{width: (10 + connections.outgoing_plugs[state.uuid].bottom * 16)+'px'}"
+									@mousedown="dragConnection(state, $event)" @touchstart="dragConnection(state, $event)"
+								></div>
 							</template>
 						</li>
 						<li class="controller_add_column" @click="addState()">
 							<i class="material-icons">add</i>
 						</li>
 					</ul>
-					<div class="controller_state_connection_wrapper_bottom" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
+
+					<div v-if="controller && controller.states.length" class="controller_state_connection_wrapper_bottom" :style="{'--max-layer': connections.max_layer_top, left: connection_wrapper_offset + 'px'}">
 						<div v-for="connection in connections.forward"
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection forward" :class="{selected: connection.selected, relevant: connection.relevant}"
+							:title="connection.condition"
 							@click="selectConnection(connection, $event)"
 						></div>
 					</div>
-					<div v-else-if="controller" id="animation_controller_presets">
+
+					<div v-if="controller && !controller.states.length" id="animation_controller_presets">
 						<h4>${tl('animation_controllers.select_preset')}</h4>
 						<ul>
 							<li v-for="preset in presets" :key="preset.name" @click="loadPreset(preset)">

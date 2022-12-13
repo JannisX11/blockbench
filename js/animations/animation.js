@@ -1,6 +1,8 @@
 class AnimationItem {
-	constructor() {
-
+	constructor() {}
+	getShortName() {
+		if (this.short_name) return this.short_name;
+		return this.name.split(/\./).last();
 	}
 }
 class Animation extends AnimationItem {
@@ -1348,7 +1350,8 @@ const Animator = {
 					name: ani_name,
 					saved_name: ani_name,
 					path,
-					states: a.states
+					states: a.states,
+					initial_state: a.initial_state
 				}).add()
 				if (!Animation.selected && !AnimationController.selected && Animator.open) {
 					controller.select();
@@ -2186,7 +2189,7 @@ Interface.definePanels(function() {
 								@contextmenu.prevent.stop="animation.showContextMenu($event)"
 							>
 								<i class="material-icons" v-if="animation.type == 'animation'">movie</i>
-								<i class="material-icons" v-else>list</i>
+								<i class="material-icons" v-else>cable</i>
 								<label :title="animation.name" v-if="animation.type == 'animation'">
 									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
 									<span v-if="common_namespace"> - {{ animation.name }}</span>

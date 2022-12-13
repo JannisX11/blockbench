@@ -1832,12 +1832,14 @@ const BARS = {
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.saved = false;
 							animation.add(true).select();
+
 						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-							// Undo
+							Undo.initEdit({animation_controllers: [AnimationController.selected]});
 							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
 							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
 							AnimationController.selected.states.remove(state);
 							AnimationController.selected.states.splice(index+1, 0, state);
+							Undo.finishEdit('Duplicate animation controller state');
 
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
