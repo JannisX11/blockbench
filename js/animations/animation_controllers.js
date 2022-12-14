@@ -123,7 +123,14 @@ class AnimationControllerState {
 		return object;
 	}
 	select() {
+		this.controller.last_state = this.controller.selected_state;
+		this.controller.transition_timestamp = Date.now();
+		this.start_timestamp = Date.now();
 		this.controller.selected_state = this;
+
+		if (this.controller.last_state) Animator.MolangParser.parse(this.controller.last_state.on_exit);
+		Animator.MolangParser.parse(this.on_entry);
+
 		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
 		if (node) node.scrollIntoView({behavior: 'smooth', block: 'nearest'})
 	}
@@ -485,6 +492,11 @@ class AnimationController extends AnimationItem {
 		})
 		return this;
 	}
+	updatePreview() {
+		let mode = BarItems.animation_controller_preview_mode.value;
+		if (mode == 'paused') return;
+		Animator.preview();
+	}
 	togglePlayingState(state) {
 		if (!this.selected) {
 			this.playing = state !== undefined ? state : !this.playing;
@@ -713,6 +725,7 @@ Interface.definePanels(() => {
 						states: preset.states,
 						initial_state: preset.initial_state
 					});
+					this.updateConnectionWrapperOffset();
 				},
 				toggleStateSection(state, section) {
 					state.fold[section] = !state.fold[section];
@@ -845,12 +858,27 @@ Interface.definePanels(() => {
 				selectConnection(connection, event) {
 					let state = this.controller.states[connection.state_index];
 					let target = this.controller.states[connection.target_index];
-					// todo: scroll to state
-					if (state == this.controller.selected_state) {
+					if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
+						target.select();
+					} else {
+						state.select();
+					}
+				},
+				selectConnectionDeep(connection, event) {
+					let state = this.controller.states[connection.state_index];
+					let target = this.controller.states[connection.target_index];
+					if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 						target.select();
 					} else {
 						state.select();
 						state.fold.transitions = false;
+						Vue.nextTick(() => {
+							let node = document.querySelector(`.controller_transition[uuid="${connection.uuid}"] pre`);
+							if (node) {
+								$(node).trigger('focus');
+								document.execCommand('selectAll');
+							}
+						})
 					}
 				},
 				dragConnection(state, event) {
@@ -949,6 +977,7 @@ Interface.definePanels(() => {
 								state_index, target_index,
 								layer, range,
 								selected, relevant, color,
+								uuid: transition.uuid,
 								condition: transition.condition
 							}
 
@@ -978,7 +1007,11 @@ Interface.definePanels(() => {
 				}
 			},
 			template: `
-				<div id="animation_controllers_wrapper" @mousewheel="onMouseWheel($event)" :style="{zoom}" @click="deselect($event)" :class="{connecting_controllers: connecting}">
+				<div id="animation_controllers_wrapper"
+					:class="{connecting_controllers: connecting}"
+					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
+					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
+				>
 
 					<div style="position: relative;" id="animation_controllers_pickwhip_anchor" style="height: 0px;">
 						<div id="animation_controllers_pickwhip"
@@ -992,7 +1025,7 @@ Interface.definePanels(() => {
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection backward" :class="{selected: connection.selected, relevant: connection.relevant}"
 							:title="connection.condition"
-							@click="selectConnection(connection, $event)"
+							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)"
 						></div>
 					</div>
 
@@ -1096,7 +1129,7 @@ Interface.definePanels(() => {
 								</div>
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-										<li v-for="transition in state.transitions" :key="transition.uuid" class="controller_transition">
+										<li v-for="transition in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
@@ -1194,6 +1227,21 @@ BARS.defineActions(function() {
 		click() {
 			new AnimationControllerState(AnimationController.selected, {})
 
+		}
+	})
+	new BarSelect('animation_controller_preview_mode', {
+		options: {
+			paused: {name: true, icon: 'pause'},
+			manual: {name: true, icon: 'back_hand'},
+			play: {name: true, icon: 'play_arrow'},
+		},
+		icon_mode: true,
+		value: 'manual',
+		category: 'animation',
+		keybind: new Keybind({key: 32}),
+		condition: {modes: ['animate'], selected: {animation_controller: true}},
+		onChange({value}) {
+			
 		}
 	})
 })

@@ -1362,6 +1362,7 @@
 	background-color: var(--color-button);
 	display: flex;
 	cursor: pointer;
+	transition: background-color var(--blend-transition) linear, color var(--blend-transition) linear;
 }
 .controller_state_title_bar > label {
 	padding: 3px 10px;
@@ -1377,6 +1378,7 @@
 }
 .controller_state_title_bar > .tool {
 	width: 28px;
+    color: inherit;
 }
 .controller_state.selected .controller_state_title_bar {
 	background-color: var(--color-accent);
@@ -1450,6 +1452,7 @@ span.controller_state_section_info {
 .controller_state_input_bar label {
 	flex-grow: 1;
     padding: 3px 8px;
+	color: var(--color-subtle_text);
 }
 .controller_state .prism-editor-wrapper {
 	font-size: 0.9em;
@@ -1479,6 +1482,7 @@ span.controller_state_section_info {
 	background-color: var(--color-button);
 	height: var(--height);
 	min-width: 28px;
+	max-width: 210px;
 	border-radius: calc(var(--height) * 0.5);
 	position: absolute;
 	cursor: crosshair;
@@ -1508,6 +1512,20 @@ span.controller_state_section_info {
 	pointer-events: none;
 	z-index: 50;
 }
+#animation_controllers_pickwhip::before {
+	content: "\f0da";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 20px;
+	display: block;
+	position: absolute;
+	right: 0;
+	top: -5px;
+	height: 13px;
+	width: 10px;
+	line-height: 11px;
+	color: var(--color-accent);
+}
 #animation_controllers_wrapper.connecting_controllers .controller_state:hover:not(.selected) {
 	border-color: var(--color-accent);
 }
@@ -1525,6 +1543,7 @@ span.controller_state_section_info {
 	z-index: calc(18 - var(--layer));
 	--corner-radius: 5px;
 	cursor: pointer;
+	transition: border-color var(--blend-transition) linear;
 }
 .controller_state_connection_wrapper_top > .controller_state_connection {
 	border-bottom: none;

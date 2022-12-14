@@ -1038,22 +1038,74 @@ const Animator = {
 		keyframe_points.keyframeUUIDs = keyframeUUIDs;
 		Animator.motion_trail.add(keyframe_points);
 	},
-	preview(in_loop) {
-		// Bones
-		Animator.showDefaultPose(true);
-		// Calculate blend value for each animation/controller from each active animation controller. These values will later be added to the regular blend value
+	stackAnimations(animations, in_loop, controller_blend_values = 0) {
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
-			Animator.animations.forEach(animation => {
+			animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-				if (animation.playing) {
-					animation.getBoneAnimator(node).displayFrame(multiplier)
-				}
+				if (controller_blend_values[animation.uuid]) multiplier *= controller_blend_values[animation.uuid];
+				animation.getBoneAnimator(node).displayFrame(multiplier);
 			})
 		})
+
 		Animator.resetLastValues();
 		scene.updateMatrixWorld();
+
+		// Effects
+		Animator.resetParticles(true);
+		animations.forEach(animation => {
+			if (animation.animators.effects) {
+				animation.animators.effects.displayFrame(in_loop);
+			}
+		})
+	},
+	preview(in_loop) {
+		// Reset
+		Animator.showDefaultPose(true);
+
+		// Controller
+		if (AnimationController.selected?.selected_state) {
+			let controller_blend_values, animations_to_play;
+			let controller = AnimationController.selected;
+			let {selected_state, last_state} = controller;
+			let state_time = (Date.now() - selected_state.start_timestamp) / 1000;
+			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+
+			// Active State
+			Timeline.time = state_time;
+			controller_blend_values = {};
+			animations_to_play = [];
+
+			selected_state.animations.forEach(a => {
+				let animation = Animation.all.find(anim => a.animation == anim.uuid);
+				if (!animation) return;
+				let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				animations_to_play.push(animation);
+			})
+			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+
+			// Last State
+			if (blend_progress < 1 && last_state) {
+				Timeline.time = (Date.now() - last_state.start_timestamp) / 1000;;
+				controller_blend_values = {};
+				animations_to_play = [];
+
+				last_state.animations.forEach(a => {
+					let animation = Animation.all.find(anim => a.animation == anim.uuid);
+					if (!animation) return;
+					let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					animations_to_play.push(animation);
+				})
+				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+			}
+		} else {
+			Animator.stackAnimations(Animation.all.filter(a => a.playing), in_loop);
+		}
+
 
 		// Shift ground
 		if (Canvas.ground_plane.visible && Animation.selected && Animation.selected.anim_time_update.includes('modified_distance_moved')) {
@@ -1067,15 +1119,6 @@ const Animator = {
 			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
 		}
 
-		// Effects
-		Animator.resetParticles(true);
-		Animator.animations.forEach(animation => {
-			if (animation.playing) {
-				if (animation.animators.effects) {
-					animation.animators.effects.displayFrame(in_loop);
-				}
-			}
-		})
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];

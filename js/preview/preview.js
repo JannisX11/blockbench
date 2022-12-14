@@ -2014,6 +2014,8 @@ function animate() {
 
 	if (Animator.open && Timeline.playing) {
 		Timeline.loop();
+	} else if (AnimationController.selected) {
+		AnimationController.selected.updatePreview();
 	}
 	if (quad_previews.current) {
 		WinterskyScene.updateFacingRotation(quad_previews.current.camera);

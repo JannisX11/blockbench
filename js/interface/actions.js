@@ -2220,6 +2220,7 @@ const BARS = {
 				'transform_space',
 				'rotation_space',
 				'selection_mode',
+				'animation_controller_preview_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',
