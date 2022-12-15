@@ -2,7 +2,10 @@ class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
-		this.name = 'default';
+
+		for (var key in AnimationControllerState.properties) {
+			AnimationControllerState.properties[key].reset(this);
+		}
 
 		this.folded = false;
 		this.fold = {
@@ -13,10 +16,6 @@ class AnimationControllerState {
 			on_exit: true,
 			transitions: true,
 		};
-
-		for (var key in AnimationControllerState.properties) {
-			AnimationControllerState.properties[key].reset(this);
-		}
 
 		if (data) {
 			this.extend(data);
@@ -43,7 +42,7 @@ class AnimationControllerState {
 				} else if (typeof a == 'object' || typeof a == 'string') {
 					// Bedrock
 					let key = typeof a == 'object' ? Object.keys(a)[0] : a;
-					let anim_match = Animation.all.find(anim => anim.name.endsWith(key));
+					let anim_match = Animation.all.find(anim => anim.getShortName() == key);
 					animation = {
 						uuid: guid(),
 						key: key || '',
@@ -122,14 +121,17 @@ class AnimationControllerState {
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
 		return object;
 	}
-	select() {
-		this.controller.last_state = this.controller.selected_state;
-		this.controller.transition_timestamp = Date.now();
-		this.start_timestamp = Date.now();
-		this.controller.selected_state = this;
+	select(force) {
+		if (this.controller.selected_state !== this || force) {
+			this.controller.last_state = this.controller.selected_state;
+			this.controller.transition_timestamp = Date.now();
+			this.start_timestamp = Date.now();
 
-		if (this.controller.last_state) Animator.MolangParser.parse(this.controller.last_state.on_exit);
-		Animator.MolangParser.parse(this.on_entry);
+			this.controller.selected_state = this;
+
+			if (this.controller.last_state) Animator.MolangParser.parse(this.controller.last_state.on_exit);
+			Animator.MolangParser.parse(this.on_entry);
+		}
 
 		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
 		if (node) node.scrollIntoView({behavior: 'smooth', block: 'nearest'})
@@ -210,7 +212,11 @@ class AnimationControllerState {
 	openMenu(event) {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
+	getStateTime() {
+		return this.start_timestamp ? (Date.now() - this.start_timestamp) / 1000 : 0;
+	}
 }
+new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
 new Property(AnimationControllerState, 'array', 'animations');
 new Property(AnimationControllerState, 'array', 'transitions');
 new Property(AnimationControllerState, 'array', 'sounds');
@@ -264,10 +270,12 @@ class AnimationController extends AnimationItem {
 		Merge.string(this, data, 'name')
 
 		if (data.states instanceof Array) {
+			let old_states = this.states.splice(0, this.states.length);
 			data.states.forEach(template => {
-				let state = this.states.find(state2 => state2.name === template.name || (template.uuid && state2.uuid === template.uuid));
+				let state = old_states.find(state2 => state2.name === template.name || (template.uuid && state2.uuid === template.uuid));
 				if (state) {
 					state.extend(template);
+					this.states.push(state);
 				} else {
 					state = new AnimationControllerState(this, template);
 				}
@@ -318,7 +326,7 @@ class AnimationController extends AnimationItem {
 		let object = {};
 		if (!this.states.length) return object;
 
-		let initial_state = this.states.find(s => s.name == 'default') || this.states[0];
+		let initial_state = this.states.find(s => s.uuid == this.initial_state) || this.states[0];
 		if (initial_state.name !== 'default') object.initial_state = initial_state.name;
 
 		object.states = {};
@@ -383,6 +391,26 @@ class AnimationController extends AnimationItem {
 					content = data;
 					if (this.saved_name && this.saved_name !== this.name) delete content.animation_controllers[this.saved_name];
 					content.animation_controllers[this.name] = animation;
+
+					// Improve JSON formatting
+					for (let key in data.animation_controllers) {
+						let controller = data.animation_controllers[key];
+						if (typeof controller.states == 'object') {
+							for (let state_name in controller.states) {
+								let state = controller.states[state_name];
+								if (typeof state.animations instanceof Array) {
+									state.animations.forEach((a, i) => {
+										if (typeof a == 'object') state.animations[i] = new oneLiner(a);
+									})
+								}
+								if (typeof state.transitions instanceof Array) {
+									state.transitions.forEach((t, i) => {
+										if (typeof t == 'object') state.transitions[i] = new oneLiner(t);
+									})
+								}
+							}
+						}
+					}
 
 					// Sort
 					let file_keys = Object.keys(content.animation_controllers);
@@ -496,6 +524,18 @@ class AnimationController extends AnimationItem {
 		let mode = BarItems.animation_controller_preview_mode.value;
 		if (mode == 'paused') return;
 		Animator.preview();
+
+		// Transitions
+		if (mode == 'play' && this.selected_state) {
+			for (let transition of this.selected_state.transitions) {
+				let match = Animator.MolangParser.parse(transition.condition);
+				let target_state = match && this.states.find(s => s.uuid == transition.target);
+				if (match && target_state) {
+					target_state.select();
+					break;
+				}
+			}
+		}
 	}
 	togglePlayingState(state) {
 		if (!this.selected) {
@@ -577,26 +617,19 @@ class AnimationController extends AnimationItem {
 					condition: Animation.properties.path.condition
 				}
 			},
-			onFormChange(form) {
-				this.component.data.loop_mode = form.loop;
-			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
 				if (
-					form_data.loop != this.loop
-					|| form_data.name != this.name
+					form_data.name != this.name
 					|| (isApp && form_data.path != this.path)
 				) {
 					Undo.initEdit({animation_controllers: [this]});
 
-					this.extend({
-						loop: form_data.loop,
-						name: form_data.name,
-					})
+					this.name = form_data.name;
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation: this})
+					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controller: this})
 
 					Undo.finishEdit('Edit animation controller properties');
 				}
@@ -665,13 +698,13 @@ class AnimationController extends AnimationItem {
 
 AnimationController.presets = [
 	{
-		name: 'empty',
+		name: 'Default',
 		states: {
 			default: {}
 		}
 	},
 	{
-		name: 'simple',
+		name: 'Simple Action',
 		states: {
 			default: {
 				transitions: [{active: 'query.foo'}]
@@ -682,10 +715,55 @@ AnimationController.presets = [
 		}
 	},
 	{
-		name: 'walking',
+		name: 'Walking',
 		states: {
-			idle: {},
-			walking: {}
+			idle: {
+				transitions: [
+					{walking: 'q.ground_speed > 1.0'}
+				],
+				blend_transition: 0.2
+			},
+			walking: {
+				transitions: [
+					{idle: 'q.ground_speed < 0.5'}
+				],
+				blend_transition: 0.2
+			}
+		}
+	},
+	{
+		name: 'Open & Close',
+		initial_state: 'default',
+		states: {
+			default: {
+				transitions: [
+					{closed: '!q.is_ignited'},
+					{opened: 'q.is_ignited'}
+				]
+			},
+			closed: {
+				transitions: [
+					{open: 'q.is_ignited'}
+				]
+			},
+			open: {
+				transitions: [
+					{opened: 'query.any_animation_finished'},
+					{close: '!q.is_ignited'}
+				],
+				blend_transition: 0.1
+			},
+			opened: {
+				transitions: [
+					{close: '!q.is_ignited'}
+				],
+				blend_transition: 0.1
+			},
+			close: {
+				transitions: [
+					{closed: 'query.all_animations_finished'}
+				]
+			}
 		}
 	}
 ];
@@ -816,9 +894,10 @@ Interface.definePanels(() => {
 					BarItems.add_animation_controller_state.trigger();
 				},
 				sortStates(event) {
+					let max_index = this.controller.states.length - 1;
 					Undo.initEdit({animation_controllers: [this.controller]});
-					var item = this.controller.states.splice(event.oldIndex, 1)[0];
-					this.controller.states.splice(event.newIndex, 0, item);
+					var item = this.controller.states.splice(Math.min(event.oldIndex, max_index), 1)[0];
+					this.controller.states.splice(Math.min(event.newIndex, max_index), 0, item);
 					Undo.finishEdit('Reorder animation controller states');
 				},
 				getStateName(uuid) {
@@ -858,7 +937,7 @@ Interface.definePanels(() => {
 				selectConnection(connection, event) {
 					let state = this.controller.states[connection.state_index];
 					let target = this.controller.states[connection.target_index];
-					if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
+					if (state == this.controller.selected_state || event.ctrlOrCmd || Pressing.overrides.ctrl) {
 						target.select();
 					} else {
 						state.select();
@@ -1167,7 +1246,7 @@ Interface.definePanels(() => {
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection forward" :class="{selected: connection.selected, relevant: connection.relevant}"
 							:title="connection.condition"
-							@click="selectConnection(connection, $event)"
+							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)"
 						></div>
 					</div>
 

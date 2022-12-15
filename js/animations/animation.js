@@ -1,7 +1,12 @@
 class AnimationItem {
 	constructor() {}
 	getShortName() {
-		if (this.short_name) return this.short_name;
+		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
+			let {animations} = Project.BedrockEntityManager.client_entity.description;
+			for (let key in animations) {
+				if (animations[key] == this.name) return key;
+			}
+		}
 		return this.name.split(/\./).last();
 	}
 }
@@ -1069,7 +1074,7 @@ const Animator = {
 			let controller_blend_values, animations_to_play;
 			let controller = AnimationController.selected;
 			let {selected_state, last_state} = controller;
-			let state_time = (Date.now() - selected_state.start_timestamp) / 1000;
+			let state_time = selected_state.getStateTime();
 			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
 
 			// Active State
@@ -1088,7 +1093,7 @@ const Animator = {
 
 			// Last State
 			if (blend_progress < 1 && last_state) {
-				Timeline.time = (Date.now() - last_state.start_timestamp) / 1000;;
+				Timeline.time = last_state.getStateTime();
 				controller_blend_values = {};
 				animations_to_play = [];
 
@@ -1388,13 +1393,13 @@ const Animator = {
 			for (let ani_name in json.animation_controllers) {
 				if (animation_filter && !animation_filter.includes(ani_name)) continue;
 				//Animation
-				let a = json.animation_controllers[ani_name]
+				let a = json.animation_controllers[ani_name];
 				let controller = new AnimationController({
 					name: ani_name,
 					saved_name: ani_name,
 					path,
 					states: a.states,
-					initial_state: a.initial_state
+					initial_state: a.initial_state || (a.states?.default ? 'default' : undefined)
 				}).add()
 				if (!Animation.selected && !AnimationController.selected && Animator.open) {
 					controller.select();
@@ -1659,6 +1664,30 @@ Animator.MolangParser.global_variables = {
 	},
 	get 'query.time_stamp'() {
 		return Math.floor(Timeline.time * 20) / 20;
+	},
+	get 'query.all_animations_finished'() {
+		if (AnimationController.selected?.selected_state) {
+			let state = AnimationController.selected?.selected_state;
+			let state_time = state.getStateTime();
+			let all_finished = state.animations.allAre(a => {
+				let animation = Animation.all.find(anim => anim.uuid == a.animation);
+				return state_time > animation.length;
+			})
+			return all_finished ? 1 : 0;
+		}
+		return 0;
+	},
+	get 'query.any_animation_finished'() {
+		if (AnimationController.selected?.selected_state) {
+			let state = AnimationController.selected?.selected_state;
+			let state_time = state.getStateTime();
+			let finished_anim = state.animations.find(a => {
+				let animation = Animation.all.find(anim => anim.uuid == a.animation);
+				return state_time > animation.length;
+			})
+			return finished_anim ? 1 : 0;
+		}
+		return 0;
 	},
 	'query.camera_rotation'(axis) {
 		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
