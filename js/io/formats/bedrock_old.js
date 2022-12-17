@@ -431,6 +431,7 @@ var format = new ModelFormat({
 	centered_grid: true,
 	animated_textures: true,
 	animation_files: true,
+	animation_controllers: true,
 	animation_mode: true,
 	locators: true,
 	codec,

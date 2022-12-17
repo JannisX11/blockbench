@@ -216,8 +216,14 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
+			let has_animations = false, has_controllers = false;
 			for (var key in anim_list) {
-				if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
+				if (typeof anim_list[key] !== 'string') continue;
+				if (anim_list[key].startsWith('animation.')) {
+					has_animations = true;
+					animation_names.push(anim_list[key]);
+				} else if (anim_list[key].startsWith('controller.animation.')) {
+					has_controllers = true;
 					animation_names.push(anim_list[key]);
 				}
 			}
@@ -236,7 +242,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				} catch (err) {}
 			}
-			searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_animations) searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_controllers) searchFolder(PathModule.join(this.root_path, 'animation_controllers'));
 
 			anim_files.forEach(path => {
 				try {
@@ -1285,6 +1292,7 @@ var entity_format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	animation_controllers: true,
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,

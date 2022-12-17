@@ -54,6 +54,7 @@ class ModelProject {
 		this.selected_texture = null;
 		this.outliner = [];
 		this.animations = [];
+		this.animation_controllers = [];
 		this.timeline_animators = [];
 		this.display_settings = {};
 
@@ -186,9 +187,11 @@ class ModelProject {
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
 
-		Interface.Panels.animations.inside_vue.animations = this.animations;
+		Panels.animations.inside_vue.animations = this.animations;
+		Panels.animations.inside_vue.animation_controllers = this.animation_controllers;
 		Timeline.animators = Timeline.vue.animators = [];
 		Animation.selected = null;
+		AnimationController.selected = null;
 		let selected_anim = this.animations.find(anim => anim.selected);
 		if (selected_anim) selected_anim.select();
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;

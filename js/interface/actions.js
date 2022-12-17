@@ -1686,8 +1686,10 @@ const BARS = {
 				click: function () {
 					if (Modes.edit || Modes.paint) {
 						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && Animation.selected) {
-						Animation.selected.rename()
+					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
+						AnimationItem.selected.rename();
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.rename();
 					}
 				}
 			})
@@ -1807,6 +1809,9 @@ const BARS = {
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
 
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.remove(true);
+
 					} else if (Animator.open) {
 						removeSelectedKeyframes()
 					}
@@ -1815,7 +1820,7 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animation.selected && Modes.animate && Prop.active_panel == 'animations') || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
@@ -1827,6 +1832,15 @@ const BARS = {
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.saved = false;
 							animation.add(true).select();
+
+						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+							Undo.initEdit({animation_controllers: [AnimationController.selected]});
+							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+							AnimationController.selected.states.remove(state);
+							AnimationController.selected.states.splice(index+1, 0, state);
+							Undo.finishEdit('Duplicate animation controller state');
+
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;
@@ -2159,6 +2173,7 @@ const BARS = {
 			id: 'animations',
 			children: [
 				'add_animation',
+				'add_animation_controller',
 				'load_animation_file',
 				'slider_animation_length',
 			]
@@ -2191,6 +2206,13 @@ const BARS = {
 			],
 			default_place: true
 		})
+		//Animation Controllers
+		Toolbars.animation_controllers = new Toolbar({
+			id: 'animation_controllers',
+			children: [
+				'add_animation_controller_state',
+			]
+		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
@@ -2198,6 +2220,7 @@ const BARS = {
 				'transform_space',
 				'rotation_space',
 				'selection_mode',
+				'animation_controller_preview_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',

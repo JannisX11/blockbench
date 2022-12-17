@@ -1,5 +1,18 @@
-class Animation {
+class AnimationItem {
+	constructor() {}
+	getShortName() {
+		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
+			let {animations} = Project.BedrockEntityManager.client_entity.description;
+			for (let key in animations) {
+				if (animations[key] == this.name) return key;
+			}
+		}
+		return this.name.split(/\./).last();
+	}
+}
+class Animation extends AnimationItem {
 	constructor(data) {
+		super(data);
 		this.name = '';
 		this.uuid = guid()
 		this.loop = 'once';
@@ -10,6 +23,7 @@ class Animation {
 		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
 		this.markers = [];
+		this.type = 'animation';
 		for (var key in Animation.properties) {
 			Animation.properties[key].reset(this);
 		}
@@ -385,7 +399,7 @@ class Animation {
 		Prop.active_panel = 'animations';
 		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
-		Animator.animations.forEach(function(a) {
+		AnimationItem.all.forEach((a) => {
 			a.selected = a.playing = false;
 		})
 		Timeline.clear();
@@ -393,7 +407,7 @@ class Animation {
 		Timeline.vue._data.animation_length = this.length;
 		this.selected = true;
 		this.playing = true;
-		Animation.selected = this;
+		AnimationItem.selected = this;
 		unselectAll();
 		BarItems.slider_animation_length.update();
 
@@ -410,6 +424,7 @@ class Animation {
 		}
 		if (Modes.animate) {
 			Animator.preview();
+			updateInterface();
 		}
 		return this;
 	}
@@ -639,23 +654,29 @@ class Animation {
 					loop_delay: this.loop_delay,
 					loop_mode: this.loop
 				},
+				methods: {
+					autocomplete(text, position) {
+						let test = Animator.autocompleteMolang(text, position, 'animation');
+						return test;
+					}
+				},
 				template: 
 					`<div id="animation_properties_vue">
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="anim_time_update" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="blend_weight" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="start_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
 							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="loop_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 					</div>`
 			},
@@ -844,7 +865,7 @@ const Animator = {
 			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
 		}
 	},
-	join() {	
+	join() {
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
 			Project.BedrockEntityManager.initAnimations();
 		}
@@ -1028,21 +1049,74 @@ const Animator = {
 		keyframe_points.keyframeUUIDs = keyframeUUIDs;
 		Animator.motion_trail.add(keyframe_points);
 	},
-	preview(in_loop) {
-		// Bones
-		Animator.showDefaultPose(true);
+	stackAnimations(animations, in_loop, controller_blend_values = 0) {
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
-			Animator.animations.forEach(animation => {
+			animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-				if (animation.playing) {
-					animation.getBoneAnimator(node).displayFrame(multiplier)
-				}
+				if (controller_blend_values[animation.uuid]) multiplier *= controller_blend_values[animation.uuid];
+				animation.getBoneAnimator(node).displayFrame(multiplier);
 			})
 		})
+
 		Animator.resetLastValues();
 		scene.updateMatrixWorld();
+
+		// Effects
+		Animator.resetParticles(true);
+		animations.forEach(animation => {
+			if (animation.animators.effects) {
+				animation.animators.effects.displayFrame(in_loop);
+			}
+		})
+	},
+	preview(in_loop) {
+		// Reset
+		Animator.showDefaultPose(true);
+
+		// Controller
+		if (AnimationController.selected?.selected_state) {
+			let controller_blend_values, animations_to_play;
+			let controller = AnimationController.selected;
+			let {selected_state, last_state} = controller;
+			let state_time = selected_state.getStateTime();
+			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+
+			// Active State
+			Timeline.time = state_time;
+			controller_blend_values = {};
+			animations_to_play = [];
+
+			selected_state.animations.forEach(a => {
+				let animation = Animation.all.find(anim => a.animation == anim.uuid);
+				if (!animation) return;
+				let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				animations_to_play.push(animation);
+			})
+			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+
+			// Last State
+			if (blend_progress < 1 && last_state) {
+				Timeline.time = last_state.getStateTime();
+				controller_blend_values = {};
+				animations_to_play = [];
+
+				last_state.animations.forEach(a => {
+					let animation = Animation.all.find(anim => a.animation == anim.uuid);
+					if (!animation) return;
+					let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					animations_to_play.push(animation);
+				})
+				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+			}
+		} else {
+			Animator.stackAnimations(Animation.all.filter(a => a.playing), in_loop);
+		}
+
 
 		// Shift ground
 		if (Canvas.ground_plane.visible && Animation.selected && Animation.selected.anim_time_update.includes('modified_distance_moved')) {
@@ -1056,15 +1130,6 @@ const Animator = {
 			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
 		}
 
-		// Effects
-		Animator.resetParticles(true);
-		Animator.animations.forEach(animation => {
-			if (animation.playing) {
-				if (animation.animators.effects) {
-					animation.animators.effects.displayFrame(in_loop);
-				}
-			}
-		})
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];
@@ -1137,8 +1202,9 @@ const Animator = {
 						? string.replace(/;(?!$)/, ';\n')
 						: string
 		}
-		if (json && typeof json.animations === 'object') {
-			for (var ani_name in json.animations) {
+		if (!json) return new_animations;
+		if (typeof json.animations === 'object') {
+			for (let ani_name in json.animations) {
 				if (animation_filter && !animation_filter.includes(ani_name)) continue;
 				//Animation
 				var a = json.animations[ani_name]
@@ -1329,6 +1395,23 @@ const Animator = {
 				}
 				new_animations.push(animation)
 			}
+		} else if (typeof json.animation_controllers === 'object') {
+			for (let ani_name in json.animation_controllers) {
+				if (animation_filter && !animation_filter.includes(ani_name)) continue;
+				//Animation
+				let a = json.animation_controllers[ani_name];
+				let controller = new AnimationController({
+					name: ani_name,
+					saved_name: ani_name,
+					path,
+					states: a.states,
+					initial_state: a.initial_state || (a.states?.default ? 'default' : undefined)
+				}).add()
+				if (!Animation.selected && !AnimationController.selected && Animator.open) {
+					controller.select();
+				}
+				new_animations.push(controller)
+			}
 		}
 		return new_animations
 	},
@@ -1345,15 +1428,30 @@ const Animator = {
 			animations: animations
 		}
 	},
+	buildController(path_filter, name_filter) {
+		var controllers = {}
+		AnimationController.all.forEach(function(a) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+				let ani_tag = a.compileForBedrock();
+				controllers[a.name] = ani_tag;
+			}
+		})
+		return {
+			format_version: '1.19.0',
+			animation_controllers: controllers
+		}
+	},
 	importFile(file) {
 		let form = {};
 		let json = autoParseJSON(file.content)
 		let keys = [];
-		for (var key in json.animations) {
+		let is_controller = !!json.animation_controllers;
+		let entries = json.animations || json.animation_controllers;
+		for (var key in entries) {
 			// Test if already loaded
 			if (isApp && file.path) {
 				let is_already_loaded = false
-				for (var anim of Animation.all) {
+				for (var anim of is_controller ? Animation.all : AnimationController.all) {
 					if (anim.path == file.path && anim.name == key) {
 						is_already_loaded = true;
 						break;
@@ -1459,6 +1557,57 @@ const Animator = {
 				})
 			})
 		}
+	},
+	exportAnimationControllerFile(path) {
+		let filter_path = path || '';
+
+		if (isApp && !path) {
+			path = Project.export_path
+			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
+			var m_index = path.search(exp)
+			if (m_index > 3) {
+				path = path.substr(0, m_index) + osfs + 'animation_controllers' + osfs +  pathToName(Project.export_path, true)
+			}
+			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
+		}
+
+		if (isApp && path && fs.existsSync(path)) {
+			AnimationController.all.forEach(function(a) {
+				if (a.path == filter_path && !a.saved) {
+					a.save();
+				}
+			})
+		} else {
+			let content = Animator.buildController(filter_path, true);
+			Blockbench.export({
+				resource_id: 'animation_controller',
+				type: 'JSON Animation Controller',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation_controllers',
+				startpath: path,
+				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path, cb) => {
+					if (new_path && fs.existsSync(new_path)) {
+						AnimationController.all.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(new_path, {content})
+						cb(new_path);
+					}
+				})
+			}, new_path => {
+				AnimationController.all.forEach(function(a) {
+					if (a.path == filter_path) {
+						a.path = new_path;
+						a.saved = true;
+					}
+				})
+			})
+		}
 	}
 }
 Canvas.gizmos.push(Animator.motion_trail);
@@ -1505,83 +1654,9 @@ Clipbench.pasteAnimation = function() {
 	Undo.finishEdit('Paste animation')
 }
 
-Animator.MolangParser.global_variables = {
-	'true': 1,
-	'false': 0,
-	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
-		if (time < 0) time += 1;
-		return Math.clamp(time, 0, 0.1);
-	},
-	get 'query.anim_time'() {
-		return Animation.selected ? Animation.selected.time : Timeline.time;
-	},
-	get 'query.life_time'() {
-		return Timeline.time;
-	},
-	get 'query.time_stamp'() {
-		return Math.floor(Timeline.time * 20) / 20;
-	},
-	'query.camera_rotation'(axis) {
-		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
-		if (axis == 0) val *= -1;
-		return val;
-	},
-	'query.rotation_to_camera'(axis) {
-		let val = cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
-		if (axis == 0) val *= -1;
-		return val;
-	},
-	get 'query.distance_from_camera'() {
-		return Preview.selected.camera.position.length() / 16;
-	},
-	'query.lod_index'(indices) {
-		indices.sort((a, b) => a - b);
-		let distance = Preview.selected.camera.position.length() / 16;
-		let index = indices.length;
-		indices.forEachReverse((val, i) => {
-			if (distance < val) index = i;
-		})
-		return index;
-	},
-	'query.camera_distance_range_lerp'(a, b) {
-		let distance = Preview.selected.camera.position.length() / 16;
-		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
-	},
-	get 'time'() {
-		return Timeline.time;
-	}
-}
-Animator.MolangParser.variableHandler = function (variable) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
-	var i = 0;
-	while (i < inputs.length) {
-		let key, val;
-		[key, val] = inputs[i].split(/=\s*(.+)/);
-		key = key.replace(/[\s;]/g, '');
-		key = key.replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.');
-
-		if (key === variable && val !== undefined) {
-			val = val.trim();
-
-			if (val.match(/^(slider|toggle)\(/)) {
-				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
-				let [id] = content.split(/\(|, */);
-				id = id.replace(/['"]/g, '');
-				
-				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(b => b.id === id && b.type == type);
-				return button ? parseFloat(button.value) : 0;
-				
-			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
-			}
-		}
-		i++;
-	}
-}
 
 Blockbench.addDragHandler('animation', {
-	extensions: ['animation.json'],
+	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},
 }, async function(files) {
@@ -1649,7 +1724,7 @@ BARS.defineActions(function() {
 			Blockbench.import({
 				resource_id: 'animation',
 				extensions: ['json'],
-				type: 'JSON Animation',
+				type: 'JSON Animation, JSON Animation Controller',
 				multiple: true,
 				startpath: path
 			}, async function(files) {
@@ -1826,6 +1901,7 @@ Interface.definePanels(function() {
 			name: 'panel-animations',
 			data() { return {
 				animations: Animation.all,
+				animation_controllers: AnimationController.all,
 				files_folded: {},
 				animation_files_enabled: true
 			}},
@@ -1841,11 +1917,18 @@ Interface.definePanels(function() {
 					Animator.exportAnimationFile(path)
 				},
 				addAnimation(path) {
-					let other_animation = Animation.all.find(a => a.path == path)
-					new Animation({
-						name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-						path
-					}).add(true).propertiesDialog()
+					let other_animation = AnimationItem.all.find(a => a.path == path);
+					if (other_animation instanceof Animation) {
+						new Animation({
+							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+							path
+						}).add(true).propertiesDialog()
+					} else {
+						new AnimationController({
+							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
+							path
+						}).add(true);
+					}
 				},
 				showFileContextMenu(event, id) {
 					Animation.prototype.file_menu.open(event, id);
@@ -1980,6 +2063,16 @@ Interface.definePanels(function() {
 						if (!animation.saved) files[key].saved = false;
 						files[key].animations.push(animation);
 					})
+					this.animation_controllers.forEach(controller => {
+						let key = controller.path || '';
+						if (!files[key]) files[key] = {
+							animations: [],
+							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
+							saved: true
+						};
+						if (!controller.saved) files[key].saved = false;
+						files[key].animations.push(controller);
+					})
 					return files;
 				},
 				common_namespace() {
@@ -1996,6 +2089,37 @@ Interface.definePanels(function() {
 
 						for (var anim of this.animations) {
 							if (anim == this.animations[0]) continue;
+
+							let segments = anim.name.split(/[.:]/);
+							let length = 0;
+
+							for (var segment of segments) {
+								if (segment == name.substr(length, segment.length)) {
+									length += segment.length + 1;
+								} else {
+									break;
+								}
+							}
+							name = name.substr(0, length);
+							if (name.length < 8) return '';
+						}
+						return name;
+					}
+				},
+				common_controller_namespace() {
+					if (!this.animation_controllers.length) {
+						return '';
+
+					} else if (this.animation_controllers.length == 1) {
+						let match = this.animation_controllers[0].name.match(/^.*[.:]/);
+						return match ? match[0] : '';
+
+					} else {
+						let name = this.animation_controllers[0].name;
+						if (name.search(/[.:]/) == -1) return '';
+
+						for (var anim of this.animation_controllers) {
+							if (anim == this.animation_controllers[0]) continue;
 
 							let segments = anim.name.split(/[.:]/);
 							let length = 0;
@@ -2044,10 +2168,15 @@ Interface.definePanels(function() {
 								:key="animation.uuid"
 								@contextmenu.prevent.stop="animation.showContextMenu($event)"
 							>
-								<i class="material-icons">movie</i>
-								<label :title="animation.name">
+								<i class="material-icons" v-if="animation.type == 'animation'">movie</i>
+								<i class="material-icons" v-else>cable</i>
+								<label :title="animation.name" v-if="animation.type == 'animation'">
 									{{ common_namespace ? animation.name.split(common_namespace).join('') : animation.name }}
 									<span v-if="common_namespace"> - {{ animation.name }}</span>
+								</label>
+								<label :title="animation.name" v-else>
+									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
+									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
 								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
@@ -2065,6 +2194,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'add_animation',
+			'add_animation_controller',
 			'load_animation_file',
 			'paste',
 			'save_all_animations',
@@ -2185,6 +2315,10 @@ Interface.definePanels(function() {
 					}
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
+				},
+				autocomplete(text, position) {
+					let test = Animator.autocompleteMolang(text, position, 'placeholders');
+					return test;
 				}
 			},
 			watch: {
@@ -2197,7 +2331,7 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+				<div style="flex-grow: 1; display: flex; flex-direction: column; overflow: visible;">
 
 					<ul id="placeholder_buttons">
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
@@ -2211,9 +2345,10 @@ Interface.definePanels(function() {
 
 					<vue-prism-editor
 						id="var_placeholder_area"
-						class="molang_input dark_bordered tab_target"
+						class="molang_input tab_target"
 						v-model="text"
 						language="molang"
+						:autocomplete="autocomplete"
 						:line-numbers="false"
 						style="flex-grow: 1;"
 						onkeyup="Animator.preview()"

@@ -997,6 +997,11 @@
 		transform-origin: top left;
 	}
 
+/*Bedrock Bindings*/
+dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
+	overflow: visible;
+} 
+
 /*Keybind Recording*/
 	#overlay_message_box {
 		height: 100%;

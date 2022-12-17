@@ -520,10 +520,6 @@ const Timeline = {
 		Animator.preview();
 		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
-		if (Timeline.interval) {
-			clearInterval(Timeline.interval)
-			Timeline.interval = false
-		}
 		Timeline.playing_sounds.forEach(media => {
 			if (!media.paused) {
 				media.pause();
@@ -610,7 +606,7 @@ const Timeline = {
 Interface.definePanels(() => {
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => !AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
 			float_position: [100, 400],
@@ -1202,7 +1198,7 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], selected: {animation_controller: false}},
 		click: function () {
 			
 			if (!Animation.selected) {
