@@ -620,7 +620,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//Tab
 		if (e.which == 9 && !open_dialog) {
 			let all_visible_inputs = [];
-			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-wrapper), .prism-editor-wrapper.tab_target > pre[contenteditable="true"]')
+			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
 				if (input.isConnected && input.offsetParent && $(input).is(':visible')) {
 					all_visible_inputs.push(input);

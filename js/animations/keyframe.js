@@ -1266,6 +1266,10 @@ Interface.definePanels(function() {
 						})
 					}
 				},
+				autocomplete(text, position) {
+					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					return test;
+				},
 				tl,
 				Condition
 			},
@@ -1320,10 +1324,11 @@ Interface.definePanels(function() {
 									>
 										<label>${ tl('generic.all') }</label>
 										<vue-prism-editor 
-											class="molang_input dark_bordered keyframe_input tab_target"
+											class="molang_input keyframe_input tab_target"
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
 											language="molang"
+											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
@@ -1341,11 +1346,12 @@ Interface.definePanels(function() {
 										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event)" @touchstart="slideValue(key, $event)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
-											class="molang_input dark_bordered keyframe_input tab_target"
+											class="molang_input keyframe_input tab_target"
 											v-model="data_point[key+'_string']"
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
 											language="molang"
+											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>

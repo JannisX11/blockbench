@@ -661,11 +661,15 @@ BARS.defineActions(function() {
 									}
 								}
 							]).show(event.target);
+						},
+						autocomplete(text, position) {
+							let test = Animator.autocompleteMolang(text, position, 'binding');
+							return test;
 						}
 					},
 					template: 
 						`<div class="dialog_bar">
-							<vue-prism-editor class="molang_input dark_bordered"  v-model="binding" language="molang" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
+							<vue-prism-editor class="molang_input" v-model="binding" language="molang" :autocomplete="autocomplete" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
 							<i class="tool material-icons" style="vertical-align: top; padding: 3px; float: none;" @click="showPresetMenu($event)">menu</i>
 						</div>`
 				},

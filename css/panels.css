@@ -864,7 +864,7 @@
 	.prism-editor-wrapper {
 		caret-color: var(--color-text);
 	}
-	.molang_input {
+	.molang_input prism-editor-wrapper {
 		overflow-y: hidden;
 		min-height: 30px;
 		height: auto;
@@ -908,9 +908,6 @@
 	}
 
 /* Placeholders */
-	#var_placeholder_area {
-		overflow: auto;
-	}
 	#placeholder_buttons li {
 		padding: 0px 8px;
 	}
@@ -1427,7 +1424,7 @@
 .controller_transition bb-select {
 	flex-grow: 1;
 }
-.controller_transition .prism-editor-wrapper {
+.controller_transition .prism-editor-component {
 	width: calc(100% - 110px);
 }
 .controller_item_drag_handle {

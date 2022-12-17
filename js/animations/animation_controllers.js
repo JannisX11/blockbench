@@ -135,6 +135,8 @@ class AnimationControllerState {
 
 		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
 		if (node) node.scrollIntoView({behavior: 'smooth', block: 'nearest'})
+
+		return this;
 	}
 	rename() {
 		Blockbench.textPrompt('generic.rename', this.name, value => {
@@ -143,6 +145,7 @@ class AnimationControllerState {
 			this.createUniqueName();
 			Undo.finishEdit('Rename animation controller state');
 		})
+		return this;
 	}
 	remove(undo) {
 		if (undo) {
@@ -999,6 +1002,11 @@ Interface.definePanels(() => {
 					}
 					addEventListeners(document, 'mousemove touchmove', move);
 					addEventListeners(document, 'mouseup touchend', stop);
+				},
+
+				autocomplete(text, position) {
+					let test = Animator.autocompleteMolang(text, position, 'controller');
+					return test;
 				}
 			},
 			computed: {
@@ -1141,9 +1149,10 @@ Interface.definePanels(() => {
 										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
 										<input type="text" class="dark_bordered" v-model="animation.key">
 										<vue-prism-editor 
-											class="molang_input dark_bordered tab_target"
+											class="molang_input tab_target"
 											v-model="animation.blend_value"
 											language="molang"
+											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
@@ -1179,9 +1188,10 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_entry"
-									class="molang_input dark_bordered tab_target"
+									class="molang_input tab_target"
 									v-model="state.on_entry"
 									language="molang"
+									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
 								/>
@@ -1193,9 +1203,10 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_exit"
-									class="molang_input dark_bordered tab_target"
+									class="molang_input tab_target"
 									v-model="state.on_exit"
 									language="molang"
+									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
 								/>
@@ -1212,9 +1223,10 @@ Interface.definePanels(() => {
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
-												class="molang_input dark_bordered tab_target"
+												class="molang_input tab_target"
 												v-model="transition.condition"
 												language="molang"
+												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"
 											/>
@@ -1304,7 +1316,9 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		click() {
-			new AnimationControllerState(AnimationController.selected, {})
+			Undo.initEdit({animation_controllers: [AnimationController.selected]})
+			new AnimationControllerState(AnimationController.selected, {}).select().rename();
+			Undo.finishEdit('Add animation controller state')
 
 		}
 	})

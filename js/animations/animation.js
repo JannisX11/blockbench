@@ -654,23 +654,29 @@ class Animation extends AnimationItem {
 					loop_delay: this.loop_delay,
 					loop_mode: this.loop
 				},
+				methods: {
+					autocomplete(text, position) {
+						let test = Animator.autocompleteMolang(text, position, 'animation');
+						return test;
+					}
+				},
 				template: 
 					`<div id="animation_properties_vue">
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="anim_time_update" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="anim_time_update" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="blend_weight" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="blend_weight" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="start_delay" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="start_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
 							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
-							<vue-prism-editor class="molang_input dark_bordered" v-model="loop_delay" language="molang" :line-numbers="false" />
+							<vue-prism-editor class="molang_input" v-model="loop_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
 						</div>
 					</div>`
 			},
@@ -1648,104 +1654,6 @@ Clipbench.pasteAnimation = function() {
 	Undo.finishEdit('Paste animation')
 }
 
-Animator.MolangParser.global_variables = {
-	'true': 1,
-	'false': 0,
-	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
-		if (time < 0) time += 1;
-		return Math.clamp(time, 0, 0.1);
-	},
-	get 'query.anim_time'() {
-		return Animation.selected ? Animation.selected.time : Timeline.time;
-	},
-	get 'query.life_time'() {
-		return Timeline.time;
-	},
-	get 'query.time_stamp'() {
-		return Math.floor(Timeline.time * 20) / 20;
-	},
-	get 'query.all_animations_finished'() {
-		if (AnimationController.selected?.selected_state) {
-			let state = AnimationController.selected?.selected_state;
-			let state_time = state.getStateTime();
-			let all_finished = state.animations.allAre(a => {
-				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
-			})
-			return all_finished ? 1 : 0;
-		}
-		return 0;
-	},
-	get 'query.any_animation_finished'() {
-		if (AnimationController.selected?.selected_state) {
-			let state = AnimationController.selected?.selected_state;
-			let state_time = state.getStateTime();
-			let finished_anim = state.animations.find(a => {
-				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
-			})
-			return finished_anim ? 1 : 0;
-		}
-		return 0;
-	},
-	'query.camera_rotation'(axis) {
-		let val = cameraTargetToRotation(Preview.selected.camera.position.toArray(), Preview.selected.controls.target.toArray())[axis ? 0 : 1];
-		if (axis == 0) val *= -1;
-		return val;
-	},
-	'query.rotation_to_camera'(axis) {
-		let val = cameraTargetToRotation([0, 0, 0], Preview.selected.camera.position.toArray())[axis ? 0 : 1] ;
-		if (axis == 0) val *= -1;
-		return val;
-	},
-	get 'query.distance_from_camera'() {
-		return Preview.selected.camera.position.length() / 16;
-	},
-	'query.lod_index'(indices) {
-		indices.sort((a, b) => a - b);
-		let distance = Preview.selected.camera.position.length() / 16;
-		let index = indices.length;
-		indices.forEachReverse((val, i) => {
-			if (distance < val) index = i;
-		})
-		return index;
-	},
-	'query.camera_distance_range_lerp'(a, b) {
-		let distance = Preview.selected.camera.position.length() / 16;
-		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
-	},
-	get 'time'() {
-		return Timeline.time;
-	}
-}
-Animator.MolangParser.variableHandler = function (variable) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
-	var i = 0;
-	while (i < inputs.length) {
-		let key, val;
-		[key, val] = inputs[i].split(/=\s*(.+)/);
-		key = key.replace(/[\s;]/g, '');
-		key = key.replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.');
-
-		if (key === variable && val !== undefined) {
-			val = val.trim();
-
-			if (val.match(/^(slider|toggle)\(/)) {
-				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
-				let [id] = content.split(/\(|, */);
-				id = id.replace(/['"]/g, '');
-				
-				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(b => b.id === id && b.type == type);
-				return button ? parseFloat(button.value) : 0;
-				
-			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
-			}
-		}
-		i++;
-	}
-}
 
 Blockbench.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
@@ -2407,6 +2315,10 @@ Interface.definePanels(function() {
 					}
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
+				},
+				autocomplete(text, position) {
+					let test = Animator.autocompleteMolang(text, position, 'placeholders');
+					return test;
 				}
 			},
 			watch: {
@@ -2419,7 +2331,7 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
-				<div style="flex-grow: 1; display: flex; flex-direction: column;">
+				<div style="flex-grow: 1; display: flex; flex-direction: column; overflow: visible;">
 
 					<ul id="placeholder_buttons">
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
@@ -2433,9 +2345,10 @@ Interface.definePanels(function() {
 
 					<vue-prism-editor
 						id="var_placeholder_area"
-						class="molang_input dark_bordered tab_target"
+						class="molang_input tab_target"
 						v-model="text"
 						language="molang"
+						:autocomplete="autocomplete"
 						:line-numbers="false"
 						style="flex-grow: 1;"
 						onkeyup="Animator.preview()"
