@@ -1379,7 +1379,7 @@ Interface.definePanels(function() {
 
 	let keyframe_edit_value;
 	function isTarget(target) {
-		return target && target.classList && (target.classList.contains('keyframe_input') || (target.parentElement && target.parentElement.classList.contains('keyframe_input')));
+		return target?.parentElement?.parentElement?.classList?.contains('keyframe_input');
 	}
 	document.addEventListener('focus', event => {
 		if (isTarget(event.target)) {

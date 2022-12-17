@@ -635,6 +635,15 @@ function updateSidebarOrder() {
 		});
 	})
 }
+function updatePanelSelector() {
+	if (!Blockbench.isMobile) return;
+
+	Interface.PanelSelectorVue.$forceUpdate();
+	let bottom_panel = Interface.getBottomPanel();
+	if (bottom_panel && !Condition(bottom_panel.display_condition)) {
+		Interface.PanelSelectorVue.select(null);
+	}
+}
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel

@@ -498,6 +498,7 @@ function setupInterface() {
 function updateInterface() {
 	BARS.updateConditions()
 	MenuBar.update()
+	updatePanelSelector();
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }

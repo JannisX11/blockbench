@@ -1402,6 +1402,10 @@
 .controller_state_section_title > i:last-child {
 	margin-left: auto;
 }
+.controller_state > .prism-editor-component:focus-within {
+	width: calc(200% + 20px);
+	box-shadow: 0 0 0 1px var(--color-accent);
+}
 .controller_animation {
 	display: flex;
 	gap: 3px;
@@ -1417,7 +1421,8 @@
 	gap: 3px;
 	margin-bottom: 2px;
 }
-.controller_transition:focus-within {
+.controller_transition:focus-within,
+.controller_animation:focus-within {
 	width: calc(200% + 20px);
 	box-shadow: 0 0 0 1px var(--color-accent);
 }

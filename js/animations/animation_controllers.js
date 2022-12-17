@@ -93,6 +93,8 @@ class AnimationControllerState {
 		for (var key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].copy(this, copy)
 		}
+		copy.animations = JSON.parse(JSON.stringify(copy.animations));
+		copy.transitions = JSON.parse(JSON.stringify(copy.transitions));
 		return copy;
 	}
 	compileForBedrock() {
@@ -132,10 +134,11 @@ class AnimationControllerState {
 			if (this.controller.last_state) Animator.MolangParser.parse(this.controller.last_state.on_exit);
 			Animator.MolangParser.parse(this.on_entry);
 		}
-
+		return this;
+	}
+	scrollTo() {
 		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
 		if (node) node.scrollIntoView({behavior: 'smooth', block: 'nearest'})
-
 		return this;
 	}
 	rename() {
@@ -278,6 +281,7 @@ class AnimationController extends AnimationItem {
 				let state = old_states.find(state2 => state2.name === template.name || (template.uuid && state2.uuid === template.uuid));
 				if (state) {
 					state.extend(template);
+					if (template.uuid) state.uuid = template.uuid;
 					this.states.push(state);
 				} else {
 					state = new AnimationControllerState(this, template);
@@ -816,7 +820,17 @@ Interface.definePanels(() => {
 						animation.key = anim.getShortName();
 						animation.animation = anim.uuid;
 					}
-					let list = [];
+					let list = [
+						{
+							name: 'generic.unset',
+							icon: animation.animation == '' ? 'radio_button_checked' : 'radio_button_unchecked',
+							click: () => {
+								animation.key = '';
+								animation.animation = '';
+							}
+						},
+						'_'
+					];
 					AnimationItem.all.forEach((anim, i) => {
 						if (anim == this.controller) return;
 						if (i && anim instanceof AnimationController) list.push('_');
@@ -862,7 +876,15 @@ Interface.definePanels(() => {
 				},
 				addAnimationButton(state, event) {
 					state.select();
-					let list = [];
+					let list = [
+						{
+							name: 'generic.unset',
+							icon: 'call_to_action',
+							click: () => {
+								state.addAnimation();
+							}
+						}
+					];
 					AnimationItem.all.forEach((anim, i) => {
 						if (anim == this.controller) return;
 						if (i && anim instanceof AnimationController) list.push('_');
@@ -890,6 +912,15 @@ Interface.definePanels(() => {
 							}
 						})
 					})
+					if (!list.length) {
+						list.push({
+							name: 'generic.unset',
+							icon: 'remove',
+							click: () => {
+								state.addTransition();
+							}
+						})
+					}
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
@@ -922,7 +953,7 @@ Interface.definePanels(() => {
 				},
 				deselect(event) {
 					if (this.controller && event.target?.id == 'animation_controllers_wrapper' || event.target?.parentElement?.id == 'animation_controllers_wrapper') {
-						//this.controller.selected_state = null;
+						this.controller.selected_state = null;
 					}
 				},
 				sortAnimation(state, event) {
@@ -941,18 +972,18 @@ Interface.definePanels(() => {
 					let state = this.controller.states[connection.state_index];
 					let target = this.controller.states[connection.target_index];
 					if (state == this.controller.selected_state || event.ctrlOrCmd || Pressing.overrides.ctrl) {
-						target.select();
+						target.select().scrollTo();
 					} else {
-						state.select();
+						state.select().scrollTo();
 					}
 				},
 				selectConnectionDeep(connection, event) {
 					let state = this.controller.states[connection.state_index];
 					let target = this.controller.states[connection.target_index];
 					if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
-						target.select();
+						target.select().scrollTo();
 					} else {
-						state.select();
+						state.select().scrollTo();
 						state.fold.transitions = false;
 						Vue.nextTick(() => {
 							let node = document.querySelector(`.controller_transition[uuid="${connection.uuid}"] pre`);
@@ -965,6 +996,9 @@ Interface.definePanels(() => {
 				},
 				dragConnection(state, event) {
 					state.select();
+					convertTouchEvent(event);
+					event.preventDefault();
+					event.stopPropagation();
 					let anchor = document.getElementById('animation_controllers_pickwhip_anchor');
 					let anchor_offset = $(anchor).offset();
 					let scope = this;
@@ -975,30 +1009,39 @@ Interface.definePanels(() => {
 					pickwhip.length = 0;
 
 					function move(e2) {
+						convertTouchEvent(e2);
 						// Visually update connection line
 						let anchor_offset = $(anchor).offset();
 						let pos2_x = e2.clientX - anchor_offset.left;
 						let pos2_y = e2.clientY - anchor_offset.top;
 						pickwhip.length = Math.sqrt(Math.pow(pos2_x - pickwhip.start_x, 2) + Math.pow(pos2_y - pickwhip.start_y, 2))
 						pickwhip.angle = Math.radToDeg(Math.atan2(pos2_y - pickwhip.start_y, pos2_x - pickwhip.start_x));
+						scope.connecting = pickwhip.length >= 5;
 					}
 					function stop(e2) {
+						convertTouchEvent(e2);
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', stop);
 						scope.connecting = false;
 
+						if (Math.abs(event.clientX - e2.clientX) < 20) return;
+
 						// find selected state
-						let target_uuid = document.querySelector('.controller_state:hover')?.attributes.uuid.value;
-						let target = controller.states.find(s => s.uuid == target_uuid);
+						let target;
+						if (!Blockbench.isTouch) {
+							let target_uuid = document.querySelector('.controller_state:hover')?.attributes.uuid.value;
+							target = target_uuid && controller.states.find(s => s.uuid == target_uuid);
+						} else {
+							target = controller.states.find(state => {
+								let rect = document.querySelector(`.controller_state[uuid="${state.uuid}"]`)?.getBoundingClientRect();
+								return e2.clientX > rect.left && e2.clientY > rect.top && e2.clientX < rect.right && e2.clientY < rect.bottom;
+							})
+						}
 						if (target == state || !target) return;
 
 						// Create connection
 						state.fold.transitions = false;
-						state.addTransition(target_uuid);
-						// Focus connection text input
-						Vue.nextTick(() => {
-
-						})
+						state.addTransition(target.uuid);
 					}
 					addEventListeners(document, 'mousemove touchmove', move);
 					addEventListeners(document, 'mouseup touchend', stop);
@@ -1091,6 +1134,9 @@ Interface.definePanels(() => {
 			watch: {
 				controller() {
 					this.updateConnectionWrapperOffset();
+				},
+				'controller.states'() {
+					this.updateConnectionWrapperOffset();
 				}
 			},
 			template: `
@@ -1116,15 +1162,15 @@ Interface.definePanels(() => {
 						></div>
 					</div>
 
-					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, animation: 160, handle: '.controller_state_title_bar'}">
+					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, touchStartThreshold: 20, animation: 160, handle: '.controller_state_title_bar'}">
 						<li v-for="state in controller.states" :key="state.uuid"
 							class="controller_state"
 							:class="{selected: controller.selected_state == state, folded: state.folded, initial_state: controller.initial_state == state.uuid}"
 							:uuid="state.uuid"
-							@click="state.select()"
+							@click="state.select().scrollTo()"
 							@contextmenu="state.openMenu($event)"
 						>
-							<div class="controller_state_title_bar">
+							<div class="controller_state_title_bar" @touchstart="state.select()">
 								<label @dblclick="state.rename()">{{ state.name }}</label>
 								<div class="tool" title="" @click="state.openMenu($event.target)" v-if="!state.folded"><i class="material-icons">drag_handle</i></div>
 								<div class="tool" title="" @click="state.folded = !state.folded"><i class="material-icons">{{ state.folded ? 'chevron_right' : 'chevron_left' }}</i></div>
@@ -1149,7 +1195,7 @@ Interface.definePanels(() => {
 										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
 										<input type="text" class="dark_bordered" v-model="animation.key">
 										<vue-prism-editor 
-											class="molang_input tab_target"
+											class="molang_input animation_controller_molang_input tab_target"
 											v-model="animation.blend_value"
 											language="molang"
 											:autocomplete="autocomplete"
@@ -1188,7 +1234,7 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_entry"
-									class="molang_input tab_target"
+									class="molang_input animation_controller_molang_input tab_target"
 									v-model="state.on_entry"
 									language="molang"
 									:autocomplete="autocomplete"
@@ -1203,7 +1249,7 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_exit"
-									class="molang_input tab_target"
+									class="molang_input animation_controller_molang_input tab_target"
 									v-model="state.on_exit"
 									language="molang"
 									:autocomplete="autocomplete"
@@ -1223,7 +1269,7 @@ Interface.definePanels(() => {
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
-												class="molang_input tab_target"
+												class="molang_input animation_controller_molang_input tab_target"
 												v-model="transition.condition"
 												language="molang"
 												:autocomplete="autocomplete"
@@ -1274,6 +1320,31 @@ Interface.definePanels(() => {
 			`
 		}
 	})
+	
+	let molang_edit_value;
+	function isTarget(target) {
+		return target?.parentElement?.parentElement?.classList?.contains('animation_controller_molang_input');
+	}
+	document.addEventListener('focus', event => {
+		if (isTarget(event.target)) {
+
+			molang_edit_value = event.target.value || event.target.innerText;
+			console.log(molang_edit_value, event.target)
+			Undo.initEdit({animation_controllers: [AnimationController.selected]})
+		}
+	}, true)
+	document.addEventListener('focusout', event => {
+		if (isTarget(event.target)) {
+
+			let val = event.target.value || event.target.innerText;
+			console.log(molang_edit_value, val, event.target)
+			if (val != molang_edit_value) {
+				Undo.finishEdit('Edit animation controller molang');
+			} else {
+				Undo.cancelEdit();
+			}
+		}
+	})
 })
 
 Object.defineProperty(AnimationItem, 'all', {
@@ -1307,7 +1378,7 @@ BARS.defineActions(function() {
 		click() {
 			new AnimationController({
 				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
-			}).add(true)//.propertiesDialog()
+			}).add(true).propertiesDialog();
 
 		}
 	})
@@ -1317,7 +1388,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		click() {
 			Undo.initEdit({animation_controllers: [AnimationController.selected]})
-			new AnimationControllerState(AnimationController.selected, {}).select().rename();
+			new AnimationControllerState(AnimationController.selected, {}).select().scrollTo().rename();
 			Undo.finishEdit('Add animation controller state')
 
 		}

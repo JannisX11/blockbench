@@ -22,7 +22,7 @@ Animator.MolangParser.global_variables = {
 			let state_time = state.getStateTime();
 			let all_finished = state.animations.allAre(a => {
 				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
+				return !animation || state_time > animation.length;
 			})
 			return all_finished ? 1 : 0;
 		}
@@ -34,7 +34,7 @@ Animator.MolangParser.global_variables = {
 			let state_time = state.getStateTime();
 			let finished_anim = state.animations.find(a => {
 				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
+				return animation && state_time > animation.length;
 			})
 			return finished_anim ? 1 : 0;
 		}
