@@ -167,7 +167,20 @@ OutlinerElement.registerType(Locator, 'locator');
 		}
 	})
 
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
+	
+	Locator.updateAutocompleteList = function() {
+		locator_suggestion_list.innerHTML = '';
+		Locator.all.forEach(locator => {
+			let option = document.createElement('option');
+			option.value = locator.name;
+			locator_suggestion_list.append(option);
+		})
+	}
+
 })()
+
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

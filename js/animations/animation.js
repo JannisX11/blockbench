@@ -405,6 +405,7 @@ class Animation extends AnimationItem {
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
+		Timeline.setTime(Timeline.time % this.length);
 		this.selected = true;
 		this.playing = true;
 		AnimationItem.selected = this;
@@ -939,6 +940,7 @@ const Animator = {
 
 			for (var uuid in emitters) {
 				let emitter = emitters[uuid];
+				if (emitter.tick_interval !== undefined) continue;
 				if (emitter.local_space.parent) emitter.local_space.parent.remove(emitter.local_space);
 				if (emitter.global_space.parent) emitter.global_space.parent.remove(emitter.global_space);
 			}
@@ -1457,7 +1459,6 @@ const Animator = {
 						break;
 					}
 				}
-				if (is_already_loaded) {console.log(`${key} already exists`);continue;}
 			}
 			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);
@@ -2226,8 +2227,8 @@ Interface.definePanels(function() {
 					this.buttons.forEach(b => old_values[b.id] = b.value);
 					this.buttons.empty();
 
-					let text = this.text.toLowerCase();
-					let matches = text.matchAll(/(slider|toggle)\(.+\)/g);
+					let text = this.text//.toLowerCase();
+					let matches = text.matchAll(/(slider|toggle|impulse)\(.+\)/gi);
 
 					for (let match of matches) {
 						let [type, content] = match[0].substring(0, match[0].length - 1).split(/\(/);
@@ -2236,7 +2237,7 @@ Interface.definePanels(function() {
 						if (this.buttons.find(b => b.id == id)) return;
 
 						let variable = text.substring(0, match.index).match(/[\w.-]+ *= *$/);
-						variable = variable ? variable[0].replace(/[ =]+/g, '').replace(/^v\./, 'variable.').replace(/^q\./, 'query.').replace(/^t\./, 'temp.').replace(/^c\./, 'context.') : undefined;
+						variable = variable ? variable[0].replace(/[ =]+/g, '').replace(/^v\./i, 'variable.').replace(/^q\./i, 'query.').replace(/^t\./i, 'temp.').replace(/^c\./i, 'context.') : undefined;
 
 						if (type == 'slider') {
 							this.buttons.push({
@@ -2244,16 +2245,24 @@ Interface.definePanels(function() {
 								id,
 								value: old_values[id] || 0,
 								variable,
-								step: args[0],
-								min: args[1],
-								max: args[2]
+								step: isNaN(args[0]) ? undefined : parseFloat(args[0]),
+								min: isNaN(args[1]) ? undefined : parseFloat(args[1]),
+								max: isNaN(args[2]) ? undefined : parseFloat(args[2])
 							})
-						} else {
+						} else if (type == 'toggle') {
 							this.buttons.push({
 								type,
 								id,
 								value: old_values[id] || 0,
 								variable,
+							})
+						} else if (type == 'impulse') {
+							this.buttons.push({
+								type,
+								id,
+								value: 0,
+								variable,
+								duration: parseFloat(args[0]) || 0.1
 							})
 						}
 					}
@@ -2261,6 +2270,12 @@ Interface.definePanels(function() {
 				changeButtonValue(button, event) {
 					if (button.type == 'toggle') {
 						button.value = event.target.checked ? 1 : 0;
+					}
+					if (button.type == 'impulse') {
+						button.value = 1;
+						setTimeout(() => {
+							button.value = 0;
+						}, Math.clamp(button.duration, 0, 1) * 1000);
 					}
 					if (button.variable) {
 						delete Animator.MolangParser.variables[button.variable];
@@ -2295,9 +2310,14 @@ Interface.definePanels(function() {
 							let val = Math.round((clientX - e1.clientX) / 45);
 							let difference = (val - last_val);
 							if (!difference) return;
-							difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+							if (button.step) {
+								difference *= button.step;
+							} else {
+								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
+							}
+
 							
-							button.value = Math.roundTo((parseFloat(button.value) || 0) + difference, 4);
+							button.value = Math.clamp(Math.roundTo((parseFloat(button.value) || 0) + difference, 4), button.min, button.max);
 
 							last_val = val;
 							last_event = e2;
@@ -2334,9 +2354,10 @@ Interface.definePanels(function() {
 				<div style="flex-grow: 1; display: flex; flex-direction: column; overflow: visible;">
 
 					<ul id="placeholder_buttons">
-						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}">
+						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}" @click="button.type == 'impulse' && changeButtonValue(button, $event)" :buttontype="button.type">
+							<i v-if="button.type == 'impulse'" class="material-icons">play_arrow</i>
 							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<input v-else type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<input v-if="button.type == 'slider'" type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>

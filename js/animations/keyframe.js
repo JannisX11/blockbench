@@ -1086,9 +1086,6 @@ BARS.defineActions(function() {
 })
 
 Interface.definePanels(function() {
-
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
-	document.body.append(locator_suggestion_list);
 	
 	new Panel('keyframe', {
 		icon: 'icon-keyframe',
@@ -1144,12 +1141,7 @@ Interface.definePanels(function() {
 					Undo.finishEdit('Remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.innerHTML = '';
-					Locator.all.forEach(locator => {
-						let option = document.createElement('option');
-						option.value = locator.name;
-						locator_suggestion_list.append(option);
-					})
+					Locator.updateAutocompleteList();
 				},
 				focusAxis(axis) {
 					if ('xyz'.includes(axis)) {
@@ -1231,10 +1223,11 @@ Interface.definePanels(function() {
 							Undo.initEdit({keyframes: [keyframe]})
 							data_point.file = path;
 							let effect = Animator.loadParticleEmitter(path, files[0].content);
+							if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().split('.')[0].replace(/[^a-z0-9._]+/g, '');
 							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || effect.config.texture.image.src.match(/^data:/)) {
+							if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
@@ -1379,7 +1372,7 @@ Interface.definePanels(function() {
 
 	let keyframe_edit_value;
 	function isTarget(target) {
-		return target?.parentElement?.parentElement?.classList?.contains('keyframe_input');
+		return target?.classList?.contains('keyframe_input') || target?.parentElement?.parentElement?.classList?.contains('keyframe_input');
 	}
 	document.addEventListener('focus', event => {
 		if (isTarget(event.target)) {

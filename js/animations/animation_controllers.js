@@ -3,7 +3,7 @@ class AnimationControllerState {
 		this.controller = controller;
 		this.uuid = guid();
 
-		for (var key in AnimationControllerState.properties) {
+		for (let key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].reset(this);
 		}
 
@@ -16,6 +16,11 @@ class AnimationControllerState {
 			on_exit: true,
 			transitions: true,
 		};
+		this.muted = {
+			sound: false,
+			particle: false,
+		}
+		this.playing_sounds = [];
 
 		if (data) {
 			this.extend(data);
@@ -23,7 +28,7 @@ class AnimationControllerState {
 		this.controller.states.safePush(this);
 	}
 	extend(data = 0) {
-		for (var key in AnimationControllerState.properties) {
+		for (let key in AnimationControllerState.properties) {
 			if (AnimationControllerState.properties[key].type == 'array') continue;
 			AnimationControllerState.properties[key].merge(this, data)
 		}
@@ -84,17 +89,57 @@ class AnimationControllerState {
 				this.transitions.push(transition);
 			})
 		}
+		if (data.particles instanceof Array) {
+			this.particles.empty();
+			data.particles.forEach(particle => {
+				this.particles.push(JSON.parse(JSON.stringify(particle)));
+			})
+		}
+		if (data.sounds instanceof Array) {
+			this.sounds.empty();
+			data.sounds.forEach(sound => {
+				this.sounds.push(JSON.parse(JSON.stringify(sound)));
+			})
+		}
+		// From Bedrock
+		if (data.particle_effects instanceof Array) {
+			this.particles.empty();
+			data.particles.forEach(effect => {
+				let particle = {
+					uuid: guid(),
+					effect: effect.effect || '',
+					locator: effect.locator || '',
+					bind_to_actor: effect.bind_to_actor !== false,
+					pre_effect_script: effect.pre_effect_script || '',
+					file: '',
+				};
+				this.particles.push(particle);
+			})
+		}
+		if (data.sound_effects instanceof Array) {
+			this.sounds.empty();
+			data.sounds.forEach(effect => {
+				let sound = {
+					uuid: guid(),
+					effect: effect.effect || '',
+					file: '',
+				};
+				this.sounds.push(sound);
+			})
+		}
 	}
 	getUndoCopy() {
 		var copy = {
 			uuid: this.uuid,
 			name: this.name,
 		}
-		for (var key in AnimationControllerState.properties) {
+		for (let key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].copy(this, copy)
 		}
 		copy.animations = JSON.parse(JSON.stringify(copy.animations));
 		copy.transitions = JSON.parse(JSON.stringify(copy.transitions));
+		copy.particles = JSON.parse(JSON.stringify(copy.particles));
+		copy.sounds = JSON.parse(JSON.stringify(copy.sounds));
 		return copy;
 	}
 	compileForBedrock() {
@@ -113,6 +158,23 @@ class AnimationControllerState {
 			lines = lines.map(line => (line.match(/;\s*$/) || line.startsWith('/')) ? line : (line+';'));
 			object[type] = lines;
 		})
+		if (this.particles.length) {
+			object.particle_effects = this.particles.map(particle => {
+				return {
+					effect: particle.effect || '',
+					locator: particle.locator || undefined,
+					bind_to_actor: particle.bind_to_actor ? undefined : false,
+					pre_effect_script: particle.pre_effect_script || undefined
+				}
+			})
+		}
+		if (this.sounds.length) {
+			object.sound_effects = this.sounds.map(sound => {
+				return new oneLiner({
+					effect: sound.effect || ''
+				});
+			})
+		}
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
 				let state = this.controller.states.find(s => s.uuid == transition.target);
@@ -131,10 +193,64 @@ class AnimationControllerState {
 
 			this.controller.selected_state = this;
 
-			if (this.controller.last_state) Animator.MolangParser.parse(this.controller.last_state.on_exit);
+			if (this.controller.last_state) this.controller.last_state.unselect();
 			Animator.MolangParser.parse(this.on_entry);
+
+			this.playEffects()
 		}
 		return this;
+	}
+	unselect() {
+		Animator.MolangParser.parse(this.on_exit);
+		this.playing_sounds.forEach(media => {
+			if (!media.paused) {
+				media.pause();
+			}
+		})
+		this.playing_sounds.empty();1
+	}
+	playEffects() {
+		if (!this.muted.sound) {
+			this.sounds.forEach(sound => {
+				if (sound.file && !sound.cooldown) {
+					var media = new Audio(sound.file);
+					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+					media.play().catch(() => {});
+					this.playing_sounds.push(media);
+					media.onended = () => {
+						this.playing_sounds.remove(media);
+					}
+
+					sound.cooldown = true;
+					setTimeout(() => {
+						delete sound.cooldown;
+					}, 400)
+				}
+			})
+		}
+		
+		if (!this.muted.particle) {
+			this.particles.forEach((particle) => {
+				let particle_effect = particle.file && Animator.particle_effects[particle.file]
+				if (particle_effect) {
+
+					let emitter = particle_effect.emitters[particle.uuid];
+					if (!emitter) {
+						emitter = particle_effect.emitters[particle.uuid] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
+						emitter.Molang.parse(particle.pre_effect_script, Animator.MolangParser.global_variables);
+					}
+
+					let locator = particle.locator && Locator.all.find(l => l.name == particle.locator)
+					if (locator) {
+						locator.mesh.add(emitter.local_space);
+						emitter.parent_mode = 'locator';
+					} else {
+						emitter.parent_mode = 'entity';
+					}
+					emitter.stopLoop().playLoop();
+				}
+			})
+		}
 	}
 	scrollTo() {
 		let node = document.querySelector(`.controller_state[uuid="${this.uuid}"]`);
@@ -166,11 +282,11 @@ class AnimationControllerState {
 		}
 	}
 	createUniqueName() {
-		var scope = this;
-		var others = this.controller.states;
-		var name = this.name.replace(/\d+$/, '');
+		let scope = this;
+		let others = this.controller.states;
+		let name = this.name.replace(/\d+$/, '');
 		function check(n) {
-			for (var i = 0; i < others.length; i++) {
+			for (let i = 0; i < others.length; i++) {
 				if (others[i] !== scope && others[i].name == n) return false;
 			}
 			return true;
@@ -178,7 +294,7 @@ class AnimationControllerState {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 8e3; num++) {
+		for (let num = 2; num < 8e3; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;
@@ -195,7 +311,7 @@ class AnimationControllerState {
 		};
 		this.animations.push(anim_link);
 		this.fold.animations = false;
-		Undo.finishEdit('Add animation to controller state');
+		Undo.finishEdit('Add animation to animation controller state');
 	}
 	addTransition(target = '') {
 		Undo.initEdit({animation_controllers: [this.controller]});
@@ -206,10 +322,49 @@ class AnimationControllerState {
 		};
 		this.transitions.push(transition);
 		this.fold.transitions = false;
-		Undo.finishEdit('Add transition to controller state');
+		Undo.finishEdit('Add transition to animation controller state');
 
 		Vue.nextTick(() => {
 			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_transition:last-child pre`);
+			if (node) {
+				$(node).trigger('focus');
+			}
+		})
+	}
+	addParticle(options = 0) {
+		Undo.initEdit({animation_controllers: [this.controller]});
+		let particle = {
+			uuid: guid(),
+			effect: options.effect || '',
+			bind_to_actor: true,
+			locator: '',
+			pre_effect_script: '',
+			file: '',
+		};
+		this.particles.push(particle);
+		this.fold.particles = false;
+		Undo.finishEdit('Add particle to animation controller state');
+
+		Vue.nextTick(() => {
+			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_particle input[type="text"]`);
+			if (node) {
+				$(node).trigger('focus');
+			}
+		})
+	}
+	addSound(options = 0) {
+		Undo.initEdit({animation_controllers: [this.controller]});
+		let sound = {
+			uuid: guid(),
+			effect: options.effect || '',
+			file: options.file || '',
+		};
+		this.sounds.push(sound);
+		this.fold.sounds = false;
+		Undo.finishEdit('Add sound to animation controller state');
+
+		Vue.nextTick(() => {
+			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_sound input[type="text"]`);
 			if (node) {
 				$(node).trigger('focus');
 			}
@@ -259,7 +414,7 @@ class AnimationController extends AnimationItem {
 		this.states = [];
 		this.selected_state = null;
 
-		for (var key in AnimationController.properties) {
+		for (let key in AnimationController.properties) {
 			AnimationController.properties[key].reset(this);
 		}
 		if (typeof data === 'object') {
@@ -270,7 +425,7 @@ class AnimationController extends AnimationItem {
 		}
 	}
 	extend(data) {
-		for (var key in AnimationController.properties) {
+		for (let key in AnimationController.properties) {
 			AnimationController.properties[key].merge(this, data)
 		}
 		Merge.string(this, data, 'name')
@@ -321,7 +476,7 @@ class AnimationController extends AnimationItem {
 			selected: this.selected,
 			selected_state: this.selected_state ? this.selected_state.uuid : null
 		}
-		for (var key in AnimationController.properties) {
+		for (let key in AnimationController.properties) {
 			AnimationController.properties[key].copy(this, copy);
 		}
 		copy.states = this.states.map(state => {
@@ -924,6 +1079,12 @@ Interface.definePanels(() => {
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
+				addParticleButton(state, event) {
+					state.addParticle();
+				},
+				addSoundButton(state, event) {
+					state.addSound();
+				},
 				addState() {
 					BarItems.add_animation_controller_state.trigger();
 				},
@@ -994,6 +1155,36 @@ Interface.definePanels(() => {
 						})
 					}
 				},
+				connectionContextMenu(connection, event) {
+					let state = this.controller.states[connection.state_index];
+					new Menu('controller_connection_context', [
+						{
+							name: 'animation_controllers.state.edit_transition',
+							icon: 'edit',
+							click() {
+								state.select().scrollTo();
+								state.fold.transitions = false;
+								Vue.nextTick(() => {
+									let node = document.querySelector(`.controller_transition[uuid="${connection.uuid}"] pre`);
+									if (node) {
+										$(node).trigger('focus');
+										document.execCommand('selectAll');
+									}
+								})
+							}
+						},
+						{
+							name: 'generic.remove',
+							icon: 'clear',
+							click() {
+								let transition = state.transitions.find(t => t.uuid == connection.uuid);
+								Undo.initEdit({animation_controllers: [state.controller]});
+								state.transitions.remove(transition);
+								Undo.finishEdit('Remove animation from controller state');
+							}
+						},
+					]).open(event)
+				},
 				dragConnection(state, event) {
 					state.select();
 					convertTouchEvent(event);
@@ -1046,7 +1237,56 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', move);
 					addEventListeners(document, 'mouseup touchend', stop);
 				},
+				changeParticleFile(state, particle_entry) {
+					Blockbench.import({
+						resource_id: 'animation_particle',
+						extensions: ['json'],
+						type: 'Bedrock Particle',
+						startpath: particle_entry.file
+					}, (files) => {
 
+						let {path} = files[0];
+						Undo.initEdit({animation_controllers: [AnimationController.selected]})
+						particle_entry.file = path;
+						let effect = Animator.loadParticleEmitter(path, files[0].content);
+						if (!particle_entry.effect) particle_entry.effect = files[0].name.toLowerCase().split('.')[0].replace(/[^a-z0-9._]+/g, '');
+						delete effect.config.preview_texture;
+						Undo.finishEdit('Change animation controller particle file');
+
+						if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+							Blockbench.import({
+								extensions: ['png'],
+								type: 'Particle Texture',
+								readtype: 'image',
+								startpath: effect.config.preview_texture || path
+							}, (files) => {
+								effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+								if (isApp) effect.config.updateTexture();
+							})
+						}
+					})
+				},
+				changeSoundFile(state, sound_entry) {
+					Blockbench.import({
+						resource_id: 'animation_audio',
+						extensions: ['ogg', 'wav', 'mp3'],
+						type: 'Audio File',
+						startpath: sound_entry.file
+					}, (files) => {
+						let path = isApp
+							? files[0].path
+							: URL.createObjectURL(files[0].browser_file);
+
+							Undo.initEdit({animation_controllers: [AnimationController.selected]})
+						sound_entry.file = path;
+						if (!sound_entry.effect) sound_entry.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
+						Undo.finishEdit('Change animation controller audio file')
+					})
+				},
+
+				updateLocatorSuggestionList() {
+					Locator.updateAutocompleteList();
+				},
 				autocomplete(text, position) {
 					let test = Animator.autocompleteMolang(text, position, 'controller');
 					return test;
@@ -1158,7 +1398,7 @@ Interface.definePanels(() => {
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection backward" :class="{selected: connection.selected, relevant: connection.relevant}"
 							:title="connection.condition"
-							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)"
+							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)" @contextmenu="connectionContextMenu(connection, $event)"
 						></div>
 					</div>
 
@@ -1173,7 +1413,7 @@ Interface.definePanels(() => {
 							<div class="controller_state_title_bar" @touchstart="state.select()">
 								<label @dblclick="state.rename()">{{ state.name }}</label>
 								<div class="tool" title="" @click="state.openMenu($event.target)" v-if="!state.folded"><i class="material-icons">drag_handle</i></div>
-								<div class="tool" title="" @click="state.folded = !state.folded"><i class="material-icons">{{ state.folded ? 'chevron_right' : 'chevron_left' }}</i></div>
+								<!--div class="tool" title="" @click="state.folded = !state.folded"><i class="material-icons">{{ state.folded ? 'chevron_right' : 'chevron_left' }}</i></div-->
 							</div>
 
 							<template v-if="!state.folded">
@@ -1184,10 +1424,13 @@ Interface.definePanels(() => {
 								></div>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'animations')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.animations, "fa-angle-down": !state.fold.animations}\'></i>
+									<i v-if="state.fold.animations || state.animations.length == 0" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
+
 									<label>${tl('animation_controllers.state.animations')}</label>
 									<span class="controller_state_section_info" v-if="state.animations.length">{{ state.animations.length }}</span>
-									<i class="icon fa fa-plus" @click.stop="addAnimationButton(state, $event)"></i>
+
+									<div class="text_button" @click.stop="addAnimationButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
 								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
 									<li v-for="animation in state.animations" :key="animation.uuid" class="controller_animation">
@@ -1206,29 +1449,80 @@ Interface.definePanels(() => {
 								</ul>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'particles')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.particles, "fa-angle-down": !state.fold.particles}\'></i>
+									<i v-if="state.fold.particles || state.particles.length == 0" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
+
 									<label>${tl('animation_controllers.state.particles')}</label>
 									<span class="controller_state_section_info" v-if="state.particles.length">{{ state.particles.length }}</span>
+
+									<div class="text_button" v-on:click.stop="state.muted.particle = !state.muted.particle">
+										<i class="channel_mute fas fa-eye-slash" style="color: var(--color-subtle_text)" v-if="state.muted.particle"></i>
+										<i class="channel_mute fas fa-eye" v-else></i>
+									</div>
+
+									<div class="text_button" @click.stop="addParticleButton(state, $event)">
+										<i class="icon fa fa-plus"></i>
+									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li>
-										<input type="text" class="dark_bordered">
+									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle">
+										<div class="bar flex">
+											<label>${tl('data.effect')}</label>
+											<input type="text" class="dark_bordered" v-model="particle.effect">
+											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
+												<i class="material-icons">upload_file</i>
+											</div>
+										</div>
+										<div class="bar flex">
+											<label>${tl('data.locator')}</label>
+											<input type="text" class="dark_bordered" v-model="particle.locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
+											<input type="checkbox" v-model="particle.bind_to_actor" title="${tl('timeline.bind_to_actor')}">
+										</div>
+										<div class="bar flex">
+											<label>${tl('timeline.pre_effect_script')}</label>
+											<vue-prism-editor
+												class="molang_input animation_controller_molang_input tab_target"
+												v-model="particle.script"
+												language="molang"
+												:autocomplete="autocomplete"
+												:ignoreTabKey="true"
+												:line-numbers="false"
+											/>
+										</div>
 									</li>
 								</ul>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'sounds')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.sounds, "fa-angle-down": !state.fold.sounds}\'></i>
+									<i v-if="state.fold.sounds || state.sounds.length == 0" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
+
 									<label>${tl('animation_controllers.state.sounds')}</label>
 									<span class="controller_state_section_info" v-if="state.sounds.length">{{ state.sounds.length }}</span>
+
+									<div class="text_button" v-on:click.stop="state.muted.sound = !state.muted.sound">
+										<i class="channel_mute fas fa-volume-mute" style="color: var(--color-subtle_text)" v-if="state.muted.sound"></i>
+										<i class="channel_mute fas fa-volume-up" v-else></i>
+									</div>
+
+									<div class="text_button" @click.stop="addSoundButton(state, $event)">
+										<i class="icon fa fa-plus"></i>
+									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li>
-										<input type="text" class="dark_bordered">
+									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound">
+										<div class="bar flex">
+											<label>${tl('data.effect')}</label>
+											<input type="text" class="dark_bordered" v-model="sound.effect">
+											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
+												<i class="material-icons">upload_file</i>
+											</div>
+										</div>
 									</li>
 								</ul>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'on_entry')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.on_entry, "fa-angle-down": !state.fold.on_entry}\'></i>
+									<i v-if="state.fold.on_entry" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
 									<label>${tl('animation_controllers.state.on_entry')}</label>
 									<span class="controller_state_section_info" v-if="state.on_entry">{{ state.on_entry.split('\\n').length }}</span>
 								</div>
@@ -1243,7 +1537,8 @@ Interface.definePanels(() => {
 								/>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'on_exit')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.on_exit, "fa-angle-down": !state.fold.on_exit}\'></i>
+									<i v-if="state.fold.on_exit" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
 									<label>${tl('animation_controllers.state.on_exit')}</label>
 									<span class="controller_state_section_info" v-if="state.on_exit">{{ state.on_exit.split('\\n').length }}</span>
 								</div>
@@ -1258,10 +1553,13 @@ Interface.definePanels(() => {
 								/>
 
 								<div class="controller_state_section_title" @click="toggleStateSection(state, 'transitions')">
-									<i class="icon-open-state fa" :class=\'{"fa-angle-right": state.fold.transitions, "fa-angle-down": !state.fold.transitions}\'></i>
+									<i v-if="state.fold.transitions || state.transitions.length == 0" class="icon-open-state fa fa-angle-right"></i>
+									<i v-else class="icon-open-state fa fa-angle-down"></i>
+
 									<label>${tl('animation_controllers.state.transitions')}</label>
 									<span class="controller_state_section_info" v-if="state.transitions.length">{{ state.transitions.length }}</span>
-									<i class="icon fa fa-plus" @click.stop="addTransitionButton(state, $event)"></i>
+
+									<div class="text_button" @click.stop="addTransitionButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
@@ -1304,7 +1602,7 @@ Interface.definePanels(() => {
 							:style="{'--color-marker': connection.color, '--layer': connection.layer, left: (connection.start_x)+'px', width: (connection.end_x - connection.start_x)+'px'}"
 							class="controller_state_connection forward" :class="{selected: connection.selected, relevant: connection.relevant}"
 							:title="connection.condition"
-							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)"
+							@click="selectConnection(connection, $event)" @dblclick="selectConnectionDeep(connection, $event)" @contextmenu="connectionContextMenu(connection, $event)"
 						></div>
 					</div>
 
@@ -1322,14 +1620,13 @@ Interface.definePanels(() => {
 	})
 	
 	let molang_edit_value;
+	let class_name = 'animation_controller_molang_input';
 	function isTarget(target) {
-		return target?.parentElement?.parentElement?.classList?.contains('animation_controller_molang_input');
+		return target?.classList?.contains(class_name) || target?.parentElement?.parentElement?.classList?.contains(class_name);
 	}
 	document.addEventListener('focus', event => {
 		if (isTarget(event.target)) {
-
 			molang_edit_value = event.target.value || event.target.innerText;
-			console.log(molang_edit_value, event.target)
 			Undo.initEdit({animation_controllers: [AnimationController.selected]})
 		}
 	}, true)
@@ -1337,7 +1634,6 @@ Interface.definePanels(() => {
 		if (isTarget(event.target)) {
 
 			let val = event.target.value || event.target.innerText;
-			console.log(molang_edit_value, val, event.target)
 			if (val != molang_edit_value) {
 				Undo.finishEdit('Edit animation controller molang');
 			} else {

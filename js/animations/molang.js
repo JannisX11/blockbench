@@ -82,7 +82,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 		if (key === variable && val !== undefined) {
 			val = val.trim();
 
-			if (val.match(/^(slider|toggle)\(/)) {
+			if (val.match(/^(slider|toggle|impulse)\(/)) {
 				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
 				let [id] = content.split(/\(|, */);
 				id = id.replace(/['"]/g, '');
@@ -476,7 +476,17 @@ Animator.MolangParser.variableHandler = function (variable) {
 				return filterAndSortList(options, dir);
 			}
 		} else {
-			return filterAndSortList(RootTokens, beginning);
+			let root_tokens = RootTokens.slice();
+			let labels = {};
+			if (type === 'placeholders') {
+				labels = {
+					'toggle()': 'toggle( name )',
+					'slider()': 'slider( name, step?, min?, max? )',
+					'impulse()': 'impulse( name, duration )',
+				};
+				root_tokens.push(...Object.keys(labels));
+			}
+			return filterAndSortList(root_tokens, beginning, null, labels);
 		}
 		return [];
 	}
