@@ -706,10 +706,10 @@ window.Dialog = class Dialog {
 	}
 	show() {
 		// Hide previous
-		if (window.open_interface && typeof open_interface.hide == 'function') {
+		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('.dialog').hide();
+		$('body > dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -717,33 +717,43 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#dialog_wrapper').append(jq_dialog);
-		$('#blackout').show().toggleClass('darken', this.darken);
+		document.getElementById('dialog_wrapper').append(this.object);
 
-		jq_dialog.show().css('display', 'flex');
-		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
+		this.object.style.display = 'flex';
+		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px';
 		if (this.width) {
-			jq_dialog.css('width', this.width+'px');
+			this.object.style.width = this.width+'px';
 		}
 		if (this.draggable !== false) {
 			let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
-			jq_dialog.css('left', x+'px')
+			this.object.style.left = x+'px';
 		}
 		if (!Blockbench.isTouch) {
 			let first_focus = jq_dialog.find('.focusable_input').first();
 			if (first_focus) first_focus.trigger('focus');
 		}
 
-		open_dialog = this.id;
-		open_interface = this;
-		Dialog.open = this;
-		Prop.active_panel = 'dialog';
-
 		if (typeof this.onOpen == 'function') {
 			this.onOpen();
 		}
 
+		this.focus();
+
 		return this;
+	}
+	focus() {
+		let blackout = document.getElementById('blackout');
+		blackout.style.display = 'block';
+		blackout.classList.toggle('darken', this.darken);
+		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
+		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
+
+		Prop.active_panel = 'dialog';
+		open_dialog = this.id;
+		open_interface = this;
+		Dialog.open = this;
+		Dialog.stack.remove(this);
+		Dialog.stack.push(this);
 	}
 	hide() {
 		$('#blackout').hide().toggleClass('darken', true);
@@ -751,8 +761,14 @@ window.Dialog = class Dialog {
 		open_dialog = false;
 		open_interface = false;
 		Dialog.open = null;
+		Dialog.stack.remove(this);
 		Prop.active_panel = undefined;
 		$(this.object).detach();
+		
+		if (Dialog.stack.length) {
+			Dialog.stack.last().focus();
+		}
+
 		return this;
 	}
 	delete() {
@@ -766,7 +782,10 @@ window.Dialog = class Dialog {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
 	}
+	static stack = []
 }
+
+window.Dialog.stack = [];
 
 })()
 

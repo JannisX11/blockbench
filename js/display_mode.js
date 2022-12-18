@@ -1294,25 +1294,6 @@ DisplayMode.applyPreset = function(preset, all) {
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
 }
-DisplayMode.createPreset = function() {
-	var name = $('input#preset_name').val()
-	if (name == '') {
-		$('input#preset_name').val(tl('display.preset.blank_name'))
-		return;
-	} else {
-		$('input#preset_name').val('new preset')
-	}
-	var preset = {name: name, areas: {}}
-	display_presets.push(preset)
-
-	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked') && Project.display_settings[s]) {
-			preset.areas[s] = Project.display_settings[s].copy()
-		}
-	})
-	hideDialog()
-	localStorage.setItem('display_presets', JSON.stringify(display_presets))
-}
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
@@ -1637,7 +1618,41 @@ BARS.defineActions(function() {
 		icon: 'add',
 		category: 'display',
 		condition: () => display_mode,
-		click: function () {showDialog('create_preset')}
+		click() {
+			new Dialog({
+				id: 'display_preset',
+				title: 'dialog.display_preset.title',
+				width: 300,
+				form: {
+					name: {label: 'generic.name', type: 'text', placeholder: tl('display.preset.blank_name')},
+					_: '_',
+
+					info: {type: 'info', text: 'dialog.display_preset.message'},
+					third_right: {type: 'checkbox', label: 'display.slot.third_right', value: true},
+					third_left: {type: 'checkbox', label: 'display.slot.third_left', value: true},
+					first_right: {type: 'checkbox', label: 'display.slot.first_right', value: true},
+					first_left: {type: 'checkbox', label: 'display.slot.first_left', value: true},
+					head: {type: 'checkbox', label: 'display.slot.head', value: true},
+					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
+					frame: {type: 'checkbox', label: 'display.slot.frame', value: true},
+					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
+				},
+				onConfirm(form_data) {
+					let preset = {
+						name: name || tl('display.preset.blank_name'),
+						areas: {}
+					}
+					display_presets.push(preset);
+
+					displayReferenceObjects.slots.forEach((s) => {
+						if (form_data[s] && Project.display_settings[s]) {
+							preset.areas[s] = Project.display_settings[s].copy();
+						}
+					})
+					localStorage.setItem('display_presets', JSON.stringify(display_presets));
+				}
+			}).show();
+		}
 	})
 	new Action('apply_display_preset', {
 		icon: 'fa-list',

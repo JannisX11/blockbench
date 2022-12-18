@@ -301,20 +301,23 @@ const Blockbench = {
 		return jq_dialog
 	},
 	async textPrompt(title, value, callback, placeholder = null) {
-		showDialog('text_input')
-		$('#text_input .dialog_handle .dialog_title').text(tl(title || 'dialog.input.title'))
-		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
-		$('#text_input button.confirm_btn').off()
-		let text = await new Promise(resolve => {
-			$('#text_input button.confirm_btn').on('click', function() {
-				var s = $('#text_input input#text_input_field').val()
-				resolve(s)
-			})
-		})
-		if (callback !== undefined) {
-			callback(text);
-		}
-		return text;
+		let answer = await new Promise((resolve) => {
+			new Dialog({
+				id: 'text_input',
+				title: title || 'dialog.input.title',
+				form: {
+					text: {full_width: true, placeholder, value}
+				},
+				onConfirm({text}) {
+					callback(text);
+					resolve(text);
+				},
+				onOpen() {
+					this.object.querySelector('input')?.focus();
+				}
+			}).show();
+		});
+		return answer;
 	},
 	addMenuEntry(name, icon, click) {
 		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')
