@@ -347,12 +347,10 @@ const Vertexsnap = {
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.group = Group.selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
-				if (!Project.selected_vertices[data.element.uuid]) {
-					Project.selected_vertices[data.element.uuid] = [];
-				}
-				Project.selected_vertices[data.element.uuid].safePush(data.vertex);
+				let vertices = data.element.getSelectedVertices(true);
+				vertices.safePush(data.vertex);
 			}
-			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices));
+			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.mesh_selection));
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 
@@ -441,7 +439,7 @@ const Vertexsnap = {
 					var cube_pos = new THREE.Vector3().copy(global_delta)
 
 					if (obj instanceof Mesh && Vertexsnap.selected_vertices && Vertexsnap.selected_vertices[obj.uuid]) {
-						let vertices = Vertexsnap.selected_vertices[obj.uuid];
+						let vertices = Vertexsnap.selected_vertices[obj.uuid].vertices;
 						var q = obj.mesh.getWorldQuaternion(Reusable.quat1).invert();
 						cube_pos.applyQuaternion(q);
 						let cube_pos_array = cube_pos.toArray();
@@ -954,7 +952,7 @@ function rotateOnAxis(modify, axis, slider) {
 			}
 		}
 		
-		if (!Group.selected && obj instanceof Mesh && Project.selected_vertices[obj.uuid] && Project.selected_vertices[obj.uuid].length > 0) {
+		if (!Group.selected && obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length > 0) {
 
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
@@ -976,7 +974,7 @@ function rotateOnAxis(modify, axis, slider) {
 			let vector = new THREE.Vector3();
 			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
 
-			Project.selected_vertices[obj.uuid].forEach(key => {
+			Project.mesh_selection[obj.uuid].vertices.forEach(key => {
 				vector.fromArray(obj.vertices[key]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);

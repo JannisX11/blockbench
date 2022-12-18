@@ -910,7 +910,13 @@
 						
 						//Center
 						if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-							if (rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' && Project.selected_vertices[rotation_object.uuid] && Project.selected_vertices[rotation_object.uuid].length > 0) {
+							if (rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' &&
+								Project.mesh_selection[rotation_object.uuid] && (
+									Project.mesh_selection[rotation_object.uuid].vertices.length > 0 ||
+									Project.mesh_selection[rotation_object.uuid].edges.length > 0 ||
+									Project.mesh_selection[rotation_object.uuid].faces.length > 0
+								)
+							) {
 								this.position.copy(rotation_object.getWorldCenter())
 							} else if (rotation_object.mesh) {
 								rotation_object.mesh.getWorldPosition(this.position);

@@ -48,7 +48,7 @@ class ModelProject {
 		this.groups = [];
 		this.selected_elements = [];
 		this.selected_group = null;
-		this.selected_vertices = {};
+		this.mesh_selection = {};
 		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
@@ -179,10 +179,13 @@ class ModelProject {
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
-		UVEditor.vue.selected_vertices = this.selected_vertices;
+		UVEditor.vue.selected_vertices = {};
 		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
+		for (let uuid in this.mesh_selection) {
+			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
+		}
 
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);

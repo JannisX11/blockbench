@@ -147,7 +147,7 @@ var codec = new Codec('project', {
 
 				selected_elements: Project.selected_elements.map(e => e.uuid),
 				selected_group: Project.selected_group?.uuid,
-				selected_vertices: JSON.parse(JSON.stringify(Project.selected_vertices)),
+				mesh_selection: JSON.parse(JSON.stringify(Project.mesh_selection)),
 				selected_faces: Project.selected_faces,
 				selected_texture: Project.selected_texture?.uuid,
 			};
@@ -399,7 +399,7 @@ var codec = new Codec('project', {
 			})
 			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
 			for (let key in state.selected_vertices) {
-				Project.selected_vertices[key] = state.selected_vertices[key];
+				Project.mesh_selection[key] = state.mesh_selection[key];
 			}
 			Project.selected_faces.replace(state.selected_faces);
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
