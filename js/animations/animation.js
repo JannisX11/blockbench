@@ -71,11 +71,13 @@ class Animation extends AnimationItem {
 						let element;
 						if (!uuid) {
 							let lowercase_name = key.toLowerCase();
-							element = Outliner.elements.find(element => element.constructor.animator && element.name.toLowerCase() == lowercase_name)
+							element = Outliner.elements.find(element2 => element2.constructor.animator && element2.name.toLowerCase() == lowercase_name)
 							uuid = element ? element.uuid : guid();
 						}
 						if (!element) element = Outliner.elements.find(element => element.constructor.animator && element.uuid == uuid);
-						animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name)
+						if (element) {
+							animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name);
+						}
 					} else {
 						// Bone
 						let uuid = isUUID(key) && key;
@@ -189,6 +191,7 @@ class Animation extends AnimationItem {
 				var channels = {};
 				if (animator.rotation_global) {
 					bone_tag.relative_to = {rotation: 'entity'};
+					bone_tag.rotation = [0, 0, 0.01];
 				}
 				//Saving Keyframes
 				animator.keyframes.forEach(function(kf) {
@@ -197,6 +200,9 @@ class Animation extends AnimationItem {
 					}
 					let timecode = kf.getTimecodeString();
 					channels[kf.channel][timecode] = kf.compileBedrockKeyframe()
+					if (animator.rotation_global && kf.channel == 'rotation' && channels[kf.channel][timecode] instanceof Array && channels[kf.channel][timecode].allEqual(0)) {
+						channels[kf.channel][timecode][2] = 0.01;
+					}
 				})
 				// Sorting + compressing keyframes
 				for (var channel in Animator.possible_channels) {

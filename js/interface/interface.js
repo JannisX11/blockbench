@@ -462,7 +462,7 @@ function setupInterface() {
 	])
 
 	document.oncontextmenu = function (event) {
-		if (!$(event.target).hasClass('allow_default_menu') && event instanceof TouchEvent == false) {
+		if (!$(event.target).hasClass('allow_default_menu') && (!Blockbench.isTouch || event instanceof TouchEvent == false)) {
 			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
 			}
@@ -683,7 +683,34 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 
+function openTouchKeyboardModifierMenu(node) {
+	if (Menu.closed_in_this_click == 'mobile_keyboard') return;
 
+	let modifiers = ['ctrl', 'shift', 'alt'];
+	let menu = new Menu('mobile_keyboard', [
+		...modifiers.map(key => {
+			let name = tl(`keys.${key}`);
+			if (Interface.status_bar.vue.modifier_keys[key].length) {
+				name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
+			}
+			return {
+				name,
+				icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+				click() {
+					Pressing.overrides[key] = !Pressing.overrides[key]
+				}
+			}
+		}),
+		'_',
+		{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+			let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+			return length;
+		}, click() {
+			Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+		}},
+	])
+	menu.open(node);
+}
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({
@@ -701,7 +728,9 @@ onVueSetup(function() {
 				ctrl: [],
 				shift: [],
 				alt: []
-			}
+			},
+			modifiers: Blockbench.isTouch && !Blockbench.isMobile && Pressing.overrides,
+			keyboard_menu_in_status_bar: Blockbench.isTouch && !Blockbench.isMobile
 		},
 		methods: {
 			showContextMenu(event) {
@@ -756,6 +785,9 @@ onVueSetup(function() {
 			openValidator() {
 				Validator.openDialog();
 			},
+			openKeyboardMenu() {
+				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
+			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode,
 			tl
@@ -799,11 +831,15 @@ onVueSetup(function() {
 
 				<div class="status_selection_info">{{ selection_info }}</div>
 
-				
 				<div class="f_right" id="validator_status" v-if="warnings.length || errors.length" @click="openValidator()">
 					<span v-if="warnings.length" style="color: var(--color-warning)">{{ warnings.length }}<i class="material-icons">warning</i></span>
 					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
 				</div>
+
+				<div v-if="keyboard_menu_in_status_bar" id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<i class="material-icons">keyboard</i>
+				</div>
+
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>

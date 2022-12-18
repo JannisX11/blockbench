@@ -60,6 +60,7 @@ class Locator extends OutlinerElement {
 			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
 		}
 		this.createUniqueName();
+		this.preview_controller.updateTransform(this);
 		return this;
 	}
 	getWorldCenter() {

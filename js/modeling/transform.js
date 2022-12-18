@@ -346,7 +346,13 @@ const Vertexsnap = {
 			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.group = Group.selected;
-			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices)); 
+			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
+				if (!Project.selected_vertices[data.element.uuid]) {
+					Project.selected_vertices[data.element.uuid] = [];
+				}
+				Project.selected_vertices[data.element.uuid].safePush(data.vertex);
+			}
+			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices));
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 

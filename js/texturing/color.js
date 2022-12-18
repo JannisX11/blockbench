@@ -81,8 +81,8 @@ Interface.definePanels(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
 				this.vue.$refs.square_picker.style.display = 'none';
 				let max = this.isInSidebar()
-					? 460
-					: Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.572 : 1));
+					? 1000
+					: Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
 				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
@@ -162,7 +162,7 @@ Interface.definePanels(() => {
 					StateMemory.color_picker_tab = tab;
 					StateMemory.save('color_picker_tab');
 					Vue.nextTick(() => {
-						$('#main_colorpicker').spectrum('reflow');
+						ColorPanel.onResize()
 					})
 				}
 			},

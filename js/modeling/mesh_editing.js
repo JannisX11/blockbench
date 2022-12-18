@@ -287,10 +287,10 @@ BARS.defineActions(function() {
 			runEdit(false, result);
 
 			Undo.amendEdit({
-				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape)},
+				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
-				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape)},
+				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
 			}, form => {
 				Object.assign(result, form);
@@ -835,7 +835,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend'},
+				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.extend);
 			})
@@ -954,7 +954,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
+				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100, interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.offset);
 			})
@@ -1145,21 +1145,24 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length},
+				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
 			}, (form, form_options) => {
-				length = getLength(form.direction);
+				let direction = form.direction || 0;
+				length = getLength(direction);
 
 				form_options.offset.slider.settings.max = length;
-				if(saved_direction !== form.direction)
+				if(saved_direction !== direction)
 				{
 					form_options.offset.slider.value = Math.floor(length/2);
 					form_options.offset.slider.update();
-					saved_direction = form.direction;
+					saved_direction = direction;
 				}
 
-				form_options.direction.slider.value = form.direction % selected_face.vertices.length;
+				if (form_options.direction) {
+					form_options.direction.slider.value = direction % selected_face.vertices.length;
+				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction.slider.value);
+				runEdit(true, form_options.offset.slider.value, form_options.direction ? form_options.direction.slider.value : 0);
 			})
 		}
 	})

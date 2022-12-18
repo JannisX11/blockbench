@@ -70,6 +70,7 @@ class NullObject extends OutlinerElement {
 			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
 		}
 		this.createUniqueName();
+		this.preview_controller.updateTransform(this);
 		return this;
 	}
 	getWorldCenter(with_animation) {
@@ -198,7 +199,7 @@ BARS.defineActions(function() {
 	new Action('add_null_object', {
 		icon: 'far.fa-circle',
 		category: 'edit',
-		condition: () => Format.animation_mode,
+		condition: () => Format.animation_mode && Modes.edit,
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});

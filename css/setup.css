@@ -8,15 +8,15 @@
 		outline-color: rgba(0, 0, 0, 0);
 	}
 	/*Webkit*/
-	a:-webkit-any-link {
+	a[href] {
 	    color: inherit;
 	    text-decoration: underline;
 		cursor: pointer;
 	}
-	a:-webkit-any-link:hover {
+	a[href]:hover {
 	    color: var(--color-light);
 	}
-	.bright_ui a:-webkit-any-link:hover {
+	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
 	::-webkit-scrollbar {

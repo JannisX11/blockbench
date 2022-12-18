@@ -774,10 +774,13 @@ class NumSlider extends Widget {
 
 
 			text = text.replace(/,(?=\d+$)/, '.');
-			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
+			if (text.match(/^-?\d*(\.\d+)?%?$/gm)) {
 				var number = parseFloat(text);
 				if (isNaN(number)) {
 					number = 0;
+				}
+				if (text.endsWith('%') && typeof this.settings?.min == 'number' && typeof this.settings?.max == 'number') {
+					number = Math.lerp(this.settings.min, this.settings.max, number/100);
 				}
 				this.change(val => number);
 			} else {
