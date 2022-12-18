@@ -81,6 +81,10 @@
 		bottom: unset;
 		display: none;
 	}
+	.empty_dialog {
+		position: fixed;
+		z-index: 20;
+	}
 	dialog > content, dialog .dialog_wrapper > content {
 		display: block;
 		overflow-y: auto;
@@ -1673,4 +1677,52 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		padding: 3px 4px;
 		margin-left: 8px;
 		white-space: nowrap;
+	}
+
+	#tab_overview {
+		z-index: 21;
+		display: flex;
+		width: max(600px, 80%);
+		max-width: 100%;
+		margin: auto;
+		top: 0;
+		bottom: 0;
+		right: 0;
+		left: 0;
+		pointer-events: none;
+	}
+	#tab_overview_grid {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 16px;
+		margin: auto;
+		max-width: 100%;
+		max-height: 86%;
+		overflow-y: auto;
+	}
+	#tab_overview_grid > li {
+		width: 300px;
+		height: 220px;
+		text-align: center;
+		background-color: var(--color-back);
+		cursor: pointer;
+		padding: 0 10px;
+		box-shadow: 0 0px 28px rgb(0 0 0 / 24%);
+		pointer-events: all;
+	}
+	#tab_overview_grid > li:hover {
+		color: var(--color-light);
+		background-color: var(--color-ui);
+	}
+	#tab_overview_grid > li img {
+		max-width: 100%;
+		height: calc(100% - 30px);
+		display: block;
+		margin: auto;
+		cursor: inherit;
+		object-fit: contain;
+	}
+	#tab_overview_grid > li label {
+		cursor: inherit;
 	}

@@ -269,14 +269,16 @@ class ModelProject {
 		Blockbench.removeFlag('switching_project');
 		return true;
 	}
+	updateThumbnail() {
+		if (!Format.image_editor) {
+			this.thumbnail = Preview.selected.canvas.toDataURL();
+		} else if (Texture.all.length) {
+			this.thumbnail = Texture.getDefault()?.source;
+		}
+	}
 	unselect(closing) {
 		if (!closing) {
-			if (!Format.image_editor) {
-				this.thumbnail = Preview.selected.canvas.toDataURL();
-			} else if (Texture.all.length) {
-				this.thumbnail = Texture.getDefault()?.source;
-			}
-
+			this.updateThumbnail();
 			this.saveEditorState();
 		}
 		
@@ -617,7 +619,7 @@ onVueSetup(() => {
 			drag_target_index: null,
 			drag_position_index: null,
 			close_tab_label: tl('projects.close_tab'),
-			search_tabs_label: tl('generic.search'),
+			search_tabs_label: tl('action.tab_overview'),
 			last_opened_project: '',
 			new_tab
 		},
@@ -639,7 +641,7 @@ onVueSetup(() => {
 				setStartScreen(true);
 			},
 			searchTabs() {
-				ActionControl.select('tab: ');
+				BarItems.tab_overview.trigger();
 			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
@@ -1035,6 +1037,37 @@ BARS.defineActions(function() {
 				target = ModelProject.all[index+1] || ModelProject.all[0];
 			}
 			if (target) target.select();
+		}
+	})
+	new Action('tab_overview', {
+		icon: 'view_module',
+		category: 'file',
+		condition: () => ModelProject.all.length,
+		click(event) {
+			if (Project) Project.updateThumbnail();
+
+			let dialog = new EmptyDialog('tab_overview', {
+				build() {
+					this.object = Interface.createElement('div', {id: 'tab_overview', class: 'empty_dialog'});
+					
+					let entries = ModelProject.all.map(project => {
+						let img = new Image();
+						img.src = project.thumbnail;
+						if (!project.thumbnail) img.style.visibility = 'hidden';
+						let entry = Interface.createElement('li', {}, [
+							img,
+							project.name
+						])
+						entry.addEventListener('click', event => {
+							this.confirm();
+							project.select();
+						})
+						return entry;
+					})
+					let list = Interface.createElement('ul', {id: 'tab_overview_grid'}, entries);
+					this.object.append(list);
+				}
+			}).show();
 		}
 	})
 })

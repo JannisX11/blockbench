@@ -718,16 +718,19 @@ window.Dialog = class Dialog {
 		let jq_dialog = $(this.object);
 
 		document.getElementById('dialog_wrapper').append(this.object);
+		
+		if (this instanceof EmptyDialog === false) {
+			this.object.style.display = 'flex';
+			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
+			if (this.width) {
+				this.object.style.width = this.width+'px';
+			}
+			if (this.draggable !== false) {
+				let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+				this.object.style.left = x+'px';
+			}
+		}
 
-		this.object.style.display = 'flex';
-		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px';
-		if (this.width) {
-			this.object.style.width = this.width+'px';
-		}
-		if (this.draggable !== false) {
-			let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
-			this.object.style.left = x+'px';
-		}
 		if (!Blockbench.isTouch) {
 			let first_focus = jq_dialog.find('.focusable_input').first();
 			if (first_focus) first_focus.trigger('focus');
@@ -784,8 +787,38 @@ window.Dialog = class Dialog {
 	}
 	static stack = []
 }
-
 window.Dialog.stack = [];
+
+window.EmptyDialog = class EmptyDialog extends Dialog {
+	constructor(id, options) {
+		super(id, options);
+
+		this.build = options.build;
+	}
+	confirm(event) {
+		this.close(this.confirmIndex, event);
+	}
+	cancel(event) {
+		this.close(this.cancelIndex, event);
+	}
+	close(button, event) {
+		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
+			let result = this.onConfirm(event);
+			if (result === false) return;
+		}
+		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
+			let result = this.onCancel(event);
+			if (result === false) return;
+		}
+		this.hide();
+	}
+	show() {
+		super.show()
+	}
+	delete() {
+		$(this.object).remove()
+	}
+}
 
 })()
 
