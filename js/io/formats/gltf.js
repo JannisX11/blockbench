@@ -42,7 +42,7 @@ function buildAnimationTracks(do_quaternions = true) {
 						// Sampling non-linear and math-based values
 						let contains_script
 						for (var kf of keyframes) {
-							if (kf.interpolation == Keyframe.interpolation.catmullrom) {
+							if (kf.interpolation == Keyframe.interpolation.catmullrom || kf.interpolation == Keyframe.interpolation.bezier) {
 								contains_script = true; break;
 							}
 							for (var data_point of kf.data_points) {

@@ -196,6 +196,45 @@ class Keyframe {
 
 		return curve.getPoint(time).y;
 	}
+	getBezierLerp(before, after, axis, alpha) {
+		let val_before = before.calc(axis, 1);
+		let val_after = after.calc(axis, 0);
+		let axis_num = getAxisNumber(axis);
+		let vectors = [
+			new THREE.Vector2(before.time, val_before),
+
+			new THREE.Vector2(before.time + before.bezier_right_time[axis_num] || 0, val_before + before.bezier_right_value[axis_num] || 0),
+			new THREE.Vector2(after.time  + after.bezier_left_time[axis_num]   || 0, val_after  + after.bezier_left_value[axis_num]   || 0),
+
+			new THREE.Vector2(after.time, val_after),
+		];
+
+		let curve = new THREE.CubicBezierCurve(...vectors);
+		let time = before.time + (after.time - before.time) * alpha;
+
+		let points = curve.getPoints(200);
+		let closest;
+		let closest_diff = Infinity;
+		points.forEach(point => {
+			let diff = Math.abs(point.x - time);
+			if (diff < closest_diff) {
+				closest_diff = diff;
+				closest = point;
+			}
+		})
+		let second_closest;
+		closest_diff = Infinity;
+		points.forEach(point => {
+			if (point == closest) return;
+			let diff = Math.abs(point.x - time);
+			if (diff < closest_diff) {
+				closest_diff = diff;
+				second_closest = closest;
+				second_closest = point;
+			}
+		})
+		return Math.lerp(closest.y, second_closest.y, Math.clamp(Math.getLerp(closest.x, second_closest.x, time), 0, 1));
+	}
 	getArray(data_point = 0) {
 		var arr = [
 			this.get('x', data_point),
@@ -468,6 +507,7 @@ class Keyframe {
 		'_',
 		'keyframe_uniform',
 		'keyframe_interpolation',
+		'keyframe_bezier_linked',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
 				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -488,10 +528,16 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
+	new Property(Keyframe, 'vector2', 'bezier_linked', {condition: keyframe => keyframe.interpolation == 'bezier', default: true})
+	new Property(Keyframe, 'vector2', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
+	new Property(Keyframe, 'vector2', 'bezier_left_value');
+	new Property(Keyframe, 'vector2', 'bezier_right_time', {default: [0.1, 0.1, 0.1]});
+	new Property(Keyframe, 'vector2', 'bezier_right_value');
 	Keyframe.selected = [];
 	Keyframe.interpolation = {
 		linear: 'linear',
 		catmullrom: 'catmullrom',
+		bezier: 'bezier',
 		step: 'step',
 	}
 
@@ -819,18 +865,35 @@ BARS.defineActions(function() {
 			updateKeyframeSelection();
 		}
 	})
+	new Toggle('keyframe_bezier_linked', {
+		icon: 'fa-bezier-curve',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length && !Timeline.selected.find(kf => kf.interpolation !== 'bezier'),
+		onChange(value) {
+			let keyframes = Timeline.selected;
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				kf.bezier_linked = value;
+			})
+			Undo.finishEdit('Change keyframes bezier link option');
+			updateKeyframeSelection();
+		}
+	})
 	new BarSelect('keyframe_interpolation', {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length && Timeline.selected.find(kf => kf.transform),
 		options: {
 			linear: true,
 			catmullrom: true,
+			bezier: true,
 			step: true,
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				if (kf.transform) kf.interpolation = sel.value;
+				if (kf.transform) {
+					kf.interpolation = sel.value;
+				}
 			})
 			Undo.finishEdit('Change keyframes interpolation')
 			updateKeyframeSelection();

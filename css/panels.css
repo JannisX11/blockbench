@@ -1071,6 +1071,34 @@
 		z-index: 4;
 	}
 
+	.keyframe_bezier_handle {
+		background-color: var(--color-text);
+		border-radius: 50%;
+		height: 10px;
+		width: 10px;
+		margin: 1px;
+		margin-top: 3px;
+		cursor: move;
+		position: absolute;
+	}
+	.keyframe_bezier_handle:hover, .keyframe_bezier_handle:active {
+		background-color: var(--color-accent);
+	}
+	.keyframe_bezier_handle::after {
+		content: "";
+		display: block;
+		position: relative;
+		background-color: var(--color-grid);
+		height: 2px;
+		width: var(--length);
+		transform-origin: left;
+		rotate: var(--angle);
+		top: 4px;
+		left: 5px;
+		pointer-events: none;
+		border-left: 5px solid var(--color-text);
+	}
+
 	#timeline_header {
 		height: 28px;
 		display: flex;
