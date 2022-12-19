@@ -279,9 +279,14 @@ const Blockbench = {
 		jq_dialog.css('position', 'absolute')
 
 		$('#dialog_wrapper').append(jq_dialog)
-		$('.dialog').hide()
-		$('#blackout').show()
 		jq_dialog.show()
+
+		jq_dialog[0].style.zIndex = 21 + Dialog.stack.length * 2;
+		
+		let blackout = document.getElementById('blackout');
+		blackout.style.display = 'block';
+		blackout.classList.toggle('darken', true);
+		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
 
 		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
 		if (options.width) {

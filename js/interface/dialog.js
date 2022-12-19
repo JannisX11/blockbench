@@ -793,7 +793,7 @@ window.EmptyDialog = class EmptyDialog extends Dialog {
 	constructor(id, options) {
 		super(id, options);
 
-		this.build = options.build;
+		if (options.build) this.build = options.build;
 	}
 	confirm(event) {
 		this.close(this.confirmIndex, event);
@@ -814,6 +814,14 @@ window.EmptyDialog = class EmptyDialog extends Dialog {
 	}
 	show() {
 		super.show()
+	}
+	build() {
+		this.object = Interface.createElement('div', {id: 'tab_overview', class: 'empty_dialog'});
+
+		if (this.component) {
+			this.component.name = 'dialog-content';
+			this.content_vue = new Vue(this.component).$mount(this.object, true);
+		}
 	}
 	delete() {
 		$(this.object).remove()

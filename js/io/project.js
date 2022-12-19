@@ -640,7 +640,7 @@ onVueSetup(() => {
 				this.new_tab.select();
 				setStartScreen(true);
 			},
-			searchTabs() {
+			tabOverview() {
 				BarItems.tab_overview.trigger();
 			},
 			mouseDown(tab, e1) {
@@ -1047,27 +1047,50 @@ BARS.defineActions(function() {
 			if (Project) Project.updateThumbnail();
 
 			let dialog = new EmptyDialog('tab_overview', {
-				build() {
-					this.object = Interface.createElement('div', {id: 'tab_overview', class: 'empty_dialog'});
-					
-					let entries = ModelProject.all.map(project => {
-						let img = new Image();
-						img.src = project.thumbnail;
-						if (!project.thumbnail) img.style.visibility = 'hidden';
-						let entry = Interface.createElement('li', {}, [
-							img,
-							project.name
-						])
-						entry.addEventListener('click', event => {
-							this.confirm();
+				component: {
+					data() {return {
+						search_term: '',
+						projects: ModelProject.all
+					}},
+					methods: {
+						select(project) {
+							Dialog.open.confirm();
 							project.select();
-						})
-						return entry;
-					})
-					let list = Interface.createElement('ul', {id: 'tab_overview_grid'}, entries);
-					this.object.append(list);
+						}
+					},
+					computed: {
+						filtered_projects() {
+							if (!this.search_term) return this.projects;
+							let term = this.search_term.toLowerCase();
+							return this.projects.filter(project => {
+								return project.name.toLowerCase().includes(term) || project.model_identifier?.toLowerCase().includes(term);
+							})
+						}
+					},
+					template: `
+						<div id="tab_overview">
+							<div id="tab_overview_search">
+								<search-bar id="tab_overview_search_bar" v-model="search_term"></search-bar>
+							</div>
+							<ul id="tab_overview_grid">
+								<li v-for="project in filtered_projects" @mousedown="select(project)">
+									<img :src="project.thumbnail" :style="{visibility: project.thumbnail ? 'unset' : 'hidden'}">
+									{{ project.name }}
+								</li>
+							</ul>
+						</div>
+					`
+				},
+				onConfirm() {
+					let projects = this.content_vue.filtered_projects;
+					if (this.content_vue.search_term) {
+						projects[0].select();
+					}
 				}
 			}).show();
+			Vue.nextTick(() => {
+				document.querySelector('#tab_overview_search input')?.focus()
+			})
 		}
 	})
 })
