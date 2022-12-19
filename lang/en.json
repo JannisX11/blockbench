@@ -832,6 +832,8 @@
 	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.pick_color_opacity": "Pick Color Opacity",
 	"settings.pick_color_opacity.desc": "Pick the color opacity with the Color Picker and set it as brush opacity",
+	"settings.paint_through_transparency": "Paint Through Transparency",
+	"settings.paint_through_transparency.desc": "Paint through transparent pixels when Lock Alpha Channel is enabled",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
 	"settings.paint_with_stylus_only": "Paint with Stylus Only",

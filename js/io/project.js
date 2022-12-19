@@ -374,6 +374,8 @@ class ModelProject {
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();
+			} else if (last_selected == 0) {
+				Interface.tab_bar.openNewTab();
 			} else if (ModelProject.all.length) {
 				ModelProject.all[Math.clamp(index, 0, ModelProject.all.length-1)].select();
 			} else {

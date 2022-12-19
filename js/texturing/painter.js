@@ -112,6 +112,43 @@ const Painter = {
 			x = Math.floor(x + offset);
 			y = Math.floor(y + offset);
 		}
+
+		if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+			let ctx = Painter.getCanvas(texture).getContext('2d');
+			let color = Painter.getPixelColor(ctx, x, y);
+			if (color.getAlpha() < 0.004) {
+
+				data.intersects.shift();
+				while (data.intersects.length && !data.intersects[0].object.isElement) {
+					data.intersects.shift();
+				}
+				if (!data.intersects[0]) return;
+				let intersect_object = data.intersects[0].object
+				let element = OutlinerNode.uuids[intersect_object.name]
+				let face;
+				if (element instanceof Cube) {
+					face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
+				} else if (element instanceof Mesh) {
+					let index = data.intersects[0].faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+						if (vertices.length < 3) continue;
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
+						if (vertices.length == 3) index -= 1;
+						if (vertices.length == 4) index -= 2;
+					}
+				}
+				data.element = element;
+				data.face = face;
+				Painter.startPaintToolCanvas(data, e);
+				return;
+			}
+		}
+
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
 		if (Toolbox.selected.id !== 'color_picker') {
@@ -119,9 +156,9 @@ const Painter = {
 			addEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
 		}
 	},
-	movePaintToolCanvas(event) {
+	movePaintToolCanvas(event, data) {
 		convertTouchEvent(event);
-		var data = Canvas.raycast(event)
+		if (!data) data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked) {
 			var texture = data.element.faces[data.face].getTexture();
 			if (!texture) return;
@@ -140,6 +177,43 @@ const Painter = {
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
+
+			if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+				let ctx = Painter.current.ctx;
+				let color = Painter.getPixelColor(ctx, x, y);
+				if (color.getAlpha() < 0.004) {
+	
+					data.intersects.shift();
+					while (data.intersects.length && !data.intersects[0].object.isElement) {
+						data.intersects.shift();
+					}
+					if (!data.intersects[0]) return;
+					let intersect_object = data.intersects[0].object
+					let element = OutlinerNode.uuids[intersect_object.name]
+					let face;
+					if (element instanceof Cube) {
+						face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
+					} else if (element instanceof Mesh) {
+						let index = data.intersects[0].faceIndex;
+						for (let key in element.faces) {
+							let {vertices} = element.faces[key];
+							if (vertices.length < 3) continue;
+	
+							if (index == 0 || (index == 1 && vertices.length == 4)) {
+								face = key;
+								break; 
+							}
+							if (vertices.length == 3) index -= 1;
+							if (vertices.length == 4) index -= 2;
+						}
+					}
+					data.element = element;
+					data.face = face;
+					Painter.movePaintToolCanvas(event, data);
+					return;
+				}
+			}
+
 			if (
 				Painter.current.element !== data.element ||
 				(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
