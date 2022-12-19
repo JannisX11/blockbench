@@ -1537,6 +1537,7 @@
 	"timeline.effects": "Effects",
 	"timeline.timeline": "Instructions",
 	"timeline.pre_effect_script": "Script",
+	"timeline.bind_to_actor": "Bind to Actor",
 
 	"animation_controllers.select_preset": "Select a controller preset...",
 	"animation_controllers.state.animations": "Animations",
@@ -1547,6 +1548,7 @@
 	"animation_controllers.state.transitions": "Transitions",
 	"animation_controllers.state.blend_transition": "Blend Time",
 	"animation_controllers.state.shortest_path": "Blend by Shortest Path",
+	"animation_controllers.state.edit_transition": "Edit Transition",
 
 	"menu.action_control.type.tab": "Tab",
 	"menu.action_control.type.angle": "Camera Angle",

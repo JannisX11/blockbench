@@ -22,7 +22,7 @@ Animator.MolangParser.global_variables = {
 			let state_time = state.getStateTime();
 			let all_finished = state.animations.allAre(a => {
 				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
+				return !animation || state_time > animation.length;
 			})
 			return all_finished ? 1 : 0;
 		}
@@ -34,7 +34,7 @@ Animator.MolangParser.global_variables = {
 			let state_time = state.getStateTime();
 			let finished_anim = state.animations.find(a => {
 				let animation = Animation.all.find(anim => anim.uuid == a.animation);
-				return state_time > animation.length;
+				return animation && state_time > animation.length;
 			})
 			return finished_anim ? 1 : 0;
 		}
@@ -82,7 +82,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 		if (key === variable && val !== undefined) {
 			val = val.trim();
 
-			if (val.match(/^(slider|toggle)\(/)) {
+			if (val.match(/^(slider|toggle|impulse)\(/)) {
 				let [type, content] = val.substring(0, val.length - 1).split(/\(/);
 				let [id] = content.split(/\(|, */);
 				id = id.replace(/['"]/g, '');
@@ -476,7 +476,17 @@ Animator.MolangParser.variableHandler = function (variable) {
 				return filterAndSortList(options, dir);
 			}
 		} else {
-			return filterAndSortList(RootTokens, beginning);
+			let root_tokens = RootTokens.slice();
+			let labels = {};
+			if (type === 'placeholders') {
+				labels = {
+					'toggle()': 'toggle( name )',
+					'slider()': 'slider( name, step?, min?, max? )',
+					'impulse()': 'impulse( name, duration )',
+				};
+				root_tokens.push(...Object.keys(labels));
+			}
+			return filterAndSortList(root_tokens, beginning, null, labels);
 		}
 		return [];
 	}

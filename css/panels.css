@@ -861,13 +861,16 @@
 		height: 0;
 	}
 
+	.bar.flex > .prism-editor-component {
+		width: 20px;
+		flex-grow: 1;
+	}
 	.prism-editor-wrapper {
 		caret-color: var(--color-text);
 	}
-	.molang_input prism-editor-wrapper {
+	.molang_input .prism-editor-wrapper {
 		overflow-y: hidden;
 		min-height: 30px;
-		height: auto;
 		margin-bottom: auto;
 	}
 	.molang_input pre {
@@ -910,14 +913,27 @@
 /* Placeholders */
 	#placeholder_buttons li {
 		padding: 0px 8px;
-	}
-	#placeholder_buttons li {
 		height: 30px;
 		margin: 1px;
 		padding: 0 8px;
 		float: left;
 		max-width: 100%;
 		background-color: var(--color-button);
+		display: flex;
+	}
+	#placeholder_buttons li[buttontype="impulse"] {
+		cursor: pointer;
+	}
+	#placeholder_buttons li[buttontype="impulse"]:hover {
+		color: var(--color-light);
+	}
+	#placeholder_buttons li > label {
+		padding: 4px 3px;
+		cursor: inherit;
+	}
+	#placeholder_buttons li > i {
+		padding-top: 4px;
+		cursor: inherit;
 	}
 	#placeholder_buttons li input.dark_bordered {
 		width: 54px;
@@ -1351,6 +1367,9 @@
 	border-color: var(--color-accent);
 	z-index: 19;
 }
+#animation_controllers_wrapper .controller_state:focus-within {
+	z-index: 20;
+}
 #animation_controllers_wrapper .controller_state.folded {
 	width: 54px;
 }
@@ -1384,11 +1403,12 @@
 .controller_state_section_title {
 	cursor: pointer;
 	padding: 2px 10px;
+    padding-right: 5px;
 	height: 30px;
 	display: flex;
 	margin-top: 6px;
 }
-.controller_state_section_title:hover {
+.controller_state_section_title:hover > i.icon-open-state {
 	color: var(--color-light);
 }
 .controller_state_section_title > i {
@@ -1399,8 +1419,16 @@
 	cursor: inherit;
 	color: var(--color-subtle_text);
 }
-.controller_state_section_title > i:last-child {
+.controller_state_section_title > .text_button {
+	width: 24px;
+    text-align: center;
+}
+.controller_state_section_title > .text_button:first-of-type {
 	margin-left: auto;
+}
+.controller_state > .prism-editor-component:focus-within {
+	width: calc(200% + 20px);
+	box-shadow: 0 0 0 1px var(--color-accent);
 }
 .controller_animation {
 	display: flex;
@@ -1417,7 +1445,8 @@
 	gap: 3px;
 	margin-bottom: 2px;
 }
-.controller_transition:focus-within {
+.controller_transition:focus-within,
+.controller_animation:focus-within {
 	width: calc(200% + 20px);
 	box-shadow: 0 0 0 1px var(--color-accent);
 }
@@ -1427,6 +1456,27 @@
 .controller_transition .prism-editor-component {
 	width: calc(100% - 110px);
 }
+.controller_particle:not(:last-child),
+.controller_sound:not(:last-child) {
+	margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-button);
+}
+.controller_particle > .bar,
+.controller_sound > .bar {
+	height: auto;
+    min-height: 30px;
+    margin-top: 2px;
+}
+.controller_particle > .bar > label,
+.controller_sound > .bar > label {
+    padding: 3px 8px;
+    min-width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    background-color: var(--color-button);
+}
+
 .controller_item_drag_handle {
 	width: 15px;
 	flex-grow: 0;
@@ -1456,6 +1506,10 @@ span.controller_state_section_info {
 }
 .controller_state input[type=text] {
 	font-size: 0.96em;
+	flex-grow: 1;
+}
+.controller_state input[type=checkbox] {
+	width: 38px;
 }
 .controller_add_column {
 	width: 20px;
