@@ -259,7 +259,7 @@ class AnimationControllerState {
 	}
 	rename() {
 		Blockbench.textPrompt('generic.rename', this.name, value => {
-			Undo.initEdit({animation_controllers: [this.controller]});
+			Undo.initEdit({animation_controller_state: this});
 			this.name = value;
 			this.createUniqueName();
 			Undo.finishEdit('Rename animation controller state');
@@ -303,7 +303,7 @@ class AnimationControllerState {
 		return false;
 	}
 	addAnimation(animation) {
-		Undo.initEdit({animation_controllers: [this.controller]});
+		Undo.initEdit({animation_controller_state: this});
 		let anim_link = {
 			key: animation ? animation.getShortName() : '',
 			animation: animation ? animation.uuid : '',
@@ -314,7 +314,7 @@ class AnimationControllerState {
 		Undo.finishEdit('Add animation to animation controller state');
 	}
 	addTransition(target = '') {
-		Undo.initEdit({animation_controllers: [this.controller]});
+		Undo.initEdit({animation_controller_state: this});
 		let transition = {
 			uuid: guid(),
 			target, // UUID
@@ -332,7 +332,7 @@ class AnimationControllerState {
 		})
 	}
 	addParticle(options = 0) {
-		Undo.initEdit({animation_controllers: [this.controller]});
+		Undo.initEdit({animation_controller_state: this});
 		let particle = {
 			uuid: guid(),
 			effect: options.effect || '',
@@ -353,7 +353,7 @@ class AnimationControllerState {
 		})
 	}
 	addSound(options = 0) {
-		Undo.initEdit({animation_controllers: [this.controller]});
+		Undo.initEdit({animation_controller_state: this});
 		let sound = {
 			uuid: guid(),
 			effect: options.effect || '',
@@ -841,10 +841,10 @@ class AnimationController extends AnimationItem {
 			name: 'menu.animation.unload',
 			icon: 'remove',
 			condition: () => Format.animation_files,
-			click(animation) {
-				Undo.initEdit({animation_controllers: [animation]})
-				animation.remove(false, false);
-				Undo.finishEdit('Unload animation', {animation_controllers: []})
+			click(controller) {
+				Undo.initEdit({animation_controllers: [controller]})
+				controller.remove(false, false);
+				Undo.finishEdit('Unload animation controller', {animation_controllers: []})
 			}
 		},
 		'delete',
@@ -998,7 +998,7 @@ Interface.definePanels(() => {
 					list.push(
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
-							Undo.initEdit({animation_controllers: [state.controller]});
+							Undo.initEdit({animation_controller_state: state});
 							state.animations.remove(animation);
 							Undo.finishEdit('Remove animation from controller state');
 						}}
@@ -1021,13 +1021,39 @@ Interface.definePanels(() => {
 					list.push(
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
-							Undo.initEdit({animation_controllers: [state.controller]});
+							Undo.initEdit({animation_controller_state: state});
 							state.transitions.remove(transition);
-							Undo.finishEdit('Remove animation from controller state');
+							Undo.finishEdit('Remove transition from controller state');
 						}}
 					);
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
+				},
+				openParticleMenu(state, particle) {
+					new Menu('controller_state_particle', [
+						{
+							name: 'generic.remove',
+							icon: 'clear',
+							click() {
+								Undo.initEdit({animation_controller_state: state});
+								state.particles.remove(particle);
+								Undo.finishEdit('Remove particle from controller state');
+							}
+						}
+					])
+				},
+				openSoundMenu(state, sound) {
+					new Menu('controller_state_sound', [
+						{
+							name: 'generic.remove',
+							icon: 'clear',
+							click() {
+								Undo.initEdit({animation_controller_state: state});
+								state.sounds.remove(sound);
+								Undo.finishEdit('Remove sound from controller state');
+							}
+						}
+					])
 				},
 				addAnimationButton(state, event) {
 					state.select();
@@ -1118,13 +1144,13 @@ Interface.definePanels(() => {
 					}
 				},
 				sortAnimation(state, event) {
-					Undo.initEdit({animation_controllers: [this.controller]});
+					Undo.initEdit({animation_controller_state: state});
 					var item = state.animations.splice(event.oldIndex, 1)[0];
 					state.animations.splice(event.newIndex, 0, item);
 					Undo.finishEdit('Reorder animations in controller state');
 				},
 				sortTransition(state, event) {
-					Undo.initEdit({animation_controllers: [this.controller]});
+					Undo.initEdit({animation_controller_state: state});
 					var item = state.transitions.splice(event.oldIndex, 1)[0];
 					state.transitions.splice(event.newIndex, 0, item);
 					Undo.finishEdit('Reorder transitions in controller state');
@@ -1178,9 +1204,9 @@ Interface.definePanels(() => {
 							icon: 'clear',
 							click() {
 								let transition = state.transitions.find(t => t.uuid == connection.uuid);
-								Undo.initEdit({animation_controllers: [state.controller]});
+								Undo.initEdit({animation_controller_state: state});
 								state.transitions.remove(transition);
-								Undo.finishEdit('Remove animation from controller state');
+								Undo.finishEdit('Remove animation controller transition');
 							}
 						},
 					]).open(event)
@@ -1246,7 +1272,7 @@ Interface.definePanels(() => {
 					}, (files) => {
 
 						let {path} = files[0];
-						Undo.initEdit({animation_controllers: [AnimationController.selected]})
+						Undo.initEdit({animation_controller_state: state});
 						particle_entry.file = path;
 						let effect = Animator.loadParticleEmitter(path, files[0].content);
 						if (!particle_entry.effect) particle_entry.effect = files[0].name.toLowerCase().split('.')[0].replace(/[^a-z0-9._]+/g, '');
@@ -1277,7 +1303,7 @@ Interface.definePanels(() => {
 							? files[0].path
 							: URL.createObjectURL(files[0].browser_file);
 
-							Undo.initEdit({animation_controllers: [AnimationController.selected]})
+						Undo.initEdit({animation_controller_state: state});
 						sound_entry.file = path;
 						if (!sound_entry.effect) sound_entry.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
 						Undo.finishEdit('Change animation controller audio file')
@@ -1304,7 +1330,6 @@ Interface.definePanels(() => {
 					};
 					if (!this.controller) return connections;
 					let {states, selected_state} = this.controller;
-					// todo: implement different state width
 					let incoming_plugs = {};
 
 					let plug_gap = 16;
@@ -1436,9 +1461,9 @@ Interface.definePanels(() => {
 									<li v-for="animation in state.animations" :key="animation.uuid" class="controller_animation">
 										<div class="controller_item_drag_handle"></div>
 										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
-										<input type="text" class="dark_bordered" v-model="animation.key">
+										<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="animation.key">
 										<vue-prism-editor 
-											class="molang_input animation_controller_molang_input tab_target"
+											class="molang_input animation_controller_text_input tab_target"
 											v-model="animation.blend_value"
 											language="molang"
 											:autocomplete="autocomplete"
@@ -1455,7 +1480,7 @@ Interface.definePanels(() => {
 									<label>${tl('animation_controllers.state.particles')}</label>
 									<span class="controller_state_section_info" v-if="state.particles.length">{{ state.particles.length }}</span>
 
-									<div class="text_button" v-on:click.stop="state.muted.particle = !state.muted.particle">
+									<div class="text_button" v-if="state.particles.length" @click.stop="state.muted.particle = !state.muted.particle">
 										<i class="channel_mute fas fa-eye-slash" style="color: var(--color-subtle_text)" v-if="state.muted.particle"></i>
 										<i class="channel_mute fas fa-eye" v-else></i>
 									</div>
@@ -1465,23 +1490,23 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle">
+									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered" v-model="particle.effect">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
 											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
 										<div class="bar flex">
 											<label>${tl('data.locator')}</label>
-											<input type="text" class="dark_bordered" v-model="particle.locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
 											<input type="checkbox" v-model="particle.bind_to_actor" title="${tl('timeline.bind_to_actor')}">
 										</div>
 										<div class="bar flex">
 											<label>${tl('timeline.pre_effect_script')}</label>
 											<vue-prism-editor
-												class="molang_input animation_controller_molang_input tab_target"
+												class="molang_input animation_controller_text_input tab_target"
 												v-model="particle.script"
 												language="molang"
 												:autocomplete="autocomplete"
@@ -1499,7 +1524,7 @@ Interface.definePanels(() => {
 									<label>${tl('animation_controllers.state.sounds')}</label>
 									<span class="controller_state_section_info" v-if="state.sounds.length">{{ state.sounds.length }}</span>
 
-									<div class="text_button" v-on:click.stop="state.muted.sound = !state.muted.sound">
+									<div class="text_button" v-if="state.sounds.length" @click.stop="state.muted.sound = !state.muted.sound">
 										<i class="channel_mute fas fa-volume-mute" style="color: var(--color-subtle_text)" v-if="state.muted.sound"></i>
 										<i class="channel_mute fas fa-volume-up" v-else></i>
 									</div>
@@ -1509,10 +1534,10 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound">
+									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered" v-model="sound.effect">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
 											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
 												<i class="material-icons">upload_file</i>
 											</div>
@@ -1528,7 +1553,7 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_entry"
-									class="molang_input animation_controller_molang_input tab_target"
+									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_entry"
 									language="molang"
 									:autocomplete="autocomplete"
@@ -1544,7 +1569,7 @@ Interface.definePanels(() => {
 								</div>
 								<vue-prism-editor
 									v-if="!state.fold.on_exit"
-									class="molang_input animation_controller_molang_input tab_target"
+									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_exit"
 									language="molang"
 									:autocomplete="autocomplete"
@@ -1567,7 +1592,7 @@ Interface.definePanels(() => {
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
-												class="molang_input animation_controller_molang_input tab_target"
+												class="molang_input animation_controller_text_input tab_target"
 												v-model="transition.condition"
 												language="molang"
 												:autocomplete="autocomplete"
@@ -1620,14 +1645,18 @@ Interface.definePanels(() => {
 	})
 	
 	let molang_edit_value;
-	let class_name = 'animation_controller_molang_input';
+	let class_name = 'animation_controller_text_input';
 	function isTarget(target) {
 		return target?.classList?.contains(class_name) || target?.parentElement?.parentElement?.classList?.contains(class_name);
 	}
 	document.addEventListener('focus', event => {
 		if (isTarget(event.target)) {
 			molang_edit_value = event.target.value || event.target.innerText;
-			Undo.initEdit({animation_controllers: [AnimationController.selected]})
+			let state_uuid = document.querySelector('.controller_state:focus-within')?.attributes.uuid?.value;
+			let state = state_uuid && AnimationController.selected?.states.find(s => s.uuid == state_uuid);
+			if (state) {
+				Undo.initEdit({animation_controller_state: state});
+			}
 		}
 	}, true)
 	document.addEventListener('focusout', event => {
@@ -1699,9 +1728,6 @@ BARS.defineActions(function() {
 		value: 'manual',
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
-		condition: {modes: ['animate'], selected: {animation_controller: true}},
-		onChange({value}) {
-			
-		}
+		condition: {modes: ['animate'], selected: {animation_controller: true}}
 	})
 })

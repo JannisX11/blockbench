@@ -411,6 +411,13 @@ class UndoSystem {
 				}
 			}
 		}
+		if (save.animation_controller_state) {
+			let controller = AnimationController.all.find(controller => save.animation_controller_state.controller == controller.uuid);
+			let state = controller && controller.states.find(state => state.uuid == save.animation_controller_state.uuid);
+			if (state) {
+				state.extend(save.animation_controller_state);
+			}
+		}
 
 		if (save.keyframes) {
 			var animation = Animation.selected;
@@ -574,6 +581,11 @@ UndoSystem.save = class {
 			aspects.animation_controllers.forEach(a => {
 				scope.animation_controllers[a.uuid] = a.getUndoCopy();
 			})
+		}
+		if (aspects.animation_controller_state) {
+			this.animation_controller_state = aspects.animation_controller_state.getUndoCopy();
+			console.log(aspects.animation_controller_state, this.animation_controller_state)
+			this.animation_controller_state.controller = aspects.animation_controller_state.controller?.uuid;
 		}
 
 		if (aspects.display_slots) {
