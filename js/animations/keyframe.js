@@ -197,14 +197,17 @@ class Keyframe {
 		return curve.getPoint(time).y;
 	}
 	getBezierLerp(before, after, axis, alpha) {
+		let axis_num = getAxisNumber(axis);
 		let val_before = before.calc(axis, 1);
 		let val_after = after.calc(axis, 0);
-		let axis_num = getAxisNumber(axis);
+		let time_gap = after.time - before.time;
+		let time_handle_before = Math.clamp(before.bezier_right_time[axis_num] || 0, 0, time_gap);
+		let time_handle_after  = Math.clamp(after.bezier_left_time[axis_num]   || 0, -time_gap, 0);
 		let vectors = [
 			new THREE.Vector2(before.time, val_before),
 
-			new THREE.Vector2(before.time + before.bezier_right_time[axis_num] || 0, val_before + before.bezier_right_value[axis_num] || 0),
-			new THREE.Vector2(after.time  + after.bezier_left_time[axis_num]   || 0, val_after  + after.bezier_left_value[axis_num]   || 0),
+			new THREE.Vector2(before.time + time_handle_before, val_before + before.bezier_right_value[axis_num] || 0),
+			new THREE.Vector2(after.time  + time_handle_after,  val_after  + after.bezier_left_value[axis_num]   || 0),
 
 			new THREE.Vector2(after.time, val_after),
 		];
@@ -286,7 +289,7 @@ class Keyframe {
 	compileBedrockKeyframe() {
 		if (this.transform) {
 
-			if (this.interpolation != 'linear' && this.interpolation != 'step') {
+			if (this.interpolation == 'catmullrom') {
 				let previous = this.getPreviousKeyframe();
 				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
@@ -508,6 +511,7 @@ class Keyframe {
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
+		'reset_keyframe',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
 				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -521,6 +525,7 @@ class Keyframe {
 				}})
 			];
 		}},
+		'_',
 		'copy',
 		'delete',
 	])
@@ -528,11 +533,11 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
-	new Property(Keyframe, 'vector2', 'bezier_linked', {condition: keyframe => keyframe.interpolation == 'bezier', default: true})
-	new Property(Keyframe, 'vector2', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
-	new Property(Keyframe, 'vector2', 'bezier_left_value');
-	new Property(Keyframe, 'vector2', 'bezier_right_time', {default: [0.1, 0.1, 0.1]});
-	new Property(Keyframe, 'vector2', 'bezier_right_value');
+	new Property(Keyframe, 'boolean', 'bezier_linked', {default: true})
+	new Property(Keyframe, 'vector', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
+	new Property(Keyframe, 'vector', 'bezier_left_value');
+	new Property(Keyframe, 'vector', 'bezier_right_time', {default: [0.1, 0.1, 0.1]});
+	new Property(Keyframe, 'vector', 'bezier_right_value');
 	Keyframe.selected = [];
 	Keyframe.interpolation = {
 		linear: 'linear',
@@ -874,7 +879,13 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes})
 			keyframes.forEach((kf) => {
 				kf.bezier_linked = value;
+				if (value) {
+					kf.bezier_right_time.V3_set(kf.bezier_left_time).V3_multiply(-1);
+					kf.bezier_right_value.V3_set(kf.bezier_left_value).V3_multiply(-1);
+				}
 			})
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 			Undo.finishEdit('Change keyframes bezier link option');
 			updateKeyframeSelection();
 		}
@@ -907,6 +918,12 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.data_points.replace([new KeyframeDataPoint(kf)]);
+				if (kf.interpolation == 'bezier') {
+					kf.bezier_left_time.V3_set(-0.1, -0.1, -0.1);
+					kf.bezier_left_value.V3_set(0, 0, 0);
+					kf.bezier_right_time.V3_set(0.1, 0.1, 0.1);
+					kf.bezier_right_value.V3_set(0, 0, 0);
+				}
 			})
 			Undo.finishEdit('Reset keyframes')
 			updateKeyframeSelection()

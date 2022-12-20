@@ -1057,7 +1057,6 @@ Interface.definePanels(() => {
 						var difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
 						var difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
 
-		
 						for (var kf of Timeline.selected) {
 							if (kf.interpolation == 'bezier') {
 
@@ -1085,7 +1084,7 @@ Interface.definePanels(() => {
 								values_changed = true;
 							}
 						}
-						let text = `${trimFloatNumber(difference_time)} ⨉ ${trimFloatNumber(difference_value)}`;
+						let text = `${trimFloatNumber(Math.roundTo(difference_time, 2))} ⨉ ${trimFloatNumber(Math.roundTo(difference_value, 2))}`;
 						Blockbench.setStatusBarText(text);
 
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
@@ -1282,10 +1281,12 @@ Interface.definePanels(() => {
 										<template v-if="keyframe.interpolation == 'bezier'">
 											<div class="keyframe_bezier_handle"
 												:style="getBezierHandleStyle(keyframe, 'left')"
+												:title="'${tl('generic.left')}: ' + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number]) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"
 												@mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)"
 											></div>
 											<div class="keyframe_bezier_handle"
 												:style="getBezierHandleStyle(keyframe, 'right')"
+												:title="'${tl('generic.right')}: ' + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number]) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])"
 												@mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)"
 											></div>
 										</template>
