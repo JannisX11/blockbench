@@ -193,36 +193,65 @@ class Animation extends AnimationItem {
 					bone_tag.relative_to = {rotation: 'entity'};
 					bone_tag.rotation = [0, 0, 0.01];
 				}
-				//Saving Keyframes
-				animator.keyframes.forEach(function(kf) {
-					if (!channels[kf.channel]) {
-						channels[kf.channel] = {};
-					}
-					let timecode = kf.getTimecodeString();
-					channels[kf.channel][timecode] = kf.compileBedrockKeyframe()
-					if (animator.rotation_global && kf.channel == 'rotation' && channels[kf.channel][timecode] instanceof Array && channels[kf.channel][timecode].allEqual(0)) {
-						channels[kf.channel][timecode][2] = 0.01;
-					}
-				})
-				// Sorting + compressing keyframes
 				for (var channel in Animator.possible_channels) {
-					if (channels[channel]) {
-						let timecodes = Object.keys(channels[channel])
-						if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
-							bone_tag[channel] = channels[channel][timecodes[0]]
-							if (channel == 'scale' &&
-								channels[channel][timecodes[0]] instanceof Array &&
-								channels[channel][timecodes[0]].allEqual(channels[channel][timecodes[0]][0])
-							) {
-								bone_tag[channel] = channels[channel][timecodes[0]][0];
+					if (!animator[channel]?.length) continue;
+
+					// Saving Keyframes
+					bone_tag[channel] = {};
+					let sorted_keyframes = animator[channel].slice().sort((a, b) => a.time - b.time);
+
+					sorted_keyframes.forEach((kf, i) => {
+						let timecode = kf.getTimecodeString();
+						bone_tag[channel][timecode] = kf.compileBedrockKeyframe()
+						if (animator.rotation_global && kf.channel == 'rotation' && bone_tag[kf.channel][timecode] instanceof Array && bone_tag[kf.channel][timecode].allEqual(0)) {
+							bone_tag[kf.channel][timecode][2] = 0.01;
+						}
+						// Bake bezier keyframe curve
+						let next_keyframe = sorted_keyframes[i+1];
+						if (next_keyframe && kf.interpolation === 'bezier' && next_keyframe.interpolation === 'bezier') {
+							let interval = 1 / this.snapping;
+							let interpolated_values = {};
+							for (let time = kf.time + interval; time < next_keyframe.time + (interval/2); time += interval) {
+								let itimecode = trimFloatNumber(Timeline.snapTime(time, this)).toString();
+								if (!itimecode.includes('.')) itimecode += '.0';
+								let lerp = Math.getLerp(kf.time, next_keyframe.time, time)
+								let value = [0, 1, 2].map(axis => {
+									return kf.getBezierLerp(kf, next_keyframe, getAxisLetter(axis), lerp);
+								})
+								interpolated_values[itimecode] = value;
 							}
-						} else {
-							timecodes.sort((a, b) => parseFloat(a) - parseFloat(b)).forEach((timecode) => {
-								if (!bone_tag[channel]) {
-									bone_tag[channel] = {}
+							// Optimize data
+							let itimecodes = Object.keys(interpolated_values);
+							let skipped = 0;
+							let threshold = channel == 'scale' ? 0.01 : 0.1;
+							itimecodes.forEach((itimecode, ti) => {
+								let value = interpolated_values[itimecode]
+								let last = interpolated_values[itimecodes[ti-1]] || bone_tag[channel][timecode];
+								let next = interpolated_values[itimecodes[ti+1]];
+								if (!next) return;
+								let all_axes_irrelevant = value.allAre((val, axis) => {
+									let diff = Math.abs((last[axis] - val) - (val - next[axis]));
+									return diff < threshold
+								})
+								if (all_axes_irrelevant && skipped < 3) {
+									skipped++;
+								} else {
+									bone_tag[channel][itimecode] = value;
+									skipped = 0;
 								}
-								bone_tag[channel][timecode] = channels[channel][timecode];
 							})
+						}
+					})
+
+					// Compressing keyframes
+					let timecodes = Object.keys(bone_tag[channel]);
+					if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
+						bone_tag[channel] = bone_tag[channel][timecodes[0]]
+						if (channel == 'scale' &&
+							bone_tag[channel][timecodes[0]] instanceof Array &&
+							bone_tag[channel][timecodes[0]].allEqual(bone_tag[channel][timecodes[0]][0])
+						) {
+							bone_tag[channel] = bone_tag[channel][timecodes[0]][0];
 						}
 					}
 				}

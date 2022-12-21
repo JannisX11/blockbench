@@ -393,13 +393,15 @@ class BoneAnimator extends GeneralAnimator {
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
 			let alpha = Math.getLerp(before.time, after.time, time)
+			
 
-			if (no_interpolations || (before.interpolation !== Keyframe.interpolation.catmullrom && after.interpolation !== Keyframe.interpolation.catmullrom)) {
+			if (no_interpolations || (before.interpolation === Keyframe.interpolation.linear && after.interpolation === Keyframe.interpolation.linear)) {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
 				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
-			} else {
+
+			} else if (before.interpolation === Keyframe.interpolation.catmullrom || after.interpolation === Keyframe.interpolation.catmullrom) {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
 				let before_index = sorted.indexOf(before);
@@ -407,6 +409,10 @@ class BoneAnimator extends GeneralAnimator {
 				let after_plus = sorted[before_index+2];
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
+
+			} else if (before.interpolation === Keyframe.interpolation.bezier || after.interpolation === Keyframe.interpolation.bezier) {
+				// Bezier
+				return mapAxes(axis => before.getBezierLerp(before, after, axis, alpha));
 			}
 		}
 		if (result && result instanceof Keyframe) {
