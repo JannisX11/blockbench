@@ -423,6 +423,11 @@ const Blockbench = {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
 	}
+	try {
+		let ui_mode = JSON.parse(localStorage.getItem('settings')).interface_mode.value;
+		if (ui_mode == 'desktop') Blockbench.isMobile = false;
+		if (ui_mode == 'mobile') Blockbench.isMobile = true;
+	} catch (err) {}
 })();
 
 if (isApp) {

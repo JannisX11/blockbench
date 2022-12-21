@@ -1270,7 +1270,7 @@ Interface.definePanels(() => {
 										v-bind:id="keyframe.uuid"
 										v-on:click.stop="keyframe.select($event)"
 										v-on:dblclick="keyframe.callPlayhead()"
-										:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
+										:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value)"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
@@ -1281,12 +1281,12 @@ Interface.definePanels(() => {
 										<template v-if="keyframe.interpolation == 'bezier'">
 											<div class="keyframe_bezier_handle"
 												:style="getBezierHandleStyle(keyframe, 'left')"
-												:title="'${tl('generic.left')}: ' + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number]) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"
+												:title="'${tl('generic.left')}: ' + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"
 												@mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)"
 											></div>
 											<div class="keyframe_bezier_handle"
 												:style="getBezierHandleStyle(keyframe, 'right')"
-												:title="'${tl('generic.right')}: ' + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number]) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])"
+												:title="'${tl('generic.right')}: ' + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])"
 												@mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)"
 											></div>
 										</template>

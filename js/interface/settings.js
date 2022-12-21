@@ -175,6 +175,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
+			'auto': tl('settings.interface_mode.auto'),
+			'desktop': tl('settings.interface_mode.desktop'),
+			'mobile': tl('settings.interface_mode.mobile'),
+		}});
 		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
 			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
 			currentwindow.webContents.setZoomFactor(factor)
