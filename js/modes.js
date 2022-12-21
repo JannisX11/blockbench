@@ -140,9 +140,15 @@ BARS.defineActions(function() {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
-			BarItems.slider_color_h.update();
-			BarItems.slider_color_s.update();
-			BarItems.slider_color_v.update();
+			if (StateMemory.color_picker_rgb) {
+				BarItems.slider_color_red.update();
+				BarItems.slider_color_green.update();
+				BarItems.slider_color_blue.update();
+			} else {
+				BarItems.slider_color_h.update();
+				BarItems.slider_color_s.update();
+				BarItems.slider_color_v.update();
+			}
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 

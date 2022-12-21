@@ -2145,6 +2145,9 @@ const BARS = {
 				'slider_color_h',
 				'slider_color_s',
 				'slider_color_v',
+				'slider_color_red',
+				'slider_color_green',
+				'slider_color_blue',
 				'add_to_palette',
 				'pick_screen_color'
 			]

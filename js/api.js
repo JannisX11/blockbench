@@ -459,6 +459,14 @@ const StateMemory = {
 			}})();
 		}
 	},
+	set(key, value) {
+		if (StateMemory[key] instanceof Array) {
+			StateMemory[key].replace(value);
+		} else {
+			StateMemory[key] = value;
+		}
+		StateMemory.save(key);
+	},
 	save(key) {
 		let serialized = JSON.stringify(StateMemory[key])
 		localStorage.setItem(`StateMemory.${key}`, serialized)
