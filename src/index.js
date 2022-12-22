@@ -19,3 +19,5 @@ window.CustomThemeOptions = [
 	LightTheme,
 	ContrastTheme
 ]
+
+window.appVersion = BBVERSION;

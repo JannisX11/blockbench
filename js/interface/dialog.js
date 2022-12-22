@@ -719,7 +719,7 @@ window.Dialog = class Dialog {
 
 		document.getElementById('dialog_wrapper').append(this.object);
 		
-		if (this instanceof EmptyDialog === false) {
+		if (this instanceof ShapelessDialog === false) {
 			this.object.style.display = 'flex';
 			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
 			if (this.width) {
@@ -789,7 +789,7 @@ window.Dialog = class Dialog {
 }
 window.Dialog.stack = [];
 
-window.EmptyDialog = class EmptyDialog extends Dialog {
+window.ShapelessDialog = class ShapelessDialog extends Dialog {
 	constructor(id, options) {
 		super(id, options);
 

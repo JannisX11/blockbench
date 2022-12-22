@@ -1048,7 +1048,7 @@ BARS.defineActions(function() {
 		click(event) {
 			if (Project) Project.updateThumbnail();
 
-			let dialog = new EmptyDialog('tab_overview', {
+			let dialog = new ShapelessDialog('tab_overview', {
 				component: {
 					data() {return {
 						search_term: '',
