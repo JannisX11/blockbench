@@ -223,17 +223,19 @@ class Animation extends AnimationItem {
 							// Optimize data
 							let itimecodes = Object.keys(interpolated_values);
 							let skipped = 0;
-							let threshold = channel == 'scale' ? 0.01 : 0.1;
+							let threshold = channel == 'scale' ? 0.005 : (channel == 'rotation' ? 0.1 : 0.01);
 							itimecodes.forEach((itimecode, ti) => {
 								let value = interpolated_values[itimecode]
 								let last = interpolated_values[itimecodes[ti-1]] || bone_tag[channel][timecode];
 								let next = interpolated_values[itimecodes[ti+1]];
 								if (!next) return;
+								let max_diff = 0;
 								let all_axes_irrelevant = value.allAre((val, axis) => {
 									let diff = Math.abs((last[axis] - val) - (val - next[axis]));
+									max_diff = Math.max(max_diff, diff);
 									return diff < threshold
 								})
-								if (all_axes_irrelevant && skipped < 3) {
+								if (all_axes_irrelevant && skipped < Math.clamp(2 * (threshold / max_diff), 0, 12)) {
 									skipped++;
 								} else {
 									bone_tag[channel][itimecode] = value;

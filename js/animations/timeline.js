@@ -613,6 +613,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
+		grow: true,
 		toolbars: {
 			timeline: Toolbars.timeline
 		},
@@ -1270,7 +1271,7 @@ Interface.definePanels(() => {
 										v-bind:id="keyframe.uuid"
 										v-on:click.stop="keyframe.select($event)"
 										v-on:dblclick="keyframe.callPlayhead()"
-										:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value)"
+										:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>

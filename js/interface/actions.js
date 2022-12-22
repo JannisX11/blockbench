@@ -1701,7 +1701,7 @@ const BARS = {
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
 				click() {
-					let mesh_selection = Project.mesh_selection[Mesh.selected[0].uuid];
+					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
 					if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {

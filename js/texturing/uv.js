@@ -1966,8 +1966,9 @@ Interface.definePanels(function() {
 						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
 						this.mouse_coords.y = Math.round(event.offsetY/pixel_size*1);
 					} else {
-						this.mouse_coords.x = event.offsetX/pixel_size*1;
-						this.mouse_coords.y = event.offsetY/pixel_size*1;
+						this.mouse_coords.x = Math.clamp(event.offsetX, 0, this.inner_width-0.1) / pixel_size*1;
+						this.mouse_coords.y = Math.clamp(event.offsetY, 0, this.inner_height-0.1) / pixel_size*1;
+
 						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
 							let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
 							this.mouse_coords.x = Math.floor(this.mouse_coords.x + offset);

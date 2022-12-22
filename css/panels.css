@@ -1358,15 +1358,17 @@
 	overflow: auto;
 }
 #animation_controller_presets {
-    width: 200px;
-    position: absolute;
-    margin: auto;
-    left: 0;
-    right: 0;
-    margin-top: 16px;
+	width: 240px;
+	position: absolute;
+	margin: auto;
+	left: 0;
+	right: 0;
+	margin-top: 16px;
 }
 #animation_controller_presets li {
     cursor: pointer;
+	margin-bottom: 2px;
+    text-decoration: underline;
 }
 #animation_controller_presets li:hover {
     color: var(--color-light);
