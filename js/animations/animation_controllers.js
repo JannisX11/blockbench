@@ -237,8 +237,15 @@ class AnimationControllerState {
 					let emitter = particle_effect.emitters[particle.uuid];
 					if (!emitter) {
 						emitter = particle_effect.emitters[particle.uuid] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
-						emitter.Molang.parse(particle.pre_effect_script, Animator.MolangParser.global_variables);
+
+						let old_variable_handler = emitter.Molang.variableHandler;
+						emitter.Molang.variableHandler = (key, params) => {
+							let curve_result = old_variable_handler.call(emitter, key, params);
+							if (curve_result !== undefined) return curve_result;
+							return Animator.MolangParser.variableHandler(key);
+						}
 					}
+					emitter.Molang.parse(particle.pre_effect_script, Animator.MolangParser.global_variables);
 
 					let locator = particle.locator && Locator.all.find(l => l.name == particle.locator)
 					if (locator) {

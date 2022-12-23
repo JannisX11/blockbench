@@ -699,6 +699,13 @@ class EffectAnimator extends GeneralAnimator {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
 								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
+								
+								let old_variable_handler = emitter.Molang.variableHandler;
+								emitter.Molang.variableHandler = (key, params) => {
+									let curve_result = old_variable_handler.call(emitter, key, params);
+									if (curve_result !== undefined) return curve_result;
+									return Animator.MolangParser.variableHandler(key);
+								}
 								emitter.on('start', ({params}) => {
 									let animation = Animation.all.find(a => a.uuid === anim_uuid);
 									let kf_now = animation?.animators.effects?.particle.find(kf2 => kf2.uuid == kf.uuid);

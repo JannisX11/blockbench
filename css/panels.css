@@ -1712,8 +1712,8 @@ span.controller_state_section_info {
 		margin-top: 3px;
 	}
 	#project_resolution_status {
-		margin: 3px;
-		padding: 1px 5px;
+		margin: 2px;
+		padding: 0px 5px;
 		pointer-events: auto;
 	}
 	#project_resolution_status:hover {
