@@ -101,6 +101,7 @@ class ModelFormat {
 		Undo.history.empty();
 		Undo.index = 0;
 		Project.export_path = '';
+		Project.unhandled_root_fields = {};
 
 		var old_format = Format;
 		this.select();

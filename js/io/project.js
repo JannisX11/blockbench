@@ -468,6 +468,10 @@ new Property(ModelProject, 'array', 'timeline_setups', {
 	exposed: false,
 	condition: () => Format.animation_mode,
 });
+new Property(ModelProject, 'object', 'unhandled_root_fields', {
+	exposed: false,
+	default: {}
+});
 
 
 ModelProject.all = [];
