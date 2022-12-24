@@ -1460,7 +1460,7 @@ class Preview {
 		quad_previews.enabled = false;
 		$('#preview > .quad_canvas_wrapper, #preview > .single_canvas_wrapper').remove()
 
-		var wrapper = $('<div class="single_canvas_wrapper"></div>')
+		var wrapper = Interface.createElement('div', {class: 'single_canvas_wrapper'});
 		wrapper.append(this.node)
 		$('#preview').append(wrapper)
 

@@ -691,16 +691,6 @@ function calculateVisibleBox() {
 		group.addTo(parent_group)
 	}
 	function parseGeometry(data) {
-		if (data === undefined) {
-			pe_list_data.forEach(function(s) {
-				if (s.selected === true) {
-					data = s
-				}
-			})
-			if (data == undefined) {
-				data = pe_list_data[0]
-			}
-		}
 
 		let {description} = data.object;
 		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
@@ -712,8 +702,7 @@ function calculateVisibleBox() {
 			Project.close().then(() =>  {
 				existing_tab.select();
 			});
-			pe_list_data.length = 0;
-			hideDialog()
+			if (Dialog.open) Dialog.open.hide();
 			return;
 		}
 
@@ -754,8 +743,7 @@ function calculateVisibleBox() {
 
 		codec.dispatchEvent('parsed', {model: data.object});
 
-		pe_list_data.length = 0;
-		hideDialog()
+		if (Dialog.open) Dialog.open.hide();
 
 		loadTextureDraggable()
 		Canvas.updateAllBones()

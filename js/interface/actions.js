@@ -1158,7 +1158,7 @@ class BarText extends Widget {
 		super(id, data);
 		this.type = 'bar_text'
 		this.icon = 'text_format'
-		this.node = $('<div class="tool widget bar_text">'+data.text||''+'</div>').get(0)
+		this.node = Interface.createElement('div', {class: 'tool widget bar_text'}, data.text);
 		if (data.right) {
 			this.node.classList.add('f_right');
 		}
@@ -1195,8 +1195,10 @@ class ColorPicker extends Widget {
 		var scope = this;
 		this.type = 'color_picker'
 		this.icon = 'color_lens'
-		this.node = $('<div class="tool widget"><input class="f_left" type="text"></div>').get(0)
-		this.addLabel()
+		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+			Interface.createElement('input', {class: 'f_left', type: 'text'})
+		]);
+		this.addLabel();
 		this.jq = $(this.node).find('input')
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange

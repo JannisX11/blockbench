@@ -286,7 +286,7 @@ function buildLines(dialog) {
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && (l.label || l.widget)) {
 
-			let bar = $('<div class="dialog_bar"></div>')
+			let bar = Interface.createElement('div', {class: 'dialog_bar'});
 			if (l.label) {
 				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label)+(l.nocolon?'':':'))
 				bar.append(label);
@@ -795,12 +795,6 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 
 		if (options.build) this.build = options.build;
 	}
-	confirm(event) {
-		this.close(this.confirmIndex, event);
-	}
-	cancel(event) {
-		this.close(this.cancelIndex, event);
-	}
 	close(button, event) {
 		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
 			let result = this.onConfirm(event);
@@ -824,7 +818,107 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 		}
 	}
 	delete() {
-		$(this.object).remove()
+		this.object.remove()
+	}
+}
+
+window.MessageBox = class MessageBox extends Dialog {
+	constructor(options, callback) {
+		super(options.id, options);
+		this.options = options;
+		if (!options.buttons) this.buttons = ['dialog.ok'];
+		this.callback = callback;
+	}
+	close(button, event) {
+		if (this.callback) this.callback(button, event);
+		this.hide();
+		this.delete();
+	}
+	build() {
+		let options = this.options;
+
+		if (options.translateKey) {
+			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
+			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
+		}
+		let content = Interface.createElement('div', {class: 'dialog_content'});
+		this.object = Interface.createElement('dialog', {class: 'dialog', style: 'width: auto;', id: 'message_box'}, [
+			Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title))),
+			Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear')),
+			content
+		]);
+		let jq_dialog = $(this.object);
+
+		if (options.message) {
+			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+				marked(tl(options.message))+
+			'</div></div>')[0]);
+		}
+		if (options.icon) {
+			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		if (options.commands) {
+			let list = Interface.createElement('ul');
+			for (let id in options.commands) {
+				let command = options.commands[id];
+				if (!Condition(command.condition)) continue;
+				let text = tl(typeof command == 'string' ? command : command.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				entry.addEventListener('click', e => {
+					this.close(id);
+				})
+				list.append(entry);
+			}
+			content.append(list);
+		}
+
+		// Buttons
+		if (this.buttons.length) {
+
+			let buttons = []
+			this.buttons.forEach((b, i) => {
+				let btn = $('<button type="button">'+tl(b)+'</button> ')
+				buttons.push(btn)
+				btn.on('click', (event) => {
+					this.close(i, event);
+				})
+			})
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			let button_bar = $('<div class="dialog_bar button_bar"></div>');
+
+			buttons.forEach((button, i) => {
+				if (i) button_bar.append('&nbsp;')
+				button_bar.append(button)
+			})
+
+			jq_dialog.append(button_bar[0]);
+		}
+
+		//Draggable
+		if (this.draggable !== false) {
+			jq_dialog.addClass('draggable')
+			jq_dialog.draggable({
+				handle: ".dialog_handle",
+				containment: '#page_wrapper'
+			})
+			this.object.style.position = 'absolute';
+		}
+
+		let x = (window.innerWidth-540)/2
+		this.object.style.left = x+'px';
+		this.object.style.position = 'absolute';
+
+		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px';
+		if (options.width) {
+			this.object.style.width = options.width+'px'
+		} else {
+			this.object.style.width = limitNumber((options.buttons ? options.buttons.length : 1) * 170+44, 380, 894)+'px';
+		}
+	}
+	delete() {
+		this.object.remove()
 	}
 }
 

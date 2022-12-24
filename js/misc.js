@@ -1,6 +1,5 @@
 var osfs = '/'
 var uv_clipboard;
-var pe_list_data = []
 var open_dialog = false;
 var open_interface = false;
 var tex_version = 1;

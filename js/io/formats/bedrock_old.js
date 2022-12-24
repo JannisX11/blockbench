@@ -1,17 +1,6 @@
 (function() {
 
 function parseGeometry(data) {
-	if (data === undefined) {
-		pe_list_data.forEach(function(s) {
-			if (s.selected === true) {
-				data = s
-			}
-		})
-		if (data == undefined) {
-			data = pe_list_data[0]
-		}
-	}
-
 	let geometry_name = data.name.replace(/^geometry\./, '');
 
 	let existing_tab = isApp && ModelProject.all.find(project => (
@@ -21,8 +10,7 @@ function parseGeometry(data) {
 		Project.close().then(() =>  {
 			existing_tab.select();
 		});
-		pe_list_data.length = 0;
-		hideDialog()
+		if (Dialog.open) Dialog.open.hide();
 		return;
 	}
 
@@ -127,8 +115,7 @@ function parseGeometry(data) {
 
 	codec.dispatchEvent('parsed', {model: data.object});
 
-	pe_list_data.length = 0;
-	hideDialog()
+	if (Dialog.open) Dialog.open.hide();
 
 	loadTextureDraggable()
 	Canvas.updateAllBones()

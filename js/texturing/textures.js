@@ -804,7 +804,6 @@ class Texture {
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
-			hideDialog()
 			if (UVEditor.texture == this) {
 				UVEditor.vue.updateTexture();
 			}
