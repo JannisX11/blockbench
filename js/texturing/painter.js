@@ -519,10 +519,11 @@ const Painter = {
 		ctx.restore();
 	},
 	useFilltool(texture, ctx, x, y, area) {
-		var color = tinycolor(ColorPanel.get()).toRgb();
+		let color = tinycolor(ColorPanel.get()).toRgb();
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
-		var fill_mode = BarItems.fill_mode.get()
-		var element = Painter.current.element;
+		let fill_mode = BarItems.fill_mode.get()
+		let blend_mode = BarItems.blend_mode.value;
+		let element = Painter.current.element;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
 		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
@@ -531,6 +532,7 @@ const Painter = {
 			ctx.globalCompositeOperation = 'destination-out';
 		} else {
 			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+			ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 			if (Painter.lock_alpha) {
 				ctx.globalCompositeOperation = 'source-atop';
 			}
@@ -614,7 +616,11 @@ const Painter = {
 					}
 					var result_color = pxcolor;
 					if (!Painter.erase_mode) {
-						result_color = Painter.combineColors(pxcolor, color, b_opacity);
+						if (blend_mode == 'default') {
+							result_color = Painter.combineColors(pxcolor, color, b_opacity);
+						} else {
+							result_color = Painter.blendColors(pxcolor, color, b_opacity, blend_mode);
+						}
 					} else if (!Painter.lock_alpha) {
 						if (b_opacity == 1) {
 							result_color.r = result_color.g = result_color.b = result_color.a = 0;
@@ -900,6 +906,7 @@ const Painter = {
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
 			let hollow = shape.substr(-1) == 'h';
+			let blend_mode = BarItems.blend_mode.value;
 			shape = shape.replace(/_h$/, '');
 
 			function drawShape(start_x, start_y, x, y, uvTag) {
@@ -921,6 +928,8 @@ const Painter = {
 					ctx.globalCompositeOperation = 'destination-out'
 				} else if (Painter.lock_alpha) {
 					ctx.globalCompositeOperation = 'source-atop';
+				} else {
+					ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 				}
 
 				if (shape === 'rectangle') {
@@ -941,7 +950,11 @@ const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
-								let result_color = Painter.combineColors(pxcolor, color, b_opacity);
+								if (blend_mode == 'default') {
+									result_color = Painter.combineColors(pxcolor, color, b_opacity);
+								} else {
+									result_color = Painter.blendColors(pxcolor, color, b_opacity, blend_mode);
+								}
 								if (Painter.lock_alpha) {
 									result_color = {
 										r: result_color.r,
@@ -1279,6 +1292,20 @@ const Painter = {
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
 	},
+	getBlendModeCompositeOperation() {
+		switch (BarItems.blend_mode.value) {
+			case 'set_opacity': return 'source-atop';
+			case 'color': return 'color';
+			case 'behind': return 'destination-over';
+			case 'multiply': return 'multiply';
+			//case 'divide': return 'color-burn';
+			case 'add': return 'lighter';
+			//case 'subtract': return 'darken';
+			case 'screen': return 'screen';
+			case 'difference': return 'difference';
+			default: return 'source-over';
+		}
+	},
 	getCanvas(texture) {
 		let canvas = texture instanceof Texture ? texture.canvas : document.createElement('canvas');
 		let ctx = canvas.getContext('2d');
@@ -1551,9 +1578,9 @@ const Painter = {
 					color: 'action.blend_mode.color',
 					behind: 'action.blend_mode.behind',
 					multiply: 'action.blend_mode.multiply',
-					divide: 'action.blend_mode.divide',
+					//divide: 'action.blend_mode.divide',
 					add: 'action.blend_mode.add',
-					subtract: 'action.blend_mode.subtract',
+					//subtract: 'action.blend_mode.subtract',
 					screen: 'action.blend_mode.screen',
 					difference: 'action.blend_mode.difference',
 				}},
@@ -2066,16 +2093,16 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('blend_mode', {
 		category: 'paint',
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes == true) || ['draw_shape_tool', 'fill_tool'].includes(Toolbox.selected.id))),
 		options: {
 			default: true,
 			set_opacity: true,
 			color: true,
 			behind: true,
 			multiply: true,
-			divide: true,
+			//divide: true,
 			add: true,
-			subtract: true,
+			//subtract: true,
 			screen: true,
 			difference: true,
 		}
