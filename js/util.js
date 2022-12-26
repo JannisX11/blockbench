@@ -417,9 +417,9 @@ Array.prototype.replace = function(items) {
 	return this;
 }
 Array.prototype.allAre = function(cb) {
-	return !this.find((item, index) => {
+	return this.findIndex((item, index) => {
 		return !cb(item, index);
-	})
+	}) === -1;
 }
 Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {

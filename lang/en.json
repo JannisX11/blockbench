@@ -1815,7 +1815,7 @@
 	"panel.bone.ik": "Inverse Kinematics (Experimental)",
 
 	"uv_editor.title": "UV Editor",
-	"uv_editor.face_properties": "Face Froperties",
+	"uv_editor.face_properties": "Face Properties",
 	"uv_editor.face_properties.material_instance": "Material Instance",
 	"uv_editor.tint.info": "Tint can be enabled on a face to tell the Minecraft to tint it. In vanilla, tint can only be used by specific blocks such as leaves and redstone dust, and can only have a value of 0.",
 	"uv_editor.cullface.info": "Enabling cullface tells a face on a block to unrender if another full block is placed next to it in the specified direction in your Minecraft world. This can be used to optimize performance.",

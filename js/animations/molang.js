@@ -66,6 +66,18 @@ Animator.MolangParser.global_variables = {
 		let distance = Preview.selected.camera.position.length() / 16;
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
+	'query.in_range'(value, min, max) {
+		return (value <= max && value >= min) ? 1 : 0;
+	},
+	'query.all'(value, ...to_compare) {
+		return to_compare.allAre(c => c == value) ? 1 : 0;
+	},
+	'query.any'(value, ...to_compare) {
+		return to_compare.findIndex(c => c == value) >= 0 ? 1 : 0;
+	},
+	'query.approx_eq'(value, ...to_compare) {
+		return to_compare.allAre(c => Math.epsilon(value, c, 0.0000001)) ? 1 : 0;
+	},
 	get 'time'() {
 		return Timeline.time;
 	}
@@ -363,6 +375,12 @@ Animator.MolangParser.variableHandler = function (variable) {
 		'wing_flap_position',
 		'wing_flap_speed',
 	];
+	let MolangQueryLabels = {
+		'in_range()': 'in_range( value, min, max )',
+		'all()': 'in_range( value, values... )',
+		'any()': 'in_range( value, values... )',
+		'approx_eq()': 'in_range( value, values... )',
+	};
 	let DefaultContext = [
 		'item_slot',
 		'block_face',
@@ -457,7 +475,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 				return filterAndSortList(MathFunctions, dir, null, MathFunctionLabels);
 			}
 			if (namespace == 'query' || namespace == 'q') {
-				return filterAndSortList(MolangQueries, dir, type !== 'controller' && ['all_animations_finished', 'any_animation_finished']);
+				return filterAndSortList(MolangQueries, dir, type !== 'controller' && ['all_animations_finished', 'any_animation_finished'], MolangQueryLabels);
 			}
 			if (namespace == 'temp' || namespace == 't') {
 				let temps = text.match(/([^a-z]|^)t(emp)?\.\w+/gi);
