@@ -410,7 +410,7 @@ const UVEditor = {
 	updateSize() {
 		this.vue.updateSize();
 	},
-	setFace(face, update = true) {
+	setFace(face) {
 		this.vue.selected_faces.replace([face]);
 		return this;
 	},

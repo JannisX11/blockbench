@@ -413,7 +413,6 @@ const TextureGenerator = {
 				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
-				delete Painter.current.canvas;
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
@@ -1193,7 +1192,6 @@ const TextureGenerator = {
 				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
-				delete Painter.current.canvas;
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);

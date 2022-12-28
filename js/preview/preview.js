@@ -757,15 +757,7 @@ class Preview {
 
 			let select_mode = BarItems.selection_mode.value
 
-			if (data.element && data.element.locked) {
-				$('#preview').css('cursor', 'not-allowed')
-				function resetCursor() {
-					$('#preview').css('cursor', (Toolbox.selected.cursor ? Toolbox.selected.cursor : 'default'))
-					removeEventListeners(document, 'mouseup touchend', resetCursor, false)
-				}
-				addEventListeners(document, 'mouseup touchend', resetCursor, false)
-
-			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace && data.face) {
 					if (data.element instanceof Mesh && select_mode == 'face' && (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
 						UVEditor.vue.selected_faces.safePush(data.face)

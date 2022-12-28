@@ -478,6 +478,7 @@
 		padding-right: 5px;
 		padding-left: 5px;
 		pointer-events: none;
+		color: inherit;
 	}
 	.outliner_object > input.renaming {
 		pointer-events: auto;

@@ -7,7 +7,7 @@ const Painter = {
 	mirror_painting: false,
 	lock_alpha: false,
 	erase_mode: false,
-	edit(texture, cb, options) {
+	edit(texture, callback, options) {
 		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
@@ -16,40 +16,38 @@ const Painter = {
 			texture.mode = 'bitmap'
 			texture.saved = false
 		}
-		var instance = Painter.current.canvas;
+		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
-		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
+		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
+		let canvas;
 
 		if (options.use_cache &&
-			texture === Painter.current.texture &&
-			typeof instance === 'object'
+			Painter.current.cached_canvases[texture.uuid]
 		) {
 			//IS CACHED
-			instance = cb(instance) || instance
+			canvas = Painter.current.cached_canvases[texture.uuid];
+			Painter.current.ctx = canvas.getContext('2d');
+			callback(canvas);
 			if (options.no_update === true) {
 				return;
 			}
-
-			if (options.no_undo) {
-				let map = texture.getMaterial().map
-				map.image = Painter.current.canvas;
-				map.needsUpdate = true;
-				texture.display_canvas = true;
-				UVEditor.vue.updateTextureCanvas();
-			} else {
-				texture.updateSource(instance.toDataURL())
-				if (!options.no_undo_finish) {
-					Undo.finishEdit(edit_name)
-				}
-			}
 		} else {
+			//IS UNCACHED
 			Painter.current.texture = texture
-			var c = Painter.current.canvas = Painter.getCanvas(texture)
-			Painter.current.ctx = c.getContext('2d');
-			c = cb(c) || c;
+			canvas = Painter.current.cached_canvases[texture.uuid] = Painter.getCanvas(texture);
+			Painter.current.ctx = canvas.getContext('2d');
+			callback(canvas);
+		}
 
-			texture.updateSource(c.toDataURL())
-			if (!options.no_undo && !options.no_undo_finish) {
+		if (options.no_undo) {
+			let map = texture.getMaterial().map;
+			map.image = canvas;
+			map.needsUpdate = true;
+			texture.display_canvas = true;
+			UVEditor.vue.updateTextureCanvas();
+		} else {
+			texture.updateSource(canvas.toDataURL())
+			if (!options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
 		}
@@ -226,6 +224,7 @@ const Painter = {
 				Painter.current.face = data.face
 				Painter.current.element = data.element
 				new_face = true
+				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture) {
 					Undo.current_save.addTexture(texture)
 				}
@@ -355,6 +354,7 @@ const Painter = {
 		}
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
+		delete Painter.current.cached_canvases;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -1805,9 +1805,6 @@ BARS.defineActions(function() {
 			offset_even_radius: true,
 			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
-					if (!Painter.current.canvas) {
-						Painter.current.canvas = Painter.getCanvas(texture);
-					}
 					let size = BarItems.slider_brush_size.get();
 					copy_source = {
 						data: texture.canvas.getContext('2d').getImageData(0, 0, texture.width, texture.height).data,

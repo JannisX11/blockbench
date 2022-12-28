@@ -1109,9 +1109,6 @@ class Texture {
 							break;
 					}
 
-					if (Painter.current && Painter.current.canvas) {
-						delete Painter.current.canvas;
-					}
 					scope.keep_size = true;
 					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
