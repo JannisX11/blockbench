@@ -66,18 +66,6 @@ Animator.MolangParser.global_variables = {
 		let distance = Preview.selected.camera.position.length() / 16;
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
-	'query.in_range'(value, min, max) {
-		return (value <= max && value >= min) ? 1 : 0;
-	},
-	'query.all'(value, ...to_compare) {
-		return to_compare.allAre(c => c == value) ? 1 : 0;
-	},
-	'query.any'(value, ...to_compare) {
-		return to_compare.findIndex(c => c == value) >= 0 ? 1 : 0;
-	},
-	'query.approx_eq'(value, ...to_compare) {
-		return to_compare.allAre(c => Math.epsilon(value, c, 0.0000001)) ? 1 : 0;
-	},
 	get 'time'() {
 		return Timeline.time;
 	}

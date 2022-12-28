@@ -1378,7 +1378,7 @@ Interface.definePanels(function() {
 							</div>
 						</div>
 
-						<ul class="list">
+						<ul class="list" :style="{overflow: keyframes[0].data_points.length > 1 ? 'auto' : 'visible'}">
 
 							<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
 

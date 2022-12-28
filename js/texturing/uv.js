@@ -1264,7 +1264,7 @@ const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', children: () => {
+		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
 			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,
@@ -1652,7 +1652,7 @@ BARS.defineActions(function() {
 	new Toggle('paint_mode_uv_overlay', {
 		icon: 'splitscreen',
 		category: 'animation',
-		condition: {modes: ['paint']},
+		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
 		}
