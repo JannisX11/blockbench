@@ -24,6 +24,5 @@
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
 	"display": "standalone",
-	"display_override": ["tabbed", "minimal-ui"],
-	"orientation": "any"
+	"display_override": ["tabbed", "minimal-ui"]
 }

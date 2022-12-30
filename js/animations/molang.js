@@ -108,7 +108,10 @@ Animator.MolangParser.variableHandler = function (variable) {
 		'temp.',	//'t.',
 		'context.',	//'c.',
 		'this',
+		'loop()',
 		'return',
+		'break',
+		'continue',
 	]
 	let MolangQueries = [
 		// common
