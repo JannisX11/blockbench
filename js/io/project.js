@@ -48,12 +48,13 @@ class ModelProject {
 		this.groups = [];
 		this.selected_elements = [];
 		this.selected_group = null;
-		this.selected_vertices = {};
+		this.mesh_selection = {};
 		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
 		this.animations = [];
+		this.animation_controllers = [];
 		this.timeline_animators = [];
 		this.display_settings = {};
 
@@ -103,6 +104,12 @@ class ModelProject {
 	}
 	set saved(saved) {
 		this._saved = saved;
+
+		// Dispatch an event to allow other scripts to react to the change
+		Blockbench.dispatchEvent('saved_state_changed', { 
+			project: this, 
+			saved: saved
+		});
 		if (Project == this) {
 			setProjectTitle(this.name);
 		}
@@ -178,17 +185,22 @@ class ModelProject {
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
-		UVEditor.vue.selected_vertices = this.selected_vertices;
+		UVEditor.vue.selected_vertices = {};
 		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
+		for (let uuid in this.mesh_selection) {
+			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
+		}
 
 		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
 
-		Interface.Panels.animations.inside_vue.animations = this.animations;
+		Panels.animations.inside_vue.animations = this.animations;
+		Panels.animations.inside_vue.animation_controllers = this.animation_controllers;
 		Timeline.animators = Timeline.vue.animators = [];
 		Animation.selected = null;
+		AnimationController.selected = null;
 		let selected_anim = this.animations.find(anim => anim.selected);
 		if (selected_anim) selected_anim.select();
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
@@ -263,14 +275,16 @@ class ModelProject {
 		Blockbench.removeFlag('switching_project');
 		return true;
 	}
+	updateThumbnail() {
+		if (!Format.image_editor) {
+			this.thumbnail = Preview.selected.canvas.toDataURL();
+		} else if (Texture.all.length) {
+			this.thumbnail = Texture.getDefault()?.source;
+		}
+	}
 	unselect(closing) {
 		if (!closing) {
-			if (!Format.image_editor) {
-				this.thumbnail = Preview.selected.canvas.toDataURL();
-			} else if (Texture.all.length) {
-				this.thumbnail = Texture.getDefault()?.source;
-			}
-
+			this.updateThumbnail();
 			this.saveEditorState();
 		}
 		
@@ -366,6 +380,8 @@ class ModelProject {
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();
+			} else if (last_selected == 0) {
+				Interface.tab_bar.openNewTab();
 			} else if (ModelProject.all.length) {
 				ModelProject.all[Math.clamp(index, 0, ModelProject.all.length-1)].select();
 			} else {
@@ -451,6 +467,10 @@ new Property(ModelProject, 'string', 'skin_pose', {
 new Property(ModelProject, 'array', 'timeline_setups', {
 	exposed: false,
 	condition: () => Format.animation_mode,
+});
+new Property(ModelProject, 'object', 'unhandled_root_fields', {
+	exposed: false,
+	default: {}
 });
 
 
@@ -611,7 +631,7 @@ onVueSetup(() => {
 			drag_target_index: null,
 			drag_position_index: null,
 			close_tab_label: tl('projects.close_tab'),
-			search_tabs_label: tl('generic.search'),
+			search_tabs_label: tl('action.tab_overview'),
 			last_opened_project: '',
 			new_tab
 		},
@@ -632,8 +652,8 @@ onVueSetup(() => {
 				this.new_tab.select();
 				setStartScreen(true);
 			},
-			searchTabs() {
-				ActionControl.select('tab: ');
+			tabOverview() {
+				BarItems.tab_overview.trigger();
 			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
@@ -1029,6 +1049,60 @@ BARS.defineActions(function() {
 				target = ModelProject.all[index+1] || ModelProject.all[0];
 			}
 			if (target) target.select();
+		}
+	})
+	new Action('tab_overview', {
+		icon: 'view_module',
+		category: 'file',
+		condition: () => ModelProject.all.length,
+		click(event) {
+			if (Project) Project.updateThumbnail();
+
+			let dialog = new ShapelessDialog('tab_overview', {
+				component: {
+					data() {return {
+						search_term: '',
+						projects: ModelProject.all
+					}},
+					methods: {
+						select(project) {
+							Dialog.open.confirm();
+							project.select();
+						}
+					},
+					computed: {
+						filtered_projects() {
+							if (!this.search_term) return this.projects;
+							let term = this.search_term.toLowerCase();
+							return this.projects.filter(project => {
+								return project.name.toLowerCase().includes(term) || project.model_identifier?.toLowerCase().includes(term);
+							})
+						}
+					},
+					template: `
+						<div id="tab_overview">
+							<div id="tab_overview_search">
+								<search-bar id="tab_overview_search_bar" v-model="search_term"></search-bar>
+							</div>
+							<ul id="tab_overview_grid">
+								<li v-for="project in filtered_projects" @mousedown="select(project)">
+									<img :src="project.thumbnail" :style="{visibility: project.thumbnail ? 'unset' : 'hidden'}">
+									{{ project.name }}
+								</li>
+							</ul>
+						</div>
+					`
+				},
+				onConfirm() {
+					let projects = this.content_vue.filtered_projects;
+					if (this.content_vue.search_term) {
+						projects[0].select();
+					}
+				}
+			}).show();
+			Vue.nextTick(() => {
+				document.querySelector('#tab_overview_search input')?.focus()
+			})
 		}
 	})
 })

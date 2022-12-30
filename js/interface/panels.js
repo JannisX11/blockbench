@@ -635,6 +635,15 @@ function updateSidebarOrder() {
 		});
 	})
 }
+function updatePanelSelector() {
+	if (!Blockbench.isMobile) return;
+
+	Interface.PanelSelectorVue.$forceUpdate();
+	let bottom_panel = Interface.getBottomPanel();
+	if (bottom_panel && !Condition(bottom_panel.display_condition)) {
+		Interface.PanelSelectorVue.select(null);
+	}
+}
 
 function setActivePanel(panel) {
 	Prop.active_panel = panel
@@ -677,33 +686,8 @@ function setupMobilePanelSelector() {
 						resizeWindow();
 					}
 				},
-				openKeyboardMenu(event) {
-					if (Menu.closed_in_this_click == 'mobile_keyboard') return;
-					
-					let modifiers = ['ctrl', 'shift', 'alt'];
-					let menu = new Menu('mobile_keyboard', [
-						...modifiers.map(key => {
-							let name = tl(`keys.${key}`);
-							if (Interface.status_bar.vue.modifier_keys[key].length) {
-								name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
-							}
-							return {
-								name,
-								icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
-								click() {
-									Pressing.overrides[key] = !Pressing.overrides[key]
-								}
-							}
-						}),
-						'_',
-						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
-							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
-							return length;
-						}, click() {
-							Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
-						}},
-					])
-					menu.open(this.$refs.mobile_keyboard_menu)
+				openKeyboardMenu() {
+					openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 				},
 				Condition,
 				getIconNode: Blockbench.getIconNode
@@ -716,7 +700,7 @@ function setupMobilePanelSelector() {
 					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
 					</div>
-					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 						<i class="material-icons">keyboard</i>
 					</div>
 				</div>`

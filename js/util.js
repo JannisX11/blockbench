@@ -40,6 +40,34 @@ const Condition = function(condition, context) {
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
+		if (condition.selected) {
+			if (condition.selected.animation === true && !Animation.selected) return false;
+			if (condition.selected.animation === false && Animation.selected) return false;
+			if (condition.selected.animation_controller === true && !AnimationController.selected) return false;
+			if (condition.selected.animation_controller === false && AnimationController.selected) return false;
+			if (condition.selected.animation_controller_state === true && !(AnimationController.selected?.selected_state)) return false;
+			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
+			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
+			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
+			if (condition.selected.group === true && !Group.selected) return false;
+			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.texture === true && !Texture.selected) return false;
+			if (condition.selected.texture === false && Texture.selected) return false;
+			if (condition.selected.element === true && !Outliner.selected.length) return false;
+			if (condition.selected.element === false && Outliner.selected.length) return false;
+			if (condition.selected.cube === true && !Cube.selected.length) return false;
+			if (condition.selected.cube === false && Cube.selected.length) return false;
+			if (condition.selected.mesh === true && !Mesh.selected.length) return false;
+			if (condition.selected.mesh === false && Mesh.selected.length) return false;
+			if (condition.selected.locatlr === true && !Locator.selected.length) return false;
+			if (condition.selected.locatlr === false && Locator.selected.length) return false;
+			if (condition.selected.null_object === true && !NullObject.selected.length) return false;
+			if (condition.selected.null_object === false && NullObject.selected.length) return false;
+			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
+			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
+			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
+			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
+		}
 		if (condition.project && !Project) return false;
 
 		if (condition.method instanceof Function) {
@@ -56,6 +84,12 @@ Condition.mutuallyExclusive = function(a, b) {
 	if (a.tools && b.tools && a.tools.overlap(b.tools) == 0) return true;
 	if (a.formats && b.formats && a.formats.overlap(b.formats) == 0) return true;
 	if (a.features && b.features && a.features.overlap(b.features) == 0) return true;
+	if (a.selected && b.selected) {
+		for (let key in a.selected) {
+			if (a.selected[key] === true && b.selected[key] === false) return true;
+			if (a.selected[key] === false && b.selected[key] === true) return true;
+		}
+	}
 	return false;
 }
 
@@ -388,9 +422,9 @@ Array.prototype.replace = function(items) {
 	return this;
 }
 Array.prototype.allAre = function(cb) {
-	return !this.find((item, index) => {
+	return this.findIndex((item, index) => {
 		return !cb(item, index);
-	})
+	}) === -1;
 }
 Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {

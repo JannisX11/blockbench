@@ -7,7 +7,7 @@ const Painter = {
 	mirror_painting: false,
 	lock_alpha: false,
 	erase_mode: false,
-	edit(texture, cb, options) {
+	edit(texture, callback, options) {
 		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
@@ -16,41 +16,38 @@ const Painter = {
 			texture.mode = 'bitmap'
 			texture.saved = false
 		}
-		var instance = Painter.current.canvas;
-		Painter.current.canvas = undefined
+		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
-		var edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
+		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
+		let canvas;
 
 		if (options.use_cache &&
-			texture === Painter.current.texture &&
-			typeof instance === 'object'
+			Painter.current.cached_canvases[texture.uuid]
 		) {
 			//IS CACHED
-			instance = cb(instance) || instance
+			canvas = Painter.current.cached_canvases[texture.uuid];
+			Painter.current.ctx = canvas.getContext('2d');
+			callback(canvas);
 			if (options.no_update === true) {
 				return;
 			}
-
-			if (options.no_undo) {
-				let map = texture.getMaterial().map
-				map.image = Painter.current.canvas;
-				map.needsUpdate = true;
-				texture.display_canvas = true;
-				UVEditor.vue.updateTextureCanvas();
-			} else {
-				texture.updateSource(instance.toDataURL())
-				if (!options.no_undo_finish) {
-					Undo.finishEdit(edit_name)
-				}
-			}
 		} else {
+			//IS UNCACHED
 			Painter.current.texture = texture
-			var c = Painter.current.canvas = Painter.getCanvas(texture)
-			Painter.current.ctx = c.getContext('2d');
-			c = cb(c) || c;
+			canvas = Painter.current.cached_canvases[texture.uuid] = Painter.getCanvas(texture);
+			Painter.current.ctx = canvas.getContext('2d');
+			callback(canvas);
+		}
 
-			texture.updateSource(c.toDataURL())
-			if (!options.no_undo && !options.no_undo_finish) {
+		if (options.no_undo) {
+			let map = texture.getMaterial().map;
+			map.image = canvas;
+			map.needsUpdate = true;
+			texture.display_canvas = true;
+			UVEditor.vue.updateTextureCanvas();
+		} else {
+			texture.updateSource(canvas.toDataURL())
+			if (!options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
 		}
@@ -113,6 +110,43 @@ const Painter = {
 			x = Math.floor(x + offset);
 			y = Math.floor(y + offset);
 		}
+
+		if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+			let ctx = Painter.getCanvas(texture).getContext('2d');
+			let color = Painter.getPixelColor(ctx, x, y);
+			if (color.getAlpha() < 0.004) {
+
+				data.intersects.shift();
+				while (data.intersects.length && !data.intersects[0].object.isElement) {
+					data.intersects.shift();
+				}
+				if (!data.intersects[0]) return;
+				let intersect_object = data.intersects[0].object
+				let element = OutlinerNode.uuids[intersect_object.name]
+				let face;
+				if (element instanceof Cube) {
+					face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
+				} else if (element instanceof Mesh) {
+					let index = data.intersects[0].faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+						if (vertices.length < 3) continue;
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
+						if (vertices.length == 3) index -= 1;
+						if (vertices.length == 4) index -= 2;
+					}
+				}
+				data.element = element;
+				data.face = face;
+				Painter.startPaintToolCanvas(data, e);
+				return;
+			}
+		}
+
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
 		if (Toolbox.selected.id !== 'color_picker') {
@@ -120,9 +154,9 @@ const Painter = {
 			addEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
 		}
 	},
-	movePaintToolCanvas(event) {
+	movePaintToolCanvas(event, data) {
 		convertTouchEvent(event);
-		var data = Canvas.raycast(event)
+		if (!data) data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked) {
 			var texture = data.element.faces[data.face].getTexture();
 			if (!texture) return;
@@ -141,6 +175,43 @@ const Painter = {
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
+
+			if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+				let ctx = Painter.current.ctx;
+				let color = Painter.getPixelColor(ctx, x, y);
+				if (color.getAlpha() < 0.004) {
+	
+					data.intersects.shift();
+					while (data.intersects.length && !data.intersects[0].object.isElement) {
+						data.intersects.shift();
+					}
+					if (!data.intersects[0]) return;
+					let intersect_object = data.intersects[0].object
+					let element = OutlinerNode.uuids[intersect_object.name]
+					let face;
+					if (element instanceof Cube) {
+						face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
+					} else if (element instanceof Mesh) {
+						let index = data.intersects[0].faceIndex;
+						for (let key in element.faces) {
+							let {vertices} = element.faces[key];
+							if (vertices.length < 3) continue;
+	
+							if (index == 0 || (index == 1 && vertices.length == 4)) {
+								face = key;
+								break; 
+							}
+							if (vertices.length == 3) index -= 1;
+							if (vertices.length == 4) index -= 2;
+						}
+					}
+					data.element = element;
+					data.face = face;
+					Painter.movePaintToolCanvas(event, data);
+					return;
+				}
+			}
+
 			if (
 				Painter.current.element !== data.element ||
 				(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
@@ -153,6 +224,7 @@ const Painter = {
 				Painter.current.face = data.face
 				Painter.current.element = data.element
 				new_face = true
+				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture) {
 					Undo.current_save.addTexture(texture)
 				}
@@ -282,6 +354,7 @@ const Painter = {
 		}
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
+		delete Painter.current.cached_canvases;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -446,10 +519,11 @@ const Painter = {
 		ctx.restore();
 	},
 	useFilltool(texture, ctx, x, y, area) {
-		var color = tinycolor(ColorPanel.get()).toRgb();
+		let color = tinycolor(ColorPanel.get()).toRgb();
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
-		var fill_mode = BarItems.fill_mode.get()
-		var element = Painter.current.element;
+		let fill_mode = BarItems.fill_mode.get()
+		let blend_mode = BarItems.blend_mode.value;
+		let element = Painter.current.element;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
 		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
@@ -458,6 +532,7 @@ const Painter = {
 			ctx.globalCompositeOperation = 'destination-out';
 		} else {
 			ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+			ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 			if (Painter.lock_alpha) {
 				ctx.globalCompositeOperation = 'source-atop';
 			}
@@ -541,7 +616,11 @@ const Painter = {
 					}
 					var result_color = pxcolor;
 					if (!Painter.erase_mode) {
-						result_color = Painter.combineColors(pxcolor, color, b_opacity);
+						if (blend_mode == 'default') {
+							result_color = Painter.combineColors(pxcolor, color, b_opacity);
+						} else {
+							result_color = Painter.blendColors(pxcolor, color, b_opacity, blend_mode);
+						}
 					} else if (!Painter.lock_alpha) {
 						if (b_opacity == 1) {
 							result_color.r = result_color.g = result_color.b = result_color.a = 0;
@@ -827,6 +906,7 @@ const Painter = {
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
 			let hollow = shape.substr(-1) == 'h';
+			let blend_mode = BarItems.blend_mode.value;
 			shape = shape.replace(/_h$/, '');
 
 			function drawShape(start_x, start_y, x, y, uvTag) {
@@ -848,6 +928,8 @@ const Painter = {
 					ctx.globalCompositeOperation = 'destination-out'
 				} else if (Painter.lock_alpha) {
 					ctx.globalCompositeOperation = 'source-atop';
+				} else {
+					ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 				}
 
 				if (shape === 'rectangle') {
@@ -868,7 +950,11 @@ const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
-								let result_color = Painter.combineColors(pxcolor, color, b_opacity);
+								if (blend_mode == 'default') {
+									result_color = Painter.combineColors(pxcolor, color, b_opacity);
+								} else {
+									result_color = Painter.blendColors(pxcolor, color, b_opacity, blend_mode);
+								}
 								if (Painter.lock_alpha) {
 									result_color = {
 										r: result_color.r,
@@ -1206,6 +1292,20 @@ const Painter = {
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
 	},
+	getBlendModeCompositeOperation() {
+		switch (BarItems.blend_mode.value) {
+			case 'set_opacity': return 'source-atop';
+			case 'color': return 'color';
+			case 'behind': return 'destination-over';
+			case 'multiply': return 'multiply';
+			//case 'divide': return 'color-burn';
+			case 'add': return 'lighter';
+			//case 'subtract': return 'darken';
+			case 'screen': return 'screen';
+			case 'difference': return 'difference';
+			default: return 'source-over';
+		}
+	},
 	getCanvas(texture) {
 		let canvas = texture instanceof Texture ? texture.canvas : document.createElement('canvas');
 		let ctx = canvas.getContext('2d');
@@ -1478,9 +1578,9 @@ const Painter = {
 					color: 'action.blend_mode.color',
 					behind: 'action.blend_mode.behind',
 					multiply: 'action.blend_mode.multiply',
-					divide: 'action.blend_mode.divide',
+					//divide: 'action.blend_mode.divide',
 					add: 'action.blend_mode.add',
-					subtract: 'action.blend_mode.subtract',
+					//subtract: 'action.blend_mode.subtract',
 					screen: 'action.blend_mode.screen',
 					difference: 'action.blend_mode.difference',
 				}},
@@ -1705,9 +1805,6 @@ BARS.defineActions(function() {
 			offset_even_radius: true,
 			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
-					if (!Painter.current.canvas) {
-						Painter.current.canvas = Painter.getCanvas(texture);
-					}
 					let size = BarItems.slider_brush_size.get();
 					copy_source = {
 						data: texture.canvas.getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
@@ -1993,16 +2090,16 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('blend_mode', {
 		category: 'paint',
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.blend_modes == true) || ['draw_shape_tool', 'fill_tool'].includes(Toolbox.selected.id))),
 		options: {
 			default: true,
 			set_opacity: true,
 			color: true,
 			behind: true,
 			multiply: true,
-			divide: true,
+			//divide: true,
 			add: true,
-			subtract: true,
+			//subtract: true,
 			screen: true,
 			difference: true,
 		}

@@ -191,6 +191,24 @@ display_presets = [
 			scale: [ 0.68, 0.68, 0.68 ]
 		}
 	}
+	},
+	{id: 'armor_stand', fixed: true, areas: {
+		thirdperson_righthand: {
+			rotation: [ 90, 0, 0 ],
+			translation: [ -6, -2, -4 ],
+			scale: [ 1, 1, 1 ]
+		},
+		thirdperson_lefthand: {
+			rotation: [ 90, 0, 0 ],
+			translation: [ -6, -2, -4 ],
+			scale: [ 1, 1, 1 ]
+		},
+		head: {
+			rotation: [ 0, 0, 0 ],
+			translation: [ 0, -30.4, 0 ],
+			scale: [ 1.6, 1.6, 1.6 ]
+		}
+	}
 	}
 ]
 if (localStorage.getItem('display_presets') != null) {
@@ -1276,25 +1294,6 @@ DisplayMode.applyPreset = function(preset, all) {
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
 }
-DisplayMode.createPreset = function() {
-	var name = $('input#preset_name').val()
-	if (name == '') {
-		$('input#preset_name').val(tl('display.preset.blank_name'))
-		return;
-	} else {
-		$('input#preset_name').val('new preset')
-	}
-	var preset = {name: name, areas: {}}
-	display_presets.push(preset)
-
-	displayReferenceObjects.slots.forEach(function(s) {
-		if ($('#'+s+'_save').is(':checked') && Project.display_settings[s]) {
-			preset.areas[s] = Project.display_settings[s].copy()
-		}
-	})
-	hideDialog()
-	localStorage.setItem('display_presets', JSON.stringify(display_presets))
-}
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
@@ -1505,44 +1504,45 @@ DisplayMode.scrollSlider = function(type, value, el) {
 }
 
 window.changeDisplaySkin = function() {
-	var buttons = [
-		tl('message.display_skin.upload'),
-		tl('message.display_skin.reset')
-	]
-	if (isApp) {
-		buttons.splice(1, 0, tl('message.display_skin.name'))
-	}
-	buttons.push('dialog.cancel');
+	var commands = {
+		file: tl('message.display_skin.upload'),
+		name: isApp ? tl('message.display_skin.name') : undefined,
+		reset: tl('message.display_skin.reset'),
+	};
 	Blockbench.showMessageBox({
 		translateKey: 'display_skin',
 		icon: 'icon-player',
-		buttons: buttons,
-		confirm: 0,
-		cancel: buttons.length-1,
-	}, function(result) {
-		if (result === 0) {
+		commands,
+		buttons: ['dialog.cancel'],
+	}, (result) => {
+		if (result === 'file') {
 			Blockbench.import({
 				resource_id: 'minecraft_skin',
 				extensions: ['png'],
 				type: 'PNG Player Skin',
 				readtype: 'image'
-			}, function(files) {
+			}, (files) => {
 
+				let img_content = isApp ? files[0].path : files[0].content;
+				let img = new Image();
+				img.src = img_content;
 				Blockbench.showMessageBox({
 					translateKey: 'display_skin_model',
-					icon: 'icon-player',
-					buttons: [
-						tl('message.display_skin_model.classic'),
-						tl('message.display_skin_model.slim')
-					]
-				}, function(slim) {
-					if (files.length) {
-						settings.display_skin.value = (slim?'S':'C') +','+ (isApp ? files[0].path : files[0].content)
-						updateDisplaySkin()
+					icon: img,
+					commands: {
+						classic: tl('message.display_skin_model.classic'),
+						slim: tl('message.display_skin_model.slim')
+					},
+					buttons: ['dialog.cancel'],
+				}, (type) => {
+					if (files.length && type) {
+						settings.display_skin.value = (type == 'slim'?'S':'C') +','+ img_content;
+						updateDisplaySkin(true);
+						Settings.saveLocalStorages();
 					}
 				})
 			})
-		} else if (result === 1 && isApp) {
+		} else if (result === 'name' && isApp) {
 			if (typeof settings.display_skin.value === 'string' && settings.display_skin.value.substr(0, 9) === 'username:') {
 				var before = settings.display_skin.value.replace('username:', '')
 			} else {
@@ -1550,15 +1550,17 @@ window.changeDisplaySkin = function() {
 			}
 			Blockbench.textPrompt(tl('message.display_skin.name'), before, function(text) {
 				settings.display_skin.value = 'username:'+text
-				updateDisplaySkin()
+				updateDisplaySkin(true);
+				Settings.saveLocalStorages();
 			})
-		} else if (result < buttons.length-1) {
-			settings.display_skin.value = false
-			updateDisplaySkin()
+		} else if (result === 'reset') {
+			settings.display_skin.value = false;
+			updateDisplaySkin(true);
+			Settings.saveLocalStorages();
 		}
 	})
 }
-function updateDisplaySkin() {
+function updateDisplaySkin(feedback) {
 	var val = settings.display_skin.value
 	function setPSkin(skin, slim) {
 		if (!displayReferenceObjects.refmodels.player.material) {
@@ -1596,18 +1598,19 @@ function updateDisplaySkin() {
 						setPSkin(skin_path, is_slim)
 					}
 				})
+			} else if (feedback) {
+				Blockbench.showQuickMessage(tl('message.display_skin.invalid_name', [username]), 2000);
 			}
 		})
 	} else {
 		if (val.substr(1,1) === ',') {
-			var slim = val.substr(0,1) === 'S'
-			val = val.substr(2)
+			var slim = val.substr(0,1) === 'S';
+			val = val.substr(2);
 		} else {
-			var slim = false
+			var slim = false;
 		}
-		setPSkin(val, slim)
+		setPSkin(`${val}?${Math.floor(Math.random()*99)}`, slim);
 	}
-	//displayReferenceObjects.refmodels.player.material
 }
 
 BARS.defineActions(function() {
@@ -1615,7 +1618,41 @@ BARS.defineActions(function() {
 		icon: 'add',
 		category: 'display',
 		condition: () => display_mode,
-		click: function () {showDialog('create_preset')}
+		click() {
+			new Dialog({
+				id: 'display_preset',
+				title: 'dialog.display_preset.title',
+				width: 300,
+				form: {
+					name: {label: 'generic.name', type: 'text', placeholder: tl('display.preset.blank_name')},
+					_: '_',
+
+					info: {type: 'info', text: 'dialog.display_preset.message'},
+					third_right: {type: 'checkbox', label: 'display.slot.third_right', value: true},
+					third_left: {type: 'checkbox', label: 'display.slot.third_left', value: true},
+					first_right: {type: 'checkbox', label: 'display.slot.first_right', value: true},
+					first_left: {type: 'checkbox', label: 'display.slot.first_left', value: true},
+					head: {type: 'checkbox', label: 'display.slot.head', value: true},
+					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
+					frame: {type: 'checkbox', label: 'display.slot.frame', value: true},
+					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
+				},
+				onConfirm(form_data) {
+					let preset = {
+						name: name || tl('display.preset.blank_name'),
+						areas: {}
+					}
+					display_presets.push(preset);
+
+					displayReferenceObjects.slots.forEach((s) => {
+						if (form_data[s] && Project.display_settings[s]) {
+							preset.areas[s] = Project.display_settings[s].copy();
+						}
+					})
+					localStorage.setItem('display_presets', JSON.stringify(display_presets));
+				}
+			}).show();
+		}
 	})
 	new Action('apply_display_preset', {
 		icon: 'fa-list',
@@ -1634,6 +1671,7 @@ BARS.defineActions(function() {
 						case 'block': icon = 'fa-cube'; break;
 						case 'handheld': icon = 'build'; break;
 						case 'rod': icon = 'remove'; break;
+						case 'armor_stand': icon = 'icon-armor_stand'; break;
 					}
 				}
 				presets.push({
@@ -1805,26 +1843,24 @@ Interface.definePanels(function() {
 							<p>${ tl('display.rotation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes">
-							<input type="range" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
+						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
 							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.rotation[axis]" min="-180" max="180" step="0.5" value="0" @input="change(axis, 'rotation')" @focusout="focusout(axis, 'rotation');save()" @mousedown="start()">
-							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
 						<div class="bar display_slot_section_bar">
 							<p>${ tl('display.translation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
 							</div>
-						<div class="bar slider_input_combo" v-for="axis in axes">
-							<input type="range" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
+						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 								v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
 								value="0" @input="change(axis, 'translation')" @mousedown="start()" @change="save">
 							<input lang="en" type="number" class="tool disp_text" v-model.number="slot.translation[axis]" min="-80" max="80" step="0.5" value="0" @input="change(axis, 'translation')" @focusout="focusout(axis, 'translation');save()" @mousedown="start()">
-							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 
 						<div class="bar display_slot_section_bar">
@@ -1832,18 +1868,17 @@ Interface.definePanels(function() {
 							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
 							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes">
+						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
 							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
-							<input type="range" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
+							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range scaleRange" v-model.number="slot.scale[axis]" v-bind:trigger_type="'scale.'+axis" v-bind:id="'scale_range_'+axis"
 								v-bind:min="slot.scale[axis] > 1 ? -2 : 0"
 								v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
 							<input type="number" class="tool disp_text" v-model.number="slot.scale[axis]" min="0" max="4" step="0.01" value="0" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()">
-							<div class="color_corner" :style="{'border-color': \`var(--color-axis-\${getAxisLetter(axis)})\`}"></div>
 						</div>
 						
 						<template v-if="reference_model == 'player'">

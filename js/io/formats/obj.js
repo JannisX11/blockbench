@@ -47,6 +47,7 @@ var codec = new Codec('obj', {
 		const uv = new THREE.Vector2();
 		const face = [];
 		let face_export_mode = Settings.get('obj_face_export_mode');
+		let export_scale = Settings.get('model_export_scale');
 
 		output.push('mtllib ' + (options.mtl_name||'materials.mtl') +'\n');
 
@@ -70,7 +71,7 @@ var codec = new Codec('obj', {
 				output.push(`o ${element.name||'cube'}`)
 
 				element.getGlobalVertexPositions().forEach((coords) => {
-					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(16);
+					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				})
@@ -156,7 +157,7 @@ var codec = new Codec('obj', {
 				let vertex_keys = [];
 				function addVertex(x, y, z) {
 					vertex.set(x, y, z);
-					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16);
+					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				}
@@ -264,7 +265,7 @@ var codec = new Codec('obj', {
 						vertex.y = vertices.getY( i );
 						vertex.z = vertices.getZ( i ); // transform the vertex to world space
 
-						vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(16); // transform the vertex to export format
+						vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(export_scale); // transform the vertex to export format
 
 						output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 

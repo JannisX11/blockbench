@@ -8,15 +8,15 @@
 		outline-color: rgba(0, 0, 0, 0);
 	}
 	/*Webkit*/
-	a:-webkit-any-link {
+	a[href] {
 	    color: inherit;
 	    text-decoration: underline;
 		cursor: pointer;
 	}
-	a:-webkit-any-link:hover {
+	a[href]:hover {
 	    color: var(--color-light);
 	}
-	.bright_ui a:-webkit-any-link:hover {
+	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
 	::-webkit-scrollbar {
@@ -599,11 +599,21 @@
 		background: var(--color-track);
 		border-radius: 3px;
 	}
-
+	input:-webkit-autofill,
+	input:-webkit-autofill:hover, 
+	input:-webkit-autofill:focus, 
+	input:-webkit-autofill:active {
+		-webkit-box-shadow: 0 0 0 30px var(--color-back) inset !important;
+	}
+	input:-webkit-autofill {
+		-webkit-text-fill-color: var(--color-text) !important;
+		border-left: 4px solid var(--color-confirm);
+	}
 	input[type=password] {
 		font-size: 1.2em;
 	}
-	input[type=checkbox]::before {
+	input[type=checkbox] {
+		min-width: 30px;
 		text-align: center;
 	}
 	input[type=checkbox]::before {

@@ -7,7 +7,8 @@ class BarMenu extends Menu {
 		this.id = id
 		this.children = [];
 		this.condition = options.condition
-		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node = document.createElement('ul');
+		this.node.className = 'contextMenu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);

@@ -774,10 +774,13 @@ class NumSlider extends Widget {
 
 
 			text = text.replace(/,(?=\d+$)/, '.');
-			if (text.match(/^-?\d*(\.\d+)?$/gm)) {
+			if (text.match(/^-?\d*(\.\d+)?%?$/gm)) {
 				var number = parseFloat(text);
 				if (isNaN(number)) {
 					number = 0;
+				}
+				if (text.endsWith('%') && typeof this.settings?.min == 'number' && typeof this.settings?.max == 'number') {
+					number = Math.lerp(this.settings.min, this.settings.max, number/100);
 				}
 				this.change(val => number);
 			} else {
@@ -1155,7 +1158,7 @@ class BarText extends Widget {
 		super(id, data);
 		this.type = 'bar_text'
 		this.icon = 'text_format'
-		this.node = $('<div class="tool widget bar_text">'+data.text||''+'</div>').get(0)
+		this.node = Interface.createElement('div', {class: 'tool widget bar_text'}, data.text);
 		if (data.right) {
 			this.node.classList.add('f_right');
 		}
@@ -1192,8 +1195,10 @@ class ColorPicker extends Widget {
 		var scope = this;
 		this.type = 'color_picker'
 		this.icon = 'color_lens'
-		this.node = $('<div class="tool widget"><input class="f_left" type="text"></div>').get(0)
-		this.addLabel()
+		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+			Interface.createElement('input', {class: 'f_left', type: 'text'})
+		]);
+		this.addLabel();
 		this.jq = $(this.node).find('input')
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
@@ -1686,8 +1691,10 @@ const BARS = {
 				click: function () {
 					if (Modes.edit || Modes.paint) {
 						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && Animation.selected) {
-						Animation.selected.rename()
+					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
+						AnimationItem.selected.rename();
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.rename();
 					}
 				}
 			})
@@ -1695,31 +1702,30 @@ const BARS = {
 				icon: 'delete',
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
-				click: function () {
+				click() {
+					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
 					if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
-					} else if (Modes.edit && Mesh.selected.length && Project.selected_vertices[Mesh.selected[0].uuid] && Project.selected_vertices[Mesh.selected[0].uuid].length < Mesh.selected[0].vertice_list.length) {
+					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
 						Undo.initEdit({elements: Mesh.selected})
 
 						Mesh.selected.forEach(mesh => {
-							let has_selected_faces = false;
 							let selected_vertices = mesh.getSelectedVertices();
-							for (let key in mesh.faces) {
-								has_selected_faces = has_selected_faces || mesh.faces[key].isSelected();
-							}
-							if (BarItems.selection_mode.value == 'face' && has_selected_faces) {
-								for (let key in mesh.faces) {
-									let face = mesh.faces[key];
-									if (face.isSelected()) {
-										delete mesh.faces[key];
-									}
-								}
-								selected_vertices.forEach(vertex_key => {
+							let selected_edges = mesh.getSelectedEdges();
+							let selected_faces = mesh.getSelectedFaces();
+
+							if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
+								let affected_vertices = [];
+								selected_faces.forEach(fkey => {
+									affected_vertices.safePush(...mesh.faces[fkey].vertices);
+									delete mesh.faces[fkey];
+								})
+								affected_vertices.forEach(vertex_key => {
 									let used = false;
 									for (let key in mesh.faces) {
 										let face = mesh.faces[key];
@@ -1729,31 +1735,35 @@ const BARS = {
 										delete mesh.vertices[vertex_key];
 									}
 								})
-							} else if (BarItems.selection_mode.value == 'edge' && selected_vertices.length) {
+							} else if (BarItems.selection_mode.value == 'edge') {
 								for (let key in mesh.faces) {
 									let face = mesh.faces[key];
 									let sorted_vertices = face.getSortedVertices();
-									let selected_corners = sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
-									if (selected_corners.length >= 2) {
-										let index_diff = (sorted_vertices.indexOf(selected_corners[0]) - sorted_vertices.indexOf(selected_corners[1])) % sorted_vertices.length;
-										if ((sorted_vertices.length < 4 || Math.abs(index_diff) !== 2)) {
-											delete mesh.faces[key];
-										}
+									let has_edge = sorted_vertices.find((vkey_a, i) => {
+										let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
+										let edge = [vkey_a, vkey_b];
+										return selected_edges.find(edge2 => sameMeshEdge(edge, edge2))
+									})
+									if (has_edge) {
+										delete mesh.faces[key];
 									}
 								}
-								selected_vertices.forEach(vertex_key => {
-									let used = false;
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (face.vertices.includes(vertex_key)) used = true;
-									}
-									if (!used) {
-										delete mesh.vertices[vertex_key];
-									}
+								selected_edges.forEachReverse(edge => {
+									edge.forEach(vkey => {
+										let used = false;
+										for (let key in mesh.faces) {
+											let face = mesh.faces[key];
+											if (face.vertices.includes(vkey)) used = true;
+										}
+										if (!used) {
+											delete mesh.vertices[vkey];
+											selected_vertices.remove(vkey);
+											selected_edges.remove(edge);
+										}
+									})
 								})
 
-							} else {
-								let selected_vertices = Project.selected_vertices[mesh.uuid];
+							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
 								selected_vertices.forEach(vertex_key => {
 									delete mesh.vertices[vertex_key];
 
@@ -1777,6 +1787,9 @@ const BARS = {
 										}
 									}
 								})
+							} else {
+								Mesh.selected.remove(mesh);
+								mesh.remove(false);
 							}
 						})
 
@@ -1807,6 +1820,9 @@ const BARS = {
 					} else if (Prop.active_panel == 'animations' && Animation.selected) {
 						Animation.selected.remove(true)
 
+					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+						AnimationController.selected?.selected_state.remove(true);
+
 					} else if (Animator.open) {
 						removeSelectedKeyframes()
 					}
@@ -1815,7 +1831,7 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (Animation.selected && Modes.animate && Prop.active_panel == 'animations') || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
 				keybind: new Keybind({key: 'd', ctrl: true}),
 				click: function () {
 					if (Modes.animate) {
@@ -1827,6 +1843,15 @@ const BARS = {
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.saved = false;
 							animation.add(true).select();
+
+						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
+							Undo.initEdit({animation_controllers: [AnimationController.selected]});
+							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+							AnimationController.selected.states.remove(state);
+							AnimationController.selected.states.splice(index+1, 0, state);
+							Undo.finishEdit('Duplicate animation controller state');
+
 						}
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;
@@ -2122,6 +2147,9 @@ const BARS = {
 				'slider_color_h',
 				'slider_color_s',
 				'slider_color_v',
+				'slider_color_red',
+				'slider_color_green',
+				'slider_color_blue',
 				'add_to_palette',
 				'pick_screen_color'
 			]
@@ -2159,6 +2187,7 @@ const BARS = {
 			id: 'animations',
 			children: [
 				'add_animation',
+				'add_animation_controller',
 				'load_animation_file',
 				'slider_animation_length',
 			]
@@ -2191,6 +2220,13 @@ const BARS = {
 			],
 			default_place: true
 		})
+		//Animation Controllers
+		Toolbars.animation_controllers = new Toolbar({
+			id: 'animation_controllers',
+			children: [
+				'add_animation_controller_state',
+			]
+		})
 		//Tools
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
@@ -2198,6 +2234,7 @@ const BARS = {
 				'transform_space',
 				'rotation_space',
 				'selection_mode',
+				'animation_controller_preview_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',

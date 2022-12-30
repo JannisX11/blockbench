@@ -265,6 +265,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
+			'auto': tl('settings.interface_mode.auto'),
+			'desktop': tl('settings.interface_mode.desktop'),
+			'mobile': tl('settings.interface_mode.mobile'),
+		}});
 		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
 			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
 			currentwindow.webContents.setZoomFactor(factor)
@@ -375,14 +380,15 @@ const Settings = {
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
 		//Paint
-		new Setting('sync_color',	{category: 'paint', value: false});
-		new Setting('color_wheel',	{category: 'paint', value: false, onChange(value) {
+		new Setting('sync_color',					{category: 'paint', value: false});
+		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
-		new Setting('pick_color_opacity',		{category: 'paint', value: false});
-		new Setting('paint_side_restrict',		{category: 'paint', value: true});
-		new Setting('paint_with_stylus_only',	{category: 'paint', value: false});
-		new Setting('brush_opacity_modifier',	{category: 'paint', value: 'pressure', type: 'select', options: {
+		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('paint_through_transparency',	{category: 'paint', value: true});
+		new Setting('paint_side_restrict',			{category: 'paint', value: true});
+		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
+		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),

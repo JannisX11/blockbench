@@ -124,6 +124,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
+					if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -200,6 +201,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
 								}
+								if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 							}
 						}).show()
 					})}, 2)
@@ -214,8 +216,14 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
+			let has_animations = false, has_controllers = false;
 			for (var key in anim_list) {
-				if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
+				if (typeof anim_list[key] !== 'string') continue;
+				if (anim_list[key].startsWith('animation.')) {
+					has_animations = true;
+					animation_names.push(anim_list[key]);
+				} else if (anim_list[key].startsWith('controller.animation.')) {
+					has_controllers = true;
 					animation_names.push(anim_list[key]);
 				}
 			}
@@ -234,7 +242,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				} catch (err) {}
 			}
-			searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_animations) searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_controllers) searchFolder(PathModule.join(this.root_path, 'animation_controllers'));
 
 			anim_files.forEach(path => {
 				try {
@@ -682,16 +691,6 @@ function calculateVisibleBox() {
 		group.addTo(parent_group)
 	}
 	function parseGeometry(data) {
-		if (data === undefined) {
-			pe_list_data.forEach(function(s) {
-				if (s.selected === true) {
-					data = s
-				}
-			})
-			if (data == undefined) {
-				data = pe_list_data[0]
-			}
-		}
 
 		let {description} = data.object;
 		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
@@ -703,8 +702,7 @@ function calculateVisibleBox() {
 			Project.close().then(() =>  {
 				existing_tab.select();
 			});
-			pe_list_data.length = 0;
-			hideDialog()
+			if (Dialog.open) Dialog.open.hide();
 			return;
 		}
 
@@ -745,8 +743,7 @@ function calculateVisibleBox() {
 
 		codec.dispatchEvent('parsed', {model: data.object});
 
-		pe_list_data.length = 0;
-		hideDialog()
+		if (Dialog.open) Dialog.open.hide();
 
 		loadTextureDraggable()
 		Canvas.updateAllBones()
@@ -1043,7 +1040,7 @@ var codec = new Codec('bedrock', {
 				icon: Format.icon
 			});
 			setTimeout(() => {
-				if (Project == project) updateRecentProjectThumbnail();
+				if (Project == project) setTimeout(() => updateRecentProjectThumbnail(), 40);
 			}, 200)
 		}
 		this.parse(model, file.path)
@@ -1283,6 +1280,7 @@ var entity_format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	animation_controllers: true,
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,

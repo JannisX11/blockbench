@@ -1,6 +1,5 @@
 var osfs = '/'
 var uv_clipboard;
-var pe_list_data = []
 var open_dialog = false;
 var open_interface = false;
 var tex_version = 1;
@@ -41,14 +40,6 @@ var Prop = {
 
 const mouse_pos = {x:0,y:0}
 const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-
-// Browser compatibility check
-try {
-	eval('window?.document');
-} catch (err) {
-	let error_element = document.querySelector('#loading_error_detail')
-	error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
-}
 
 function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
@@ -110,15 +101,25 @@ function updateSelection(options = {}) {
 			obj.unselect()
 		}
 		if (obj instanceof Mesh) {
-			if (Project.selected_vertices[obj.uuid]) {
-				Project.selected_vertices[obj.uuid].forEachReverse(vkey => {
+			if (Project.mesh_selection[obj.uuid]) {
+				Project.mesh_selection[obj.uuid].vertices.forEachReverse(vkey => {
 					if (vkey in obj.vertices == false) {
-						Project.selected_vertices[obj.uuid].remove(vkey);
+						Project.mesh_selection[obj.uuid].vertices.remove(vkey);
+					}
+				})
+				Project.mesh_selection[obj.uuid].edges.forEachReverse(edge => {
+					if (!obj.vertices[edge[0]] || !obj.vertices[edge[1]]) {
+						Project.mesh_selection[obj.uuid].edges.remove(edge);
+					}
+				})
+				Project.mesh_selection[obj.uuid].faces.forEachReverse(fkey => {
+					if (fkey in obj.faces == false) {
+						Project.mesh_selection[obj.uuid].faces.remove(fkey);
 					}
 				})
 			}
-			if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
-				delete Project.selected_vertices[obj.uuid];
+			if (Project.mesh_selection[obj.uuid] && (Project.mesh_selection[obj.uuid].vertices.length == 0 || !obj.selected)) {
+				delete Project.mesh_selection[obj.uuid];
 			}
 		}
 	})
@@ -192,13 +193,13 @@ function updateSelection(options = {}) {
 	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
 	if (Toolbox.selected.id == 'seam_tool' && Mesh.selected[0]) {
 		let value;
-		let selected_vertices = Mesh.selected[0].getSelectedVertices();
+		let selected_edges = Mesh.selected[0].getSelectedEdges();
 		Mesh.selected[0].forAllFaces((face) => {
 			if (value == '') return;
 			let vertices = face.getSortedVertices();
 			vertices.forEach((vkey_a, i) => {
 				let vkey_b = vertices[i+1] || vertices[0];
-				if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
+				if (selected_edges.find(edge => sameMeshEdge(edge, [vkey_a, vkey_b]))) {
 					let seam = Mesh.selected[0].getSeam([vkey_a, vkey_b]) || 'auto';
 					if (value == undefined) {
 						value = seam;
@@ -231,7 +232,7 @@ function selectAll() {
 		let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
 		Mesh.selected.forEach(mesh => {
 			if (unselect) {
-				delete Project.selected_vertices[mesh.uuid];
+				delete Project.mesh_selection[mesh.uuid];
 			} else {
 				mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
 			}
@@ -261,8 +262,8 @@ function unselectAll() {
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
-	for (let key in Project.selected_vertices) {
-		delete Project.selected_vertices[key];
+	for (let key in Project.mesh_selection) {
+		delete Project.mesh_selection[key];
 	}
 	TickUpdates.selection = true;
 }

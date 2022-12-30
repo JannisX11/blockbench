@@ -158,7 +158,12 @@ codec.rebuild = function(model_id, pose) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock));
-	codec.parse(model, undefined, undefined, pose !== 'none');
+	codec.parse(model, undefined, undefined, pose && pose !== 'none');
+	if (pose && pose !== 'none') {
+		setTimeout(() => {
+			Panels.skin_pose.inside_vue.setPose(pose);
+		}, 1)
+	}
 }
 
 
@@ -376,12 +381,12 @@ Interface.definePanels(function() {
 			LeftLeg: [0, 0, 0],
 		},
 		natural: {
-			Head: [-6, 5, 0],
+			Head: [6, -5, 0],
 			Body: [0, 0, 0],
-			RightArm: [-10, 0, 0],
-			LeftArm: [12, 0, 0],
-			RightLeg: [11, 0, 2],
-			LeftLeg: [-10, 0, -2],
+			RightArm: [10, 0, 0],
+			LeftArm: [-12, 0, 0],
+			RightLeg: [-11, 0, 2],
+			LeftLeg: [10, 0, -2],
 		},
 		walking: {
 			Head: [-2, 0, 0],

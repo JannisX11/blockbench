@@ -1202,7 +1202,7 @@ BARS.defineActions(function() {
 		
 			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
 				Mesh.selected.forEach(mesh => {
-					delete Project.selected_vertices[mesh.uuid];
+					delete Project.mesh_selection[mesh.uuid];
 				})
 				updateSelection();
 		
@@ -1364,7 +1364,7 @@ Interface.definePanels(function() {
 
 	new Panel('outliner', {
 		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => !Format.image_editor},
+		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => (!Format.image_editor && !(Modes.animate && AnimationController.selected))},
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],

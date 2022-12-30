@@ -393,13 +393,15 @@ class BoneAnimator extends GeneralAnimator {
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
 			let alpha = Math.getLerp(before.time, after.time, time)
+			
 
-			if (no_interpolations || (before.interpolation !== Keyframe.interpolation.catmullrom && after.interpolation !== Keyframe.interpolation.catmullrom)) {
+			if (no_interpolations || (before.interpolation === Keyframe.interpolation.linear && after.interpolation === Keyframe.interpolation.linear)) {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
 				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
-			} else {
+
+			} else if (before.interpolation === Keyframe.interpolation.catmullrom || after.interpolation === Keyframe.interpolation.catmullrom) {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
 				let before_index = sorted.indexOf(before);
@@ -407,6 +409,10 @@ class BoneAnimator extends GeneralAnimator {
 				let after_plus = sorted[before_index+2];
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
+
+			} else if (before.interpolation === Keyframe.interpolation.bezier || after.interpolation === Keyframe.interpolation.bezier) {
+				// Bezier
+				return mapAxes(axis => before.getBezierLerp(before, after, axis, alpha));
 			}
 		}
 		if (result && result instanceof Keyframe) {
@@ -681,19 +687,28 @@ class EffectAnimator extends GeneralAnimator {
 		
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
-				var diff = this.animation.time - kf.time;
+				let diff = this.animation.time - kf.time;
 				if (diff >= 0) {
 					let i = 0;
-					for (var data_point of kf.data_points) {
+					for (let data_point of kf.data_points) {
 						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
 						if (particle_effect) {
 
 							let emitter = particle_effect.emitters[kf.uuid + i];
 							if (!emitter) {
 								let i_here = i;
+								let anim_uuid = this.animation.uuid;
 								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
+								
+								let old_variable_handler = emitter.Molang.variableHandler;
+								emitter.Molang.variableHandler = (key, params) => {
+									let curve_result = old_variable_handler.call(emitter, key, params);
+									if (curve_result !== undefined) return curve_result;
+									return Animator.MolangParser.variableHandler(key);
+								}
 								emitter.on('start', ({params}) => {
-									let kf_now = Animation.selected.animators.effects && Animation.selected.animators.effects.particle.find(kf2 => kf2.uuid == kf.uuid);
+									let animation = Animation.all.find(a => a.uuid === anim_uuid);
+									let kf_now = animation?.animators.effects?.particle.find(kf2 => kf2.uuid == kf.uuid);
 									let data_point_now = kf_now && kf_now.data_points[i_here];
 									if (data_point_now) {
 										emitter.Molang.parse(data_point_now.script, Animator.MolangParser.global_variables);
@@ -701,7 +716,7 @@ class EffectAnimator extends GeneralAnimator {
 								})
 							}
 
-							var locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
+							let locator = data_point.locator && Locator.all.find(l => l.name == data_point.locator)
 							if (locator) {
 								locator.mesh.add(emitter.local_space);
 								emitter.parent_mode = 'locator';

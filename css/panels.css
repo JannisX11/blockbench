@@ -478,6 +478,7 @@
 		padding-right: 5px;
 		padding-left: 5px;
 		pointer-events: none;
+		color: inherit;
 	}
 	.outliner_object > input.renaming {
 		pointer-events: auto;
@@ -861,17 +862,25 @@
 		height: 0;
 	}
 
+	.bar.flex > .prism-editor-component {
+		width: 20px;
+		flex-grow: 1;
+	}
 	.prism-editor-wrapper {
 		caret-color: var(--color-text);
 	}
-	.molang_input {
+	.molang_input .prism-editor-wrapper {
 		overflow-y: hidden;
 		min-height: 30px;
-		height: auto;
 		margin-bottom: auto;
+	}
+	.molang_input .prism-editor-placeholder {
+		font-family: var(--font-code);
+		margin-top: 2px;
 	}
 	.molang_input pre {
 		padding: 2px;
+		padding-bottom: 1px;
 		height: 100%;
 		min-height: 28px;
 		background-color: transparent;
@@ -908,19 +917,29 @@
 	}
 
 /* Placeholders */
-	#var_placeholder_area {
-		overflow: auto;
-	}
 	#placeholder_buttons li {
 		padding: 0px 8px;
-	}
-	#placeholder_buttons li {
 		height: 30px;
 		margin: 1px;
 		padding: 0 8px;
 		float: left;
 		max-width: 100%;
 		background-color: var(--color-button);
+		display: flex;
+	}
+	#placeholder_buttons li[buttontype="impulse"] {
+		cursor: pointer;
+	}
+	#placeholder_buttons li[buttontype="impulse"]:hover {
+		color: var(--color-light);
+	}
+	#placeholder_buttons li > label {
+		padding: 4px 3px;
+		cursor: inherit;
+	}
+	#placeholder_buttons li > i {
+		padding-top: 4px;
+		cursor: inherit;
 	}
 	#placeholder_buttons li input.dark_bordered {
 		width: 54px;
@@ -1072,6 +1091,34 @@
 	}
 	#panel_timeline .keyframe:hover {
 		z-index: 4;
+	}
+
+	.keyframe_bezier_handle {
+		background-color: var(--color-back);
+		border: 2px solid var(--color-text);
+		border-radius: 50%;
+		height: 10px;
+		width: 10px;
+		margin: 1px;
+		margin-top: 3px;
+		cursor: move;
+		position: absolute;
+	}
+	.keyframe_bezier_handle:hover, .keyframe_bezier_handle:active {
+		border-color: var(--color-accent);
+	}
+	.keyframe_bezier_handle::after {
+		content: "";
+		display: block;
+		position: relative;
+		background-color: var(--color-grid);
+		height: 2px;
+		width: var(--length);
+		transform-origin: left;
+		rotate: var(--angle);
+		top: 2px;
+		left: 3px;
+		pointer-events: none;
 	}
 
 	#timeline_header {
@@ -1310,6 +1357,347 @@
 		margin-top: 2px;
 	}
 
+/* Animation Controllers */
+#animation_controllers_wrapper {
+	flex-grow: 1;
+	background-color: var(--color-back);
+	overflow: auto;
+}
+#animation_controller_presets {
+	width: 240px;
+	position: absolute;
+	margin: auto;
+	left: 0;
+	right: 0;
+	margin-top: 16px;
+}
+#animation_controller_presets li {
+    cursor: pointer;
+	margin-bottom: 2px;
+    text-decoration: underline;
+}
+#animation_controller_presets li:hover {
+    color: var(--color-light);
+}
+#animation_controllers_wrapper > ul {
+	display: flex;
+    flex-direction: row;
+	min-width: fit-content;
+	justify-content: center;
+	gap: 12px;
+	padding-left: 12px;
+	padding-right: 12px;
+}
+#animation_controllers_wrapper .controller_state {
+	width: 300px;
+	flex-shrink: 0;
+	padding-bottom: 8px;
+	background-color: var(--color-ui);
+	box-shadow: 0 0 10px rgb(0 0 0 / 22%);
+	border: 1px solid transparent;
+	transition: width 100ms ease-in-out;
+	position: relative;
+}
+#animation_controllers_wrapper .controller_state.selected {
+	width: min(100vw, 300px);
+	border-color: var(--color-accent);
+	z-index: 19;
+}
+#animation_controllers_wrapper .controller_state:focus-within {
+	z-index: 20;
+}
+#animation_controllers_wrapper .controller_state.folded {
+	width: 54px;
+}
+.controller_state_title_bar {
+	height: 30px;
+	background-color: var(--color-button);
+	display: flex;
+	cursor: pointer;
+	transition: background-color var(--blend-transition) linear, color var(--blend-transition) linear;
+}
+.controller_state_title_bar > label {
+	padding: 3px 10px;
+	flex-grow: 1;
+	cursor: inherit;
+	overflow: hidden;
+}
+.controller_state_title_bar.folded > label {
+	padding: 3px 4px;
+}
+.initial_state .controller_state_title_bar > label {
+	text-decoration: underline;
+}
+.controller_state_title_bar > .tool {
+	width: 28px;
+    color: inherit;
+}
+.controller_state.selected .controller_state_title_bar {
+	background-color: var(--color-accent);
+	color: var(--color-accent_text);
+}
+.controller_state_section_title {
+	cursor: pointer;
+	padding: 2px 10px;
+    padding-right: 5px;
+	height: 30px;
+	display: flex;
+	margin-top: 6px;
+}
+.controller_state_section_title:hover > i.icon-open-state {
+	color: var(--color-light);
+}
+.controller_state_section_title > i {
+	width: 18px;
+	margin-top: 3px;
+}
+.controller_state_section_title > label {
+	cursor: inherit;
+	color: var(--color-subtle_text);
+}
+.controller_state_section_title > .text_button {
+	width: 24px;
+    text-align: center;
+}
+.controller_state_section_title > .text_button:first-of-type {
+	margin-left: auto;
+}
+.controller_state > .prism-editor-component:focus-within {
+	width: calc(200% + 20px);
+	box-shadow: 0 0 0 1px var(--color-accent);
+}
+.controller_animation {
+	display: flex;
+	gap: 3px;
+	margin-bottom: 2px;
+}
+.controller_animation input {
+	background-color: transparent;
+	border: none;
+	width: 50%;
+}
+.controller_transition {
+	display: flex;
+	gap: 3px;
+	margin-bottom: 2px;
+}
+.controller_transition:focus-within,
+.controller_animation:focus-within {
+	width: calc(200% + 20px);
+	box-shadow: 0 0 0 1px var(--color-accent);
+}
+.controller_transition bb-select {
+	flex-grow: 1;
+}
+.controller_transition .prism-editor-component {
+	width: calc(100% - 110px);
+}
+.controller_particle:not(:last-child),
+.controller_sound:not(:last-child) {
+	margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-button);
+}
+.controller_particle > .bar,
+.controller_sound > .bar {
+	height: auto;
+    min-height: 30px;
+    margin-top: 2px;
+}
+.controller_particle > .bar > label,
+.controller_sound > .bar > label {
+    padding: 3px 8px;
+    min-width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    background-color: var(--color-button);
+}
+
+.controller_item_drag_handle {
+	width: 15px;
+	flex-grow: 0;
+	flex-shrink: 0;
+	cursor: grab;
+	background-color: var(--color-button);
+	margin-right: 2px;
+}
+.controller_transition .controller_item_drag_handle {
+	background-color: var(--color-marker);
+}
+span.controller_state_section_info {
+    margin: 0 8px;
+    color: var(--color-subtle_text);
+}
+.controller_state_input_bar {
+	display: flex;
+	padding-right: 8px;
+}
+.controller_state_input_bar label {
+	flex-grow: 1;
+    padding: 3px 8px;
+	color: var(--color-subtle_text);
+}
+.controller_state .prism-editor-wrapper {
+	font-size: 0.9em;
+	padding-top: 2px;
+}
+.controller_state input[type=text] {
+	font-size: 0.96em;
+	flex-grow: 1;
+}
+.controller_state input[type=checkbox] {
+	width: 38px;
+}
+.controller_add_column {
+	width: 20px;
+	cursor: pointer;
+	vertical-align: middle;
+	margin: 12px 0px;
+	position: relative;
+}
+.controller_add_column > i {
+	top: calc(50% - 26px);
+	left: -1px;
+    position: absolute;
+}
+.controller_add_column:hover {
+	color: var(--color-light);
+	background-color: var(--color-ui);
+}
+
+.controller_state_gate {
+	--height: 10px;
+	background-color: var(--color-button);
+	height: var(--height);
+	min-width: 28px;
+	max-width: 210px;
+	border-radius: calc(var(--height) * 0.5);
+	position: absolute;
+	cursor: crosshair;
+	left: 0;
+    right: 0;
+    margin: auto;
+    z-index: 19;
+}
+.controller_state.selected .controller_state_gate {
+	background-color: var(--color-accent);
+}
+.controller_state_gate:hover {
+	background-color: var(--color-selected);
+}
+.controller_state_gate_top {
+	top: calc(var(--height) * -0.5);
+	box-shadow: 0 1px 0 var(--color-ui);
+}
+.controller_state_gate_bottom {
+	bottom: calc(var(--height) * -0.5);
+}
+#animation_controllers_pickwhip {
+	position: relative;
+	height: 2px;
+	transform-origin: left;
+	background-color: var(--color-accent);
+	pointer-events: none;
+	z-index: 50;
+}
+#animation_controllers_pickwhip::before {
+	content: "\f0da";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 20px;
+	display: block;
+	position: absolute;
+	right: 0;
+	top: -5px;
+	height: 13px;
+	width: 10px;
+	line-height: 11px;
+	color: var(--color-accent);
+}
+#animation_controllers_wrapper.connecting_controllers .controller_state:hover:not(.selected) {
+	border-color: var(--color-accent);
+}
+
+.controller_state_connection_wrapper_top,
+.controller_state_connection_wrapper_bottom {
+	height: calc(20px + var(--max-layer) * 10px);
+	position: relative;
+}
+.controller_state_connection {
+	position: absolute;
+	height: calc(15px + var(--layer) * 10px);
+	--color-connection: var(--color-grid);
+	border: 2px solid var(--color-connection);
+	z-index: calc(18 - var(--layer));
+	--corner-radius: 5px;
+	cursor: pointer;
+	transition: border-color var(--blend-transition) linear;
+}
+.controller_state_connection_wrapper_top > .controller_state_connection {
+	border-bottom: none;
+	border-top-left-radius: var(--corner-radius);
+	border-top-right-radius: var(--corner-radius);
+	bottom: 0;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection {
+	border-top: none;
+	border-bottom-left-radius: var(--corner-radius);
+	border-bottom-right-radius: var(--corner-radius);
+}
+.controller_state_connection::before {
+	content: "\f0d9";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 20px;
+	display: block;
+	position: absolute;
+	text-align: center;
+	left: 0;
+	right: 0;
+	height: 13px;
+	line-height: 11px;
+	color: var(--color-connection);
+}
+.controller_state_connection_wrapper_top > .controller_state_connection::before {
+	content: "\f0d9";
+	top: -7px;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection::before {
+	content: "\f0da";
+	bottom: -8px;
+}
+.controller_state_connection::after {
+	content: "\f0d9";
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 21px;
+	display: block;
+	position: absolute;
+	width: 12px;
+	line-height: 11px;
+	height: 10px;
+	color: var(--color-connection);
+}
+.controller_state_connection_wrapper_top > .controller_state_connection::after {
+	content: "\f0d7";
+	bottom: -2px;
+    left: -8px;
+}
+.controller_state_connection_wrapper_bottom > .controller_state_connection::after {
+	content: "\f0d8";
+	top: -2px;
+    right: -6px;
+}
+.controller_state_connection.relevant {
+	--color-connection: var(--color-text);
+}
+.controller_state_connection.selected {
+	--color-connection: var(--color-marker);
+}
+.controller_state_connection:hover {
+	--color-connection: var(--color-light);
+}
+
 
 /*UV*/
 	.UVEditor {
@@ -1331,8 +1719,8 @@
 		margin-top: 3px;
 	}
 	#project_resolution_status {
-		margin: 3px;
-		padding: 1px 5px;
+		margin: 2px;
+		padding: 0px 5px;
 		pointer-events: auto;
 	}
 	#project_resolution_status:hover {

@@ -20,11 +20,15 @@ function buildForm(dialog) {
 			}
 			if (data.full_width) {
 				bar.addClass('full_width_dialog_bar');
+				dialog.uses_wide_inputs = true;
 			}
 			if (data.description) {
 				bar.attr('title', tl(data.description))
 			}
 			let input_element;
+			if (['checkbox', 'buttons', 'color', 'info'].includes(data.type) == false) {
+				dialog.uses_wide_inputs = true;
+			}
 
 			switch (data.type) {
 				default:
@@ -282,7 +286,7 @@ function buildLines(dialog) {
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && (l.label || l.widget)) {
 
-			let bar = $('<div class="dialog_bar"></div>')
+			let bar = Interface.createElement('div', {class: 'dialog_bar'});
 			if (l.label) {
 				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label)+(l.nocolon?'':':'))
 				bar.append(label);
@@ -300,6 +304,7 @@ function buildLines(dialog) {
 				bar.append(widget.getNode())
 				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
 			}
+			dialog.uses_wide_inputs = true;
 			dialog_content.append(bar)
 		} else {
 			dialog_content.append(l)
@@ -606,6 +611,7 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 		this.max_label_width = 0;
+		this.uses_wide_inputs = false;
 
 		let wrapper = document.createElement('div');
 		wrapper.className = 'dialog_wrapper';
@@ -639,7 +645,11 @@ window.Dialog = class Dialog {
 		})
 
 		if (this.max_label_width) {
-			this.object.style.setProperty('--max_label_width', Math.clamp(this.max_label_width, 0, (this.width||540)* 0.5) + 'px');
+			let width = (this.width||540)
+			let max_width = this.uses_wide_inputs
+				? Math.clamp(this.max_label_width+9, 0, width/2)
+				: Math.clamp(this.max_label_width+16, 0, width - 100);
+			this.object.style.setProperty('--max_label_width', max_width + 'px');
 		}
 
 		if (this.buttons.length) {
@@ -696,10 +706,10 @@ window.Dialog = class Dialog {
 	}
 	show() {
 		// Hide previous
-		if (window.open_interface && typeof open_interface.hide == 'function') {
+		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('.dialog').hide();
+		$('body > dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -707,33 +717,46 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#dialog_wrapper').append(jq_dialog);
-		$('#blackout').show().toggleClass('darken', this.darken);
+		document.getElementById('dialog_wrapper').append(this.object);
+		
+		if (this instanceof ShapelessDialog === false) {
+			this.object.style.display = 'flex';
+			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
+			if (this.width) {
+				this.object.style.width = this.width+'px';
+			}
+			if (this.draggable !== false) {
+				let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+				this.object.style.left = x+'px';
+			}
+		}
 
-		jq_dialog.show().css('display', 'flex');
-		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
-		if (this.width) {
-			jq_dialog.css('width', this.width+'px');
-		}
-		if (this.draggable !== false) {
-			let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
-			jq_dialog.css('left', x+'px')
-		}
 		if (!Blockbench.isTouch) {
 			let first_focus = jq_dialog.find('.focusable_input').first();
 			if (first_focus) first_focus.trigger('focus');
 		}
 
-		open_dialog = this.id;
-		open_interface = this;
-		Dialog.open = this;
-		Prop.active_panel = 'dialog';
-
 		if (typeof this.onOpen == 'function') {
 			this.onOpen();
 		}
 
+		this.focus();
+
 		return this;
+	}
+	focus() {
+		let blackout = document.getElementById('blackout');
+		blackout.style.display = 'block';
+		blackout.classList.toggle('darken', this.darken);
+		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
+		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
+
+		Prop.active_panel = 'dialog';
+		open_dialog = this.id;
+		open_interface = this;
+		Dialog.open = this;
+		Dialog.stack.remove(this);
+		Dialog.stack.push(this);
 	}
 	hide() {
 		$('#blackout').hide().toggleClass('darken', true);
@@ -741,8 +764,14 @@ window.Dialog = class Dialog {
 		open_dialog = false;
 		open_interface = false;
 		Dialog.open = null;
+		Dialog.stack.remove(this);
 		Prop.active_panel = undefined;
 		$(this.object).detach();
+		
+		if (Dialog.stack.length) {
+			Dialog.stack.last().focus();
+		}
+
 		return this;
 	}
 	delete() {
@@ -755,6 +784,141 @@ window.Dialog = class Dialog {
 	getFormBar(form_id) {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
+	}
+	static stack = []
+}
+window.Dialog.stack = [];
+
+window.ShapelessDialog = class ShapelessDialog extends Dialog {
+	constructor(id, options) {
+		super(id, options);
+
+		if (options.build) this.build = options.build;
+	}
+	close(button, event) {
+		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
+			let result = this.onConfirm(event);
+			if (result === false) return;
+		}
+		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
+			let result = this.onCancel(event);
+			if (result === false) return;
+		}
+		this.hide();
+	}
+	show() {
+		super.show()
+	}
+	build() {
+		this.object = Interface.createElement('div', {id: 'tab_overview', class: 'empty_dialog'});
+
+		if (this.component) {
+			this.component.name = 'dialog-content';
+			this.content_vue = new Vue(this.component).$mount(this.object, true);
+		}
+	}
+	delete() {
+		this.object.remove()
+	}
+}
+
+window.MessageBox = class MessageBox extends Dialog {
+	constructor(options, callback) {
+		super(options.id, options);
+		this.options = options;
+		if (!options.buttons) this.buttons = ['dialog.ok'];
+		this.callback = callback;
+	}
+	close(button, event) {
+		if (this.callback) this.callback(button, event);
+		this.hide();
+		this.delete();
+	}
+	build() {
+		let options = this.options;
+
+		if (options.translateKey) {
+			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
+			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
+		}
+		let content = Interface.createElement('div', {class: 'dialog_content'});
+		this.object = Interface.createElement('dialog', {class: 'dialog', style: 'width: auto;', id: 'message_box'}, [
+			Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title))),
+			Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear')),
+			content
+		]);
+		let jq_dialog = $(this.object);
+
+		if (options.message) {
+			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+				marked(tl(options.message))+
+			'</div></div>')[0]);
+		}
+		if (options.icon) {
+			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		if (options.commands) {
+			let list = Interface.createElement('ul');
+			for (let id in options.commands) {
+				let command = options.commands[id];
+				if (!Condition(command.condition)) continue;
+				let text = tl(typeof command == 'string' ? command : command.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				entry.addEventListener('click', e => {
+					this.close(id);
+				})
+				list.append(entry);
+			}
+			content.append(list);
+		}
+
+		// Buttons
+		if (this.buttons.length) {
+
+			let buttons = []
+			this.buttons.forEach((b, i) => {
+				let btn = $('<button type="button">'+tl(b)+'</button> ')
+				buttons.push(btn)
+				btn.on('click', (event) => {
+					this.close(i, event);
+				})
+			})
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			let button_bar = $('<div class="dialog_bar button_bar"></div>');
+
+			buttons.forEach((button, i) => {
+				if (i) button_bar.append('&nbsp;')
+				button_bar.append(button)
+			})
+
+			jq_dialog.append(button_bar[0]);
+		}
+
+		//Draggable
+		if (this.draggable !== false) {
+			jq_dialog.addClass('draggable')
+			jq_dialog.draggable({
+				handle: ".dialog_handle",
+				containment: '#page_wrapper'
+			})
+			this.object.style.position = 'absolute';
+		}
+
+		let x = (window.innerWidth-540)/2
+		this.object.style.left = x+'px';
+		this.object.style.position = 'absolute';
+
+		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px';
+		if (options.width) {
+			this.object.style.width = options.width+'px'
+		} else {
+			this.object.style.width = limitNumber((options.buttons ? options.buttons.length : 1) * 170+44, 380, 894)+'px';
+		}
+	}
+	delete() {
+		this.object.remove()
 	}
 }
 

@@ -100,19 +100,14 @@ const Blockbench = {
 		}
 		return node
 	},
-	showQuickMessage(message, time) {
-		$('#quick_message_box').remove()
-		var quick_message_box = $('<div id="quick_message_box" class="hidden"></div>') 
-		$('body').append(quick_message_box)
-		
-		quick_message_box.text(tl(message))
-		quick_message_box.fadeIn(0)
+	showQuickMessage(message, time = 1000) {
+		document.getElementById('quick_message_box').remove()
+		let quick_message_box = Interface.createElement('div', {id: 'quick_message_box'}, tl(message));
+		document.body.append(quick_message_box);
+
 		setTimeout(function() {
-			quick_message_box.fadeOut(0)
-			setTimeout(function() {
-				quick_message_box.remove()
-			}, 1)
-		}, time ? time : 1000)
+			quick_message_box.remove()
+		}, time);
 	},
 	/**
 	 * 
@@ -196,125 +191,26 @@ const Blockbench = {
 		}
 	},
 	showMessageBox(options = 0, cb) {
-
-		if (options.confirm === undefined) options.confirm = 0
-		if (options.cancel === undefined) options.cancel = (options.buttons && options.buttons.length) ? options.buttons.length-1 : 0;
-		if (!options.buttons) options.buttons = [tl('dialog.ok')]
-
-		if (options.translateKey) {
-			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
-			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
-		}
-
-		var jq_dialog = $(`
-			<dialog class="dialog" style="width: auto;" id="message_box">
-				<div class="dialog_handle"><div class="dialog_title">${tl(options.title)}</div></div>
-				<div class="dialog_close_button" onclick="open_interface.cancel()"><i class="material-icons">clear</i></div>
-			</dialog>`)
-
-		let content = $('<div class="dialog_content"></div>');
-		jq_dialog.append(content);
-
-		if (options.message) {
-			content.append('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-				marked(tl(options.message))+
-			'</div></div>')
-		}
-		if (options.icon) {
-			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
-		}
-
-		if (options.commands) {
-			let list = Interface.createElement('ul');
-			for (let id in options.commands) {
-				let command = options.commands[id];
-				if (!Condition(command.condition)) continue;
-				let text = tl(typeof command == 'string' ? command : command.text);
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
-				entry.addEventListener('click', e => {
-					close(id);
-				})
-				list.append(entry);
-			}
-			content.append(list);
-		}
-
-		function close(button) {
-			hideDialog();
-			setTimeout(function() {
-				jq_dialog.remove();
-			},200)
-			if (cb) {
-				cb(button);
-			}
-		}
-
-		var buttons = []
-
-		options.buttons.forEach(function(b, i) {
-			var btn = $('<button type="button">'+tl(b)+'</button>')
-			btn.click(function(e) {
-				close(i);
-			})
-			buttons.push(btn);
-		})
-		jq_dialog.hide = function() {
-			$(jq_dialog.find('button').get(options.cancel)).click()
-		}
-		buttons[options.confirm].addClass('confirm_btn')
-		buttons[options.cancel].addClass('cancel_btn')
-		jq_dialog.append($('<div class="dialog_bar button_bar"></div>').append(buttons))
-		buttons.forEach(b => {
-			b.after('&nbsp;')
-		})
-
-
-		jq_dialog.addClass('draggable')
-		jq_dialog.draggable({
-			handle: ".dialog_handle",
-			containment: '#page_wrapper'
-		})
-		var x = (window.innerWidth-540)/2
-		jq_dialog.css('left', x+'px')
-		jq_dialog.css('position', 'absolute')
-
-		$('#dialog_wrapper').append(jq_dialog)
-		$('.dialog').hide()
-		$('#blackout').show()
-		jq_dialog.show()
-
-		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px')
-		if (options.width) {
-			jq_dialog.css('width', options.width+'px')
-		} else {
-			jq_dialog.css('width', limitNumber(options.buttons.length*170+44, 380, 894)+'px')
-		}
-		open_dialog = 'message_box'
-		open_interface = {
-			confirm() {
-				close(options.confirm);
-			},
-			cancel() {
-				close(options.cancel);
-			}
-		}
-		return jq_dialog
+		new MessageBox(options, cb).show();
 	},
 	async textPrompt(title, value, callback, placeholder = null) {
-		showDialog('text_input')
-		$('#text_input .dialog_handle .dialog_title').text(tl(title || 'dialog.input.title'))
-		$('#text_input input#text_input_field').val(value).trigger('select').attr('placeholder', placeholder);
-		$('#text_input button.confirm_btn').off()
-		let text = await new Promise(resolve => {
-			$('#text_input button.confirm_btn').on('click', function() {
-				var s = $('#text_input input#text_input_field').val()
-				resolve(s)
-			})
-		})
-		if (callback !== undefined) {
-			callback(text);
-		}
-		return text;
+		let answer = await new Promise((resolve) => {
+			new Dialog({
+				id: 'text_input',
+				title: title || 'dialog.input.title',
+				form: {
+					text: {full_width: true, placeholder, value}
+				},
+				onConfirm({text}) {
+					callback(text);
+					resolve(text);
+				},
+				onOpen() {
+					this.object.querySelector('input')?.focus();
+				}
+			}).show();
+		});
+		return answer;
 	},
 	addMenuEntry(name, icon, click) {
 		console.warn('Blockbench.addMenuEntry is deprecated. Please use Actions instead.')
@@ -415,6 +311,11 @@ const Blockbench = {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
 	}
+	try {
+		let ui_mode = JSON.parse(localStorage.getItem('settings')).interface_mode.value;
+		if (ui_mode == 'desktop') Blockbench.isMobile = false;
+		if (ui_mode == 'mobile') Blockbench.isMobile = true;
+	} catch (err) {}
 })();
 
 if (isApp) {
@@ -450,6 +351,14 @@ const StateMemory = {
 				case 'array': return []; break;
 			}})();
 		}
+	},
+	set(key, value) {
+		if (StateMemory[key] instanceof Array) {
+			StateMemory[key].replace(value);
+		} else {
+			StateMemory[key] = value;
+		}
+		StateMemory.save(key);
 	},
 	save(key) {
 		let serialized = JSON.stringify(StateMemory[key])

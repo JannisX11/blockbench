@@ -26,7 +26,6 @@
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
-		const appVersion = '4.5.1';
 
 		
 		if (localStorage.getItem('theme')) {
@@ -52,6 +51,15 @@
 		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
+	<script>
+		// Browser compatibility check
+		try {
+			eval('window?.document');
+		} catch (err) {
+			let error_element = document.querySelector('#loading_error_detail')
+			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
+		}
+	</script>
 		<script src="lib/vue.min.js"></script>
 		<script src="lib/vue_sortable.js"></script>
 		<script src="lib/jquery.js"></script>
@@ -109,6 +117,7 @@
 		</script>
 
 		<script src="js/edit_sessions.js"></script>
+		<script src="js/validator.js"></script>
 		<script src="js/outliner/outliner.js"></script>
 		<script src="js/outliner/group.js"></script>
 		<script src="js/outliner/mesh.js"></script>
@@ -130,11 +139,12 @@
 		<script src="js/texturing/edit_texture.js"></script>
 		<script src="js/display_mode.js"></script>
 		<script src="js/animations/animation.js"></script>
+		<script src="js/animations/molang.js"></script>
 		<script src="js/animations/timeline_animators.js"></script>
 		<script src="js/animations/keyframe.js"></script>
 		<script src="js/animations/timeline.js"></script>
+		<script src="js/animations/animation_controllers.js"></script>
 		<script src="js/preview/preview_scenes.js"></script>
-		<script src="js/validator.js"></script>
 		<script src="js/predicate_editor.js"></script>
 		<script src="js/plugin_loader.js"></script>
 
@@ -258,74 +268,6 @@
 		<div class="dialog_close_button" onclick="cancelScaleAll()"><i class="material-icons">clear</i></div>
 	</dialog>
 
-	<dialog class="dialog draggable" id="create_preset">
-		<div class="dialog_handle">
-			<div class="dialog_title tl">dialog.display_preset.title</div>
-		</div>
-		<div class="dialog_content">
-			<div class="dialog_bar tl">dialog.display_preset.message</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="thirdperson_righthand_save" checked>
-				<label for="thirdperson_righthand_save" class="tl">display.slot.third_right</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="thirdperson_lefthand_save" checked>
-				<label for="thirdperson_lefthand_save" class="tl">display.slot.third_left</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="firstperson_righthand_save" checked>
-				<label for="firstperson_righthand_save" class="tl">display.slot.first_right</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="firstperson_lefthand_save" checked>
-				<label for="firstperson_lefthand_save" class="tl">display.slot.first_left</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="head_save" checked>
-				<label for="head_save" class="tl">display.slot.head</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="ground_save" checked>
-				<label for="ground_save" class="tl">display.slot.ground</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="fixed_save" checked>
-				<label for="fixed_save" class="tl">display.slot.frame</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="checkbox" id="gui_save" checked>
-				<label for="gui_save" class="tl">display.slot.gui</label>
-			</div>
-			<div class="dialog_bar narrow">
-				<label class="tl">generic.name</label>
-			</div>
-			<div class="dialog_bar">
-				<input type="text" id="preset_name" class="input_wide" id="new preset">
-			</div>
-		</div>
-		<div class="dialog_bar button_bar">
-			<button type="button" class="tl confirm_btn" onclick="DisplayMode.createPreset()">dialog.display_preset.create</button>
-			<button type="button" class="tl cancel_btn" onclick="hideDialog()">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
-	</dialog>
-
-	<dialog class="dialog draggable" id="text_input">
-		<div class="dialog_handle">
-			<div class="dialog_title tl">dialog.input.title</div>
-		</div>
-
-		<div class="dialog_content">
-			<input type="text" id="text_input_field" class="dark_bordered input_wide">
-		</div>
-
-		<div class="dialog_bar button_bar">
-			<button type="button" class="confirm_btn tl" onclick="hideDialog()">dialog.confirm</button>
-			<button type="button" class="cancel_btn tl" onclick="hideDialog()">dialog.cancel</button>
-		</div>
-		<div class="dialog_close_button" onclick="hideDialog()"><i class="material-icons">clear</i></div>
-	</dialog>
-
 	<div id="dialog_wrapper"></div>
 
 	<header>
@@ -387,8 +329,8 @@
 					<i class="material-icons">add</i>
 				</div>
 			</div>
-			<div id="search_tab_button" v-if="projects.length > 1" @click="searchTabs()" :title="search_tabs_label">
-				<i class="material-icons">search</i>
+			<div id="search_tab_button" v-if="projects.length > 1" @click="tabOverview()" :title="search_tabs_label">
+				<i class="material-icons">view_module</i>
 			</div>
 		</div>
 

@@ -410,7 +410,7 @@ const UVEditor = {
 	updateSize() {
 		this.vue.updateSize();
 	},
-	setFace(face, update = true) {
+	setFace(face) {
 		this.vue.selected_faces.replace([face]);
 		return this;
 	},
@@ -551,9 +551,9 @@ const UVEditor = {
 			obj.preview_controller.updateUV(obj);
 		})
 		Mesh.selected.forEach(mesh => {
-			let selected_vertices = Project.selected_vertices[mesh.uuid];
+			let selected_vertices = mesh.getSelectedVertices();
 			
-			if (selected_vertices) {
+			if (selected_vertices.length) {
 				UVEditor.vue.selected_faces.forEach(fkey => {
 					if (!mesh.faces[fkey]) return
 					selected_vertices.forEach(vkey => {
@@ -1264,7 +1264,7 @@ const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', children: () => {
+		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
 			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,
@@ -1652,7 +1652,7 @@ BARS.defineActions(function() {
 	new Toggle('paint_mode_uv_overlay', {
 		icon: 'splitscreen',
 		category: 'animation',
-		condition: {modes: ['paint']},
+		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
 		}
@@ -1966,8 +1966,9 @@ Interface.definePanels(function() {
 						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
 						this.mouse_coords.y = Math.round(event.offsetY/pixel_size*1);
 					} else {
-						this.mouse_coords.x = event.offsetX/pixel_size*1;
-						this.mouse_coords.y = event.offsetY/pixel_size*1;
+						this.mouse_coords.x = Math.clamp(event.offsetX, 0, this.inner_width-0.1) / pixel_size*1;
+						this.mouse_coords.y = Math.clamp(event.offsetY, 0, this.inner_height-0.1) / pixel_size*1;
+
 						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
 							let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
 							this.mouse_coords.x = Math.floor(this.mouse_coords.x + offset);
@@ -2344,7 +2345,7 @@ Interface.definePanels(function() {
 
 					UVEditor.getMappableElements().forEach(el => {
 						if (el instanceof Mesh) {
-							delete Project.selected_vertices[el.uuid];
+							delete Project.mesh_selection[el.uuid];
 						}
 					})
 
@@ -3328,7 +3329,7 @@ Interface.definePanels(function() {
 		} else if (elements[0] instanceof Mesh) {
 			var face = UVEditor.getReferenceFace();
 			if (face) {
-				let selected_vertices = Project.selected_vertices[elements[0].uuid];
+				let selected_vertices = elements[0].getSelectedVertices();
 				let has_selected_vertices = selected_vertices && face.vertices.find(vkey => selected_vertices.includes(vkey))
 				let min = Infinity;
 				face.vertices.forEach(vkey => {

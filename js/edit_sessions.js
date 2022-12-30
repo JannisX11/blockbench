@@ -97,7 +97,7 @@ class EditSession {
 					translateKey: 'invalid_session',
 					icon: 'cloud_off',
 				}, result => {
-					showDialog('edit_sessions');
+					BarItems.edit_session.click();
 				})
 				return;
 			}
@@ -113,7 +113,7 @@ class EditSession {
 				this.quit()
 			})
 			conn.on('open', () => {
-				hideDialog()
+				if (Dialog.open && Dialog.open.id == 'edit_session') Dialog.open.cancel();
 				this.host = conn;
 				this.setState(true);
 				this.initConnection(conn)

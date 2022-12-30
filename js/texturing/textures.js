@@ -177,7 +177,8 @@ class Texture {
 			},
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
-			side: Canvas.getRenderSide(),
+			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
+			side: this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide),
 			transparent: true,
 		});
 		mat.map = tex;
@@ -574,7 +575,13 @@ class Texture {
 	updateMaterial() {
 		if (Format.image_editor) return this;
 		let mat = this.getMaterial();
+
 		mat.name = this.name;
+		mat.uniforms.EMISSIVE.value = this.render_mode == 'emissive';
+		mat.blending = this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending;
+		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
+
+		// Map
 		mat.map.image = this.img;
 		mat.map.name = this.name;
 		mat.map.image.src = this.source;
@@ -797,7 +804,6 @@ class Texture {
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
-			hideDialog()
 			if (UVEditor.texture == this) {
 				UVEditor.vue.updateTexture();
 			}
@@ -907,39 +913,54 @@ class Texture {
 		this.menu.open(event, scope)
 	}
 	openMenu() {
-		var scope = this
-		scope.select()
+		this.select();
 
-		let title = `${scope.name} (${scope.width} x ${scope.height})`;
+		let title = `${this.name} (${this.width} x ${this.height})`;
 		let path = [];
 
-		if (scope.path) {
-			var arr = scope.path.split(osfs)
+		if (this.path) {
+			var arr = this.path.split(osfs)
 			arr.splice(-1);
 			arr.forEach(dir => {
 				path.push(dir);
 				path.push(Interface.createElement('span', {class: 'slash'}, '/'));
 			})
-			path.push(Interface.createElement('span', {class: 'accent_color'}, scope.name));
+			path.push(Interface.createElement('span', {class: 'accent_color'}, this.name));
 		}
 		let form = {
-			name: 		{label: 'generic.name', value: scope.name},
-			variable: 	{label: 'dialog.texture.variable', value: scope.id, condition: {features: ['texture_folder']}},
-			folder: 	{label: 'dialog.texture.folder', value: scope.folder, condition: () => Format.texture_folder},
-			namespace: 	{label: 'dialog.texture.namespace', value: scope.namespace, condition: {features: ['texture_folder']}},
+			name: 		{label: 'generic.name', value: this.name},
+			variable: 	{label: 'dialog.texture.variable', value: this.id, condition: {features: ['texture_folder']}},
+			folder: 	{label: 'dialog.texture.folder', value: this.folder, condition: () => Format.texture_folder},
+			namespace: 	{label: 'dialog.texture.namespace', value: this.namespace, condition: {features: ['texture_folder']}},
+			'render_options': '_',
+			render_mode: {label: 'menu.texture.render_mode', type: 'select', value: this.render_mode, options: {
+				normal: 'menu.texture.render_mode.default',
+				emissive: 'menu.texture.render_mode.emissive',
+				additive: 'menu.texture.render_mode.additive',
+				layered: Format.single_texture && 'menu.texture.render_mode.layered',
+			}},
 		};
+		if (Format.id == 'free') {
+			Object.assign(form, {
+				render_sides: {label: 'settings.render_sides', type: 'select', value: this.render_sides, options: {
+					auto: 'settings.render_sides.auto',
+					front: 'settings.render_sides.front',
+					double: 'settings.render_sides.double',
+				}},
+			});
+		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
 				'texture_mcmeta': '_',
-				frame_time: {label: 'dialog.texture.frame_time', type: 'number', value: scope.frame_time, min: 1, step: 1, description: 'dialog.texture.frame_time.desc'},
-				frame_interpolate: {label: 'dialog.texture.frame_interpolate', type: 'checkbox', value: scope.frame_interpolate, description: 'dialog.texture.frame_interpolate.desc'},
-				frame_order_type: {label: 'dialog.texture.frame_order_type', type: 'select', value: scope.frame_order_type, options: {
+				frame_time: {label: 'dialog.texture.frame_time', type: 'number', value: this.frame_time, min: 1, step: 1, description: 'dialog.texture.frame_time.desc'},
+				frame_interpolate: {label: 'dialog.texture.frame_interpolate', type: 'checkbox', value: this.frame_interpolate, description: 'dialog.texture.frame_interpolate.desc'},
+				frame_order_type: {label: 'dialog.texture.frame_order_type', type: 'select', value: this.frame_order_type, options: {
 					loop: 'dialog.texture.frame_order_type.loop',
 					backwards: 'dialog.texture.frame_order_type.backwards',
 					back_and_forth: 'dialog.texture.frame_order_type.back_and_forth',
 					custom: 'dialog.texture.frame_order_type.custom',
 				}},
-				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: scope.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
+				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: this.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
 			});
 		}
 		let preview_img = new Image();
@@ -953,30 +974,44 @@ class Texture {
 			title,
 			lines: [header],
 			form,
-			onConfirm: function(results) {
+			onConfirm: results => {
 
 				dialog.hide();
 				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => {
-					return results[key] !== undefined && results[key] !== scope[key];
+					return results[key] !== undefined && results[key] !== this[key];
 				}) == undefined) {
 					return;
 				}
 
-				Undo.initEdit({textures: [scope], selected_texture: true})
+				Undo.initEdit({textures: [this], selected_texture: true})
 
-				scope.name = results.name;
-				if (results.variable !== undefined) scope.id = results.variable;
-				if (results.folder !== undefined) scope.folder = results.folder;
-				if (results.namespace !== undefined) scope.namespace = results.namespace;
+				let old_render_mode = this.render_mode;
+
+				this.name = results.name;
+				if (results.variable !== undefined) this.id = results.variable;
+				if (results.folder !== undefined) this.folder = results.folder;
+				if (results.namespace !== undefined) this.namespace = results.namespace;
+				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
+				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
+
+				if (this.render_mode == 'layered' && old_render_mode !== this.render_mode) {
+					Texture.all.forEach((tex, i) => {
+						tex.visible = i < 3
+					});
+					Interface.Panels.textures.inside_vue.$forceUpdate()
+					Canvas.updateLayeredTextures();
+				}
+
+				this.updateMaterial();
 
 				if (Format.texture_mcmeta) {
-					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => scope[key] !== results[key])) {
-						scope.saved = false;
+					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => this[key] !== results[key])) {
+						this.saved = false;
 					}
-					scope.frame_time = results.frame_time;
-					scope.frame_interpolate = results.frame_interpolate;
-					scope.frame_order_type = results.frame_order_type;
-					scope.frame_order = results.frame_order;
+					this.frame_time = results.frame_time;
+					this.frame_interpolate = results.frame_interpolate;
+					this.frame_order_type = results.frame_order_type;
+					this.frame_order = results.frame_order;
 					TextureAnimator.updateSpeed();
 				}
 
@@ -1074,9 +1109,6 @@ class Texture {
 							break;
 					}
 
-					if (Painter.current && Painter.current.canvas) {
-						delete Painter.current.canvas;
-					}
 					scope.keep_size = true;
 					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
@@ -1415,12 +1447,12 @@ class Texture {
 				children(texture) {
 					function setViewMode(mode) {
 						let update_layered = (mode == 'layered' || texture.render_mode == 'layered');
-						let update_emissive = (mode == 'emissive' || texture.render_mode == 'emissive');
 						let changed_textures = update_layered ? Texture.all : [texture];
 
 						Undo.initEdit({textures: changed_textures});
 						changed_textures.forEach(t =>  {
 							t.render_mode = mode;
+							t.updateMaterial();
 						});
 						if (update_layered) {
 							Texture.all.forEach((tex, i) => {
@@ -1429,14 +1461,12 @@ class Texture {
 							Interface.Panels.textures.inside_vue.$forceUpdate()
 							Canvas.updateLayeredTextures();
 						}
-						if (update_emissive) {
-							texture.getMaterial().uniforms.EMISSIVE.value = mode == 'emissive';
-						}
-						Undo.finishEdit('change texture view mode');
+						Undo.finishEdit('Change texture view mode');
 					}
 					return [
 						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('default')}},
 						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
+						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('additive')}},
 						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
 				}
@@ -1565,6 +1595,7 @@ class Texture {
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'string', 'render_mode', {default: 'default'})
+	new Property(Texture, 'string', 'render_sides', {default: 'auto'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})

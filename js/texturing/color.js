@@ -61,6 +61,7 @@ Interface.definePanels(() => {
 		}
 	}
 	StateMemory.init('color_picker_tab', 'string')
+	StateMemory.init('color_picker_rgb_mode', 'boolean')
 
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
@@ -81,8 +82,8 @@ Interface.definePanels(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
 				this.vue.$refs.square_picker.style.display = 'none';
 				let max = this.isInSidebar()
-					? 460
-					: Math.min(460, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.572 : 1));
+					? 1000
+					: Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
 				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
@@ -95,7 +96,6 @@ Interface.definePanels(() => {
 				width: 100,
 				open_tab: StateMemory.color_picker_tab || 'picker',
 				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
-				picker_toggle_label: tl('panel.color.picker_type'),
 				main_color: '#000000',
 				hover_color: '',
 				get color_code() {return this.hover_color || this.main_color},
@@ -115,6 +115,52 @@ Interface.definePanels(() => {
 				togglePickerType() {
 					settings.color_wheel.set(!settings.color_wheel.value);
 					Panels.color.onResize();
+				},
+				colorPickerMenu(event) {
+					new Menu('color_picker_menu', [
+						{
+							id: 'picker_type',
+							name: 'menu.color_picker.picker_type',
+							icon: 'palette',
+							children: [
+								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
+									settings.color_wheel.set(false);
+								}},
+								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
+									settings.color_wheel.set(true);
+								}}
+							]
+						},
+						{
+							id: 'slider_mode',
+							name: 'menu.color_picker.slider_mode',
+							icon: 'tune',
+							children: [
+								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
+									StateMemory.set('color_picker_rgb', false);
+									BARS.updateConditions();
+									this.updateSliders();
+								}},
+								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
+									StateMemory.set('color_picker_rgb', true);
+									BARS.updateConditions();
+									this.updateSliders();
+								}}
+							]
+						}
+						// slider
+					]).open(event.target);
+				},
+				updateSliders() {
+					if (StateMemory.color_picker_rgb) {
+						BarItems.slider_color_red.update();
+						BarItems.slider_color_green.update();
+						BarItems.slider_color_blue.update();
+					} else {
+						BarItems.slider_color_h.update();
+						BarItems.slider_color_s.update();
+						BarItems.slider_color_v.update();
+					}
 				},
 				onMouseWheel(event) {
 					if (!event.target) return;
@@ -152,17 +198,16 @@ Interface.definePanels(() => {
 				main_color: function(value) {
 					this.hover_color = '';
 					Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-					BarItems.slider_color_h.update();
-					BarItems.slider_color_s.update();
-					BarItems.slider_color_v.update();
+					this.updateSliders()
 					$('#main_colorpicker').spectrum('set', value);
 					this.text_input = value;
+					Blockbench.dispatchEvent('change_color', {color: value})
 				},
 				open_tab(tab) {
 					StateMemory.color_picker_tab = tab;
 					StateMemory.save('color_picker_tab');
 					Vue.nextTick(() => {
-						$('#main_colorpicker').spectrum('reflow');
+						ColorPanel.onResize()
 					})
 				}
 			},
@@ -194,8 +239,8 @@ Interface.definePanels(() => {
 						<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
 						<label for="radio_color_both">${tl('panel.color.both')}</label>
 
-						<div class="tool" @click="togglePickerType()" :title="picker_toggle_label">
-							<i class="fa_big icon" :class="picker_type == 'box' ? 'fas fa-square' : 'far fa-stop-circle'"></i>
+						<div class="tool" @click="colorPickerMenu($event)" title="${tl('panel.color.picker_options')}">
+							<i class="icon material-icons">settings</i>
 						</div>
 
 					</div>
@@ -869,7 +914,7 @@ BARS.defineActions(function() {
 
 
 	new NumSlider('slider_color_h', {
-		condition: () => Modes.paint,
+		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
 		settings: {
 			min: 0, max: 360, default: 0, show_bar: true
@@ -889,7 +934,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new NumSlider('slider_color_s', {
-		condition: () => Modes.paint,
+		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
 		settings: {
 			min: 0, max: 100, default: 0, show_bar: true
@@ -909,7 +954,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new NumSlider('slider_color_v', {
-		condition: () => Modes.paint,
+		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
 		settings: {
 			min: 0, max: 100, default: 100, show_bar: true
@@ -930,6 +975,61 @@ BARS.defineActions(function() {
 	})
 	let slider_vector_color = [BarItems.slider_color_h, BarItems.slider_color_s, BarItems.slider_color_v];
 	slider_vector_color.forEach(slider => slider.slider_vector = slider_vector_color);
+
+	let red = new NumSlider('slider_color_red', {
+		condition: () => Modes.paint && StateMemory.color_picker_rgb,
+		category: 'color',
+		color: '#ff0000',
+		settings: {
+			min: 0, max: 255, default: 0, show_bar: true, step: 1
+		},
+		get() {
+			return parseInt(ColorPanel.vue.main_color.substring(1, 3), 16);
+		},
+		change: function(modify) {
+			var value = Math.clamp(modify(this.get()), 0, 255);
+			let hex = parseInt(value).toString(16);
+			if (hex.length == 1) hex = '0' + hex;
+			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 1) + hex + ColorPanel.vue.main_color.substring(3);
+		}
+	})
+	let green = new NumSlider('slider_color_green', {
+		condition: () => Modes.paint && StateMemory.color_picker_rgb,
+		category: 'color',
+		color: '#00db3d',
+		settings: {
+			min: 0, max: 255, default: 0, show_bar: true, step: 1
+		},
+		get() {
+			return parseInt(ColorPanel.vue.main_color.substring(3, 5), 16);
+		},
+		change: function(modify) {
+			var value = Math.clamp(modify(this.get()), 0, 255);
+			let hex = parseInt(value).toString(16);
+			if (hex.length == 1) hex = '0' + hex;
+			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 3) + hex + ColorPanel.vue.main_color.substring(5);
+		}
+	})
+	let blue = new NumSlider('slider_color_blue', {
+		condition: () => Modes.paint && StateMemory.color_picker_rgb,
+		category: 'color',
+		color: '#2c73ff',
+		settings: {
+			min: 0, max: 255, default: 0, show_bar: true, step: 1
+		},
+		get() {
+			return parseInt(ColorPanel.vue.main_color.substring(5), 16);
+		},
+		change: function(modify) {
+			var value = Math.clamp(modify(this.get()), 0, 255);
+			let hex = parseInt(value).toString(16);
+			if (hex.length == 1) hex = '0' + hex;
+			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 5) + hex;
+		}
+	})
+	let slider_vector_rgb = [red, green, blue];
+	slider_vector_rgb.forEach(slider => slider.slider_vector = slider_vector_rgb);
+
 
 	new Action('pick_screen_color', {
 		icon: 'colorize',

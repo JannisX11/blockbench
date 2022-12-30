@@ -849,7 +849,7 @@ class Cube extends OutlinerElement {
 	];
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
-new Property(Cube, 'boolean', 'box_uv');
+new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
 

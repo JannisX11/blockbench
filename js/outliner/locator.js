@@ -60,6 +60,7 @@ class Locator extends OutlinerElement {
 			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
 		}
 		this.createUniqueName();
+		this.preview_controller.updateTransform(this);
 		return this;
 	}
 	getWorldCenter() {
@@ -167,7 +168,20 @@ OutlinerElement.registerType(Locator, 'locator');
 		}
 	})
 
+	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+	document.body.append(locator_suggestion_list);
+	
+	Locator.updateAutocompleteList = function() {
+		locator_suggestion_list.innerHTML = '';
+		Locator.all.forEach(locator => {
+			let option = document.createElement('option');
+			option.value = locator.name;
+			locator_suggestion_list.append(option);
+		})
+	}
+
 })()
+
 
 BARS.defineActions(function() {
 	new Action('add_locator', {

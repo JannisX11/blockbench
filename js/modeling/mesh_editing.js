@@ -1,3 +1,7 @@
+function sameMeshEdge(edge_a, edge_b) {
+	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
+}
+
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
 		id: 'add_primitive',
@@ -287,10 +291,10 @@ BARS.defineActions(function() {
 			runEdit(false, result);
 
 			Undo.amendEdit({
-				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape)},
+				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
-				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape)},
+				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
 			}, form => {
 				Object.assign(result, form);
@@ -319,7 +323,7 @@ BARS.defineActions(function() {
 		onChange({value}) {
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
-					delete Project.selected_vertices[mesh.uuid];
+					delete Project.mesh_selection[mesh.uuid];
 				})
 			} else if (value === 'face') {
 				UVEditor.vue.selected_faces.empty();
@@ -653,19 +657,16 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
-					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					let original_vertices = mesh.getSelectedVertices().slice();
 					let new_vertices;
 					let new_face_keys = [];
-					let selected_faces = [];
-					let selected_face_keys = [];
+					let selected_face_keys = mesh.getSelectedFaces();
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
 					let combined_direction;
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey]; 
-						if (face.isSelected()) {
-							selected_faces.push(face);
-							selected_face_keys.push(fkey);
-						}
-					}
+
+					selected_faces.forEach(face => {
+						original_vertices.safePush(...face.vertices);
+					})
 
 					if (original_vertices.length >= 3 && !selected_faces.length) {
 						let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
@@ -738,7 +739,7 @@ BARS.defineActions(function() {
 						vector.V3_add(direction.map(v => v * extend));
 						return vector;
 					}))
-					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
 
 					// Move Faces
 					selected_faces.forEach(face => {
@@ -835,7 +836,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend'},
+				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.extend);
 			})
@@ -850,7 +851,7 @@ BARS.defineActions(function() {
 			function runEdit(amended, offset = 50) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 				Mesh.selected.forEach(mesh => {
-					let original_vertices = Project.selected_vertices[mesh.uuid].slice();
+					let original_vertices = mesh.getSelectedVertices();
 					if (original_vertices.length < 3) return;
 					let new_vertices;
 					let selected_faces = [];
@@ -897,7 +898,7 @@ BARS.defineActions(function() {
 					}).filter(vec => vec instanceof Array))
 					if (!new_vertices.length) return;
 	
-					Project.selected_vertices[mesh.uuid].replace(new_vertices);
+					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
 	
 					// Move Faces
 					selected_faces.forEach(face => {
@@ -954,7 +955,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100},
+				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100, interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.offset);
 			})
@@ -1145,21 +1146,24 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length},
+				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
 			}, (form, form_options) => {
-				length = getLength(form.direction);
+				let direction = form.direction || 0;
+				length = getLength(direction);
 
 				form_options.offset.slider.settings.max = length;
-				if(saved_direction !== form.direction)
+				if(saved_direction !== direction)
 				{
 					form_options.offset.slider.value = Math.floor(length/2);
 					form_options.offset.slider.update();
-					saved_direction = form.direction;
+					saved_direction = direction;
 				}
 
-				form_options.direction.slider.value = form.direction % selected_face.vertices.length;
+				if (form_options.direction) {
+					form_options.direction.slider.value = direction % selected_face.vertices.length;
+				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction.slider.value);
+				runEdit(true, form_options.offset.slider.value, form_options.direction ? form_options.direction.slider.value : 0);
 			})
 		}
 	})
@@ -1458,6 +1462,7 @@ BARS.defineActions(function() {
 			Mesh.selected.forEach(mesh => {
 
 				let selected_vertices = mesh.getSelectedVertices();
+				let mesh_selection = Project.mesh_selection[mesh.uuid];
 
 				let copy = new Mesh(mesh);
 				elements.push(copy);
@@ -1494,8 +1499,8 @@ BARS.defineActions(function() {
 
 				copy.name += '_selection'
 				copy.sortInBefore(mesh, 1).init();
-				delete Project.selected_vertices[mesh.uuid];
-				Project.selected_vertices[copy.uuid] = selected_vertices;
+				delete Project.mesh_selection[mesh.uuid];
+				Project.mesh_selection[copy.uuid] = mesh_selection;
 				mesh.preview_controller.updateGeometry(mesh);
 				selected[selected.indexOf(mesh)] = copy;
 			})
