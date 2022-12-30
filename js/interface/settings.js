@@ -69,17 +69,20 @@ class Setting {
 		this.keybind_label = tl('data.setting');
 	}
 	get value() {
-		let profile = Settings.profiles.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
+		let profile = (window.Dialog && Dialog.open && Dialog.open == Settings.dialog)
+			? Settings.dialog.content_vue?.profile
+			: Settings.profiles.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
 		if (profile) {
-			return profile.value;
+			return profile.settings[this.id] || this.master_value;
 		} else {
 			return this.master_value;
 		}
 	}
 	set value(value) {
-		let profile = Settings.dialog.content_vue.profile && Settings.profiles.find(profile => profile.uuid == Settings.dialog.content_vue.profile);
+		let profile = Settings.dialog.content_vue?.profile;
+		console.log('set', this.id, profile, value)
 		if (profile) {
-			profile.value = value;
+			Vue.set(profile.settings, this.id, value);
 		} else {
 			this.master_value = value;
 		}
@@ -174,9 +177,10 @@ class Setting {
 }
 
 class SettingsProfile {
-	constructor(data) {
+	constructor(data = 0) {
 		this.uuid = guid();
-		this.name = '';
+		this.name = data.name || 'New Profile';
+		this.color = data.color == undefined ? Math.randomInteger(0, window.markerColors ? window.markerColors.length-1 : 7) : data.color;
 		this.conditions = {};
 		this.settings = {};
 		this.extend(data);
@@ -196,6 +200,43 @@ class SettingsProfile {
 	isActive() {
 		if (this.conditions.formats && !this.conditions.formats.includes(Format.id)) return false;
 		return true;
+	}
+	clear(key) {
+		Vue.delete(this.settings, key);
+		Settings.saveLocalStorages();
+	}
+	openDialog() {
+		let color_options = {};
+		for (let i = 0; i < markerColors.length; i++) {
+			color_options[i] = tl(`cube.color.${markerColors[i].id}`);
+		}
+		let dialog = new Dialog({
+			id: 'settings_profile',
+			title: 'Profile',
+			form: {
+				name: {label: 'generic.name', type: 'text', value: this.name},
+				color: {label: 'menu.cube.color', type: 'select', options: color_options, value: this.color},
+
+				condition_type: {type: 'select', label: 'Condition'},
+				format: {type: 'select', label: 'Condition'},
+
+				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
+					if (confirm('Are you sure you want to delete this settings profile?')) // todo: translate
+					this.remove();
+					Settings.dialog.content_vue.profile = null;
+					dialog.close();
+				}}
+			},
+			onConfirm: (result) => {
+				this.name = result.name;
+				this.color = result.color;
+				Settings.saveLocalStorages();
+			}
+		}).show();
+	}
+	remove() {
+		Settings.profiles.remove(this);
+		Settings.saveLocalStorages();
 	}
 }
 
@@ -611,9 +652,12 @@ onVueSetup(function() {
 		component: {
 			data() {return {
 				structure: Settings.structure,
-				profile: '',
+				profile: null,
 				open_category: 'general',
 				search_term: '',
+				profile_conditions: {
+					format: 'data.format',
+				}
 			}},
 			methods: {
 				saveSettings() {
@@ -622,26 +666,47 @@ onVueSetup(function() {
 				showProfileMenu(event) {
 					let items = [
 						{
-							name: 'Master',
+							name: 'generic.none',
+							icon: 'remove',
 							click: () => {
-								this.profile = '';
+								this.profile = null;
 							}
 						}
 					];
 					Settings.profiles.forEach(profile => {
 						items.push({
 							name: profile.name,
+							icon: 'settings_applications',
+							color: markerColors[profile.color].standard,
 							click: () => {
-								this.profile = profile.uuid;
+								this.profile = profile;
 							}
 						})
 					})
 
 					items.push(
 						'_',
-						{name: 'Create Profile'}
+						{name: 'Create Profile', icon: 'add', click: () => {// todo: translate
+							this.profile = new SettingsProfile({});
+							this.profile.openDialog();
+						}}
 					)
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
+				},
+				profileConditionValueOptions(key) {
+					if (key == 'format') {
+						let options = {};
+						Formats.all.forEach(format => {
+							options[format.id] = format.name;
+						})
+						return options;
+					}
+				},
+				profileButtonPress() {
+					if (!this.profile) {
+						this.profile = new SettingsProfile({});
+					}
+					this.profile.openDialog();
 				},
 				getIconNode: Blockbench.getIconNode,
 				Condition
@@ -682,13 +747,17 @@ onVueSetup(function() {
 					} else {
 						return this.structure[this.open_category].name;
 					}
+				},
+				profile_name() {
+					return this.profile ? this.profile.name : tl('generic.none');
 				}
 			},
 			template: `
-				<div>
-					<div>
+				<div :style="{'--color-profile': profile ? markerColors[profile.color] && markerColors[profile.color].standard : ''}">
+					<div id="settings_profile_wrapper">
 						Profile:
-						<div ref="profile_menu">{{  }}</div>
+						<bb-select ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</bb-select>
+						<div class="tool" @click="profileButtonPress()"><i class="material-icons">{{ profile ? 'settings' : 'add' }}</i></div>
 					</div>
 
 					<h2 class="i_b">{{ title }}</h2>
@@ -697,7 +766,12 @@ onVueSetup(function() {
 
 					<ul id="settingslist">
 
-						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
+						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
+							v-on="setting.click ? {click: setting.click} : {}"
+							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
+						>
+							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click="profile.clear(key)"><i class="material-icons">clear</i></div>
+
 							<template v-if="setting.type === 'number'">
 								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
 							</template>

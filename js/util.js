@@ -200,6 +200,11 @@ Math.isNumber = function(x) {
 Math.randomab = function(a, b) {
 	return a + Math.random()*(b-a);
 }
+Math.randomInteger = function(a, b) {
+	a = Math.ceil(a);
+	b = Math.floor(b);
+	return a + Math.floor(Math.random() * (b - a + 1));
+}
 Math.areMultiples = function(n1, n2) {
 	return (
 		(n1/n2)%1 === 0 ||

@@ -30,7 +30,8 @@ Vue.component('search-bar', {
 Vue.component('select-input', {
 	props: {
 		value: String,
-		options: Object
+		options: Object,
+		custom_dropdown: Function
 	},
 	data() {return {
 		id: bbuid(8)
@@ -51,17 +52,21 @@ Vue.component('select-input', {
 		open(event) {
 			if (Menu.closed_in_this_click == this.id) return this;
 			let items = [];
-			for (let key in this.options) {
-				let val = this.options[key];
-				if (val) {
-					items.push({
-						name: this.getNameFor(key),
-						icon: val.icon || ((this.value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-						condition: val.condition,
-						click: (e) => {
-							this.set(key);
-						}
-					})
+			if (typeof this.custom_dropdown == 'function') {
+				items = this.custom_dropdown(event, (value) => this.set(value));
+			} else {
+				for (let key in this.options) {
+					let val = this.options[key];
+					if (val) {
+						items.push({
+							name: this.getNameFor(key),
+							icon: val.icon || ((this.value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+							condition: val.condition,
+							click: (e) => {
+								this.set(key);
+							}
+						})
+					}
 				}
 			}
 			let menu = new Menu(this.id, items, {searchable: items.length > 16});

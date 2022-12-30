@@ -425,14 +425,32 @@
 	dialog#settings .dialog_wrapper {
 		min-height: 640px;
 	}
+	dialog#settings .dialog_content {
+		margin-top: 10px;
+	}
 	#settings_tab_bar {
 		margin: -24px;
 		margin-bottom: 0;
 		margin-top: -20px;
 	}
 	dialog#settings h2, dialog#keybindings h2, dialog#theme h2 {
-		margin-top: -10px;
+		margin-top: -15px;
 		font-size: 1.8em;
+	}
+
+	#settings_profile_wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: right;
+		margin-bottom: 8px;
+	}
+	#settings_profile_wrapper > bb-select {
+		min-width: 126px;
+		margin-left: 6px;
+	}
+	#settings_profile_wrapper > bb-select.profile_is_selected {
+		background-color: var(--color-profile);
+		color: #000;
 	}
 
 
@@ -444,7 +462,17 @@
 		clear: both;
 	}
 	#settingslist li {
-		padding: 5px 0;
+		padding: 2px 0;
+		margin: 4px 0;
+	}
+	#settingslist li.has_profile_override {
+		border-right: 4px solid var(--color-profile);
+		position: relative;
+	}
+	#settingslist .setting_profile_clear_button {
+		position: absolute;
+		top: 0;
+		right: 0;
 	}
 	#settingslist li:hover input[type=checkbox] {
 		color: var(--color-light);
