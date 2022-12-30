@@ -312,6 +312,7 @@ class AnimationControllerState {
 	addAnimation(animation) {
 		Undo.initEdit({animation_controller_state: this});
 		let anim_link = {
+			uuid: guid(),
 			key: animation ? animation.getShortName() : '',
 			animation: animation ? animation.uuid : '',
 			blend_value: ''
@@ -1475,6 +1476,7 @@ Interface.definePanels(() => {
 											v-model="animation.blend_value"
 											language="molang"
 											:autocomplete="autocomplete"
+											:placeholder="'${tl('animation_controllers.state.condition')}'"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>

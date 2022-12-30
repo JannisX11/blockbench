@@ -584,7 +584,6 @@ UndoSystem.save = class {
 		}
 		if (aspects.animation_controller_state) {
 			this.animation_controller_state = aspects.animation_controller_state.getUndoCopy();
-			console.log(aspects.animation_controller_state, this.animation_controller_state)
 			this.animation_controller_state.controller = aspects.animation_controller_state.controller?.uuid;
 		}
 

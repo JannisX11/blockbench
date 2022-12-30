@@ -874,8 +874,13 @@
 		min-height: 30px;
 		margin-bottom: auto;
 	}
+	.molang_input .prism-editor-placeholder {
+		font-family: var(--font-code);
+		margin-top: 2px;
+	}
 	.molang_input pre {
 		padding: 2px;
+		padding-bottom: 1px;
 		height: 100%;
 		min-height: 28px;
 		background-color: transparent;
@@ -1534,6 +1539,7 @@ span.controller_state_section_info {
 }
 .controller_state .prism-editor-wrapper {
 	font-size: 0.9em;
+	padding-top: 2px;
 }
 .controller_state input[type=text] {
 	font-size: 0.96em;
