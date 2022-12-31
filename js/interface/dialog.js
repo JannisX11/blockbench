@@ -745,6 +745,7 @@ window.Dialog = class Dialog {
 		return this;
 	}
 	focus() {
+		Dialog.stack.remove(this);
 		let blackout = document.getElementById('blackout');
 		blackout.style.display = 'block';
 		blackout.classList.toggle('darken', this.darken);
@@ -755,7 +756,6 @@ window.Dialog = class Dialog {
 		open_dialog = this.id;
 		open_interface = this;
 		Dialog.open = this;
-		Dialog.stack.remove(this);
 		Dialog.stack.push(this);
 	}
 	hide() {
@@ -926,7 +926,7 @@ window.MessageBox = class MessageBox extends Dialog {
 
 
 // Legacy Dialogs
-function showDialog(dialog) {
+function legacyShowDialog(dialog) { // todo: remove
 	var obj = $('.dialog#'+dialog)
 	$('.dialog').hide()
 	if (open_menu) {
@@ -955,11 +955,14 @@ function showDialog(dialog) {
 		obj.css('max-height', (window.innerHeight-128)+'px')
 	}
 }
-function hideDialog() {
+function legacyHideDialog() { // todo: remove
 	$('#blackout').hide()
 	$('.dialog').hide()
 	open_dialog = false;
 	open_interface = false;
 	Prop.active_panel = undefined
+}
+function hideDialog() {
+	console.warn('"hideDialog" is no longer supported!')
 }
 

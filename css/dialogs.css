@@ -83,7 +83,7 @@
 	}
 	.empty_dialog {
 		position: fixed;
-		z-index: 20;
+		z-index: 21;
 	}
 	dialog > content, dialog .dialog_wrapper > content {
 		display: block;
@@ -100,7 +100,7 @@
 
 	.dialog {
 		position: fixed;
-		z-index: 20;
+		z-index: 21;
 		top: 30px;
 	}
 	.dialog:not(.draggable) {

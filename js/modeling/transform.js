@@ -498,7 +498,7 @@ function getScaleAllGroups() {
 }
 function scaleAll(save, size) {
 	if (save === true) {
-		hideDialog()
+		legacyHideDialog()
 	}
 	if (size === undefined) {
 		size = $('#model_scale_label').val()
@@ -635,7 +635,7 @@ function cancelScaleAll() {
 		groups: getScaleAllGroups(),
 		group_aspects: {transform: true},
 	})
-	hideDialog()
+	legacyHideDialog()
 }
 function setScaleAllPivot(mode) {
 	if (mode === 'selection') {
@@ -1592,7 +1592,7 @@ BARS.defineActions(function() {
 			getScaleAllGroups().forEach((g) => {
 				g.old_origin = g.origin.slice();
 			}, Group, true)
-			showDialog('scaling')
+			legacyShowDialog('scaling')
 			var v = Format.centered_grid ? 0 : 8;
 			var origin = Group.selected ? Group.selected.origin : [v, 0, v];
 			$('#scaling_origin_x').val(origin[0])

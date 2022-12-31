@@ -143,7 +143,7 @@ async function loadImages(files, event) {
 			})
 
 		} else if (method == 'extrude_with_cubes') {
-			showDialog('image_extruder');
+			legacyShowDialog('image_extruder');
 			Extruder.drawImage(files[0]);
 		}
 	}
@@ -178,7 +178,7 @@ var Extruder = {
 		$('#scan_tolerance').on('input', function() {
 			$('#scan_tolerance_label').text($(this).val())
 		})
-		showDialog('image_extruder')
+		legacyShowDialog('image_extruder')
 
 		Extruder.ext_img = new Image()
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
@@ -365,7 +365,7 @@ var Extruder = {
 
 		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 
-		hideDialog()
+		legacyHideDialog()
 	}
 }
 //Export
@@ -678,7 +678,7 @@ BARS.defineActions(function() {
 				readtype: 'image'
 			}, function(files) {
 				if (files.length) {
-					showDialog('image_extruder')
+					legacyShowDialog('image_extruder')
 					Extruder.drawImage(files[0])
 				}
 			})

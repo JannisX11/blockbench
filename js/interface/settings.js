@@ -84,6 +84,7 @@ class Setting {
 	}
 	set value(value) {
 		let profile = Settings.dialog.content_vue?.profile;
+		if (this.type == 'number') value = Math.clamp(value, this.min, this.max)
 		if (profile) {
 			Vue.set(profile.settings, this.id, value);
 		} else {
@@ -807,7 +808,7 @@ onVueSetup(function() {
 					<div id="settings_profile_wrapper">
 						Profile:
 						<bb-select ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</bb-select>
-						<div class="tool" @click="profileButtonPress()"><i class="material-icons">{{ profile ? 'settings' : 'add' }}</i></div>
+						<div class="tool" @click="profileButtonPress()"><i class="material-icons">{{ profile ? 'build' : 'add' }}</i></div>
 					</div>
 
 					<h2 class="i_b">{{ title }}</h2>
