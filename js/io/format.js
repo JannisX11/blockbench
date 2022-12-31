@@ -73,6 +73,7 @@ class ModelFormat {
 				model.model_3d.position.x = model.model_3d.position.z = 8;
 			})
 		}
+		Settings.updateSettingsInProfiles();
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])

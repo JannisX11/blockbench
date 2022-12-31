@@ -6,8 +6,12 @@ class Setting {
 		settings[id] = this;
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
-		if (Settings.stored[id]) {
-			this.master_value = Settings.stored[id].value;
+		if (Settings.stored[id] !== undefined) {
+			this.master_value = Settings.stored[id];
+			// Legacy support
+			if (typeof this.master_value === 'object') {
+				this.master_value = this.master_value.value;
+			}
 
 		} else if (data.value != undefined) {
 			this.master_value = data.value
@@ -80,7 +84,6 @@ class Setting {
 	}
 	set value(value) {
 		let profile = Settings.dialog.content_vue?.profile;
-		console.log('set', this.id, profile, value)
 		if (profile) {
 			Vue.set(profile.settings, this.id, value);
 		} else {
@@ -180,15 +183,18 @@ class SettingsProfile {
 	constructor(data = 0) {
 		this.uuid = guid();
 		this.name = data.name || 'New Profile';
-		this.color = data.color == undefined ? Math.randomInteger(0, window.markerColors ? window.markerColors.length-1 : 7) : data.color;
-		this.conditions = {};
+		this.color = data.color == undefined ? Math.randomInteger(0, markerColors.length-1) : data.color;
+		this.condition = {
+			type: 'format',
+			value: ''
+		};
 		this.settings = {};
 		this.extend(data);
 		Settings.profiles.push(this);
 	}
 	extend(data) {
 		Merge.string(this, data, 'name');
-		if (data.conditions) this.conditions = data.conditions;
+		if (data.condition) this.condition = data.condition;
 		if (data.settings) {
 			for (let key in data.settings) {
 				let value = data.settings[key];
@@ -198,8 +204,13 @@ class SettingsProfile {
 		}
 	}
 	isActive() {
-		if (this.conditions.formats && !this.conditions.formats.includes(Format.id)) return false;
-		return true;
+		switch (this.condition.type) {
+			case 'format':
+				if (Format && Format.id == this.condition.value) return true;
+			default:
+				return false;
+		}
+		//if (this.conditions.formats && !this.conditions.formats.includes(Format.id)) return false;
 	}
 	clear(key) {
 		Vue.delete(this.settings, key);
@@ -210,15 +221,24 @@ class SettingsProfile {
 		for (let i = 0; i < markerColors.length; i++) {
 			color_options[i] = tl(`cube.color.${markerColors[i].id}`);
 		}
+		let condition_types = {
+			format: 'Format'
+		};
+		let formats = {};
+		for (let key in Formats) {
+			formats[key] = Formats[key].name;
+		}
 		let dialog = new Dialog({
 			id: 'settings_profile',
 			title: 'Profile',
 			form: {
 				name: {label: 'generic.name', type: 'text', value: this.name},
 				color: {label: 'menu.cube.color', type: 'select', options: color_options, value: this.color},
+				_1: '_',
 
-				condition_type: {type: 'select', label: 'Condition'},
-				format: {type: 'select', label: 'Condition'},
+				condition_type: {type: 'select', label: 'Condition', value: this.condition.type, options: condition_types},
+				format: {type: 'select', label: 'Format', value: this.condition.value, options: formats, condition: (form) => form.condition_type},
+				_2: '_',
 
 				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
 					if (confirm('Are you sure you want to delete this settings profile?')) // todo: translate
@@ -230,6 +250,8 @@ class SettingsProfile {
 			onConfirm: (result) => {
 				this.name = result.name;
 				this.color = result.color;
+				this.condition.type = result.condition_type;
+				if (this.condition.type == 'format') this.condition.value = result.format;
 				Settings.saveLocalStorages();
 			}
 		}).show();
@@ -247,12 +269,6 @@ const Settings = {
 	setup() {
 		if (localStorage.getItem('settings') != null) {
 			Settings.stored = JSON.parse(localStorage.getItem('settings'));
-		}
-		if (localStorage.getItem('settings_profiles') != null) {
-			let profiles = JSON.parse(localStorage.getItem('settings_profiles'));
-			profiles.forEach(profile => {
-				new SettingsProfile(profile);
-			})
 		}
 		
 		//General
@@ -438,6 +454,14 @@ const Settings = {
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 	},
+	setupProfiles() {
+		if (localStorage.getItem('settings_profiles') != null) {
+			let profiles = JSON.parse(localStorage.getItem('settings_profiles'));
+			profiles.forEach(profile => {
+				new SettingsProfile(profile);
+			})
+		}
+	},
 	addCategory(id, data = {}) {
 		Settings.structure[id] = {
 			name: data.name || tl('settings.category.'+id),
@@ -450,7 +474,7 @@ const Settings = {
 	saveLocalStorages() {
 		var settings_copy = {}
 		for (var key in settings) {
-			settings_copy[key] = {value: settings[key].value}
+			settings_copy[key] = settings[key].master_value
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 		localStorage.setItem('settings_profiles', JSON.stringify(Settings.profiles));
@@ -498,6 +522,18 @@ const Settings = {
 		}
 		Blockbench.dispatchEvent('update_settings');
 	},
+	updateSettingsInProfiles() {
+		let settings_to_change = new Set();
+		for (let profile of Settings.profiles) {
+			for (let key in profile.settings) {
+				settings_to_change.add(key);
+			}
+		}
+		settings_to_change.forEach(key => {
+			let setting = settings[key];
+			if (setting.onChange) setting.onChange(setting.value);
+		})
+	},
 	import(file) {
 		let data = JSON.parse(file.content);
 		for (let key in settings) {
@@ -520,6 +556,7 @@ const Settings = {
 		}
 		Settings.dialog.show();
 		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
+		Settings.dialog.content_vue.$forceUpdate();
 	},
 	old: {}
 }
@@ -659,6 +696,7 @@ onVueSetup(function() {
 			data() {return {
 				structure: Settings.structure,
 				profile: null,
+				all_profiles: Settings.profiles,
 				open_category: 'general',
 				search_term: '',
 				profile_conditions: {
@@ -714,7 +752,13 @@ onVueSetup(function() {
 					}
 					this.profile.openDialog();
 				},
+				getProfileValuesForSetting(key) {
+					return this.all_profiles.filter(profile => {
+						return profile.settings[key] !== undefined;
+					});
+				},
 				getIconNode: Blockbench.getIconNode,
+				tl,
 				Condition
 			},
 			computed: {
@@ -776,7 +820,9 @@ onVueSetup(function() {
 							v-on="setting.click ? {click: setting.click} : {}"
 							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
 						>
-							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click="profile.clear(key)"><i class="material-icons">clear</i></div>
+							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click="profile.clear(key)" title="${tl('Clear profile value')}">
+								<i class="material-icons">clear</i>
+							</div>
 
 							<template v-if="setting.type === 'number'">
 								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
@@ -790,6 +836,13 @@ onVueSetup(function() {
 
 							<label class="setting_label" v-bind:for="'setting_'+key">
 								<div class="setting_name">{{ setting.name }}</div>
+								<div class="setting_profile_value_indicator"
+									v-for="profile_here in getProfileValuesForSetting(key)"
+									:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+									:class="{active: profile_here.isActive()}"
+									:title="tl('Has override in profile ' + profile_here.name)"
+									@click.stop="profile = profile_here"
+								/>
 								<div class="setting_description">{{ setting.description }}</div>
 							</label>
 

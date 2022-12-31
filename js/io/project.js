@@ -307,6 +307,7 @@ class ModelProject {
 		Project = 0;
 		Undo = 0;
 		if (Modes.selected) Modes.selected.unselect();
+		Settings.updateSettingsInProfiles();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];

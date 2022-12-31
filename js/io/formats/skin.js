@@ -303,6 +303,7 @@ const skin_dialog = new Dialog({
 	},
 	onCancel() {
 		Format = 0;
+		Settings.updateSettingsInProfiles();
 	}
 });
 format.setup_dialog = skin_dialog;

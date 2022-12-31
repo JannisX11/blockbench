@@ -466,16 +466,17 @@
 		clear: both;
 	}
 	#settingslist li {
-		padding: 2px 0;
+		padding: 2px 1px;
 		margin: 4px 0;
 	}
 	#settingslist li.has_profile_override {
-		border-right: 4px solid var(--color-profile);
+		border: 1px solid var(--color-profile);
+		padding: 1px 0;
 		position: relative;
 	}
 	#settingslist .setting_profile_clear_button {
 		position: absolute;
-		top: 0;
+		top: 4px;
 		right: 0;
 	}
 	#settingslist li:hover input[type=checkbox] {
@@ -503,10 +504,27 @@
 	}
 	#settingslist .setting_name {
 		font-size: 1.1em;
+		display: inline-block;
 	}
 	#settingslist .setting_description {
 		font-size: 0.94em;
 		color: var(--color-subtle_text);
+	}
+	.setting_profile_value_indicator {
+		display: inline-block;
+		width: 13px;
+		height: 13px;
+		border: 3px solid var(--color-profile);
+		opacity: 0.8;
+		border-radius: 50%;
+		margin-left: 5px;
+		cursor: pointer;
+	}
+	.setting_profile_value_indicator.active {
+		background-color: var(--color-profile);
+	}
+	.setting_profile_value_indicator:hover {
+		opacity: 1;
 	}
 	#settingslist input[type=number] {
 		height: 28px;
