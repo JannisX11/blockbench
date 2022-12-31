@@ -6,12 +6,8 @@ class Setting {
 		settings[id] = this;
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
-		if (Settings.stored[id] !== undefined) {
-			this.master_value = Settings.stored[id];
-			// Legacy support
-			if (typeof this.master_value === 'object') {
-				this.master_value = this.master_value.value;
-			}
+		if (typeof Settings.stored[id] === 'object') {
+			this.master_value = Settings.stored[id].value;
 
 		} else if (data.value != undefined) {
 			this.master_value = data.value
@@ -475,7 +471,7 @@ const Settings = {
 	saveLocalStorages() {
 		var settings_copy = {}
 		for (var key in settings) {
-			settings_copy[key] = settings[key].master_value
+			settings_copy[key] = {value: settings[key].master_value}
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 		localStorage.setItem('settings_profiles', JSON.stringify(Settings.profiles));
@@ -821,7 +817,7 @@ onVueSetup(function() {
 							v-on="setting.click ? {click: setting.click} : {}"
 							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
 						>
-							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click="profile.clear(key)" title="${tl('Clear profile value')}">
+							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('Clear profile value')}">
 								<i class="material-icons">clear</i>
 							</div>
 
@@ -835,17 +831,17 @@ onVueSetup(function() {
 								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
 							</template>
 
-							<label class="setting_label" v-bind:for="'setting_'+key">
-								<div class="setting_name">{{ setting.name }}</div>
+							<div class="setting_label">
+								<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
 								<div class="setting_profile_value_indicator"
 									v-for="profile_here in getProfileValuesForSetting(key)"
 									:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
 									:class="{active: profile_here.isActive()}"
 									:title="tl('Has override in profile ' + profile_here.name)"
-									@click.stop="profile = profile_here"
+									@click.stop="profile = (profile == profile_here) ? null : profile_here"
 								/>
 								<div class="setting_description">{{ setting.description }}</div>
-							</label>
+							</div>
 
 							<template v-if="setting.type === 'text'">
 								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
