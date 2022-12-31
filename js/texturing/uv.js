@@ -1954,6 +1954,7 @@ Interface.definePanels(function() {
 							let wrapper = this.$refs.texture_canvas_wrapper;
 							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
 							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
+							this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
 							wrapper.append(this.texture.canvas);
 						})
 					}
@@ -3241,7 +3242,7 @@ Interface.definePanels(function() {
 							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
 							<img
-								:style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`}"
+								:style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`, imageRendering: texture.width < inner_width ? 'inherit' : 'auto'}"
 								v-if="texture && texture.error != 1 && !texture.display_canvas"
 								:src="texture.source"
 							>
