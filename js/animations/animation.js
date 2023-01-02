@@ -443,6 +443,7 @@ class Animation extends AnimationItem {
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
 		Timeline.setTime(Timeline.time % this.length);
+		Animator.MolangParser.resetVariables();
 		this.selected = true;
 		this.playing = true;
 		AnimationItem.selected = this;
@@ -909,7 +910,8 @@ const Animator = {
 		}
 
 		Animator.open = true;
-		Canvas.updateAllBones()
+		Canvas.updateAllBones();
+		Animator.MolangParser.resetVariables();
 
 		scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
