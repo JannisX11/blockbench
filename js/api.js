@@ -101,7 +101,7 @@ const Blockbench = {
 		return node
 	},
 	showQuickMessage(message, time = 1000) {
-		document.getElementById('quick_message_box').remove()
+		document.getElementById('quick_message_box')?.remove();
 		let quick_message_box = Interface.createElement('div', {id: 'quick_message_box'}, tl(message));
 		document.body.append(quick_message_box);
 

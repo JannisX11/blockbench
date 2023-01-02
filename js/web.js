@@ -79,14 +79,15 @@ async function loadInfoFromURL() {
 
 	if (Blockbench.queries.plugins) {
 		let plugin_ids = Blockbench.queries.plugins.split(/,/);
-		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id)).filter(p => p instanceof Plugin && p.installed == false);
+		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
+								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable());
 		if (plugins.length) {
 			await new Promise(resolve => {
 				let form = {
 					info: {type: 'info', text: 'dialog.load_plugins_from_query.text'}
 				}
 				plugins.forEach(plugin => {
-					form[plugin.id] = {type: 'checkbox', label: plugin.name, description: plugin.description, value: true}
+					form[plugin.id.replace(/\./g, '_')] = {type: 'checkbox', label: plugin.name, description: plugin.description, value: true}
 				})
 				new Dialog({
 					id: 'load_plugins_from_query',
@@ -96,7 +97,7 @@ async function loadInfoFromURL() {
 					onConfirm: async function(result) {
 						let promises = [];
 						plugins.forEach(plugin => {
-							if (result[plugin.id]) {
+							if (result[plugin.id.replace(/\./g, '_')]) {
 								promises.push(plugin.download());
 							}
 						})
