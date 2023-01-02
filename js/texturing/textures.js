@@ -487,6 +487,26 @@ class Texture {
 
 		let duplicate = Texture.all.find(tex => (tex !== this && tex.path === this.path && tex.saved));
 		if (duplicate && isApp) {
+			if (!Format.single_texture) {
+				let affected_elements = Outliner.elements.filter(el => {
+					if (typeof el.faces !== 'object') return false;
+					for (let fkey in el.faces) {
+						if (el.faces[fkey].texture == duplicate.uuid) {
+							return true;
+						}
+					}
+				});
+				if (affected_elements.length && Undo.current_save) {
+					Undo.current_save.addElements(affected_elements);
+					affected_elements.forEach(el => {
+						for (let fkey in el.faces) {
+							if (el.faces[fkey].texture == duplicate.uuid) {
+								el.faces[fkey].texture = this.uuid;
+							}
+						}
+					})
+				}
+			}
 			duplicate.remove(false);
 		}
 
@@ -934,7 +954,7 @@ class Texture {
 			namespace: 	{label: 'dialog.texture.namespace', value: this.namespace, condition: {features: ['texture_folder']}},
 			'render_options': '_',
 			render_mode: {label: 'menu.texture.render_mode', type: 'select', value: this.render_mode, options: {
-				normal: 'menu.texture.render_mode.default',
+				default: 'menu.texture.render_mode.default',
 				emissive: 'menu.texture.render_mode.emissive',
 				additive: 'menu.texture.render_mode.additive',
 				layered: Format.single_texture && 'menu.texture.render_mode.layered',
