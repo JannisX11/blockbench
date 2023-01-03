@@ -1490,6 +1490,8 @@
 	"action.change_keyframe_file.desc": "Select an audio or particle file to preview an effect",
 	"action.reset_keyframe": "Reset Keyframe",
 	"action.reset_keyframe.desc": "Reset all values of the selected keyframes",
+	"action.reset_keyframe_handles": "Reset Keyframe Handles",
+	"action.reset_keyframe_handles.desc": "Reset the bezier handles of the selected keyframes",
 	"action.resolve_keyframe_expressions": "Resolve Keyframe",
 	"action.resolve_keyframe_expressions.desc": "Resolves the math expressions of the selected keyframes",
 	"action.reverse_keyframes": "Reverse Keyframes",
@@ -1729,8 +1731,8 @@
 	"menu.animation.unload": "Unload",
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 
-	"menu.animation_file.unload": "Unload Animation File",
-	"menu.animation_file.import_remaining": "Import Remaining Animations",
+	"menu.animation_file.unload": "Unload File",
+	"menu.animation_file.import_remaining": "Import Remaining from File",
 
 	"menu.animator.rotation_global": "Rotate in Global Space",
 

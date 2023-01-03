@@ -171,6 +171,19 @@ class Keyframe {
 				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
 			}
 		})
+		if (this.interpolation == 'bezier') {
+			if (this.channel == 'rotation') {
+				for (var i = 0; i < 3; i++) {
+					if (i != axis) {
+						this.bezier_left_value[i] *= -1;
+						this.bezier_right_value[i] *= -1;
+					}
+				}
+			} else if (this.channel == 'position') {
+				this.bezier_left_value[axis] *= -1;
+				this.bezier_right_value[axis] *= -1;
+			}
+		}
 		return this;
 	}
 	getLerp(other, axis, amount, allow_expression) {
@@ -511,6 +524,7 @@ class Keyframe {
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
+		'reset_keyframe_handles',
 		'reset_keyframe',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
@@ -569,6 +583,10 @@ function updateKeyframeSelection() {
 		if (BarItems.keyframe_uniform.value != !!Timeline.selected[0].uniform) {
 			BarItems.keyframe_uniform.value = !!Timeline.selected[0].uniform;
 			BarItems.keyframe_uniform.updateEnabledState();
+		}
+		if (BarItems.keyframe_bezier_linked.value != !!Timeline.selected[0].bezier_linked) {
+			BarItems.keyframe_bezier_linked.value = !!Timeline.selected[0].bezier_linked;
+			BarItems.keyframe_bezier_linked.updateEnabledState();
 		}
 	}
 	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
@@ -930,6 +948,27 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+	new Action('reset_keyframe_handles', {
+		icon: 'replay',
+		category: 'animation',
+		condition: () => Animator.open && Keyframe.selected.length && Timeline.vue.graph_editor_open && Keyframe.selected.find(kf => kf.interpolation == 'bezier'),
+		click: function () {
+			Undo.initEdit({keyframes: Timeline.selected})
+			Timeline.selected.forEach((kf) => {
+				if (kf.interpolation == 'bezier') {
+					kf.bezier_left_time.V3_set(-0.1, -0.1, -0.1);
+					kf.bezier_left_value.V3_set(0, 0, 0);
+					kf.bezier_right_time.V3_set(0.1, 0.1, 0.1);
+					kf.bezier_right_value.V3_set(0, 0, 0);
+				}
+			})
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Undo.finishEdit('Reset keyframe handles')
+			updateKeyframeSelection()
+			Animator.preview()
+		}
+	})
 	new Action('resolve_keyframe_expressions', {
 		icon: 'functions',
 		category: 'animation',
@@ -1017,6 +1056,17 @@ BARS.defineActions(function() {
 				kf.time = end + start - kf.time;
 				if (kf.transform && kf.data_points.length > 1) {
 					kf.data_points.reverse();
+				}
+				if (kf.interpolation == 'bezier') {
+					let rt = kf.bezier_right_time.slice();
+					let rv = kf.bezier_right_value.slice();
+					kf.bezier_right_time.replace(kf.bezier_left_time);
+					kf.bezier_right_value.replace(kf.bezier_left_value);
+					kf.bezier_left_time.replace(rt);
+					kf.bezier_left_value.replace(rv);
+
+					kf.bezier_right_time.V3_multiply(-1);
+					kf.bezier_left_time.V3_multiply(-1);
 				}
 			})
 			Undo.finishEdit('Reverse keyframes')

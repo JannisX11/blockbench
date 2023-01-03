@@ -822,17 +822,25 @@ class Animation extends AnimationItem {
 	Animation.prototype.file_menu = new Menu([
 		{name: 'menu.animation_file.unload', icon: 'clear_all', click(id) {
 			let animations_to_remove = [];
-			Animation.all.forEach(animation => {
+			let controllers_to_remove = [];
+			AnimationItem.all.forEach(animation => {
 				if (animation.path == id && animation.saved) {
-					animations_to_remove.push(animation);
+					if (animation instanceof AnimationController) {
+						controllers_to_remove.push(animation);
+					} else {
+						animations_to_remove.push(animation);
+					}
 				}
 			})
-			if (!animations_to_remove.length) return;
-			Undo.initEdit({animations: animations_to_remove})
+			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
 			})
-			Undo.finishEdit('Unload animation file', {animations: []})
+			controllers_to_remove.forEach(animation => {
+				animation.remove(false, false);
+			})
+			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {
@@ -1492,12 +1500,13 @@ const Animator = {
 			// Test if already loaded
 			if (isApp && file.path) {
 				let is_already_loaded = false
-				for (var anim of is_controller ? Animation.all : AnimationController.all) {
+				for (var anim of is_controller ? AnimationController.all : Animation.all) {
 					if (anim.path == file.path && anim.name == key) {
 						is_already_loaded = true;
 						break;
 					}
 				}
+				if (is_already_loaded) continue;
 			}
 			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);

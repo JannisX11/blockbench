@@ -197,6 +197,7 @@ class AnimationControllerState {
 			Animator.MolangParser.parse(this.on_entry);
 
 			this.playEffects()
+			Blockbench.dispatchEvent('select_animation_controller_state', {state: this});
 		}
 		return this;
 	}
@@ -319,6 +320,7 @@ class AnimationControllerState {
 		};
 		this.animations.push(anim_link);
 		this.fold.animations = false;
+		Blockbench.dispatchEvent('add_animation_controller_animation', {state: this});
 		Undo.finishEdit('Add animation to animation controller state');
 	}
 	addTransition(target = '') {
@@ -330,6 +332,7 @@ class AnimationControllerState {
 		};
 		this.transitions.push(transition);
 		this.fold.transitions = false;
+		Blockbench.dispatchEvent('add_animation_controller_transition', {state: this});
 		Undo.finishEdit('Add transition to animation controller state');
 
 		Vue.nextTick(() => {
@@ -351,6 +354,7 @@ class AnimationControllerState {
 		};
 		this.particles.push(particle);
 		this.fold.particles = false;
+		Blockbench.dispatchEvent('add_animation_controller_particle', {state: this});
 		Undo.finishEdit('Add particle to animation controller state');
 
 		Vue.nextTick(() => {
@@ -369,6 +373,7 @@ class AnimationControllerState {
 		};
 		this.sounds.push(sound);
 		this.fold.sounds = false;
+		Blockbench.dispatchEvent('add_animation_controller_sound', {state: this});
 		Undo.finishEdit('Add sound to animation controller state');
 
 		Vue.nextTick(() => {
@@ -1711,10 +1716,10 @@ BARS.defineActions(function() {
 		category: 'animation',
 		condition: {modes: ['animate'], features: ['animation_controllers']},
 		click() {
-			new AnimationController({
+			let controller = new AnimationController({
 				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
 			}).add(true).propertiesDialog();
-
+			Blockbench.dispatchEvent('add_animation_controller', {animation_controller: controller})
 		}
 	})
 	new Action('add_animation_controller_state', {
@@ -1723,7 +1728,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		click() {
 			Undo.initEdit({animation_controllers: [AnimationController.selected]})
-			new AnimationControllerState(AnimationController.selected, {}).select().scrollTo().rename();
+			let state = new AnimationControllerState(AnimationController.selected, {}).select().scrollTo().rename();
+			Blockbench.dispatchEvent('select_animation_controller_state', {animation_controller: AnimationController.selected, state});
 			Undo.finishEdit('Add animation controller state')
 
 		}
