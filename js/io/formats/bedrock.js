@@ -1030,21 +1030,33 @@ var codec = new Codec('bedrock', {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			let project = Project;
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 
+		}
+
+		this.parse(model, file.path)
+
+		if (file.path && isApp && this.remember && !file.no_file ) {
+			if (isApp) {
+				let no_textures_before = Texture.all.length == 0;
+				loadDataFromModelMemory();
+				if (!Format.single_texture && no_textures_before && Texture.all.length) {
+					Cube.all.forEach(cube => {
+						cube.applyTexture(Texture.all[0]);
+					})
+				}
+			}
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
 			});
+			let project = Project;
 			setTimeout(() => {
 				if (Project == project) setTimeout(() => updateRecentProjectThumbnail(), 40);
 			}, 200)
 		}
-		this.parse(model, file.path)
-		if (isApp) loadDataFromModelMemory();
 	},
 	compile(options) {
 		if (options === undefined) options = {}
