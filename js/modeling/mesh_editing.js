@@ -40,8 +40,11 @@ BARS.defineActions(function() {
 					name: result.shape,
 					vertices: {}
 				});
-				var group = getCurrentGroup();
-				mesh.addTo(group)
+				let group = getCurrentGroup();
+				if (group) {
+					mesh.addTo(group)
+					mesh.color = group.color;
+				}
 				let diameter_factor = result.align_edges ? 1 / Math.cos(Math.PI/result.sides) : 1;
 				let off_ang = result.align_edges ? 0.5 : 0;
 

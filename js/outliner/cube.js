@@ -1256,8 +1256,11 @@ BARS.defineActions(function() {
 				autouv: (settings.autouv.value ? 1 : 0)
 			}).init()
 			if (!base_cube.box_uv) base_cube.mapAutoUV()
-			var group = getCurrentGroup();
-			base_cube.addTo(group)
+			let group = getCurrentGroup();
+			if (group) {
+				base_cube.addTo(group)
+				base_cube.color = group.color;
+			}
 
 			if (Texture.all.length && Format.single_texture) {
 				for (var face in base_cube.faces) {
