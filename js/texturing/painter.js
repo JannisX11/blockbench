@@ -39,7 +39,7 @@ const Painter = {
 			callback(canvas);
 		}
 
-		if (options.no_undo) {
+		if (options.no_undo && options.use_cache) {
 			let map = texture.getMaterial().map;
 			map.image = canvas;
 			map.needsUpdate = true;
@@ -47,7 +47,7 @@ const Painter = {
 			UVEditor.vue.updateTextureCanvas();
 		} else {
 			texture.updateSource(canvas.toDataURL())
-			if (!options.no_undo_finish) {
+			if (!options.no_undo && !options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
 		}

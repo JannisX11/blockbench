@@ -1101,31 +1101,30 @@ class Texture {
 
 				scope.edit((canvas) => {
 
-					let new_canvas = document.createElement('canvas')
-						new_canvas.width = formResult.size[0];
-						new_canvas.height = formResult.size[1];
-					let new_ctx = new_canvas.getContext('2d');
-						new_ctx.imageSmoothingEnabled = false;
+					canvas.width = formResult.size[0];
+					canvas.height = formResult.size[1];
+					let new_ctx = canvas.getContext('2d');
+					new_ctx.imageSmoothingEnabled = false;
 
 					switch (formResult.fill) {
 						case 'transparent':
-							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
+							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
 							break;
 						case 'color':
 							new_ctx.fillStyle = ColorPanel.get();
 							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
 							new_ctx.clearRect(0, 0, scope.width, scope.height)
-							new_ctx.drawImage(canvas, 0, 0, scope.width, scope.height);
+							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
 							break;
 						case 'repeat':
 							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
 								for (var y = 0; y < formResult.size[1]; y += scope.height) {
-									new_ctx.drawImage(canvas, x, y, scope.width, scope.height);
+									new_ctx.drawImage(scope.img, x, y, scope.width, scope.height);
 								}
 							}
 							break;
 						case 'stretch':
-							new_ctx.drawImage(canvas, 0, 0, formResult.size[0], formResult.size[1]);
+							new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
 							break;
 					}
 
@@ -1168,7 +1167,6 @@ class Texture {
 						})
 						Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
 					}
-					return new_canvas
 
 				}, {no_undo: true})
 

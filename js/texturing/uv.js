@@ -1952,6 +1952,7 @@ Interface.definePanels(function() {
 					if (this.texture && this.texture.display_canvas) {
 						Vue.nextTick(() => {
 							let wrapper = this.$refs.texture_canvas_wrapper;
+							if (!wrapper) return;
 							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
 							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 							this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
