@@ -69,9 +69,7 @@ class Setting {
 		this.keybind_label = tl('data.setting');
 	}
 	get value() {
-		let profile = (window.Dialog && Dialog.open && Dialog.open == Settings.dialog)
-			? Settings.dialog.content_vue?.profile
-			: Settings.profiles.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
+		let profile = SettingsProfile.all.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
 		if (profile) {
 			return profile.settings[this.id] || this.master_value;
 		} else {
@@ -79,6 +77,17 @@ class Setting {
 		}
 	}
 	set value(value) {
+		this.master_value = value;
+	}
+	get ui_value() {
+		let profile = Settings.dialog.content_vue?.profile;
+		if (profile) {
+			return profile.settings[this.id] || this.master_value;
+		} else {
+			return this.master_value;
+		}
+	}
+	set ui_value(value) {
 		let profile = Settings.dialog.content_vue?.profile;
 		if (this.type == 'number') value = Math.clamp(value, this.min, this.max)
 		if (profile) {
@@ -182,16 +191,32 @@ class SettingsProfile {
 		this.name = data.name || 'New Profile';
 		this.color = data.color == undefined ? Math.randomInteger(0, markerColors.length-1) : data.color;
 		this.condition = {
-			type: 'format',
+			type: 'selectable',
 			value: ''
 		};
 		this.settings = {};
 		this.extend(data);
-		Settings.profiles.push(this);
+		this.selected = false;
+		SettingsProfile.all.push(this);
+	}
+	select(update = true) {
+		if (this.condition.type !== 'selectable') return;
+
+		SettingsProfile.all.forEach(p => p.selected = false);
+		this.selected = true;
+		SettingsProfile.selected = this;
+		
+		if (update) {
+			Settings.updateSettingsInProfiles();
+			Settings.saveLocalStorages();
+		}
 	}
 	extend(data) {
 		Merge.string(this, data, 'name');
-		if (data.condition) this.condition = data.condition;
+		if (data.condition) {
+			this.condition.type = data.condition.type;
+			this.condition.value = data.condition.value;
+		}
 		if (data.settings) {
 			for (let key in data.settings) {
 				let value = data.settings[key];
@@ -202,12 +227,14 @@ class SettingsProfile {
 	}
 	isActive() {
 		switch (this.condition.type) {
+			case 'selectable':
+				return SettingsProfile.selected == this;
 			case 'format':
 				if (Format && Format.id == this.condition.value) return true;
+				break;
 			default:
 				return false;
 		}
-		//if (this.conditions.formats && !this.conditions.formats.includes(Format.id)) return false;
 	}
 	clear(key) {
 		Vue.delete(this.settings, key);
@@ -219,7 +246,8 @@ class SettingsProfile {
 			color_options[i] = tl(`cube.color.${markerColors[i].id}`);
 		}
 		let condition_types = {
-			format: 'Format'
+			selectable: tl('settings_profile.condition.type.selectable'),
+			format: tl('data.format'),
 		};
 		let formats = {};
 		for (let key in Formats) {
@@ -227,18 +255,18 @@ class SettingsProfile {
 		}
 		let dialog = new Dialog({
 			id: 'settings_profile',
-			title: 'Profile',
+			title: tl('data.settings_profile'),
 			form: {
 				name: {label: 'generic.name', type: 'text', value: this.name},
 				color: {label: 'menu.cube.color', type: 'select', options: color_options, value: this.color},
 				_1: '_',
 
 				condition_type: {type: 'select', label: 'Condition', value: this.condition.type, options: condition_types},
-				format: {type: 'select', label: 'Format', value: this.condition.value, options: formats, condition: (form) => form.condition_type},
+				format: {type: 'select', label: 'Format', value: this.condition.value, options: formats, condition: (form) => form.condition_type == 'format'},
 				_2: '_',
 
 				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
-					if (confirm('Are you sure you want to delete this settings profile?')) // todo: translate
+					if (confirm('settings_profile.confirm_delete'))
 					this.remove();
 					Settings.dialog.content_vue.profile = null;
 					dialog.close();
@@ -254,7 +282,17 @@ class SettingsProfile {
 		}).show();
 	}
 	remove() {
-		Settings.profiles.remove(this);
+		SettingsProfile.all.remove(this);
+		Settings.saveLocalStorages();
+	}
+}
+SettingsProfile.all = [];
+SettingsProfile.selected = null;
+SettingsProfile.unselect = function(update = true) {
+	SettingsProfile.all.forEach(p => p.selected = false);
+	SettingsProfile.selected = null;
+	if (update) {
+		Settings.updateSettingsInProfiles();
 		Settings.saveLocalStorages();
 	}
 }
@@ -262,7 +300,6 @@ class SettingsProfile {
 const Settings = {
 	structure: {},
 	stored: {},
-	profiles: [],
 	setup() {
 		if (localStorage.getItem('settings') != null) {
 			Settings.stored = JSON.parse(localStorage.getItem('settings'));
@@ -455,7 +492,8 @@ const Settings = {
 		if (localStorage.getItem('settings_profiles') != null) {
 			let profiles = JSON.parse(localStorage.getItem('settings_profiles'));
 			profiles.forEach(profile => {
-				new SettingsProfile(profile);
+				let new_profile = new SettingsProfile(profile);
+				if (profile.selected) new_profile.select(false);
 			})
 		}
 	},
@@ -474,7 +512,7 @@ const Settings = {
 			settings_copy[key] = {value: settings[key].master_value}
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
-		localStorage.setItem('settings_profiles', JSON.stringify(Settings.profiles));
+		localStorage.setItem('settings_profiles', JSON.stringify(SettingsProfile.all));
 
 		if (window.canvas_scenes) {
 			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
@@ -521,7 +559,7 @@ const Settings = {
 	},
 	updateSettingsInProfiles() {
 		let settings_to_change = new Set();
-		for (let profile of Settings.profiles) {
+		for (let profile of SettingsProfile.all) {
 			for (let key in profile.settings) {
 				settings_to_change.add(key);
 			}
@@ -693,12 +731,9 @@ onVueSetup(function() {
 			data() {return {
 				structure: Settings.structure,
 				profile: null,
-				all_profiles: Settings.profiles,
+				all_profiles: SettingsProfile.all,
 				open_category: 'general',
-				search_term: '',
-				profile_conditions: {
-					format: 'data.format',
-				}
+				search_term: ''
 			}},
 			methods: {
 				saveSettings() {
@@ -714,20 +749,25 @@ onVueSetup(function() {
 							}
 						}
 					];
-					Settings.profiles.forEach(profile => {
+					SettingsProfile.all.forEach(profile => {
 						items.push({
 							name: profile.name,
 							icon: 'settings_applications',
 							color: markerColors[profile.color].standard,
 							click: () => {
 								this.profile = profile;
+								if (profile.condition.type == 'selectable') {
+									profile.select();
+								} else {
+									SettingsProfile.unselect();
+								}
 							}
 						})
 					})
 
 					items.push(
 						'_',
-						{name: 'Create Profile', icon: 'add', click: () => {// todo: translate
+						{name: 'dialog.settings.create_profile', icon: 'add', click: () => {
 							this.profile = new SettingsProfile({});
 							this.profile.openDialog();
 						}}
@@ -822,13 +862,13 @@ onVueSetup(function() {
 							</div>
 
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><input type="number" v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+								<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
 							</template>
 
 							<div class="setting_label">
@@ -844,11 +884,11 @@ onVueSetup(function() {
 							</div>
 
 							<template v-if="setting.type === 'text'">
-								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
+								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" v-on:input="saveSettings()">
 							</template>
 
 							<template v-if="setting.type === 'password'">
-								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.value" v-on:input="saveSettings()">
+								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" v-on:input="saveSettings()">
 								<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
 									<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
 									<i class="fas fa-eye" v-else></i>
@@ -857,7 +897,7 @@ onVueSetup(function() {
 
 							<template v-else-if="setting.type === 'select'">
 								<div class="bar_select">
-									<select-input v-model="setting.value" :options="setting.options" />
+									<select-input v-model="setting.ui_value" :options="setting.options" />
 								</div>
 							</template>
 						</li>

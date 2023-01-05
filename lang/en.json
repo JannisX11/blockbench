@@ -33,6 +33,7 @@
 	"data.effect": "Effect",
 	"data.color": "Color",
 	"data.setting": "Setting",
+	"data.settings_profile": "Profile",
 
 	"generic.delete": "Delete",
 	"generic.remove": "Remove",
@@ -633,6 +634,7 @@
 	"dialog.settings.theme": "Theme",
 	"dialog.settings.about": "About",
 	"dialog.settings.search_results": "Search Results",
+	"dialog.settings.create_profile": "Create Profile...",
 
 	"keybindings.reset": "Reset",
 	"keybindings.clear": "Empty",
@@ -695,6 +697,9 @@
 	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
 	"about.icons": "Icon Packs:",
 	"about.libraries": "Libraries:",
+
+	"settings_profile.confirm_delete": "Are you sure you want to delete this settings profile?",
+	"settings_profile.condition.type.selectable": "Manually Selectable",
 
 	"settings.category.general": "General",
 	"settings.category.interface": "Interface",

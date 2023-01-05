@@ -52,8 +52,18 @@ const ActionControl = {
 			Blockbench.read([action.description], {}, files => {
 				loadModelFile(files[0]);
 			})
+
 		} else if (action.type == 'project_tab') {
 			ModelProject.all.find(p => p.uuid == action.uuid).select();
+
+		} else if (action.type == 'profile') {
+			let profile = SettingsProfile.all.find(p => p.uuid == action.uuid);
+			if (profile) {
+				profile.select();
+			} else {
+				SettingsProfile.unselect();
+			}
+
 		} else if (action.type == 'plugin') {
 			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
 			if (plugin.installed) {
@@ -136,6 +146,7 @@ BARS.defineActions(function() {
 				'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
 				'setting': 	{name: tl('data.setting'), icon: 'settings'},
 				'settings': {name: tl('data.setting'), icon: 'settings'},
+				'profile':	{name: tl('data.settings_profile'), icon: 'settings_applications'},
 				'+plugin': 	{name: tl('action.add_plugin'), icon: 'extension'},
 				'-plugin': 	{name: tl('action.remove_plugin'), icon: 'extension_off'},
 				'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
@@ -256,6 +267,29 @@ BARS.defineActions(function() {
 								keybind_label: Modes.options[project.mode].name,
 								uuid: project.uuid,
 								type: 'project_tab'
+							})
+							if (list.length > ActionControl.max_length) break;
+						}
+					}
+				}
+				if (type == 'profile') {
+					list.push({
+						name: tl('generic.none'),
+						icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+						type: 'profile'
+					})
+					for (let profile of SettingsProfile.all) {
+						if (profile.condition.type !== 'selectable') continue;
+						if (
+							search_input.length == 0 ||
+							profile.name.toLowerCase().includes(search_input)
+						) {
+							list.push({
+								name: profile.name,
+								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								color: markerColors[profile.color].standard,
+								uuid: profile.uuid,
+								type: 'profile'
 							})
 							if (list.length > ActionControl.max_length) break;
 						}

@@ -192,6 +192,36 @@ const MenuBar = {
 				'settings_window',
 				'keybindings_window',
 				'theme_window',
+				{
+					id: 'profiles',
+					name: 'data.settings_profile',
+					icon: 'settings_applications',
+					condition: () => SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') != -1,
+					children: () => {
+						let list = [
+							{
+								name: 'generic.none',
+								icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+								click: () => {
+									SettingsProfile.unselect();
+								}
+							},
+							'_'
+						];
+						SettingsProfile.all.forEach(profile => {
+							if (profile.condition.type != 'selectable') return;
+							list.push({
+								name: profile.name,
+								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								color: markerColors[profile.color].standard,
+								click: () => {
+									profile.select();
+								}
+							})
+						})
+						return list;
+					}
+				}
 			]},
 			'plugins_window',
 			'edit_session'
