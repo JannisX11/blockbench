@@ -1233,7 +1233,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	display_mode = false;
 	main_preview.fullscreen()
 
-	$('.selection_only').css('visibility', 'hidden')
+	//$('.selection_only').css('visibility', 'hidden')
 	$('body').removeClass('display_mode')
 	resizeWindow()
 	if (quad_previews.enabled_before) {

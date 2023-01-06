@@ -1252,6 +1252,7 @@ class Toolbar {
 		var scope = this;
 		this.name = data.name && tl(data.name);
 		this.label = !!data.label;
+		this.label_node = null;
 		this.children = [];
 		this.condition_cache = [];
 
@@ -1435,6 +1436,7 @@ class Toolbar {
 			linebreak: content.find('> .toolbar_separator.linebreak').detach().toArray(),
 		}
 
+		let has_content = false;
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
 				var last = content.find('> :last-child')
@@ -1455,6 +1457,7 @@ class Toolbar {
 				if (scope.condition_cache[i]) {
 					content.append(item.getNode())
 					item.toolbars.safePush(scope)
+					has_content = true;
 				} else {
 					item.toolbars.remove(scope)
 				}
@@ -1463,6 +1466,9 @@ class Toolbar {
 		var last = content.find('> :last-child')
 		if (last.length && last.hasClass('toolbar_separator') && !last.hasClass('spacer')) {
 			last.remove()
+		}
+		if (this.label_node) {
+			this.label_node.style.visibility = has_content ? '' : 'hidden';
 		}
 		return this;
 	}

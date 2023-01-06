@@ -12,7 +12,6 @@ class Panel {
 		this.previous_slot = 'left_bar';
 
 		this.growable = data.growable;
-		this.selection_only = data.selection_only == true;
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
@@ -32,7 +31,6 @@ class Panel {
 		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
 
-		if (this.selection_only) this.node.classList.add('selection_only');
 		if (this.growable) this.node.classList.add('grow');
 		
 		// Toolbars
@@ -42,6 +40,7 @@ class Panel {
 				if (toolbar.label) {
 					let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
 					this.node.append(label);
+					toolbar.label_node = label;
 				}
 				this.node.append(toolbar.node);
 			}

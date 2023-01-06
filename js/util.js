@@ -59,14 +59,14 @@ const Condition = function(condition, context) {
 			if (condition.selected.cube === false && Cube.selected.length) return false;
 			if (condition.selected.mesh === true && !Mesh.selected.length) return false;
 			if (condition.selected.mesh === false && Mesh.selected.length) return false;
-			if (condition.selected.locatlr === true && !Locator.selected.length) return false;
-			if (condition.selected.locatlr === false && Locator.selected.length) return false;
+			if (condition.selected.locator === true && !Locator.selected.length) return false;
+			if (condition.selected.locator === false && Locator.selected.length) return false;
 			if (condition.selected.null_object === true && !NullObject.selected.length) return false;
 			if (condition.selected.null_object === false && NullObject.selected.length) return false;
 			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
 			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
-			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
-			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
 		}
 		if (condition.project && !Project) return false;
 

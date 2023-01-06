@@ -704,7 +704,6 @@ Interface.definePanels(function() {
 		icon: 'fas.fa-bone',
 		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},
 		display_condition: () => Group.selected,
-		selection_only: true,
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -714,7 +713,7 @@ Interface.definePanels(function() {
 		component: {
 			template: `
 				<div>
-					<p>${ tl('panel.element.origin') }</p>
+					<p class="panel_toolbar_label">${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 				</div>
 			`

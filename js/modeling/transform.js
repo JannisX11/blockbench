@@ -1845,7 +1845,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		condition: {modes: ['edit', 'animate']},
+		condition: {modes: ['edit', 'animate'], selected: {outliner: true}},
 		click() {origin2geometry()}
 	})
 	new Action('rescale_toggle', {

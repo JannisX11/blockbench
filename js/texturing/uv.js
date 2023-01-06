@@ -373,6 +373,9 @@ const UVEditor = {
 	getMappableElements() {
 		return Outliner.selected.filter(el => typeof el.faces == 'object');
 	},
+	hasElements() {
+		return Outliner.selected.findIndex(el => typeof el.faces == 'object') != -1;
+	},
 	getTexture() {
 		if (Format.single_texture) return Texture.getDefault();
 		return this.vue.texture;
@@ -498,13 +501,13 @@ const UVEditor = {
 		Undo.finishEdit('Apply texture')
 	},
 	displayTools() {
-		if (!this.getMappableElements().length) return;
-		for (var id in UVEditor.sliders) {
-			var slider = UVEditor.sliders[id];
-			slider.node.style.setProperty('display', BARS.condition(slider.condition)?'block':'none');
+		for (let id in UVEditor.sliders) {
+			let slider = UVEditor.sliders[id];
+			slider.node.style.setProperty('display', Condition(slider.condition)?'block':'none');
 			slider.update();
 		}
-		var face = Cube.selected[0] && this.selected_faces[0] && Cube.selected[0].faces[this.selected_faces[0]]
+		if (!this.hasElements()) return;
+		let face = Cube.selected[0] && this.selected_faces[0] && Cube.selected[0].faces[this.selected_faces[0]]
 		if (face) {
 			BarItems.uv_rotation.set((face && face.rotation)||0);
 			if (Format.java_face_properties) {
@@ -1494,7 +1497,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_x', {
 		icon: 'icon-mirror_x',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.getMappableElements().length,
+		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
@@ -1504,7 +1507,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_y', {
 		icon: 'icon-mirror_y',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.getMappableElements().length,
+		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
@@ -1620,7 +1623,7 @@ BARS.defineActions(function() {
 	new Action('snap_uv_to_pixels', {
 		icon: 'grid_goldenratio',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.getMappableElements().length,
+		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
 			let elements = UVEditor.getMappableElements();
 			Undo.initEdit({elements, uv_only: true})
@@ -1736,10 +1739,9 @@ Interface.definePanels(function() {
 	
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
-		selection_only: true,
 		expand_button: true,
 		condition: {modes: ['edit', 'paint'], method: () => !Format.image_editor},
-		display_condition: () => UVEditor.getMappableElements().length || Modes.paint,
+		display_condition: () => UVEditor.hasElements() || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -3348,7 +3350,7 @@ Interface.definePanels(function() {
 	UVEditor.sliders.pos_x = new NumSlider({
 		id: 'uv_slider_pos_x',
 		private: true,
-		condition: () => UVEditor.vue.selected_faces.length || UVEditor.isBoxUV(),
+		condition: () => UVEditor.hasElements() && (UVEditor.vue.selected_faces.length || UVEditor.isBoxUV()),
 		get: function() {
 			return getPos(0);
 		},
@@ -3363,7 +3365,7 @@ Interface.definePanels(function() {
 	UVEditor.sliders.pos_y = new NumSlider({
 		id: 'uv_slider_pos_y',
 		private: true,
-		condition: () => UVEditor.vue.selected_faces.length || UVEditor.isBoxUV(),
+		condition: () => UVEditor.hasElements() && (UVEditor.vue.selected_faces.length || UVEditor.isBoxUV()),
 		get: function() {
 			return getPos(1);
 		},
@@ -3378,7 +3380,7 @@ Interface.definePanels(function() {
 	UVEditor.sliders.size_x = new NumSlider({
 		id: 'uv_slider_size_x',
 		private: true,
-		condition: () => (UVEditor.isFaceUV() && UVEditor.vue.selected_faces.length),
+		condition: () => (UVEditor.hasElements() && UVEditor.isFaceUV() && UVEditor.vue.selected_faces.length),
 		get: function() {
 			if (UVEditor.isFaceUV()) {
 				let ref_face = UVEditor.getReferenceFace();
@@ -3402,7 +3404,7 @@ Interface.definePanels(function() {
 	UVEditor.sliders.size_y = new NumSlider({
 		id: 'uv_slider_size_y',
 		private: true,
-		condition: () => (UVEditor.isFaceUV() && UVEditor.vue.selected_faces.length),
+		condition: () => (UVEditor.hasElements() && UVEditor.isFaceUV() && UVEditor.vue.selected_faces.length),
 		get: function() {
 			if (UVEditor.isFaceUV()) {
 				let ref_face = UVEditor.getReferenceFace();

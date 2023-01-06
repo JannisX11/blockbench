@@ -139,32 +139,13 @@ function updateSelection(options = {}) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
-	if (Outliner.selected.length) {
-		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
-		if (Modes.edit && Toolbox.selected.id == 'resize_tool' && Format.meshes) {
-			if (Mesh.selected.length) {
-				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-			} else {
-				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-			}
-		}
-	} else {
-		if (Format.bone_rig && Group.selected) {
-			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
+	if (Format.meshes && Outliner.selected.length && Modes.edit && Toolbox.selected.id == 'resize_tool') {
+		if (Mesh.selected.length) {
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
 		} else {
-			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			if (Outliner.selected.length) {
-				document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
-			}
-		}
-		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
-			document.querySelectorAll('.selection_only#panel_bone').forEach(node => node.style.setProperty('visibility', 'visible'));
-		}
-		if (Modes.paint) {
-			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
 		}
 	}
 	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
@@ -178,7 +159,9 @@ function updateSelection(options = {}) {
 				UVEditor.selected_faces.splice(i, 1);
 			}
 		})
-		UVEditor.loadData()
+	}
+	if (Condition(Panels.uv.condition)) {
+		UVEditor.loadData();
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
