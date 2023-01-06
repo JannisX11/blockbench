@@ -2017,10 +2017,12 @@ function animate() {
 	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
 	TickUpdates.Run();
 
-	if (Animator.open && Timeline.playing) {
-		Timeline.loop();
-	} else if (AnimationController.selected) {
-		AnimationController.selected.updatePreview();
+	if (Animator.open) {
+		if (Timeline.playing) {
+			Timeline.loop();
+		} else if (AnimationController.selected) {
+			AnimationController.selected.updatePreview();
+		}
 	}
 	if (quad_previews.current) {
 		WinterskyScene.updateFacingRotation(quad_previews.current.camera);
