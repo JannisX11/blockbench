@@ -25,5 +25,5 @@
 	"theme_color": "#3e90ff",
 	"display": "standalone",
 	"display_override": ["tabbed", "minimal-ui"],
-	"orientation": "natural"
+	"orientation": "portrait-primary"
 }
