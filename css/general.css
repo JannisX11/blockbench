@@ -740,3 +740,6 @@
 		padding: 0;
 		opacity: 1;
 	}
+	body.theme_borders #animation_controllers_wrapper .controller_state {
+		border-color: var(--color-border);
+	}
