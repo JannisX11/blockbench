@@ -178,10 +178,16 @@ var codec = new Codec('project', {
 			model.textures.push(t);
 		})
 
-		if (Animator.animations.length) {
+		if (Animation.all.length) {
 			model.animations = [];
-			Animator.animations.forEach(a => {
+			Animation.all.forEach(a => {
 				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
+			})
+		}
+		if (AnimationController.all.length) {
+			model.animation_controllers = [];
+			AnimationController.all.forEach(a => {
+				model.animation_controllers.push(a.getUndoCopy());
 			})
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {
@@ -332,6 +338,16 @@ var codec = new Codec('project', {
 		if (model.animations) {
 			model.animations.forEach(ani => {
 				var base_ani = new Animation()
+				base_ani.uuid = ani.uuid;
+				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
+			})
+		}
+		if (model.animation_controllers) {
+			model.animation_controllers.forEach(ani => {
+				var base_ani = new AnimationController()
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
 				if (isApp && Format.animation_files) {
@@ -568,6 +584,19 @@ var codec = new Codec('project', {
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
 				new_animations.push(base_ani);
+			})
+		}
+		if (model.animation_controllers) {
+			model.animation_controllers.forEach(ani => {
+				var base_ani = new AnimationController()
+				if (AnimationController.all.find(a => a.uuid == ani.uuid)) {
+					ani.uuid = guid();
+				}
+				base_ani.uuid = ani.uuid;
+				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
 			})
 		}
 		if (Format.bone_rig) {

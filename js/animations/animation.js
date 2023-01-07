@@ -916,6 +916,16 @@ const Animator = {
 		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
 			Project.BedrockEntityManager.initAnimations();
 		}
+		if (isApp && Project.memory_animation_files_to_load) {
+			let paths = Project.memory_animation_files_to_load.filter(path => !Animation.all.find(a => a.path == path));
+			if (paths.length) {
+				Blockbench.read(paths, {}, files => {
+					files.forEach(file => {
+						Animator.importFile(file);
+					})
+				})
+			}
+		}
 
 		Animator.open = true;
 		Canvas.updateAllBones();
@@ -1675,8 +1685,8 @@ Blockbench.on('reset_project', () => {
 })
 
 Clipbench.setAnimation = function() {
-	if (!Animation.selected) return;
-	Clipbench.animation = Animation.selected.getUndoCopy();
+	if (!Animation.selected && !AnimationController.selected) return;
+	Clipbench.animation = AnimationItem.selected.getUndoCopy();
 
 	if (isApp) {
 		clipboard.writeHTML(JSON.stringify({type: 'animation', content: Clipbench.animation}));
@@ -1692,15 +1702,26 @@ Clipbench.pasteAnimation = function() {
 			}
 		} catch (err) {}
 	}
-	if (!Clipbench.animation) return;
+	if (!Clipbench.animation || !Format.animation_mode) return;
 
-	let animations = [];
-	Undo.initEdit({animations});
-	let animation = new Animation(Clipbench.animation).add(false);
-	animation.createUniqueName();
-	animation.select().propertiesDialog();
-	animations.push(animation);
-	Undo.finishEdit('Paste animation')
+	if (Clipbench.animation.type == 'animation_controller') {
+		let animation_controllers = [];
+		Undo.initEdit({animation_controllers});
+		let animation_controller = new AnimationController(Clipbench.animation).add(false);
+		animation_controller.createUniqueName();
+		animation_controller.select().propertiesDialog();
+		animation_controllers.push(animation_controller);
+		Undo.finishEdit('Paste animation controller')
+
+	} else {
+		let animations = [];
+		Undo.initEdit({animations});
+		let animation = new Animation(Clipbench.animation).add(false);
+		animation.createUniqueName();
+		animation.select().propertiesDialog();
+		animations.push(animation);
+		Undo.finishEdit('Paste animation')
+	}
 }
 
 

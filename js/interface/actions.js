@@ -1849,6 +1849,15 @@ const BARS = {
 							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
 							animation.saved = false;
 							animation.add(true).select();
+						
+						} else if (AnimationController.selected && Prop.active_panel == 'animations') {
+							var copy = AnimationController.selected.getUndoCopy();
+							var controller = new AnimationController(copy);
+							Property.resetUniqueValues(AnimationController, controller);
+							controller.createUniqueName();
+							AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
+							controller.saved = false;
+							controller.add(true).select();
 
 						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
 							Undo.initEdit({animation_controllers: [AnimationController.selected]});

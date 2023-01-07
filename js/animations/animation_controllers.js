@@ -453,6 +453,7 @@ class AnimationController extends AnimationItem {
 					this.states.push(state);
 				} else {
 					state = new AnimationControllerState(this, template);
+					if (template.uuid) state.uuid = template.uuid;
 				}
 			})
 		} else if (typeof data.states === 'object') {
@@ -485,6 +486,7 @@ class AnimationController extends AnimationItem {
 	getUndoCopy(options = 0, save) {
 		var copy = {
 			uuid: this.uuid,
+			type: 'animation_controller',
 			name: this.name,
 			selected: this.selected,
 			selected_state: this.selected_state ? this.selected_state.uuid : null

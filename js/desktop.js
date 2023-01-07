@@ -286,12 +286,7 @@ function loadDataFromModelMemory() {
 		})
 	}
 	if (project.animation_files && Format.animation_files) {
-		let files = project.animation_files.filter(path => !Animation.all.find(a => a.path == path));
-		Blockbench.read(files, {}, files => {
-			files.forEach(file => {
-				Animator.importFile(file);
-			})
-		})
+		Project.memory_animation_files_to_load = project.animation_files;
 	}
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
