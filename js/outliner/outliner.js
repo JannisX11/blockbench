@@ -106,7 +106,6 @@ class OutlinerNode {
 	}
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
-		//this.constructor.all.safePush(this);
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
@@ -234,7 +233,6 @@ class OutlinerNode {
 	}
 	remove() {
 		if (this.preview_controller) this.preview_controller.remove(this);
-		this.constructor.all.remove(this);
 		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
 		this.removeFromParent();
 	}
@@ -359,10 +357,9 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	remove() {
-		super.remove()
-		selected.remove(this);
-		elements.remove(this);
-		this.constructor.selected.remove(this);
+		super.remove();
+		Project.selected_elements.remove(this);
+		Project.elements.remove(this);
 		return this;
 	}
 	showContextMenu(event) {
@@ -375,10 +372,11 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	forSelected(fc, undo_tag) {
-		if (this.constructor.selected.length <= 1 || !this.constructor.selected.includes(this)) {
-			var edited = [this]
+		let selected = this.constructor.selected;
+		if (selected.length <= 1 || !selected.includes(this)) {
+			var edited = [this];
 		} else {
-			var edited = this.constructor.selected
+			var edited = selected;
 		}
 		if (typeof fc === 'function') {
 			if (undo_tag) {
@@ -481,16 +479,14 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	selectLow() {
-		Outliner.selected.safePush(this);
-		this.constructor.selected.safePush(this)
+		Project.selected_elements.safePush(this);
 		this.selected = true;
 		TickUpdates.selection = true;
 		return this;
 	}
 	unselect() {
-		selected.remove(this);
+		Project.selected_elements.remove(this);
 		this.selected = false;
-		this.constructor.selected.remove(this);
 		TickUpdates.selection = true;
 		return this;
 	}

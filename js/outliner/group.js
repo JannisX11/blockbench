@@ -80,7 +80,7 @@ class Group extends OutlinerNode {
 			selected.length = 0
 		}
 		//Select This Group
-		Group.all.forEach(function(s) {
+		Project.groups.forEach(function(s) {
 			s.selected = false
 		})
 		this.selected = true
@@ -112,7 +112,7 @@ class Group extends OutlinerNode {
 		selected.length = 0
 
 		//Select This Group
-		Group.all.forEach(function(s) {
+		Project.groups.forEach(function(s) {
 			s.selected = false
 		})
 		this.selected = true
@@ -199,7 +199,7 @@ class Group extends OutlinerNode {
 			}
 		})
 		TickUpdates.selection = true
-		this.constructor.all.remove(this);
+		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			elements.empty();

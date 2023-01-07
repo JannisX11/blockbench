@@ -404,21 +404,19 @@ Array.prototype.remove = function (...items) {
 		var index = this.indexOf(item)
 		if (index > -1) {
 			this.splice(index, 1)
-			return index;
 		}
-		return false;
 	})		
 }
 Array.prototype.empty = function() {
-	this.splice(0, Infinity);
+	this.splice(0, this.length);
 	return this;
 }
 Array.prototype.purge = function() {
-	this.splice(0, Infinity);
+	this.splice(0, this.length);
 	return this;
 }
 Array.prototype.replace = function(items) {
-	this.splice(0, Infinity, ...items);
+	this.splice(0, this.length, ...items);
 	return this;
 }
 Array.prototype.allAre = function(cb) {

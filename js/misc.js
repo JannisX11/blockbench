@@ -94,10 +94,12 @@ function updateNslideValues() {
 
 //Selections
 function updateSelection(options = {}) {
-	Outliner.elements.forEach(obj => {
-		if (selected.includes(obj) && !obj.selected && !obj.locked) {
+	if (!Project) return;
+	Project.elements.forEach(obj => {
+		let included = Project.selected_elements.includes(obj);
+		if (included && !obj.selected && !obj.locked) {
 			obj.selectLow()
-		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
+		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
 		if (obj instanceof Mesh) {
@@ -129,7 +131,7 @@ function updateSelection(options = {}) {
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 
-	Outliner.elements.forEach(element => {
+	Project.elements.forEach(element => {
 		if (element.preview_controller.updateSelection) {
 			element.preview_controller.updateSelection(element);
 		}
