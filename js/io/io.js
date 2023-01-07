@@ -143,7 +143,7 @@ async function loadImages(files, event) {
 			})
 
 		} else if (method == 'extrude_with_cubes') {
-			legacyShowDialog('image_extruder');
+			Extruder.dialog.show();
 			Extruder.drawImage(files[0]);
 		}
 	}
@@ -169,16 +169,40 @@ async function loadImages(files, event) {
 }
 
 //Extruder
-var Extruder = {
-	drawImage: function(file) {
+const Extruder = {
+	dialog: new Dialog({
+		id: 'image_extruder',
+		title: 'dialog.extrude.title',
+		buttons: ['dialog.confirm', 'dialog.cancel'],
+		part_order: ['form', 'lines'],
+		form: {
+			mode: {
+				label: 'dialog.extrude.mode',
+				type: 'select',
+				options: {
+					areas: 'dialog.extrude.mode.areas',
+					lines: 'dialog.extrude.mode.lines',
+					columns: 'dialog.extrude.mode.columns',
+					pixels: 'dialog.extrude.mode.pixels'
+				}
+			},
+			scan_tolerance: {
+				label: 'dialog.extrude.opacity',
+				type: 'range',
+				min: 1, max: 255, value: 255, step: 1,
+				editable_range_label: true
+			}
+		},
+		lines: [
+			`<canvas height="256" width="256" id="extrusion_canvas"></canvas>`
+		],
+		onConfirm(formResult) {
+			Extruder.startConversion(formResult);
+		}
+	}),
+	drawImage(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
-
-		setProgressBar('extrusion_bar', 0)
-		$('#scan_tolerance').on('input', function() {
-			$('#scan_tolerance_label').text($(this).val())
-		})
-		legacyShowDialog('image_extruder')
 
 		Extruder.ext_img = new Image()
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
@@ -216,12 +240,9 @@ var Extruder = {
 
 		//Grid
 	},
-	startConversion: function() {
-		var scan_mode = $('select#scan_mode option:selected').attr('id') /*areas, lines, columns, pixels*/
-		var isNewProject = elements.length === 0;
-
-		var pixel_opacity_tolerance = parseInt($('#scan_tolerance').val())
-
+	startConversion(formResult) {
+		var scan_mode = formResult.mode;
+		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
 
 		//Undo
 		Undo.initEdit({elements: selected, outliner: true, textures: []})
@@ -364,8 +385,6 @@ var Extruder = {
 		})
 
 		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
-
-		legacyHideDialog()
 	}
 }
 //Export
@@ -670,16 +689,16 @@ BARS.defineActions(function() {
 		icon: 'eject',
 		category: 'file',
 		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
-		click: function () {
+		click() {
 			Blockbench.import({
 				resource_id: 'texture',
 				extensions: ['png'],
 				type: 'PNG Texture',
 				readtype: 'image'
-			}, function(files) {
+			}, (files) => {
 				if (files.length) {
-					legacyShowDialog('image_extruder')
-					Extruder.drawImage(files[0])
+					Extruder.dialog.show();
+					Extruder.drawImage(files[0]);
 				}
 			})
 		}

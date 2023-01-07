@@ -460,7 +460,6 @@
 
 	"dialog.scale.title": "Scale Model",
 	"dialog.scale.axis": "Axis",
-	"dialog.scale.scale": "Scale",
 	"dialog.scale.element_pivot": "Element Pivot",
 	"dialog.scale.selection_center": "Selection Center",
 	"dialog.scale.clipping": "Model clipping: Your model is too large for the canvas",

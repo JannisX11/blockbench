@@ -151,15 +151,36 @@ function buildForm(dialog) {
 					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
-					let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
-					bar.append(display);
 					input_element.on('input', () => {
-						let result = dialog.getFormResult();
-						display.textContent = trimFloatNumber(result[form_id]);
-					})
-					input_element.on('change', () => {
 						dialog.updateFormValues();
 					})
+
+					if (!data.editable_range_label) {
+						let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
+						bar.append(display);
+						input_element.on('input', () => {
+							let result = dialog.getFormResult();
+							display.textContent = trimFloatNumber(result[form_id]);
+						})
+					} else {
+						let display = Interface.createElement('input', {
+							class: 'range_input_label dark_bordered focusable_input',
+							type: 'number',
+							value: data.value,
+							min: data.min,
+							max: data.max,
+							step: data.step || 1,
+						});
+						bar.append(display);
+						input_element.on('input', () => {
+							let result = dialog.getFormResult();
+							display.value = result[form_id];
+						})
+						display.addEventListener('input', (e) => {
+							input_element.val(parseFloat(display.value));
+							dialog.updateFormValues();
+						})
+					}
 					break;
 
 
@@ -924,43 +945,9 @@ window.MessageBox = class MessageBox extends Dialog {
 
 })()
 
-
-// Legacy Dialogs
-function legacyShowDialog(dialog) { // todo: remove
-	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide()
-	if (open_menu) {
-		open_menu.hide()
-	}
-	$('#blackout').show()
-	obj.show()
-	open_dialog = dialog
-	open_interface = {
-		confirm() {
-			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
-		},
-		cancel() {
-			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
-		}
-	}
-	Prop.active_panel = 'dialog'
-	//Draggable
-	if (obj.hasClass('draggable')) {
-		obj.draggable({
-			handle: ".dialog_handle",
-			containment: '#page_wrapper'
-		})
-		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		obj.css('left', x+'px')
-		obj.css('max-height', (window.innerHeight-128)+'px')
-	}
-}
-function legacyHideDialog() { // todo: remove
-	$('#blackout').hide()
-	$('.dialog').hide()
-	open_dialog = false;
-	open_interface = false;
-	Prop.active_panel = undefined
+// Legacy Dialog
+function showDialog() {
+	console.warn('"showDialog" is no longer supported!')
 }
 function hideDialog() {
 	console.warn('"hideDialog" is no longer supported!')

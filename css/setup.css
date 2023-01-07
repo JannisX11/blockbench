@@ -708,14 +708,18 @@
 		width: 56px;
 		padding: 4px;
 		display: inline-block;
-		background-color: var(--color-back);
 		text-align: center;
 		cursor: pointer;
+		flex-grow: 1;
+		margin: 2px;
 	}
 	label.toggle_panel:hover {
 		color: var(--color-light);
 	}
 	input:checked + label.toggle_panel {
+		background-color: var(--color-button);
+	}
+	input:checked + label.toggle_panel:hover {
 		background-color: var(--color-selected);
 	}
 	.y_scrollable {

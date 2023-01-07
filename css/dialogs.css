@@ -197,7 +197,7 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 		padding-top: 4px;
-		padding-left: 6px;
+		margin-left: 5px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -331,7 +331,7 @@
 	}
 	dialog .dialog_content,
 	dialog .dialog_bar.button_bar {
-		margin: 24px;
+		margin: 16px 24px;
 	}
 	@media (max-device-width: 640px) {
 		dialog {
@@ -952,25 +952,11 @@
 		color: var(--color-accent);
 	}
 	/*Scale*/
-	#model_scale_range {
-		width: calc(100% - 50px);
-		float: left;
-		height: 31px;
-		padding-top: 3px;
+	dialog#scale .form_bar_overflow_info  {
+		color: #ff5767;
 	}
-	#model_scale_label {
-		width: 50px;
-		padding-top: 3px;
-		text-align: center;
-		float: left;
-	}
-	#scaling_clipping_warning {
-		color: #ff384b;
-	}
-	.borderless {
-		margin: 0;
-		padding: 0;
-		border: none;
+	dialog#scale .toggle_panel {
+		font-weight: bold;
 	}
 
 	/*Extrusion*/
