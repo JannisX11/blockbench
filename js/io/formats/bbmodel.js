@@ -170,7 +170,7 @@ var codec = new Codec('project', {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
-			if (options.bitmaps != false) {
+			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
 			}

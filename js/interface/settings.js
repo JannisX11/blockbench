@@ -475,6 +475,7 @@ const Settings = {
 		
 		//Export
 		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});

@@ -865,6 +865,8 @@
 	"settings.minifiedout.desc": "Write JSON file in one line",
 	"settings.minify_bbmodel": "Minified Project Files",
 	"settings.minify_bbmodel.desc": "Write .bbmodel files minified into one line",
+	"settings.embed_textures": "Embed Textures",
+	"settings.embed_textures.desc": "Embed texture file content in .bbmodel files",
 	"settings.export_empty_groups": "Export Empty Groups",
 	"settings.export_empty_groups.desc": "Include groups without content in exported files",
 	"settings.export_groups": "Export Groups in Java block/item models",
