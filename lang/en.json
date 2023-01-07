@@ -413,6 +413,9 @@
 	"dialog.extrude.mode.lines": "Lines",
 	"dialog.extrude.mode.columns": "Columns",
 	"dialog.extrude.mode.pixels": "Pixels",
+	"dialog.extrude.orientation": "Orientation",
+	"dialog.extrude.orientation.upright": "Upright",
+	"dialog.extrude.orientation.flat": "Flat",
 	"dialog.extrude.opacity": "Minimum Opacity",
 	"dialog.extrude.scan": "Scan and Import",
 
