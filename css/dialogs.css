@@ -1,4 +1,5 @@
 /*Dialog*/
+@layer app {
 	#blackout {
 		display: none;
 		position: absolute;
@@ -1671,3 +1672,4 @@
 		margin-left: 8px;
 		white-space: nowrap;
 	}
+}

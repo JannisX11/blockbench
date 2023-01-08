@@ -1,5 +1,6 @@
 
 /*INIT*/
+@layer app {
 	* {
 		margin: 0;
 		padding: 0;
@@ -711,3 +712,4 @@
 	.y_scrollable {
 		overflow-y: scroll;
 	}
+}

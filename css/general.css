@@ -1,4 +1,5 @@
 /*Defaults*/
+@layer app {
 	div.tool.wide {
 		width: 72px;
 		padding: 1px 0;
@@ -722,3 +723,4 @@
 		padding: 0;
 		opacity: 1;
 	}
+}

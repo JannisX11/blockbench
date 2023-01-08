@@ -5,7 +5,8 @@ https://prismjs.com/download.html#themes=prism-okaidia&languages=css+json */
  * Loosely based on Monokai textmate theme by http://www.monokai.nl/
  * @author ocodia
  */
-
+ 
+@layer app {
  .prism-editor-wrapper code{font-family:inherit;line-height:inherit}.prism-editor-wrapper{width:100%;height:100%;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:start;-ms-flex-align:start;align-items:flex-start;overflow:auto;-o-tab-size:1.5em;tab-size:1.5em;-moz-tab-size:1.5em}.prism-editor__line-numbers{height:100%;overflow:hidden;-ms-flex-negative:0;flex-shrink:0;padding-top:4px;margin-top:0}.prism-editor__line-number{text-align:right;white-space:nowrap}.prism-editor__code{margin-top:0!important;margin-bottom:0!important;-webkit-box-flex:2;-ms-flex-positive:2;flex-grow:2;min-height:100%;-webkit-box-sizing:border-box;box-sizing:border-box;-o-tab-size:4;tab-size:4;-moz-tab-size:4;outline:none}pre.prism-editor__code:focus{outline:none}
 
 code[class*="language-"],
@@ -125,4 +126,4 @@ pre[class*="language-"] {
 .token.entity {
 	cursor: help;
 }
-
+}
