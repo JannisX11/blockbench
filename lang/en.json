@@ -535,8 +535,9 @@
 	"dialog.create_gif.length_mode.turntable": "Turntable Rotation",
 	"dialog.create_gif.length": "Length",
 	"dialog.create_gif.fps": "FPS",
-	"dialog.create_gif.compression": "Compression Amount",
+	"dialog.create_gif.pixelate": "Pixelate",
 	"dialog.create_gif.color": "Background Color",
+	"dialog.create_gif.bg_image": "Background Image",
 	"dialog.create_gif.turn": "Turntable Speed",
 	"dialog.create_gif.play": "Start Animation",
 

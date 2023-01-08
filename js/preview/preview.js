@@ -1636,6 +1636,8 @@ Blockbench.on('update_camera_position', e => {
 })
 
 function openQuadView() {
+	if (quad_previews.setup) quad_previews.setup();
+
 	quad_previews.enabled = true;
 
 	$('#preview').empty()
@@ -1984,7 +1986,8 @@ function initCanvas() {
 		}
 	}
 
-	MediaPreview = new Preview({id: 'media', offscreen: true})
+	MediaPreview = new Preview({id: 'media', offscreen: true});
+	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
 
 	main_preview = new Preview({id: 'main'}).fullscreen()
 
@@ -1999,10 +2002,16 @@ function initCanvas() {
 		get current() {return Preview.selected},
 		set current(p) {Preview.selected = p},
 
-		one: new Preview({id: 'one'}).setDefaultAnglePreset(DefaultCameraPresets[1]),
+		one: null,
 		two: main_preview,
-		three: new Preview({id: 'three'}).setDefaultAnglePreset(DefaultCameraPresets[3]),
-		four: new Preview({id: 'four'}).setDefaultAnglePreset(DefaultCameraPresets[5]),
+		three: null,
+		four: null,
+		setup() {
+			quad_previews.one = new Preview({id: 'one'}).setDefaultAnglePreset(DefaultCameraPresets[1]);
+			quad_previews.three = new Preview({id: 'three'}).setDefaultAnglePreset(DefaultCameraPresets[3]);
+			quad_previews.four = new Preview({id: 'four'}).setDefaultAnglePreset(DefaultCameraPresets[5]);
+			quad_previews.setup = null;
+		},
 		get current() {
 			return Preview.selected;
 		}

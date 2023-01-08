@@ -123,7 +123,7 @@ class BarItem {
 						j_description.css('margin-top', '-51px');
 					}
 				}
-			})
+			}, {passive: true})
 			action.node.addEventListener('touchstart', () => {
 				tooltip.style.display = 'none';
 				let show_tooltip = setTimeout(() => {
@@ -137,7 +137,7 @@ class BarItem {
 					document.removeEventListener('touchend', stop);
 				};
 				document.addEventListener('touchend', stop);
-			})
+			}, {passive: true})
 		}
 	}
 	getNode(ignore_disconnected) {
