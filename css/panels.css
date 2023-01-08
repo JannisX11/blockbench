@@ -1,4 +1,5 @@
 /*Panel*/
+@layer app {
 	.panel {
 		background-color: var(--color-ui);
 		display: flex;
@@ -2031,3 +2032,4 @@
 	#skin_pose_selector > li:hover .pose_icon {
 		background-color: var(--color-light);
 	}
+}

@@ -1,5 +1,6 @@
 
 /*Layout*/
+@layer app {
 	#page_wrapper {
 		height: calc(100% - 26px);
 		width: 100%;
@@ -971,3 +972,4 @@
 	.amend_edit_close_button:hover {
 		color: var(--color-light);
 	}
+}

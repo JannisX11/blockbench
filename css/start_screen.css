@@ -1,4 +1,5 @@
 /*Start Screen*/
+@layer app {
 	#mode_screen_start {
 		flex-grow: 1;
 	}
@@ -531,3 +532,4 @@
 	.amend_edit_close_button:hover {
 		color: var(--color-light);
 	}
+}

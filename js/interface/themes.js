@@ -396,7 +396,7 @@ const CustomTheme = {
 		document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
 		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
-		$('style#theme_css').text(CustomTheme.data.css);
+		$('style#theme_css').text(`@layer custom {${CustomTheme.data.css}}`);
 		CustomTheme.updateColors();
 	},
 	loadTheme(theme) {
