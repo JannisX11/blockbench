@@ -528,6 +528,9 @@
 	"dialog.create_texture.pixel_density.desc": "The pixel density of the texture, in pixels per meter. The size of the texture map may differ depending on the amount and size of elements.",
 
 	"dialog.create_gif.title": "Record GIF",
+	"dialog.create_gif.format": "Format",
+	"dialog.create_gif.format.gif": "GIF",
+	"dialog.create_gif.format.png_sequence": "PNG Sequence",
 	"dialog.create_gif.length_mode": "Length Mode",
 	"dialog.create_gif.length_mode.seconds": "Seconds",
 	"dialog.create_gif.length_mode.frames": "Frames",

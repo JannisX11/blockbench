@@ -7,6 +7,11 @@ const Screencam = {
 		title: tl('dialog.create_gif.title'),
 		draggable: true,
 		form: {
+			format: {label: 'dialog.create_gif.format', type: 'select', options: {
+				gif: 'dialog.create_gif.format.gif',
+				png_sequence: 'dialog.create_gif.format.png_sequence',
+			}},
+			'_1': '_',
 			length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
 				seconds: 'dialog.create_gif.length_mode.seconds',
 				frames: 'dialog.create_gif.length_mode.frames',
@@ -15,11 +20,12 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
-			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
+			'_2': '_',
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
 			bg_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
 			turn:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -10, max: 10},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 		},
 		onConfirm(formData) {
 			let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
@@ -28,6 +34,7 @@ const Screencam = {
 				document.getElementById('gif_recording_frame').remove();
 			}
 			Screencam.createGif({
+				format: formData.format,
 				length_mode: formData.length_mode,
 				length: formData.length,
 				fps: formData.fps,
@@ -211,6 +218,7 @@ const Screencam = {
 	gif_crop: {top: 0, left: 0, right: 0, bottom: 0},
 
 	async createGif(options = {}, cb) {
+		if (!options.format) options.format = 'gif';
 		if (!options.length_mode) options.length_mode = 'seconds';
 		if (!options.length) options.length = 1;
 		if (!options.pixelate) options.pixelate = 1;
@@ -221,6 +229,7 @@ const Screencam = {
 		let interval = options.fps ? (1000/options.fps) : 100;
 		let frames = 0;
 		let gif;
+		let frame_canvases = [];
 		let frame, frame_label;
 		let recording = false;
 		let loop = null;
@@ -246,14 +255,16 @@ const Screencam = {
 			let canvas_width = Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000);
 			let canvas_height = Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000);
 
-			gif = new GIF({
-				repeat: options.repeat,
-				quality: options.quality,
-				background: options.background ? options.background : {r: 30, g: 0, b: 255},
-				transparent: options.background ? undefined : 0x1e01ff,
-				width: canvas_width,
-				height: canvas_height 
-			});
+			if (options.format == 'gif') {
+				gif = new GIF({
+					repeat: options.repeat,
+					quality: options.quality,
+					background: options.background ? options.background : {r: 30, g: 0, b: 255},
+					transparent: options.background ? undefined : 0x1e01ff,
+					width: canvas_width,
+					height: canvas_height
+				});
+			}
 	
 			if (options.turnspeed) {
 				preview.controls.autoRotate = true;
@@ -273,22 +284,28 @@ const Screencam = {
 	
 			if (!options.silent) {
 				Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
-				gif.on('progress', Blockbench.setProgress);
+				if (gif) gif.on('progress', Blockbench.setProgress);
 			}
 
-			Screencam.NoAAPreview.resize(
+			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
+			let NoAAPreview = Screencam.NoAAPreview;
+			NoAAPreview.resize(
 				preview.width * window.devicePixelRatio / options.pixelate,
 				preview.height * window.devicePixelRatio / options.pixelate
 			);
-			Screencam.NoAAPreview.setProjectionMode(preview.isOrtho);
+			NoAAPreview.setProjectionMode(preview.isOrtho);
 
 			recording = true;
 			loop = setInterval(() => {
 				frames++;
 				Canvas.withoutGizmos(function() {
-					Screencam.NoAAPreview.controls.target.copy(preview.controls.target);
-					Screencam.NoAAPreview.camera.position.copy(preview.camera.position);
-					Screencam.NoAAPreview.camera.zoom = preview.camera.zoom;
+					// Update camera
+					NoAAPreview.controls.target.copy(preview.controls.target);
+					NoAAPreview.camera.position.copy(preview.camera.position);
+					if (NoAAPreview.isOrtho && NoAAPreview.camera.zoom != preview.camera.zoom) {
+						NoAAPreview.camera.zoom = preview.camera.zoom;
+						NoAAPreview.camOrtho.updateProjectionMatrix();
+					}
 
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
@@ -296,18 +313,26 @@ const Screencam = {
 					canvas.height = canvas_height;
 					ctx.imageSmoothingEnabled = false;
 
-					Screencam.NoAAPreview.render();
+					NoAAPreview.render();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					if (options.format != 'gif' && options.background) {
+						ctx.fillStyle = options.background;
+						ctx.fillRect(0, 0, canvas.width, canvas.height);
+					}
 					if (background_image) {
 						ctx.drawImage(background_image, 0, 0, canvas_width, canvas_height);
 					}
-					ctx.drawImage(Screencam.NoAAPreview.canvas,
+					ctx.drawImage(NoAAPreview.canvas,
 						Math.round(-crop.left * window.devicePixelRatio),
 						Math.round(-crop.top * window.devicePixelRatio),
-						Math.round(Screencam.NoAAPreview.width * window.devicePixelRatio * options.pixelate),
-						Math.round(Screencam.NoAAPreview.height * window.devicePixelRatio * options.pixelate)
+						Math.round(NoAAPreview.width * window.devicePixelRatio * options.pixelate),
+						Math.round(NoAAPreview.height * window.devicePixelRatio * options.pixelate)
 					);
-					gif.addFrame(canvas, {delay: interval});
+					if (options.format == 'gif') {
+						gif.addFrame(canvas, {delay: interval});
+					} else if (options.format == 'png_sequence') {
+						frame_canvases.push(canvas);
+					}
 				})
 				Blockbench.setProgress(getProgress());
 				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
@@ -318,22 +343,24 @@ const Screencam = {
 				}
 	
 			}, interval)
-			gif.on('finished', blob => {
-				delete Screencam.processing_gif;
-				var reader = new FileReader();
-				reader.onload = () => {
-					if (!options.silent) {
-						Blockbench.setProgress();
-						Blockbench.setStatusBarText();
+			if (options.format == 'gif') {
+				gif.on('finished', blob => {
+					delete Screencam.processing_gif;
+					var reader = new FileReader();
+					reader.onload = () => {
+						if (!options.silent) {
+							Blockbench.setProgress();
+							Blockbench.setStatusBarText();
+						}
+						Screencam.returnScreenshot(reader.result, cb, blob);
 					}
-					Screencam.returnScreenshot(reader.result, cb, blob);
-				}
-				reader.readAsDataURL(blob);
-			});
+					reader.readAsDataURL(blob);
+				});
+			}
 
 			frame.classList.add('recording');
 		}
-		function endRecording(render) {
+		async function endRecording(render) {
 			if (!recording) return;
 			recording = false;
 			clearInterval(loop);
@@ -342,7 +369,31 @@ const Screencam = {
 			}
 			Blockbench.setProgress();
 			if (render) {
-				gif.render();
+				if (options.format == 'gif') {
+					gif.render();
+				} else if (options.format == 'png_sequence') {
+					// Export PNGs as ZIP
+					let archive = new JSZip();
+					let digits = frame_canvases.length.toString().length;
+					let i = 0;
+					for (let canvas of frame_canvases) {
+						let data_url = canvas.toDataURL();
+						archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
+						i++;
+						Blockbench.setProgress(i / frame_canvases.length);
+						await new Promise(resolve => setTimeout(resolve, 8));
+					}
+					archive.generateAsync({type: 'blob'}).then(content => {
+						Blockbench.export({
+							type: 'Zip Archive',
+							extensions: ['zip'],
+							name: 'png_sequence',
+							content: content,
+							savetype: 'zip'
+						})
+						Blockbench.setProgress();
+					})
+				}
 				if (!options.silent) {
 					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
 					Screencam.processing_gif = gif;
