@@ -496,7 +496,7 @@ class Panel {
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
 		if (show) {
-			$(this.node).show()
+			this.node.classList.remove('hidden');
 			if (this.slot == 'float') {
 				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
@@ -539,7 +539,7 @@ class Panel {
 
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
-			$(this.node).hide()
+			this.node.classList.add('hidden');
 		}
 		this.dispatchEvent('update', {show});
 		localStorage.setItem('interface_data', JSON.stringify(Interface.data))
@@ -587,8 +587,8 @@ function setupPanels() {
 function updateInterfacePanels() {
 
 	if (!Blockbench.isMobile) {
-		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
-		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
+		Interface.right_bar.style.display = Prop.show_right_bar ? 'flex' : 'none';
 	}
 
 	Interface.work_screen.style.setProperty(
@@ -599,8 +599,8 @@ function updateInterfacePanels() {
 		var panel = Panels[key]
 		panel.update()
 	}
-	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
-	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
+	var left_width = Interface.left_bar.querySelector('.panel:not(.hidden)') ? Interface.left_bar_width : 0;
+	var right_width = Interface.right_bar.querySelector('.panel:not(.hidden)') ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
 		Interface.work_screen.style.setProperty(
@@ -610,10 +610,12 @@ function updateInterfacePanels() {
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
-	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
-	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
-	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
-	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	if (quad_previews.enabled) {
+		$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
+		$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
+		$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
+		$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	}
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
 		resizer.update()

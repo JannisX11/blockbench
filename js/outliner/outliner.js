@@ -663,7 +663,9 @@ OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
 	Object.defineProperty(constructor, 'all', {
 		get() {
-			return Project.elements ? Project.elements.filter(element => element instanceof constructor) : [];
+			return (Project.elements?.length && Project.elements.find(element => element instanceof constructor))
+				 ? Project.elements.filter(element => element instanceof constructor)
+				 : [];
 		},
 		set(arr) {
 			console.warn('You cannot modify this')
@@ -671,7 +673,9 @@ OutlinerElement.registerType = function(constructor, id) {
 	})
 	Object.defineProperty(constructor, 'selected', {
 		get() {
-			return Project.selected_elements ? Project.selected_elements.filter(element => element instanceof constructor) : [];
+			return (Project.selected_elements?.length && Project.selected_elements.find(element => element instanceof constructor))
+				 ? Project.selected_elements.filter(element => element instanceof constructor)
+				 : [];
 		},
 		set(group) {
 			console.warn('You cannot modify this')

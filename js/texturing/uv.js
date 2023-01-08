@@ -381,10 +381,12 @@ const UVEditor = {
 		return this.vue.texture;
 	},
 	isFaceUV() {
-		return !Cube.selected.length || !Cube.selected.find(cube => cube.box_uv);
+		let selected_cubes = Cube.selected;
+		return !selected_cubes.length || !selected_cubes.find(cube => cube.box_uv);
 	},
 	isBoxUV() {
-		return Cube.selected.length ? !Cube.selected.find(cube => !cube.box_uv) : Project.box_uv;
+		let selected_cubes = Cube.selected;
+		return selected_cubes.length ? !selected_cubes.find(cube => !cube.box_uv) : Project.box_uv;
 	},
 	//Set
 	setZoom(zoom) {
@@ -479,6 +481,7 @@ const UVEditor = {
 	},
 	//Load
 	loadData() {
+		if (this.panel.folded) return this;
 		this.vue.updateTexture();
 		this.displayTools();
 		this.displayTools();
@@ -1759,6 +1762,7 @@ Interface.definePanels(function() {
 		},
 		onFold: function() {
 			Vue.nextTick(() => {
+				if (!this.folded) UVEditor.loadData();
 				UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
 			})
 		},

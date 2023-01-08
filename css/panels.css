@@ -4,6 +4,9 @@
 		display: flex;
 		flex-direction: column;
 	}
+	.panel.hidden {
+		display: none !important;
+	}
 	.panel.grow {
 		display: flex;
 		flex-direction: column;
