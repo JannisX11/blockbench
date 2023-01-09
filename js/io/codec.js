@@ -48,7 +48,7 @@ class Codec {
 			let project = Project;
 			setTimeout(() => {
 				if (Project == project) updateRecentProjectThumbnail();
-			}, 200)
+			}, 500)
 		}
 	}
 	//parse(model, path)

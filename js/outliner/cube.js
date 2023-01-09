@@ -815,11 +815,6 @@ class Cube extends OutlinerElement {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank')
-				}},
-				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture(null, true)
-					}, 'texture transparent')
 				}}
 			]
 			Texture.all.forEach(function(t) {

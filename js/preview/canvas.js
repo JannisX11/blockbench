@@ -845,8 +845,9 @@ const Canvas = {
 				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;
 					for (var face in obj.faces) {
-						if (obj.faces[face].getTexture() == texture) {
+						if (obj.faces[face].texture == texture.uuid) {
 				 			used = true;
+							break;
 						}
 					}
 				}
