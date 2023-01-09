@@ -1012,7 +1012,7 @@ new NodePreviewController(Mesh, {
 			} else if (BarItems.selection_mode.value == 'edge' && selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
 				color = white;
 				selected = true;
-			} else if (BarItems.selection_mode.value == 'face' && selected_faces.find(fkey => element.faces[fkey].vertices.includes(key) && element.faces[fkey].vertices.includes(key_b))) {
+			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.find(fkey => element.faces[fkey].vertices.includes(key) && element.faces[fkey].vertices.includes(key_b))) {
 				color = white;
 				selected = true;
 			} else {
@@ -1054,7 +1054,7 @@ new NodePreviewController(Mesh, {
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (face.vertices.length < 3) continue;
-				if (face.isSelected() && selection_mode == 'face') {
+				if (face.isSelected() && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
 						array[i] = 2;
 						i++;

@@ -317,6 +317,7 @@ BARS.defineActions(function() {
 	new BarSelect('selection_mode', {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
+			cluster: {name: true, icon: 'fas.fa-link'},
 			face: {name: true, icon: 'crop_portrait'},
 			edge: {name: true, icon: 'fa-grip-lines-vertical'},
 			vertex: {name: true, icon: 'fiber_manual_record'},

@@ -800,7 +800,6 @@ class Preview {
 
 						if (event.altKey || Pressing.overrides.alt) {
 							
-							let mesh = data.element;
 							let start_face = mesh.faces[data.face];
 							if (!start_face) return;
 							let processed_faces = [];
@@ -861,6 +860,43 @@ class Preview {
 								selected_faces.replace([data.face]);
 							}
 						}
+
+					} else if (data.element instanceof Mesh && select_mode == 'cluster') {
+						if (!data.element.selected) data.element.select(event);
+
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							unselectOtherNodes()
+						}
+
+						let mesh = data.element;
+						let selected_vertices = mesh.getSelectedVertices(true);
+						let selected_edges = mesh.getSelectedEdges(true);
+						let selected_faces = mesh.getSelectedFaces(true);
+
+						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							selected_vertices.empty();
+							selected_edges.empty();
+							selected_faces.empty();
+							UVEditor.vue.selected_faces.empty();
+						}
+							
+						let start_face = mesh.faces[data.face];
+						if (!start_face) return;
+						function selectFace(face, fkey) {
+							if (selected_faces.includes(fkey)) return;
+							
+							selected_faces.push(fkey);
+							UVEditor.vue.selected_faces.push(fkey);
+							selected_vertices.safePush(...face.vertices);
+
+							for (let fkey2 in mesh.faces) {
+								let face2 = mesh.faces[fkey2];
+								if (face.vertices.find(vkey => face2.vertices.includes(vkey))) {
+									selectFace(face2, fkey2);
+								}
+							}
+						}
+						selectFace(start_face, data.face);
 
 					} else {
 						data.element.select(event)
