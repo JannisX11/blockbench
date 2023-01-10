@@ -355,7 +355,6 @@ const Screencam = {
 				Blockbench.setProgress(getProgress());
 				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
 
-				console.log(getProgress())
 				if (getProgress() >= 1) {
 					endRecording(true);
 					return;

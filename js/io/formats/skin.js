@@ -457,11 +457,6 @@ Interface.definePanels(function() {
 					Group.all.forEach(group => {
 						if (!group.skin_original_origin) return;
 						let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
-						group.forEachChild(cube => {
-							cube.from.V3_add(offset);
-							cube.to.V3_add(offset);
-							cube.origin.V3_add(offset);
-						}, Cube)
 						group.origin.V3_set(group.skin_original_origin);
 					})
 					this.pose = pose;
@@ -471,10 +466,15 @@ Interface.definePanels(function() {
 						let group = Group.all.find(g => g.name == name);
 						if (group) {
 							group.extend({rotation: angles[name].rotation || angles[name]});
-							if (angles[name].offset) group.origin.V3_add(angles[name].offset);
+							if (angles[name].offset) {
+								group.origin.V3_add(angles[name].offset);
+							}
 						}
 					}
-					Canvas.updateAllBones();
+					Canvas.updateView({
+						groups: Group.all,
+						group_aspects: {transform: true}
+					})
 				}
 			},
 			template: `
