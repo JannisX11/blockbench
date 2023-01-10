@@ -35,6 +35,11 @@ const ModelScaler = {
 				click() {
 					ModelScaler.selectOverflow();
 				}
+			},
+			box_uv_warning: {
+				condition: (data) => data.scale !== 1 && Project.box_uv && Texture.all.length,
+				type: 'info',
+				text: 'dialog.scale.box_uv_warning'
 			}
 		},
 		onFormChange() {
@@ -72,9 +77,6 @@ const ModelScaler = {
 	},
 	scaleAll(save, size) {
 		let data = ModelScaler.dialog.getFormResult();
-		if (save === true) {
-			ModelScaler.dialog.hide();
-		}
 		if (size === undefined) size = data.scale;
 		let {origin} = data;
 		let axis_enabled = ['x', 'y', 'z'].map(axis => document.getElementById(`model_scale_${axis}_axis`).checked);

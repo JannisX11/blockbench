@@ -468,6 +468,7 @@
 	"dialog.scale.clipping": "Model clipping: Your model is too large for the canvas",
 	"dialog.scale.confirm": "Scale",
 	"dialog.scale.select_overflow": "Select Overflow",
+	"dialog.scale.box_uv_warning": "Scaling a Box UV model may break the UV of your model. Instead, try to scale your model externally, or switch to Per-face UV Mode in File > Project.",
 
 	"dialog.material_instances.title": "Material Instances",
 
