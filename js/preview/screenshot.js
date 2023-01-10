@@ -9,6 +9,7 @@ const Screencam = {
 		form: {
 			format: {label: 'dialog.create_gif.format', type: 'select', options: {
 				gif: 'dialog.create_gif.format.gif',
+				apng: 'APNG',
 				png_sequence: 'dialog.create_gif.format.png_sequence',
 			}},
 			'_1': '_',
@@ -229,6 +230,7 @@ const Screencam = {
 		let interval = options.fps ? (1000/options.fps) : 100;
 		let frames = 0;
 		let gif;
+		let apng_encoder;
 		let frame_canvases = [];
 		let frame, frame_label;
 		let recording = false;
@@ -255,6 +257,15 @@ const Screencam = {
 			let canvas_width = Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000);
 			let canvas_height = Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000);
 
+			function createEmptyCanvas() {
+				canvas = document.createElement('canvas');
+				let ctx = canvas.getContext('2d');
+				canvas.width = canvas_width;
+				canvas.height = canvas_height;
+				ctx.imageSmoothingEnabled = false;
+				return [canvas, ctx];
+			}
+
 			if (options.format == 'gif') {
 				gif = new GIF({
 					repeat: options.repeat,
@@ -264,6 +275,16 @@ const Screencam = {
 					width: canvas_width,
 					height: canvas_height
 				});
+			} else if (options.format == 'apng') {
+				let [canvas] = createEmptyCanvas();
+				apng_encoder = new APNGencoder(canvas);
+				
+				apng_encoder.setRepeat(0);
+				apng_encoder.setDelay(Math.round(interval / 10));    // 1/100 sec
+				apng_encoder.setDispose((background_image || options.background) ? 0 : 1);
+				apng_encoder.setBlend(1);
+			  
+				apng_encoder.start();
 			}
 	
 			if (options.turnspeed) {
@@ -307,11 +328,7 @@ const Screencam = {
 						NoAAPreview.camOrtho.updateProjectionMatrix();
 					}
 
-					let canvas = document.createElement('canvas');
-					let ctx = canvas.getContext('2d');
-					canvas.width = canvas_width;
-					canvas.height = canvas_height;
-					ctx.imageSmoothingEnabled = false;
+					let [canvas, ctx] = createEmptyCanvas();
 
 					NoAAPreview.render();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -325,18 +342,20 @@ const Screencam = {
 					ctx.drawImage(NoAAPreview.canvas,
 						Math.round(-crop.left * window.devicePixelRatio),
 						Math.round(-crop.top * window.devicePixelRatio),
-						Math.round(NoAAPreview.width * window.devicePixelRatio * options.pixelate),
-						Math.round(NoAAPreview.height * window.devicePixelRatio * options.pixelate)
+						Math.round(NoAAPreview.width * options.pixelate),
+						Math.round(NoAAPreview.height * options.pixelate)
 					);
 					if (options.format == 'gif') {
 						gif.addFrame(canvas, {delay: interval});
-					} else if (options.format == 'png_sequence') {
+
+					} else if (options.format == 'png_sequence' || options.format == 'apng') {
 						frame_canvases.push(canvas);
 					}
 				})
 				Blockbench.setProgress(getProgress());
 				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
 
+				console.log(getProgress())
 				if (getProgress() >= 1) {
 					endRecording(true);
 					return;
@@ -368,42 +387,61 @@ const Screencam = {
 				frame.remove();
 			}
 			Blockbench.setProgress();
-			if (render) {
-				if (options.format == 'gif') {
-					gif.render();
-				} else if (options.format == 'png_sequence') {
-					// Export PNGs as ZIP
-					let archive = new JSZip();
-					let digits = frame_canvases.length.toString().length;
-					let i = 0;
-					for (let canvas of frame_canvases) {
-						let data_url = canvas.toDataURL();
-						archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
-						i++;
-						Blockbench.setProgress(i / frame_canvases.length);
-						await new Promise(resolve => setTimeout(resolve, 8));
-					}
-					archive.generateAsync({type: 'blob'}).then(content => {
-						Blockbench.export({
-							type: 'Zip Archive',
-							extensions: ['zip'],
-							name: 'png_sequence',
-							content: content,
-							savetype: 'zip'
-						})
-						Blockbench.setProgress();
-					})
-				}
-				if (!options.silent) {
-					Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
-					Screencam.processing_gif = gif;
-				}
-			}
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause();
 			}
 			if (options.turnspeed) {
 				preview.controls.autoRotate = false;
+			}
+
+			// Render
+			if (!render) return;
+			if (!options.silent) {
+				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+				Screencam.processing_gif = gif;
+			}
+			if (options.format == 'gif') {
+				gif.render();
+
+			} else if (options.format == 'apng') {
+
+				let i = 0;
+				for (let canvas of frame_canvases) {
+					apng_encoder.addFrame(canvas);
+					i++;
+					Blockbench.setProgress(i / frame_canvases.length);
+					await new Promise(resolve => setTimeout(resolve, 8));
+				}
+
+				apng_encoder.finish();
+				Blockbench.setProgress();
+
+				var base64Out = bytesToBase64(apng_encoder.stream().bin);
+				let dataUrl = "data:image/png;base64," + base64Out;
+				Screencam.returnScreenshot(dataUrl, cb);
+
+			} else if (options.format == 'png_sequence') {
+				// Export PNGs as ZIP
+				let archive = new JSZip();
+				let digits = frame_canvases.length.toString().length;
+				let i = 0;
+				for (let canvas of frame_canvases) {
+					let data_url = canvas.toDataURL();
+					archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
+					i++;
+					Blockbench.setProgress(i / frame_canvases.length);
+					await new Promise(resolve => setTimeout(resolve, 8));
+				}
+				archive.generateAsync({type: 'blob'}).then(content => {
+					Blockbench.export({
+						type: 'Zip Archive',
+						extensions: ['zip'],
+						name: 'png_sequence',
+						content: content,
+						savetype: 'zip'
+					})
+					Blockbench.setProgress();
+				})
 			}
 		}
 		function cancel() {
