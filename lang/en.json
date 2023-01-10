@@ -34,6 +34,7 @@
 	"data.color": "Color",
 	"data.setting": "Setting",
 	"data.settings_profile": "Profile",
+	"data.file_path": "File Path",
 
 	"generic.delete": "Delete",
 	"generic.remove": "Remove",
@@ -707,7 +708,9 @@
 	"about.libraries": "Libraries:",
 
 	"settings_profile.confirm_delete": "Are you sure you want to delete this settings profile?",
+	"settings_profile.condition": "Condition",
 	"settings_profile.condition.type.selectable": "Manually Selectable",
+	"settings_profile.condition.type.file_path.desc": "Use Regular Expression syntax to match the file path of the current project. Use forward slashes for directories",
 
 	"settings.category.general": "General",
 	"settings.category.interface": "Interface",

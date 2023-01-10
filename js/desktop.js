@@ -167,6 +167,7 @@ function addRecentProject(data) {
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
 	StartScreen.vue.updateThumbnails([data.path]);
+	Settings.updateSettingsInProfiles();
 	updateRecentProjects()
 }
 function updateRecentProjectData() {

@@ -50,6 +50,7 @@ class Codec {
 				if (Project == project) updateRecentProjectThumbnail();
 			}, 500)
 		}
+		Settings.updateSettingsInProfiles();
 	}
 	//parse(model, path)
 
@@ -102,6 +103,7 @@ class Codec {
 			Project.name = pathToName(path, false);
 			Project.saved = true;
 		}
+		Settings.updateSettingsInProfiles();
 		if (this.remember) {
 			addRecentProject({
 				name,

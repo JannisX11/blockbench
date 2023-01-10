@@ -232,9 +232,17 @@ class SettingsProfile {
 			case 'format':
 				if (Format && Format.id == this.condition.value) return true;
 				break;
-			default:
-				return false;
+			case 'file_path':
+				let regex = new RegExp(this.condition.value);
+				if (Project && (
+					regex.test(Project.save_path.replace(osfs, '/')) ||
+					regex.test(Project.export_path.replace(osfs, '/'))
+				)) {
+					return true;
+				}
+				break;
 		}
+		return false;
 	}
 	clear(key) {
 		Vue.delete(this.settings, key);
@@ -248,6 +256,7 @@ class SettingsProfile {
 		let condition_types = {
 			selectable: tl('settings_profile.condition.type.selectable'),
 			format: tl('data.format'),
+			file_path: tl('data.file_path'),
 		};
 		let formats = {};
 		for (let key in Formats) {
@@ -261,8 +270,26 @@ class SettingsProfile {
 				color: {label: 'menu.cube.color', type: 'select', options: color_options, value: this.color},
 				_1: '_',
 
-				condition_type: {type: 'select', label: 'Condition', value: this.condition.type, options: condition_types},
-				format: {type: 'select', label: 'Format', value: this.condition.value, options: formats, condition: (form) => form.condition_type == 'format'},
+				condition_type: {
+					type: 'select',
+					label: 'settings_profile.condition',
+					value: this.condition.type,
+					options: condition_types
+				},
+				format: {
+					type: 'select',
+					label: 'data.format',
+					value: this.condition.type == 'format' ? this.condition.value : '',
+					options: formats,
+					condition: (form) => form.condition_type == 'format'
+				},
+				file_path: {
+					type: 'text',
+					label: 'data.file_path',
+					description: 'settings_profile.condition.type.file_path.desc',
+					value: this.condition.type == 'file_path' ? this.condition.value : '',
+					condition: (form) => form.condition_type == 'file_path'
+				},
 				_2: '_',
 
 				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
@@ -277,6 +304,7 @@ class SettingsProfile {
 				this.color = result.color;
 				this.condition.type = result.condition_type;
 				if (this.condition.type == 'format') this.condition.value = result.format;
+				if (this.condition.type == 'file_path') this.condition.value = result.file_path;
 				Settings.saveLocalStorages();
 			}
 		}).show();
@@ -774,15 +802,6 @@ onVueSetup(function() {
 						}}
 					)
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
-				},
-				profileConditionValueOptions(key) {
-					if (key == 'format') {
-						let options = {};
-						Formats.all.forEach(format => {
-							options[format.id] = format.name;
-						})
-						return options;
-					}
 				},
 				profileButtonPress() {
 					if (!this.profile) {

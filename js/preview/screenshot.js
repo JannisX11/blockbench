@@ -409,7 +409,7 @@ const Screencam = {
 					apng_encoder.addFrame(canvas);
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 8));
+					await new Promise(resolve => setTimeout(resolve, 1));
 				}
 
 				apng_encoder.finish();
@@ -429,7 +429,7 @@ const Screencam = {
 					archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 8));
+					await new Promise(resolve => setTimeout(resolve, 1));
 				}
 				archive.generateAsync({type: 'blob'}).then(content => {
 					Blockbench.export({
