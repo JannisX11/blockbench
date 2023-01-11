@@ -333,6 +333,17 @@
 	header .tool .icon {
 		font-size: 20px;
 	}
+	#settings_profiles_header_menu {
+		width: 24px;
+		text-align: center;
+		padding-top: 2px;
+		margin-right: 4px;
+		opacity: 0.9;
+	}
+	#settings_profiles_header_menu:hover {
+		opacity: 1.0;
+		color: var(--color-light);
+	}
 
 /*Mobile*/
 	body.is_mobile #page_wrapper {

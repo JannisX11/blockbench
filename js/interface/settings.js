@@ -209,6 +209,7 @@ class SettingsProfile {
 		if (update) {
 			Settings.updateSettingsInProfiles();
 			Settings.saveLocalStorages();
+			Settings.updateProfileButton();
 		}
 	}
 	extend(data) {
@@ -296,6 +297,7 @@ class SettingsProfile {
 					if (confirm('settings_profile.confirm_delete'))
 					this.remove();
 					Settings.dialog.content_vue.profile = null;
+					SettingsProfile.unselect();
 					dialog.close();
 				}}
 			},
@@ -306,6 +308,10 @@ class SettingsProfile {
 				if (this.condition.type == 'format') this.condition.value = result.format;
 				if (this.condition.type == 'file_path') this.condition.value = result.file_path;
 				Settings.saveLocalStorages();
+				Settings.updateProfileButton();
+			},
+			onCancel() {
+				Settings.updateProfileButton();
 			}
 		}).show();
 	}
@@ -322,6 +328,7 @@ SettingsProfile.unselect = function(update = true) {
 	if (update) {
 		Settings.updateSettingsInProfiles();
 		Settings.saveLocalStorages();
+		Settings.updateProfileButton();
 	}
 }
 
@@ -525,6 +532,33 @@ const Settings = {
 				if (profile.selected) new_profile.select(false);
 			})
 		}
+		Settings.profile_menu_button = document.getElementById('settings_profiles_header_menu');
+		Settings.profile_menu_button.addEventListener('click', event => {
+			let list = [
+				{
+					name: 'generic.none',
+					icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+					click: () => {
+						SettingsProfile.unselect();
+					}
+				},
+				'_'
+			];
+			SettingsProfile.all.forEach(profile => {
+				if (profile.condition.type != 'selectable') return;
+				list.push({
+					name: profile.name,
+					icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+					color: markerColors[profile.color].standard,
+					click: () => {
+						profile.select();
+					}
+				})
+			})
+			new Menu(list).open(Settings.profile_menu_button);
+		});
+		Settings.profile_menu_button.setAttribute('title', tl('data.settings_profile'))
+		Settings.updateProfileButton();
 	},
 	addCategory(id, data = {}) {
 		Settings.structure[id] = {
@@ -584,6 +618,7 @@ const Settings = {
 				ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
 			}
 		}
+		Settings.updateProfileButton();
 		Blockbench.dispatchEvent('update_settings');
 	},
 	updateSettingsInProfiles() {
@@ -597,6 +632,11 @@ const Settings = {
 			let setting = settings[key];
 			if (setting.onChange) setting.onChange(setting.value);
 		})
+	},
+	updateProfileButton() {
+		let profile = SettingsProfile.selected;
+		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color].standard : '';
+		Settings.profile_menu_button.classList.toggle('hidden', SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') == -1);
 	},
 	import(file) {
 		let data = JSON.parse(file.content);
