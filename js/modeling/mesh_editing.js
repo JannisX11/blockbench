@@ -857,6 +857,7 @@ BARS.defineActions(function() {
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices();
 					if (original_vertices.length < 3) return;
+					original_vertices = original_vertices.slice();
 					let new_vertices;
 					let selected_faces = [];
 					let selected_face_keys = [];
@@ -922,7 +923,7 @@ BARS.defineActions(function() {
 							let b = vertices[i+1] || vertices[0];
 							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
 							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
-	
+
 							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
 								vertices: [
 									b,

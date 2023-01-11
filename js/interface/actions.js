@@ -2052,8 +2052,8 @@ const BARS = {
 		Toolbars.outliner = new Toolbar({
 			id: 'outliner',
 			children: [
-				'add_cube',
 				'add_mesh',
+				'add_cube',
 				'add_group',
 				'outliner_toggle',
 				'toggle_skin_layer',
