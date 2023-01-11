@@ -423,11 +423,11 @@ const MenuBar = {
 		new BarMenu('help', [
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
 			'_',
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
-				Blockbench.openLink('http://discord.blockbench.net');
-			}},
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
+			}},
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
 				Blockbench.openLink('https://blockbench.net/wiki/');
@@ -478,9 +478,6 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
-			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
-				Blockbench.openLink('https://blockbench.net/donate/');
-			}},
 			'about_window'
 		])
 		MenuBar.update()
