@@ -749,6 +749,9 @@ class Cube extends OutlinerElement {
 			}
 			this.from[axis] = from;
 			this.to[axis] = to;
+			if (from > to && !(settings.negative_size.value || allow_negative)) {
+				this.from[axis] = this.to[axis] = (from + to) / 2;
+			}
 
 		} else if (!negative) {
 			var pos = this.from[axis] + modify(before);
