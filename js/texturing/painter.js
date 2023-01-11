@@ -2057,6 +2057,11 @@ BARS.defineActions(function() {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
 			}
+		},
+		onUnselect() {
+			if (Painter.selection.overlay && open_interface) {
+				open_interface.confirm()
+			}
 		}
 	})
 
