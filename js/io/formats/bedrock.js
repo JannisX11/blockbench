@@ -924,11 +924,12 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 		type: 'json',
 		extensions: ['json'],
 		condition(model) {
-			return model.format_version && model['minecraft:client_entity']
+			return model.format_version && (model['minecraft:client_entity'] || model['minecraft:attachable'])
 		}
 	},
 	load(content, file, add) {
-		let description = content['minecraft:client_entity'].description;
+		let is_attachable = content['minecraft:attachable'] !== undefined;
+		let description = (content['minecraft:client_entity'] || content['minecraft:attachable']).description;
 		let models = [];
 		for (let key in description.geometry) {
 			let model_id = description.geometry[key];
@@ -937,8 +938,8 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 		if (!models[0]) return;
 
 		let path = file.path.split(osfs);
-		let name = path.pop().replace(/(\.entity)?\.json$/, '');
-		let root_index = path.indexOf('entity');
+		let name = path.pop().replace(/(\.entity|\.attachable)?\.json$/, '');
+		let root_index = path.indexOf(is_attachable ? 'attachables' : 'entity');
 		path.splice(root_index);
 
 		let entity_path = findExistingFile([
