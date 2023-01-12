@@ -785,6 +785,8 @@
 	"settings.uv_checkerboard.desc": "Toggle the checkerboard background behind the UV editor",
 	"settings.timecode_frame_number": "Display Timecodes as Frame Numbers",
 	"settings.timecode_frame_number.desc": "Display fraction timecodes in the timeline as frame number instead of centisecond",
+	"settings.only_selected_bezier_handles": "Show Only Selected Bezier Handles",
+	"settings.only_selected_bezier_handles.desc": "Hide handles of bezier keyframes that are not currently selected",
 
 	"settings.base_grid": "Small Grid",
 	"settings.base_grid.desc": "Show small grid and axes",

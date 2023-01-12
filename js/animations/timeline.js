@@ -642,6 +642,7 @@ Interface.definePanels(() => {
 				graph_offset: 200,
 				graph_size: 200,
 				show_zero_line: true,
+				show_all_handles: !Settings.get('only_selected_bezier_handles'),
 				loop_graph: '',
 
 				channels: {
@@ -1279,7 +1280,7 @@ Interface.definePanels(() => {
 										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 
-										<template v-if="keyframe.interpolation == 'bezier'">
+										<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">
 											<div class="keyframe_bezier_handle"
 												:style="getBezierHandleStyle(keyframe, 'left')"
 												:title="'${tl('generic.left')}: ' + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"

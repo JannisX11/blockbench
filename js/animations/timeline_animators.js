@@ -254,16 +254,28 @@ class BoneAnimator extends GeneralAnimator {
 				}]
 			})
 		} else if (values === null) {
+			let closest;
+			this[keyframe.channel].forEach(kf => {
+				if (!closest || Math.abs(kf.time - keyframe.time) < Math.abs(closest.time - keyframe.time)) {
+					closest = kf;
+				}
+			});
+			let interpolation = closest?.interpolation;
 			let original_time = Timeline.time;
 			Timeline.time = keyframe.time;
-			var ref = this.interpolate(keyframe.channel, allow_expression)
+			let ref = this.interpolate(keyframe.channel, allow_expression);
+			let ref2;
+			if (interpolation == 'bezier') {
+				Timeline.time = keyframe.time + 0.01;
+				ref2 = this.interpolate(keyframe.channel, allow_expression);
+			}
 			Timeline.time = original_time;
 			if (ref) {
 				if (round) {
 					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
-					ref.forEach((r, i) => {
+					ref.forEach((r, a) => {
 						if (!isNaN(r)) {
-							ref[i] = Math.round(parseFloat(r)*e)/e
+							ref[a] = Math.round(parseFloat(r)*e)/e
 						}
 					})
 				}
@@ -274,15 +286,17 @@ class BoneAnimator extends GeneralAnimator {
 						z: ref[2],
 					}]
 				})
-			}
-			let closest;
-			this[keyframe.channel].forEach(kf => {
-				if (!closest || Math.abs(kf.time - keyframe.time) < Math.abs(closest.time - keyframe.time)) {
-					closest = kf;
+				if (interpolation == 'bezier' && ref2) {
+					ref.forEach((val1, a) => {
+						if (val1 !== ref2[a]) {
+							keyframe.bezier_right_value[a] = (ref2[a] - val1) * 10;
+							keyframe.bezier_left_value[a] = -keyframe.bezier_right_value[a];
+						}
+					})
 				}
-			});
+			}
 			keyframe.extend({
-				interpolation: closest && closest.interpolation,
+				interpolation,
 				uniform: (keyframe.channel == 'scale')
 					? (closest && closest.uniform && closest.data_points[0].x == closest.data_points[0].y && closest.data_points[0].x == closest.data_points[0].z)
 					: undefined,

@@ -390,6 +390,9 @@ const Settings = {
 		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 			Timeline.vue.updateTimecodes();
 		}});
+		new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
+			Timeline.vue.show_all_handles = !val;
+		}});
 		
 		//Preview 
 		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400});
