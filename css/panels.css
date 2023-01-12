@@ -1631,7 +1631,6 @@ span.controller_state_section_info {
 	height: calc(15px + var(--layer) * 10px);
 	--color-connection: var(--color-grid);
 	border: 2px solid var(--color-connection);
-	z-index: calc(18 - var(--layer));
 	--corner-radius: 5px;
 	cursor: pointer;
 	transition: border-color var(--blend-transition) linear;

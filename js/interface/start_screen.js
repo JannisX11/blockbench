@@ -36,9 +36,8 @@ function addStartScreenSection(id, data) {
 		}
 		if (data.graphic.description) {
 			let content = $(marked(data.graphic.description));
+			content.addClass('start_screen_graphic_description')
 			content.css({
-				'bottom': '15px',
-				'right': '15px',
 				'color': data.graphic.text_color || '#ffffff',
 			});
 			left.append(content);

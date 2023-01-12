@@ -1409,6 +1409,8 @@ Interface.definePanels(() => {
 							connections.colors[transition.uuid] = color;
 						})
 					})
+					connections.forward.sort((a, b) => b.layer - a.layer);
+					connections.backward.sort((a, b) => b.layer - a.layer);
 					return connections;
 				}
 			},
