@@ -1863,7 +1863,7 @@ TextureAnimator = {
 				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
 				if (custom_indices) {
 					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
-					tex.currentFrame = index;
+					tex.currentFrame = Math.clamp(typeof index == 'object' ? index.index : index, 0, tex.frameCount-1);
 
 				} else {
 					if (tex.currentFrame >= tex.frameCount-1) {

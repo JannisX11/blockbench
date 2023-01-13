@@ -598,7 +598,7 @@ new ValidatorCheck('molang_syntax', {
 				issues.push('Invalid token ' + clear_string.match(/(^|[^a-z0-9_])[\d.]+[a-z_]+/i)[0].replace(/[^a-z0-9._]/g, ''));
 			}
 			if (clear_string.match(/[^\w\s+\-*/().,;:[\]!?=<>&|]/)) {
-				issues.push('Invalid character: ' + clear_string.match(/[^\w+\-*/().,;:[\]!?=<>&|]+/g).join(', '));
+				issues.push('Invalid character: ' + clear_string.match(/[^\s\w+\-*/().,;:[\]!?=<>&|]+/g).join(', '));
 			}
 			let left = string.match(/\(/g) || 0;
 			let right = string.match(/\)/g) || 0;

@@ -294,7 +294,7 @@ class SettingsProfile {
 				_2: '_',
 
 				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
-					if (confirm('settings_profile.confirm_delete'))
+					if (confirm(tl('settings_profile.confirm_delete')))
 					this.remove();
 					Settings.dialog.content_vue.profile = null;
 					SettingsProfile.unselect();

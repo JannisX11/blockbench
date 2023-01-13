@@ -1781,7 +1781,7 @@ BARS.defineActions(function() {
 	new Action('load_animation_file', {
 		icon: 'fa-file-video',
 		category: 'animation',
-		condition: {modes: ['animate'], method: () => Format.animation_files},
+		condition: {modes: ['animate'], features: ['animation_files']},
 		click: function () {
 			var path = Project.export_path
 			if (isApp) {

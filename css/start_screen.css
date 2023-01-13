@@ -212,7 +212,6 @@
 		padding: 2px;
 		padding-right: 15px;
 		padding-left: 100px;
-		background: rgb(3,86,112);
 		background: linear-gradient(90deg, rgba(3,86,112,0) 0%, rgba(0,10,22,0.63) 34%, rgba(0,9,20,0.72) 45%);
 	}
 	#start_screen div.start_screen_right {
