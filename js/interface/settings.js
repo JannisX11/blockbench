@@ -234,7 +234,7 @@ class SettingsProfile {
 				if (Format && Format.id == this.condition.value) return true;
 				break;
 			case 'file_path':
-				let regex = new RegExp(this.condition.value);
+				let regex = new RegExp(this.condition.value, 'i');
 				if (Project && (
 					regex.test(Project.save_path.replace(osfs, '/')) ||
 					regex.test(Project.export_path.replace(osfs, '/'))

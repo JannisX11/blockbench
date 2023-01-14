@@ -856,7 +856,7 @@ OutlinerElement.registerType(Cube, 'cube');
 
 new NodePreviewController(Cube, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = 'cube';

@@ -388,7 +388,7 @@ class ModelProject {
 			} else {
 				Interface.tab_bar.new_tab.visible = true;
 				Interface.tab_bar.new_tab.select();
-				setStartScreen(true);
+				selectNoProject();
 			}
 
 			return true;
@@ -513,6 +513,41 @@ function newProject(format) {
 	}
 	Blockbench.dispatchEvent('new_project');
 	return true;
+}
+function selectNoProject() {
+	setStartScreen(true);
+	
+	Project = 0;
+	Undo = null;
+
+	// Setup Data
+	OutlinerNode.uuids = {};
+	Outliner.root = [];
+	Interface.Panels.outliner.inside_vue.root = [];
+
+	UVEditor.vue.elements = [];
+	UVEditor.vue.all_elements = [];
+	UVEditor.vue.selected_vertices = {};
+	UVEditor.vue.selected_faces = [];
+	for (let uuid in UVEditor.vue.selected_vertices) {
+		delete UVEditor.vue.selected_vertices[uuid];
+	}
+
+	Interface.Panels.textures.inside_vue.textures = [];
+
+	Panels.animations.inside_vue.animations = [];
+	Panels.animations.inside_vue.animation_controllers = [];
+	Timeline.animators = Timeline.vue.animators = [];
+	Animation.selected = null;
+	AnimationController.selected = null;
+	Timeline.animators = Timeline.vue.animators = [];
+
+	Interface.Panels.variable_placeholders.inside_vue.text = '';
+	Interface.Panels.variable_placeholders.inside_vue.buttons.empty();
+
+	Interface.Panels.skin_pose.inside_vue.pose = '';
+
+	Blockbench.dispatchEvent('select_no_project', {});
 }
 function updateTabBarVisibility() {
 	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
@@ -651,7 +686,7 @@ onVueSetup(() => {
 				this.last_opened_project = Project.uuid;
 				this.new_tab.visible = true;
 				this.new_tab.select();
-				setStartScreen(true);
+				selectNoProject();
 			},
 			tabOverview() {
 				BarItems.tab_overview.trigger();

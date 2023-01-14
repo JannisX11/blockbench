@@ -315,7 +315,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {formats: ['skin']},
 		click: function () {
-			var edited = [];
+			let edited = [];
 			Cube.all.forEach(cube => {
 				if (cube.name.toLowerCase().includes('layer')) {
 					edited.push(cube);
@@ -323,7 +323,7 @@ BARS.defineActions(function() {
 			})
 			if (!edited.length) return;
 			Undo.initEdit({elements: edited});
-			value = !edited[0].visibility;
+			let value = !edited[0].visibility;
 			edited.forEach(cube => {
 				cube.visibility = value;
 			})

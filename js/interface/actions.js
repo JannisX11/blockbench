@@ -845,7 +845,9 @@ class NumSlider extends Widget {
 		if (this.tool_setting) {
 			Toolbox.selected.tool_settings[this.tool_setting] = value;
 		}
-		this.jq_outer.find('.nslide:not(.editing)').text(this.value)
+		if (!this.jq_inner.hasClass('editing') && this.jq_inner[0].textContent !== this.value.toString()) {
+			this.jq_inner.text(this.value)
+		}
 		if (this.settings && this.settings.show_bar) {
 			this.node.classList.add('has_percentage_bar');
 			this.node.style.setProperty('--percentage', Math.getLerp(this.settings.min, this.settings.max, value)*100);
@@ -880,11 +882,8 @@ class NumSlider extends Widget {
 		if (!BARS.condition(this.condition)) return;
 		var number = this.get();
 		this.setValue(number)
-		if (isNaN(number)) {
-			this.jq_outer.find('.nslide:not(.editing)').text('')
-		}
-		if (this.sliding) {
-			$('#nslide_head #nslide_offset').text(this.name+': '+this.value)
+		if (isNaN(number) && !this.jq_inner.hasClass('editing') && this.jq_inner[0].textContent) {
+			this.jq_inner.text('')
 		}
 	}
 }
