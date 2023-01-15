@@ -5,25 +5,25 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.5 - The FBX Update!", "type": "h1"},
-			{"text": "FBX Export, new features for Minecraft: Java Edition models, and much more!", "type": "h3"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.5.0)!"}
+			{"text": "Welcome to Blockbench 4.6", "type": "h2"},
+			{"text": "The Animation Controller Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.6.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/predicate_editor.png",
-				"title": "Predicate Editor",
-				"text": "Select models in your Minecraft Java resource pack to override the current item when certain conditions are met."
+				"image": "https://web.blockbench.net/content/bezier.png",
+				"title": "Bézier Curves",
+				"text": "Create extra dynamic and smooth animations with bézier curves!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/fbx.png",
-				"title": "FBX Export",
-				"text": "Export FBX model files and use them for rendering or for games in Unreal Engine and Unity!"
+				"image": "https://web.blockbench.net/content/animation_controller.png",
+				"title": "Animation Controller Editing",
+				"text": "Edit and preview animation controllers for Minecraft Bedrock directly in Blockbench"
 			},
 			{
-				"image": "https://web.blockbench.net/content/face_editor.png",
-				"title": "Face Properties Editor",
-				"text": "View and edit face properties like texture and tint all in one place!"
+				"image": "https://web.blockbench.net/content/profiles.png",
+				"title": "Settings Profiles",
+				"text": "Create profiles to define settings for specific formats, situations, or for other users"
 			}
 		]
 	}
