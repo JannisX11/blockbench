@@ -18,6 +18,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		min-height: 0;
 	}
 	.panel.floating {
 		position: absolute;
@@ -869,13 +870,9 @@
 		width: 20px;
 		flex-grow: 1;
 	}
-	.prism-editor-wrapper {
+	.molang_input.prism-editor-component {
 		caret-color: var(--color-text);
-	}
-	.molang_input .prism-editor-wrapper {
-		overflow-y: hidden;
-		min-height: 30px;
-		margin-bottom: auto;
+		min-height: 0;
 	}
 	.molang_input .prism-editor-placeholder {
 		font-family: var(--font-code);
