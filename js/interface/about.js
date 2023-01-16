@@ -105,7 +105,6 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a></li>
 								<li><a class="open-in-browser" href="https://threejs.org">ThreeJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a></li>
-								<li><a class="open-in-browser" href="https://github.com/oliver-moran/jimp">Jimp</a></li>
 								<li><a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a></li>
 								<li><a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a></li>
 								<li><a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a></li>
@@ -118,6 +117,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
 								<li><a class="open-in-browser" href="https://prismjs.com">Prism</a></li>
+								<li><a class="open-in-browser" href="https://github.com/akalverboer/canvas2apng">Canvas2APNG</a></li>
 								<li><a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a></li>
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/molangjs">MolangJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>

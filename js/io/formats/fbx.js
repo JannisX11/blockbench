@@ -129,6 +129,7 @@ var codec = new Codec('fbx', {
 		}
 		function addNodeBase(node, fbx_type) {
 			let unique_name = getUniqueName('object', node.uuid, node.name);
+			let rotation_order = node.mesh.rotation.order == 'XYZ' ? 5 : 0;
 			Objects[node.uuid] = {
 				_key: 'Model',
 				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
@@ -140,7 +141,8 @@ var codec = new Codec('fbx', {
 					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(node)]},
 					P5: node.rotation ? {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "", 0, 0, 0]} : undefined,
 					P6: node.rotation ? {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...node.rotation]} : undefined,
-					P7: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
+					P7: node.rotation ? {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]} : undefined,
+					P8: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
 				},
 				Shading: '_Y',
 				Culling: "CullingOff",

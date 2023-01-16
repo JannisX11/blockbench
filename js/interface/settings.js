@@ -6,20 +6,20 @@ class Setting {
 		settings[id] = this;
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
-		if (Settings.stored[id]) {
-			this.value = Settings.stored[id].value;
+		if (typeof Settings.stored[id] === 'object') {
+			this.master_value = Settings.stored[id].value;
 
 		} else if (data.value != undefined) {
-			this.value = data.value
+			this.master_value = data.value
 
 		} else {
 			switch (this.type) {
-				case 'toggle': this.value = true; break;
-				case 'number': this.value = 0; break;
-				case 'text': this.value = ''; break;
-				case 'password': this.value = ''; break;
-				case 'select': this.value; break;
-				case 'click': this.value = false; break;
+				case 'toggle': this.master_value = true; break;
+				case 'number': this.master_value = 0; break;
+				case 'text': this.master_value = ''; break;
+				case 'password': this.master_value = ''; break;
+				case 'select': this.master_value; break;
+				case 'click': this.master_value = false; break;
 			}
 		}
 		this.condition = data.condition;
@@ -67,6 +67,34 @@ class Setting {
 			if (!this.icon) this.icon = 'settings';
 		}
 		this.keybind_label = tl('data.setting');
+	}
+	get value() {
+		let profile = SettingsProfile.all.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
+		if (profile) {
+			return profile.settings[this.id] || this.master_value;
+		} else {
+			return this.master_value;
+		}
+	}
+	set value(value) {
+		this.master_value = value;
+	}
+	get ui_value() {
+		let profile = Settings.dialog.content_vue?.profile;
+		if (profile) {
+			return profile.settings[this.id] || this.master_value;
+		} else {
+			return this.master_value;
+		}
+	}
+	set ui_value(value) {
+		let profile = Settings.dialog.content_vue?.profile;
+		if (this.type == 'number') value = Math.clamp(value, this.min, this.max)
+		if (profile) {
+			Vue.set(profile.settings, this.id, value);
+		} else {
+			this.master_value = value;
+		}
 	}
 	delete() {
 		if (settings[this.id]) {
@@ -157,6 +185,153 @@ class Setting {
 	}
 }
 
+class SettingsProfile {
+	constructor(data = 0) {
+		this.uuid = guid();
+		this.name = data.name || 'New Profile';
+		this.color = data.color == undefined ? Math.randomInteger(0, markerColors.length-1) : data.color;
+		this.condition = {
+			type: 'selectable',
+			value: ''
+		};
+		this.settings = {};
+		this.extend(data);
+		this.selected = false;
+		SettingsProfile.all.push(this);
+	}
+	select(update = true) {
+		if (this.condition.type !== 'selectable') return;
+
+		SettingsProfile.all.forEach(p => p.selected = false);
+		this.selected = true;
+		SettingsProfile.selected = this;
+		
+		if (update) {
+			Settings.updateSettingsInProfiles();
+			Settings.saveLocalStorages();
+			Settings.updateProfileButton();
+		}
+	}
+	extend(data) {
+		Merge.string(this, data, 'name');
+		if (data.condition) {
+			this.condition.type = data.condition.type;
+			this.condition.value = data.condition.value;
+		}
+		if (data.settings) {
+			for (let key in data.settings) {
+				let value = data.settings[key];
+				if (value === undefined || value === null) continue;
+				Vue.set(this.settings, key, value);
+			}
+		}
+	}
+	isActive() {
+		switch (this.condition.type) {
+			case 'selectable':
+				return SettingsProfile.selected == this;
+			case 'format':
+				if (Format && Format.id == this.condition.value) return true;
+				break;
+			case 'file_path':
+				let regex = new RegExp(this.condition.value, 'i');
+				if (Project && (
+					regex.test(Project.save_path.replace(osfs, '/')) ||
+					regex.test(Project.export_path.replace(osfs, '/'))
+				)) {
+					return true;
+				}
+				break;
+		}
+		return false;
+	}
+	clear(key) {
+		Vue.delete(this.settings, key);
+		Settings.saveLocalStorages();
+	}
+	openDialog() {
+		let color_options = {};
+		for (let i = 0; i < markerColors.length; i++) {
+			color_options[i] = tl(`cube.color.${markerColors[i].id}`);
+		}
+		let condition_types = {
+			selectable: tl('settings_profile.condition.type.selectable'),
+			format: tl('data.format'),
+			file_path: tl('data.file_path'),
+		};
+		let formats = {};
+		for (let key in Formats) {
+			formats[key] = Formats[key].name;
+		}
+		let dialog = new Dialog({
+			id: 'settings_profile',
+			title: tl('data.settings_profile'),
+			form: {
+				name: {label: 'generic.name', type: 'text', value: this.name},
+				color: {label: 'menu.cube.color', type: 'select', options: color_options, value: this.color},
+				_1: '_',
+
+				condition_type: {
+					type: 'select',
+					label: 'settings_profile.condition',
+					value: this.condition.type,
+					options: condition_types
+				},
+				format: {
+					type: 'select',
+					label: 'data.format',
+					value: this.condition.type == 'format' ? this.condition.value : '',
+					options: formats,
+					condition: (form) => form.condition_type == 'format'
+				},
+				file_path: {
+					type: 'text',
+					label: 'data.file_path',
+					description: 'settings_profile.condition.type.file_path.desc',
+					value: this.condition.type == 'file_path' ? this.condition.value : '',
+					condition: (form) => form.condition_type == 'file_path'
+				},
+				_2: '_',
+
+				remove: {type: 'buttons', buttons: ['generic.delete'], click: (button) => {
+					if (confirm(tl('settings_profile.confirm_delete')))
+					this.remove();
+					Settings.dialog.content_vue.profile = null;
+					SettingsProfile.unselect();
+					dialog.close();
+				}}
+			},
+			onConfirm: (result) => {
+				this.name = result.name;
+				this.color = result.color;
+				this.condition.type = result.condition_type;
+				if (this.condition.type == 'format') this.condition.value = result.format;
+				if (this.condition.type == 'file_path') this.condition.value = result.file_path;
+				Settings.saveLocalStorages();
+				Settings.updateProfileButton();
+			},
+			onCancel() {
+				Settings.updateProfileButton();
+			}
+		}).show();
+	}
+	remove() {
+		SettingsProfile.all.remove(this);
+		Settings.saveLocalStorages();
+	}
+}
+SettingsProfile.all = [];
+SettingsProfile.selected = null;
+SettingsProfile.unselect = function(update = true) {
+	SettingsProfile.all.forEach(p => p.selected = false);
+	SettingsProfile.selected = null;
+	if (update) {
+		Settings.updateSettingsInProfiles();
+		Settings.saveLocalStorages();
+		Settings.updateProfileButton();
+	}
+}
+
 const Settings = {
 	structure: {},
 	stored: {},
@@ -175,6 +350,11 @@ const Settings = {
 		}});
 
 		//Interface
+		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
+			'auto': tl('settings.interface_mode.auto'),
+			'desktop': tl('settings.interface_mode.desktop'),
+			'mobile': tl('settings.interface_mode.mobile'),
+		}});
 		new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
 			var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
 			currentwindow.webContents.setZoomFactor(factor)
@@ -209,6 +389,9 @@ const Settings = {
 		}});
 		new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 			Timeline.vue.updateTimecodes();
+		}});
+		new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
+			Timeline.vue.show_all_handles = !val;
 		}});
 		
 		//Preview 
@@ -285,14 +468,15 @@ const Settings = {
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
 		//Paint
-		new Setting('sync_color',	{category: 'paint', value: false});
-		new Setting('color_wheel',	{category: 'paint', value: false, onChange(value) {
+		new Setting('sync_color',					{category: 'paint', value: false});
+		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
-		new Setting('pick_color_opacity',		{category: 'paint', value: false});
-		new Setting('paint_side_restrict',		{category: 'paint', value: true});
-		new Setting('paint_with_stylus_only',	{category: 'paint', value: false});
-		new Setting('brush_opacity_modifier',	{category: 'paint', value: 'pressure', type: 'select', options: {
+		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('paint_through_transparency',	{category: 'paint', value: true});
+		new Setting('paint_side_restrict',			{category: 'paint', value: true});
+		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
+		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'pressure', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
@@ -329,6 +513,7 @@ const Settings = {
 		
 		//Export
 		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
@@ -342,6 +527,42 @@ const Settings = {
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 	},
+	setupProfiles() {
+		if (localStorage.getItem('settings_profiles') != null) {
+			let profiles = JSON.parse(localStorage.getItem('settings_profiles'));
+			profiles.forEach(profile => {
+				let new_profile = new SettingsProfile(profile);
+				if (profile.selected) new_profile.select(false);
+			})
+		}
+		Settings.profile_menu_button = document.getElementById('settings_profiles_header_menu');
+		Settings.profile_menu_button.addEventListener('click', event => {
+			let list = [
+				{
+					name: 'generic.none',
+					icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+					click: () => {
+						SettingsProfile.unselect();
+					}
+				},
+				'_'
+			];
+			SettingsProfile.all.forEach(profile => {
+				if (profile.condition.type != 'selectable') return;
+				list.push({
+					name: profile.name,
+					icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+					color: markerColors[profile.color].standard,
+					click: () => {
+						profile.select();
+					}
+				})
+			})
+			new Menu(list).open(Settings.profile_menu_button);
+		});
+		Settings.profile_menu_button.setAttribute('title', tl('data.settings_profile'))
+		Settings.updateProfileButton();
+	},
 	addCategory(id, data = {}) {
 		Settings.structure[id] = {
 			name: data.name || tl('settings.category.'+id),
@@ -354,9 +575,10 @@ const Settings = {
 	saveLocalStorages() {
 		var settings_copy = {}
 		for (var key in settings) {
-			settings_copy[key] = {value: settings[key].value}
+			settings_copy[key] = {value: settings[key].master_value}
 		}
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
+		localStorage.setItem('settings_profiles', JSON.stringify(SettingsProfile.all));
 
 		if (window.canvas_scenes) {
 			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
@@ -399,7 +621,25 @@ const Settings = {
 				ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
 			}
 		}
+		Settings.updateProfileButton();
 		Blockbench.dispatchEvent('update_settings');
+	},
+	updateSettingsInProfiles() {
+		let settings_to_change = new Set();
+		for (let profile of SettingsProfile.all) {
+			for (let key in profile.settings) {
+				settings_to_change.add(key);
+			}
+		}
+		settings_to_change.forEach(key => {
+			let setting = settings[key];
+			if (setting.onChange) setting.onChange(setting.value);
+		})
+	},
+	updateProfileButton() {
+		let profile = SettingsProfile.selected;
+		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color].standard : '';
+		Settings.profile_menu_button.classList.toggle('hidden', SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') == -1);
 	},
 	import(file) {
 		let data = JSON.parse(file.content);
@@ -423,6 +663,7 @@ const Settings = {
 		}
 		Settings.dialog.show();
 		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
+		Settings.dialog.content_vue.$forceUpdate();
 	},
 	old: {}
 }
@@ -561,14 +802,63 @@ onVueSetup(function() {
 		component: {
 			data() {return {
 				structure: Settings.structure,
+				profile: null,
+				all_profiles: SettingsProfile.all,
 				open_category: 'general',
-				search_term: '',
+				search_term: ''
 			}},
 			methods: {
 				saveSettings() {
 					Settings.saveLocalStorages();
 				},
+				showProfileMenu(event) {
+					let items = [
+						{
+							name: 'generic.none',
+							icon: 'remove',
+							click: () => {
+								this.profile = null;
+							}
+						}
+					];
+					SettingsProfile.all.forEach(profile => {
+						items.push({
+							name: profile.name,
+							icon: 'settings_applications',
+							color: markerColors[profile.color].standard,
+							click: () => {
+								this.profile = profile;
+								if (profile.condition.type == 'selectable') {
+									profile.select();
+								} else {
+									SettingsProfile.unselect();
+								}
+							}
+						})
+					})
+
+					items.push(
+						'_',
+						{name: 'dialog.settings.create_profile', icon: 'add', click: () => {
+							this.profile = new SettingsProfile({});
+							this.profile.openDialog();
+						}}
+					)
+					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
+				},
+				profileButtonPress() {
+					if (!this.profile) {
+						this.profile = new SettingsProfile({});
+					}
+					this.profile.openDialog();
+				},
+				getProfileValuesForSetting(key) {
+					return this.all_profiles.filter(profile => {
+						return profile.settings[key] !== undefined;
+					});
+				},
 				getIconNode: Blockbench.getIconNode,
+				tl,
 				Condition
 			},
 			computed: {
@@ -607,38 +897,61 @@ onVueSetup(function() {
 					} else {
 						return this.structure[this.open_category].name;
 					}
+				},
+				profile_name() {
+					return this.profile ? this.profile.name : tl('generic.none');
 				}
 			},
 			template: `
-				<div>
+				<div :style="{'--color-profile': profile ? markerColors[profile.color] && markerColors[profile.color].standard : ''}">
+					<div id="settings_profile_wrapper">
+						Profile:
+						<bb-select ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</bb-select>
+						<div class="tool" @click="profileButtonPress()"><i class="material-icons">{{ profile ? 'build' : 'add' }}</i></div>
+					</div>
+
 					<h2 class="i_b">{{ title }}</h2>
 
 					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
 
 					<ul id="settingslist">
 
-						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)" v-on="setting.click ? {click: setting.click} : {}">
+						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
+							v-on="setting.click ? {click: setting.click} : {}"
+							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
+						>
+							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('Clear profile value')}">
+								<i class="material-icons">clear</i>
+							</div>
+
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><input type="number" v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+								<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
 							</template>
 
-							<label class="setting_label" v-bind:for="'setting_'+key">
-								<div class="setting_name">{{ setting.name }}</div>
+							<div class="setting_label">
+								<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+								<div class="setting_profile_value_indicator"
+									v-for="profile_here in getProfileValuesForSetting(key)"
+									:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+									:class="{active: profile_here.isActive()}"
+									:title="tl('Has override in profile ' + profile_here.name)"
+									@click.stop="profile = (profile == profile_here) ? null : profile_here"
+								/>
 								<div class="setting_description">{{ setting.description }}</div>
-							</label>
+							</div>
 
 							<template v-if="setting.type === 'text'">
-								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.value" v-on:input="saveSettings()">
+								<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" v-on:input="saveSettings()">
 							</template>
 
 							<template v-if="setting.type === 'password'">
-								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.value" v-on:input="saveSettings()">
+								<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" v-on:input="saveSettings()">
 								<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
 									<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
 									<i class="fas fa-eye" v-else></i>
@@ -647,7 +960,7 @@ onVueSetup(function() {
 
 							<template v-else-if="setting.type === 'select'">
 								<div class="bar_select">
-									<select-input v-model="setting.value" :options="setting.options" />
+									<select-input v-model="setting.ui_value" :options="setting.options" />
 								</div>
 							</template>
 						</li>

@@ -540,11 +540,13 @@ var codec = new Codec('collada', {
 				]
 			}
 			if (node.rotatable) {
-				tag.content.push(
+				let rotation_angles = [
 					{type: 'rotate', attributes: {sid: 'rotationZ'}, content: `0 0 1 ${node.rotation[2]}`},
 					{type: 'rotate', attributes: {sid: 'rotationY'}, content: `0 1 0 ${node.rotation[1]}`},
-					{type: 'rotate', attributes: {sid: 'rotationX'}, content: `1 0 0 ${node.rotation[0]}`},
-				)
+					{type: 'rotate', attributes: {sid: 'rotationX'}, content: `1 0 0 ${node.rotation[0]}`}
+				];
+				if (node.mesh.rotation.order == 'XYZ') rotation_angles.reverse();
+				tag.content.push(...rotation_angles);
 			}
 			if (node instanceof Cube || node instanceof Mesh) {
 				let textures = [];

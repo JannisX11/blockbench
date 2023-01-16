@@ -1,0 +1,43 @@
+name: Bug / Issue
+description: Use this form to report an issue that occurs when using Blockbench
+title: "[Issue] Issue summary"
+body:
+- type: markdown
+  attributes:
+    value: |
+      - Before you report an issue, check if if has already been reported.
+      - Also check if you are using the latest version of Blockbench.
+      - If applicable, go to Help > Developer > Open Dev Tools. Switch to the Console tab. If there are any (red) error messages, please attach a screenshot of them.
+- type: markdown
+  attributes:
+    value: |
+      Please make sure to provide the following information:
+- type: textarea
+  id: details
+  attributes:
+    label: Detailed description of your issue
+  validations:
+    required: true
+- type: input
+  id: format
+  attributes:
+    label: Model format in which the issue occurs
+  validations:
+    required: true
+- type: dropdown
+  id: variant
+  attributes:
+    label: Blockbench variant
+    multiple: true
+    options:
+      - Website
+      - PWA
+      - Program
+  validations:
+    required: true
+- type: input
+  id: os
+  attributes:
+    label: Operating System
+  validations:
+    required: true

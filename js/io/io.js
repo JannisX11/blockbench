@@ -143,7 +143,7 @@ async function loadImages(files, event) {
 			})
 
 		} else if (method == 'extrude_with_cubes') {
-			showDialog('image_extruder');
+			Extruder.dialog.show();
 			Extruder.drawImage(files[0]);
 		}
 	}
@@ -169,16 +169,48 @@ async function loadImages(files, event) {
 }
 
 //Extruder
-var Extruder = {
-	drawImage: function(file) {
+const Extruder = {
+	dialog: new Dialog({
+		id: 'image_extruder',
+		title: 'dialog.extrude.title',
+		buttons: ['dialog.confirm', 'dialog.cancel'],
+		part_order: ['form', 'lines'],
+		form: {
+			mode: {
+				label: 'dialog.extrude.mode',
+				type: 'select',
+				options: {
+					areas: 'dialog.extrude.mode.areas',
+					lines: 'dialog.extrude.mode.lines',
+					columns: 'dialog.extrude.mode.columns',
+					pixels: 'dialog.extrude.mode.pixels'
+				}
+			},
+			orientation: {
+				label: 'dialog.extrude.orientation',
+				type: 'select',
+				options: {
+					upright: 'dialog.extrude.orientation.upright',
+					flat: 'dialog.extrude.orientation.flat',
+				}
+			},
+			scan_tolerance: {
+				label: 'dialog.extrude.opacity',
+				type: 'range',
+				min: 1, max: 255, value: 255, step: 1,
+				editable_range_label: true
+			}
+		},
+		lines: [
+			`<canvas height="256" width="256" id="extrusion_canvas" class="checkerboard"></canvas>`
+		],
+		onConfirm(formResult) {
+			Extruder.startConversion(formResult);
+		}
+	}),
+	drawImage(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
-
-		setProgressBar('extrusion_bar', 0)
-		$('#scan_tolerance').on('input', function() {
-			$('#scan_tolerance_label').text($(this).val())
-		})
-		showDialog('image_extruder')
 
 		Extruder.ext_img = new Image()
 		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
@@ -210,18 +242,13 @@ var Extruder = {
 				ctx.lineTo(256 + p, 0.5 + x + p);
 			}
 
-			ctx.strokeStyle = "black";
+			ctx.strokeStyle = CustomTheme.data.colors.grid;
 			ctx.stroke();
 		}
-
-		//Grid
 	},
-	startConversion: function() {
-		var scan_mode = $('select#scan_mode option:selected').attr('id') /*areas, lines, columns, pixels*/
-		var isNewProject = elements.length === 0;
-
-		var pixel_opacity_tolerance = parseInt($('#scan_tolerance').val())
-
+	startConversion(formResult) {
+		var scan_mode = formResult.mode;
+		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
 
 		//Undo
 		Undo.initEdit({elements: selected, outliner: true, textures: []})
@@ -334,22 +361,38 @@ var Extruder = {
 						}
 						draw_y++;
 					}
+
+					// Generate cube
+					let from, to, faces;
+					if (formResult.orientation == 'upright')  {
+						from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
+						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, scale_i];
+						faces = {
+							south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+							down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+						};
+					} else {
+						from = [rect.x*scale_i, 0, rect.y*scale_i];
+						to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i];
+						faces = {
+							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
+							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+							south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
+							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
+						};
+					}
 					var current_cube = new Cube({
 						name: cube_name+'_'+cube_nr,
-						autouv: 0,
-						from: [rect.x*scale_i, 0, rect.y*scale_i],
-						to: [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i],
-						box_uv: false,
-						faces: {
-							up:		{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							down:	{uv:[rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
-							north:	{uv:[(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							south:	{uv:[rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv:[rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
-							west:	{uv:[rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
-						}
-					}).init()
-					selected.push(current_cube)
+						autouv: 0, box_uv: false,
+						from, to, faces
+					}).init();
+					selected.push(current_cube);
 					cube_nr++;
 				}
 
@@ -364,8 +407,6 @@ var Extruder = {
 		})
 
 		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
-
-		hideDialog()
 	}
 }
 //Export
@@ -670,16 +711,16 @@ BARS.defineActions(function() {
 		icon: 'eject',
 		category: 'file',
 		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
-		click: function () {
+		click() {
 			Blockbench.import({
 				resource_id: 'texture',
 				extensions: ['png'],
 				type: 'PNG Texture',
 				readtype: 'image'
-			}, function(files) {
+			}, (files) => {
 				if (files.length) {
-					showDialog('image_extruder')
-					Extruder.drawImage(files[0])
+					Extruder.dialog.show();
+					Extruder.drawImage(files[0]);
 				}
 			})
 		}

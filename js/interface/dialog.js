@@ -151,15 +151,36 @@ function buildForm(dialog) {
 					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
-					let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
-					bar.append(display);
 					input_element.on('input', () => {
-						let result = dialog.getFormResult();
-						display.textContent = trimFloatNumber(result[form_id]);
-					})
-					input_element.on('change', () => {
 						dialog.updateFormValues();
 					})
+
+					if (!data.editable_range_label) {
+						let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
+						bar.append(display);
+						input_element.on('input', () => {
+							let result = dialog.getFormResult();
+							display.textContent = trimFloatNumber(result[form_id]);
+						})
+					} else {
+						let display = Interface.createElement('input', {
+							class: 'range_input_label dark_bordered focusable_input',
+							type: 'number',
+							value: data.value,
+							min: data.min,
+							max: data.max,
+							step: data.step || 1,
+						});
+						bar.append(display);
+						input_element.on('input', () => {
+							let result = dialog.getFormResult();
+							display.value = result[form_id];
+						})
+						display.addEventListener('input', (e) => {
+							input_element.val(parseFloat(display.value));
+							dialog.updateFormValues();
+						})
+					}
 					break;
 
 
@@ -286,7 +307,7 @@ function buildLines(dialog) {
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && (l.label || l.widget)) {
 
-			let bar = $('<div class="dialog_bar"></div>')
+			let bar = Interface.createElement('div', {class: 'dialog_bar'});
 			if (l.label) {
 				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label)+(l.nocolon?'':':'))
 				bar.append(label);
@@ -422,7 +443,7 @@ window.Dialog = class Dialog {
 			options = id;
 			id = options.id;
 		}
-		this.id = options.id
+		this.id = id;
 		this.title = options.title || options.name;
 		
 		this.lines = options.lines
@@ -706,10 +727,9 @@ window.Dialog = class Dialog {
 	}
 	show() {
 		// Hide previous
-		if (window.open_interface && typeof open_interface.hide == 'function') {
+		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('.dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -717,33 +737,46 @@ window.Dialog = class Dialog {
 
 		let jq_dialog = $(this.object);
 
-		$('#dialog_wrapper').append(jq_dialog);
-		$('#blackout').show().toggleClass('darken', this.darken);
+		document.getElementById('dialog_wrapper').append(this.object);
+		
+		if (this instanceof ShapelessDialog === false) {
+			this.object.style.display = 'flex';
+			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
+			if (this.width) {
+				this.object.style.width = this.width+'px';
+			}
+			if (this.draggable !== false) {
+				let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
+				this.object.style.left = x+'px';
+			}
+		}
 
-		jq_dialog.show().css('display', 'flex');
-		jq_dialog.css('top', limitNumber(window.innerHeight/2-jq_dialog.height()/2, 0, 100)+'px');
-		if (this.width) {
-			jq_dialog.css('width', this.width+'px');
-		}
-		if (this.draggable !== false) {
-			let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
-			jq_dialog.css('left', x+'px')
-		}
 		if (!Blockbench.isTouch) {
 			let first_focus = jq_dialog.find('.focusable_input').first();
 			if (first_focus) first_focus.trigger('focus');
 		}
 
-		open_dialog = this.id;
-		open_interface = this;
-		Dialog.open = this;
-		Prop.active_panel = 'dialog';
-
 		if (typeof this.onOpen == 'function') {
 			this.onOpen();
 		}
 
+		this.focus();
+
 		return this;
+	}
+	focus() {
+		Dialog.stack.remove(this);
+		let blackout = document.getElementById('blackout');
+		blackout.style.display = 'block';
+		blackout.classList.toggle('darken', this.darken);
+		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
+		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
+
+		Prop.active_panel = 'dialog';
+		open_dialog = this.id;
+		open_interface = this;
+		Dialog.open = this;
+		Dialog.stack.push(this);
 	}
 	hide() {
 		$('#blackout').hide().toggleClass('darken', true);
@@ -751,8 +784,14 @@ window.Dialog = class Dialog {
 		open_dialog = false;
 		open_interface = false;
 		Dialog.open = null;
+		Dialog.stack.remove(this);
 		Prop.active_panel = undefined;
 		$(this.object).detach();
+		
+		if (Dialog.stack.length) {
+			Dialog.stack.last().focus();
+		}
+
 		return this;
 	}
 	delete() {
@@ -766,46 +805,151 @@ window.Dialog = class Dialog {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
 	}
+	static stack = []
+}
+window.Dialog.stack = [];
+
+window.ShapelessDialog = class ShapelessDialog extends Dialog {
+	constructor(id, options) {
+		super(id, options);
+
+		if (options.build) this.build = options.build;
+	}
+	close(button, event) {
+		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
+			let result = this.onConfirm(event);
+			if (result === false) return;
+		}
+		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
+			let result = this.onCancel(event);
+			if (result === false) return;
+		}
+		this.hide();
+	}
+	show() {
+		super.show()
+		$(this.object).show();
+	}
+	build() {
+		this.object = Interface.createElement('div', {id: this.id, class: 'shapeless_dialog'});
+
+		if (this.component) {
+			this.component.name = 'dialog-content';
+			this.content_vue = new Vue(this.component).$mount(this.object, true);
+		}
+	}
+	delete() {
+		this.object.remove()
+	}
+}
+
+window.MessageBox = class MessageBox extends Dialog {
+	constructor(options, callback) {
+		super(options.id, options);
+		this.options = options;
+		if (!options.buttons) this.buttons = ['dialog.ok'];
+		this.callback = callback;
+	}
+	close(button, event) {
+		if (this.callback) this.callback(button, event);
+		this.hide();
+		this.delete();
+	}
+	build() {
+		let options = this.options;
+
+		if (options.translateKey) {
+			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
+			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
+		}
+		let content = Interface.createElement('div', {class: 'dialog_content'});
+		this.object = Interface.createElement('dialog', {class: 'dialog', style: 'width: auto;', id: 'message_box'}, [
+			Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title))),
+			Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear')),
+			content
+		]);
+		let jq_dialog = $(this.object);
+
+		if (options.message) {
+			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+				marked(tl(options.message))+
+			'</div></div>')[0]);
+		}
+		if (options.icon) {
+			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+		}
+
+		if (options.commands) {
+			let list = Interface.createElement('ul');
+			for (let id in options.commands) {
+				let command = options.commands[id];
+				if (!Condition(command.condition)) continue;
+				let text = tl(typeof command == 'string' ? command : command.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				entry.addEventListener('click', e => {
+					this.close(id);
+				})
+				list.append(entry);
+			}
+			content.append(list);
+		}
+
+		// Buttons
+		if (this.buttons.length) {
+
+			let buttons = []
+			this.buttons.forEach((b, i) => {
+				let btn = $('<button type="button">'+tl(b)+'</button> ')
+				buttons.push(btn)
+				btn.on('click', (event) => {
+					this.close(i, event);
+				})
+			})
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			let button_bar = $('<div class="dialog_bar button_bar"></div>');
+
+			buttons.forEach((button, i) => {
+				if (i) button_bar.append('&nbsp;')
+				button_bar.append(button)
+			})
+
+			jq_dialog.append(button_bar[0]);
+		}
+
+		//Draggable
+		if (this.draggable !== false) {
+			jq_dialog.addClass('draggable')
+			jq_dialog.draggable({
+				handle: ".dialog_handle",
+				containment: '#page_wrapper'
+			})
+			this.object.style.position = 'absolute';
+		}
+
+		let x = (window.innerWidth-540)/2
+		this.object.style.left = x+'px';
+		this.object.style.position = 'absolute';
+
+		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px';
+		if (options.width) {
+			this.object.style.width = options.width+'px'
+		} else {
+			this.object.style.width = limitNumber((options.buttons ? options.buttons.length : 1) * 170+44, 380, 894)+'px';
+		}
+	}
+	delete() {
+		this.object.remove()
+	}
 }
 
 })()
 
-
-// Legacy Dialogs
-function showDialog(dialog) {
-	var obj = $('.dialog#'+dialog)
-	$('.dialog').hide()
-	if (open_menu) {
-		open_menu.hide()
-	}
-	$('#blackout').show()
-	obj.show()
-	open_dialog = dialog
-	open_interface = {
-		confirm() {
-			$('dialog#'+open_dialog).find('.confirm_btn:not([disabled])').trigger('click');
-		},
-		cancel() {
-			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
-		}
-	}
-	Prop.active_panel = 'dialog'
-	//Draggable
-	if (obj.hasClass('draggable')) {
-		obj.draggable({
-			handle: ".dialog_handle",
-			containment: '#page_wrapper'
-		})
-		var x = (window.innerWidth-obj.outerWidth()) / 2;
-		obj.css('left', x+'px')
-		obj.css('max-height', (window.innerHeight-128)+'px')
-	}
+// Legacy Dialog
+function showDialog() {
+	console.warn('"showDialog" is no longer supported!')
 }
 function hideDialog() {
-	$('#blackout').hide()
-	$('.dialog').hide()
-	open_dialog = false;
-	open_interface = false;
-	Prop.active_panel = undefined
+	console.warn('"hideDialog" is no longer supported!')
 }
 

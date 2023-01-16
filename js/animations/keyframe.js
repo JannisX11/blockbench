@@ -171,6 +171,19 @@ class Keyframe {
 				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
 			}
 		})
+		if (this.interpolation == 'bezier') {
+			if (this.channel == 'rotation') {
+				for (var i = 0; i < 3; i++) {
+					if (i != axis) {
+						this.bezier_left_value[i] *= -1;
+						this.bezier_right_value[i] *= -1;
+					}
+				}
+			} else if (this.channel == 'position') {
+				this.bezier_left_value[axis] *= -1;
+				this.bezier_right_value[axis] *= -1;
+			}
+		}
 		return this;
 	}
 	getLerp(other, axis, amount, allow_expression) {
@@ -195,6 +208,48 @@ class Keyframe {
 		let time = (alpha + (before_plus ? 1 : 0)) / (vectors.length-1);
 
 		return curve.getPoint(time).y;
+	}
+	getBezierLerp(before, after, axis, alpha) {
+		let axis_num = getAxisNumber(axis);
+		let val_before = before.calc(axis, 1);
+		let val_after = after.calc(axis, 0);
+		let time_gap = after.time - before.time;
+		let time_handle_before = Math.clamp(before.bezier_right_time[axis_num] || 0, 0, time_gap);
+		let time_handle_after  = Math.clamp(after.bezier_left_time[axis_num]   || 0, -time_gap, 0);
+		let vectors = [
+			new THREE.Vector2(before.time, val_before),
+
+			new THREE.Vector2(before.time + time_handle_before, val_before + before.bezier_right_value[axis_num] || 0),
+			new THREE.Vector2(after.time  + time_handle_after,  val_after  + after.bezier_left_value[axis_num]   || 0),
+
+			new THREE.Vector2(after.time, val_after),
+		];
+
+		let curve = new THREE.CubicBezierCurve(...vectors);
+		let time = before.time + (after.time - before.time) * alpha;
+
+		let points = curve.getPoints(200);
+		let closest;
+		let closest_diff = Infinity;
+		points.forEach(point => {
+			let diff = Math.abs(point.x - time);
+			if (diff < closest_diff) {
+				closest_diff = diff;
+				closest = point;
+			}
+		})
+		let second_closest;
+		closest_diff = Infinity;
+		points.forEach(point => {
+			if (point == closest) return;
+			let diff = Math.abs(point.x - time);
+			if (diff < closest_diff) {
+				closest_diff = diff;
+				second_closest = closest;
+				second_closest = point;
+			}
+		})
+		return Math.lerp(closest.y, second_closest.y, Math.clamp(Math.getLerp(closest.x, second_closest.x, time), 0, 1));
 	}
 	getArray(data_point = 0) {
 		var arr = [
@@ -247,7 +302,7 @@ class Keyframe {
 	compileBedrockKeyframe() {
 		if (this.transform) {
 
-			if (this.interpolation != 'linear' && this.interpolation != 'step') {
+			if (this.interpolation == 'catmullrom') {
 				let previous = this.getPreviousKeyframe();
 				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
@@ -468,6 +523,9 @@ class Keyframe {
 		'_',
 		'keyframe_uniform',
 		'keyframe_interpolation',
+		'keyframe_bezier_linked',
+		'reset_keyframe_handles',
+		'reset_keyframe',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
 				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -481,6 +539,7 @@ class Keyframe {
 				}})
 			];
 		}},
+		'_',
 		'copy',
 		'delete',
 	])
@@ -488,10 +547,16 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
 	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
+	new Property(Keyframe, 'boolean', 'bezier_linked', {default: true})
+	new Property(Keyframe, 'vector', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
+	new Property(Keyframe, 'vector', 'bezier_left_value');
+	new Property(Keyframe, 'vector', 'bezier_right_time', {default: [0.1, 0.1, 0.1]});
+	new Property(Keyframe, 'vector', 'bezier_right_value');
 	Keyframe.selected = [];
 	Keyframe.interpolation = {
 		linear: 'linear',
 		catmullrom: 'catmullrom',
+		bezier: 'bezier',
 		step: 'step',
 	}
 
@@ -518,6 +583,10 @@ function updateKeyframeSelection() {
 		if (BarItems.keyframe_uniform.value != !!Timeline.selected[0].uniform) {
 			BarItems.keyframe_uniform.value = !!Timeline.selected[0].uniform;
 			BarItems.keyframe_uniform.updateEnabledState();
+		}
+		if (BarItems.keyframe_bezier_linked.value != !!Timeline.selected[0].bezier_linked) {
+			BarItems.keyframe_bezier_linked.value = !!Timeline.selected[0].bezier_linked;
+			BarItems.keyframe_bezier_linked.updateEnabledState();
 		}
 	}
 	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
@@ -819,18 +888,41 @@ BARS.defineActions(function() {
 			updateKeyframeSelection();
 		}
 	})
+	new Toggle('keyframe_bezier_linked', {
+		icon: 'fa-bezier-curve',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length && !Timeline.selected.find(kf => kf.interpolation !== 'bezier'),
+		onChange(value) {
+			let keyframes = Timeline.selected;
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				kf.bezier_linked = value;
+				if (value) {
+					kf.bezier_right_time.V3_set(kf.bezier_left_time).V3_multiply(-1);
+					kf.bezier_right_value.V3_set(kf.bezier_left_value).V3_multiply(-1);
+				}
+			})
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Undo.finishEdit('Change keyframes bezier link option');
+			updateKeyframeSelection();
+		}
+	})
 	new BarSelect('keyframe_interpolation', {
 		category: 'animation',
 		condition: () => Animator.open && Timeline.selected.length && Timeline.selected.find(kf => kf.transform),
 		options: {
 			linear: true,
 			catmullrom: true,
+			bezier: true,
 			step: true,
 		},
 		onChange: function(sel, event) {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
-				if (kf.transform) kf.interpolation = sel.value;
+				if (kf.transform) {
+					kf.interpolation = sel.value;
+				}
 			})
 			Undo.finishEdit('Change keyframes interpolation')
 			updateKeyframeSelection();
@@ -844,8 +936,35 @@ BARS.defineActions(function() {
 			Undo.initEdit({keyframes: Timeline.selected})
 			Timeline.selected.forEach((kf) => {
 				kf.data_points.replace([new KeyframeDataPoint(kf)]);
+				if (kf.interpolation == 'bezier') {
+					kf.bezier_left_time.V3_set(-0.1, -0.1, -0.1);
+					kf.bezier_left_value.V3_set(0, 0, 0);
+					kf.bezier_right_time.V3_set(0.1, 0.1, 0.1);
+					kf.bezier_right_value.V3_set(0, 0, 0);
+				}
 			})
 			Undo.finishEdit('Reset keyframes')
+			updateKeyframeSelection()
+			Animator.preview()
+		}
+	})
+	new Action('reset_keyframe_handles', {
+		icon: 'replay',
+		category: 'animation',
+		condition: () => Animator.open && Keyframe.selected.length && Timeline.vue.graph_editor_open && Keyframe.selected.find(kf => kf.interpolation == 'bezier'),
+		click: function () {
+			Undo.initEdit({keyframes: Timeline.selected})
+			Timeline.selected.forEach((kf) => {
+				if (kf.interpolation == 'bezier') {
+					kf.bezier_left_time.V3_set(-0.1, -0.1, -0.1);
+					kf.bezier_left_value.V3_set(0, 0, 0);
+					kf.bezier_right_time.V3_set(0.1, 0.1, 0.1);
+					kf.bezier_right_value.V3_set(0, 0, 0);
+				}
+			})
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+			Undo.finishEdit('Reset keyframe handles')
 			updateKeyframeSelection()
 			Animator.preview()
 		}
@@ -937,6 +1056,17 @@ BARS.defineActions(function() {
 				kf.time = end + start - kf.time;
 				if (kf.transform && kf.data_points.length > 1) {
 					kf.data_points.reverse();
+				}
+				if (kf.interpolation == 'bezier') {
+					let rt = kf.bezier_right_time.slice();
+					let rv = kf.bezier_right_value.slice();
+					kf.bezier_right_time.replace(kf.bezier_left_time);
+					kf.bezier_right_value.replace(kf.bezier_left_value);
+					kf.bezier_left_time.replace(rt);
+					kf.bezier_left_value.replace(rv);
+
+					kf.bezier_right_time.V3_multiply(-1);
+					kf.bezier_left_time.V3_multiply(-1);
 				}
 			})
 			Undo.finishEdit('Reverse keyframes')
@@ -1086,13 +1216,10 @@ BARS.defineActions(function() {
 })
 
 Interface.definePanels(function() {
-
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
-	document.body.append(locator_suggestion_list);
 	
 	new Panel('keyframe', {
 		icon: 'icon-keyframe',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => !AnimationController.selected},
 		default_position: {
 			slot: 'left_bar',
 			float_position: [0, 0],
@@ -1144,12 +1271,7 @@ Interface.definePanels(function() {
 					Undo.finishEdit('Remove keyframe data point')
 				},
 				updateLocatorSuggestionList() {
-					locator_suggestion_list.innerHTML = '';
-					Locator.all.forEach(locator => {
-						let option = document.createElement('option');
-						option.value = locator.name;
-						locator_suggestion_list.append(option);
-					})
+					Locator.updateAutocompleteList();
 				},
 				focusAxis(axis) {
 					if ('xyz'.includes(axis)) {
@@ -1231,10 +1353,11 @@ Interface.definePanels(function() {
 							Undo.initEdit({keyframes: [keyframe]})
 							data_point.file = path;
 							let effect = Animator.loadParticleEmitter(path, files[0].content);
+							if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().split('.')[0].replace(/[^a-z0-9._]+/g, '');
 							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || effect.config.texture.image.src.match(/^data:/)) {
+							if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
@@ -1265,6 +1388,10 @@ Interface.definePanels(function() {
 							Undo.finishEdit('Change keyframe audio file')
 						})
 					}
+				},
+				autocomplete(text, position) {
+					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					return test;
 				},
 				tl,
 				Condition
@@ -1301,7 +1428,7 @@ Interface.definePanels(function() {
 							</div>
 						</div>
 
-						<ul class="list">
+						<ul class="list" :style="{overflow: keyframes[0].data_points.length > 1 ? 'auto' : 'visible'}">
 
 							<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
 
@@ -1320,10 +1447,11 @@ Interface.definePanels(function() {
 									>
 										<label>${ tl('generic.all') }</label>
 										<vue-prism-editor 
-											class="molang_input dark_bordered keyframe_input tab_target"
+											class="molang_input keyframe_input tab_target"
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
 											language="molang"
+											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
@@ -1341,11 +1469,12 @@ Interface.definePanels(function() {
 										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event)" @touchstart="slideValue(key, $event)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
-											class="molang_input dark_bordered keyframe_input tab_target"
+											class="molang_input keyframe_input tab_target"
 											v-model="data_point[key+'_string']"
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
 											language="molang"
+											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
 										/>
@@ -1373,7 +1502,7 @@ Interface.definePanels(function() {
 
 	let keyframe_edit_value;
 	function isTarget(target) {
-		return target && target.classList && (target.classList.contains('keyframe_input') || (target.parentElement && target.parentElement.classList.contains('keyframe_input')));
+		return target?.classList?.contains('keyframe_input') || target?.parentElement?.parentElement?.classList?.contains('keyframe_input');
 	}
 	document.addEventListener('focus', event => {
 		if (isTarget(event.target)) {

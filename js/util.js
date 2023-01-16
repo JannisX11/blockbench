@@ -40,6 +40,34 @@ const Condition = function(condition, context) {
 		if (condition.formats instanceof Array && condition.formats.includes(Format.id) === false) return false;
 		if (condition.tools instanceof Array && window.Toolbox && condition.tools.includes(Toolbox.selected.id) === false) return false;
 		if (condition.features instanceof Array && Format && condition.features.find(feature => !Format[feature])) return false;
+		if (condition.selected) {
+			if (condition.selected.animation === true && !Animation.selected) return false;
+			if (condition.selected.animation === false && Animation.selected) return false;
+			if (condition.selected.animation_controller === true && !AnimationController.selected) return false;
+			if (condition.selected.animation_controller === false && AnimationController.selected) return false;
+			if (condition.selected.animation_controller_state === true && !(AnimationController.selected?.selected_state)) return false;
+			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
+			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
+			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
+			if (condition.selected.group === true && !Group.selected) return false;
+			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.texture === true && !Texture.selected) return false;
+			if (condition.selected.texture === false && Texture.selected) return false;
+			if (condition.selected.element === true && !Outliner.selected.length) return false;
+			if (condition.selected.element === false && Outliner.selected.length) return false;
+			if (condition.selected.cube === true && !Cube.selected.length) return false;
+			if (condition.selected.cube === false && Cube.selected.length) return false;
+			if (condition.selected.mesh === true && !Mesh.selected.length) return false;
+			if (condition.selected.mesh === false && Mesh.selected.length) return false;
+			if (condition.selected.locator === true && !Locator.selected.length) return false;
+			if (condition.selected.locator === false && Locator.selected.length) return false;
+			if (condition.selected.null_object === true && !NullObject.selected.length) return false;
+			if (condition.selected.null_object === false && NullObject.selected.length) return false;
+			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
+			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
+		}
 		if (condition.project && !Project) return false;
 
 		if (condition.method instanceof Function) {
@@ -56,6 +84,12 @@ Condition.mutuallyExclusive = function(a, b) {
 	if (a.tools && b.tools && a.tools.overlap(b.tools) == 0) return true;
 	if (a.formats && b.formats && a.formats.overlap(b.formats) == 0) return true;
 	if (a.features && b.features && a.features.overlap(b.features) == 0) return true;
+	if (a.selected && b.selected) {
+		for (let key in a.selected) {
+			if (a.selected[key] === true && b.selected[key] === false) return true;
+			if (a.selected[key] === false && b.selected[key] === true) return true;
+		}
+	}
 	return false;
 }
 
@@ -199,6 +233,11 @@ Math.isNumber = function(x) {
 }
 Math.randomab = function(a, b) {
 	return a + Math.random()*(b-a);
+}
+Math.randomInteger = function(a, b) {
+	a = Math.ceil(a);
+	b = Math.floor(b);
+	return a + Math.floor(Math.random() * (b - a + 1));
 }
 Math.areMultiples = function(n1, n2) {
 	return (
@@ -365,27 +404,25 @@ Array.prototype.remove = function (...items) {
 		var index = this.indexOf(item)
 		if (index > -1) {
 			this.splice(index, 1)
-			return index;
 		}
-		return false;
 	})		
 }
 Array.prototype.empty = function() {
-	this.splice(0, Infinity);
+	this.splice(0, this.length);
 	return this;
 }
 Array.prototype.purge = function() {
-	this.splice(0, Infinity);
+	this.splice(0, this.length);
 	return this;
 }
 Array.prototype.replace = function(items) {
-	this.splice(0, Infinity, ...items);
+	this.splice(0, this.length, ...items);
 	return this;
 }
 Array.prototype.allAre = function(cb) {
-	return !this.find((item, index) => {
+	return this.findIndex((item, index) => {
 		return !cb(item, index);
-	})
+	}) === -1;
 }
 Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {
@@ -684,6 +721,24 @@ Object.defineProperty(String.prototype, 'hashCode', {
 tinycolor.prototype.toInt = function() {
 	let {r, g, b, a} = this.toRgb();
 	return r * Math.pow(256, 3) + g * Math.pow(256, 2) + b * Math.pow(256, 1) + a * Math.pow(256, 0);
+}
+function intToRGBA(int) {
+	const rgba = {};
+
+	rgba.r = Math.floor(int / Math.pow(256, 3));
+	rgba.g = Math.floor((int - rgba.r * Math.pow(256, 3)) / Math.pow(256, 2));
+	rgba.b = Math.floor(
+		(int - rgba.r * Math.pow(256, 3) - rgba.g * Math.pow(256, 2)) /
+			Math.pow(256, 1)
+	);
+	rgba.a = Math.floor(
+		(int -
+			rgba.r * Math.pow(256, 3) -
+			rgba.g * Math.pow(256, 2) -
+			rgba.b * Math.pow(256, 1)) /
+			Math.pow(256, 0)
+	);
+	return rgba;
 }
 function getAverageRGB(imgEl, blockSize) {
 		

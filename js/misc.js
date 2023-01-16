@@ -1,6 +1,5 @@
 var osfs = '/'
 var uv_clipboard;
-var pe_list_data = []
 var open_dialog = false;
 var open_interface = false;
 var tex_version = 1;
@@ -95,22 +94,34 @@ function updateNslideValues() {
 
 //Selections
 function updateSelection(options = {}) {
-	Outliner.elements.forEach(obj => {
-		if (selected.includes(obj) && !obj.selected && !obj.locked) {
+	if (!Project) return;
+	Project.elements.forEach(obj => {
+		let included = Project.selected_elements.includes(obj);
+		if (included && !obj.selected && !obj.locked) {
 			obj.selectLow()
-		} else if ((!selected.includes(obj) || obj.locked) && obj.selected) {
+		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
 		if (obj instanceof Mesh) {
-			if (Project.selected_vertices[obj.uuid]) {
-				Project.selected_vertices[obj.uuid].forEachReverse(vkey => {
+			if (Project.mesh_selection[obj.uuid]) {
+				Project.mesh_selection[obj.uuid].vertices.forEachReverse(vkey => {
 					if (vkey in obj.vertices == false) {
-						Project.selected_vertices[obj.uuid].remove(vkey);
+						Project.mesh_selection[obj.uuid].vertices.remove(vkey);
+					}
+				})
+				Project.mesh_selection[obj.uuid].edges.forEachReverse(edge => {
+					if (!obj.vertices[edge[0]] || !obj.vertices[edge[1]]) {
+						Project.mesh_selection[obj.uuid].edges.remove(edge);
+					}
+				})
+				Project.mesh_selection[obj.uuid].faces.forEachReverse(fkey => {
+					if (fkey in obj.faces == false) {
+						Project.mesh_selection[obj.uuid].faces.remove(fkey);
 					}
 				})
 			}
-			if (Project.selected_vertices[obj.uuid] && (Project.selected_vertices[obj.uuid].length == 0 || !obj.selected)) {
-				delete Project.selected_vertices[obj.uuid];
+			if (Project.mesh_selection[obj.uuid] && (Project.mesh_selection[obj.uuid].vertices.length == 0 || !obj.selected)) {
+				delete Project.mesh_selection[obj.uuid];
 			}
 		}
 	})
@@ -120,7 +131,7 @@ function updateSelection(options = {}) {
 	if (Group.selected && Group.selected.locked) Group.selected.unselect()
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 
-	Outliner.elements.forEach(element => {
+	Project.elements.forEach(element => {
 		if (element.preview_controller.updateSelection) {
 			element.preview_controller.updateSelection(element);
 		}
@@ -130,32 +141,13 @@ function updateSelection(options = {}) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
-	if (Outliner.selected.length) {
-		document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'visible'));
-		if (Modes.edit && Toolbox.selected.id == 'resize_tool' && Format.meshes) {
-			if (Mesh.selected.length) {
-				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-			} else {
-				Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-				Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-			}
-		}
-	} else {
-		if (Format.bone_rig && Group.selected) {
-			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
+	if (Format.meshes && Outliner.selected.length && Modes.edit && Toolbox.selected.id == 'resize_tool') {
+		if (Mesh.selected.length) {
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
 		} else {
-			document.querySelectorAll('.selection_only').forEach(node => node.style.setProperty('visibility', 'hidden'));
-			if (Outliner.selected.length) {
-				document.querySelectorAll('.selection_only#panel_element').forEach(node => node.style.setProperty('visibility', 'visible'));
-			}
-		}
-		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
-			document.querySelectorAll('.selection_only#panel_bone').forEach(node => node.style.setProperty('visibility', 'visible'));
-		}
-		if (Modes.paint) {
-			document.querySelectorAll('.selection_only#panel_uv').forEach(node => node.style.setProperty('visibility', 'visible'));
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
+			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
 		}
 	}
 	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
@@ -169,7 +161,9 @@ function updateSelection(options = {}) {
 				UVEditor.selected_faces.splice(i, 1);
 			}
 		})
-		UVEditor.loadData()
+	}
+	if (Condition(Panels.uv.condition)) {
+		UVEditor.loadData();
 	}
 	if (Modes.animate) {
 		updateKeyframeSelection();
@@ -184,13 +178,13 @@ function updateSelection(options = {}) {
 	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
 	if (Toolbox.selected.id == 'seam_tool' && Mesh.selected[0]) {
 		let value;
-		let selected_vertices = Mesh.selected[0].getSelectedVertices();
+		let selected_edges = Mesh.selected[0].getSelectedEdges();
 		Mesh.selected[0].forAllFaces((face) => {
 			if (value == '') return;
 			let vertices = face.getSortedVertices();
 			vertices.forEach((vkey_a, i) => {
 				let vkey_b = vertices[i+1] || vertices[0];
-				if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
+				if (selected_edges.find(edge => sameMeshEdge(edge, [vkey_a, vkey_b]))) {
 					let seam = Mesh.selected[0].getSeam([vkey_a, vkey_b]) || 'auto';
 					if (value == undefined) {
 						value = seam;
@@ -223,7 +217,7 @@ function selectAll() {
 		let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
 		Mesh.selected.forEach(mesh => {
 			if (unselect) {
-				delete Project.selected_vertices[mesh.uuid];
+				delete Project.mesh_selection[mesh.uuid];
 			} else {
 				mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
 			}
@@ -253,8 +247,8 @@ function unselectAll() {
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
-	for (let key in Project.selected_vertices) {
-		delete Project.selected_vertices[key];
+	for (let key in Project.mesh_selection) {
+		delete Project.mesh_selection[key];
 	}
 	TickUpdates.selection = true;
 }

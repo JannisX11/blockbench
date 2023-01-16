@@ -31,21 +31,26 @@ class Codec {
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			let project = Project;
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 			
+		}
+
+		this.parse(model, file.path)
+
+		if (file.path && isApp && this.remember && !file.no_file ) {
+			loadDataFromModelMemory();
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
 			})
+			let project = Project;
 			setTimeout(() => {
 				if (Project == project) updateRecentProjectThumbnail();
-			}, 200)
+			}, 500)
 		}
-		this.parse(model, file.path)
-		if (isApp) loadDataFromModelMemory();
+		Settings.updateSettingsInProfiles();
 	}
 	//parse(model, path)
 
@@ -98,6 +103,7 @@ class Codec {
 			Project.name = pathToName(path, false);
 			Project.saved = true;
 		}
+		Settings.updateSettingsInProfiles();
 		if (this.remember) {
 			addRecentProject({
 				name,

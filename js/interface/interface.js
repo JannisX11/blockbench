@@ -33,6 +33,7 @@ class ResizeLine {
 			},
 			stop(e, u) {
 				updateInterface()
+				scope.update();
 			}
 		})
 	}
@@ -462,7 +463,7 @@ function setupInterface() {
 	])
 
 	document.oncontextmenu = function (event) {
-		if (!$(event.target).hasClass('allow_default_menu') && event instanceof TouchEvent == false) {
+		if (!$(event.target).hasClass('allow_default_menu') && (!Blockbench.isTouch || event instanceof TouchEvent == false)) {
 			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
 				Interface.text_edit_menu.open(event, event.target)
 			}
@@ -498,6 +499,7 @@ function setupInterface() {
 function updateInterface() {
 	BARS.updateConditions()
 	MenuBar.update()
+	updatePanelSelector();
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
@@ -683,7 +685,34 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 
+function openTouchKeyboardModifierMenu(node) {
+	if (Menu.closed_in_this_click == 'mobile_keyboard') return;
 
+	let modifiers = ['ctrl', 'shift', 'alt'];
+	let menu = new Menu('mobile_keyboard', [
+		...modifiers.map(key => {
+			let name = tl(`keys.${key}`);
+			if (Interface.status_bar.vue.modifier_keys[key].length) {
+				name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
+			}
+			return {
+				name,
+				icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+				click() {
+					Pressing.overrides[key] = !Pressing.overrides[key]
+				}
+			}
+		}),
+		'_',
+		{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+			let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+			return length;
+		}, click() {
+			Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+		}},
+	])
+	menu.open(node);
+}
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({
@@ -701,7 +730,9 @@ onVueSetup(function() {
 				ctrl: [],
 				shift: [],
 				alt: []
-			}
+			},
+			modifiers: Blockbench.isTouch && !Blockbench.isMobile && Pressing.overrides,
+			keyboard_menu_in_status_bar: Blockbench.isTouch && !Blockbench.isMobile
 		},
 		methods: {
 			showContextMenu(event) {
@@ -715,14 +746,15 @@ onVueSetup(function() {
 				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
 					if (selection_mode == 'face') {
 						let total = 0, selected = 0;
-						Mesh.selected.forEach(mesh => total += Object.keys(mesh.faces).length);
-						Mesh.selected.forEach(mesh => mesh.forAllFaces(face => selected += (face.isSelected() ? 1 : 0)));
+						Mesh.selected.forEach(mesh => {
+							total += Object.keys(mesh.faces).length;
+							selected += mesh.getSelectedFaces().length;
+						});
 						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
 					}
 					if (selection_mode == 'edge') {
 						let total = 0, selected = 0;
 						Mesh.selected.forEach(mesh => {
-							let selected_vertices = mesh.getSelectedVertices();
 							let processed_lines = [];
 							mesh.forAllFaces(face => {
 								let vertices = face.getSortedVertices();
@@ -731,12 +763,10 @@ onVueSetup(function() {
 									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
 										processed_lines.push([vkey, vkey2]);
 										total += 1;
-										if (selected_vertices.includes(vkey) && selected_vertices.includes(vkey2)) {
-											selected += 1;
-										}
 									}
 								})
 							})
+							selected += mesh.getSelectedEdges().length;
 						})
 						this.selection_info = tl('status_bar.selection.edges', `${selected} / ${total}`);
 					}
@@ -755,6 +785,9 @@ onVueSetup(function() {
 			},
 			openValidator() {
 				Validator.openDialog();
+			},
+			openKeyboardMenu() {
+				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 			},
 			toggleSidebar: Interface.toggleSidebar,
 			getIconNode: Blockbench.getIconNode,
@@ -799,11 +832,15 @@ onVueSetup(function() {
 
 				<div class="status_selection_info">{{ selection_info }}</div>
 
-				
 				<div class="f_right" id="validator_status" v-if="warnings.length || errors.length" @click="openValidator()">
 					<span v-if="warnings.length" style="color: var(--color-warning)">{{ warnings.length }}<i class="material-icons">warning</i></span>
 					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
 				</div>
+
+				<div v-if="keyboard_menu_in_status_bar" id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<i class="material-icons">keyboard</i>
+				</div>
+
 				<div class="f_right">
 					{{ Prop.fps }} FPS
 				</div>

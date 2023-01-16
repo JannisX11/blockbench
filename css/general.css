@@ -88,6 +88,24 @@
 	input.medium_width {
 		width: 64px;
 	}
+	.prism-editor-wrapper {
+		padding-left: 4px;
+		padding-top: 1px;
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+	}
+	.prism-editor__autocomplete {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-accent);
+		z-index: 30;
+	}
+	.prism-editor__autocomplete li:hover {
+		color: var(--color-light);
+	}
+	.prism-editor__autocomplete li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
 	.checkerboard, .checkerboard_trigger .checkerboard_target {
 		--color-checker_offset: rgba(0, 0, 0, 0.16);
 		background-color: var(--color-checkerboard) !important;
@@ -721,4 +739,7 @@
 		height: 1px;
 		padding: 0;
 		opacity: 1;
+	}
+	body.theme_borders #animation_controllers_wrapper .controller_state {
+		border-color: var(--color-border);
 	}

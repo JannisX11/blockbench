@@ -24,6 +24,14 @@ const TextureGenerator = {
 		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Project.texture_width)*16 : 16;
 
 		TextureGenerator.background_color.set('#00000000')
+		let resolution_presets = {
+			16: '16x',
+			32: '32x',
+			64: '64x',
+			128: '128x',
+			256: '256x',
+			512: '512x',
+		};
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -34,14 +42,7 @@ const TextureGenerator = {
 				type:	{label: 'dialog.create_texture.type', type: 'select', options: type_options},
 				section2:    "_",
 
-				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution, condition: (form) => (form.type == 'template'), options: {
-					16: '16x',
-					32: '32x',
-					64: '64x',
-					128: '128x',
-					256: '256x',
-					512: '512x',
-				}},
+				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 
@@ -412,7 +413,6 @@ const TextureGenerator = {
 				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
-				delete Painter.current.canvas;
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
@@ -431,7 +431,7 @@ const TextureGenerator = {
 			if (options.rearrange_uv) {
 				t.obj.uv_offset[0] = t.posx;
 				t.obj.uv_offset[1] = t.posy;
-				t.obj.box_uv = true;
+				if (Project.box_uv || Format.optional_box_uv) t.obj.box_uv = true;
 				//if true, dupes must be flipped
 				let reverse_flip = t.obj.mirror_uv;
 				t.obj.mirror_uv = false;
@@ -1192,7 +1192,6 @@ const TextureGenerator = {
 				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
-				delete Painter.current.canvas;
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);

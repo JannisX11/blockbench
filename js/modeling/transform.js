@@ -346,7 +346,11 @@ const Vertexsnap = {
 			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.group = Group.selected;
-			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.selected_vertices)); 
+			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
+				let vertices = data.element.getSelectedVertices(true);
+				vertices.safePush(data.vertex);
+			}
+			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.mesh_selection));
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 
@@ -435,7 +439,7 @@ const Vertexsnap = {
 					var cube_pos = new THREE.Vector3().copy(global_delta)
 
 					if (obj instanceof Mesh && Vertexsnap.selected_vertices && Vertexsnap.selected_vertices[obj.uuid]) {
-						let vertices = Vertexsnap.selected_vertices[obj.uuid];
+						let vertices = Vertexsnap.selected_vertices[obj.uuid].vertices;
 						var q = obj.mesh.getWorldQuaternion(Reusable.quat1).invert();
 						cube_pos.applyQuaternion(q);
 						let cube_pos_array = cube_pos.toArray();
@@ -479,180 +483,7 @@ const Vertexsnap = {
 		Vertexsnap.step1 = true;
 	}
 }
-//Scale
-function getScaleAllGroups() {
-	let groups = [];
-	if (!Format.bone_rig) return groups;
-	if (Group.selected) {
-		Group.selected.forEachChild((g) => {
-			groups.push(g);
-		}, Group)
-	} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
-		groups = Group.all;
-	}
-	return groups;
-}
-function scaleAll(save, size) {
-	if (save === true) {
-		hideDialog()
-	}
-	if (size === undefined) {
-		size = $('#model_scale_label').val()
-	}
-	let origin = [
-		parseFloat($('#scaling_origin_x').val())||0,
-		parseFloat($('#scaling_origin_y').val())||0,
-		parseFloat($('#scaling_origin_z').val())||0,
-	]
-	let axis_enabled = [
-		$('#model_scale_x_axis').is(':checked'),
-		$('#model_scale_y_axis').is(':checked'),
-		$('#model_scale_z_axis').is(':checked'),
-	];
-	let overflow = [];
-	Outliner.selected.forEach(function(obj) {
-		obj.autouv = 0;
-		origin.forEach(function(ogn, i) {
-			if (axis_enabled[i]) {
 
-				if (obj.from) {
-					obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
-					obj.from[i] = obj.from[i] + obj.inflate + ogn;
-				}
-
-				if (obj.to) {
-					obj.to[i] = (obj.before.to[i] + obj.inflate - ogn) * size;
-					obj.to[i] = obj.to[i] - obj.inflate + ogn;
-					if (Format.integer_size) {
-						obj.to[i] = obj.from[i] + Math.round(obj.to[i] - obj.from[i])
-					}
-				}
-
-				if (obj.origin) {
-					obj.origin[i] = (obj.before.origin[i] - ogn) * size;
-					obj.origin[i] = obj.origin[i] + ogn;
-				}
-
-				if (obj instanceof Mesh) {
-					for (let key in obj.vertices) {
-						obj.vertices[key][i] = obj.before.vertices[key][i] * size;
-					}
-				}
-			} else {
-
-				if (obj.from) obj.from[i] = obj.before.from[i];
-				if (obj.to) obj.to[i] = obj.before.to[i];
-
-				if (obj.origin) obj.origin[i] = obj.before.origin[i];
-
-				if (obj instanceof Mesh) {
-					for (let key in obj.vertices) {
-						obj.vertices[key][i] = obj.before.vertices[key][i];
-					}
-				}
-			}
-		})
-		if (obj instanceof Cube && Format.cube_size_limiter) {
-			if (Format.cube_size_limiter.test(obj)) {
-				overflow.push(obj);
-			}
-			if (!settings.deactivate_size_limit.value) {
-				Format.cube_size_limiter.clamp(obj);
-			}
-		}
-		if (save === true) {
-			delete obj.before
-		}
-		if (obj instanceof Cube && obj.box_uv) {
-			Canvas.updateUV(obj)
-		}
-	})
-	getScaleAllGroups().forEach((g) => {
-		g.origin[0] = g.old_origin[0] * size
-		g.origin[1] = g.old_origin[1] * size
-		g.origin[2] = g.old_origin[2] * size
-		if (save === true) {
-			delete g.old_origin
-		}
-	}, Group)
-	if (overflow.length && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-		scaleAll.overflow = overflow;
-		$('#scaling_clipping_warning').text('Model clipping: Your model is too large for the canvas')
-		$('#scale_overflow_btn').css('display', 'inline-block')
-	} else {
-		$('#scaling_clipping_warning').text('')
-		$('#scale_overflow_btn').hide()
-	}
-	Canvas.updateView({
-		elements: Outliner.selected,
-		element_aspects: {geometry: true, transform: true},
-		groups: getScaleAllGroups(),
-		group_aspects: {transform: true},
-	})
-	if (save === true) {
-		Undo.finishEdit('Scale model')
-	}
-}
-function modelScaleSync(label) {
-	if (label) {
-		var size = $('#model_scale_label').val()
-		$('#model_scale_range').val(size)
-	} else {
-		var size = $('#model_scale_range').val()
-		$('#model_scale_label').val(size)
-	}
-	scaleAll(false, size)
-}
-function cancelScaleAll() {
-	Outliner.selected.forEach(function(obj) {
-		if (obj === undefined) return;
-		if (obj.from) obj.from.V3_set(obj.before.from);
-		if (obj.to) obj.to.V3_set(obj.before.to);
-		if (obj.origin) obj.origin.V3_set(obj.before.origin);
-		if (obj instanceof Mesh) {
-			for (let key in obj.vertices) {
-				obj.vertices[key].V3_set(obj.before.vertices[key]);
-			}
-		}
-		delete obj.before
-		if (obj instanceof Cube && obj.box_uv) {
-			Canvas.updateUV(obj)
-		}
-	})
-	getScaleAllGroups().forEach((g) => {
-		g.origin[0] = g.old_origin[0]
-		g.origin[1] = g.old_origin[1]
-		g.origin[2] = g.old_origin[2]
-		delete g.old_origin
-	}, Group)
-	Canvas.updateView({
-		elements: Outliner.selected,
-		element_aspects: {geometry: true, transform: true},
-		groups: getScaleAllGroups(),
-		group_aspects: {transform: true},
-	})
-	hideDialog()
-}
-function setScaleAllPivot(mode) {
-	if (mode === 'selection') {
-		var center = getSelectionCenter()
-	} else {
-		var center = Cube.selected[0] && Cube.selected[0].origin;
-	}
-	if (center) {
-		$('input#scaling_origin_x').val(center[0]);
-		$('input#scaling_origin_y').val(center[1]);
-		$('input#scaling_origin_z').val(center[2]);
-	}
-}
-function scaleAllSelectOverflow() {
-	cancelScaleAll()
-	selected.empty();
-	scaleAll.overflow.forEach(obj => {
-		obj.selectLow()
-	})
-	updateSelection();
-}
 //Center
 function centerElementsAll(axis) {
 	centerElements(0, false);
@@ -948,7 +779,7 @@ function rotateOnAxis(modify, axis, slider) {
 			}
 		}
 		
-		if (!Group.selected && obj instanceof Mesh && Project.selected_vertices[obj.uuid] && Project.selected_vertices[obj.uuid].length > 0) {
+		if (!Group.selected && obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length > 0) {
 
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
@@ -970,7 +801,7 @@ function rotateOnAxis(modify, axis, slider) {
 			let vector = new THREE.Vector3();
 			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
 
-			Project.selected_vertices[obj.uuid].forEach(key => {
+			Project.mesh_selection[obj.uuid].vertices.forEach(key => {
 				vector.fromArray(obj.vertices[key]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);
@@ -1557,46 +1388,6 @@ BARS.defineActions(function() {
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
 
-	new Action('scale', {
-		icon: 'settings_overscan',
-		category: 'transform',
-		condition: () => (Modes.edit && Outliner.elements.length),
-		click() {
-			$('#model_scale_range, #model_scale_label').val(1)
-			$('#scaling_clipping_warning').text('')
-
-			if (Outliner.selected.length == 0) {
-				Prop.active_panel = 'preview';
-				selectAll();
-			}
-
-			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig});
-
-			Outliner.selected.forEach(function(obj) {
-				obj.before = {
-					from: obj.from ? obj.from.slice() : undefined,
-					to: obj.to ? obj.to.slice() : undefined,
-					origin: obj.origin ? obj.origin.slice() : undefined
-				}
-				if (obj instanceof Mesh) {
-					obj.before.vertices = {};
-					for (let key in obj.vertices) {
-						obj.before.vertices[key] = obj.vertices[key].slice();
-					}
-				}
-			})
-			getScaleAllGroups().forEach((g) => {
-				g.old_origin = g.origin.slice();
-			}, Group, true)
-			showDialog('scaling')
-			var v = Format.centered_grid ? 0 : 8;
-			var origin = Group.selected ? Group.selected.origin : [v, 0, v];
-			$('#scaling_origin_x').val(origin[0])
-			$('#scaling_origin_y').val(origin[1])
-			$('#scaling_origin_z').val(origin[2])
-			scaleAll(false, 1)
-		}
-	})
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),
 		icon: 'rotate_right',
@@ -1841,7 +1632,7 @@ BARS.defineActions(function() {
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',
 		category: 'transform',
-		condition: {modes: ['edit', 'animate']},
+		condition: {modes: ['edit', 'animate'], selected: {outliner: true}},
 		click() {origin2geometry()}
 	})
 	new Action('rescale_toggle', {

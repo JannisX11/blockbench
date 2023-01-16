@@ -7,7 +7,8 @@ class BarMenu extends Menu {
 		this.id = id
 		this.children = [];
 		this.condition = options.condition
-		this.node = $('<ul class="contextMenu"></ul>')[0]
+		this.node = document.createElement('ul');
+		this.node.className = 'contextMenu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
@@ -191,6 +192,36 @@ const MenuBar = {
 				'settings_window',
 				'keybindings_window',
 				'theme_window',
+				{
+					id: 'profiles',
+					name: 'data.settings_profile',
+					icon: 'settings_applications',
+					condition: () => SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') != -1,
+					children: () => {
+						let list = [
+							{
+								name: 'generic.none',
+								icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+								click: () => {
+									SettingsProfile.unselect();
+								}
+							},
+							'_'
+						];
+						SettingsProfile.all.forEach(profile => {
+							if (profile.condition.type != 'selectable') return;
+							list.push({
+								name: profile.name,
+								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								color: markerColors[profile.color].standard,
+								click: () => {
+									profile.select();
+								}
+							})
+						})
+						return list;
+					}
+				}
 			]},
 			'plugins_window',
 			'edit_session'
@@ -288,9 +319,10 @@ const MenuBar = {
 		})
 
 		new BarMenu('animation', [
-			'add_marker',
+			'looped_animation_playback',
 			'lock_motion_trail',
 			'_',
+			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
 			'bake_animation_into_model',
@@ -391,11 +423,11 @@ const MenuBar = {
 		new BarMenu('help', [
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
 			'_',
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
-				Blockbench.openLink('http://discord.blockbench.net');
-			}},
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
+			}},
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
 				Blockbench.openLink('https://blockbench.net/wiki/');
@@ -446,9 +478,6 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
-			{name: 'menu.help.donate', id: 'donate', icon: 'fas.fa-hand-holding-usd', click: () => {
-				Blockbench.openLink('https://blockbench.net/donate/');
-			}},
 			'about_window'
 		])
 		MenuBar.update()

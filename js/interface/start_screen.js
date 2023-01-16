@@ -36,9 +36,8 @@ function addStartScreenSection(id, data) {
 		}
 		if (data.graphic.description) {
 			let content = $(marked(data.graphic.description));
+			content.addClass('start_screen_graphic_description')
 			content.css({
-				'bottom': '15px',
-				'right': '15px',
 				'color': data.graphic.text_color || '#ffffff',
 			});
 			left.append(content);
@@ -435,15 +434,41 @@ onVueSetup(function() {
 		"text_color": '#000000',
 		"graphic": {
 			"type": "image",
-			"source": "./assets/splash_art.png?44",
+			"source": "./assets/splash_art.png?46",
 			"width": 1000,
 			"aspect_ratio": "64/27",
-			"description": "Splash Art by [Wan_win](https://twitter.com/Wan_w1n)",
+			"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
 			"text_color": '#cfcfcf'
 		}
 	})
 	if (!Blockbench.hasFlag('after_update')) {
 		document.getElementById('start_screen').scrollTop = 100;
+	}
+	
+	//Backup Model
+	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
+		var backup_models = localStorage.getItem('backup_model')
+
+		let section = addStartScreenSection({
+			color: 'var(--color-back)',
+			graphic: {type: 'icon', icon: 'fa-archive'},
+			insert_after: 'splash_screen',
+			text: [
+				{type: 'h2', text: tl('message.recover_backup.title')},
+				{text: tl('message.recover_backup.message')},
+				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
+					let parsed_backup_models = JSON.parse(backup_models);
+					for (let uuid in parsed_backup_models) {
+						Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
+					}
+					section.delete();
+				}},
+				{type: 'button', text: tl('dialog.discard'), click: (e) => {
+					localStorage.removeItem('backup_model');
+					section.delete();
+				}}
+			]
+		})
 	}
 });
 
@@ -492,32 +517,6 @@ ModelLoader.loaders = {};
 		dataType: 'json'
 	});
 	documentReady.then(() => {
-
-		//Backup Model
-		if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
-			var backup_models = localStorage.getItem('backup_model')
-
-			let section = addStartScreenSection({
-				color: 'var(--color-back)',
-				graphic: {type: 'icon', icon: 'fa-archive'},
-				insert_after: 'splash_screen',
-				text: [
-					{type: 'h2', text: tl('message.recover_backup.title')},
-					{text: tl('message.recover_backup.message')},
-					{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-						let parsed_backup_models = JSON.parse(backup_models);
-						for (let uuid in parsed_backup_models) {
-							Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
-						}
-						section.delete();
-					}},
-					{type: 'button', text: tl('dialog.discard'), click: (e) => {
-						localStorage.removeItem('backup_model');
-						section.delete();
-					}}
-				]
-			})
-		}
 
 		//Twitter
 		let twitter_ad;

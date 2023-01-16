@@ -167,6 +167,7 @@ function addRecentProject(data) {
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
 	StartScreen.vue.updateThumbnails([data.path]);
+	Settings.updateSettingsInProfiles();
 	updateRecentProjects()
 }
 function updateRecentProjectData() {
@@ -188,7 +189,7 @@ function updateRecentProjectData() {
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
-	let project = Project.getProjectMemory();
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	let thumbnail;
@@ -286,12 +287,7 @@ function loadDataFromModelMemory() {
 		})
 	}
 	if (project.animation_files && Format.animation_files) {
-		let files = project.animation_files.filter(path => !Animation.all.find(a => a.path == path));
-		Blockbench.read(files, {}, files => {
-			files.forEach(file => {
-				Animator.importFile(file);
-			})
-		})
+		Project.memory_animation_files_to_load = project.animation_files;
 	}
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
@@ -358,7 +354,7 @@ function changeImageEditor(texture, from_settings) {
 function selectImageEditorFile(texture) {
 	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
 		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop']}]
+		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop', 'appimage']}]
 	})
 	if (filePaths) {
 		settings.image_editor.value = filePaths[0]

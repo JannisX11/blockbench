@@ -4,7 +4,7 @@
 		position: absolute;
 		width: 100%;
 		height: 100%;
-		z-index: 19;
+		z-index: 21;
 		background-color: transparent;
 		opacity: 0;
 	}
@@ -81,6 +81,10 @@
 		bottom: unset;
 		display: none;
 	}
+	.shapeless_dialog {
+		position: fixed;
+		z-index: 21;
+	}
 	dialog > content, dialog .dialog_wrapper > content {
 		display: block;
 		overflow-y: auto;
@@ -96,7 +100,7 @@
 
 	.dialog {
 		position: fixed;
-		z-index: 20;
+		z-index: 21;
 		top: 30px;
 	}
 	.dialog:not(.draggable) {
@@ -193,7 +197,7 @@
 		flex-grow: 0;
 		flex-shrink: 0;
 		padding-top: 4px;
-		padding-left: 6px;
+		margin-left: 5px;
 	}
 	.tab_bar {
 		height: 30px;
@@ -327,7 +331,7 @@
 	}
 	dialog .dialog_content,
 	dialog .dialog_bar.button_bar {
-		margin: 24px;
+		margin: 16px 24px;
 	}
 	@media (max-device-width: 640px) {
 		dialog {
@@ -425,14 +429,32 @@
 	dialog#settings .dialog_wrapper {
 		min-height: 640px;
 	}
+	dialog#settings .dialog_content {
+		margin-top: 10px;
+	}
 	#settings_tab_bar {
 		margin: -24px;
 		margin-bottom: 0;
 		margin-top: -20px;
 	}
 	dialog#settings h2, dialog#keybindings h2, dialog#theme h2 {
-		margin-top: -10px;
+		margin-top: -15px;
 		font-size: 1.8em;
+	}
+
+	#settings_profile_wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: right;
+		margin-bottom: 8px;
+	}
+	#settings_profile_wrapper > bb-select {
+		min-width: 126px;
+		margin-left: 6px;
+	}
+	#settings_profile_wrapper > bb-select.profile_is_selected {
+		background-color: var(--color-profile);
+		color: #000;
 	}
 
 
@@ -444,7 +466,18 @@
 		clear: both;
 	}
 	#settingslist li {
-		padding: 5px 0;
+		padding: 2px 1px;
+		margin: 4px 0;
+	}
+	#settingslist li.has_profile_override {
+		border: 1px solid var(--color-profile);
+		padding: 1px 0;
+		position: relative;
+	}
+	#settingslist .setting_profile_clear_button {
+		position: absolute;
+		top: 4px;
+		right: 0;
 	}
 	#settingslist li:hover input[type=checkbox] {
 		color: var(--color-light);
@@ -471,10 +504,27 @@
 	}
 	#settingslist .setting_name {
 		font-size: 1.1em;
+		display: inline-block;
 	}
 	#settingslist .setting_description {
 		font-size: 0.94em;
 		color: var(--color-subtle_text);
+	}
+	.setting_profile_value_indicator {
+		display: inline-block;
+		width: 13px;
+		height: 13px;
+		border: 3px solid var(--color-profile);
+		opacity: 0.8;
+		border-radius: 50%;
+		margin-left: 5px;
+		cursor: pointer;
+	}
+	.setting_profile_value_indicator.active {
+		background-color: var(--color-profile);
+	}
+	.setting_profile_value_indicator:hover {
+		opacity: 1;
 	}
 	#settingslist input[type=number] {
 		height: 28px;
@@ -618,6 +668,9 @@
 		height: calc(100vh - 228px);
 		display: flex;
 		flex-direction: column;
+	}
+	#css_editor > .prism-editor-component {
+		flex-grow: 1;
 	}
 
 	#theme_list {
@@ -899,25 +952,11 @@
 		color: var(--color-accent);
 	}
 	/*Scale*/
-	#model_scale_range {
-		width: calc(100% - 50px);
-		float: left;
-		height: 31px;
-		padding-top: 3px;
+	dialog#scale .form_bar_overflow_info  {
+		color: #ff5767;
 	}
-	#model_scale_label {
-		width: 50px;
-		padding-top: 3px;
-		text-align: center;
-		float: left;
-	}
-	#scaling_clipping_warning {
-		color: #ff384b;
-	}
-	.borderless {
-		margin: 0;
-		padding: 0;
-		border: none;
+	dialog#scale .toggle_panel {
+		font-weight: bold;
 	}
 
 	/*Extrusion*/
@@ -934,8 +973,8 @@
 	}
 	#extrusion_canvas {
 		margin-left: 12px;
-		border-bottom: 1px solid #000;
-		border-right:  1px solid #000;
+		border-bottom: 1px solid var(--color-grid);
+		border-right:  1px solid var(--color-grid);
 	}
 	button.large:first-child {
 		margin-left: 0;
@@ -959,36 +998,34 @@
 		height: 30px;
 	}
 
-	/*PE Import Dialog*/
-    #pe_list {
-        max-height: 600px;
-        margin-bottom: 20px;
-        overflow-y: scroll;
-    }
-    #pe_list li {
+/*PE Import Dialog*/
+	dialog#bedrock_model_select .search_bar {
+		margin-bottom: 6px;
+	}
+    #model_select_list li {
         overflow: hidden;
+		cursor: pointer;
+		padding: 2px 0;
     }
-    #pe_list li > * {
+    #model_select_list li.selected {
+        background-color: var(--color-selected);
+        color: var(--color-light);
+    }
+    #model_select_list li:hover {
+        color: var(--color-light);
+    }
+    #model_select_list li > * {
         margin: 0;
         margin-left: 12px;
-        cursor: default;
-        overflow-x: hidden;
+        cursor: inherit;
     }
-    #pe_list li.selected {
-        background-color: var(--color-selected);
+    #model_select_list > li > label {
+        color: var(--color-subtle_text);
     }
-    #pe_list li > .pe_icon {
-        height: 48px;
-        width: 48px;
-        float: left;
-        margin: 4px;
-        margin-right: 8px;
-        margin-bottom: 0;
+    #model_select_list > li.selected > label {
+        color: var(--color-text);
     }
-    #pe_list li > h4 > span {
-        font-size: 0.7;
-    }
-	/* Screenshot */
+/* Screenshot */
 	dialog#screenshot content {
 		color: var(--color-subtle_text);
 	}
@@ -998,6 +1035,11 @@
     	max-height: 60vh;
 		transform-origin: top left;
 	}
+
+/*Bedrock Bindings*/
+dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
+	overflow: visible;
+} 
 
 /*Keybind Recording*/
 	#overlay_message_box {
@@ -1670,4 +1712,60 @@
 		padding: 3px 4px;
 		margin-left: 8px;
 		white-space: nowrap;
+	}
+
+	#tab_overview {
+		z-index: 21;
+		display: flex;
+		width: max(600px, 80%);
+		max-width: 100%;
+		margin: auto;
+		top: 0;
+		bottom: 0;
+		right: 0;
+		left: 0;
+		pointer-events: none;
+		flex-direction: column;
+		align-items: center;
+	}
+	#tab_overview_search .search_bar {
+		top: 130px;
+		pointer-events: all;
+		box-shadow: 0 0 0 2px var(--color-accent);
+		width: min(100vw, 326px);
+	}
+	#tab_overview_grid {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 16px;
+		margin: auto;
+		max-width: 100%;
+		max-height: 86%;
+		overflow-y: auto;
+		pointer-events: all;
+	}
+	#tab_overview_grid > li {
+		width: 300px;
+		height: 220px;
+		text-align: center;
+		background-color: var(--color-back);
+		cursor: pointer;
+		padding: 0 10px;
+		box-shadow: 0 0px 28px rgb(0 0 0 / 24%);
+	}
+	#tab_overview_grid > li:hover {
+		color: var(--color-light);
+		background-color: var(--color-ui);
+	}
+	#tab_overview_grid > li img {
+		max-width: 100%;
+		height: calc(100% - 30px);
+		display: block;
+		margin: auto;
+		cursor: inherit;
+		object-fit: contain;
+	}
+	#tab_overview_grid > li label {
+		cursor: inherit;
 	}

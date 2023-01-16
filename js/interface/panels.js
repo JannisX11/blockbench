@@ -12,7 +12,6 @@ class Panel {
 		this.previous_slot = 'left_bar';
 
 		this.growable = data.growable;
-		this.selection_only = data.selection_only == true;
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
@@ -32,7 +31,6 @@ class Panel {
 		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
 
-		if (this.selection_only) this.node.classList.add('selection_only');
 		if (this.growable) this.node.classList.add('grow');
 		
 		// Toolbars
@@ -42,6 +40,7 @@ class Panel {
 				if (toolbar.label) {
 					let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
 					this.node.append(label);
+					toolbar.label_node = label;
 				}
 				this.node.append(toolbar.node);
 			}
@@ -497,7 +496,7 @@ class Panel {
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
 		if (show) {
-			$(this.node).show()
+			this.node.classList.remove('hidden');
 			if (this.slot == 'float') {
 				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
@@ -540,7 +539,7 @@ class Panel {
 
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
-			$(this.node).hide()
+			this.node.classList.add('hidden');
 		}
 		this.dispatchEvent('update', {show});
 		localStorage.setItem('interface_data', JSON.stringify(Interface.data))
@@ -588,8 +587,8 @@ function setupPanels() {
 function updateInterfacePanels() {
 
 	if (!Blockbench.isMobile) {
-		$('.sidebar#left_bar').css('display', Prop.show_left_bar ? 'flex' : 'none');
-		$('.sidebar#right_bar').css('display', Prop.show_right_bar ? 'flex' : 'none');
+		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
+		Interface.right_bar.style.display = Prop.show_right_bar ? 'flex' : 'none';
 	}
 
 	Interface.work_screen.style.setProperty(
@@ -600,8 +599,8 @@ function updateInterfacePanels() {
 		var panel = Panels[key]
 		panel.update()
 	}
-	var left_width = $('.sidebar#left_bar > .panel:visible').length ? Interface.left_bar_width : 0;
-	var right_width = $('.sidebar#right_bar > .panel:visible').length ? Interface.right_bar_width : 0;
+	var left_width = Interface.left_bar.querySelector('.panel:not(.hidden)') ? Interface.left_bar_width : 0;
+	var right_width = Interface.right_bar.querySelector('.panel:not(.hidden)') ? Interface.right_bar_width : 0;
 
 	if (!left_width || !right_width) {
 		Interface.work_screen.style.setProperty(
@@ -611,10 +610,12 @@ function updateInterfacePanels() {
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
-	$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
-	$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
-	$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
-	$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	if (quad_previews.enabled) {
+		$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
+		$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
+		$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
+		$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+	}
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]
 		resizer.update()
@@ -634,6 +635,15 @@ function updateSidebarOrder() {
 			}
 		});
 	})
+}
+function updatePanelSelector() {
+	if (!Blockbench.isMobile) return;
+
+	Interface.PanelSelectorVue.$forceUpdate();
+	let bottom_panel = Interface.getBottomPanel();
+	if (bottom_panel && !Condition(bottom_panel.display_condition)) {
+		Interface.PanelSelectorVue.select(null);
+	}
 }
 
 function setActivePanel(panel) {
@@ -677,33 +687,8 @@ function setupMobilePanelSelector() {
 						resizeWindow();
 					}
 				},
-				openKeyboardMenu(event) {
-					if (Menu.closed_in_this_click == 'mobile_keyboard') return;
-					
-					let modifiers = ['ctrl', 'shift', 'alt'];
-					let menu = new Menu('mobile_keyboard', [
-						...modifiers.map(key => {
-							let name = tl(`keys.${key}`);
-							if (Interface.status_bar.vue.modifier_keys[key].length) {
-								name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
-							}
-							return {
-								name,
-								icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
-								click() {
-									Pressing.overrides[key] = !Pressing.overrides[key]
-								}
-							}
-						}),
-						'_',
-						{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
-							let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
-							return length;
-						}, click() {
-							Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
-						}},
-					])
-					menu.open(this.$refs.mobile_keyboard_menu)
+				openKeyboardMenu() {
+					openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 				},
 				Condition,
 				getIconNode: Blockbench.getIconNode
@@ -716,7 +701,7 @@ function setupMobilePanelSelector() {
 					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
 					</div>
-					<div id="mobile_keyboard_menu" @click="openKeyboardMenu($event)" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 						<i class="material-icons">keyboard</i>
 					</div>
 				</div>`

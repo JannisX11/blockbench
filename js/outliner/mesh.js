@@ -161,10 +161,7 @@ class MeshFace extends Face {
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
 	}
 	isSelected() {
-		let selected_vertices = Project.selected_vertices[this.mesh.uuid];
-		return selected_vertices
-			&& selected_vertices.length > 1
-			&& !this.vertices.find(key => !selected_vertices.includes(key))
+		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(this.getFaceKey());
 	}
 	getSortedVertices() {
 		if (this.vertices.length < 4) return this.vertices;
@@ -322,13 +319,13 @@ class Mesh extends OutlinerElement {
 		let key = edge.slice(0, 2).sort().join('_');
 		return this.seams[key];
 	}
-	getWorldCenter(ignore_selected_vertices) {
+	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
 		let pos = Reusable.vec1.set(0, 0, 0);
 		let vertice_count = 0;
 
 		for (let key in this.vertices) {
-			if (ignore_selected_vertices || !Project.selected_vertices[this.uuid] || (Project.selected_vertices[this.uuid] && Project.selected_vertices[this.uuid].includes(key))) {
+			if (ignore_mesh_selection || !Project.mesh_selection[this.uuid] || (Project.mesh_selection[this.uuid] && Project.mesh_selection[this.uuid].vertices.includes(key))) {
 				let vector = this.vertices[key];
 				pos.x += vector[0];
 				pos.y += vector[1];
@@ -439,17 +436,16 @@ class Mesh extends OutlinerElement {
 		return el;
 	}
 	getSelectedVertices(make) {
-		if (make && !Project.selected_vertices[this.uuid]) Project.selected_vertices[this.uuid] = [];
-		return Project.selected_vertices[this.uuid] || [];
+		if (make && !Project.mesh_selection[this.uuid]) Project.mesh_selection[this.uuid] = {vertices: [], edges: [], faces: []};
+		return Project.mesh_selection[this.uuid]?.vertices || [];
 	}
-	getSelectedFaces() {
-		let faces = [];
-		for (let key in this.faces) {
-			if (this.faces[key].isSelected()) {
-				faces.push(key);
-			}
-		}
-		return faces;
+	getSelectedEdges(make) {
+		if (make && !Project.mesh_selection[this.uuid]) Project.mesh_selection[this.uuid] = {vertices: [], edges: [], faces: []};
+		return Project.mesh_selection[this.uuid]?.edges || [];
+	}
+	getSelectedFaces(make) {
+		if (make && !Project.mesh_selection[this.uuid]) Project.mesh_selection[this.uuid] = {vertices: [], edges: [], faces: []};
+		return Project.mesh_selection[this.uuid]?.faces || [];
 	}
 	getSelectionRotation() {
 		if (Transformer.dragging) {
@@ -621,7 +617,7 @@ class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let selected_vertices = Project.selected_vertices[this.uuid] || Object.keys(this.vertices);
+		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
@@ -988,6 +984,8 @@ new NodePreviewController(Mesh, {
 		let join_selected = new THREE.Color(0x6bffcb);
 		let divide_selected = new THREE.Color(0xff8c69);
 		let selected_vertices = element.getSelectedVertices();
+		let selected_edges = element.getSelectedEdges();
+		let selected_faces = element.getSelectedFaces();
 
 		if (BarItems.selection_mode.value == 'vertex') {
 			let colors = [];
@@ -1011,7 +1009,10 @@ new NodePreviewController(Mesh, {
 			let selected;
 			if (!Modes.edit || BarItems.selection_mode.value == 'object') {
 				color = gizmo_colors.outline;
-			} else if (selected_vertices.includes(key) && selected_vertices.includes(key_b)) {
+			} else if (BarItems.selection_mode.value == 'edge' && selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
+				color = white;
+				selected = true;
+			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.find(fkey => element.faces[fkey].vertices.includes(key) && element.faces[fkey].vertices.includes(key_b))) {
 				color = white;
 				selected = true;
 			} else {
@@ -1046,13 +1047,14 @@ new NodePreviewController(Mesh, {
 		) ? 1 : 0;
 
 		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
+		let selection_mode = BarItems.selection_mode.value;
 		
 		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (face.vertices.length < 3) continue;
-				if (face.isSelected()) {
+				if (face.isSelected() && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
 						array[i] = 2;
 						i++;

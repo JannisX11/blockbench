@@ -201,6 +201,9 @@ var codec = new Codec('java_block', {
 		if (checkExport('ambientocclusion', Project.ambientocclusion === false)) {
 			blockmodel.ambientocclusion = false
 		}
+		if (Project.unhandled_root_fields.render_type) {
+			blockmodel.render_type = Project.unhandled_root_fields.render_type;
+		}
 		if (Project.texture_width !== 16 || Project.texture_height !== 16) {
 			blockmodel.texture_size = [Project.texture_width, Project.texture_height]
 		}
@@ -243,6 +246,9 @@ var codec = new Codec('java_block', {
 			if (i === Infinity) {
 				blockmodel.groups = groups
 			}
+		}
+		for (let key in Project.unhandled_root_fields) {
+			if (blockmodel[key] === undefined) blockmodel[key] = Project.unhandled_root_fields[key];
 		}
 		this.dispatchEvent('compile', {model: blockmodel, options});
 		if (options.raw) {
@@ -489,6 +495,13 @@ var codec = new Codec('java_block', {
 		if (model.gui_light === 'front') {
 			Project.front_gui_light = true;
 		}
+		let supported_fields = new Set(['textures', 'elements', 'groups', 'parent', 'display', '__comment', 'credit', 'texture_size', 'overrides', 'ambientocclusion', 'gui_light']);
+		for (let key in model) {
+			if (!supported_fields.has(key)) {
+				Project.unhandled_root_fields[key] = model[key];
+			}
+		}
+
 		this.dispatchEvent('parsed', {model});
 		if (add) {
 			Undo.finishEdit('Add block model')

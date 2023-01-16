@@ -47,6 +47,8 @@ BARS.setupVue()
 MenuBar.setup()
 translateUI()
 
+Settings.setupProfiles();
+
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
 	? (' Desktop (' + Blockbench.operating_system +')')

@@ -147,7 +147,7 @@ var codec = new Codec('project', {
 
 				selected_elements: Project.selected_elements.map(e => e.uuid),
 				selected_group: Project.selected_group?.uuid,
-				selected_vertices: JSON.parse(JSON.stringify(Project.selected_vertices)),
+				mesh_selection: JSON.parse(JSON.stringify(Project.mesh_selection)),
 				selected_faces: Project.selected_faces,
 				selected_texture: Project.selected_texture?.uuid,
 			};
@@ -170,7 +170,7 @@ var codec = new Codec('project', {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
-			if (options.bitmaps != false) {
+			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
 				t.source = 'data:image/png;base64,'+tex.getBase64()
 				t.mode = 'bitmap'
 			}
@@ -178,10 +178,16 @@ var codec = new Codec('project', {
 			model.textures.push(t);
 		})
 
-		if (Animator.animations.length) {
+		if (Animation.all.length) {
 			model.animations = [];
-			Animator.animations.forEach(a => {
+			Animation.all.forEach(a => {
 				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
+			})
+		}
+		if (AnimationController.all.length) {
+			model.animation_controllers = [];
+			AnimationController.all.forEach(a => {
+				model.animation_controllers.push(a.getUndoCopy());
 			})
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {
@@ -339,6 +345,16 @@ var codec = new Codec('project', {
 				}
 			})
 		}
+		if (model.animation_controllers) {
+			model.animation_controllers.forEach(ani => {
+				var base_ani = new AnimationController()
+				base_ani.uuid = ani.uuid;
+				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
+			})
+		}
 		if (model.animation_variable_placeholders) {
 			Interface.Panels.variable_placeholders.inside_vue._data.text = model.animation_variable_placeholders;
 		}
@@ -399,7 +415,7 @@ var codec = new Codec('project', {
 			})
 			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
 			for (let key in state.selected_vertices) {
-				Project.selected_vertices[key] = state.selected_vertices[key];
+				Project.mesh_selection[key] = state.mesh_selection[key];
 			}
 			Project.selected_faces.replace(state.selected_faces);
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
@@ -568,6 +584,19 @@ var codec = new Codec('project', {
 				base_ani.uuid = ani.uuid;
 				base_ani.extend(ani).add();
 				new_animations.push(base_ani);
+			})
+		}
+		if (model.animation_controllers) {
+			model.animation_controllers.forEach(ani => {
+				var base_ani = new AnimationController()
+				if (AnimationController.all.find(a => a.uuid == ani.uuid)) {
+					ani.uuid = guid();
+				}
+				base_ani.uuid = ani.uuid;
+				base_ani.extend(ani).add();
+				if (isApp && Format.animation_files) {
+					base_ani.saved_name = base_ani.name;
+				}
 			})
 		}
 		if (Format.bone_rig) {

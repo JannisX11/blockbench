@@ -54,13 +54,7 @@ class Mode extends KeybindItem {
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
 		}
-		if (Blockbench.isMobile) {
-			Interface.PanelSelectorVue.$forceUpdate();
-			let bottom_panel = Interface.getBottomPanel();
-			if (bottom_panel && !Condition(bottom_panel.display_condition)) {
-				Interface.PanelSelectorVue.select(null);
-			}
-		}
+		updatePanelSelector();
 
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';
@@ -146,9 +140,15 @@ BARS.defineActions(function() {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
-			BarItems.slider_color_h.update();
-			BarItems.slider_color_s.update();
-			BarItems.slider_color_v.update();
+			if (StateMemory.color_picker_rgb) {
+				BarItems.slider_color_red.update();
+				BarItems.slider_color_green.update();
+				BarItems.slider_color_blue.update();
+			} else {
+				BarItems.slider_color_h.update();
+				BarItems.slider_color_s.update();
+				BarItems.slider_color_v.update();
+			}
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 

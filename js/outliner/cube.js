@@ -749,6 +749,9 @@ class Cube extends OutlinerElement {
 			}
 			this.from[axis] = from;
 			this.to[axis] = to;
+			if (from > to && !(settings.negative_size.value || allow_negative)) {
+				this.from[axis] = this.to[axis] = (from + to) / 2;
+			}
 
 		} else if (!negative) {
 			var pos = this.from[axis] + modify(before);
@@ -815,11 +818,6 @@ class Cube extends OutlinerElement {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank')
-				}},
-				{icon: 'clear', name: 'menu.cube.texture.transparent', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture(null, true)
-					}, 'texture transparent')
 				}}
 			]
 			Texture.all.forEach(function(t) {
@@ -849,7 +847,7 @@ class Cube extends OutlinerElement {
 	];
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
-new Property(Cube, 'boolean', 'box_uv');
+new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
 
@@ -858,7 +856,7 @@ OutlinerElement.registerType(Cube, 'cube');
 
 new NodePreviewController(Cube, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = 'cube';
@@ -1256,8 +1254,11 @@ BARS.defineActions(function() {
 				autouv: (settings.autouv.value ? 1 : 0)
 			}).init()
 			if (!base_cube.box_uv) base_cube.mapAutoUV()
-			var group = getCurrentGroup();
-			base_cube.addTo(group)
+			let group = getCurrentGroup();
+			if (group) {
+				base_cube.addTo(group)
+				base_cube.color = group.color;
+			}
 
 			if (Texture.all.length && Format.single_texture) {
 				for (var face in base_cube.faces) {

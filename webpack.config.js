@@ -1,4 +1,5 @@
 const PathModule = require('path')
+const {DefinePlugin} = require('webpack')
 
 module.exports = {
     mode: 'production',
@@ -25,5 +26,10 @@ module.exports = {
                 type: 'json'
             }
         ]
-    }
+    },
+    plugins: [
+        new DefinePlugin({
+            BBVERSION: `"${require('./package.json').version}"`
+        })
+    ]
 }

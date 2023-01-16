@@ -303,6 +303,7 @@ const skin_dialog = new Dialog({
 	},
 	onCancel() {
 		Format = 0;
+		Settings.updateSettingsInProfiles();
 	}
 });
 format.setup_dialog = skin_dialog;
@@ -314,7 +315,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {formats: ['skin']},
 		click: function () {
-			var edited = [];
+			let edited = [];
 			Cube.all.forEach(cube => {
 				if (cube.name.toLowerCase().includes('layer')) {
 					edited.push(cube);
@@ -322,7 +323,7 @@ BARS.defineActions(function() {
 			})
 			if (!edited.length) return;
 			Undo.initEdit({elements: edited});
-			value = !edited[0].visibility;
+			let value = !edited[0].visibility;
 			edited.forEach(cube => {
 				cube.visibility = value;
 			})
@@ -456,11 +457,6 @@ Interface.definePanels(function() {
 					Group.all.forEach(group => {
 						if (!group.skin_original_origin) return;
 						let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
-						group.forEachChild(cube => {
-							cube.from.V3_add(offset);
-							cube.to.V3_add(offset);
-							cube.origin.V3_add(offset);
-						}, Cube)
 						group.origin.V3_set(group.skin_original_origin);
 					})
 					this.pose = pose;
@@ -470,10 +466,15 @@ Interface.definePanels(function() {
 						let group = Group.all.find(g => g.name == name);
 						if (group) {
 							group.extend({rotation: angles[name].rotation || angles[name]});
-							if (angles[name].offset) group.origin.V3_add(angles[name].offset);
+							if (angles[name].offset) {
+								group.origin.V3_add(angles[name].offset);
+							}
 						}
 					}
-					Canvas.updateAllBones();
+					Canvas.updateView({
+						groups: Group.all,
+						group_aspects: {transform: true}
+					})
 				}
 			},
 			template: `
@@ -5482,8 +5483,8 @@ skin_presets.tropicalfish_b = {
 };
 skin_presets.turtle = {
 	display_name: 'Turtle',
-	model: `{
-		"name": "turtle",
+	model_bedrock: `{
+		"name": "sea_turtle",
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -5539,6 +5540,67 @@ skin_presets.turtle = {
 				"rotation": [0, -10, 0],
 				"cubes": [
 					{"name": "leg3", "origin": [5, 2, -6], "size": [13, 1, 5], "uv": [26, 24]}
+				]
+			}
+		]
+	}`,
+	model_java: `{
+		"name": "big_sea_turtle",
+		"texturewidth": 128,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 13, -10],
+				"rotation": [90, 0, 0],
+				"cubes": [
+					{"name": "body", "origin": [-9.5, -10, -20], "size": [19, 20, 6], "uv": [7, 37]},
+					{"name": "body", "origin": [-5.5, -8, -23], "size": [11, 18, 3], "uv": [31, 1]}
+				]
+			},
+			{
+				"name": "eggbelly",
+				"parent": "body",
+				"pivot": [0, 13, -10],
+				"cubes": [
+					{"name": "eggbelly", "origin": [-4.5, -8, -24], "size": [9, 18, 1], "uv": [70, 33]}
+				]
+			},
+			{
+				"name": "head",
+				"pivot": [0, 5, -10],
+				"cubes": [
+					{"name": "head", "origin": [-3, 1, -13], "size": [6, 5, 6], "uv": [3, 0]}
+				]
+			},
+			{
+				"name": "leg0",
+				"pivot": [-3.5, 2, 11],
+				"cubes": [
+					{"name": "leg0", "origin": [-5.5, 1, 11], "size": [4, 1, 10], "uv": [1, 23]}
+				]
+			},
+			{
+				"name": "leg1",
+				"pivot": [3.5, 2, 11],
+				"cubes": [
+					{"name": "leg1", "origin": [1.5, 1, 11], "size": [4, 1, 10], "uv": [1, 12]}
+				]
+			},
+			{
+				"name": "leg2",
+				"pivot": [-5, 3, -4],
+				"rotation": [0, 10, 0],
+				"cubes": [
+					{"name": "leg2", "origin": [-18, 2, -6], "size": [13, 1, 5], "uv": [27, 30]}
+				]
+			},
+			{
+				"name": "leg3",
+				"pivot": [5, 3, -4],
+				"rotation": [0, -10, 0],
+				"cubes": [
+					{"name": "leg3", "origin": [5, 2, -6], "size": [13, 1, 5], "uv": [27, 24]}
 				]
 			}
 		]

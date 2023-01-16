@@ -80,7 +80,7 @@ class Group extends OutlinerNode {
 			selected.length = 0
 		}
 		//Select This Group
-		Group.all.forEach(function(s) {
+		Project.groups.forEach(function(s) {
 			s.selected = false
 		})
 		this.selected = true
@@ -112,7 +112,7 @@ class Group extends OutlinerNode {
 		selected.length = 0
 
 		//Select This Group
-		Group.all.forEach(function(s) {
+		Project.groups.forEach(function(s) {
 			s.selected = false
 		})
 		this.selected = true
@@ -199,7 +199,7 @@ class Group extends OutlinerNode {
 			}
 		})
 		TickUpdates.selection = true
-		this.constructor.all.remove(this);
+		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			elements.empty();
@@ -489,7 +489,7 @@ new Property(Group, 'number', 'color');
 
 new NodePreviewController(Group, {
 	setup(group) {
-		bone = new THREE.Object3D();
+		let bone = new THREE.Object3D();
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
@@ -661,11 +661,15 @@ BARS.defineActions(function() {
 									}
 								}
 							]).show(event.target);
+						},
+						autocomplete(text, position) {
+							let test = Animator.autocompleteMolang(text, position, 'binding');
+							return test;
 						}
 					},
 					template: 
 						`<div class="dialog_bar">
-							<vue-prism-editor class="molang_input dark_bordered"  v-model="binding" language="molang" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
+							<vue-prism-editor class="molang_input" v-model="binding" language="molang" :autocomplete="autocomplete" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
 							<i class="tool material-icons" style="vertical-align: top; padding: 3px; float: none;" @click="showPresetMenu($event)">menu</i>
 						</div>`
 				},
@@ -698,9 +702,8 @@ BARS.defineActions(function() {
 Interface.definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
-		condition: !Blockbench.isMobile && {modes: ['animate']},
+		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},
 		display_condition: () => Group.selected,
-		selection_only: true,
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -710,7 +713,7 @@ Interface.definePanels(function() {
 		component: {
 			template: `
 				<div>
-					<p>${ tl('panel.element.origin') }</p>
+					<p class="panel_toolbar_label">${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 				</div>
 			`

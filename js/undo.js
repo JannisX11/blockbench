@@ -292,8 +292,8 @@ class UndoSystem {
 			elements.forEach(function(obj) {
 				if (save.selection.includes(obj.uuid)) {
 					obj.selectLow()
-					if (save.selected_vertices[obj.uuid]) {
-						Project.selected_vertices[obj.uuid] = save.selected_vertices[obj.uuid];
+					if (save.mesh_selection[obj.uuid]) {
+						Project.mesh_selection[obj.uuid] = save.mesh_selection[obj.uuid];
 					}
 				}
 			})
@@ -389,6 +389,35 @@ class UndoSystem {
 				}
 			}
 		}
+		if (save.animation_controllers) {
+			for (var uuid in save.animation_controllers) {
+
+				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? this.getItemByUUID(AnimationController.all, uuid) : null;
+				if (!controller) {
+					controller = new AnimationController();
+					controller.uuid = uuid;
+				}
+				controller.extend(save.animation_controllers[uuid]).add(false);
+				if (save.animation_controllers[uuid].selected) {
+					controller.select();
+				}
+			}
+			for (var uuid in reference.animation_controllers) {
+				if (!save.animation_controllers[uuid]) {
+					var controller = this.getItemByUUID(AnimationController.all, uuid);
+					if (controller) {
+						controller.remove(false);
+					}
+				}
+			}
+		}
+		if (save.animation_controller_state) {
+			let controller = AnimationController.all.find(controller => save.animation_controller_state.controller == controller.uuid);
+			let state = controller && controller.states.find(state => state.uuid == save.animation_controller_state.uuid);
+			if (state) {
+				state.extend(save.animation_controller_state);
+			}
+		}
 
 		if (save.keyframes) {
 			var animation = Animation.selected;
@@ -474,11 +503,11 @@ UndoSystem.save = class {
 
 		if (aspects.selection) {
 			this.selection = [];
-			this.selected_vertices = {};
+			this.mesh_selection = {};
 			selected.forEach(obj => {
 				this.selection.push(obj.uuid);
-				if (obj instanceof Mesh) {
-					this.selected_vertices[obj.uuid] = Mesh.selected[0].getSelectedVertices().slice();
+				if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
+					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
 			if (Group.selected) {
@@ -546,6 +575,16 @@ UndoSystem.save = class {
 			aspects.keyframes.forEach(kf => {
 				scope.keyframes[kf.uuid] = kf.getUndoCopy()
 			})
+		}
+		if (aspects.animation_controllers) {
+			this.animation_controllers = {}
+			aspects.animation_controllers.forEach(a => {
+				scope.animation_controllers[a.uuid] = a.getUndoCopy();
+			})
+		}
+		if (aspects.animation_controller_state) {
+			this.animation_controller_state = aspects.animation_controller_state.getUndoCopy();
+			this.animation_controller_state.controller = aspects.animation_controller_state.controller?.uuid;
 		}
 
 		if (aspects.display_slots) {

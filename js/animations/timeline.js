@@ -505,14 +505,14 @@ const Timeline = {
 			Timeline.last_frame_timecode = Date.now();
 
 		} else {
-			if (Animation.selected.loop == 'once') {
+			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
+				Timeline.setTime(0)
+			} else if (Animation.selected.loop == 'once') {
 				Timeline.setTime(0)
 				Animator.preview()
 				Timeline.pause()
 			} else if (Animation.selected.loop == 'hold') {
 				Timeline.pause()
-			} else {
-				Timeline.setTime(0)
 			}
 		}
 	},
@@ -520,10 +520,6 @@ const Timeline = {
 		Animator.preview();
 		Timeline.playing = false;
 		BarItems.play_animation.setIcon('play_arrow')
-		if (Timeline.interval) {
-			clearInterval(Timeline.interval)
-			Timeline.interval = false
-		}
 		Timeline.playing_sounds.forEach(media => {
 			if (!media.paused) {
 				media.pause();
@@ -610,13 +606,14 @@ const Timeline = {
 Interface.definePanels(() => {
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], method: () => !AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
 			float_position: [100, 400],
 			float_size: [600, 300],
 			height: 260,
 		},
+		grow: true,
 		toolbars: {
 			timeline: Toolbars.timeline
 		},
@@ -645,6 +642,7 @@ Interface.definePanels(() => {
 				graph_offset: 200,
 				graph_size: 200,
 				show_zero_line: true,
+				show_all_handles: !Settings.get('only_selected_bezier_handles'),
 				loop_graph: '',
 
 				channels: {
@@ -702,6 +700,14 @@ Interface.definePanels(() => {
 							max = Math.max(max, value);
 						}
 					}
+					keyframes.forEach(kf => {
+						if (kf.interpolation === 'bezier') {
+							min = Math.min(min, kf.display_value + kf.bezier_left_value[this.graph_editor_axis_number]);
+							max = Math.max(max, kf.display_value + kf.bezier_left_value[this.graph_editor_axis_number]);
+							min = Math.min(min, kf.display_value + kf.bezier_right_value[this.graph_editor_axis_number]);
+							max = Math.max(max, kf.display_value + kf.bezier_right_value[this.graph_editor_axis_number]);
+						}
+					})
 					
 					Timeline.time = original_time;
 
@@ -726,6 +732,9 @@ Interface.definePanels(() => {
 					}
 
 					return string;
+				},
+				graph_editor_axis_number() {
+					return getAxisNumber(this.graph_editor_axis)
 				}
 			},
 			methods: {
@@ -828,6 +837,7 @@ Interface.definePanels(() => {
 				},
 				dragKeyframes(clicked, e1) {
 					convertTouchEvent(e1);
+					if (e1.target.classList.contains('keyframe_bezier_handle')) return;
 					let dragging_range;
 					let dragging_restriction;
 					let originalValue;
@@ -1000,6 +1010,122 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
+				dragBezierHandle(clicked, side, e1) {
+					convertTouchEvent(e1);
+					let values_changed;
+					let is_setup = false;
+					let axis_number = getAxisNumber(this.graph_editor_axis);
+					let old_values = {};
+
+					function setup() {
+
+						if (!clicked.selected && !e1.shiftKey && !Pressing.overrides.shift && Timeline.selected.length != 0) {
+							clicked.select()
+						} else if (clicked && !clicked.selected) {
+							clicked.select({shiftKey: true})
+						}
+
+						Keyframe.selected.forEach(kf => {
+							if (kf.interpolation == 'bezier') {
+								old_values[kf.uuid] = {
+									bezier_left_time: kf.bezier_left_time.slice(),
+									bezier_left_value: kf.bezier_left_value.slice(),
+									bezier_right_time: kf.bezier_right_time.slice(),
+									bezier_right_value: kf.bezier_right_value.slice(),
+								}
+							}
+						})
+
+						Undo.initEdit({keyframes: Timeline.selected});
+						Timeline.dragging_keyframes = true;
+
+						is_setup = true;
+					}
+
+					function slide(e2) {
+						convertTouchEvent(e2);
+						e2.preventDefault();
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!is_setup) {
+							if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 20) {
+								setup();
+							} else {
+								return;
+							}
+						}
+						var difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
+						var difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
+
+						for (var kf of Timeline.selected) {
+							if (kf.interpolation == 'bezier') {
+
+								kf.bezier_left_time.V3_set(old_values[kf.uuid].bezier_left_time);
+								kf.bezier_left_value.V3_set(old_values[kf.uuid].bezier_left_value);
+								kf.bezier_right_time.V3_set(old_values[kf.uuid].bezier_right_time);
+								kf.bezier_right_value.V3_set(old_values[kf.uuid].bezier_right_value);
+
+								if (side === 'left') {
+									kf.bezier_left_time[axis_number] =  Math.min(0, old_values[kf.uuid].bezier_left_time[axis_number] + difference_time);
+									kf.bezier_left_value[axis_number] = old_values[kf.uuid].bezier_left_value[axis_number] + difference_value;
+									if (kf.bezier_linked) {
+										kf.bezier_right_time[axis_number] = -kf.bezier_left_time[axis_number];
+										kf.bezier_right_value[axis_number] = -kf.bezier_left_value[axis_number];
+									}
+								}
+								if (side === 'right') {
+									kf.bezier_right_time[axis_number] =  Math.max(0, old_values[kf.uuid].bezier_right_time[axis_number] + difference_time);
+									kf.bezier_right_value[axis_number] = old_values[kf.uuid].bezier_right_value[axis_number] + difference_value;
+									if (kf.bezier_linked) {
+										kf.bezier_left_time[axis_number] = -kf.bezier_right_time[axis_number];
+										kf.bezier_left_value[axis_number] = -kf.bezier_right_value[axis_number];
+									}
+								}
+								values_changed = true;
+							}
+						}
+						let text = `${trimFloatNumber(Math.roundTo(difference_time, 2))} ⨉ ${trimFloatNumber(Math.roundTo(difference_value, 2))}`;
+						Blockbench.setStatusBarText(text);
+
+						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
+						Animator.showMotionTrail()
+						Animator.preview()
+					}
+					function off() {
+						removeEventListeners(document, 'mousemove touchmove', slide);
+						removeEventListeners(document, 'mouseup touchend', off);
+
+						if (is_setup) {
+							Blockbench.setStatusBarText();
+							if (values_changed) {
+								Undo.finishEdit('Adjust keyframe bezier handles');
+							} else {
+								Undo.cancelEdit();
+							}
+							setTimeout(() => {
+								Timeline.dragging_keyframes = false;
+							}, 20);
+						}
+					}
+					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off);
+				},
+				getBezierHandleStyle(keyframe, side) {
+					let axis_number = getAxisNumber(this.graph_editor_axis);
+					let x_offset = -keyframe[`bezier_${side}_time`][axis_number] * this.size;
+					let y_offset = -keyframe[`bezier_${side}_value`][axis_number] * this.graph_size;
+					let length = Math.sqrt(Math.pow(x_offset, 2) + Math.pow(y_offset, 2));
+					let angle = Math.atan2(-y_offset, x_offset);
+					return {
+						right: x_offset + 'px',
+						top: y_offset + 'px',
+						'--length': Math.max(length - 6, 0) + 'px',
+						'--angle': Math.radToDeg(angle) + 'deg',
+					}
+				},
 				clamp: Math.clamp,
 				trimFloatNumber
 			},
@@ -1146,13 +1272,26 @@ Interface.definePanels(() => {
 										v-bind:id="keyframe.uuid"
 										v-on:click.stop="keyframe.select($event)"
 										v-on:dblclick="keyframe.callPlayhead()"
-										:title="trimFloatNumber(keyframe.time) + ' ⨉ ' + keyframe.display_value"
+										:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
 										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
 										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
+
+										<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">
+											<div class="keyframe_bezier_handle"
+												:style="getBezierHandleStyle(keyframe, 'left')"
+												:title="'${tl('generic.left')}: ' + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"
+												@mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)"
+											></div>
+											<div class="keyframe_bezier_handle"
+												:style="getBezierHandleStyle(keyframe, 'right')"
+												:title="'${tl('generic.right')}: ' + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])"
+												@mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)"
+											></div>
+										</template>
 									</div>
 								</template>
 							</div>
@@ -1202,7 +1341,7 @@ BARS.defineActions(function() {
 		icon: 'play_arrow',
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
-		condition: {modes: ['animate']},
+		condition: {modes: ['animate'], selected: {animation_controller: false}},
 		click: function () {
 			
 			if (!Animation.selected) {
@@ -1215,6 +1354,12 @@ BARS.defineActions(function() {
 				Timeline.start()
 			}
 		}
+	})
+	new Toggle('looped_animation_playback', {
+		icon: 'fa-repeat',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		default: false
 	})
 	new NumSlider('slider_animation_speed', {
 		category: 'animation',

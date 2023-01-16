@@ -106,7 +106,6 @@ class OutlinerNode {
 	}
 	init() {
 		OutlinerNode.uuids[this.uuid] = this;
-		//this.constructor.all.safePush(this);
 		if (!this.parent || (this.parent === 'root' && Outliner.root.indexOf(this) === -1)) {
 			this.addTo('root')
 		}
@@ -234,7 +233,6 @@ class OutlinerNode {
 	}
 	remove() {
 		if (this.preview_controller) this.preview_controller.remove(this);
-		this.constructor.all.remove(this);
 		if (OutlinerNode.uuids[this.uuid] == this) delete OutlinerNode.uuids[this.uuid];
 		this.removeFromParent();
 	}
@@ -359,10 +357,9 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	remove() {
-		super.remove()
-		selected.remove(this);
-		elements.remove(this);
-		this.constructor.selected.remove(this);
+		super.remove();
+		Project.selected_elements.remove(this);
+		Project.elements.remove(this);
 		return this;
 	}
 	showContextMenu(event) {
@@ -375,10 +372,11 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	forSelected(fc, undo_tag) {
-		if (this.constructor.selected.length <= 1 || !this.constructor.selected.includes(this)) {
-			var edited = [this]
+		let selected = this.constructor.selected;
+		if (selected.length <= 1 || !selected.includes(this)) {
+			var edited = [this];
 		} else {
-			var edited = this.constructor.selected
+			var edited = selected;
 		}
 		if (typeof fc === 'function') {
 			if (undo_tag) {
@@ -481,16 +479,14 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	selectLow() {
-		Outliner.selected.safePush(this);
-		this.constructor.selected.safePush(this)
+		Project.selected_elements.safePush(this);
 		this.selected = true;
 		TickUpdates.selection = true;
 		return this;
 	}
 	unselect() {
-		selected.remove(this);
+		Project.selected_elements.remove(this);
 		this.selected = false;
-		this.constructor.selected.remove(this);
 		TickUpdates.selection = true;
 		return this;
 	}
@@ -667,7 +663,9 @@ OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
 	Object.defineProperty(constructor, 'all', {
 		get() {
-			return Project.elements ? Project.elements.filter(element => element instanceof constructor) : [];
+			return (Project.elements?.length && Project.elements.find(element => element instanceof constructor))
+				 ? Project.elements.filter(element => element instanceof constructor)
+				 : [];
 		},
 		set(arr) {
 			console.warn('You cannot modify this')
@@ -675,7 +673,9 @@ OutlinerElement.registerType = function(constructor, id) {
 	})
 	Object.defineProperty(constructor, 'selected', {
 		get() {
-			return Project.selected_elements ? Project.selected_elements.filter(element => element instanceof constructor) : [];
+			return (Project.selected_elements?.length && Project.selected_elements.find(element => element instanceof constructor))
+				 ? Project.selected_elements.filter(element => element instanceof constructor)
+				 : [];
 		},
 		set(group) {
 			console.warn('You cannot modify this')
@@ -1202,7 +1202,7 @@ BARS.defineActions(function() {
 		
 			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
 				Mesh.selected.forEach(mesh => {
-					delete Project.selected_vertices[mesh.uuid];
+					delete Project.mesh_selection[mesh.uuid];
 				})
 				updateSelection();
 		
@@ -1364,7 +1364,7 @@ Interface.definePanels(function() {
 
 	new Panel('outliner', {
 		icon: 'list_alt',
-		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => !Format.image_editor},
+		condition: {modes: ['edit', 'paint', 'animate', 'pose'], method: () => (!Format.image_editor && !(Modes.animate && AnimationController.selected))},
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -1646,7 +1646,6 @@ Interface.definePanels(function() {
 			icon: 'fas.fa-cube',
 			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
 			display_condition: () => Outliner.selected.length || Group.selected,
-			selection_only: true,
 			default_position: {
 				slot: 'right_bar',
 				float_position: [0, 0],

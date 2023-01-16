@@ -34,7 +34,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
-		this.root_path =  path.slice().join(osfs);
+		this.root_path = path.slice().join(osfs);
+
+		if (BedrockEntityManager.CurrentContext?.entity_file_path) {
+			var content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
+			if (content) {
+				return content;
+			}
+		}
+
 		path.push('entity');
 		path = path.join(osfs);
 		var entity_path = findExistingFile([
@@ -116,6 +124,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
+					if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
@@ -154,7 +163,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 										if (!this.search_term) return this.valid_textures_list;
 										let term = this.search_term.toLowerCase();
 										return this.valid_textures_list.filter(path => {
-											return path.toLowerCase().includes(this.search_term);
+											return path.toLowerCase().includes(term);
 										});
 									}
 								},
@@ -192,6 +201,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
 								}
+								if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 							}
 						}).show()
 					})}, 2)
@@ -206,8 +216,14 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
+			let has_animations = false, has_controllers = false;
 			for (var key in anim_list) {
-				if (anim_list[key].match && anim_list[key].match(/^animation\./)) {
+				if (typeof anim_list[key] !== 'string') continue;
+				if (anim_list[key].startsWith('animation.')) {
+					has_animations = true;
+					animation_names.push(anim_list[key]);
+				} else if (anim_list[key].startsWith('controller.animation.')) {
+					has_controllers = true;
 					animation_names.push(anim_list[key]);
 				}
 			}
@@ -226,7 +242,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				} catch (err) {}
 			}
-			searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_animations) searchFolder(PathModule.join(this.root_path, 'animations'));
+			if (has_controllers) searchFolder(PathModule.join(this.root_path, 'animation_controllers'));
 
 			anim_files.forEach(path => {
 				try {
@@ -674,16 +691,6 @@ function calculateVisibleBox() {
 		group.addTo(parent_group)
 	}
 	function parseGeometry(data) {
-		if (data === undefined) {
-			pe_list_data.forEach(function(s) {
-				if (s.selected === true) {
-					data = s
-				}
-			})
-			if (data == undefined) {
-				data = pe_list_data[0]
-			}
-		}
 
 		let {description} = data.object;
 		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
@@ -695,8 +702,6 @@ function calculateVisibleBox() {
 			Project.close().then(() =>  {
 				existing_tab.select();
 			});
-			pe_list_data.length = 0;
-			hideDialog()
 			return;
 		}
 
@@ -736,9 +741,6 @@ function calculateVisibleBox() {
 		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 
 		codec.dispatchEvent('parsed', {model: data.object});
-
-		pe_list_data.length = 0;
-		hideDialog()
 
 		loadTextureDraggable()
 		Canvas.updateAllBones()
@@ -911,6 +913,100 @@ function calculateVisibleBox() {
 		return bone;
 	}
 
+let entity_file_codec = new Codec('bedrock_entity_file', {
+	name: 'Bedrock Entity',
+	extension: 'json',
+	remember: false,
+	load_filter: {
+		type: 'json',
+		extensions: ['json'],
+		condition(model) {
+			return model.format_version && (model['minecraft:client_entity'] || model['minecraft:attachable'])
+		}
+	},
+	load(content, file, add) {
+		let is_attachable = content['minecraft:attachable'] !== undefined;
+		let description = (content['minecraft:client_entity'] || content['minecraft:attachable']).description;
+		let models = [];
+		for (let key in description.geometry) {
+			let model_id = description.geometry[key];
+			models.push(model_id);
+		}
+		if (!models[0]) return;
+
+		let path = file.path.split(osfs);
+		let name = path.pop().replace(/(\.entity|\.attachable)?\.json$/, '');
+		let root_index = path.indexOf(is_attachable ? 'attachables' : 'entity');
+		path.splice(root_index);
+
+		let entity_path = findExistingFile([
+			[...path, 'models', 'entity', name+'.geo.json'].join(osfs),
+			[...path, 'models', 'entity', name+'.json'].join(osfs),
+			[...path, 'models', 'block', name+'.geo.json'].join(osfs),
+			[...path, 'models', 'block', name+'.json'].join(osfs),
+		])
+
+		let matched_geo_path, matched_geo_content;
+		function checkGeoFile(geo_path) {
+			try {
+				var c = fs.readFileSync(geo_path, 'utf-8');
+				if (typeof c === 'string') {
+					c = autoParseJSON(c, false);
+					matched_geo_content = c;
+
+					if (c['minecraft:geometry'] instanceof Array) {
+						let geo = c['minecraft:geometry'].find(geo => {
+							return geo.description?.identifier == models[0];
+						})
+						if (geo) return geo;
+					} else if (c[models[0]]) {
+						return c[models[0]];
+					}
+				}
+			} catch (err) {
+				console.log(err);
+				return false;
+			}
+		}
+		if (entity_path) {
+			if (checkGeoFile(entity_path)) {
+				matched_geo_path = entity_path;
+			}
+		}
+		if (!matched_geo_path) {
+
+			let searchFolder = (path) => {
+				try {
+					let files = fs.readdirSync(path);
+					for (let name of files) {
+						let new_path = path + osfs + name;
+						if (name.match(/\.json$/)) {
+							let result = checkGeoFile(new_path);
+							if (result) return new_path;
+						} else if (!name.includes('.')) {
+							let result = searchFolder(new_path);
+							if (result) return result;
+						}
+					}
+				} catch (err) {
+					console.error(err)
+				}
+			}
+			matched_geo_path = searchFolder([...path, 'models', 'entity'].join(osfs)) || searchFolder([...path, 'models', 'block'].join(osfs));
+		}
+
+		if (matched_geo_path) {
+			BedrockEntityManager.CurrentContext = {
+				geometry: models[0],
+				entity_file_path: file.path,
+				type: 'entity'
+			};
+			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
+			codec.load(matched_geo_content, {path: matched_geo_path}, false);
+			delete BedrockEntityManager.CurrentContext;
+		}
+	},
+})
 
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
@@ -926,26 +1022,39 @@ var codec = new Codec('bedrock', {
 	},
 	load(model, file, add) {
 		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
+		if (BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
 		if (!add) {
 			setupProject(is_block ? block_format : entity_format);
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
-			let project = Project;
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
 
+		}
+
+		this.parse(model, file.path)
+
+		if (file.path && isApp && this.remember && !file.no_file ) {
+			if (isApp) {
+				let no_textures_before = Texture.all.length == 0;
+				loadDataFromModelMemory();
+				if (!Format.single_texture && no_textures_before && Texture.all.length) {
+					Cube.all.forEach(cube => {
+						cube.applyTexture(Texture.all[0]);
+					})
+				}
+			}
 			addRecentProject({
 				name,
 				path: file.path,
 				icon: Format.icon
 			});
+			let project = Project;
 			setTimeout(() => {
-				if (Project == project) updateRecentProjectThumbnail();
+				if (Project == project) setTimeout(() => updateRecentProjectThumbnail(), 40);
 			}, 200)
 		}
-		this.parse(model, file.path)
-		if (isApp) loadDataFromModelMemory();
 	},
 	compile(options) {
 		if (options === undefined) options = {}
@@ -1065,154 +1174,81 @@ var codec = new Codec('bedrock', {
 		Blockbench.writeFile(path, {content}, cb);
 	},
 	parse(data, path) {
-		pe_list_data.length = 0
 		if (Format != Formats.bedrock && Format != Formats.bedrock_block) Formats.bedrock.select()
 
-		var geometries = []
-		for (var geo of data['minecraft:geometry']) {
-			geometries.push(geo);
+		let geometries = [];
+		for (let geo of data['minecraft:geometry']) {
+			if (typeof geo !== 'object') continue;
+			geometries.push({
+				object: geo,
+				name: geo.description?.identifier || ''
+			});
 		}
 		if (geometries.length === 1) {
-			parseGeometry({object: data['minecraft:geometry'][0]})
-			return;
+			return parseGeometry(geometries[0]);
+		} else if (BedrockEntityManager.CurrentContext?.geometry) {
+			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
 		}
 
-		$('#pe_search_bar').val('')
-		if (pe_list && pe_list._data) {
-			pe_list._data.search_text = ''
-		}
+		geometries.forEach(geo => {
+			geo.uuid = guid();
 
-		function create_thumbnail(model_entry, isize) {
-			var included_bones = []
-			model_entry.object.bones.forEach(function(b) {
-				included_bones.push(b.name)
-			})
-			var thumbnail = new Jimp(48, 48, 0x00000000, function(err, image) {
-				model_entry.object.bones.forEach(function(b) {
-					var rotation = b.rotation
-					if (!rotation || rotation[0] === undefined) {
-						if (entityMode.hardcodes[model_entry.name] && entityMode.hardcodes[model_entry.name][b.name]) {
-							rotation = entityMode.hardcodes[model_entry.name][b.name].rotation
-						}
-					}
-					if (b.cubes) {
-						b.cubes.forEach(function(c) {
-							if (c.origin && c.size) {
-								//Do cube
-								var inflate = c.inflate||0
-								var coords = {
-									x: (c.origin[2]-inflate)*isize+24,
-									y: 40-(c.origin[1]+c.size[1]+inflate)*isize,
-									w: (c.size[2]+2*inflate)*isize,
-									h: (c.size[1]+2*inflate)*isize
-								}
-								var shade = (limitNumber(c.origin[0], -24, 24)+24)/48*255
-								var color = parseInt('0xffffff'+shade.toString(16))
-								coords.x = limitNumber(coords.x, 0, 47)
-								coords.y = limitNumber(coords.y, 0, 47)
-								coords.w = limitNumber(coords.w, 0, 47 - coords.x)
-								coords.h = limitNumber(coords.h, 0, 47 - coords.y)
-								if (coords.h > 0 && coords.w > 0) {
-									if (rotation && rotation[0] !== 0 && b.pivot) {
-										Painter.drawRotatedRectangle(
-											image,
-											0xffffff88,
-											coords,
-											b.pivot[2]*isize+24,
-											40-b.pivot[1]*isize,
-											-rotation[0]
-										)
-									} else {
-										Painter.drawRectangle(image, 0xffffff88, coords)
-									}
-								}
-							}
+			geo.bonecount = 0;
+			geo.cubecount = 0;
+			if (geo.object.bones instanceof Array) {
+				geo.object.bones.forEach(bone => {
+					geo.bonecount++;
+					if (bone.cubes instanceof Array) geo.cubecount += bone.cubes.length;
+				})
+			}
+		})
+
+		let selected = null;
+		new Dialog({
+			id: 'bedrock_model_select',
+			title: 'dialog.select_model.title',
+			buttons: ['Import', 'dialog.cancel'],
+			component: {
+				data() {return {
+					search_term: '',
+					geometries,
+					selected: null,
+				}},
+				computed: {
+					filtered_geometries() {
+						if (!this.search_term) return this.geometries;
+						let term = this.search_term.toLowerCase();
+						return this.geometries.filter(geo => {
+							return geo.name.toLowerCase().includes(term)
 						})
 					}
-				})
-
-				//Send
-				image.getBase64("image/png", function(a, dataUrl){
-					model_entry.icon = dataUrl
-				})
-			})
-		}
-		for (var geo of data['minecraft:geometry']) {
-			var key = geo.description && geo.description.identifier;
-			if (key && key.includes('geometry.')) {
-				var base_model = {
-					name: key,
-					bonecount: 0,
-					cubecount: 0,
-					selected: false,
-					object: geo,
-					icon: false
-				}
-				var oversize = 2;
-				var words = key.replace(/:.*/g, '').replace('geometry.', '').split(/[\._]/g)
-				words.forEach(function(w, wi) {
-					words[wi] = capitalizeFirstLetter(w)
-				})
-				base_model.title = words.join(' ')
-				if (geo.bones) {
-					base_model.bonecount = geo.bones.length
-					geo.bones.forEach(function(b) {
-						if (b.cubes) {
-							base_model.cubecount += b.cubes.length
-							b.cubes.forEach(function(c) {
-								if (c.origin && c.size && (c.origin[2] < -12 || c.origin[2] + c.size[2] > 12 || c.origin[1] + c.size[1] > 22) && oversize === 2) oversize = 1
-								if (c.origin && c.size && (c.origin[2] < -24 || c.origin[2] + c.size[2] > 24)) oversize = 0.5
-							})
-						}
-					})
-					if (typeof base_model.cubecount !== 'number') {
-						base_model.cubecount = '[E]'
-					} else if (base_model.cubecount > 0) {
-
-						create_thumbnail(base_model, oversize)
-
-
-					}
-				}
-				pe_list_data.push(base_model)
-			}
-		}
-		if (pe_list == undefined) {
-			pe_list = new Vue({
-				el: '#pe_list',
-				data: {
-					search_text: '',
-					list: pe_list_data
 				},
 				methods: {
-					selectE(item, event) {
-						var index = pe_list_data.indexOf(item)
-						pe_list_data.forEach(function(s) {
-							s.selected = false;
-						})
-						pe_list_data[index].selected = true
+					selectGeometry(geo) {
+						this.selected = selected = geo;
 					},
-					open() {
-						parseGeometry()
+					open(geo) {
+						Dialog.open.hide();
+						parseGeometry(geo);
 					},
 					tl
 				},
-				computed: {
-					searched() {
-						return this.list.filter(item => {
-							return item.name.toUpperCase().includes(this.search_text)
-						})
-					}
-				}
-			})
-		}
-		showDialog('entity_import')
-		$('#pe_list').css('max-height', (window.innerHeight - 320) +'px')
-		$('input#pe_search_bar').select()
-		$('#entity_import .confirm_btn').off('click')
-		$('#entity_import .confirm_btn').on('click', (e) => {
-			parseGeometry()
-		})
+				template: `
+					<div>
+						<search-bar v-model="search_term"></search-bar>
+						<ul class="list" id="model_select_list">
+							<li v-for="geometry in filtered_geometries" :key="geometry.uuid" :class="{selected: geometry == selected}" @click="selectGeometry(geometry)" @dblclick="open(geometry)">
+								<p>{{ geometry.name }}</p>
+								<label>{{ geometry.bonecount+' ${tl('dialog.select_model.bones')}' }}, {{ geometry.cubecount+' ${tl('dialog.select_model.cubes')}' }}</label>
+							</li>
+						</ul>
+					</div>
+				`
+			},
+			onConfirm() {
+				parseGeometry(selected);
+			}
+		}).show();
 	},
 	fileName() {
 		var name = Project.name||'model';
@@ -1255,6 +1291,7 @@ var entity_format = new ModelFormat({
 	animated_textures: true,
 	animation_files: true,
 	animation_mode: true,
+	animation_controllers: true,
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,

@@ -62,7 +62,15 @@ let codec = new Codec('image', {
 			}
 		}
 
-		if (isApp) loadDataFromModelMemory();
+		if (path && isApp && !files[0].no_file ) {
+			loadDataFromModelMemory();
+
+			addRecentProject({
+				name,
+				path: path,
+				icon: Format.icon
+			});
+		}
 	},
 	afterSave() {
 		if (!isApp || !Texture.all.length) return;
