@@ -437,7 +437,7 @@ onVueSetup(function() {
 			"source": "./assets/splash_art.png?46",
 			"width": 1000,
 			"aspect_ratio": "64/27",
-			"description": "Splash Art by [Wan_win](https://twitter.com/Wan_w1n)",
+			"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
 			"text_color": '#cfcfcf'
 		}
 	})
