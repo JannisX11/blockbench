@@ -239,6 +239,7 @@ class ModelProject {
 	select() {
 		if (this === Project) return true;
 		if (this.locked || Project.locked) return false;
+		if (!ModelProject.all.includes(this)) return false;
 		if (Project) {
 			Project.unselect();
 			Blockbench.addFlag('switching_project');

@@ -189,7 +189,7 @@ function updateRecentProjectData() {
 	updateRecentProjects()
 }
 async function updateRecentProjectThumbnail() {
-	let project = Project.getProjectMemory();
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	let thumbnail;

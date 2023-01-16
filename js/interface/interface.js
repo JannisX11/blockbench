@@ -33,6 +33,7 @@ class ResizeLine {
 			},
 			stop(e, u) {
 				updateInterface()
+				scope.update();
 			}
 		})
 	}
@@ -745,14 +746,15 @@ onVueSetup(function() {
 				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
 					if (selection_mode == 'face') {
 						let total = 0, selected = 0;
-						Mesh.selected.forEach(mesh => total += Object.keys(mesh.faces).length);
-						Mesh.selected.forEach(mesh => mesh.forAllFaces(face => selected += (face.isSelected() ? 1 : 0)));
+						Mesh.selected.forEach(mesh => {
+							total += Object.keys(mesh.faces).length;
+							selected += mesh.getSelectedFaces().length;
+						});
 						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
 					}
 					if (selection_mode == 'edge') {
 						let total = 0, selected = 0;
 						Mesh.selected.forEach(mesh => {
-							let selected_vertices = mesh.getSelectedVertices();
 							let processed_lines = [];
 							mesh.forAllFaces(face => {
 								let vertices = face.getSortedVertices();
@@ -761,12 +763,10 @@ onVueSetup(function() {
 									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
 										processed_lines.push([vkey, vkey2]);
 										total += 1;
-										if (selected_vertices.includes(vkey) && selected_vertices.includes(vkey2)) {
-											selected += 1;
-										}
 									}
 								})
 							})
+							selected += mesh.getSelectedEdges().length;
 						})
 						this.selection_info = tl('status_bar.selection.edges', `${selected} / ${total}`);
 					}

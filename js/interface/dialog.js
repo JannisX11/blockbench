@@ -443,7 +443,7 @@ window.Dialog = class Dialog {
 			options = id;
 			id = options.id;
 		}
-		this.id = options.id
+		this.id = id;
 		this.title = options.title || options.name;
 		
 		this.lines = options.lines
@@ -730,7 +730,6 @@ window.Dialog = class Dialog {
 		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
 			open_interface.hide();
 		}
-		$('body > dialog').hide();
 
 		if (!this.object) {
 			this.build();
@@ -829,9 +828,10 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 	}
 	show() {
 		super.show()
+		$(this.object).show();
 	}
 	build() {
-		this.object = Interface.createElement('div', {id: 'tab_overview', class: 'empty_dialog'});
+		this.object = Interface.createElement('div', {id: this.id, class: 'shapeless_dialog'});
 
 		if (this.component) {
 			this.component.name = 'dialog-content';

@@ -10,7 +10,6 @@ function parseGeometry(data) {
 		Project.close().then(() =>  {
 			existing_tab.select();
 		});
-		if (Dialog.open) Dialog.open.hide();
 		return;
 	}
 
@@ -114,8 +113,6 @@ function parseGeometry(data) {
 	}
 
 	codec.dispatchEvent('parsed', {model: data.object});
-
-	if (Dialog.open) Dialog.open.hide();
 
 	loadTextureDraggable()
 	Canvas.updateAllBones()
@@ -305,6 +302,7 @@ var codec = new Codec('bedrock_old', {
 						this.selected = selected = geo;
 					},
 					open(geo) {
+						Dialog.open.hide();
 						parseGeometry(geo);
 					},
 					tl

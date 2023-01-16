@@ -81,7 +81,7 @@
 		bottom: unset;
 		display: none;
 	}
-	.empty_dialog {
+	.shapeless_dialog {
 		position: fixed;
 		z-index: 21;
 	}

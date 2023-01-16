@@ -702,7 +702,6 @@ function calculateVisibleBox() {
 			Project.close().then(() =>  {
 				existing_tab.select();
 			});
-			if (Dialog.open) Dialog.open.hide();
 			return;
 		}
 
@@ -742,8 +741,6 @@ function calculateVisibleBox() {
 		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 
 		codec.dispatchEvent('parsed', {model: data.object});
-
-		if (Dialog.open) Dialog.open.hide();
 
 		loadTextureDraggable()
 		Canvas.updateAllBones()
@@ -1231,6 +1228,7 @@ var codec = new Codec('bedrock', {
 						this.selected = selected = geo;
 					},
 					open(geo) {
+						Dialog.open.hide();
 						parseGeometry(geo);
 					},
 					tl
