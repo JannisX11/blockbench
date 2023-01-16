@@ -1179,50 +1179,62 @@ BARS.defineActions(function() {
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				let selected_vertices = mesh.getSelectedVertices();
-				let faces = Object.keys(mesh.faces);
-				for (let fkey in mesh.faces) {
-					let face = mesh.faces[fkey];
-					let sorted_vertices = face.getSortedVertices();
-					let side_vertices = faces.includes(fkey) && sorted_vertices.filter(vkey => selected_vertices.includes(vkey));
-					if (side_vertices && side_vertices.length == 2) {
-						if (side_vertices[0] == sorted_vertices[0] && side_vertices[1] == sorted_vertices.last()) {
-							side_vertices.reverse();
+				let edges = mesh.getSelectedEdges(true);
+				let selected_vertices = mesh.getSelectedVertices(true);
+				for (let edge of edges) {
+					let adjacent_faces = [];
+					let adjacent_fkeys = [];
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						if (!face.vertices.includes(edge[0]) || !face.vertices.includes(edge[1])) continue;
+						
+						let vertices = face.getSortedVertices();
+						let index_a = vertices.indexOf(edge[0]), index_b = vertices.indexOf(edge[1]);
+						if (vertices.length < 4 || (Math.abs(index_a - index_b) != 2)) {
+							adjacent_faces.push(face);
+							adjacent_fkeys.push(fkey);
 						}
-						let original_face_normal = face.getNormal(true);
-						let index_difference = sorted_vertices.indexOf(side_vertices[1]) - sorted_vertices.indexOf(side_vertices[0]);
-						if (index_difference == -1 || index_difference > 2) side_vertices.reverse();
-						let other_face = face.getAdjacentFace(sorted_vertices.indexOf(side_vertices[0]));
-						face.vertices.remove(...side_vertices);
-						delete face.uv[side_vertices[0]];
-						delete face.uv[side_vertices[1]];
-						if (other_face) {
-							let new_vertices = other_face.face.getSortedVertices().filter(vkey => !side_vertices.includes(vkey));
-							face.vertices.push(...new_vertices);
-							new_vertices.forEach(vkey => {
-								face.uv[vkey] = other_face.face.uv[vkey];
-							})
-							delete mesh.faces[other_face.key];
+					}
+					// Connect adjacent tris
+					let tris = adjacent_fkeys.filter(fkey => mesh.faces[fkey].vertices.length == 3);
+					if (tris.length == 2) {
+						let face_a = mesh.faces[tris[0]],
+							face_b = mesh.faces[tris[1]];
+						let vertex_from_a = face_a.vertices.find(vkey => edge.indexOf(vkey) == -1);
+						let uv_from_a = face_a.uv[vertex_from_a];
+						
+						delete mesh.faces[tris[0]];
+						adjacent_fkeys.remove(tris[0]);
+
+						face_b.vertices.push(vertex_from_a);
+						face_b.uv[vertex_from_a] = uv_from_a ? uv_from_a.slice() : [0, 0];
+					}
+					// Remove all other faces and lines
+					adjacent_fkeys.forEach(fkey => {
+						let face = mesh.faces[fkey];
+						if (face && (tris.length != 2 || !tris.includes(fkey))) {
+							delete mesh.faces[fkey];
 						}
-						faces.remove(fkey);
-						if (Reusable.vec1.fromArray(face.getNormal(true)).angleTo(Reusable.vec2.fromArray(original_face_normal)) > Math.PI/2) {
-							face.invert();
+					})
+				}
+				// Remove leftover vertices
+				let vertices_used = [];
+				for (let edge of edges) {
+					vertices_used.safePush(...edge);
+				}
+				for (let vkey in vertices_used) {
+					let used = false;
+					for (let fkey in mesh.faces) {
+						if (mesh.faces[fkey].vertices.includes(vkey)) {
+							used = true;
+							break;
 						}
-						side_vertices.forEach(vkey => {
-							let is_used;
-							for (let fkey2 in mesh.faces) {
-								if (mesh.faces[fkey2].vertices.includes(vkey)) {
-									is_used = true;
-									break;
-								}
-							}
-							if (!is_used) {
-								delete mesh.vertices[vkey];
-								selected_vertices.remove(vkey);
-							}
-						})
+					}
+					if (!used) {
+						delete mesh.vertices[vkey];
 					}
 				}
+				selected_vertices.empty();
 			})
 			Undo.finishEdit('Dissolve edges')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
