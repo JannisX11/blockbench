@@ -1022,7 +1022,7 @@ var codec = new Codec('bedrock', {
 	},
 	load(model, file, add) {
 		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
-		if (BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
+		if (isApp && BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
 		if (!add) {
 			setupProject(is_block ? block_format : entity_format);
 		}
@@ -1186,7 +1186,7 @@ var codec = new Codec('bedrock', {
 		}
 		if (geometries.length === 1) {
 			return parseGeometry(geometries[0]);
-		} else if (BedrockEntityManager.CurrentContext?.geometry) {
+		} else if (isApp && BedrockEntityManager.CurrentContext?.geometry) {
 			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
 		}
 
