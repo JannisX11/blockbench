@@ -1114,7 +1114,7 @@ const Animator = {
 			Animator.resetLastValues();
 			animations.forEach(animation => {
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-				if (controller_blend_values[animation.uuid]) multiplier *= controller_blend_values[animation.uuid];
+				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
 				animation.getBoneAnimator(node).displayFrame(multiplier);
 			})
 		})
@@ -1150,7 +1150,7 @@ const Animator = {
 			selected_state.animations.forEach(a => {
 				let animation = Animation.all.find(anim => a.animation == anim.uuid);
 				if (!animation) return;
-				let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+				let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
 				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
 				animations_to_play.push(animation);
 			})
@@ -1165,7 +1165,7 @@ const Animator = {
 				last_state.animations.forEach(a => {
 					let animation = Animation.all.find(anim => a.animation == anim.uuid);
 					if (!animation) return;
-					let user_blend_value = a.blend_value ? Animator.MolangParser.parse(a.blend_value) : 1;
+					let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
 					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
 					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
 					animations_to_play.push(animation);

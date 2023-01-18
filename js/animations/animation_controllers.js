@@ -146,8 +146,8 @@ class AnimationControllerState {
 		let object = {};
 		if (this.animations.length) {
 			object.animations = this.animations.map(animation => {
-				return animation.blend_value
-					? new oneLiner({[animation.key]: animation.blend_value})
+				return animation.blend_value.trim()
+					? new oneLiner({[animation.key]: animation.blend_value.trim()})
 					: animation.key;
 			})
 		}
@@ -643,6 +643,7 @@ class AnimationController extends AnimationItem {
 	select() {
 		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
+		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
 			a.selected = a.playing = false;
 		})
