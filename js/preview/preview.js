@@ -939,7 +939,7 @@ class Preview {
 						edges.splice(index, 1);
 					} else {
 						edges.push(data.vertices);
-						vertices.push(...data.vertices);
+						vertices.safePush(...data.vertices);
 					}
 				} else {
 					faces.empty();
