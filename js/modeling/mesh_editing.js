@@ -1563,9 +1563,9 @@ BARS.defineActions(function() {
 					let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
 					let cmd = args.shift();
 
-					if (cmd == 'o' || cmd == 'g') {
+					if (['o', 'g'].includes(cmd) || (cmd == 'v' && !mesh)) {
 						mesh = new Mesh({
-							name: args[0],
+							name: ['o', 'g'].includes(cmd) ? args[0] : 'unknown',
 							vertices: {}
 						})
 						vertex_keys = {};
