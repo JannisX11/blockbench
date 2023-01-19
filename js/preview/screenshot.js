@@ -55,77 +55,73 @@ const Screencam = {
 
 			preview.render()
 
-			if (options.crop == false && !options.width && !options.height) {
-				var dataUrl = preview.canvas.toDataURL()
-				Screencam.returnScreenshot(dataUrl, cb)
-				return;
-			}
-			
-			if (options.crop !== false && !(display_mode && display_slot === 'gui')) {
-				let frame = new CanvasFrame(preview.canvas);
-				frame.autoCrop()
+			if (options.crop !== false) {
 
-				if (options.width && options.height) {
-					let new_frame = new CanvasFrame(options.width, options.height)
-					let width = frame.width;
-					let height = frame.height;
-					if (width > options.width)   {height /= width / options.width;  width = options.width;}
-					if (height > options.height) {width /= height / options.height; height = options.height;}
-					new_frame.ctx.drawImage(frame.canvas, (options.width - width)/2, (options.height - height)/2, width, height)
-					frame = new_frame;
-				}
-
-				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
-				return;
-			}
-
-			var dataUrl = preview.canvas.toDataURL()
-			dataUrl = dataUrl.replace('data:image/png;base64,','')
-			Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
-				
-				if (display_mode && display_slot === 'gui' && options.crop !== false) {
+				if (display_mode && display_slot === 'gui') {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
-
+	
 					var start_x = display_preview.width *devicePixelRatio/2 - display_preview.controls.target.x*zoom*40 - resolution/2;
 					var start_y = display_preview.height*devicePixelRatio/2 + display_preview.controls.target.y*zoom*40 - resolution/2;
 					
-					image.crop(start_x, start_y, resolution, resolution)
-				} else {
-					if (options.crop !== false) {
-						image.autocrop([0, false])
-					}
-					if (options && options.width && options.height) {
-						image.contain(options.width, options.height)
-					}
-				}
+					let frame = new CanvasFrame(resolution, resolution)
+	
+					frame.ctx.drawImage(preview.canvas, start_x, start_y, resolution, resolution, 0, 0, resolution, resolution);
+					Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
 
-				image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
+				} else {
+					let frame = new CanvasFrame(preview.canvas);
+					frame.autoCrop()
+	
+					if (options.width && options.height) {
+						let new_frame = new CanvasFrame(options.width, options.height)
+						let width = frame.width;
+						let height = frame.height;
+						if (width > options.width)   {height /= width / options.width;  width = options.width;}
+						if (height > options.height) {width /= height / options.height; height = options.height;}
+						new_frame.ctx.drawImage(frame.canvas, (options.width - width)/2, (options.height - height)/2, width, height)
+						frame = new_frame;
+					}
+	
+					Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
+				}
+			} else {
+				
+				if (!options.width && !options.height) {
+					var dataUrl = preview.canvas.toDataURL()
 					Screencam.returnScreenshot(dataUrl, cb)
-				})
-			});
+
+				} else {	
+					let frame = new CanvasFrame(options.width, options.height)
+					let width = preview.canvas.width;
+					let height = preview.canvas.height;
+					if (width > options.width)   {height /= width / options.width;  width = options.width;}
+					if (height > options.height) {width /= height / options.height; height = options.height;}
+					frame.ctx.drawImage(preview.canvas, (options.width - width)/2, (options.height - height)/2, width, height)
+	
+					Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
+				}
+			}
 		})
 	},
-	fullScreen(options, cb) {
-		setTimeout(function() {
-			currentwindow.capturePage().then(function(screenshot) {
-				var dataUrl = screenshot.toDataURL()
+	fullScreen(options = 0, cb) {
+		setTimeout(async function() {
+			let screenshot = await currentwindow.capturePage();
+			let dataUrl = screenshot.toDataURL()
 
-				if (!(options && options.width && options.height)) {
-					Screencam.returnScreenshot(dataUrl, cb)
-					return;
-				}
+			if (!options.width && !options.height) {
+				Screencam.returnScreenshot(dataUrl, cb)
 
-				dataUrl = dataUrl.replace('data:image/png;base64,','')
-				Jimp.read(Buffer.from(dataUrl, 'base64')).then(function(image) { 
+			} else {
+				let frame = await new CanvasFrame().loadFromURL(dataUrl);
+				let width = frame.width;
+				let height = frame.height;
+				if (width > options.width)   {height /= width / options.width;  width = options.width;}
+				if (height > options.height) {width /= height / options.height; height = options.height;}
+				frame.ctx.drawImage(frame, (options.width - width)/2, (options.height - height)/2, width, height)
 
-					image.contain(options.width, options.height)
-
-					image.getBase64(Jimp.MIME_PNG, function(a, dataUrl){
-						Screencam.returnScreenshot(dataUrl, cb)
-					})
-				});
-			})
+				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb)
+			}
 		}, 40)
 	},
 	screenshot2DEditor(options = 0, cb) {
@@ -138,7 +134,7 @@ const Screencam = {
 		if (tex) {
 			ctx.drawImage(tex.img, 0, 0, canvas.width, canvas.height);
 		}
-		var dataUrl = canvas.toDataURL();
+		let dataUrl = canvas.toDataURL();
 		Screencam.returnScreenshot(dataUrl, cb);
 		return;
 	},
