@@ -323,8 +323,12 @@ const Screencam = {
 					// Update camera
 					NoAAPreview.controls.target.copy(preview.controls.target);
 					NoAAPreview.camera.position.copy(preview.camera.position);
-					if (NoAAPreview.isOrtho && NoAAPreview.camera.zoom != preview.camera.zoom) {
+					if (NoAAPreview.isOrtho) {
 						NoAAPreview.camera.zoom = preview.camera.zoom;
+						NoAAPreview.camera.top = preview.camera.top;
+						NoAAPreview.camera.bottom = preview.camera.bottom;
+						NoAAPreview.camera.right = preview.camera.right;
+						NoAAPreview.camera.left = preview.camera.left;
 						NoAAPreview.camOrtho.updateProjectionMatrix();
 					}
 

@@ -805,7 +805,6 @@ window.Dialog = class Dialog {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
 	}
-	static stack = []
 }
 window.Dialog.stack = [];
 

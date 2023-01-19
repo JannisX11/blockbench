@@ -492,6 +492,8 @@ function setupProject(format) {
 		Modes.options.edit.select();
 	} else if (format.paint_mode) {
 		Modes.options.paint.select();
+	} else if (format.animation_mode) {
+		Modes.options.animate.select();
 	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, false)
