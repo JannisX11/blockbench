@@ -739,8 +739,10 @@ BARS.defineActions(function() {
 
 						let face;
 						for (let fkey in mesh.faces) {
-							if (mesh.faces[fkey].vertices.filter(vkey => original_vertices.includes(vkey)).length >= 2 && mesh.faces[fkey].vertices.length > 2) {
-								face = mesh.faces[fkey];
+							let face2 = mesh.faces[fkey];
+							let face_selected_vertices = face2.vertices.filter(vkey => original_vertices.includes(vkey));
+							if (face_selected_vertices.length >= 2 && face_selected_vertices.length < face2.vertices.length && face2.vertices.length > 2) {
+								face = face2;
 								break;
 							}
 						}
@@ -1255,24 +1257,33 @@ BARS.defineActions(function() {
 							adjacent_fkeys.push(fkey);
 						}
 					}
-					// Connect adjacent tris
-					let tris = adjacent_fkeys.filter(fkey => mesh.faces[fkey].vertices.length == 3);
-					if (tris.length == 2) {
-						let face_a = mesh.faces[tris[0]],
-							face_b = mesh.faces[tris[1]];
-						let vertex_from_a = face_a.vertices.find(vkey => edge.indexOf(vkey) == -1);
-						let uv_from_a = face_a.uv[vertex_from_a];
+					// Connect adjacent faces
+					let keep_faces = adjacent_fkeys.length >= 2;
+					if (keep_faces) {
+						let face_a = mesh.faces[adjacent_fkeys[0]],
+							face_b = mesh.faces[adjacent_fkeys[1]];
+						let vertices_from_a = face_a.vertices.filter(vkey => edge.indexOf(vkey) == -1);
 						
-						delete mesh.faces[tris[0]];
-						adjacent_fkeys.remove(tris[0]);
+						delete mesh.faces[adjacent_fkeys[0]];
+						adjacent_fkeys.remove(adjacent_fkeys[0]);
 
-						face_b.vertices.push(vertex_from_a);
-						face_b.uv[vertex_from_a] = uv_from_a ? uv_from_a.slice() : [0, 0];
+						face_b.vertices.safePush(...vertices_from_a);
+						vertices_from_a.forEach((vkey, i) => {
+							face_b.uv[vkey] = face_a.uv[vkey] ? face_a.uv[vkey].slice() : [0, 0];
+						})
+						// Ensure face has no more than 4 vertices
+						edge.forEach(edge_vkey => {
+							if (face_b.vertices.length > 4) {
+								face_b.vertices.remove(edge_vkey);
+								delete face_b.uv[edge_vkey];
+							}
+						})
 					}
+					
 					// Remove all other faces and lines
-					adjacent_fkeys.forEach(fkey => {
+					adjacent_fkeys.forEach((fkey, i) => {
 						let face = mesh.faces[fkey];
-						if (face && (tris.length != 2 || !tris.includes(fkey))) {
+						if (face && (i > 1 || !keep_faces)) {
 							delete mesh.faces[fkey];
 						}
 					})
