@@ -575,12 +575,12 @@ class AnimationController extends AnimationItem {
 						if (typeof controller.states == 'object') {
 							for (let state_name in controller.states) {
 								let state = controller.states[state_name];
-								if (typeof state.animations instanceof Array) {
+								if (state.animations instanceof Array) {
 									state.animations.forEach((a, i) => {
 										if (typeof a == 'object') state.animations[i] = new oneLiner(a);
 									})
 								}
-								if (typeof state.transitions instanceof Array) {
+								if (state.transitions instanceof Array) {
 									state.transitions.forEach((t, i) => {
 										if (typeof t == 'object') state.transitions[i] = new oneLiner(t);
 									})
@@ -945,6 +945,20 @@ AnimationController.presets = [
 		}
 	}
 ];
+
+Blockbench.on('finish_edit', event => {
+	if (!Format.animation_controllers) return;
+	if (event.aspects.animation_controllers) {
+		event.aspects.animation_controllers.forEach(controller => {
+			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(animation)) {
+				controller.saved = false;
+			}
+		})
+	}
+	if (event.aspects.animation_controller_state && AnimationController.selected) {
+		AnimationController.selected.saved = false;
+	}
+})
 
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
