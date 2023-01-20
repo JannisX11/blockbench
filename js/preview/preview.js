@@ -384,6 +384,8 @@ class Preview {
 						objects.push(element.mesh.outline);
 					}
 				}
+			} else if (element instanceof Locator) {
+				objects.push(element.mesh.sprite);
 			}
 		})
 		if (Group.selected && Group.selected.mesh.vertex_points) {
