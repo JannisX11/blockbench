@@ -962,7 +962,7 @@ Blockbench.on('finish_edit', event => {
 
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'timeline',
+		icon: 'cable',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
