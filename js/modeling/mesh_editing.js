@@ -314,6 +314,7 @@ BARS.defineActions(function() {
 			add_mesh_dialog.show();
 		}
 	})
+	let previous_selection_mode = 'object';
 	new BarSelect('selection_mode', {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
@@ -325,6 +326,7 @@ BARS.defineActions(function() {
 		icon_mode: true,
 		condition: () => Modes.edit && Mesh.all.length,
 		onChange({value}) {
+			if (value === previous_selection_mode) return;
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
 					delete Project.mesh_selection[mesh.uuid];
@@ -340,7 +342,65 @@ BARS.defineActions(function() {
 					}
 				})
 			}
+			if (value == 'edge') {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					edges.empty();
+				})
+			}
+			if (value == 'edge' && ['face', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					let faces = mesh.getSelectedFaces(true);
+					faces.forEach(fkey => {
+						let face = mesh.faces[fkey];
+						let vertices = face.getSortedVertices();
+						vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (vertices[i+1] || vertices[0])];
+							if (!edges.find(edge2 => sameMeshEdge(edge2, edge))) {
+								edges.push(edge);
+							}
+						})
+					})
+					faces.empty();
+				})
+			}
+			if (value == 'edge' && ['vertex', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					let vertices = mesh.getSelectedFaces(true);
+					if (!vertices.length) return;
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let f_vertices = face.getSortedVertices();
+						f_vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+							if (!vertices.includes(edge[0]) || !vertices.includes(edge[1])) return;
+							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
+							edges.push(edge);
+						})
+					}
+				})
+			}
+			if (value == 'vertex' && ['face', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let faces = mesh.getSelectedFaces(true);
+					faces.empty();
+				})
+			}
+			if (value == 'vertex' && ['edge', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					edges.empty();
+				})
+			}
+			/**
+			 * Face To Edge
+			 * Edge To Face
+			 * 
+			 */
 			updateSelection();
+			previous_selection_mode = value;
 		}
 	})
 	
@@ -662,6 +722,7 @@ BARS.defineActions(function() {
 
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices().slice();
+					let selected_edges = mesh.getSelectedEdges();
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
@@ -671,6 +732,9 @@ BARS.defineActions(function() {
 					selected_faces.forEach(face => {
 						original_vertices.safePush(...face.vertices);
 					})
+					selected_edges.forEach(edge => {
+						original_vertices.safePush(...edge);
+					})
 
 					if (original_vertices.length >= 3 && !selected_faces.length) {
 						let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
@@ -679,8 +743,10 @@ BARS.defineActions(function() {
 
 						let face;
 						for (let fkey in mesh.faces) {
-							if (mesh.faces[fkey].vertices.filter(vkey => original_vertices.includes(vkey)).length >= 2 && mesh.faces[fkey].vertices.length > 2) {
-								face = mesh.faces[fkey];
+							let face2 = mesh.faces[fkey];
+							let face_selected_vertices = face2.vertices.filter(vkey => original_vertices.includes(vkey));
+							if (face_selected_vertices.length >= 2 && face_selected_vertices.length < face2.vertices.length && face2.vertices.length > 2) {
+								face = face2;
 								break;
 							}
 						}
@@ -781,38 +847,33 @@ BARS.defineActions(function() {
 						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
 
-					// Create Face between extruded line
-					let line_vertices = remaining_vertices.slice();
-					let covered_edges = [];
+					// Create Face between extruded edges
 					let new_faces = [];
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey];
-						let sorted_vertices = face.getSortedVertices();
-						let matched_vertices = sorted_vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
-						if (matched_vertices.length >= 2) {
-							let already_handled_edge = covered_edges.find(edge => edge.includes(matched_vertices[0]) && edge.includes(matched_vertices[1]))
-							if (already_handled_edge) {
-								let handled_face = new_faces[covered_edges.indexOf(already_handled_edge)]
-								if (handled_face) handled_face.invert();
-								continue;
+					selected_edges.forEach(edge => {
+						let face, sorted_vertices;
+						for (let fkey in mesh.faces) {
+							let face2 = mesh.faces[fkey];
+							let vertices = face2.getSortedVertices();
+							if (vertices.includes(edge[0]) && vertices.includes(edge[1])) {
+								face = face2;
+								sorted_vertices = vertices;
+								break;
 							}
-							covered_edges.push(matched_vertices.slice(0, 2));
-
-							if (sorted_vertices[0] == matched_vertices[0] && sorted_vertices[1] != matched_vertices[1]) {
-								matched_vertices.reverse();
-							}
-							let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
-							let [c, d] = matched_vertices;
-							let new_face = new MeshFace(mesh, face).extend({
-								vertices: [a, b, c, d]
-							});
-							let [face_key] = mesh.addFaces(new_face);
-							new_face_keys.push(face_key);
-							new_faces.push(new_face);
-							remaining_vertices.remove(a);
-							remaining_vertices.remove(b);
 						}
-					}
+						if (sorted_vertices[0] == edge[0] && sorted_vertices[1] != edge[1]) {
+							edge.reverse();
+						}
+						let [a, b] = edge.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
+						let [c, d] = edge;
+						let new_face = new MeshFace(mesh, face).extend({
+							vertices: [a, b, c, d]
+						});
+						let [face_key] = mesh.addFaces(new_face);
+						new_face_keys.push(face_key);
+						new_faces.push(new_face);
+						remaining_vertices.remove(a);
+						remaining_vertices.remove(b);
+					})
 
 					// Create line between points
 					remaining_vertices.forEach(a => {
@@ -996,7 +1057,7 @@ BARS.defineActions(function() {
 
 			function runEdit(amended, offset, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
-				if (offset == undefined) offset = Math.floor(length/2);
+				if (offset == undefined) offset = length / 2;
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
@@ -1151,7 +1212,7 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
+				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
 			}, (form, form_options) => {
 				let direction = form.direction || 0;
 				length = getLength(direction);
@@ -1159,7 +1220,7 @@ BARS.defineActions(function() {
 				form_options.offset.slider.settings.max = length;
 				if(saved_direction !== direction)
 				{
-					form_options.offset.slider.value = Math.floor(length/2);
+					form_options.offset.slider.value = length/2;
 					form_options.offset.slider.update();
 					saved_direction = direction;
 				}
@@ -1195,24 +1256,33 @@ BARS.defineActions(function() {
 							adjacent_fkeys.push(fkey);
 						}
 					}
-					// Connect adjacent tris
-					let tris = adjacent_fkeys.filter(fkey => mesh.faces[fkey].vertices.length == 3);
-					if (tris.length == 2) {
-						let face_a = mesh.faces[tris[0]],
-							face_b = mesh.faces[tris[1]];
-						let vertex_from_a = face_a.vertices.find(vkey => edge.indexOf(vkey) == -1);
-						let uv_from_a = face_a.uv[vertex_from_a];
+					// Connect adjacent faces
+					let keep_faces = adjacent_fkeys.length >= 2;
+					if (keep_faces) {
+						let face_a = mesh.faces[adjacent_fkeys[0]],
+							face_b = mesh.faces[adjacent_fkeys[1]];
+						let vertices_from_a = face_a.vertices.filter(vkey => edge.indexOf(vkey) == -1);
 						
-						delete mesh.faces[tris[0]];
-						adjacent_fkeys.remove(tris[0]);
+						delete mesh.faces[adjacent_fkeys[0]];
+						adjacent_fkeys.remove(adjacent_fkeys[0]);
 
-						face_b.vertices.push(vertex_from_a);
-						face_b.uv[vertex_from_a] = uv_from_a ? uv_from_a.slice() : [0, 0];
+						face_b.vertices.safePush(...vertices_from_a);
+						vertices_from_a.forEach((vkey, i) => {
+							face_b.uv[vkey] = face_a.uv[vkey] ? face_a.uv[vkey].slice() : [0, 0];
+						})
+						// Ensure face has no more than 4 vertices
+						edge.forEach(edge_vkey => {
+							if (face_b.vertices.length > 4) {
+								face_b.vertices.remove(edge_vkey);
+								delete face_b.uv[edge_vkey];
+							}
+						})
 					}
+					
 					// Remove all other faces and lines
-					adjacent_fkeys.forEach(fkey => {
+					adjacent_fkeys.forEach((fkey, i) => {
 						let face = mesh.faces[fkey];
-						if (face && (tris.length != 2 || !tris.includes(fkey))) {
+						if (face && (i > 1 || !keep_faces)) {
 							delete mesh.faces[fkey];
 						}
 					})
@@ -1563,9 +1633,9 @@ BARS.defineActions(function() {
 					let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
 					let cmd = args.shift();
 
-					if (cmd == 'o' || cmd == 'g') {
+					if (['o', 'g'].includes(cmd) || (cmd == 'v' && !mesh)) {
 						mesh = new Mesh({
-							name: args[0],
+							name: ['o', 'g'].includes(cmd) ? args[0] : 'unknown',
 							vertices: {}
 						})
 						vertex_keys = {};

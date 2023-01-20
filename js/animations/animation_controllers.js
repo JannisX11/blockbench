@@ -146,8 +146,8 @@ class AnimationControllerState {
 		let object = {};
 		if (this.animations.length) {
 			object.animations = this.animations.map(animation => {
-				return animation.blend_value
-					? new oneLiner({[animation.key]: animation.blend_value})
+				return animation.blend_value.trim()
+					? new oneLiner({[animation.key]: animation.blend_value.trim()})
 					: animation.key;
 			})
 		}
@@ -575,12 +575,12 @@ class AnimationController extends AnimationItem {
 						if (typeof controller.states == 'object') {
 							for (let state_name in controller.states) {
 								let state = controller.states[state_name];
-								if (typeof state.animations instanceof Array) {
+								if (state.animations instanceof Array) {
 									state.animations.forEach((a, i) => {
 										if (typeof a == 'object') state.animations[i] = new oneLiner(a);
 									})
 								}
-								if (typeof state.transitions instanceof Array) {
+								if (state.transitions instanceof Array) {
 									state.transitions.forEach((t, i) => {
 										if (typeof t == 'object') state.transitions[i] = new oneLiner(t);
 									})
@@ -643,6 +643,7 @@ class AnimationController extends AnimationItem {
 	select() {
 		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
+		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
 			a.selected = a.playing = false;
 		})
@@ -747,7 +748,7 @@ class AnimationController extends AnimationItem {
 		}
 		AnimationController.all.remove(this)
 		if (undo) {
-			Undo.finishEdit('Remove animation', {animation_controllers: []})
+			Undo.finishEdit('Remove animation controller', {animation_controllers: []})
 
 			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
@@ -760,10 +761,10 @@ class AnimationController extends AnimationItem {
 					if (result == 0) {
 						let content = fs.readFileSync(this.path, 'utf-8');
 						let json = autoParseJSON(content, false);
-						if (json && json.animations && json.animations[this.name]) {
-							delete json.animations[this.name];
+						if (json && json.animation_controllers && json.animation_controllers[this.name]) {
+							delete json.animation_controllers[this.name];
 							Blockbench.writeFile(this.path, {content: compileJSON(json)});
-							Undo.history.last().before.animations[this.uuid].saved = false
+							Undo.history.last().before.animation_controllers[this.uuid].saved = false
 						}
 					}
 				})
@@ -945,9 +946,23 @@ AnimationController.presets = [
 	}
 ];
 
+Blockbench.on('finish_edit', event => {
+	if (!Format.animation_controllers) return;
+	if (event.aspects.animation_controllers) {
+		event.aspects.animation_controllers.forEach(controller => {
+			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(animation)) {
+				controller.saved = false;
+			}
+		})
+	}
+	if (event.aspects.animation_controller_state && AnimationController.selected) {
+		AnimationController.selected.saved = false;
+	}
+})
+
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'timeline',
+		icon: 'cable',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',

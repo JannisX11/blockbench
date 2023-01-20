@@ -214,14 +214,47 @@ function selectAll() {
 		UVEditor.selectAll()
 
 	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
-		let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-		Mesh.selected.forEach(mesh => {
-			if (unselect) {
-				delete Project.mesh_selection[mesh.uuid];
-			} else {
-				mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-			}
-		})
+		let selection_mode = BarItems.selection_mode.value;
+		if (selection_mode == 'vertex') {
+			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					mesh.getSelectedVertices(true).empty();
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+				}
+			})
+		} else if (selection_mode == 'edge') {
+			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					mesh.getSelectedVertices(true).empty();
+					mesh.getSelectedEdges(true).empty();
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+					let edges = mesh.getSelectedEdges(true);
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let f_vertices = face.getSortedVertices();
+						f_vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
+							edges.push(edge);
+						})
+					}
+				}
+			})
+		} else {
+			let unselect = Mesh.selected[0].getSelectedFaces().length == Object.keys(Mesh.selected[0].faces).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					delete Project.mesh_selection[mesh.uuid];
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+					mesh.getSelectedFaces(true).replace(Object.keys(mesh.faces));
+				}
+			})
+		}
 		updateSelection();
 
 	} else if (Modes.edit || Modes.paint) {

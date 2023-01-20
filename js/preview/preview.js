@@ -384,6 +384,8 @@ class Preview {
 						objects.push(element.mesh.outline);
 					}
 				}
+			} else if (element instanceof Locator) {
+				objects.push(element.mesh.sprite);
 			}
 		})
 		if (Group.selected && Group.selected.mesh.vertex_points) {
@@ -939,7 +941,7 @@ class Preview {
 						edges.splice(index, 1);
 					} else {
 						edges.push(data.vertices);
-						vertices.push(...data.vertices);
+						vertices.safePush(...data.vertices);
 					}
 				} else {
 					faces.empty();
@@ -1244,7 +1246,7 @@ class Preview {
 									let p1 = vertex_points[vkey];
 									let p2 = vertex_points[vkey2];
 									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
-										mesh_selection.vertices.safePush(vkey);
+										mesh_selection.vertices.safePush(vkey, vkey2);
 										let edge = [vkey, vkey2];
 										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
 											mesh_selection.edges.push(edge);

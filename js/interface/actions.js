@@ -1822,8 +1822,8 @@ const BARS = {
 						TickUpdates.selection = true;
 						Undo.finishEdit('Delete elements')
 
-					} else if (Prop.active_panel == 'animations' && Animation.selected) {
-						Animation.selected.remove(true)
+					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
+						AnimationItem.selected.remove(true)
 
 					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
 						AnimationController.selected?.selected_state.remove(true);

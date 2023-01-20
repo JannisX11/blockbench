@@ -133,18 +133,26 @@ OutlinerElement.registerType(Locator, 'locator');
 
 	new NodePreviewController(Locator, {
 		setup(element) {
-			let material = new THREE.SpriteMaterial({
-				map,
-				alphaTest: 0.1,
-				sizeAttenuation: false
-			});
-			var mesh = new THREE.Sprite(material);
+			let mesh = new THREE.Object3D();
 			Project.nodes_3d[element.uuid] = mesh;
 			mesh.name = element.uuid;
 			mesh.type = element.type;
 			mesh.isElement = true;
 			mesh.visible = element.visibility;
 			mesh.rotation.order = 'ZYX';
+
+			let material = new THREE.SpriteMaterial({
+				map,
+				alphaTest: 0.1,
+				sizeAttenuation: false
+			});
+			let sprite = new THREE.Sprite(material);
+			sprite.name = element.uuid;
+			sprite.type = element.type;
+			sprite.isElement = true;
+			mesh.add(sprite);
+			mesh.sprite = sprite;
+
 			this.updateTransform(element);
 
 			this.dispatchEvent('setup', {element});
@@ -156,15 +164,15 @@ OutlinerElement.registerType(Locator, 'locator');
 		updateSelection(element) {
 			let {mesh} = element;
 
-			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
-			mesh.material.depthTest = !element.selected;
+			mesh.sprite.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+			mesh.sprite.material.depthTest = !element.selected;
 			mesh.renderOrder = element.selected ? 100 : 0;
 
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
 			let size = 18 / Preview.selected.height;
-			element.mesh.scale.set(size, size, size);
+			element.mesh.sprite.scale.set(size, size, size);
 		}
 	})
 

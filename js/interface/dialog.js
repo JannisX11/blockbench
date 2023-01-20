@@ -805,7 +805,6 @@ window.Dialog = class Dialog {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
 	}
-	static stack = []
 }
 window.Dialog.stack = [];
 
@@ -814,6 +813,7 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 		super(id, options);
 
 		if (options.build) this.build = options.build;
+		if (options.onClose) this.onClose = options.onClose;
 	}
 	close(button, event) {
 		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
@@ -822,6 +822,10 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 		}
 		if (button == this.cancelIndex && typeof this.onCancel == 'function') {
 			let result = this.onCancel(event);
+			if (result === false) return;
+		}
+		if (typeof this.onClose == 'function') {
+			let result = this.onClose(event);
 			if (result === false) return;
 		}
 		this.hide();
@@ -839,7 +843,7 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 		}
 	}
 	delete() {
-		this.object.remove()
+		if (this.object) this.object.remove()
 	}
 }
 
@@ -939,7 +943,7 @@ window.MessageBox = class MessageBox extends Dialog {
 		}
 	}
 	delete() {
-		this.object.remove()
+		if (this.object) this.object.remove()
 	}
 }
 
