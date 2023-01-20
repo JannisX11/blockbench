@@ -748,7 +748,7 @@ class AnimationController extends AnimationItem {
 		}
 		AnimationController.all.remove(this)
 		if (undo) {
-			Undo.finishEdit('Remove animation', {animation_controllers: []})
+			Undo.finishEdit('Remove animation controller', {animation_controllers: []})
 
 			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
@@ -761,10 +761,10 @@ class AnimationController extends AnimationItem {
 					if (result == 0) {
 						let content = fs.readFileSync(this.path, 'utf-8');
 						let json = autoParseJSON(content, false);
-						if (json && json.animations && json.animations[this.name]) {
-							delete json.animations[this.name];
+						if (json && json.animation_controllers && json.animation_controllers[this.name]) {
+							delete json.animation_controllers[this.name];
 							Blockbench.writeFile(this.path, {content: compileJSON(json)});
-							Undo.history.last().before.animations[this.uuid].saved = false
+							Undo.history.last().before.animation_controllers[this.uuid].saved = false
 						}
 					}
 				})
