@@ -314,6 +314,7 @@ BARS.defineActions(function() {
 			add_mesh_dialog.show();
 		}
 	})
+	let previous_selection_mode = 'object';
 	new BarSelect('selection_mode', {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
@@ -325,6 +326,7 @@ BARS.defineActions(function() {
 		icon_mode: true,
 		condition: () => Modes.edit && Mesh.all.length,
 		onChange({value}) {
+			if (value === previous_selection_mode) return;
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
 					delete Project.mesh_selection[mesh.uuid];
@@ -340,7 +342,65 @@ BARS.defineActions(function() {
 					}
 				})
 			}
+			if (value == 'edge') {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					edges.empty();
+				})
+			}
+			if (value == 'edge' && ['face', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					let faces = mesh.getSelectedFaces(true);
+					faces.forEach(fkey => {
+						let face = mesh.faces[fkey];
+						let vertices = face.getSortedVertices();
+						vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (vertices[i+1] || vertices[0])];
+							if (!edges.find(edge2 => sameMeshEdge(edge2, edge))) {
+								edges.push(edge);
+							}
+						})
+					})
+					faces.empty();
+				})
+			}
+			if (value == 'edge' && ['vertex', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					let vertices = mesh.getSelectedFaces(true);
+					if (!vertices.length) return;
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let f_vertices = face.getSortedVertices();
+						f_vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+							if (!vertices.includes(edge[0]) || !vertices.includes(edge[1])) return;
+							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
+							edges.push(edge);
+						})
+					}
+				})
+			}
+			if (value == 'vertex' && ['face', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let faces = mesh.getSelectedFaces(true);
+					faces.empty();
+				})
+			}
+			if (value == 'vertex' && ['edge', 'cluster'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let edges = mesh.getSelectedEdges(true);
+					edges.empty();
+				})
+			}
+			/**
+			 * Face To Edge
+			 * Edge To Face
+			 * 
+			 */
 			updateSelection();
+			previous_selection_mode = value;
 		}
 	})
 	
@@ -996,7 +1056,7 @@ BARS.defineActions(function() {
 
 			function runEdit(amended, offset, direction = 0) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
-				if (offset == undefined) offset = Math.floor(length/2);
+				if (offset == undefined) offset = length / 2;
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
 					let start_face;
@@ -1151,7 +1211,7 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				//cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: Math.floor(length/2), label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
+				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
 			}, (form, form_options) => {
 				let direction = form.direction || 0;
 				length = getLength(direction);
@@ -1159,7 +1219,7 @@ BARS.defineActions(function() {
 				form_options.offset.slider.settings.max = length;
 				if(saved_direction !== direction)
 				{
-					form_options.offset.slider.value = Math.floor(length/2);
+					form_options.offset.slider.value = length/2;
 					form_options.offset.slider.update();
 					saved_direction = direction;
 				}
