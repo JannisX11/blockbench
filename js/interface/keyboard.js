@@ -642,9 +642,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 					}
 
 				} else if (next.hasClass('nslide')) {
-					setTimeout(() => {
-						BarItems[next.attr('n-action')].startInput(e);
-					}, 50)
+					let n_action = next.attr('n-action');
+					let slider = BarItems[n_action] || UVEditor.sliders[n_action.replace('uv_slider_', '')];
+					if (slider) {
+						setTimeout(() => slider.startInput(e), 50);
+					}
 				} else {
 					event.preventDefault();
 					next.trigger('focus').trigger('click');
