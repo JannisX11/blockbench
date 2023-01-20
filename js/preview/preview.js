@@ -1246,7 +1246,7 @@ class Preview {
 									let p1 = vertex_points[vkey];
 									let p2 = vertex_points[vkey2];
 									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
-										mesh_selection.vertices.safePush(vkey);
+										mesh_selection.vertices.safePush(vkey, vkey2);
 										let edge = [vkey, vkey2];
 										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
 											mesh_selection.edges.push(edge);

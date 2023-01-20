@@ -722,6 +722,7 @@ BARS.defineActions(function() {
 
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices().slice();
+					let selected_edges = mesh.getSelectedEdges();
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
@@ -730,6 +731,9 @@ BARS.defineActions(function() {
 
 					selected_faces.forEach(face => {
 						original_vertices.safePush(...face.vertices);
+					})
+					selected_edges.forEach(edge => {
+						original_vertices.safePush(...edge);
 					})
 
 					if (original_vertices.length >= 3 && !selected_faces.length) {
@@ -843,38 +847,33 @@ BARS.defineActions(function() {
 						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
 
-					// Create Face between extruded line
-					let line_vertices = remaining_vertices.slice();
-					let covered_edges = [];
+					// Create Face between extruded edges
 					let new_faces = [];
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey];
-						let sorted_vertices = face.getSortedVertices();
-						let matched_vertices = sorted_vertices.filter(vkey => line_vertices.includes(new_vertices[original_vertices.indexOf(vkey)]));
-						if (matched_vertices.length >= 2) {
-							let already_handled_edge = covered_edges.find(edge => edge.includes(matched_vertices[0]) && edge.includes(matched_vertices[1]))
-							if (already_handled_edge) {
-								let handled_face = new_faces[covered_edges.indexOf(already_handled_edge)]
-								if (handled_face) handled_face.invert();
-								continue;
+					selected_edges.forEach(edge => {
+						let face, sorted_vertices;
+						for (let fkey in mesh.faces) {
+							let face2 = mesh.faces[fkey];
+							let vertices = face2.getSortedVertices();
+							if (vertices.includes(edge[0]) && vertices.includes(edge[1])) {
+								face = face2;
+								sorted_vertices = vertices;
+								break;
 							}
-							covered_edges.push(matched_vertices.slice(0, 2));
-
-							if (sorted_vertices[0] == matched_vertices[0] && sorted_vertices[1] != matched_vertices[1]) {
-								matched_vertices.reverse();
-							}
-							let [a, b] = matched_vertices.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
-							let [c, d] = matched_vertices;
-							let new_face = new MeshFace(mesh, face).extend({
-								vertices: [a, b, c, d]
-							});
-							let [face_key] = mesh.addFaces(new_face);
-							new_face_keys.push(face_key);
-							new_faces.push(new_face);
-							remaining_vertices.remove(a);
-							remaining_vertices.remove(b);
 						}
-					}
+						if (sorted_vertices[0] == edge[0] && sorted_vertices[1] != edge[1]) {
+							edge.reverse();
+						}
+						let [a, b] = edge.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
+						let [c, d] = edge;
+						let new_face = new MeshFace(mesh, face).extend({
+							vertices: [a, b, c, d]
+						});
+						let [face_key] = mesh.addFaces(new_face);
+						new_face_keys.push(face_key);
+						new_faces.push(new_face);
+						remaining_vertices.remove(a);
+						remaining_vertices.remove(b);
+					})
 
 					// Create line between points
 					remaining_vertices.forEach(a => {
