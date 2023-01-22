@@ -363,20 +363,20 @@
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
 	}
-	.outliner_node .outliner_object i {
+	.outliner_object > i {
 		flex: 0 0 20px;
 		text-align: center;
 		padding-top: 4px;
 		overflow: hidden;
 	}
-	.outliner_node .outliner_object i[class*=" icon-"]:not(.fa) {
+	.outliner_object > i[class*=" icon-"]:not(.fa) {
 		padding-top: 0px;
 	}
-	.outliner_node .outliner_object i.icon_off {
+	.outliner_object > i.icon_off {
 		color: var(--color-subtle_text);
 	}
 	.outliner_object > i.material-icons,
-	#outliner_drag_helper i.material-icons {
+	#outliner_drag_helper > i.material-icons {
 		padding-top: 2px;
 		width: 20px;
 		font-size: 19px;
@@ -476,7 +476,7 @@
 		padding-right: 5px;
 		padding-left: 5px;
 	}
-	.outliner_object > input {
+	input.cube_name {
 		width: 0;
 		flex: 1 0 0;
 		padding-right: 5px;
@@ -484,10 +484,10 @@
 		pointer-events: none;
 		color: inherit;
 	}
-	.outliner_object > input.renaming {
+	input.cube_name.renaming {
 		pointer-events: auto;
 	}
-	.outliner_object input.cube_name.locked {
+	input.cube_name.locked {
 		color: var(--color-subtle_text);
 	}
 	i.outliner_toggle {
@@ -2006,8 +2006,8 @@ span.controller_state_section_info {
 		pointer-events: none;
 		z-index: 1;
 	}
-	.cube_uv_face.unselected div,
-	.cube_box_uv.unselected div {
+	.cube_uv_face.unselected > div,
+	.cube_box_uv.unselected > div {
 		border-color: var(--color-uv-unselected) !important;
 	}
 

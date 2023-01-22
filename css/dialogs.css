@@ -1566,17 +1566,17 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		clear: both;
 		display: flex;
 	}
-	.contrast_graph_selector div {
+	.contrast_graph_selector > div {
 		flex-basis: 0;
 		flex-grow: 1;
 		padding-top: 2px;
 		text-align: center;
 		cursor: pointer;
 	}
-	.contrast_graph_selector div:hover {
+	.contrast_graph_selector > div:hover {
 		color: var(--color-light);
 	}
-	.contrast_graph_selector div.selected {
+	.contrast_graph_selector > div.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}

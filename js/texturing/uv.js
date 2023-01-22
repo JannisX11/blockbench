@@ -1866,6 +1866,15 @@ Interface.definePanels(function() {
 						lines.push(`M${x*size} ${0} L${x*size} ${this.inner_height}`);
 					}
 					return lines.join(' ');
+				},
+				displayed_uv_elements() {
+					if (this.mode == 'uv' || this.uv_overlay) {
+						return (this.display_uv === 'all_elements' || this.mode == 'paint')
+							 ? this.all_mappable_elements
+							 : this.mappable_elements;
+					} else {
+						return [];
+					}
 				}
 			},
 			watch: {
@@ -3135,7 +3144,7 @@ Interface.definePanels(function() {
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
 						>
 
-							<template id="uv_allocations" v-if="mode == 'uv' || uv_overlay" v-for="element in ((display_uv === 'all_elements' || mode == 'paint') ? all_mappable_elements : mappable_elements)">
+							<template v-for="element in displayed_uv_elements">
 
 								<template v-if="element.type == 'cube' && !element.box_uv">
 									<div class="cube_uv_face"

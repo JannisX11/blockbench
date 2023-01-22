@@ -102,8 +102,10 @@ function updateSelection(options = {}) {
 		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
 		}
-		if (obj instanceof Mesh) {
-			if (Project.mesh_selection[obj.uuid]) {
+		if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
+			if (!included) {
+				delete Project.mesh_selection[obj.uuid];
+			} else {
 				Project.mesh_selection[obj.uuid].vertices.forEachReverse(vkey => {
 					if (vkey in obj.vertices == false) {
 						Project.mesh_selection[obj.uuid].vertices.remove(vkey);
@@ -119,9 +121,6 @@ function updateSelection(options = {}) {
 						Project.mesh_selection[obj.uuid].faces.remove(fkey);
 					}
 				})
-			}
-			if (Project.mesh_selection[obj.uuid] && (Project.mesh_selection[obj.uuid].vertices.length == 0 || !obj.selected)) {
-				delete Project.mesh_selection[obj.uuid];
 			}
 		}
 	})
