@@ -208,7 +208,7 @@ class AnimationControllerState {
 				media.pause();
 			}
 		})
-		this.playing_sounds.empty();1
+		this.playing_sounds.empty();
 	}
 	playEffects() {
 		if (!this.muted.sound) {
@@ -720,7 +720,6 @@ class AnimationController extends AnimationItem {
 			this.playing = state !== undefined ? state : !this.playing;
 			Animator.preview();
 		} else {
-			Timeline.start();
 		}
 		return this.playing;
 	}

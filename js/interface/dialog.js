@@ -844,6 +844,7 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 	}
 	delete() {
 		if (this.object) this.object.remove()
+		this.object = null;
 	}
 }
 
@@ -944,6 +945,7 @@ window.MessageBox = class MessageBox extends Dialog {
 	}
 	delete() {
 		if (this.object) this.object.remove()
+		this.object = null;
 	}
 }
 
