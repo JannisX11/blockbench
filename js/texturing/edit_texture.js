@@ -10,6 +10,7 @@ BARS.defineActions(function() {
 	}
 	let show_preview = true;
 
+	// Adjustments
 	new Action('invert_colors', {
 		icon: 'invert_colors',
 		category: 'textures',
@@ -514,6 +515,48 @@ BARS.defineActions(function() {
 		}
 	})
 
+	// Effects
+	new Action('limit_to_palette', {
+		icon: 'blur_linear',
+		category: 'textures',
+		condition: {modes: ['paint'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				texture.edit((canvas) => {
+					let ctx = canvas.getContext('2d');
+					var palette = {};
+					ColorPanel.palette.forEach(color => {
+						palette[color] = tinycolor(color);
+					})
+					Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, pixel) => {
+
+						if (pixel[3] < 4) return;
+						let nearest = [];
+						for (let key in palette) {
+							let color = palette[key];
+							let distance = colorDistance(color, {_r: pixel[0], _g: pixel[1], _b: pixel[2]});
+							if (distance < 100) {
+								nearest.push({distance, color})
+							}
+						}
+						if (!nearest.length) return;
+						nearest.sort((a, b) => {
+							return a.distance - b.distance;
+						})
+						pixel[0] = nearest[0].color._r;
+						pixel[1] = nearest[0].color._g;
+						pixel[2] = nearest[0].color._b;
+					})
+
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Limit texture to palette')
+		}
+	})
+
+	// Transform
 	new Action('flip_texture_x', {
 		icon: 'icon-mirror_x',
 		category: 'textures',

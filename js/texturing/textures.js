@@ -1541,6 +1541,8 @@ class Texture {
 					'invert_colors',
 					'adjust_curves',
 					'_',
+					'limit_to_palette',
+					'_',
 					'flip_texture_x',
 					'flip_texture_y',
 					'rotate_texture_cw',
