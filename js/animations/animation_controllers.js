@@ -806,7 +806,7 @@ class AnimationController extends AnimationItem {
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controller: this})
+					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controllers: [this]})
 
 					Undo.finishEdit('Edit animation controller properties');
 				}
@@ -949,7 +949,7 @@ Blockbench.on('finish_edit', event => {
 	if (!Format.animation_controllers) return;
 	if (event.aspects.animation_controllers) {
 		event.aspects.animation_controllers.forEach(controller => {
-			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(animation)) {
+			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(controller)) {
 				controller.saved = false;
 			}
 		})
