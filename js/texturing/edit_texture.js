@@ -533,21 +533,21 @@ BARS.defineActions(function() {
 					Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, pixel) => {
 
 						if (pixel[3] < 4) return;
-						let nearest = [];
+						let smallest_distance = Infinity;
+						let nearest_color = null;
+						let pixel_color = {_r: pixel[0], _g: pixel[1], _b: pixel[2]};
 						for (let key in palette) {
 							let color = palette[key];
-							let distance = colorDistance(color, {_r: pixel[0], _g: pixel[1], _b: pixel[2]});
-							if (distance < 100) {
-								nearest.push({distance, color})
+							let distance = colorDistance(color, pixel_color);
+							if (distance < smallest_distance) {
+								smallest_distance = distance;
+								nearest_color = color;
 							}
 						}
-						if (!nearest.length) return;
-						nearest.sort((a, b) => {
-							return a.distance - b.distance;
-						})
-						pixel[0] = nearest[0].color._r;
-						pixel[1] = nearest[0].color._g;
-						pixel[2] = nearest[0].color._b;
+						if (!nearest_color) return;
+						pixel[0] = nearest_color._r;
+						pixel[1] = nearest_color._g;
+						pixel[2] = nearest_color._b;
 					})
 
 				}, {no_undo: true});

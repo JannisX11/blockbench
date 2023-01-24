@@ -1453,6 +1453,7 @@ const Animator = {
 					animation.select()
 				}
 				new_animations.push(animation)
+				Blockbench.dispatchEvent('load_animation', {animation, json});
 			}
 		} else if (typeof json.animation_controllers === 'object') {
 			for (let ani_name in json.animation_controllers) {
@@ -1470,6 +1471,7 @@ const Animator = {
 					controller.select();
 				}
 				new_animations.push(controller)
+				Blockbench.dispatchEvent('load_animation_controller', {animation_controller: controller, json});
 			}
 		}
 		return new_animations
