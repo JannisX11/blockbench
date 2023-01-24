@@ -116,7 +116,7 @@ function buildForm(dialog) {
 
 
 				case 'info':
-					data.text = marked(tl(data.text))
+					data.text = pureMarked(tl(data.text))
 					bar.append(`<p>${data.text}</p>`)
 					bar.addClass('small_text')
 					break;
@@ -328,7 +328,7 @@ function buildLines(dialog) {
 			dialog.uses_wide_inputs = true;
 			dialog_content.append(bar)
 		} else {
-			dialog_content.append(l)
+			dialog_content.append(DOMPurify.sanitize(l))
 		}
 	})
 }
@@ -877,7 +877,7 @@ window.MessageBox = class MessageBox extends Dialog {
 
 		if (options.message) {
 			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
-				marked(tl(options.message))+
+				pureMarked(tl(options.message))+
 			'</div></div>')[0]);
 		}
 		if (options.icon) {

@@ -35,7 +35,7 @@ function addStartScreenSection(id, data) {
 			if (data.graphic.aspect_ratio) left.css('aspect-ratio', data.graphic.aspect_ratio);
 		}
 		if (data.graphic.description) {
-			let content = $(marked(data.graphic.description));
+			let content = $(pureMarked(data.graphic.description));
 			content.addClass('start_screen_graphic_description')
 			content.css({
 				'color': data.graphic.text_color || '#ffffff',
@@ -47,7 +47,7 @@ function addStartScreenSection(id, data) {
 		var right = $('<div class="start_screen_right"></div>')
 		obj.append(right)
 		data.text.forEach(line => {
-			var content = line.text ? marked(tl(line.text)) : '';
+			var content = line.text ? pureMarked(tl(line.text)) : '';
 			switch (line.type) {
 				case 'h1': var tag = 'h1'; break;
 				case 'h2': var tag = 'h3'; break;
@@ -55,7 +55,7 @@ function addStartScreenSection(id, data) {
 				case 'list':
 					var tag = 'ul class="list_style"';
 					line.list.forEach(string => {
-						content += `<li>${marked(tl(string))}</li>`;
+						content += `<li>${pureMarked(tl(string))}</li>`;
 					})
 					break;
 				case 'button': var tag = 'button'; break;
@@ -269,6 +269,7 @@ onVueSetup(function() {
 			openLink(link) {
 				Blockbench.openLink(link);
 			},
+			pureMarked,
 			tl
 		},
 		computed: {
@@ -351,11 +352,11 @@ onVueSetup(function() {
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
-										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
-										<label v-else-if="item.type == 'label'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else class="markdown" v-html="marked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else class="markdown" v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 
