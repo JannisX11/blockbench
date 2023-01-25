@@ -424,7 +424,7 @@ const Settings = {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume',  	  		{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
-		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', condition: isApp, icon: 'icon-player', click: function() { changeDisplaySkin() }});
+		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
 		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number', min: 1});

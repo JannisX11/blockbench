@@ -1603,13 +1603,14 @@ function updateDisplaySkin(feedback) {
 			}
 		})
 	} else {
-		if (val.substr(1,1) === ',') {
-			var slim = val.substr(0,1) === 'S';
+		if (val[1] === ',') {
+			var slim = val[0] === 'S';
 			val = val.substr(2);
 		} else {
 			var slim = false;
 		}
-		setPSkin(`${val}?${Math.floor(Math.random()*99)}`, slim);
+		if (isApp) val += '?' + Math.floor(Math.random()*99);
+		setPSkin(val, slim);
 	}
 }
 
