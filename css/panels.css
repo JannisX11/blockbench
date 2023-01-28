@@ -295,7 +295,6 @@
 		position: relative;
 		display: flex;
 		margin-right: 2px;
-		margin-top: 2px;
 	}
 	.bar.slider_input_combo input.tool[type="range"] {
 		float: none;
