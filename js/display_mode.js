@@ -321,6 +321,16 @@ class refModel {
 					setDisplayArea(8, 8, 0.0, 0, 0, 0, 0.5, 0.5, 0.5)
 				}
 				break;
+			case 'frame_top':
+				this.updateBasePosition = function() {
+					setDisplayArea(8, 1, 8, 90, 0, 0, 0.5, 0.5, 0.5)
+				}
+				break;
+			case 'frame_top_invisible':
+				this.updateBasePosition = function() {
+					setDisplayArea(8, 0, 8, 90, 0, 0, 0.5, 0.5, 0.5)
+				}
+				break;
 			case 'bow':
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
@@ -450,6 +460,8 @@ class refModel {
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
 				case 'frame_invisible': this.buildFrameInvisible(); break;
+				case 'frame_top': this.buildFrameTop(); break;
+				case 'frame_top_invisible': this.buildFrameTopInvisible(); break;
 			}
 			this.initialized = true;
 		}
@@ -1093,6 +1105,25 @@ class refModel {
 			{"size": [16,16,16], "pos": [8, 8, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]`), 'assets/missing.png')
 	}
+	buildFrameTop() {
+		this.buildModel(JSON.parse(`[
+			{"size": [16,16,16], "pos": [8, -8.01, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+		]`), 'assets/missing.png')
+		this.buildModel(JSON.parse(`[
+			{"rotation": [90, 0, 0], "size": [10,10,0.5], "pos": [8, -8, -0.25], "origin": [8, -8, 8], "north":{"uv":[3,3,13,13]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,0,0]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+
+			{"rotation": [90, 0, 0], "size": [1,12,1], "pos": [13.5, -8, -0.5], "origin": [8, -8, 8], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+			{"rotation": [90, 0, 0], "size": [1,12,1], "pos": [2.5,  -8, -0.5], "origin": [8, -8, 8], "north":{"uv":[2,2,3,14]},"east":{"uv":[2,2,3,14]},"south":{"uv":[2,2,3,14]},"west":{"uv":[2,2,3,14]},"up":{"uv":[2,2,3,3]},"down":{"uv":[2,2,3,3]}},
+
+			{"rotation": [90, 0, 0], "size": [10,1,1], "pos": [8, -2.5, -0.5], "origin": [8, -8, 8], "north":{"uv":[3,2,13,3]},"east":{"uv":[3,2,13,3]},"south":{"uv":[3,2,13,3]},"west":{"uv":[3,2,13,3]},"up":{"uv":[3,2,13,3]},"down":{"uv":[3,2,13,3]}},
+			{"rotation": [90, 0, 0], "size": [10,1,1], "pos": [8, -13.5, -0.5], "origin": [8, -8, 8], "north":{"uv":[3,13,13,14]},"east":{"uv":[3,13,13,14]},"south":{"uv":[3,13,13,14]},"west":{"uv":[3,13,13,14]},"up":{"uv":[3,13,13,14]},"down":{"uv":[3,13,13,14]}}
+		]`), 'assets/item_frame.png')
+	}
+	buildFrameTopInvisible() {
+		this.buildModel(JSON.parse(`[
+			{"size": [16,16,16], "pos": [8, -8.01, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
+		]`), 'assets/missing.png')
+	}
 }
 window.displayReferenceObjects = {
 	refmodels: {
@@ -1107,6 +1138,8 @@ window.displayReferenceObjects = {
 		block: 				new refModel('block', {icon: 'fa-cube'}),
 		frame: 				new refModel('frame', {icon: 'filter_frames'}),
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
+		frame_top: 			new refModel('frame_top', {icon: 'filter_frames'}),
+		frame_top_invisible:new refModel('frame_top_invisible', {icon: 'visibility_off'}),
 		inventory_nine: 	new refModel('inventory_nine', {icon: 'icon-inventory_nine'}),
 		inventory_full:		new refModel('inventory_full', {icon: 'icon-inventory_full'}),
 		hud: 				new refModel('hud', {icon: 'icon-hud'})
@@ -1452,7 +1485,7 @@ DisplayMode.loadFixed = function() {		//Loader
 		position: [-24, 18, -50],
 		target: [0, 1, -5]
 	})
-	displayReferenceObjects.bar(['frame', 'frame_invisible'])
+	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
 }
 DisplayMode.load = function(slot) {
 	switch (slot) {
