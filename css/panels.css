@@ -1691,6 +1691,7 @@ span.controller_state_section_info {
 }
 .controller_state_connection.selected {
 	--color-connection: var(--color-marker);
+	z-index: 1;
 }
 .controller_state_connection:hover {
 	--color-connection: var(--color-light);
