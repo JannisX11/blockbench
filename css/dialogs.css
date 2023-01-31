@@ -438,7 +438,7 @@
 		margin-top: -20px;
 	}
 	dialog#settings h2, dialog#keybindings h2, dialog#theme h2 {
-		margin-top: -15px;
+		margin-top: -6px;
 		font-size: 1.8em;
 	}
 
@@ -569,18 +569,44 @@
 	}
 	#keybindlist {
 		max-height: 600px;
-		margin-top: 16px;
+		margin-top: 10px;
 		overflow-y: scroll;
 		overflow-x: hidden;
 		clear: both;
 	}
-	#keybindlist .tool {
-		height: 30px;
-		width: 25px;
-		float: right;
+	.keybind_line {
+		position: relative;
+		display: flex;
+		width: 100%;
 	}
-	#keybindlist li > div.keybindslot {
-		width: calc(48% - 32px);
+	.keybind_line__sub::before {
+		display: block;
+		position: relative;
+		content: "\f061";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 600;
+		color: var(--color-subtle_text);
+		height: 24px;
+		padding: 3px 2px;
+		margin-left: 22px;
+	}
+	.keybind_line > div:first-child {
+		flex-grow: 1;
+		flex-shrink: 1;
+		padding: 4px;
+		padding-left: 8px;
+		display: flex;
+	}
+	.keybind_line > div:first-child > .keybind_guide_line {
+		border-bottom: 3px solid var(--color-button);
+		width: 0;
+		height: 14px;
+		flex-grow: 1;
+		margin-left: 5px;
+		margin-right: 3px;
+	}
+	.keybind_line > div.keybindslot {
+		width: calc(51% - 32px);
 		padding: 4px;
 		padding-left: 8px;
 		height: 30px;
@@ -589,28 +615,13 @@
 		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
-		display: inline-block;
 		cursor: text;
 	}
-	#keybindlist li > div.keybindslot:hover {
+	.keybind_line > div.keybindslot:hover {
 		color: var(--color-light);
 	}
-	#keybindlist li > div.keybindslot.conflict {
+	.keybind_line > div.keybindslot.conflict {
 		  border-left: 4px solid var(--color-close);
-	}
-	#keybindlist li > div:first-child {
-		background: transparent;
-		width: calc(52% - 28px);
-		text-align: right;
-		padding: 4px;
-		padding-left: 8px;
-		vertical-align: top;
-		display: inline-block;
-	}
-	#keybindlist > li {
-		position: relative;
-		display: flex;
-		width: 100%;
 	}
 	.keybindslot .punctuation {
 		color: var(--color-subtle_text);
@@ -622,6 +633,11 @@
 	.keybindslot .optional {
 		color: var(--color-subtle_text);
 		padding: 2px 5px;
+	}
+	#keybindlist .tool {
+		height: 30px;
+		width: 25px;
+		float: right;
 	}
 
 	/*Colors*/

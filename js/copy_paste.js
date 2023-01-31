@@ -407,7 +407,9 @@ BARS.defineActions(function() {
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true),
 		keybind: new Keybind({key: 'c', ctrl: true, shift: null}),
-		click: function (event) {Clipbench.copy(event)}
+		click(event) {
+			Clipbench.copy(event)
+		}
 	})
 	new Action('cut', {
 		icon: 'fa-cut',
@@ -415,14 +417,42 @@ BARS.defineActions(function() {
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true),
 		keybind: new Keybind({key: 'x', ctrl: true, shift: null}),
-		click: function (event) {Clipbench.copy(event, true)}
+		click(event) {
+			Clipbench.copy(event, true)
+		}
 	})
-	new Action('paste', {
+	let paste = new Action('paste', {
 		icon: 'fa-clipboard',
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(2, true),
 		keybind: new Keybind({key: 'v', ctrl: true, shift: null}),
-		click: function (event) {Clipbench.paste(event)}
+		click(event) {
+			Clipbench.paste(event)
+		}
 	})
+	paste.addSubKeybind('outliner', 'menu.paste.outliner', null, event => {
+		Clipbench.pasteOutliner(event);
+	});
+	paste.addSubKeybind('face', 'menu.paste.face', null, event => {
+		UVEditor.paste(event);
+	});
+	paste.addSubKeybind('mesh_selection', 'menu.paste.mesh_selection', null, event => {
+		Clipbench.pasteMeshSelection();
+	});
+	paste.addSubKeybind('texture', 'data.texture', null, event => {
+		Clipbench.pasteTextures();
+	});
+	paste.addSubKeybind('image', 'format.image', null, event => {
+		Clipbench.pasteImage(event);
+	});
+	paste.addSubKeybind('animation', 'menu.animation', null, event => {
+		Clipbench.pasteAnimation();
+	});
+	paste.addSubKeybind('keyframe', 'menu.keyframe', null, event => {
+		Clipbench.pasteKeyframes();
+	});
+	paste.addSubKeybind('display_slot', 'category.display', null, event => {
+		DisplayMode.paste();
+	});
 })

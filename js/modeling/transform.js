@@ -933,6 +933,13 @@ BARS.defineActions(function() {
 			updateSelection();
 		}
 	})
+	new BarSelect('vertex_snap_mode', {
+		options: {
+			move: true,
+			scale: {condition: () => !Format.integer_size, name: true}
+		},
+		category: 'edit'
+	})
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {

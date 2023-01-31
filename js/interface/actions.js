@@ -41,10 +41,11 @@ class BarItem {
 			if (data.keybind) {
 				this.default_keybind = data.keybind
 			}
+			this.keybind = new Keybind()
 			if (Keybinds.stored[this.id]) {
-				this.keybind = new Keybind().set(Keybinds.stored[this.id], this.default_keybind);
+				this.keybind.set(Keybinds.stored[this.id], this.default_keybind);
 			} else {
-				this.keybind = new Keybind().set(data.keybind);
+				this.keybind.set(data.keybind);
 			}
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
@@ -174,6 +175,23 @@ class BarItem {
 			bar.children.push(this);
 		}
 		this.toolbars.safePush(bar)
+	}
+	addSubKeybind(id, name, default_keybind, trigger) {
+		if (!this.sub_keybinds) this.sub_keybinds = {};
+		this.sub_keybinds[id] = {
+			name: tl(name),
+			trigger
+		};
+
+		if (default_keybind) {
+			this.sub_keybinds[id].default_keybind = default_keybind
+		}
+		if (Keybinds.stored[this.id + '.' + id]) {
+			this.sub_keybinds[id].keybind = new Keybind().set(Keybinds.stored[this.id + '.' + id], default_keybind);
+		} else {
+			this.sub_keybinds[id].keybind = new Keybind().set(default_keybind);
+		}
+		this.sub_keybinds[id].keybind.setAction(this.id, id);
 	}
 	delete() {
 		var scope = this;
@@ -544,6 +562,39 @@ class NumSlider extends Widget {
 			this.keybind.shift = null;
 			this.keybind.label = this.keybind.getText();
 		}
+		this.addSubKeybind('increase',
+			'keybindings.item.num_slider.increase',
+			data.sub_keybinds?.increase,
+			(event) => {
+				if (!Condition(this.condition)) return false;
+				if (typeof this.onBefore === 'function') {
+					this.onBefore()
+				}
+				var difference = this.getInterval(event);
+				this.change(n => n + difference);
+				this.update();
+				if (typeof this.onAfter === 'function') {
+					this.onAfter(difference)
+				}
+			}
+		);
+		this.addSubKeybind('decrease',
+			'keybindings.item.num_slider.decrease',
+			data.sub_keybinds?.decrease,
+			(event) => {
+				if (!Condition(this.condition)) return false;
+				if (typeof this.onBefore === 'function') {
+					this.onBefore()
+				}
+				var difference = this.getInterval(event);
+				this.change(n => n - difference);
+				this.update();
+				if (typeof this.onAfter === 'function') {
+					this.onAfter(difference)
+				}
+			}
+		);
+
 		var scope = this;
 		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool'}, [
 			Interface.createElement('div', {class: 'nslide tab_target', 'n-action': this.id})
@@ -1005,6 +1056,22 @@ class BarSelect extends Widget {
 				scope.open(event)
 			})
 		}
+		if (data.options) {
+			for (let key in data.options) {
+				this.addSubKeybind(key,
+					this.getNameFor(key),
+					data.sub_keybinds?.[key],
+					(event) => {
+						if (!Condition(this.condition)) return false;
+						this.set(key);
+						if (this.onChange) {
+							this.onChange(this, event);
+						}
+					}
+				);
+			}
+		}
+
 		this.nodes.push(this.node);
 		this.set(this.value);
 		this.addLabel()
@@ -1638,13 +1705,6 @@ const BARS = {
 					Vertexsnap.step1 = true
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
-			})
-			new BarSelect('vertex_snap_mode', {
-				options: {
-					move: true,
-					scale: {condition: () => !Format.integer_size, name: true}
-				},
-				category: 'edit'
 			})
 			new Action('swap_tools', {
 				icon: 'swap_horiz',

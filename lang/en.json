@@ -650,6 +650,9 @@
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 
+	"keybindings.item.num_slider.increase": "Incrase",
+	"keybindings.item.num_slider.decrease": "Decrase",
+
 	"layout.select": "Select",
 	"layout.options": "Options",
 	"layout.color": "Color Scheme",
@@ -937,13 +940,13 @@
 	"keybind.confirm": "Confirm",
 	"keybind.cancel": "Cancel",
 
-	"action.slider_pos": "Move %0",
+	"action.slider_pos": "Position %0",
 	"action.slider_pos.desc": "Move elements on the %0 axis",
 	"action.slider_size": "Size %0",
 	"action.slider_size.desc": "Resize elements on the %0 axis",
 	"action.slider_inflate": "Inflate",
 	"action.slider_inflate.desc": "Inflate cubes in all directions without changing the UV",
-	"action.slider_rotation": "Rotate %0",
+	"action.slider_rotation": "Rotation %0",
 	"action.slider_rotation.desc": "Rotate elements on the %0 axis",
 	"action.slider_origin": "Pivot %0",
 	"action.slider_origin.desc": "Move pivot on the %0 axis",
