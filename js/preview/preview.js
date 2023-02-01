@@ -901,7 +901,7 @@ class Preview {
 						selectFace(start_face, data.face);
 
 					} else {
-						data.element.select(event)
+						data.element.select()
 					}
 					updateSelection();
 				} else {

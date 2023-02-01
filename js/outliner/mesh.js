@@ -729,7 +729,7 @@ class Mesh extends OutlinerElement {
 	];
 
 new Property(Mesh, 'string', 'name', {default: 'mesh'})
-new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*8)});
+new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'visibility', {default: true});

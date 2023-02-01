@@ -987,6 +987,9 @@ class BarSelect extends Widget {
 						this.onChange(this, event);
 					}
 				})
+				button.addEventListener('mouseenter', event => {
+					this.node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
+				})
 			}
 
 		} else {
@@ -1027,6 +1030,9 @@ class BarSelect extends Widget {
 							if (this.onChange) {
 								this.onChange(this, event);
 							}
+						})
+						button.addEventListener('mouseenter', event => {
+							node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
 						})
 					}
 				}

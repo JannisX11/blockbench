@@ -73,7 +73,7 @@ class Cube extends OutlinerElement {
 		this.to = [size, size, size];
 		this.shade = true;
 		this.mirror_uv = false;
-		this.color = Math.floor(Math.random()*8)
+		this.color = Math.floor(Math.random()*markerColors.length)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
 		this.rotation = [0, 0, 0];

@@ -93,6 +93,11 @@ Condition.mutuallyExclusive = function(a, b) {
 	return false;
 }
 
+function pureMarked(input) {
+	let dom = marked(input);
+	return DOMPurify.sanitize(dom);
+}
+
 class oneLiner {
 	constructor(data) {
 		if (data !== undefined) {
@@ -153,23 +158,6 @@ function removeEventListeners(el, events, func, option) {
 	events.split(' ').forEach(e => {
 		el.removeEventListener(e, func, option)
 	})
-}
-
-//Jquery
-$.fn.deepest = function() {
-	if (!this.length) return this;
-	var opts = []
-	this.each((i, node) => {
-		var i = 0;
-		var obj = $(node)
-		while (obj.parent().get(0) instanceof HTMLBodyElement === false) {
-			obj = obj.parent()
-			i++;
-		}
-		opts.push({depth: i, o: node})
-	})
-	opts.sort((a, b) => (a.depth < b.depth));
-	return $(opts[0].o)
 }
 
 //Math

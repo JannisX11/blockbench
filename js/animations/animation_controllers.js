@@ -208,7 +208,7 @@ class AnimationControllerState {
 				media.pause();
 			}
 		})
-		this.playing_sounds.empty();1
+		this.playing_sounds.empty();
 	}
 	playEffects() {
 		if (!this.muted.sound) {
@@ -720,7 +720,6 @@ class AnimationController extends AnimationItem {
 			this.playing = state !== undefined ? state : !this.playing;
 			Animator.preview();
 		} else {
-			Timeline.start();
 		}
 		return this.playing;
 	}
@@ -807,7 +806,7 @@ class AnimationController extends AnimationItem {
 					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
 
-					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controller: this})
+					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controllers: [this]})
 
 					Undo.finishEdit('Edit animation controller properties');
 				}
@@ -950,7 +949,7 @@ Blockbench.on('finish_edit', event => {
 	if (!Format.animation_controllers) return;
 	if (event.aspects.animation_controllers) {
 		event.aspects.animation_controllers.forEach(controller => {
-			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(animation)) {
+			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(controller)) {
 				controller.saved = false;
 			}
 		})
@@ -1361,7 +1360,23 @@ Interface.definePanels(() => {
 					};
 					if (!this.controller) return connections;
 					let {states, selected_state} = this.controller;
+
+					// Count incoming plugs
 					let incoming_plugs = {};
+					let total_incoming_plugs = {};
+					states.forEach((state, state_index) => {
+						total_incoming_plugs[state.uuid] = {top: 0, bottom: 0};
+						states.forEach((origin_state, origin_state_index) => {
+							if (state === origin_state) return;
+							origin_state.transitions.forEach(t => {
+								if (t.target === state.uuid) {
+									state_index < origin_state_index
+										? total_incoming_plugs[state.uuid].top++
+										: total_incoming_plugs[state.uuid].bottom++;
+								}
+							});
+						});
+					});
 
 					let plug_gap = 16;
 
@@ -1408,15 +1423,17 @@ Interface.definePanels(() => {
 							}
 
 							if (back) {// Top
+								let incoming_gap_width = Math.min(plug_gap, 260 / total_incoming_plugs[target.uuid].top);
 								connections.max_layer_top = Math.max(connections.max_layer_top, layer);
 								con.end_x = state_index * 312 + 150 + start_plug_offset;
-								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * plug_gap);
+								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * incoming_gap_width);
 								incoming_plugs[target.uuid].top++;
 
 							} else {// Bottom
+								let incoming_gap_width = Math.min(plug_gap, 260 / total_incoming_plugs[target.uuid].bottom);
 								connections.max_layer_bottom = Math.max(connections.max_layer_bottom, layer);
 								con.start_x = state_index * 312 + 150 - start_plug_offset;
-								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * plug_gap;
+								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * incoming_gap_width;
 								incoming_plugs[target.uuid].bottom++;
 							}
 

@@ -865,7 +865,11 @@ const Canvas = {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
 		return;
 	},
-	getRenderSide() {
+	getRenderSide(texture) {
+		if (texture instanceof Texture) {
+			if (texture.render_sides == 'front') return THREE.FrontSide;
+			if (texture.render_sides == 'double') return THREE.DoubleSide;
+		}
 		if (settings.render_sides.value == 'auto') {
 			if (Format && Format.render_sides) {
 				let value = typeof Format.render_sides == 'function' ? Format.render_sides() : Format.render_sides;
@@ -881,13 +885,12 @@ const Canvas = {
 		}
 	},
 	updateRenderSides() {
-		var side = Canvas.getRenderSide();
+		let side = Canvas.getRenderSide();
 		ModelProject.all.forEach(project => {
-			project.textures.forEach(function(t) {
-				var mat = project.materials[t.uuid]
-				if (mat) {
-					mat.side = side
-				}
+			project.textures.forEach((tex) => {
+				var mat = project.materials[tex.uuid];
+				if (!mat) return;
+				mat.side = Canvas.getRenderSide(tex);
 			})
 		})
 		if (Canvas.layered_material) {

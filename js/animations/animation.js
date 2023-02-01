@@ -1453,6 +1453,7 @@ const Animator = {
 					animation.select()
 				}
 				new_animations.push(animation)
+				Blockbench.dispatchEvent('load_animation', {animation, json});
 			}
 		} else if (typeof json.animation_controllers === 'object') {
 			for (let ani_name in json.animation_controllers) {
@@ -1470,6 +1471,7 @@ const Animator = {
 					controller.select();
 				}
 				new_animations.push(controller)
+				Blockbench.dispatchEvent('load_animation_controller', {animation_controller: controller, json});
 			}
 		}
 		return new_animations
@@ -1854,11 +1856,18 @@ BARS.defineActions(function() {
 		condition: () => Format.animation_files,
 		click: function () {
 			let paths = [];
+			let controller_paths = [];
 			Animation.all.forEach(animation => {
 				paths.safePush(animation.path);
 			})
+			AnimationController.all.forEach(controller => {
+				controller_paths.safePush(controller.path);
+			})
 			paths.forEach(path => {
 				Animator.exportAnimationFile(path);
+			})
+			controller_paths.forEach(path => {
+				Animator.exportAnimationControllerFile(path);
 			})
 		}
 	})
@@ -1983,8 +1992,12 @@ Interface.definePanels(function() {
 					this.files_folded[key] = !this.files_folded[key];
 					this.$forceUpdate();
 				},
-				saveFile(path) {
-					Animator.exportAnimationFile(path)
+				saveFile(path, file) {
+					if (file.type == 'animation') {
+						Animator.exportAnimationFile(path);
+					} else {
+						Animator.exportAnimationControllerFile(path);
+					}
 				},
 				addAnimation(path) {
 					let other_animation = AnimationItem.all.find(a => a.path == path);
@@ -2128,6 +2141,7 @@ Interface.definePanels(function() {
 						if (!files[key]) files[key] = {
 							animations: [],
 							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
+							type: 'animation',
 							saved: true
 						};
 						if (!animation.saved) files[key].saved = false;
@@ -2138,6 +2152,7 @@ Interface.definePanels(function() {
 						if (!files[key]) files[key] = {
 							animations: [],
 							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
+							type: 'animation_controller',
 							saved: true
 						};
 						if (!controller.saved) files[key].saved = false;

@@ -1280,7 +1280,7 @@ Interface.definePanels(function() {
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
-				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
+				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
@@ -1288,14 +1288,15 @@ Interface.definePanels(function() {
 			options: Object,
 			node: {
 				type: Object
-			}
+			},
+			depth: Number
 		},
 		data() {return {
 			outliner_colors: settings.outliner_colors
 		}},
 		computed: {
 			indentation() {
-				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
+				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
 			},
 			visible_children() {
 				if (!this.options.hidden_types.length) {
@@ -1608,7 +1609,7 @@ Interface.definePanels(function() {
 					@mousedown="dragNode($event)"
 					@touchstart="dragNode($event)"
 				>
-					<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
+					<vue-tree-item v-for="item in root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
 				</ul>
 			`
 		},

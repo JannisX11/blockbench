@@ -1603,13 +1603,14 @@ function updateDisplaySkin(feedback) {
 			}
 		})
 	} else {
-		if (val.substr(1,1) === ',') {
-			var slim = val.substr(0,1) === 'S';
+		if (val[1] === ',') {
+			var slim = val[0] === 'S';
 			val = val.substr(2);
 		} else {
 			var slim = false;
 		}
-		setPSkin(`${val}?${Math.floor(Math.random()*99)}`, slim);
+		if (isApp) val += '?' + Math.floor(Math.random()*99);
+		setPSkin(val, slim);
 	}
 }
 
@@ -1639,7 +1640,7 @@ BARS.defineActions(function() {
 				},
 				onConfirm(form_data) {
 					let preset = {
-						name: name || tl('display.preset.blank_name'),
+						name: form_data.name || tl('display.preset.blank_name'),
 						areas: {}
 					}
 					display_presets.push(preset);
@@ -1809,7 +1810,7 @@ Interface.definePanels(function() {
 			template: `
 				<div>
 					<div class="toolbar_wrapper display"></div>
-					<p>${ tl('display.slot') }</p>
+					<p class="panel_toolbar_label">${ tl('display.slot') }</p>
 					<div id="display_bar" class="bar tabs_small icon_bar">
 						<input class="hidden" type="radio" name="display" id="thirdperson_righthand" checked>
 						<label class="tool" for="thirdperson_righthand" onclick="DisplayMode.loadThirdRight()"><div class="tooltip">${ tl('display.slot.third_right') }</div><i class="material-icons">accessibility</i></label>
@@ -1833,14 +1834,14 @@ Interface.definePanels(function() {
 						<input class="hidden" type="radio" name="display" id="gui">
 						<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">${ tl('display.slot.gui') }</div><i class="material-icons">border_style</i></label>
 					</div>
-					<p class="reference_model_bar">${ tl('display.reference') }</p>
-					<div id="display_ref_bar" class="bar tabs_small icon_bar reference_model_bar">
+					<p class="panel_toolbar_label">${ tl('display.reference') }</p>
+					<div id="display_ref_bar" class="bar tabs_small icon_bar">
 					</div>
 		
 					<div id="display_sliders">
 						
 						<div class="bar display_slot_section_bar">
-							<p>${ tl('display.rotation') }</p>
+							<p class="panel_toolbar_label">${ tl('display.rotation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
@@ -1851,7 +1852,7 @@ Interface.definePanels(function() {
 						</div>
 						
 						<div class="bar display_slot_section_bar">
-							<p>${ tl('display.translation') }</p>
+							<p class="panel_toolbar_label">${ tl('display.translation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
 							</div>
 						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
@@ -1864,7 +1865,7 @@ Interface.definePanels(function() {
 						</div>
 
 						<div class="bar display_slot_section_bar">
-							<p>${ tl('display.scale') }</p>
+							<p class="panel_toolbar_label">${ tl('display.scale') }</p>
 							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
 							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
@@ -1883,7 +1884,7 @@ Interface.definePanels(function() {
 						
 						<template v-if="reference_model == 'player'">
 							<div class="bar display_slot_section_bar">
-								<p>${ tl('display.pose_angle') }</p>
+								<p class="panel_toolbar_label">${ tl('display.pose_angle') }</p>
 							</div>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"

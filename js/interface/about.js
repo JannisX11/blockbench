@@ -116,6 +116,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a></li>
 								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
+								<li><a class="open-in-browser" href="https://github.com/cure53/DOMPurify">DOMPurify</a></li>
 								<li><a class="open-in-browser" href="https://prismjs.com">Prism</a></li>
 								<li><a class="open-in-browser" href="https://github.com/akalverboer/canvas2apng">Canvas2APNG</a></li>
 								<li><a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a></li>

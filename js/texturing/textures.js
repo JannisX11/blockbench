@@ -178,7 +178,7 @@ class Texture {
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
-			side: this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide),
+			side: Canvas.getRenderSide(this),
 			transparent: true,
 		});
 		mat.map = tex;
@@ -1540,6 +1540,8 @@ class Texture {
 					'adjust_opacity',
 					'invert_colors',
 					'adjust_curves',
+					'_',
+					'limit_to_palette',
 					'_',
 					'flip_texture_x',
 					'flip_texture_y',
