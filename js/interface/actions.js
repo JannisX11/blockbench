@@ -978,7 +978,6 @@ class BarSelect extends Widget {
 				let button = document.createElement('div');
 				button.className = 'select_option';
 				button.setAttribute('key', key);
-				button.title = this.getNameFor(key);
 				button.append(Blockbench.getIconNode(data.options[key].icon));
 				this.node.append(button);
 				button.addEventListener('click', event => {
