@@ -240,7 +240,10 @@ const UVEditor = {
 				}
 			},
 			hide() {
-				scope.removePastingOverlay()
+				scope.removePastingOverlay();
+				if (Painter.selection.move_mode) {
+					Undo.cancelEdit();
+				}
 			}
 		}
 		overlay.append(Painter.selection.canvas)
