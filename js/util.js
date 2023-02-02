@@ -601,7 +601,7 @@ var Objector = {
 }
 
 var Merge = {
-	number: function(obj, source, index) {
+	number(obj, source, index) {
 		if (source[index] !== undefined) {
 			var val = source[index]
 			if (typeof val === 'number' && !isNaN(val)) {
@@ -614,7 +614,7 @@ var Merge = {
 			}
 		}
 	},
-	string: function(obj, source, index, validate) {
+	string(obj, source, index, validate) {
 		if (source[index] || typeof source[index] === 'string') {
 			var val = source[index]
 			if (typeof val !== 'string') val = val.toString();
@@ -623,33 +623,33 @@ var Merge = {
 			}
 		}
 	},
-	molang: function(obj, source, index) {
+	molang(obj, source, index) {
 		if (['string', 'number'].includes(typeof source[index])) {
 			obj[index] = source[index];
 		}
 	},
-	boolean: function(obj, source, index, validate) {
+	boolean(obj, source, index, validate) {
 		if (source[index] !== undefined) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index] = source[index]
 			}
 		}
 	},
-	function: function(obj, source, index, validate) {
+	function(obj, source, index, validate) {
 		if (typeof source[index] === 'function') {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index] = source[index]
 			}
 		}
 	},
-	arrayVector: function(obj, source, index, validate) {
+	arrayVector(obj, source, index, validate) {
 		if (source[index] instanceof Array) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index].V3_set(source[index]);
 			}
 		}
 	},
-	arrayVector2: function(obj, source, index, validate) {
+	arrayVector2(obj, source, index, validate) {
 		if (source[index] instanceof Array) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index].replace(source[index]);
