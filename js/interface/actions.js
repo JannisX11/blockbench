@@ -986,8 +986,9 @@ class BarSelect extends Widget {
 						this.onChange(this, event);
 					}
 				})
+				let title = this.getNameFor(key);
 				button.addEventListener('mouseenter', event => {
-					this.node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
+					this.node.firstElementChild.firstChild.textContent = this.name + ': ' + title;
 				})
 			}
 
@@ -1030,8 +1031,9 @@ class BarSelect extends Widget {
 								this.onChange(this, event);
 							}
 						})
+						let title = this.getNameFor(key);
 						button.addEventListener('mouseenter', event => {
-							node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
+							node.firstElementChild.firstChild.textContent = this.name + ': ' + title;
 						})
 					}
 				}
