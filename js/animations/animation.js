@@ -208,7 +208,7 @@ class Animation extends AnimationItem {
 						}
 						// Bake bezier keyframe curve
 						let next_keyframe = sorted_keyframes[i+1];
-						if (next_keyframe && kf.interpolation === 'bezier' && next_keyframe.interpolation === 'bezier') {
+						if (next_keyframe && (kf.interpolation === 'bezier' || next_keyframe.interpolation === 'bezier')) {
 							let interval = 1 / this.snapping;
 							let interpolated_values = {};
 							for (let time = kf.time + interval; time < next_keyframe.time + (interval/2); time += interval) {

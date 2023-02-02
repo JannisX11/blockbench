@@ -900,8 +900,10 @@ class Preview {
 						}
 						selectFace(start_face, data.face);
 
-					} else {
+					} else if (data.element instanceof Mesh && ['edge', 'vertex'].includes(select_mode)) {
 						data.element.select()
+					} else {
+						data.element.select(event)
 					}
 					updateSelection();
 				} else {
