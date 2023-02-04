@@ -483,7 +483,7 @@ async function loadInstalledPlugins() {
 		})
 	}
 	if (Plugins.installed.length > 0) {
-		var loaded = []
+		var load_counter = 0;
 		Plugins.installed.forEachReverse(function(plugin) {
 
 			if (plugin.source == 'file') {
@@ -491,7 +491,8 @@ async function loadInstalledPlugins() {
 				if (isApp && fs.existsSync(plugin.path)) {
 					var instance = new Plugin(plugin.id);
 					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
-					loaded.push(['Local', plugin.id || plugin.path]);
+					load_counter++;
+					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
 				} else {
 					Plugins.installed.remove(plugin)
 				}
@@ -499,18 +500,15 @@ async function loadInstalledPlugins() {
 			} else if (plugin.source == 'url') {
 				var instance = new Plugin(plugin.id);
 				install_promises.push(instance.loadFromURL(plugin.path, false));
-				loaded.push(['URL', plugin.id || plugin.path]);
+				load_counter++;
+				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
 
 			} else {
-				loaded.push(['Store', plugin.id]);
+				load_counter++;
+				console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`)
 			}
 		})
-		console.log(`Loaded ${loaded.length} plugin${pluralS(loaded.length)}`)
-		let list = {};
-		loaded.forEach(([type, id]) => {
-			list[id] = type;
-		})
-		console.table(list);
+		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')
 	

@@ -241,7 +241,7 @@ var codec = new Codec('bedrock_old', {
 		if (options.raw) {
 			return entitymodel
 		} else {
-			var model_name = 'geometry.' + (Project.geometry_name||'unknown')
+			var model_name = 'geometry.' + (Project.geometry_name||Project.name||'unknown')
 			return autoStringify({
 				format_version: '1.10.0',
 				[model_name]: entitymodel
