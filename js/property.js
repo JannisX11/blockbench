@@ -57,8 +57,8 @@ class Property {
 		if (options.options) this.options = options.options;
 	}
 	delete() {
-        delete this.class.properties[this.name];
-    }
+		delete this.class.properties[this.name];
+	}
 	getDefault(instance) {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
