@@ -326,9 +326,9 @@ function buildLines(dialog) {
 				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
 			}
 			dialog.uses_wide_inputs = true;
-			dialog_content.append(bar)
+			dialog_content.append(bar);
 		} else {
-			dialog_content.append(DOMPurify.sanitize(l))
+			dialog_content.append(l);
 		}
 	})
 }

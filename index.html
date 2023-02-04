@@ -54,8 +54,9 @@
 	<script>
 		// Browser compatibility check
 		try {
-			eval('window?.document');
+			eval('window?.document ?? 2');
 		} catch (err) {
+			console.error(err);
 			let error_element = document.querySelector('#loading_error_detail')
 			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
 		}

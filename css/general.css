@@ -594,6 +594,7 @@
 	.contextMenu li.focused,
 	.contextMenu li.parent.opened {
 		background-color: var(--color-accent);
+		color: var(--color-accent_text);
 	}
 	.contextMenu li.hybrid_parent.opened {
 		background-color: transparent;
