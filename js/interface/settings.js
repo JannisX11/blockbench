@@ -71,7 +71,7 @@ class Setting {
 	get value() {
 		let profile = SettingsProfile.all.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
 		if (profile) {
-			return profile.settings[this.id] || this.master_value;
+			return profile.settings[this.id] ?? this.master_value;
 		} else {
 			return this.master_value;
 		}
@@ -82,7 +82,7 @@ class Setting {
 	get ui_value() {
 		let profile = Settings.dialog.content_vue?.profile;
 		if (profile) {
-			return profile.settings[this.id] || this.master_value;
+			return profile.settings[this.id] ?? this.master_value;
 		} else {
 			return this.master_value;
 		}
