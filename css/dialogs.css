@@ -438,8 +438,11 @@
 		margin-top: -20px;
 	}
 	dialog#settings h2, dialog#keybindings h2, dialog#theme h2 {
-		margin-top: -15px;
+		margin-top: -6px;
 		font-size: 1.8em;
+	}
+	dialog#settings h2 {
+		margin-top: -15px;
 	}
 
 	#settings_profile_wrapper {
