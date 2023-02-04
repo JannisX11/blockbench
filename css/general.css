@@ -660,7 +660,7 @@
 			background-color: transparent;
 		}
 	}
-	.menu_search_bar {
+	.contextMenu .menu_search_bar {
 		padding: 0;
 		display: flex;
 	}

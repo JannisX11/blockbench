@@ -425,13 +425,15 @@ class Menu {
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 			if (offset_left < 0) offset_left = 0;
 		}
-		if (offset_top  > window_height - el_height ) {
-			offset_top -= el_height;
-			if (position instanceof HTMLElement) {
-				offset_top -= position.clientHeight;
+		if (!this.options.searchable) {
+			if (offset_top  > window_height - el_height ) {
+				offset_top -= el_height;
+				if (position instanceof HTMLElement) {
+					offset_top -= position.clientHeight;
+				}
 			}
 		}
-		offset_top = Math.clamp(offset_top, 26)
+		offset_top = Math.max(offset_top, 26);
 
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
