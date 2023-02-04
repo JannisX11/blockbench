@@ -109,7 +109,7 @@ const CustomTheme = {
 						files.forEach(async file => {
 							try {
 								let {content} = await $.getJSON(file.git_url);
-								let theme = JSON.parse(Buffer.from(content, 'base64').toString());
+								let theme = JSON.parse(patchedAtob(content));
 								theme.id = file.name.replace(/\.\w+/, '');
 								CustomTheme.themes.push(theme);
 							} catch (err) {

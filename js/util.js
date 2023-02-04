@@ -160,6 +160,12 @@ function removeEventListeners(el, events, func, option) {
 	})
 }
 
+function patchedAtob(base64) {
+	return (typeof Buffer == 'function')
+		? Buffer.from(base64, 'base64').toString()
+		: atob(base64);
+}
+
 //Math
 function guid() {
 	function s4() {
