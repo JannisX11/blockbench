@@ -56,7 +56,7 @@ function buildForm(dialog) {
 						bar.append(list);
 					}
 					if (data.type == 'password') {
-						bar.append(`<div class="password_toggle">
+						bar.append(`<div class="password_toggle form_input_tool tool">
 								<i class="fas fa-eye-slash"></i>
 							</div>`)
 						input_element.type = 'password';
@@ -68,6 +68,45 @@ function buildForm(dialog) {
 							this_input_element.attributes.type.value = hidden ? 'password' : 'text';
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
+					}
+					if (data.share_text && data.value) {
+						let text = data.value.toString();
+						let is_url = text.startsWith('https://');
+
+						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('content_paste'));
+						copy_button.addEventListener('click', e => {
+							if (isApp || navigator.clipboard) {
+								Clipbench.setText(text);
+								Blockbench.showQuickMessage('dialog.copied_to_clipboard');
+								input_element.focus();
+								document.execCommand('selectAll');
+
+							} else if (is_url) {
+								Blockbench.showMessageBox({
+									title: 'dialog.share_model.title',
+									message: `[${text}](${text})`,
+								})
+							}
+						});
+						bar.append(copy_button);
+
+						if (is_url) {
+							let open_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('open_in_browser'));
+							open_button.addEventListener('click', e => {
+								Blockbench.openLink(text);
+							});
+							bar.append(open_button);
+						}
+						if (navigator.share) {
+							let share_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('share'));
+							share_button.addEventListener('click', e => {
+								navigator.share({
+									label: data.label ? tl(data.label) : 'Share',
+									[is_url ? 'url' : 'text']: text
+								});
+							});
+							bar.append(share_button);
+						}
 					}
 					break;
 				case 'textarea':

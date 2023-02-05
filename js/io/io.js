@@ -514,12 +514,15 @@ function uploadSketchfabModel() {
 					processData: false,
 					type: 'POST',
 					success: function(response) {
-						Blockbench.showMessageBox({
+						let url = `https://sketchfab.com/models/${response.uid}`
+						new Dialog('sketchfab_link', {
 							title: tl('message.sketchfab.success'),
-							message:
-								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
 							icon: 'icon-sketchfab',
-						})
+							form: {
+								message: {type: 'info', text: `[${formResult.name} on Sketchfab](${url})`},
+								link: {type: 'text', value: url, readonly: true, share_text: true}
+							}
+						}).show();
 					},
 					error: function(response) {
 						Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
@@ -848,24 +851,11 @@ BARS.defineActions(function() {
 						success: function(response) {
 							let link = `https://blckbn.ch/${response.id}`
 
-							let link_dialog = new Dialog({
+							new Dialog({
 								id: 'share_model_link',
 								title: 'dialog.share_model.title',
 								form: {
-									link: {type: 'text', value: link}
-								},
-								buttons: ['action.copy', 'dialog.close'],
-								onConfirm() {
-									link_dialog.hide();
-									if (isApp || navigator.clipboard) {
-										Clipbench.setText(link);
-										Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
-									} else {
-										Blockbench.showMessageBox({
-											title: 'dialog.share_model.title',
-											message: `[${link}](${link})`,
-										})
-									}
+									link: {type: 'text', value: link, readonly: true, share_text: true}
 								}
 							}).show();
 

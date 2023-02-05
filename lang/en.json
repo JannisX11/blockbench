@@ -13,6 +13,7 @@
 	"dialog.continue": "Continue",
 	"dialog.ignore": "Ignore",
 	"dialog.dontshowagain": "Don't Show Again",
+	"dialog.copied_to_clipboard": "Copied to clipboard",
 
 	"data.cube": "Cube",
 	"data.locator": "Locator",
@@ -582,7 +583,6 @@
 	"dialog.share_model.title": "Share Model",
 	"dialog.share_model.expire_time": "Expire Time",
 	"dialog.share_model.thumbnail": "Thumbnail",
-	"dialog.share_model.copied_to_clipboard": "Link copied to clipboard",
 	"dialog.share_model.failed": "Failed to upload model",
 
 	"dialog.model_stats.title": "Model Stats",
