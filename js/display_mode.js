@@ -1761,9 +1761,18 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.display
-		},
+		toolbars: [
+			new Toolbar({
+				id: 'display',
+				children: [
+					'copy',
+					'paste',
+					'add_display_preset',
+					'apply_display_preset',
+					'gui_light'
+				]
+			})
+		],
 		component: {
 			name: 'panel-display',
 			data() {return {

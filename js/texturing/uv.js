@@ -1755,9 +1755,22 @@ Interface.definePanels(function() {
 			float_size: [500, 600],
 			height: 500
 		},
-		toolbars: {
-			bottom: Toolbars.UVEditor
-		},
+		toolbars: [
+			new Toolbar('uv_editor', {
+				children: [
+					'move_texture_with_uv',
+					'uv_apply_all',
+					'uv_maximize',
+					'uv_auto',
+					'uv_transparent',
+					'uv_mirror_x',
+					'uv_mirror_y',
+					'uv_rotation',
+					//Box
+					'toggle_mirror_uv',
+				]
+			})
+		],
 		onResize: function() {
 			UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
 			Vue.nextTick(() => {

@@ -1320,13 +1320,18 @@ class ColorPicker extends Widget {
 	}
 }
 class Toolbar {
-	constructor(data) {
-		var scope = this;
+	constructor(id, data) {
+		if (!data) {
+			data = id;
+			id = data.id
+		}
+		this.id = id;
 		this.name = data.name && tl(data.name);
 		this.label = !!data.label;
 		this.label_node = null;
 		this.children = [];
 		this.condition_cache = [];
+		Toolbars[this.id] = this;
 
 		// items the toolbar could not load on startup, most likely from plugins (stored as IDs)
 		this.postload = null;
@@ -1335,14 +1340,15 @@ class Toolbar {
 		// and the associated object (action) can effectively be used with indexOf on children
 		this.positionLookup = {};
 
-		if (data) {
-			this.id = data.id
-			this.narrow = !!data.narrow
-			this.vertical = !!data.vertical
-			this.default_children = data.children.slice()
-		}
+		this.narrow = !!data.narrow
+		this.vertical = !!data.vertical
+		this.default_children = data.children ? data.children.slice() : [];
+
 		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
-		this.node = Interface.createElement('div', {class: 'toolbar'}, [
+		toolbar_menu.addEventListener('click', event => {
+			this.contextmenu(event);
+		})
+		this.node = Interface.createElement('div', {class: 'toolbar', toolbar_id: this.id}, [
 			toolbar_menu,
 			Interface.createElement('div', {class: 'content'})
 		])
@@ -1353,7 +1359,6 @@ class Toolbar {
 		if (data) {
 			this.build(data)
 		}
-		$(this.node).find('div.toolbar_menu').click(function(event) {scope.contextmenu(event)})
 	}
 	build(data, force) {
 		var scope = this;
@@ -1374,7 +1379,7 @@ class Toolbar {
 				})
 			}
 		}
-		if (items && items.constructor.name === 'Array') {
+		if (items && items instanceof Array) {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
@@ -1415,10 +1420,12 @@ class Toolbar {
 	contextmenu(event) {
 		var offset = $(this.node).find('.toolbar_menu').offset()
 		if (offset) {
-			event.clientX = offset.left+7
-			event.clientY = offset.top+28
+			event = {
+				clientX: offset.left+7,
+				clientY: offset.top+28,
+			}
 		}
-		this.menu.open(event, this)
+		this.menu.open(event, this);
 	}
 	editMenu() {
 		BARS.editing_bar = this;
@@ -2114,31 +2121,6 @@ const BARS = {
 				BARS.stored = stored;
 			}
 		}
-		Toolbars.outliner = new Toolbar({
-			id: 'outliner',
-			children: [
-				'add_mesh',
-				'add_cube',
-				'add_group',
-				'outliner_toggle',
-				'toggle_skin_layer',
-				'explode_skin_model',
-				'+',
-				'cube_counter'
-			]
-		})
-
-		Toolbars.texturelist = new Toolbar({
-			id: 'texturelist',
-			children: [
-				'import_texture',
-				'create_texture',
-				'append_to_template',
-			]
-		})
-		Blockbench.onUpdateTo('4.3.0-beta.0', () => {
-			Toolbars.texturelist.add(BarItems.append_to_template);
-		})
 
 		Toolbars.tools = new Toolbar({
 			id: 'tools',
@@ -2162,7 +2144,24 @@ const BARS = {
 			vertical: Blockbench.isMobile == true,
 			default_place: true
 		})
+		
+		Toolbars.main_tools = new Toolbar({
+			id: 'main_tools',
+			children: [
+				'transform_space',
+				'rotation_space',
+				'selection_mode',
+				'animation_controller_preview_mode',
+				'lock_motion_trail',
+				'extrude_mesh_selection',
+				'inset_mesh_selection',
+				'loop_cut',
+				'create_face',
+				'invert_face',
+			]
+		})
 
+		// Element
 		Toolbars.element_position = new Toolbar({
 			id: 'element_position',
 			name: 'panel.element.position',
@@ -2204,123 +2203,6 @@ const BARS = {
 				'slider_rotation_y',
 				'slider_rotation_z',
 				'rescale_toggle'
-			]
-		})
-
-		Toolbars.palette = new Toolbar({
-			id: 'palette',
-			children: [
-				'import_palette',
-				'export_palette',
-				'generate_palette',
-				'sort_palette',
-				'save_palette',
-				'load_palette',
-			]
-		})
-		Blockbench.onUpdateTo('4.3.0-beta.0', () => {
-			Toolbars.palette.add(BarItems.save_palette, -1);
-		})
-		Toolbars.color_picker = new Toolbar({
-			id: 'color_picker',
-			children: [
-				'slider_color_h',
-				'slider_color_s',
-				'slider_color_v',
-				'slider_color_red',
-				'slider_color_green',
-				'slider_color_blue',
-				'add_to_palette',
-				'pick_screen_color'
-			]
-		})
-
-
-		Toolbars.display = new Toolbar({
-			id: 'display',
-			children: [
-				'copy',
-				'paste',
-				'add_display_preset',
-				'apply_display_preset',
-				'gui_light'
-			]
-		})
-		//UV
-		Toolbars.uv_editor = new Toolbar({
-			id: 'uv_editor',
-			children: [
-				'move_texture_with_uv',
-				'uv_apply_all',
-				'uv_maximize',
-				'uv_auto',
-				'uv_transparent',
-				'uv_mirror_x',
-				'uv_mirror_y',
-				'uv_rotation',
-				//Box
-				'toggle_mirror_uv',
-			]
-		})
-		//Animations
-		Toolbars.animations = new Toolbar({
-			id: 'animations',
-			children: [
-				'add_animation',
-				'add_animation_controller',
-				'load_animation_file',
-				'slider_animation_length',
-			]
-		})
-		Toolbars.keyframe = new Toolbar({
-			id: 'keyframe',
-			children: [
-				'slider_keyframe_time',
-				'keyframe_interpolation',
-				'keyframe_uniform',
-				'change_keyframe_file',
-				'reset_keyframe'
-			]
-		})
-		Toolbars.timeline = new Toolbar({
-			id: 'timeline',
-			children: [
-				'timeline_graph_editor',
-				'timeline_focus',
-				'clear_timeline',
-				'bring_up_all_animations',
-				'select_effect_animator',
-				'add_marker',
-				'+',
-				'jump_to_timeline_start',
-				'play_animation',
-				'jump_to_timeline_end',
-				'+',
-				'slider_animation_speed',
-			],
-			default_place: true
-		})
-		//Animation Controllers
-		Toolbars.animation_controllers = new Toolbar({
-			id: 'animation_controllers',
-			children: [
-				'add_animation_controller_state',
-			]
-		})
-		//Tools
-		Toolbars.main_tools = new Toolbar({
-			id: 'main_tools',
-			children: [
-				'transform_space',
-				'rotation_space',
-				'selection_mode',
-				'animation_controller_preview_mode',
-				'lock_motion_trail',
-				'extrude_mesh_selection',
-				'inset_mesh_selection',
-				'loop_cut',
-				'create_face',
-				'invert_face',
 			]
 		})
 		if (Blockbench.isMobile) {
@@ -2380,7 +2262,6 @@ const BARS = {
 			}
 		}
 		BarItems.move_tool.select()
-
 	},
 	setupVue() {
 

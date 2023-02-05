@@ -2072,9 +2072,15 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.texturelist
-		},
+		toolbars: [
+			new Toolbar('texturelist', {
+				children: [
+					'import_texture',
+					'create_texture',
+					'append_to_template',
+				]
+			})
+		],
 		onResize() {
 			this.inside_vue._data.currentFrame += 1;
 			this.inside_vue._data.currentFrame -= 1;

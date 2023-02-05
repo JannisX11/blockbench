@@ -514,7 +514,6 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {},
 		onResize: t => {
 		},
 		component: {

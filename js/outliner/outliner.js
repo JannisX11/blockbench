@@ -1372,9 +1372,20 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.outliner
-		},
+		toolbars: [
+			new Toolbar('outliner', {
+				children: [
+					'add_mesh',
+					'add_cube',
+					'add_group',
+					'outliner_toggle',
+					'toggle_skin_layer',
+					'explode_skin_model',
+					'+',
+					'cube_counter'
+				]
+			})
+		],
 		growable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.width = this.width;
@@ -1653,12 +1664,12 @@ Interface.definePanels(function() {
 				float_size: [300, 400],
 				height: 400
 			},
-			toolbars: {
-				element_position: 	Toolbars.element_position,
-				element_size: 		Toolbars.element_size,
-				element_origin: 	Toolbars.element_origin,
-				element_rotation: 	Toolbars.element_rotation,
-			}
+			toolbars: [
+				Toolbars.element_position,
+				Toolbars.element_size,
+				Toolbars.element_origin,
+				Toolbars.element_rotation,
+			]
 		})
 		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 	}

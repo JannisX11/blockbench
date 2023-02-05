@@ -16,7 +16,7 @@ class Panel {
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
 		this.events = {};
-		this.toolbars = data.toolbars || {};
+		this.toolbars = [];
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
 		this.position_data = Interface.data.panels[this.id];
@@ -34,16 +34,19 @@ class Panel {
 		if (this.growable) this.node.classList.add('grow');
 		
 		// Toolbars
-		for (let key in this.toolbars) {
-			let toolbar = this.toolbars[key];
-			if (toolbar instanceof Toolbar) {
-				if (toolbar.label) {
-					let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
-					this.node.append(label);
-					toolbar.label_node = label;
-				}
-				this.node.append(toolbar.node);
+		let toolbars = data.toolbars instanceof Array ? data.toolbars : (data.toolbars ? Object.keys(data.toolbars) : []);
+
+		for (let item of toolbars) {
+			let toolbar = item instanceof Toolbar ? item : this.toolbars[item];
+			if (toolbar instanceof Toolbar == false) continue;
+
+			if (toolbar.label) {
+				let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
+				this.node.append(label);
+				toolbar.label_node = label;
 			}
+			this.node.append(toolbar.node);
+			this.toolbars.push(toolbar);
 		}
 
 		if (data.component) {
@@ -57,7 +60,7 @@ class Panel {
 					let toolbar_wrappers = this.$el.querySelectorAll('.toolbar_wrapper');
 					toolbar_wrappers.forEach(wrapper => {
 						let id = wrapper.attributes.toolbar && wrapper.attributes.toolbar.value;
-						let toolbar = scope.toolbars[id];
+						let toolbar = scope.toolbars.find(toolbar => toolbar.id == id);
 						if (toolbar) {
 							wrapper.append(toolbar.node);
 						}
@@ -70,7 +73,7 @@ class Panel {
 				})
 			}
 			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);	
-			scope.vue.$el.classList.add('panel_vue_wrapper');		
+			scope.vue.$el.classList.add('panel_vue_wrapper');
 		}
 
 		if (!Blockbench.isMobile) {
@@ -327,6 +330,26 @@ class Panel {
 	}
 	set folded(state) {
 		this.position_data.folded = !!state;
+	}
+	addToolbar(toolbar, position = this.toolbars.length) {
+		let nodes = [];
+		if (toolbar.label) {
+			let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
+			nodes.push(label);
+			toolbar.label_node = label;
+		}
+		nodes.push(toolbar.node);
+		if (position == 0) {
+			this.handle.after(...nodes);
+		} else if (typeof position == 'string') {
+			let anchor = this.node.querySelector(`.toolbar[toolbar_id="${position}"]`);
+			if (anchor) {
+				anchor.after(...nodes);
+			}
+		} else {
+			this.node.append(...nodes);
+		}
+		this.toolbars.splice(position, 0, toolbar);
 	}
 	fold(state = !this.folded) {
 		this.folded = !!state;

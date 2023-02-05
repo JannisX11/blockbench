@@ -72,10 +72,30 @@ Interface.definePanels(() => {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			color_picker: Toolbars.color_picker,
-			palette: Toolbars.palette
-		},
+		toolbars: [
+			new Toolbar('color_picker', {
+				children: [
+					'slider_color_h',
+					'slider_color_s',
+					'slider_color_v',
+					'slider_color_red',
+					'slider_color_green',
+					'slider_color_blue',
+					'add_to_palette',
+					'pick_screen_color'
+				]
+			}),
+			new Toolbar('palette', {
+				children: [
+					'import_palette',
+					'export_palette',
+					'generate_palette',
+					'sort_palette',
+					'save_palette',
+					'load_palette',
+				]
+			})
+		],
 		onResize() {
 			Interface.Panels.color.vue.width = 0;
 			Vue.nextTick(() => {

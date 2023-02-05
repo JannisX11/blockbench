@@ -1973,9 +1973,16 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.animations
-		},
+		toolbars: [
+			new Toolbar('animations', {
+				children: [
+					'add_animation',
+					'add_animation_controller',
+					'load_animation_file',
+					'slider_animation_length',
+				]
+			})
+		],
 		component: {
 			name: 'panel-animations',
 			data() { return {
@@ -2295,8 +2302,6 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400
-		},
-		toolbars: {
 		},
 		component: {
 			name: 'panel-placeholders',

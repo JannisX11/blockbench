@@ -1226,9 +1226,18 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.keyframe
-		},
+		toolbars: [
+			new Toolbar({
+				id: 'keyframe',
+				children: [
+					'slider_keyframe_time',
+					'keyframe_interpolation',
+					'keyframe_uniform',
+					'change_keyframe_file',
+					'reset_keyframe'
+				]
+			})
+		],
 		component: {
 			name: 'panel-keyframe',
 			components: {VuePrismEditor},

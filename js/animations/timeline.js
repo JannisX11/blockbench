@@ -614,9 +614,25 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		grow: true,
-		toolbars: {
-			timeline: Toolbars.timeline
-		},
+		toolbars: [
+			new Toolbar('timeline', {
+				children: [
+					'timeline_graph_editor',
+					'timeline_focus',
+					'clear_timeline',
+					'bring_up_all_animations',
+					'select_effect_animator',
+					'add_marker',
+					'+',
+					'jump_to_timeline_start',
+					'play_animation',
+					'jump_to_timeline_end',
+					'+',
+					'slider_animation_speed',
+				],
+				default_place: true
+			})
+		],
 		onResize() {
 			Timeline.updateSize();
 		},
