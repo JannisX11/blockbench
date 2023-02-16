@@ -211,15 +211,12 @@ var codec = new Codec('project', {
 
 		if (!options.backup) {
 			// Backgrounds
-			const backgrounds = {};
+			const backgrounds = [];
 
-			for (var key in Project.backgrounds) {
-				let scene = Project.backgrounds[key];
-				if (scene.image) {
-					backgrounds[key] = scene.getSaveCopy();
-				}
+			for (let background of Project.backgrounds) {
+				backgrounds.push(background.getSaveCopy());
 			}
-			if (Object.keys(backgrounds).length) {
+			if (backgrounds.length) {
 				model.backgrounds = backgrounds;
 			}
 		}

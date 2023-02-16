@@ -294,7 +294,7 @@ class Preview {
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
 
-		this.loadBackground()
+		//this.loadBackground()
 
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
@@ -328,7 +328,7 @@ class Preview {
 			} else {
 				scope.background.image = files[0].content
 			}
-			scope.loadBackground()
+			//scope.loadBackground()
 		})
 		Preview.all.push(this);
 	}
@@ -358,7 +358,7 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			this.updateBackground()
+			//this.updateBackground()
 			if (Transformer) {
 				Transformer.update()
 			}
@@ -550,7 +550,7 @@ class Preview {
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
 			}
-			this.loadBackground();
+			//this.loadBackground();
 
 			var layer = getAxisNumber(this.camOrtho.axis)+1;
 			this.camOrtho.layers.set(0);
@@ -580,11 +580,11 @@ class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
-			this.loadBackground()
+			//this.loadBackground()
 		}
 
 		Transformer.update();
-		this.loadBackground()
+		//this.loadBackground()
 		return this;
 	}
 	setDefaultAnglePreset(preset) {
@@ -1148,7 +1148,7 @@ class Preview {
 				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
 				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
 			}
-			this.updateBackground()
+			//this.updateBackground()
 			return;
 		}
 
@@ -1352,8 +1352,10 @@ class Preview {
 		this.selection.activated = false;
 	}
 
+	loadBackground() {}
+	updateBackground() {}
 	//Backgrounds
-	getBackground() {
+	/*getBackground() {
 		if (display_mode) {
 			var id = displayReferenceObjects.active.id
 			if (id == 'monitor' ||id == 'bow') {
@@ -1477,7 +1479,7 @@ class Preview {
 				Settings.saveLocalStorages();
 			}
 		}).show();
-	}
+	}*/
 	//Misc
 	screenshot(options, cb) {
 		return Screencam.screenshotPreview(this, options, cb);
@@ -1535,7 +1537,7 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
+		/*{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
 			var has_background = !!preview.background.image
 			function applyBackground(image) {
 				if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
@@ -1599,7 +1601,7 @@ class Preview {
 					preview.restoreBackground()
 				}}
 			]
-		}},
+		}},*/
 		'_',
 		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
@@ -1932,17 +1934,40 @@ window.addEventListener("gamepadconnected", function(event) {
 	}
 });
 
-class PreviewBackground {
+class ReferenceImage {
 	constructor(data = {}) {
-		this.name = data.name ? tl(data.name) : ''
-		this._image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-		this.defaults.image = this.image;
-		this.imgtag = new Image();
+		/**
+		Position
+		Size
+		Rotation
+		visibility
+		opacity
+		attached side
+		type							BBMODEL
+			backgrounds ???				N
+			general reference images	Y
+			blueprint images			Y
+			display mode backgrounds	N
+			hardcoded with condition
+
+		So a list of all reference images is saved per project
+		There should be another list for global ones
+		And another list for hard-coded ones
+
+		 */
+		this.uuid = guid();
+
+		for (let key in ReferenceImage.properties) {
+			ReferenceImage.properties[key].reset(this);
+		}
+
+		this.node = Interface.createElement('div', {class: 'reference_image'});
+		this.img = new Image();
+		this.node.append(this.img);
+		this.resize_nodes = [];
+		this.defaults = data;
+
+		this.extend(data);
 	}
 	get image() {
 		return this._image;
@@ -1953,9 +1978,13 @@ class PreviewBackground {
 			this.imgtag.src = this._image.replace(/#/g, '%23');
 		}
 	}
+	extend(data) {
+		for (let key in ReferenceImage.properties) {
+			ReferenceImage.properties[key].merge(this, data)
+		}
+	}
 	getSaveCopy() {
-		let dataUrl;
-
+		/*let dataUrl;
 		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
 			let canvas = document.createElement('canvas');
 			canvas.width = this.imgtag.naturalWidth;
@@ -1963,18 +1992,107 @@ class PreviewBackground {
 			let ctx = canvas.getContext('2d');
 			ctx.drawImage(this.imgtag, 0, 0);
 			dataUrl = canvas.toDataURL('image/png');
-		}
-
-		return {
-			name: this.name,
-			image: dataUrl || this.image,
-			size: this.size,
-			x: this.x,
-			y: this.y,
-			lock: this.lock
+		}*/
+		let copy = {};
+		for (let key in ReferenceImage.properties) {
+			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
 	}
+	update() {
+		let selected = ReferenceImage.selected == this;
+		console.log(this);
+
+		// update position
+		if (this.type == 'reference') {
+			Interface.preview.append(this.node);
+		}
+
+		this.node.style.display = this.visibility ? 'block' : 'none';
+		this.node.style.width = this.size[0] + 'px';
+		this.node.style.height = this.size[1] + 'px';
+		this.node.style.left = this.position[0] + 'px';
+		this.node.style.top = this.position[1] + 'px';
+		this.node.style.transform = this.rotation ? `rotate(${this.rotation}deg)` : '';
+		this.node.style.opacity = this.opacity;
+		this.node.style.visibility = this.visibility ? 'visible' : 'hidden';
+		this.img.src = this.source;
+		this.img.classList.toggle('flip_x', this.flip_x);
+		this.img.classList.toggle('flip_y', this.flip_y);
+
+		if (selected) {
+			/*
+			Resize handles
+			Buttons
+				Switch Z layer
+				Flip X and Y?
+				visibility
+				opacity
+
+			*/
+		}
+	}
+	reset() {
+
+	}
 }
+
+new Property(ReferenceImage, 'string', 'name');
+new Property(ReferenceImage, 'string', 'type', {default: 'reference'}); // 
+new Property(ReferenceImage, 'vector2', 'position');
+new Property(ReferenceImage, 'vector2', 'size', {default: [100, 100]});
+new Property(ReferenceImage, 'boolean', 'flip_x');
+new Property(ReferenceImage, 'boolean', 'flip_y');
+new Property(ReferenceImage, 'number', 'rotation');
+new Property(ReferenceImage, 'number', 'z_layer');
+new Property(ReferenceImage, 'number', 'opacity', {default: 1});
+new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
+new Property(ReferenceImage, 'boolean', 'clear_mode');
+new Property(ReferenceImage, 'number', 'attached_side');
+new Property(ReferenceImage, 'string', 'source');
+
+ReferenceImage.built_in = [];
+ReferenceImage.global = [];
+Object.defineProperty(ReferenceImage, 'current_project', {
+	get() {
+		return Project.reference_images || [];
+	}
+})
+Object.defineProperty(ReferenceImage, 'all', {
+	get() {
+		return ReferenceImage.built_in.concat(ReferenceImage.global, ReferenceImage.current_project);
+	}
+})
+Object.defineProperty(ReferenceImage, 'active', {
+	get() {
+		return ReferenceImage.all.filter(ref => Condition(ref.condition));
+	}
+})
+
+ReferenceImage.updateAll = function() {
+	ReferenceImage.all.forEach(ref => {
+		ref.update();
+	})
+}
+
+
+const ReferenceImageMode = {
+	/**
+	TODO
+	display background images ( no vue :( ))
+	selected display mode with handles and stuff
+	save in project
+	 */
+	active: false,
+	activate() {
+		ReferenceImageMode = true;
+	},
+	deactivate() {
+		ReferenceImageMode = false;
+	}
+}
+
+let r = new ReferenceImage({source: 'assets/splash_art.png?20'});
+ReferenceImage.global.push(r);
 
 //Init/Update
 function initCanvas() {
@@ -1996,10 +2114,10 @@ function initCanvas() {
 	Canvas.gizmos.push(Canvas.outlines)
 
 	canvas_scenes = {
-		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
-		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
+		monitor: 			new ReferenceImage({name: 'display.reference.monitor' }),
+		inventory_nine: 	new ReferenceImage({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
+		inventory_full: 	new ReferenceImage({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
+		hud: 				new ReferenceImage({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
 	}
 	if (localStorage.getItem('canvas_scenes')) {
 		var stored_canvas_scenes = undefined;

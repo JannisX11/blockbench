@@ -111,6 +111,7 @@
 		/*overflow: hidden;*/
 		position: absolute;
 		cursor: inherit;
+		z-index: 1;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
@@ -884,6 +885,32 @@
 		left: -10px;
 		color: white;
 		width: 16px;
+	}
+
+	.reference_image {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+	}
+	.reference_image.selected {
+		z-index: 2;
+		pointer-events: initial;
+
+	}
+	.reference_image > img {
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
+	.reference_image.flip_x > img {
+		transform: scaleX(-1);
+	}
+	.reference_image.flip_y > img {
+		transform: scaleY(-1);
+	}
+	.reference_image.flip_y.flip_x > img {
+		transform: scaleX(-1) scaleY(-1);
 	}
 /* GIF Recorder */
 	#gif_recording_frame {
