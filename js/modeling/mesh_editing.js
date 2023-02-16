@@ -342,6 +342,19 @@ BARS.defineActions(function() {
 					}
 				})
 			}
+			if (value == 'face' && ['edge', 'vertex'].includes(previous_selection_mode)) {
+				Mesh.selected.forEach(mesh => {
+					let vertices = mesh.getSelectedVertices();
+					let faces = mesh.getSelectedFaces(true);
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						if (face.vertices.allAre(vkey => vertices.includes(vkey))) {
+							UVEditor.vue.selected_faces.safePush(fkey);
+							faces.safePush(fkey);
+						}
+					}
+				})
+			}
 			if (value == 'edge') {
 				Mesh.selected.forEach(mesh => {
 					let edges = mesh.getSelectedEdges(true);
@@ -368,7 +381,7 @@ BARS.defineActions(function() {
 			if (value == 'edge' && ['vertex', 'cluster'].includes(previous_selection_mode)) {
 				Mesh.selected.forEach(mesh => {
 					let edges = mesh.getSelectedEdges(true);
-					let vertices = mesh.getSelectedFaces(true);
+					let vertices = mesh.getSelectedVertices();
 					if (!vertices.length) return;
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
@@ -394,11 +407,6 @@ BARS.defineActions(function() {
 					edges.empty();
 				})
 			}
-			/**
-			 * Face To Edge
-			 * Edge To Face
-			 * 
-			 */
 			updateSelection();
 			previous_selection_mode = value;
 		}

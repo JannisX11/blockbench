@@ -20,7 +20,7 @@ class Keybind {
 	}
 	set(keys, dflt) {
 		if (!keys || typeof keys !== 'object') return this;
-		this.key = keys.key
+		this.key = typeof keys.key == 'number' ? keys.key : -1;
 		if (this.ctrl 	!== null) this.ctrl = (keys.ctrl === null) ? null : (keys.ctrl 	== true);
 		if (this.shift 	!== null) this.shift= (keys.shift=== null) ? null : (keys.shift == true);
 		if (this.alt 	!== null) this.alt 	= (keys.alt  === null) ? null : (keys.alt 	== true);
@@ -766,22 +766,21 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			}
 		})
 	}
-	//Dialog
-	if (open_dialog) {
+	// Menu
+	if (open_menu) {
+		used = open_menu.keyNavigate(e)||used
+		
+	// Dialog
+	} else if (Dialog.open) {
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-				open_interface.confirm(e);
+				Dialog.open.confirm(e);
 				used = true
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-				open_interface.cancel(e);
+				Dialog.open.cancel(e);
 				used = true
 			}
 		}
-	//Menu
-	} else if (open_menu) {
-
-		used = open_menu.keyNavigate(e)||used
-
 	} else if (open_interface && typeof open_interface == 'object' && open_interface.hide) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			open_interface.confirm(e)

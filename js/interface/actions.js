@@ -1029,7 +1029,6 @@ class BarSelect extends Widget {
 				let button = document.createElement('div');
 				button.className = 'select_option';
 				button.setAttribute('key', key);
-				button.title = this.getNameFor(key);
 				button.append(Blockbench.getIconNode(data.options[key].icon));
 				this.node.append(button);
 				button.addEventListener('click', event => {
@@ -1038,8 +1037,9 @@ class BarSelect extends Widget {
 						this.onChange(this, event);
 					}
 				})
+				let title = this.getNameFor(key);
 				button.addEventListener('mouseenter', event => {
-					this.node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
+					this.node.firstElementChild.firstChild.textContent = this.name + ': ' + title;
 				})
 			}
 
@@ -1098,8 +1098,9 @@ class BarSelect extends Widget {
 								this.onChange(this, event);
 							}
 						})
+						let title = this.getNameFor(key);
 						button.addEventListener('mouseenter', event => {
-							node.firstElementChild.firstChild.textContent = this.name + ': ' + button.title;
+							node.firstElementChild.firstChild.textContent = this.name + ': ' + title;
 						})
 					}
 				}

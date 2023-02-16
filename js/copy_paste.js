@@ -87,7 +87,7 @@ const Clipbench = {
 			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
 				options.push(Clipbench.types.mesh_selection);
 			}
-			if (UVEditor.getMappableElements().length && UVEditor.clipboard.length) {
+			if (UVEditor.getMappableElements().length && UVEditor.clipboard?.length) {
 				options.push(Clipbench.types.face);
 			}
 			if (options.length > 1 && options.includes(settings.preview_paste_behavior.value)) {
@@ -109,7 +109,7 @@ const Clipbench = {
 				return options[0]
 			}
 		}
-		if (p == 'uv' && Modes.edit && UVEditor.clipboard.length) {
+		if (p == 'uv' && Modes.edit && UVEditor.clipboard?.length) {
 			return Clipbench.types.face;
 		}
 		if (p == 'textures') {

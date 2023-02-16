@@ -652,7 +652,7 @@ Object.assign(Clipbench, {
 		}
 		var first = keyframes[0];
 		var single_animator;
-		keyframes.forEach(function(kf) {
+		keyframes.forEach((kf) => {
 			if (kf.time < first.time) {
 				first = kf
 			}
@@ -663,7 +663,7 @@ Object.assign(Clipbench, {
 			}
 		})
 
-		keyframes.forEach(function(kf) {
+		keyframes.forEach((kf) => {
 			var copy = kf.getUndoCopy();
 			copy.time_offset = kf.time - first.time;
 			if (single_animator != false) {

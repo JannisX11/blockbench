@@ -296,7 +296,7 @@ const Templates = {
 }
 
 function getIdentifier() {
-	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || 'custom_model';
+	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || Project.name || 'custom_model';
 }
 
 function askToSaveProject() {

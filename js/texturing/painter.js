@@ -176,7 +176,7 @@ const Painter = {
 				return
 			}
 
-			if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+			if (Painter.lock_alpha && Settings.get('paint_through_transparency') && !(Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool')) {
 				let ctx = Painter.current.ctx;
 				let color = Painter.getPixelColor(ctx, x, y);
 				if (color.getAlpha() < 0.004) {

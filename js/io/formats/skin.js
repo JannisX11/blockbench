@@ -5610,63 +5610,64 @@ skin_presets.vex = {
 	display_name: 'Vex',
 	model: `{
 		"name": "vex",
-		"texturewidth": 64,
-		"textureheight": 64,
+		"texturewidth": 32,
+		"textureheight": 32,
 		"eyes": [
-			[9, 12, 2, 1],
-			[13, 12, 2, 1]
+			[5, 8, 2, 1],
+			[8, 8, 2, 1]
 		],
 		"bones": [
 			{
-				"name": "head",
-				"pivot": [0, 24, 0],
-				"cubes": [
-					{"name": "head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]}
-				]
-			},
-			{
 				"name": "body",
-				"pivot": [0, 24, 0],
+				"pivot": [0, 0, 0],
 				"cubes": [
-					{"name": "body", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}
+					{"origin": [-1.5, 0, -1], "size": [3, 4, 2], "uv": [0, 10]},
+					{"origin": [-1.5, -2, -1], "size": [3, 5, 2], "inflate": -0.2, "uv": [0, 16]}
 				]
 			},
 			{
-				"name": "RightArm",
-				"pivot": [-5, 22, 0],
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 4, 0],
 				"cubes": [
-					{"name": "RightArm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+					{"origin": [-2.5, 4, -2.5], "size": [5, 5, 5], "uv": [0, 0]}
 				]
 			},
 			{
-				"name": "LeftArm",
-				"pivot": [5, 22, 0],
-				"mirror": true,
+				"name": "rightArm",
+				"parent": "body",
+				"pivot": [-1.75, 3.75, 0],
 				"cubes": [
-					{"name": "LeftArm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+					{"origin": [-3, 0.25, -1], "size": [2, 4, 2], "inflate": -0.1, "uv": [23, 0]}
 				]
 			},
 			{
-				"name": "leg0",
-				"pivot": [-1.9, 12, 0],
+				"name": "rightItem",
+				"parent": "rightArm",
+				"pivot": [-2, 1, 0]
+			},
+			{
+				"name": "leftArm",
+				"parent": "body",
+				"pivot": [1.75, 3.75, 0],
 				"cubes": [
-					{"name": "leg0", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]},
-					{"name": "leg0", "origin": [-2.9, 3, -2], "size": [6, 10, 4], "uv": [32, 0]}
+					{"origin": [1, 0.25, -1], "size": [2, 4, 2], "inflate": -0.1, "uv": [23, 6]}
 				]
 			},
 			{
-				"name": "leftwing",
-				"pivot": [0, 24, 0],
-				"mirror": true,
+				"name": "leftWing",
+				"parent": "body",
+				"pivot": [0.5, 3, 1],
 				"cubes": [
-					{"name": "leftwing", "origin": [0, 12, 0], "size": [20, 12, 1], "uv": [0, 32]}
+					{"origin": [0.5, -2, 1], "size": [8, 5, 0], "uv": [16, 22], "mirror": true}
 				]
 			},
 			{
-				"name": "rightwing",
-				"pivot": [0, 24, 0],
+				"name": "rightWing",
+				"parent": "body",
+				"pivot": [-0.5, 3, 1],
 				"cubes": [
-					{"name": "rightwing", "origin": [-20, 12, 0], "size": [20, 12, 1], "uv": [0, 32]}
+					{"origin": [-8.5, -2, 1], "size": [8, 5, 0], "uv": [16, 22]}
 				]
 			}
 		]

@@ -86,6 +86,10 @@ var codec = new Codec('project', {
 			}, 200)
 		}
 		this.parse(model, file.path)
+
+		if (Modes.animate && !AnimationItem.selected && AnimationItem.all[0]) {
+			AnimationItem.all[0].select();
+		}
 	},
 	export() {
 		Blockbench.export({

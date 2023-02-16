@@ -1539,7 +1539,7 @@ DisplayMode.scrollSlider = function(type, value, el) {
 window.changeDisplaySkin = function() {
 	var commands = {
 		file: tl('message.display_skin.upload'),
-		name: isApp ? tl('message.display_skin.name') : undefined,
+		name: isApp ? tl('message.display_skin.name') : undefined, // Not available in web due to CORS policy of mojang API
 		reset: tl('message.display_skin.reset'),
 	};
 	Blockbench.showMessageBox({

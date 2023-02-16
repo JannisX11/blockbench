@@ -240,7 +240,10 @@ const UVEditor = {
 				}
 			},
 			hide() {
-				scope.removePastingOverlay()
+				scope.removePastingOverlay();
+				if (Painter.selection.move_mode) {
+					Undo.cancelEdit();
+				}
 			}
 		}
 		overlay.append(Painter.selection.canvas)
@@ -954,24 +957,29 @@ const UVEditor = {
 	mirrorX(event) {
 		var scope = this;
 		this.forElements(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
-				if (obj instanceof Cube) {
+			if (obj instanceof Cube) {
+				scope.getFaces(obj, event).forEach((side) => {
 					var proxy = obj.faces[side].uv[0]
 					obj.faces[side].uv[0] = obj.faces[side].uv[2]
 					obj.faces[side].uv[2] = proxy
-				} else if (obj instanceof Mesh) {
-					let center = 0;
-					let count = 0;
+				})
+			} else if (obj instanceof Mesh) {
+				let min = Infinity;
+				let max = -Infinity;
+				scope.getFaces(obj, event).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
-						center += obj.faces[side].uv[vkey][0];
-						count++;
+						min = Math.min(min, obj.faces[side].uv[vkey][0]);
+						max = Math.max(max, obj.faces[side].uv[vkey][0]);
 					})
-					center /= count;
+				})
+				let center = Math.lerp(min, max, 0.5);
+
+				scope.getFaces(obj, event).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][0] = center*2 - obj.faces[side].uv[vkey][0];
 					})
-				}
-			})
+				})
+			}
 			if (obj.autouv) obj.autouv = 0
 			obj.preview_controller.updateUV(obj);
 		})
@@ -981,24 +989,29 @@ const UVEditor = {
 	mirrorY(event) {
 		var scope = this;
 		this.forElements(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
-				if (obj instanceof Cube) {
+			if (obj instanceof Cube) {
+				scope.getFaces(obj, event).forEach((side) => {
 					var proxy = obj.faces[side].uv[1]
 					obj.faces[side].uv[1] = obj.faces[side].uv[3]
 					obj.faces[side].uv[3] = proxy
-				} else if (obj instanceof Mesh) {
-					let center = 0;
-					let count = 0;
+				})
+			} else if (obj instanceof Mesh) {
+				let min = Infinity;
+				let max = -Infinity;
+				scope.getFaces(obj, event).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
-						center += obj.faces[side].uv[vkey][1];
-						count++;
+						min = Math.min(min, obj.faces[side].uv[vkey][1]);
+						max = Math.max(max, obj.faces[side].uv[vkey][1]);
 					})
-					center /= count;
+				})
+				let center = Math.lerp(min, max, 0.5);
+
+				scope.getFaces(obj, event).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][1] = center*2 - obj.faces[side].uv[vkey][1];
 					})
-				}
-			})
+				})
+			}
 			if (obj.autouv) obj.autouv = 0;
 			obj.preview_controller.updateUV(obj);
 		})

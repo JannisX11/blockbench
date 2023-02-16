@@ -441,6 +441,9 @@
 		margin-top: -6px;
 		font-size: 1.8em;
 	}
+	dialog#settings h2 {
+		margin-top: -15px;
+	}
 
 	#settings_profile_wrapper {
 		display: flex;
