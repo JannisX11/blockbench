@@ -69,7 +69,7 @@ const ActionControl = {
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
-				plugin.download(true);
+				plugin.install();
 			}
 
 		} else {
