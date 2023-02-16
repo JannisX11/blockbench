@@ -187,8 +187,12 @@ class Cube extends OutlinerElement {
 		var scope = this;
 		let epsilon = 0.0000001;
 		function getA(axis) {
-			if (floored) {
+			if (floored == true) {
 				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
+
+			} else if (floored == 'box_uv' && Format.box_uv_float_size != true) {
+				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
+
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}
@@ -1005,7 +1009,7 @@ new NodePreviewController(Cube, {
 
 		if (element.box_uv) {
 
-			var size = element.size(undefined, true)
+			var size = element.size(undefined, Format.box_uv_float_size != true);
 			
 			var face_list = [   
 				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},

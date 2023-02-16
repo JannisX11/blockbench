@@ -471,9 +471,9 @@ var codec = new Codec('modded_entity', {
 
 							} else {
 								c_snippet = c_snippet
-									.replace(R('dx'), F(cube.size(0, true)) )
-									.replace(R('dy'), F(cube.size(1, true)) )
-									.replace(R('dz'), F(cube.size(2, true)) )
+									.replace(R('dx'), F(cube.size(0, false)) )
+									.replace(R('dy'), F(cube.size(1, false)) )
+									.replace(R('dz'), F(cube.size(2, false)) )
 							}
 
 							cube_snippets.push(c_snippet);
@@ -884,13 +884,14 @@ var format = new ModelFormat({
 	},
 	codec,
 	box_uv: true,
+	box_uv_float_size: true,
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
 	rotate_cubes: true,
 	integer_size: true
 })
-//Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')})
+Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')});
 codec.format = format;
 
 

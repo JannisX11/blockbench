@@ -284,7 +284,7 @@ const UVEditor = {
 		let elements = UVEditor.getMappableElements();
 		elements.forEach(element => {
 			if (element instanceof Cube && element.box_uv) {
-				let size = element.size(undefined, true)
+				let size = element.size(undefined, Format.box_uv_float_size != true)
 				min_x = Math.min(min_x, element.uv_offset[0]);
 				min_y = Math.min(min_y, element.uv_offset[1]);
 				max_x = Math.max(max_x, element.uv_offset[0] + (size[0] + size[2]) * 2);
@@ -552,7 +552,7 @@ const UVEditor = {
 
 				value = limitNumber(value, minimum, limit)
 				value = limitNumber(value + size, minimum, limit) - size
-				obj.uv_offset[axis] = value
+				obj.uv_offset[axis] = Math.round(value);
 			}
 			obj.preview_controller.updateUV(obj);
 		})
@@ -2475,7 +2475,7 @@ Interface.definePanels(function() {
 										})
 									})
 								} else if (element.box_uv) {
-									let size = element.size(undefined, true);
+									let size = element.size(undefined, Format.box_uv_float_size != true);
 									let uv_size = [
 										size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
 										size[2] + size[1],
@@ -2505,8 +2505,8 @@ Interface.definePanels(function() {
 										})
 									})
 								} else if (element.box_uv) {
-									element.uv_offset[0] += diff_x;
-									element.uv_offset[1] += diff_y;
+									element.uv_offset[0] = Math.floor(element.uv_offset[0] + diff_x);
+									element.uv_offset[1] = Math.floor(element.uv_offset[1] + diff_y);
 								} else {
 									this.selected_faces.forEach(key => {
 										if (element.faces[key] && element instanceof Cube) {
@@ -3221,10 +3221,10 @@ Interface.definePanels(function() {
 									:class="{unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 									:style="{left: toPixels(element.uv_offset[0]), top: toPixels(element.uv_offset[1])}"
 								>
-									<div class="uv_fill" v-if="element.size(1, true) > 0" :style="{left: '-1px', top: toPixels(element.size(2, true), -1), width: toPixels(element.size(2, true)*2 + element.size(0, true)*2, 2), height: toPixels(element.size(1, true), 2)}" />
-									<div class="uv_fill" v-if="element.size(0, true) > 0" :style="{left: toPixels(element.size(2, true), -1), top: '-1px', width: toPixels(element.size(0, true)*2, 2), height: toPixels(element.size(2, true), 2), borderBottom: element.size(1, true) > 0 ? 'none' : undefined}" />
-									<div :style="{left: toPixels(element.size(2, true), -1), top: element.size(0, true) > 0 ? '-1px' : toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels( (element.size(0, true) > 0 ? element.size(2, true) : 0) + element.size(1, true), 2), borderRight: element.size(0, true) == 0 ? 'none' : undefined}" />
-									<div v-if="element.size(1, true) > 0 && element.size(0, true) > 0" :style="{left: toPixels(element.size(2, true)*2 + element.size(0, true), -1), top: toPixels(element.size(2, true), -1), width: toPixels(element.size(0, true), 2), height: toPixels(element.size(1, true), 2)}" />
+									<div class="uv_fill" v-if="element.size(1, 'box_uv') > 0" :style="{left: '-1px', top: toPixels(element.size(2, 'box_uv'), -1), width: toPixels(element.size(2, 'box_uv')*2 + element.size(0, 'box_uv')*2, 2), height: toPixels(element.size(1, 'box_uv'), 2)}" />
+									<div class="uv_fill" v-if="element.size(0, 'box_uv') > 0" :style="{left: toPixels(element.size(2, 'box_uv'), -1), top: '-1px', width: toPixels(element.size(0, 'box_uv')*2, 2), height: toPixels(element.size(2, 'box_uv'), 2), borderBottom: element.size(1, 'box_uv') > 0 ? 'none' : undefined}" />
+									<div :style="{left: toPixels(element.size(2, 'box_uv'), -1), top: element.size(0, 'box_uv') > 0 ? '-1px' : toPixels(element.size(2, 'box_uv'), -1), width: toPixels(element.size(0, 'box_uv'), 2), height: toPixels( (element.size(0, 'box_uv') > 0 ? element.size(2, 'box_uv') : 0) + element.size(1, 'box_uv'), 2), borderRight: element.size(0, 'box_uv') == 0 ? 'none' : undefined}" />
+									<div v-if="element.size(1, 'box_uv') > 0 && element.size(0, 'box_uv') > 0" :style="{left: toPixels(element.size(2, 'box_uv')*2 + element.size(0, 'box_uv'), -1), top: toPixels(element.size(2, 'box_uv'), -1), width: toPixels(element.size(0, 'box_uv'), 2), height: toPixels(element.size(1, 'box_uv'), 2)}" />
 								</div>
 
 								<template v-if="element.type == 'mesh'">

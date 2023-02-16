@@ -176,13 +176,14 @@ const TextureGenerator = {
 	},
 	//constructors
 	boxUVCubeTemplate: function(obj, min_size) {
-		this.x = obj.size(0, true) || min_size;
-		this.y = obj.size(1, 'template') || min_size;
-		this.z = obj.size(2, true) || min_size;
+		let floor_uv = Format.box_uv_float_size != true;
+		this.x = Math.round(obj.size(0, floor_uv)) || min_size;
+		this.y = Math.round(obj.size(1, floor_uv)) || min_size;
+		this.z = Math.round(obj.size(2, floor_uv)) || min_size;
 		this.posx = obj.uv_offset[0];
 		this.posy = obj.uv_offset[1];
 		this.obj = obj;
-		this.template_size = (obj.size(2, true) + obj.size(1, 'template'))+ (obj.size(2, true) + obj.size(0, true))*2;
+		this.template_size = (obj.size(2, floor_uv) + obj.size(1, floor_uv))+ (obj.size(2, floor_uv) + obj.size(0, floor_uv))*2;
 
 		this.height = this.z + this.y;
 		this.width = 2* (this.x + this.z);
@@ -621,7 +622,7 @@ const TextureGenerator = {
 		}
 
 		if (!cube.box_uv) {
-			var size = cube.size(undefined, true);
+			var size = cube.size(undefined, Format.box_uv_float_size != true);
 			size.forEach((n, i) => {
 				size[i] = n;
 			})
