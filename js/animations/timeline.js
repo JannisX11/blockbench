@@ -639,7 +639,7 @@ Interface.definePanels(() => {
 		component: {
 			name: 'panel-timeline',
 			data() {return {
-				size: 200,
+				size: 300,
 				length: 10,
 				animation_length: 0,
 				scroll_left: 0,
