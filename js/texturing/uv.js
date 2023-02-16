@@ -391,6 +391,20 @@ const UVEditor = {
 		let selected_cubes = Cube.selected;
 		return selected_cubes.length ? !selected_cubes.find(cube => !cube.box_uv) : Project.box_uv;
 	},
+	isSelectedFaceMirrored(axis) {
+		let reference_face = UVEditor.getReferenceFace();
+		if (reference_face instanceof CubeFace) {
+			reference_face.uv[axis+0] > reference_face.uv[axis+2]
+		} else {
+			let vertices = reference_face.getSortedVertices();
+			if (vertices.length <= 2) return false;
+			if (!Math.epsilon(reference_face.uv[vertices[0]][axis], reference_face.uv[vertices[1]][axis], 0.01)) {
+				return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[1]][axis];
+			} else {
+				return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[2]][axis];
+			}
+		}
+	},
 	//Set
 	setZoom(zoom) {
 		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
@@ -1309,84 +1323,76 @@ const UVEditor = {
 		'copy',
 		'paste',
 		'cube_uv_mode',
-		{icon: 'photo_size_select_large', name: 'menu.uv.mapping', condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(), children() {
-			let reference_face = UVEditor.getReferenceFace();
-			function isMirrored(axis) {
-				if (reference_face instanceof CubeFace) {
-					reference_face.uv[axis+0] > reference_face.uv[axis+2]
-				} else {
-					let vertices = reference_face.getSortedVertices();
-					if (vertices.length <= 2) return false;
-					if (!Math.epsilon(reference_face.uv[vertices[0]][axis], reference_face.uv[vertices[1]][axis], 0.01)) {
-						return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[1]][axis];
-					} else {
-						return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[2]][axis];
-					}
-				}
+		'_',
+		{
+			name: 'menu.uv.export',
+			icon: () => UVEditor.getReferenceFace()?.enabled !== false ? 'check_box' : 'check_box_outline_blank',
+			condition: () => (!UVEditor.isBoxUV() && UVEditor.getReferenceFace() && Format.java_face_properties),
+			click(event) {
+				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				UVEditor.toggleUV(event);
+				Undo.finishEdit('Toggle UV export');
 			}
+		},
+		'uv_maximize',
+		'uv_auto',
+		'uv_rel_auto',
+		'snap_uv_to_pixels',
+		'uv_rotate_left',
+		'uv_rotate_right',
+		{icon: 'rotate_90_degrees_ccw', condition: () => UVEditor.getReferenceFace() instanceof CubeFace && Format.uv_rotation, name: 'menu.uv.mapping.rotation', children() {
+			let reference_face = UVEditor.getReferenceFace();
+			let off = 'radio_button_unchecked'
+			let on = 'radio_button_checked'
 			return [
-				{icon: reference_face.enabled!==false ? 'check_box' : 'check_box_outline_blank', name: 'generic.export', click: function() {
+				{icon: (!reference_face.rotation ? on : off), name: '0°', click() {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					UVEditor.toggleUV(event)
-					Undo.finishEdit('Toggle UV export')
+					UVEditor.setRotation(0)
+					Undo.finishEdit('Rotate UV')
 				}},
-				'uv_maximize',
-				'uv_auto',
-				'uv_rel_auto',
-				'snap_uv_to_pixels',
-				'uv_rotate_left',
-				'uv_rotate_right',
-				{icon: 'rotate_90_degrees_ccw', condition: () => reference_face instanceof CubeFace && Format.uv_rotation, name: 'menu.uv.mapping.rotation', children: function() {
-					var off = 'radio_button_unchecked'
-					var on = 'radio_button_checked'
-					return [
-						{icon: (!reference_face.rotation ? on : off), name: '0&deg;', click: function() {
-							Undo.initEdit({elements: Cube.selected, uv_only: true})
-							UVEditor.setRotation(0)
-							Undo.finishEdit('Rotate UV')
-						}},
-						{icon: (reference_face.rotation === 90 ? on : off), name: '90&deg;', click: function() {
-							Undo.initEdit({elements: Cube.selected, uv_only: true})
-							UVEditor.setRotation(90)
-							Undo.finishEdit('Rotate UV')
-						}},
-						{icon: (reference_face.rotation === 180 ? on : off), name: '180&deg;', click: function() {
-							Undo.initEdit({elements: Cube.selected, uv_only: true})
-							UVEditor.setRotation(180)
-							Undo.finishEdit('Rotate UV')
-						}},
-						{icon: (reference_face.rotation === 270 ? on : off), name: '270&deg;', click: function() {
-							Undo.initEdit({elements: Cube.selected, uv_only: true})
-							UVEditor.setRotation(270)
-							Undo.finishEdit('Rotate UV')
-						}}
-					]
+				{icon: (reference_face.rotation === 90 ? on : off), name: '90°', click() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.setRotation(90)
+					Undo.finishEdit('Rotate UV')
 				}},
-				'uv_turn_mapping',
-				{
-					icon: (isMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
-					name: 'menu.uv.mapping.mirror_x',
-					click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.mirrorX(event)
-						Undo.finishEdit('Mirror UV')
-					}
-				},
-				{
-					icon: (isMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
-					name: 'menu.uv.mapping.mirror_y',
-					click: function() {
-						Undo.initEdit({elements: Cube.selected, uv_only: true})
-						UVEditor.mirrorY(event)
-						Undo.finishEdit('Mirror UV')
-					}
-				},
+				{icon: (reference_face.rotation === 180 ? on : off), name: '180°', click() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.setRotation(180)
+					Undo.finishEdit('Rotate UV')
+				}},
+				{icon: (reference_face.rotation === 270 ? on : off), name: '270°', click() {
+					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					UVEditor.setRotation(270)
+					Undo.finishEdit('Rotate UV')
+				}}
 			]
 		}},
+		'uv_turn_mapping',
+		{
+			name: 'menu.uv.flip_x',
+			icon: () => (UVEditor.isSelectedFaceMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
+			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			click(event) {
+				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				UVEditor.mirrorX(event);
+				Undo.finishEdit('Flip UV');
+			}
+		},
+		{
+			name: 'menu.uv.flip_y',
+			icon: () => (UVEditor.isSelectedFaceMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
+			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			click(event) {
+				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				UVEditor.mirrorY(event);
+				Undo.finishEdit('Flip UV');
+			}
+		},
+		'_',
 		'face_tint',
 		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
-			var off = 'radio_button_unchecked';
-			var on = 'radio_button_checked';
+			let off = 'radio_button_unchecked';
+			let on = 'radio_button_checked';
 			function setCullface(cullface) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 				UVEditor.forCubes(obj => {
@@ -1408,7 +1414,7 @@ const UVEditor = {
 			]
 		}},
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Project.single_texture, children: function() {
-			var arr = [
+			let arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements;
 					Undo.initEdit({elements})
@@ -1428,7 +1434,9 @@ const UVEditor = {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					click: function() {UVEditor.applyTexture(t)}
+					click() {
+						UVEditor.applyTexture(t);
+					}
 				})
 			})
 			return arr;
