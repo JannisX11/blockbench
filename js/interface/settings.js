@@ -6,6 +6,18 @@ class Setting {
 		settings[id] = this;
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
+		if (data.value != undefined) {
+			this.default_value = data.value;
+		} else {
+			switch (this.type) {
+				case 'toggle': this.default_value = true; break;
+				case 'number': this.default_value = 0; break;
+				case 'text': this.default_value = ''; break;
+				case 'password': this.default_value = ''; break;
+				case 'select': this.default_value; break;
+				case 'click': this.default_value = false; break;
+			}
+		}
 		if (typeof Settings.stored[id] === 'object') {
 			this.master_value = Settings.stored[id].value;
 
@@ -13,14 +25,7 @@ class Setting {
 			this.master_value = data.value
 
 		} else {
-			switch (this.type) {
-				case 'toggle': this.master_value = true; break;
-				case 'number': this.master_value = 0; break;
-				case 'text': this.master_value = ''; break;
-				case 'password': this.master_value = ''; break;
-				case 'select': this.master_value; break;
-				case 'click': this.master_value = false; break;
-			}
+			this.master_value = this.default_value;
 		}
 		this.condition = data.condition;
 		this.category = data.category || 'general';
@@ -156,7 +161,7 @@ class Setting {
 			this.click(e)
 
 		} else {
-			new Dialog({
+			let dialog = new Dialog({
 				id: 'setting_' + this.id,
 				title: tl('data.setting'),
 				form: {
@@ -169,7 +174,14 @@ class Setting {
 					description: this.description ? {
 						type: 'info',
 						text: this.description
-					} : undefined
+					} : undefined,
+					reset: {
+						type: 'buttons',
+						buttons: ['dialog.settings.reset_to_default'],
+						click() {
+							dialog.setFormValues({input: setting.default_value});
+						}
+					}
 				},
 				onConfirm({input}) {
 					setting.set(input);
@@ -811,6 +823,18 @@ onVueSetup(function() {
 				saveSettings() {
 					Settings.saveLocalStorages();
 				},
+				settingContextMenu(setting, event) {
+					new Menu([
+						{
+							name: 'dialog.settings.reset_to_default',
+							icon: 'replay',
+							click: () => {
+								setting.ui_value = setting.default_value;
+								this.saveSettings();
+							}
+						}
+					]).open(event);
+				},
 				showProfileMenu(event) {
 					let items = [
 						{
@@ -919,6 +943,7 @@ onVueSetup(function() {
 						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
 							v-on="setting.click ? {click: setting.click} : {}"
 							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
+							@contextmenu="settingContextMenu(setting, $event)"
 						>
 							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('Clear profile value')}">
 								<i class="material-icons">clear</i>

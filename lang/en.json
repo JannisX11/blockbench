@@ -643,6 +643,7 @@
 	"dialog.settings.theme": "Theme",
 	"dialog.settings.about": "About",
 	"dialog.settings.search_results": "Search Results",
+	"dialog.settings.reset_to_default": "Reset to Default",
 	"dialog.settings.create_profile": "Create Profile...",
 
 	"keybindings.reset": "Reset",
