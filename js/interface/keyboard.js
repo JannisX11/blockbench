@@ -774,6 +774,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (Dialog.open) {
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				if (input_focus) {
+					input_focus.blur();
+				}
 				Dialog.open.confirm(e);
 				used = true
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {

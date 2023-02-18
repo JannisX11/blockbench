@@ -684,6 +684,38 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.node = select;
 	this.set = setKey;
 }
+Interface.CustomElements.NumericInput = function(id, data) {
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'numeric'});
+	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
+	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
+		input, slider
+	])
+
+	addEventListeners(slider, 'mousedown touchstart', e1 => {
+		let last_difference = 0;
+		let move = e2 => {
+			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
+			if (difference != last_difference) {
+				input.value = (parseFloat(input.value) || 0) + (difference - last_difference);
+				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), event);
+				last_difference = difference;
+			}
+		}
+		let stop = e2 => {
+			removeEventListeners(document, 'mousemove touchmove', move);
+			removeEventListeners(document, 'mouseup touchend', stop);
+		}
+		addEventListeners(document, 'mousemove touchmove', move);
+		addEventListeners(document, 'mouseup touchend', stop);
+	})
+
+	addEventListeners(input, 'focusout dblclick', () => {
+		input.value = NumSlider.MolangParser.parse(input.value);
+	})
+	input.addEventListener('input', (event) => {
+		if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), event);
+	})
+}
 
 function openTouchKeyboardModifierMenu(node) {
 	if (Menu.closed_in_this_click == 'mobile_keyboard') return;

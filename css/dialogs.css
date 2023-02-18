@@ -182,14 +182,12 @@
 	}
 	.dialog_vector_group {
 		display: flex;
+		gap: 3px;
 	}
 	.dialog_vector_group > input {
 		min-width: 30px;
 		flex-grow: 1;
 		flex-shrink: 1;
-	}
-	.dialog_vector_group > input:not(:last-child) {
-		margin-right: 3px;
 	}
 	.dialog_bar > .range_input_label {
 		overflow: hidden;

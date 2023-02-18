@@ -177,12 +177,14 @@ function buildForm(dialog) {
 
 
 				case 'number':
-					input_element = $(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
-						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
-					bar.append(input_element)
-					input_element.on('change', () => {
-						dialog.updateFormValues()
-					})
+					let numeric_input = new Interface.CustomElements.NumericInput(form_id, {
+						value: data.value,
+						min: data.min, max: data.max,
+						onChange() {
+							dialog.updateFormValues()
+						}
+					});
+					bar.append(numeric_input.node)
 					break;
 
 
@@ -227,12 +229,14 @@ function buildForm(dialog) {
 					let group = $(`<div class="dialog_vector_group half"></div>`)
 					bar.append(group)
 					for (let i = 0; i < (data.dimensions || 3); i++) {
-						input_element = $(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
-							value="${data.value ? parseFloat(data.value[i]): 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
-						group.append(input_element)
-						input_element.on('input', () => {
-							dialog.updateFormValues()
-						})
+						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
+							value: data.value[i],
+							min: data.min, max: data.max,
+							onChange() {
+								dialog.updateFormValues()
+							}
+						});
+						group.append(numeric_input.node)
 					}
 					break;
 
