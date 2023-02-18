@@ -200,7 +200,7 @@ class Menu {
 		function populateList(list, menu_node, searchable) {
 			
 			if (searchable) {
-				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search')});
+				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search'), inputmode: 'search'});
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
 				menu_node.append(search_bar);

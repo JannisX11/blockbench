@@ -22,7 +22,7 @@ Vue.component('search-bar', {
 	},
 	template: `
 		<div class="search_bar" :class="{folded: (!value && hidden)}">
-			<input type="text" ref="input" class="dark_bordered" :value="value" @focusout="hidden = hide;" @input="change($event.target.value)">
+			<input type="text" inputmode="search" ref="input" class="dark_bordered" :value="value" @focusout="hidden = hide;" @input="change($event.target.value)">
 			<i class="material-icons" :class="{light_on_hover: !!value}" @click="clickIcon()">{{ value ? 'clear' : 'search' }}</i>
 		</div>`
 })

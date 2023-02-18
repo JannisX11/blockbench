@@ -516,6 +516,9 @@ function resizeWindow(event) {
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.resize()
+			if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) {
+				prev.render();
+			}
 		}
 	})
 	Outliner.elements.forEach(element => {
@@ -685,7 +688,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 Interface.CustomElements.NumericInput = function(id, data) {
-	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'numeric'});
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'decimal'});
 	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
 	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider
@@ -696,7 +699,7 @@ Interface.CustomElements.NumericInput = function(id, data) {
 		let move = e2 => {
 			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
 			if (difference != last_difference) {
-				input.value = (parseFloat(input.value) || 0) + (difference - last_difference);
+				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
 				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), event);
 				last_difference = difference;
 			}
@@ -710,10 +713,10 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	})
 
 	addEventListeners(input, 'focusout dblclick', () => {
-		input.value = NumSlider.MolangParser.parse(input.value);
+		input.value = Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max);
 	})
 	input.addEventListener('input', (event) => {
-		if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), event);
+		if (data.onChange) data.onChange(Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max), event);
 	})
 }
 
