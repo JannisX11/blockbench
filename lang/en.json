@@ -364,6 +364,8 @@
 	"dialog.project.modded_entity_flip_y": "Flip Y Axis",
 	"dialog.project.ao": "Ambient Occlusion",
 	"dialog.project.uv_mode": "UV Mode",
+	"dialog.project.default_uv_mode": "Default UV Mode",
+	"dialog.project.default_uv_mode.description": "Default UV Mode of the project. The UV mode can also be changed per cube.",
 	"dialog.project.uv_mode.box_uv": "Box UV",
 	"dialog.project.uv_mode.face_uv": "Per-face UV",
 	"dialog.project.texture_size": "Texture Size",

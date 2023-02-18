@@ -909,7 +909,8 @@ BARS.defineActions(function() {
 			}
 
 			form.uv_mode = {
-				label: 'dialog.project.uv_mode',
+				label: 'dialog.project.default_uv_mode',
+				description: 'dialog.project.default_uv_mode.description',
 				type: 'select',
 				condition: Format.optional_box_uv,
 				options: {
