@@ -1842,6 +1842,19 @@ span.controller_state_section_info {
 		color: var(--color-light);
 		cursor: pointer;
 	}
+	#uv_rotate_handle {
+		width: 21.4px;
+		height: 21.4px;
+		position: absolute;
+		text-align: center;
+		cursor: ne-resize;
+		z-index: 1;
+		background: var(--color-back);
+		border-radius: 12px;
+	}
+	#uv_rotate_handle:hover {
+		color: var(--color-light);
+	}
 	#uv_scale_handle {
 		width: 18px;
 		height: 18px;

@@ -2935,6 +2935,14 @@ Interface.definePanels(function() {
 						return this.selected_faces.length > 0;
 					}
 				},
+				isRotatingAvailable() {
+					/*if (this.mappable_elements[0] instanceof Cube) {
+						return UVEditor.isFaceUV();
+					}*/
+					if (this.mappable_elements[0] instanceof Mesh) {
+						return this.selected_faces.length > 0;
+					}
+				},
 				getSelectedUVBoundingBox() {
 					let min = [Project.texture_width, Project.texture_height];
 					let max = [0, 0];
@@ -3271,13 +3279,23 @@ Interface.definePanels(function() {
 												@mousedown.prevent.stop="dragVertices(element, key, $event)" @touchstart.prevent.stop="dragVertices(element, key, $event)"
 												:style="{left: toPixels( face.uv[key][0] - getMeshFaceCorner(face, 0) ), top: toPixels( face.uv[key][1] - getMeshFaceCorner(face, 1) )}"
 											>
-												<div class="uv_rotate_field" @mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)" v-if="index == 0"></div>
 											</div>
 										</template>
 									</div>
 								</template>
 
 							</template>
+
+							<div id="uv_rotate_handle" v-if="mode == 'uv' && isRotatingAvailable()"
+								@mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"
+								:title="tl('uv_editor.rotate_uv')"
+								:style="{
+									left: toPixels(getSelectedUVBoundingBox()[0], -25),
+									top: toPixels(getSelectedUVBoundingBox()[1], -25),
+								}
+							">
+								<i class="material-icons">rotate_right</i>
+							</div>
 
 							<div id="uv_scale_handle" v-if="mode == 'uv' && isScalingAvailable()"
 								@mousedown.stop="scaleFaces($event)" @touchstart.prevent.stop="scaleFaces($event)"
