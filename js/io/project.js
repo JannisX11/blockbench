@@ -211,6 +211,8 @@ class ModelProject {
 
 		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
+		Panels.reference_images.inside_vue.references_project = this.reference_images;
+
 		UVEditor.loadViewportOffset();
 
 		Modes.options[this.mode].select();

@@ -893,10 +893,17 @@
 		left: 0;
 		pointer-events: none;
 	}
+	#work_screen.reference_image_mode .reference_image {
+		pointer-events: initial;
+		z-index: 1;
+	}
 	.reference_image.selected {
 		z-index: 2;
 		pointer-events: initial;
-
+		cursor: move;
+	}
+	.reference_image.selected, .reference_image:hover {
+		outline: 1px solid var(--color-accent);
 	}
 	.reference_image > img {
 		width: 100%;
@@ -912,6 +919,64 @@
 	.reference_image.flip_y.flip_x > img {
 		transform: scaleX(-1) scaleY(-1);
 	}
+
+	.reference_image_resize_corner {
+		position: absolute;
+		width: 10px;
+		height: 10px;
+		background-color: var(--color-text);
+		border: 1px solid var(--color-border);
+	}
+	.reference_image_resize_corner:hover {
+		background-color: var(--color-light);
+	}
+	.reference_image_resize_corner.nw {
+		top: -5px;
+		left: -5px;
+		cursor: nw-resize;
+	}
+	.reference_image_resize_corner.ne {
+		top: -5px;
+		right: -5px;
+		cursor: ne-resize;
+	}
+	.reference_image_resize_corner.sw {
+		bottom: -5px;
+		left: -5px;
+		cursor: sw-resize;
+	}
+	.reference_image_resize_corner.se {
+		bottom: -5px;
+		right: -5px;
+		cursor: se-resize;
+	}
+	.reference_image_rotate_handle {
+		width: 25px;
+		height: 25px;
+		top: 4px;
+		left: 4px;
+		position: absolute;
+		cursor: ne-resize;
+		text-shadow: 1px 1px 0px black;
+	}
+	.reference_image_rotate_handle:hover {
+		color: var(--color-light);
+	}
+	body.light_mode .reference_image_rotate_handle {
+		text-shadow: none;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
 /* GIF Recorder */
 	#gif_recording_frame {
 		pointer-events: none;

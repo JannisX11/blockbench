@@ -1833,6 +1833,7 @@
 	"panel.skin_pose.sitting": "Sitting",
 	"panel.skin_pose.jumping": "Jumping",
 	"panel.skin_pose.aiming": "Aiming",
+	"panel.reference_images": "Reference Images",
 
 	"panel.element": "Element",
 	"panel.element.position": "Position",

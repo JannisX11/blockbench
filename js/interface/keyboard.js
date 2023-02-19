@@ -790,6 +790,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			open_interface.hide(e)
 			used = true
 		}
+	} else if (ReferenceImageMode.active) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			ReferenceImageMode.deactivate();
+			used = true;
+		}
 	}
 	if (ActionControl.open) {
 		used = ActionControl.handleKeys(e) || used

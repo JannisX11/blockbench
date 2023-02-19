@@ -1782,8 +1782,12 @@ const BARS = {
 				keybind: new Keybind({key: 46}),
 				click() {
 					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
-					if (Prop.active_panel == 'textures' && Texture.selected) {
+					if (ReferenceImageMode.active && ReferenceImage.selected) {
+						ReferenceImage.selected.delete();
+
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
+
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)

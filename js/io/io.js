@@ -102,7 +102,7 @@ async function loadImages(files, event) {
 		if (Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		options.background = 'menu.view.background';
+		options.reference_image = 'Reference Image';// todo: translation
 	}
 	options.edit = 'message.load_images.edit_image';
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
@@ -122,7 +122,16 @@ async function loadImages(files, event) {
 			replace_texture.fromFile(files[0])
 			updateSelection();
 			
-		} else if (method == 'background') {
+		} else if (method == 'reference_image') {
+			
+			files.map(file => {
+				new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference();
+			}).last().select();
+			ReferenceImageMode.activate();
+			/*
 			let preview = Preview.selected;
 			let image = isApp ? files[0].path : files[0].content;
 			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
@@ -131,7 +140,7 @@ async function loadImages(files, event) {
 			preview.background.image = image;
 			preview.loadBackground();
 			Settings.saveLocalStorages();
-			preview.startMovingBackground();
+			preview.startMovingBackground();*/
 			
 		} else if (method == 'edit') {
 			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);

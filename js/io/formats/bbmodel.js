@@ -210,14 +210,14 @@ var codec = new Codec('project', {
 		}
 
 		if (!options.backup) {
-			// Backgrounds
-			const backgrounds = [];
+			// Reference Images
+			const reference_images = [];
 
-			for (let background of Project.backgrounds) {
-				backgrounds.push(background.getSaveCopy());
+			for (let reference of Project.reference_images) {
+				reference_images.push(reference.getSaveCopy());
 			}
-			if (backgrounds.length) {
-				model.backgrounds = backgrounds;
+			if (reference_images.length) {
+				model.reference_images = reference_images;
 			}
 		}
 
@@ -359,8 +359,16 @@ var codec = new Codec('project', {
 			DisplayMode.loadJSON(model.display)
 		}
 		if (model.backgrounds) {
-			for (var key in model.backgrounds) {
-				if (Project.backgrounds.hasOwnProperty(key)) {
+			for (let key in model.backgrounds) {
+				let template = model.backgrounds[key];
+				let reference = new ReferenceImage({
+					position: [template.x, template.y],
+					size: [template.size, template.size],
+					type: template.lock ? 'blueprint' : 'reference',
+					source: template.image,
+					name: (template.image && !template.image.startsWith('data:')) ? template.image.split([/[/\\]/]).last() : 'Reference'
+				}).addAsReference();
+				/*if (Project.backgrounds.hasOwnProperty(key)) {
 
 					let store = model.backgrounds[key]
 					let real = Project.backgrounds[key]
@@ -370,12 +378,12 @@ var codec = new Codec('project', {
 					if (store.x		!== undefined) {real.x = store.x}
 					if (store.y		!== undefined) {real.y = store.y}
 					if (store.lock	!== undefined) {real.lock = store.lock}
-				}
+				}*/
 			}
-			Preview.all.forEach(p => {
-				if (p.canvas.isConnected) {
-					p.loadBackground();
-				}
+		}
+		if (model.reference_images) {
+			model.reference_images.forEach(template => {
+				new ReferenceImage(template).addAsReference();
 			})
 		}
 		if (model.history) {
