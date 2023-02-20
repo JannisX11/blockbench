@@ -489,9 +489,9 @@ function setupInterface() {
 	})
 
 	//Mousemove
-	$(document).mousemove(function(event) {
-		mouse_pos.x = event.clientX
-		mouse_pos.y = event.clientY
+	document.addEventListener('mousemove', event => {
+		mouse_pos.x = event.clientX;
+		mouse_pos.y = event.clientY;
 	})
 	updateInterface()
 }
@@ -695,12 +695,14 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	])
 
 	addEventListeners(slider, 'mousedown touchstart', e1 => {
+		convertTouchEvent(e1);
 		let last_difference = 0;
 		let move = e2 => {
+			convertTouchEvent(e2);
 			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
 			if (difference != last_difference) {
 				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
-				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), event);
+				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
 				last_difference = difference;
 			}
 		}
