@@ -728,24 +728,52 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	//Export
+	// Smart Save
 	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
-		click: function () {
+		click: async function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
+					let export_codec = Format.codec;
 					if (Project.save_path) {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
-					if (Project.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), Project.export_path)
-					} else if (Format.codec && Format.codec.export && !Project.save_path) {
-						Format.codec.export()
+					if (Project.export_path && export_codec?.compile) {
+						export_codec.write(export_codec.compile(), Project.export_path)
+
+					} else if (export_codec?.export && !Project.save_path) {
+						if (export_codec.id === 'project') {
+							export_codec.export();
+
+						} else {
+							let codec = await new Promise(resolve => Blockbench.showMessageBox({
+								translateKey: 'save_codec_selector',
+								icon: 'save',
+								commands: {
+									project: 'message.save_codec_selector.project_file',
+									[export_codec.id]: export_codec.name || 'Default Format',
+									both: 'message.save_codec_selector.both',
+								},
+								buttons: ['dialog.cancel']
+							}, resolve));
+
+							if (codec == 'both') {
+								Codecs.project.export();
+								export_codec.export();
+
+							} else if (codec) {
+								Codecs[codec].export();
+							}
+						}
 					} else if (!Project.save_path) {
-						Project.saved = true;
+						if (Format.edit_mode) {
+							Codecs.project.export();
+						} else {
+							Project.saved = false;
+						}
 					}
 				}
 				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
@@ -754,7 +782,31 @@ BARS.defineActions(function() {
 			} else {
 				saveTextures()
 				if (Format.codec && Format.codec.export) {
-					Format.codec.export()
+
+					let codec = await new Promise(resolve => Blockbench.showMessageBox({
+						translateKey: 'save_codec_selector',
+						icon: 'save',
+						commands: {
+							project: 'message.save_codec_selector.project_file',
+							[export_codec.id]: export_codec.name || 'Default Format',
+							both: 'message.save_codec_selector.both',
+						},
+						buttons: ['dialog.cancel']
+					}, resolve));
+					
+					if (codec == 'both') {
+						Codecs.project.export();
+						export_codec.export();
+
+					} else if (codec) {
+						Codecs[codec].export();
+					}
+
+				} else if (Format.edit_mode) {
+					Codecs.project.export();
+
+				} else {
+					Project.saved = false;
 				}
 			}
 		}
