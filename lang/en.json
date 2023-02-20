@@ -1110,7 +1110,7 @@
 	"action.export_fbx.desc": "Export model and animations as fbx file to use it in other 3D applications and game engines",
 	"action.export_gltf": "Export glTF Model",
 	"action.export_gltf.desc": "Export model and animations as glTF file for sharing and rendering",
-	"action.upload_sketchfab": "Upload to Sketchfab",
+	"action.upload_sketchfab": "Upload to Sketchfab...",
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
 	"action.share_model": "Share...",
 	"action.share_model.desc": "Generate a short link to share your model",
