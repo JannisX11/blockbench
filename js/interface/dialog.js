@@ -898,13 +898,15 @@ window.MessageBox = class MessageBox extends Dialog {
 		if (!options.buttons) this.buttons = ['dialog.ok'];
 		this.callback = callback;
 	}
-	close(button, event) {
-		if (this.callback) this.callback(button, event);
+	close(button, result, event) {
+		if (this.callback) this.callback(button, result, event);
 		this.hide();
 		this.delete();
 	}
 	build() {
 		let options = this.options;
+
+		let results;
 
 		if (options.translateKey) {
 			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
@@ -935,7 +937,28 @@ window.MessageBox = class MessageBox extends Dialog {
 				let text = tl(typeof command == 'string' ? command : command.text);
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
 				entry.addEventListener('click', e => {
-					this.close(id);
+					this.close(id, results);
+				})
+				list.append(entry);
+			}
+			content.append(list);
+		}
+
+		if (options.checkboxes) {
+			let list = Interface.createElement('ul', {class: 'dialog_message_box_checkboxes'});
+			results = {};
+			for (let id in options.checkboxes) {
+				let checkbox = options.checkboxes[id];
+				results[id] = !!checkbox.value;
+				if (!checkbox || !Condition(checkbox.condition)) continue;
+
+				let text = tl(typeof checkbox == 'string' ? checkbox : checkbox.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_checkbox'}, [
+					Interface.createElement('input', {type: 'checkbox', id: 'dialog_message_box_checkbox_'+id}),
+					Interface.createElement('label', {for: 'dialog_message_box_checkbox_'+id, checked: !!checkbox.value}, text)
+				])
+				entry.firstElementChild.addEventListener('change', e => {
+					results[id] = e.target.checked;
 				})
 				list.append(entry);
 			}
@@ -950,7 +973,7 @@ window.MessageBox = class MessageBox extends Dialog {
 				let btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
 				btn.on('click', (event) => {
-					this.close(i, event);
+					this.close(i, results, event);
 				})
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')

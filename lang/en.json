@@ -289,7 +289,7 @@
 	"message.delete_animation.title": "Delete Animation",
 	"message.delete_animation.message": "The animation was removed from Blockbench. Do you also want to delete the animation from the file that is was saved in?",
 	
-	"message.save_codec_selector.title": "Save Model",
+	"message.save_codec_selector.title": "Save Model Format",
 	"message.save_codec_selector.message": "Select a format to save the model in.",
 	"message.save_codec_selector.project_file": "Blockbench Project (.bbmodel)",
 	"message.save_codec_selector.both": "Both",

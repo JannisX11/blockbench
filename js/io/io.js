@@ -618,11 +618,11 @@ BARS.defineActions(function() {
 						export_codec.write(export_codec.compile(), Project.export_path)
 
 					} else if (export_codec?.export && !Project.save_path) {
-						if (export_codec.id === 'project') {
+						if (export_codec.id === 'project' || settings.dialog_save_codec.value == false) {
 							export_codec.export();
 
 						} else {
-							let codec = await new Promise(resolve => Blockbench.showMessageBox({
+							await new Promise(resolve => Blockbench.showMessageBox({
 								translateKey: 'save_codec_selector',
 								icon: 'save',
 								commands: {
@@ -630,16 +630,23 @@ BARS.defineActions(function() {
 									[export_codec.id]: export_codec.name || 'Default Format',
 									both: 'message.save_codec_selector.both',
 								},
+								checkboxes: {
+									dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+								},
 								buttons: ['dialog.cancel']
-							}, resolve));
-
-							if (codec == 'both') {
-								Codecs.project.export();
-								export_codec.export();
-
-							} else if (codec) {
-								Codecs[codec].export();
-							}
+							}, (codec, {dont_show_again}) => {
+								if (codec == 'both') {
+									Codecs.project.export();
+									export_codec.export();
+	
+								} else if (codec) {
+									Codecs[codec].export();
+								}
+								if (dont_show_again) {
+									settings.dialog_save_codec.set(false);
+								}
+								resolve();
+							}));
 						}
 					} else if (!Project.save_path) {
 						if (Format.edit_mode) {
