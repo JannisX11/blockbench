@@ -191,6 +191,19 @@ class MeshFace extends Face {
 		}
 		return vertices;
 	}
+	getEdges() {
+		let vertices = this.getSortedVertices();
+		if (vertices.length == 2) {
+			return vertices;
+		} else if (vertices.length > 2) {
+			return vertices.map((vkey1, i) => {
+				let vkey2 = vertices[i+1] || vertices[0];
+				return [vkey1, vkey2];
+			})
+		} else {
+			return [];
+		}
+	}
 	getAdjacentFace(side_index = 0) {
 		let vertices = this.getSortedVertices();
 		side_index = side_index % this.vertices.length;

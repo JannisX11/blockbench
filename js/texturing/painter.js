@@ -1397,7 +1397,7 @@ const Painter = {
 			var distance = Math.sqrt(v_px*v_px + v_py*v_py)
 			if (soft*r != 0) {
 				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
-				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
+				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
 				if (r < 8) {
 					distance *= 1.2;
@@ -2206,7 +2206,7 @@ BARS.defineActions(function() {
 		side_menu: new Menu('mirror_painting', [
 			// Enabled
 			{
-				name: 'Enabled',
+				name: 'menu.mirror_painting.enabled',
 				icon: () => Painter.mirror_painting,
 				click() {BarItems.mirror_painting.trigger()}
 			},

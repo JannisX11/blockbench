@@ -1603,6 +1603,8 @@
 	"menu.action_control.recent_in_streamer_mode": "Sure? Streamer Mode is enabled",
 	"menu.action_control.recent_in_streamer_mode.desc": "Are you sure you want to display recent models?",
 
+	"menu.options": "Options...",
+
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",
@@ -1731,6 +1733,7 @@
 	"menu.uv.flip_y": "Mirror Y",
 	"menu.uv.texture": "Texture",
 
+	"menu.mirror_painting.enabled": "Enabled",
 	"menu.mirror_painting.axis": "Axis",
 	"menu.mirror_painting.axis.desc": "Select on which axis paint strokes will get mirrored",
 	"menu.mirror_painting.global": "Global Symmetry",

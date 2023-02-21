@@ -560,25 +560,31 @@ function moveElementsInSpace(difference, axis) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
 			let selected_vertices = el.getSelectedVertices();
-			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices)
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
+
+			let difference_vec = [0, 0, 0];
+			if (space == 2) {
+				difference_vec[axis] += difference;
+
+			} else if (space == 3) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyEuler(selection_rotation);
+				difference_vec.V3_set(m.x, m.y, m.z);
+
+			} else {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+			}
+
 			selected_vertices.forEach(key => {
-
-				if (space == 2) {
-					el.vertices[key][axis] += difference;
-
-				} else if (space == 3) {
-					let m = vector.set(0, 0, 0);
-					m[getAxisLetter(axis)] = difference;
-					m.applyEuler(selection_rotation);
-					el.vertices[key].V3_add(m.x, m.y, m.z);
-
-				} else {
-					let m = vector.set(0, 0, 0);
-					m[getAxisLetter(axis)] = difference;
-					m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
-					el.vertices[key].V3_add(m.x, m.y, m.z);
-				}
-
+				el.vertices[key].V3_add(difference_vec);
+			})
+			proportionallyEditMeshVertices(el, (vkey, blend) => {
+				console.log(vkey, blend)
+				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
 		} else {

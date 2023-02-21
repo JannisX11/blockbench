@@ -277,7 +277,11 @@ class Action extends BarItem {
 			open_node.classList.add('action_more_options');
 			open_node.onclick = e => {
 				e.stopPropagation();
-				this.side_menu.open(e.target.parentElement);
+				if (this.side_menu instanceof Menu) {
+					this.side_menu.open(e.target.parentElement);
+				} else if (this.side_menu instanceof Dialog) {
+					this.side_menu.show();
+				}
 			}
 			this.node.append(open_node);
 		}
@@ -326,7 +330,11 @@ class Action extends BarItem {
 			if (options && !options.onclick) {
 				options.onclick = e => {
 					e.stopPropagation();
-					this.side_menu.open(e.target.parentElement);
+					if (this.side_menu instanceof Menu) {
+						this.side_menu.open(e.target.parentElement);
+					} else if (this.side_menu instanceof Dialog) {
+						this.side_menu.show();
+					}
 				}
 			}
 		}
@@ -2159,6 +2167,7 @@ const BARS = {
 				'loop_cut',
 				'create_face',
 				'invert_face',
+				'proportional_editing',
 			]
 		})
 

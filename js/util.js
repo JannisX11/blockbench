@@ -256,6 +256,9 @@ Math.snapToValues = function(val, snap_points, epsilon = 12) {
 		return val
 	}
 }
+Math.hermiteBlend = function(input) {
+	return 3*Math.pow(input, 2) - 2*Math.pow(input, 3);
+}
 function trimFloatNumber(val, max_digits = 4) {
 	if (val == '') return val;
 	var string = val.toFixed(max_digits)

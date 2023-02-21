@@ -254,6 +254,8 @@ const MenuBar = {
 				'dissolve_edges',
 				'split_mesh',
 				'merge_meshes',
+				'_',
+				'proportional_editing',
 			]},
 			'_',
 			'select_window',

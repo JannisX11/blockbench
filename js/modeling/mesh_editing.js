@@ -2,6 +2,86 @@ function sameMeshEdge(edge_a, edge_b) {
 	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
 }
 
+function proportionallyEditMeshVertices(mesh, callback) {
+	if (!BarItems.proportional_editing.value) return;
+
+	let selected_vertices = mesh.getSelectedVertices();
+	let {range, shape, selection} = StateMemory.proportional_editing_options;
+	let linear_distance = selection == 'linear';
+	
+	let all_mesh_connections;
+	if (!linear_distance) {
+		all_mesh_connections = {};
+		for (let fkey in mesh.faces) {
+			let face = mesh.faces[fkey];
+			face.getEdges().forEach(edge => {
+				if (!all_mesh_connections[edge[0]]) {
+					all_mesh_connections[edge[0]] = [edge[1]];
+				} else {
+					all_mesh_connections[edge[0]].safePush(edge[1]);
+				}
+				if (!all_mesh_connections[edge[1]]) {
+					all_mesh_connections[edge[1]] = [edge[0]];
+				} else {
+					all_mesh_connections[edge[1]].safePush(edge[0]);
+				}
+			})
+		}
+	}
+
+	for (let vkey in mesh.vertices) {
+		if (selected_vertices.includes(vkey)) continue;
+
+		let distance = Infinity;
+		if (linear_distance) {
+			// Linear Distance
+			selected_vertices.forEach(vkey2 => {
+				let pos1 = mesh.vertices[vkey];
+				let pos2 = mesh.vertices[vkey2];
+				let distance_square = Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2) + Math.pow(pos1[2] - pos2[2], 2);
+				if (distance_square < distance) {
+					distance = distance_square;
+				}
+			})
+			distance = Math.sqrt(distance);
+		} else {
+			// Connection Distance
+			let found_match_depth = 0;
+			let scanned = [];
+			let frontier = [vkey];
+
+			depth_crawler:
+			for (let depth = 1; depth <= range; depth++) {
+				let new_frontier = [];
+				for (let vkey1 of frontier) {
+					let connections = all_mesh_connections[vkey1]?.filter(vkey2 => !scanned.includes(vkey2));
+					if (!connections || connections.length == 0) continue;
+					scanned.push(...connections);
+					new_frontier.push(...connections);
+				}
+				for (let vkey2 of new_frontier) {
+					if (selected_vertices.includes(vkey2)) {
+						found_match_depth = depth;
+						break depth_crawler;
+					}
+				}
+				frontier = new_frontier;
+			}
+			if (found_match_depth) {
+				distance = found_match_depth;
+			}
+		}
+		if (distance > range) continue;
+
+		let blend = 1 - (distance / (linear_distance ? range : range+1));
+		switch (shape) {
+			case 'hermite_spline': blend = Math.hermiteBlend(blend); break;
+			case 'constant': blend = 1; break;
+		}
+		callback(vkey, blend);
+	}
+}
+
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
 		id: 'add_primitive',
@@ -1710,5 +1790,66 @@ BARS.defineActions(function() {
 				Undo.finishEdit('Import OBJ');
 			})
 		}
+	})
+
+
+	StateMemory.init('proportional_editing_options', 'object');
+	if (!StateMemory.proportional_editing_options.range) {
+		StateMemory.proportional_editing_options.range = 8;
+	}
+	if (!StateMemory.proportional_editing_options.shape) {
+		StateMemory.proportional_editing_options.shape = 'linear';
+	}
+	if (!StateMemory.proportional_editing_options.selection) {
+		StateMemory.proportional_editing_options.selection = 'linear';
+	}
+	new NumSlider('proportional_editing_range', {
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes']},
+		get() {
+			return StateMemory.proportional_editing_options.range
+		},
+		change(modify) {
+			StateMemory.proportional_editing_options.range = modify(StateMemory.proportional_editing_options.range);
+		},
+		onAfter() {
+			StateMemory.save('proportional_editing_options');
+		}
+	})
+	new Toggle('proportional_editing', {
+		icon: 'wifi_tethering',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 0)},
+		side_menu: new Dialog('proportional_editing_options', {
+			title: 'action.proportional_editing',
+			width: 400,
+			singleButton: true,
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				range: {type: 'number', label: 'Range', value: StateMemory.proportional_editing_options.range},
+				shape: {type: 'select', label: 'Falloff', value: StateMemory.proportional_editing_options.shape, options: {
+					linear: 'Linear',
+					hermite_spline: 'Smooth',
+					constant: 'Constant',
+				}},
+				selection: {type: 'select', label: 'Selection', value: StateMemory.proportional_editing_options.selection, options: {
+					linear: 'Linear Distance',
+					connections: 'Connections',
+					//path: 'Connection Path',
+				}},
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.proportional_editing.value});
+			},
+			onFormChange(formResult) {
+				if (BarItems.proportional_editing.value != formResult.enabled) {
+					BarItems.proportional_editing.trigger();
+				}
+				StateMemory.proportional_editing_options.range = formResult.range;
+				StateMemory.proportional_editing_options.shape = formResult.shape;
+				StateMemory.proportional_editing_options.selection = formResult.selection;
+				StateMemory.save('proportional_editing_options');
+			}
+		})
 	})
 })

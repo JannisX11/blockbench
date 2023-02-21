@@ -292,9 +292,20 @@ class Menu {
 						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
 						s.trigger(e)
 					});
-					if (s.side_menu) {
+					if (s.side_menu instanceof Menu) {
 						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
+
+					} else if (s.side_menu instanceof Dialog) {
+						createChildList(s, entry, [
+							{
+								name: 'menu.options',
+								icon: 'web_asset',
+								click() {
+									s.side_menu.show();
+								}
+							}
+						]);
 					}
 				}
 
@@ -343,6 +354,35 @@ class Menu {
 					scope.hover(this, e)
 				})
 
+			/*} else if (s instanceof NumSlider) {
+				
+				let icon = Blockbench.getIconNode(s.icon, s.color);
+				let numeric_input = new Interface.CustomElements.NumericInput(s.id, {
+					value: s.get(),
+					min: s.settings?.min, max: s.settings?.max,
+					onChange(value) {
+						if (typeof s.onBefore === 'function') {
+							s.onBefore()
+						}
+						s.change(() => value);
+						if (typeof s.onAfter === 'function') {
+							s.onAfter()
+						}
+						s.update();
+					}
+				});
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, [
+					Interface.createElement('span', {}, tl(s.name)),
+					numeric_input.node
+				]);
+				entry.prepend(icon);
+
+				parent.append(entry);
+
+				$(entry).mouseenter(function(e) {
+					scope.hover(this, e)
+				})
+				*/
 			} else if (s instanceof HTMLElement) {
 				parent.append(s);
 
