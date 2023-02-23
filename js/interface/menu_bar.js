@@ -170,7 +170,7 @@ const MenuBar = {
 				'import_obj',
 				'extrude_texture'
 			]},
-			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
+			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', condition: () => Project, children: [
 				'export_blockmodel',
 				'export_bedrock',
 				'export_entity',

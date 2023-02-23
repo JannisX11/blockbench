@@ -17,6 +17,7 @@ class ModelProject {
 
 		this.save_path = '';
 		this.export_path = '';
+		this.export_options = {};
 		this.added_models = 0;
 
 		this.undo = new UndoSystem();

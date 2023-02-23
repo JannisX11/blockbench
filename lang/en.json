@@ -382,6 +382,8 @@
 
 	"dialog.select_texture.import_all": "Import All",
 
+	"dialog.export_options.title": "Export Options",
+
 	"dialog.texture.title": "Texture",
 	"dialog.texture.variable": "Variable",
 	"dialog.texture.namespace": "Namespace",
@@ -1810,6 +1812,8 @@
 	"texture.error.invalid": "Invalid file",
 	"texture.error.ratio": "Invalid aspect ratio",
 	"texture.error.parent": "Texture file provided by parent model",
+
+	"codec.fbx.export_animations": "Export Animations",
 
 	"panel.uv": "UV",
 	"panel.display": "Display",

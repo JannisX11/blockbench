@@ -606,6 +606,7 @@ BARS.defineActions(function() {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
+		condition: () => Project,
 		click: async function() {
 			if (isApp) {
 				saveTextures()

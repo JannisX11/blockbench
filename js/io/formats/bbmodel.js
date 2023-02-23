@@ -228,6 +228,15 @@ var codec = new Codec('project', {
 			}
 		}
 
+		if (Object.keys(Project.export_options).length) {
+			model.export_options = {};
+			for (let codec_id in Project.export_options) {
+				if (Object.keys(Project.export_options[codec_id]).length) {
+					model.export_options[codec_id] = Object.assign({}, Project.export_options[codec_id]);
+				}
+			}
+		}
+
 		if (options.history) {
 			model.history = [];
 			Undo.history.forEach(h => {
@@ -384,6 +393,11 @@ var codec = new Codec('project', {
 					p.loadBackground();
 				}
 			})
+		}
+		if (model.export_options) {
+			for (let codec_id in model.export_options) {
+				Project.export_options[codec_id] = Object.assign({}, model.export_options[codec_id]);
+			}
 		}
 		if (model.history) {
 			Undo.history = model.history.slice()
@@ -630,6 +644,7 @@ BARS.defineActions(function() {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true, alt: true}),
+		condition: () => Project,
 		click: function () {
 			saveTextures(true)
 			if (isApp && Project.save_path) {
@@ -644,6 +659,7 @@ BARS.defineActions(function() {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true, alt: true, shift: true}),
+		condition: () => Project,
 		click: function () {
 			saveTextures(true)
 			codec.export()

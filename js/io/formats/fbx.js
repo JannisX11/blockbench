@@ -4,9 +4,9 @@
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
 	extension: 'fbx',
-	compile(options = 0) {
+	compile(options = this.getExportOptions()) {
 		let scope = this;
-		let export_scale = Settings.get('model_export_scale') / 100;
+		let export_scale = options.scale / 100;
 		let model = [
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
@@ -539,125 +539,127 @@ var codec = new Codec('fbx', {
 		})
 
 		// Animations
-		let anim_clips = Codecs.gltf.buildAnimationTracks(false); // Handles sampling of math based curves etc.
-		let time_factor = 46186158000; // Arbitrary factor, found in three.js FBX importer
-		anim_clips.forEach(clip => {
-			DefinitionCounter.animation_stack++;
-			DefinitionCounter.animation_layer++;
+		if (options.include_animations) {
+			let anim_clips = Codecs.gltf.buildAnimationTracks(false); // Handles sampling of math based curves etc.
+			let time_factor = 46186158000; // Arbitrary factor, found in three.js FBX importer
+			anim_clips.forEach(clip => {
+				DefinitionCounter.animation_stack++;
+				DefinitionCounter.animation_layer++;
 
-			let stack_id = getID(clip.uuid+'_s');
-			let layer_id = getID(clip.uuid+'_l');
-			let unique_name = getUniqueName('animation', clip.uuid, clip.name);
-			let fbx_duration = Math.round(clip.duration * time_factor);
+				let stack_id = getID(clip.uuid+'_s');
+				let layer_id = getID(clip.uuid+'_l');
+				let unique_name = getUniqueName('animation', clip.uuid, clip.name);
+				let fbx_duration = Math.round(clip.duration * time_factor);
 
-			let stack = {
-				_key: 'AnimationStack',
-				_values: [stack_id, `AnimStack::${unique_name}`, ''],
-				Properties70: {
-					p1: {_key: 'P', _values: ['LocalStop', 'KTime', 'Time', '', fbx_duration]},
-					p2: {_key: 'P', _values: ['ReferenceStop', 'KTime', 'Time', '', fbx_duration]},
-				}
-			};
-			let layer = {
-				_key: 'AnimationLayer',
-				_values: [layer_id, `AnimLayer::${unique_name}`, ''],
-				_force_compound: true
-			};
-			Objects[clip.uuid+'_s'] = stack;
-			Objects[clip.uuid+'_l'] = layer;
-			Connections.push({
-				name: [`AnimLayer::${unique_name}`, `AnimStack::${unique_name}`],
-				id: [layer_id, stack_id],
-			});
-
-			clip.tracks.forEach(track => {
-				// Track = CurveNode
-				DefinitionCounter.animation_curve_node++;
-				let track_id = getID(clip.uuid + '.' + track.name)
-				let track_name = `AnimCurveNode::${unique_name}.${track.channel[0].toUpperCase()}`;
-				let curve_node = {
-					_key: 'AnimationCurveNode',
-					_values: [track_id, track_name, ''],
+				let stack = {
+					_key: 'AnimationStack',
+					_values: [stack_id, `AnimStack::${unique_name}`, ''],
 					Properties70: {
-						p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', 1]},
-						p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', 1]},
-						p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', 1]},
+						p1: {_key: 'P', _values: ['LocalStop', 'KTime', 'Time', '', fbx_duration]},
+						p2: {_key: 'P', _values: ['ReferenceStop', 'KTime', 'Time', '', fbx_duration]},
 					}
 				};
-				let timecodes = track.times.map(second => Math.round(second * time_factor));
-				Objects[clip.uuid + '.' + track.name] = curve_node;
-
-				// Connect to bone
+				let layer = {
+					_key: 'AnimationLayer',
+					_values: [layer_id, `AnimLayer::${unique_name}`, ''],
+					_force_compound: true
+				};
+				Objects[clip.uuid+'_s'] = stack;
+				Objects[clip.uuid+'_l'] = layer;
 				Connections.push({
-					name: [track_name, `Model::${getUniqueName('object', track.group_uuid)}`],
-					id: [track_id, getID(track.group_uuid)],
-					property: track.channel == 'position' ? "Lcl Translation" : (track.channel == 'rotation' ? "Lcl Rotation" : "Lcl Scaling")
-				});
-				// Connect to layer
-				Connections.push({
-					name: [track_name, `AnimLayer::${unique_name}`],
-					id: [track_id, layer_id],
+					name: [`AnimLayer::${unique_name}`, `AnimStack::${unique_name}`],
+					id: [layer_id, stack_id],
 				});
 
-
-				['X', 'Y', 'Z'].forEach((axis_letter, axis_number) => {
-					DefinitionCounter.animation_curve++;
-
-					let curve_id = getID(clip.uuid + '.' + track.name + '.' + axis_letter);
-					let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`;
-
-					let values = track.values.filter((val, i) => (i % 3) == axis_number);
-					if (track.channel == 'position') {
-						values.forEach((v, i) => values[i] = v * 100);
-					}
-					if (track.channel == 'rotation') {
-						values.forEach((v, i) => values[i] = Math.radToDeg(v));
-					}
-					let curve = {
-						_key: 'AnimationCurve',
-						_values: [curve_id, curve_name, ''],
-						Default: 0,
-						KeyVer: 4008,
-						KeyTime: {
-							_values: [`_*${timecodes.length}`],
-							a: timecodes
-						},
-						KeyValueFloat: {
-							_values: [`_*${values.length}`],
-							a: values
-						},
-						KeyAttrFlags: {
-							_values: [`_*${1}`],
-							a: [24836]
-						},
-						KeyAttrDataFloat: {
-							_values: [`_*${4}`],
-							a: [0,0,255790911,0]
-						},
-						KeyAttrRefCount: {
-							_values: [`_*${1}`],
-							a: [timecodes.length]
-						},
+				clip.tracks.forEach(track => {
+					// Track = CurveNode
+					DefinitionCounter.animation_curve_node++;
+					let track_id = getID(clip.uuid + '.' + track.name)
+					let track_name = `AnimCurveNode::${unique_name}.${track.channel[0].toUpperCase()}`;
+					let curve_node = {
+						_key: 'AnimationCurveNode',
+						_values: [track_id, track_name, ''],
+						Properties70: {
+							p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', 1]},
+							p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', 1]},
+							p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', 1]},
+						}
 					};
-					Objects[clip.uuid + '.' + track.name + axis_letter] = curve;
+					let timecodes = track.times.map(second => Math.round(second * time_factor));
+					Objects[clip.uuid + '.' + track.name] = curve_node;
 
-					// Connect to track
+					// Connect to bone
 					Connections.push({
-						name: [curve_name, track_name],
-						id: [curve_id, track_id],
-						property: `d|${axis_letter}`
+						name: [track_name, `Model::${getUniqueName('object', track.group_uuid)}`],
+						id: [track_id, getID(track.group_uuid)],
+						property: track.channel == 'position' ? "Lcl Translation" : (track.channel == 'rotation' ? "Lcl Rotation" : "Lcl Scaling")
 					});
-				});
-			})
+					// Connect to layer
+					Connections.push({
+						name: [track_name, `AnimLayer::${unique_name}`],
+						id: [track_id, layer_id],
+					});
 
-			Takes[clip.uuid] = {
-				_key: 'Take',
-				_values: [unique_name],
-				FileName: `${unique_name}.tak`,
-				LocalTime: [0, fbx_duration],
-				ReferenceTime: [0, fbx_duration],
-			};
-		})
+
+					['X', 'Y', 'Z'].forEach((axis_letter, axis_number) => {
+						DefinitionCounter.animation_curve++;
+
+						let curve_id = getID(clip.uuid + '.' + track.name + '.' + axis_letter);
+						let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`;
+
+						let values = track.values.filter((val, i) => (i % 3) == axis_number);
+						if (track.channel == 'position') {
+							values.forEach((v, i) => values[i] = v * 100);
+						}
+						if (track.channel == 'rotation') {
+							values.forEach((v, i) => values[i] = Math.radToDeg(v));
+						}
+						let curve = {
+							_key: 'AnimationCurve',
+							_values: [curve_id, curve_name, ''],
+							Default: 0,
+							KeyVer: 4008,
+							KeyTime: {
+								_values: [`_*${timecodes.length}`],
+								a: timecodes
+							},
+							KeyValueFloat: {
+								_values: [`_*${values.length}`],
+								a: values
+							},
+							KeyAttrFlags: {
+								_values: [`_*${1}`],
+								a: [24836]
+							},
+							KeyAttrDataFloat: {
+								_values: [`_*${4}`],
+								a: [0,0,255790911,0]
+							},
+							KeyAttrRefCount: {
+								_values: [`_*${1}`],
+								a: [timecodes.length]
+							},
+						};
+						Objects[clip.uuid + '.' + track.name + axis_letter] = curve;
+
+						// Connect to track
+						Connections.push({
+							name: [curve_name, track_name],
+							id: [curve_id, track_id],
+							property: `d|${axis_letter}`
+						});
+					});
+				})
+
+				Takes[clip.uuid] = {
+					_key: 'Take',
+					_values: [unique_name],
+					FileName: `${unique_name}.tak`,
+					LocalTime: [0, fbx_duration],
+					ReferenceTime: [0, fbx_duration],
+				};
+			})
+		}
 
 		// Object definitions
 		model += formatFBXComment('Object definitions');
@@ -949,7 +951,14 @@ var codec = new Codec('fbx', {
 			})
 		})
 	},
-	export() {
+	export_options: {
+		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
+		include_animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
+	},
+	async export() {
+		if (Object.keys(this.export_options).length) {
+			await this.promptExportOptions();
+		}
 		var scope = this;
 		if (isApp) {
 			Blockbench.export({
@@ -994,6 +1003,7 @@ BARS.defineActions(function() {
 		id: 'export_fbx',
 		icon: 'icon-fbx',
 		category: 'file',
+		condition: () => Project,
 		click: function () {
 			codec.export()
 		}
