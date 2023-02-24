@@ -167,7 +167,11 @@ function buildAnimationTracks(do_quaternions = true) {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
-	async compile(options = 0) {
+	export_options: {
+		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
+		animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
+	},
+	async compile(options = this.getExportOptions()) {
 		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
@@ -186,11 +190,12 @@ var codec = new Codec('gltf', {
 			if (options.animations !== false) {
 				animations = buildAnimationTracks();
 			}
-			let json = await new Promise((resolve, reject) => {
+			let result = await new Promise((resolve, reject) => {
 				exporter.parse(gl_scene, resolve, {
 					animations,
 					onlyVisible: false,
 					trs: true,
+					binary: options.encoding == 'binary',
 					truncateDrawRange: false,
 					forcePowerOfTwoTextures: true,
 					scale_factor: 1/Settings.get('model_export_scale'),
@@ -199,29 +204,32 @@ var codec = new Codec('gltf', {
 			})
 			scene.add(Project.model_3d);
 			
-			scope.dispatchEvent('compile', {model: json, options});
-			return JSON.stringify(json);
+			scope.dispatchEvent('compile', {model: result, options});
+			if (options.encoding == 'binary') {
+				return result;
+			} else {
+				return JSON.stringify(result);
+			}
 
 		} catch (err) {
 			scene.add(Project.model_3d);
 			throw err;
 		}
 	},
-	export() {
-		var scope = codec;
-		scope.compile().then(content => {
-			setTimeout(_ => {
-				Blockbench.export({
-					resource_id: 'gltf',
-					type: scope.name,
-					extensions: [scope.extension],
-					name: scope.fileName(),
-					startpath: scope.startPath(),
-					content,
-					custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
-				}, path => scope.afterDownload(path))
-			}, 20)
-		})
+	async export() {
+		await this.promptExportOptions();
+		let content = await this.compile();
+		await new Promise(r => setTimeout(r, 20));
+		console.log(content)
+		Blockbench.export({
+			resource_id: 'gltf',
+			type: this.name,
+			extensions: [this.getExportOptions().encoding == 'binary' ? 'glb' : 'gltf'],
+			name: this.fileName(),
+			startpath: this.startPath(),
+			content,
+			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
+		}, path => this.afterDownload(path));
 	}
 })
 
