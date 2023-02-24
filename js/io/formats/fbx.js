@@ -1,5 +1,121 @@
 (function() {
 
+class BinaryWriter {
+	constructor(minimal_length, little_endian) {
+		this.array = new Uint8Array(minimal_length);
+		this.buffer = this.array.buffer;
+		this.view = new DataView(this.buffer);
+		this.cursor = 0;
+		this.little_endian = !!little_endian;
+		this.textEncoder = new TextEncoder();
+	}
+	expand(n) {
+		var new_length = this.cursor+1+n;
+		if (new_length > this.buffer.byteLength) {
+			var oldArray = this.array;
+			this.array = new Uint8Array(new_length);
+			this.buffer = this.array.buffer;
+			this.array.set(oldArray);
+			this.view = new DataView(this.buffer)
+		}
+	}
+	WriteUInt8(value) {
+		this.expand(1);
+		this.view.setUint8(this.cursor, value);
+		this.cursor += 1;
+	}
+	WriteUInt16(value) {
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
+	}
+	WriteInt32(value) {
+		this.expand(4);
+		this.view.setInt32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteUInt32(value) {
+		this.expand(4);
+		this.view.setUint32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat32(value) {
+		this.expand(4);
+		this.view.setFloat32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat64(value) {
+		this.expand(8);
+		this.view.setFloat64(this.cursor, value, this.little_endian);
+		this.cursor += 8;
+	}
+	WriteBoolean(value) {
+		this.WriteUInt8(value ? 1 : 0)
+	}
+	Write7BitEncodedInt(value) {
+		while (value >= 0x80) {
+			this.WriteUInt8(value | 0x80);
+			value = value >> 7;
+		}
+		this.WriteUInt8(value);
+	}
+	WriteString(string, raw) {
+		var array = this.EncodeString(string);
+		if (!raw) this.Write7BitEncodedInt(array.byteLength);
+		this.WriteBytes(array);
+	}
+	WritePoint(point) {
+		this.expand(8);
+		this.view.setInt32(this.cursor, point.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, point.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector2(vector) {
+		this.expand(8);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector3(vector) {
+		this.expand(12);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteIntVector3(vector) {
+		this.expand(12);
+		this.view.setInt32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteQuaternion(quat) {
+		this.expand(16);
+		this.view.setFloat32(this.cursor, quat.w, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteBytes(array) {
+		this.expand(array.byteLength);
+		this.array.set(array, this.cursor);
+		this.cursor += array.byteLength;
+	}
+	EncodeString(string) {
+		return this.textEncoder.encode(string);
+	}
+};
 
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
@@ -7,14 +123,15 @@ var codec = new Codec('fbx', {
 	compile(options = this.getExportOptions()) {
 		let scope = this;
 		let export_scale = options.scale / 100;
-		let model = [
+		let model = [];
+		model.push([
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
 			'; ----------------------------------------------------',
 			'; ',
 			'',
 			'',
-		].join('\n');
+		].join('\n'));
 
 		function formatFBXComment(comment) {
 			return '\n; ' + comment.split(/\n/g).join('\n; ')
@@ -54,7 +171,7 @@ var codec = new Codec('fbx', {
 
 		// FBXHeaderExtension
 		let date = new Date();
-		model += compileASCIIFBXSection({
+		model.push({
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
 				FBXVersion: 7300,
@@ -77,7 +194,7 @@ var codec = new Codec('fbx', {
 			Creator: Settings.get('credit'),
 		})
 
-		model += compileASCIIFBXSection({
+		model.push({
 			GlobalSettings: {
 				Version: 1000,
 				Properties60: {
@@ -662,12 +779,12 @@ var codec = new Codec('fbx', {
 		}
 
 		// Object definitions
-		model += formatFBXComment('Object definitions');
+		model.push(formatFBXComment('Object definitions'));
 		let total_definition_count = 1;
 		for (let key in DefinitionCounter) {
 			total_definition_count += DefinitionCounter[key];
 		}
-		model += compileASCIIFBXSection({
+		model.push({
 			Definitions: {
 				Version: 100,
 				Count: total_definition_count,
@@ -906,30 +1023,62 @@ var codec = new Codec('fbx', {
 			}
 		})
 
-		model += formatFBXComment('Object properties');
-		model += compileASCIIFBXSection({
+		model.push(formatFBXComment('Object properties'));
+		model.push({
 			Objects
 		});
 
 		// Object connections
-		model += formatFBXComment('Object connections');
-		model += `Connections:  {\n\n`;
-		Connections.forEach(connection => {
+		model.push(formatFBXComment('Object connections'));
+		let connections = {};
+		Connections.forEach((connection, i) => {
 			let property = connection.property ? `, "${connection.property}"` : '';
-			model += `\t;${connection.name.join(', ')}\n`;
-			model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
+
+			connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
+			connections[`connection_${i}`] = {
+				_key: 'C',
+				_values: [property ? 'OP' : 'OO', ...connection.id, property]
+			}
+			//model += `\t;${connection.name.join(', ')}\n`;
+			//model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
 		})
-		model += `}\n`;
+
+		model.push({
+			Connections: connections
+		});
 
 		// Takes
-		model += formatFBXComment('Takes section');
-		model += compileASCIIFBXSection({
+		model.push(formatFBXComment('Takes section'));
+		model.push({
 			Takes
 		})
 
 		scope.dispatchEvent('compile', {model, options});
-		
-		return model;
+
+		let compiled_model;
+		if (options.encoding == 'binary') {
+			
+			let top_level_object = {};
+			model.forEach(section => {
+				if (typeof section == 'object') {
+					for (let key in section) {
+						top_level_object[key] = section[key];
+					}
+				}
+			})
+			compiled_model = compileBinaryFBXModel(top_level_object);
+			
+		} else {
+			compiled_model = model.map(section => {
+				if (typeof section == 'object') {
+					return compileASCIIFBXSection(section);
+				} else {
+					return section;
+				}
+			}).join('');
+		}
+
+		return compiled_model;
 	},
 	write(content, path) {
 		var scope = this;
@@ -1010,6 +1159,70 @@ BARS.defineActions(function() {
 	})
 })
 
+function compileBinaryFBXModel(top_level_object) {
+	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
+
+	var writer = new BinaryWriter(20, true);
+	// Header
+	writer.WriteString('Kaydara FBX Binary  ', true);
+	writer.WriteUInt8(0x00);
+	writer.WriteUInt8(0x1A);
+	writer.WriteUInt8(0x00);
+	// Version
+	writer.WriteUInt32(7300);
+
+	function writeObjectRecursively(key, node) {
+
+		let tuple;
+		if (typeof object == 'object' && typeof object.map === 'function') {
+			tuple = object;
+		} else if (typeof object !== 'object') {
+			tuple = [object];
+		} else if (object._values) {
+			tuple = object._values;
+		} else {
+			tuple = [];
+		}
+
+		// EndOffset, change later
+		let end_offset_index = writer.cursor;
+		writer.WriteUInt32(0);
+		// NumProperties
+		writer.WriteUInt32(tuple.length);
+		// PropertyListLen, change later
+		writer.WriteUInt32(0);
+		// Name
+		writer.WriteString(node_name);
+
+		// Tuple
+		tuple.forEach((value, i) => {
+
+		})
+
+
+		// Nested List
+		if (typeof object == 'object') {
+
+			for (let key in node) {
+				if (typeof key == 'string' && key.startsWith('_')) continue;
+				if (node[key] === undefined) continue;
+				let object = node[key];
+				if (object._comment) continue;
+				if (object._key) key = object._key;
+
+				writeObjectRecursively(key, object);
+			}
+			// Null Record, indicating a nested list
+			for (let i = 0; i < 13; i++) {
+				writer.WriteUInt8(0x00);
+			}
+		}
+		// End Offset
+		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian);
+	}
+	writeObjectRecursively('', top_level_object);
+}
+
 })()
 
 function compileASCIIFBXSection(object) {
@@ -1047,6 +1260,10 @@ function compileASCIIFBXSection(object) {
 			if (typeof key == 'string' && key.startsWith('_')) continue;
 			if (parent[key] === undefined) continue;
 			let object = parent[key];
+			if (object._comment) {
+				output += `${indent()};${object._comment}`;
+				continue;
+			}
 			if (object._key) key = object._key;
 
 			let values = '';
