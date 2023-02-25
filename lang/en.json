@@ -416,6 +416,8 @@
 	"dialog.export_emission_map.round_up": "Round Up to %0 x %1",
 	"dialog.export_emission_map.flip_y": "Flip Y Axis",
 
+	"dialog.edit_texture.preview": "Preview",
+
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",

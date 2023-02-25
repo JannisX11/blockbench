@@ -1565,6 +1565,13 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	dialog .slider_input_combo {
 		clear: both;
 	}
+	.bar.button_bar_checkbox {
+		position: absolute;
+		bottom: 14px;
+		display: flex;
+		align-items: center;
+		z-index: 1;
+	}
 	dialog#adjust_curves .dialog_content {
 		margin-top: 6px;
 		margin-bottom: 10px;
