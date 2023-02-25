@@ -1,121 +1,13 @@
 (function() {
 
-class BinaryWriter {
-	constructor(minimal_length, little_endian) {
-		this.array = new Uint8Array(minimal_length);
-		this.buffer = this.array.buffer;
-		this.view = new DataView(this.buffer);
-		this.cursor = 0;
-		this.little_endian = !!little_endian;
-		this.textEncoder = new TextEncoder();
-	}
-	expand(n) {
-		var new_length = this.cursor+1+n;
-		if (new_length > this.buffer.byteLength) {
-			var oldArray = this.array;
-			this.array = new Uint8Array(new_length);
-			this.buffer = this.array.buffer;
-			this.array.set(oldArray);
-			this.view = new DataView(this.buffer)
-		}
-	}
-	WriteUInt8(value) {
-		this.expand(1);
-		this.view.setUint8(this.cursor, value);
-		this.cursor += 1;
-	}
-	WriteUInt16(value) {
-		this.expand(2);
-		this.view.setUint16(this.cursor, value, this.little_endian);
-		this.cursor += 2;
-	}
-	WriteInt32(value) {
-		this.expand(4);
-		this.view.setInt32(this.cursor, value, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteUInt32(value) {
-		this.expand(4);
-		this.view.setUint32(this.cursor, value, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteFloat32(value) {
-		this.expand(4);
-		this.view.setFloat32(this.cursor, value, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteFloat64(value) {
-		this.expand(8);
-		this.view.setFloat64(this.cursor, value, this.little_endian);
-		this.cursor += 8;
-	}
-	WriteBoolean(value) {
-		this.WriteUInt8(value ? 1 : 0)
-	}
-	Write7BitEncodedInt(value) {
-		while (value >= 0x80) {
-			this.WriteUInt8(value | 0x80);
-			value = value >> 7;
-		}
-		this.WriteUInt8(value);
-	}
-	WriteString(string, raw) {
-		var array = this.EncodeString(string);
-		if (!raw) this.Write7BitEncodedInt(array.byteLength);
-		this.WriteBytes(array);
-	}
-	WritePoint(point) {
-		this.expand(8);
-		this.view.setInt32(this.cursor, point.x, this.little_endian);
-		this.cursor += 4;
-		this.view.setInt32(this.cursor, point.y, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteVector2(vector) {
-		this.expand(8);
-		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteVector3(vector) {
-		this.expand(12);
-		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, vector.z, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteIntVector3(vector) {
-		this.expand(12);
-		this.view.setInt32(this.cursor, vector.x, this.little_endian);
-		this.cursor += 4;
-		this.view.setInt32(this.cursor, vector.y, this.little_endian);
-		this.cursor += 4;
-		this.view.setInt32(this.cursor, vector.z, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteQuaternion(quat) {
-		this.expand(16);
-		this.view.setFloat32(this.cursor, quat.w, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, quat.x, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, quat.y, this.little_endian);
-		this.cursor += 4;
-		this.view.setFloat32(this.cursor, quat.z, this.little_endian);
-		this.cursor += 4;
-	}
-	WriteBytes(array) {
-		this.expand(array.byteLength);
-		this.array.set(array, this.cursor);
-		this.cursor += array.byteLength;
-	}
-	EncodeString(string) {
-		return this.textEncoder.encode(string);
-	}
-};
+function TNum(type, value) {
+	this.type = type;
+	this.value = value;
+}
+function TArr(type, ...values) {
+	this.type = type;
+	this.values = values[0] instanceof Array ? values[0] : values;
+}
 
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
@@ -1101,6 +993,7 @@ var codec = new Codec('fbx', {
 		})
 	},
 	export_options: {
+		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII', binary: 'Binary'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		include_animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
 	},
@@ -1159,19 +1052,163 @@ BARS.defineActions(function() {
 	})
 })
 
+class BinaryWriter {
+	constructor(minimal_length, little_endian) {
+		this.array = new Uint8Array(minimal_length);
+		this.buffer = this.array.buffer;
+		this.view = new DataView(this.buffer);
+		this.cursor = 0;
+		this.little_endian = !!little_endian;
+		this.textEncoder = new TextEncoder();
+	}
+	expand(n) {
+		var new_length = this.cursor+1+n;
+		if (new_length > this.buffer.byteLength) {
+			var oldArray = this.array;
+			this.array = new Uint8Array(new_length);
+			this.buffer = this.array.buffer;
+			this.array.set(oldArray);
+			this.view = new DataView(this.buffer)
+		}
+	}
+	WriteUInt8(value) {
+		this.expand(1);
+		this.view.setUint8(this.cursor, value);
+		this.cursor += 1;
+	}
+	WriteUInt16(value) {
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
+	}
+	WriteInt16(value) {
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
+	}
+	WriteInt32(value) {
+		this.expand(4);
+		this.view.setInt32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteInt64(value) {
+		this.expand(8);
+		this.view.setBigInt64(this.cursor, value, this.little_endian);
+		this.cursor += 8;
+	}
+	WriteUInt32(value) {
+		this.expand(4);
+		this.view.setUint32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat32(value) {
+		this.expand(4);
+		this.view.setFloat32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat64(value) {
+		this.expand(8);
+		this.view.setFloat64(this.cursor, value, this.little_endian);
+		this.cursor += 8;
+	}
+	WriteBoolean(value) {
+		this.WriteUInt8(value ? 1 : 0)
+	}
+	Write7BitEncodedInt(value) {
+		while (value >= 0x80) {
+			this.WriteUInt8(value | 0x80);
+			value = value >> 7;
+		}
+		this.WriteUInt8(value);
+	}
+	WriteRawString(string) {
+		var array = this.EncodeString(string);
+		this.WriteBytes(array);
+	}
+	WriteString(string, raw) {
+		var array = this.EncodeString(string);
+		if (!raw) this.Write7BitEncodedInt(array.byteLength);
+		this.WriteBytes(array);
+	}
+	WriteU32String(string) {
+		var array = this.EncodeString(string);
+		this.WriteUInt32(array.byteLength);
+		this.WriteBytes(array);
+	}
+	WriteU32Base64(base64) {
+		let data = atob(base64);
+		let array = Uint8Array.from(data, c => c.charCodeAt(0));
+		this.WriteUInt32(array.length);
+		this.WriteBytes(array);
+	}
+	WritePoint(point) {
+		this.expand(8);
+		this.view.setInt32(this.cursor, point.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, point.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector2(vector) {
+		this.expand(8);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector3(vector) {
+		this.expand(12);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteIntVector3(vector) {
+		this.expand(12);
+		this.view.setInt32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteQuaternion(quat) {
+		this.expand(16);
+		this.view.setFloat32(this.cursor, quat.w, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteBytes(array) {
+		this.expand(array.byteLength);
+		this.array.set(array, this.cursor);
+		this.cursor += array.byteLength;
+	}
+	EncodeString(string) {
+		return this.textEncoder.encode(string);
+	}
+};
+
 function compileBinaryFBXModel(top_level_object) {
 	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
+	// https://github.com/jskorepa/fbx.js/blob/master/src/lib/index.ts
 
 	var writer = new BinaryWriter(20, true);
 	// Header
-	writer.WriteString('Kaydara FBX Binary  ', true);
+	writer.WriteRawString('Kaydara FBX Binary  ');
 	writer.WriteUInt8(0x00);
 	writer.WriteUInt8(0x1A);
 	writer.WriteUInt8(0x00);
 	// Version
 	writer.WriteUInt32(7300);
 
-	function writeObjectRecursively(key, node) {
+
+	function writeObjectRecursively(key, object) {
 
 		let tuple;
 		if (typeof object == 'object' && typeof object.map === 'function') {
@@ -1192,27 +1229,78 @@ function compileBinaryFBXModel(top_level_object) {
 		// PropertyListLen, change later
 		writer.WriteUInt32(0);
 		// Name
-		writer.WriteString(node_name);
+		writer.WriteString(key);
 
 		// Tuple
 		tuple.forEach((value, i) => {
+			let type = typeof value;
+			if (value instanceof TNum) {
+				type = value.type;
+				value = value.value;
+			}
+			if (type == 'number') {
+				type = value % 1 ? 'F' : 'I';
+			}
+			// handle number types
+			// Y: int16
+			// I: int32
+			// F: Float 32
+			// D: Double 64
+			// L: int64
 
+			if (type == 'boolean') {
+				writer.WriteRawString('C');
+				writer.WriteBoolean(value);
+
+			} else if (type == 'string' && value.startsWith('iV')) {
+				// base64
+				writer.WriteRawString('R');
+				writer.WriteU32Base64(value);
+
+			} else if (type == 'string') {
+				// string
+				writer.WriteRawString('S');
+				if (value.startsWith('_')) value = value.substring(1);
+				writer.WriteU32String(value);
+
+			} else if (type == 'Y') {
+				writer.WriteRawString('Y');
+				writer.WriteInt16(value);
+
+			} else if (type == 'I') {
+				writer.WriteRawString('I');
+				writer.WriteInt32(value);
+
+			} else if (type == 'F') {
+				writer.WriteRawString('F');
+				writer.WriteFloat32(value);
+
+			} else if (type == 'D') {
+				writer.WriteRawString('D');
+				writer.WriteFloat64(value);
+
+			} else if (type == 'L') {
+				writer.WriteRawString('L');
+				writer.WriteInt64(value);
+
+			}
+			
 		})
 
 
 		// Nested List
 		if (typeof object == 'object') {
 
-			for (let key in node) {
+			for (let key in object) {
 				if (typeof key == 'string' && key.startsWith('_')) continue;
-				if (node[key] === undefined) continue;
-				let object = node[key];
-				if (object._comment) continue;
-				if (object._key) key = object._key;
+				if (object[key] === undefined) continue;
+				let child = object[key];
+				if (child._comment) continue;
+				if (child._key) key = child._key;
 
-				writeObjectRecursively(key, object);
+				writeObjectRecursively(key, child);
 			}
-			// Null Record, indicating a nested list
+			// Null Record, indicating a nested list. Length is 13 in v7.3, 25 in v7.5+
 			for (let i = 0; i < 13; i++) {
 				writer.WriteUInt8(0x00);
 			}
@@ -1221,6 +1309,25 @@ function compileBinaryFBXModel(top_level_object) {
 		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian);
 	}
 	writeObjectRecursively('', top_level_object);
+
+	// Footer
+	let footer = [
+        0xfa, 0xbc, 0xab, 0x09,
+        0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xe8, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8, 0x5a, 0x8c, 0x6a,
+        0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
+    ];
+	writer.WriteBytes(new Uint8Array(footer));
+
+	return writer.array;
 }
 
 })()
