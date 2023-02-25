@@ -14,7 +14,7 @@ function buildForm(dialog) {
 			if (data.label) {
 				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
 				bar.append(label);
-				if (!data.full_width) {
+				if (!data.full_width && data.condition !== false) {
 					dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
 				}
 			}

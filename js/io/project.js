@@ -898,6 +898,7 @@ BARS.defineActions(function() {
 					label: property.label,
 					description: property.description,
 					value: Project[property.name],
+					placeholder: property.placeholder,
 					type: property.type
 				}
 				if (property.type == 'boolean') entry.type = 'checkbox';
