@@ -1110,18 +1110,13 @@ const UVEditor = {
 			})
 			Canvas.updateUV(obj);
 		})
+		let rect = this.vue.getSelectedUVBoundingBox();
+		let center = [(rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2];
 		Mesh.selected.forEach(mesh => {
+			
 			mesh.forAllFaces((face, fkey) => {
 				if (!UVEditor.selected_faces.includes(fkey)) return;
 				if (face.vertices.length < 3) return;
-				let center = [0, 0];
-				face.vertices.forEach(vkey => {
-					if (!face.uv[vkey]) return;
-					center[0] += face.uv[vkey][0];
-					center[1] += face.uv[vkey][1];
-				})
-				center[0] /= face.vertices.length;
-				center[1] /= face.vertices.length;
 
 				face.vertices.forEach(vkey => {
 					if (!face.uv[vkey]) return;

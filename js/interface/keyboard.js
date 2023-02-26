@@ -162,11 +162,19 @@ class Keybind {
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
 
-			case 187: return '+';
 			case 188: return ',';
 			case 190: return '.';
 			case 189: return '-';
-			case 191: return '#';
+			case 191: return '/';
+			case 219: return '[';
+			case 221: return ']';
+			case 186: return ';';
+			case 222: return "'";
+			case 220: return '\\';
+			case 187: return '=';
+			case 226: return '\\';
+			case 192: return '`';
+			//case 187: return '+';
 			default : return String.fromCharCode(key).toLowerCase();
 		}
 	}
