@@ -344,6 +344,7 @@ class ModelProject {
 					})
 					if (answer === 0) {
 						BarItems.save_project.trigger();
+						return Project.saved;
 					}
 					return answer !== 2;
 				} else {
