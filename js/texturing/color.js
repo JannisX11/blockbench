@@ -940,9 +940,8 @@ BARS.defineActions(function() {
 			min: 0, max: 360, default: 0, show_bar: true
 		},
 		getInterval(e) {
-			if (e.shiftKey || Pressing.overrides.shift) return 12.5;
-			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
-			return 4
+			if (e.shiftKey || Pressing.overrides.shift) return 4;
+			return 1
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.h);
@@ -961,8 +960,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;
-			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
-			return 2
+			return 1
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.s);
@@ -981,8 +979,7 @@ BARS.defineActions(function() {
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;
-			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
-			return 2
+			return 1
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.v);
