@@ -662,12 +662,13 @@ class AnimationController extends AnimationItem {
 	}
 	createUniqueName(arr) {
 		var scope = this;
-		var others = AnimationController.all;
+		var others = AnimationController.all.slice();
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
 			})
 		}
+		others = others.filter(a => a.path == this.path);
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -735,6 +736,7 @@ class AnimationController extends AnimationItem {
 		if (!AnimationController.all.includes(this)) {
 			AnimationController.all.push(this)
 		}
+		this.createUniqueName();
 		if (undo) {
 			this.select()
 			Undo.finishEdit('Add animation controller', {animation_controllers: [this]})
@@ -803,8 +805,8 @@ class AnimationController extends AnimationItem {
 					Undo.initEdit({animation_controllers: [this]});
 
 					this.name = form_data.name;
-					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
+					this.createUniqueName();
 
 					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controllers: [this]})
 

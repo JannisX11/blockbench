@@ -480,12 +480,13 @@ class Animation extends AnimationItem {
 	}
 	createUniqueName(arr) {
 		var scope = this;
-		var others = Animator.animations;
+		var others = Animator.animations.slice();
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
 			})
 		}
+		others = others.filter(a => a.path == this.path);
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -565,6 +566,7 @@ class Animation extends AnimationItem {
 		if (!Animator.animations.includes(this)) {
 			Animator.animations.push(this)
 		}
+		this.createUniqueName();
 		if (undo) {
 			this.select()
 			Undo.finishEdit('Add animation', {animations: [this]})
@@ -748,8 +750,8 @@ class Animation extends AnimationItem {
 						start_delay: dialog.component.data.start_delay.trim().replace(/\n/g, ''),
 						loop_delay: dialog.component.data.loop_delay.trim().replace(/\n/g, ''),
 					})
-					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
+					this.createUniqueName();
 
 					Blockbench.dispatchEvent('edit_animation_properties', {animation: this})
 
@@ -1951,7 +1953,7 @@ Interface.definePanels(function() {
 				return [];
 			}
 		}
-		return [Animation.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
+		return [AnimationItem.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {
@@ -2105,18 +2107,38 @@ Interface.definePanels(function() {
 							[target_anim] = eventTargetToAnim(target);
 							if (!target_anim || target_anim == anim ) return;
 
-							let index = Animation.all.indexOf(target_anim);
-							if (Animation.all.indexOf(anim) < index) index--;
-							if (order == 1) index++;
-							if (Animation.all[index] == anim && anim.path == target_anim.path) return;
-							
-							Undo.initEdit({animations: [anim]});
+							if (anim instanceof AnimationController) {
+								let index = AnimationController.all.indexOf(target_anim);
+								if (index == -1 && target_anim.path) return;
+								if (AnimationController.all.indexOf(anim) < index) index--;
+								if (order == 1) index++;
+								if (AnimationController.all[index] == anim && anim.path == target_anim.path) return;
+								
+								Undo.initEdit({animation_controllers: [anim]});
+	
+								anim.path = target_anim.path;
+								AnimationController.all.remove(anim);
+								AnimationController.all.splice(index, 0, anim);
+								anim.createUniqueName();
+	
+								Undo.finishEdit('Reorder animation controllers');
 
-							anim.path = target_anim.path;
-							Animation.all.remove(anim);
-							Animation.all.splice(index, 0, anim);
-
-							Undo.finishEdit('Reorder animations');
+							} else {
+								let index = Animation.all.indexOf(target_anim);
+								if (index == -1 && target_anim.path) return;
+								if (Animation.all.indexOf(anim) < index) index--;
+								if (order == 1) index++;
+								if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+								
+								Undo.initEdit({animations: [anim]});
+	
+								anim.path = target_anim.path;
+								Animation.all.remove(anim);
+								Animation.all.splice(index, 0, anim);
+								anim.createUniqueName();
+	
+								Undo.finishEdit('Reorder animations');
+							}
 						}
 					}
 
