@@ -965,6 +965,18 @@
 	body.light_mode .reference_image_rotate_handle {
 		text-shadow: none;
 	}
+	.reference_image_toolbar {
+		position: absolute;
+		margin: auto;
+		height: auto;
+		bottom: 0;
+		right: 0;
+		left: 0;
+		background-color: var(--color-ui);
+		max-width: fit-content;
+		display: flex;
+		flex-wrap: wrap;
+	}
 
 
 

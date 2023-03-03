@@ -1901,6 +1901,7 @@ class ReferenceImage {
 
 		 */
 		this.uuid = guid();
+		this.condition = data.condition;
 
 		for (let key in ReferenceImage.properties) {
 			ReferenceImage.properties[key].reset(this);
@@ -1960,16 +1961,19 @@ class ReferenceImage {
 		Project.reference_images.push(this);
 		this.scope = 'project';
 		this.update();
+		return this;
 	}
 	addAsGlobalReference() {
 		ReferenceImage.global.push(this);
 		this.scope = 'global';
 		this.update();
+		return this;
 	}
 	addAsBuiltIn() {
 		ReferenceImage.built_in.push(this);
 		this.scope = 'built_in';
 		this.update();
+		return this;
 	}
 	select() {
 		if (ReferenceImage.selected && ReferenceImage.selected != this) {
@@ -1977,17 +1981,39 @@ class ReferenceImage {
 		}
 		ReferenceImage.selected = this;
 		this.update();
+		return this;
 	}
 	unselect() {
 		if (ReferenceImage.selected == this) ReferenceImage.selected = null;
 		this.update();
+		return this;
 	}
 	get selected() {
 		return ReferenceImage.selected == this;
 	}
+	save() {
+		switch (this.scope) {
+			case 'project':
+				Project.saved = false;
+				break;
+			case 'global':
+				ReferenceImage.global.remove(this);
+				break;
+			case 'built_in':
+				ReferenceImage.built_in.remove(this);
+				break;
+		}
+		return this;
+	}
 	update() {
 		if (!Interface.preview) return;
+		let shown = Condition(this.condition) && this.visibility;
 		// update position
+		if (!shown) {
+			this.node.remove();
+			return;
+		}
+
 		if (this.type == 'reference') {
 			Interface.preview.append(this.node);
 		}
@@ -2003,74 +2029,53 @@ class ReferenceImage {
 		this.img.classList.toggle('flip_x', this.flip_x);
 		this.img.classList.toggle('flip_y', this.flip_y);
 
+
 		// Select
 		if (this.selected && !this._modify_nodes.length) {
-			console.log('SETUP')
-			this.node.classList.add('selected');
-			let resize_corners = ['nw', 'ne', 'sw', 'se'].map(direction => {
-				let corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
-				let sign_x = direction[1] == 'e' ? 1 : -1;
-				let sign_y = direction[0] == 's' ? 1 : -1;
-				addEventListeners(corner, 'mousedown touchstart', e1 => {
-					convertTouchEvent(e1);
-
-					let original_position = this.position.slice();
-					let original_size = this.size.slice();
-
-					let move = (e2) => {
-						convertTouchEvent(e2);
-						let offset = [
-							(e2.clientX - e1.clientX),
-							(e2.clientY - e1.clientY),
-						];
-						if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
-							// todo: keep aspect ratio;
-						}
-						this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
-						this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
-						this.position[0] = original_position[0] + offset[0] / 2;
-						this.position[1] = original_position[1] + offset[1] / 2;
-
-						this.update();
-					}
-					let stop = (e2) => {
-						convertTouchEvent(e2);
-						removeEventListeners(document, 'mousemove touchmove', move);
-						removeEventListeners(document, 'mouseup touchend', stop);
-					}
-					addEventListeners(document, 'mousemove touchmove', move);
-					addEventListeners(document, 'mouseup touchend', stop);
-				})
-				this.node.append(corner);
-				return corner;
-			});
-			this._modify_nodes.push(...resize_corners);
-
-			let rotate_handle = Interface.createElement('div', {class: 'reference_image_rotate_handle'}, Blockbench.getIconNode('rotate_right'));
-			addEventListeners(rotate_handle, 'mousedown touchstart', e1 => {
+			this.setupEditHandles()
+		}
+		// Unselect
+		if (!this.selected && this._modify_nodes.length) {
+			this.node.classList.remove('selected');
+			this._modify_nodes.forEach(node => node.remove());
+			this._modify_nodes.empty();
+		}
+		return this;
+	}
+	setupEditHandles() {
+		let self = this;
+		this.node.classList.add('selected');
+		let resize_corners = ['nw', 'ne', 'sw', 'se'].map(direction => {
+			let corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
+			let sign_x = direction[1] == 'e' ? 1 : -1;
+			let sign_y = direction[0] == 's' ? 1 : -1;
+			addEventListeners(corner, 'mousedown touchstart', e1 => {
 				convertTouchEvent(e1);
 
-				let original_rotation = this.rotation;
-				let offset = $(this.node).offset();
-				let center = [
-					offset.left + this.size[0]/2,
-					offset.top  + this.size[1]/2,
-				]
-				let initial_angle = null;
+				let original_position = this.position.slice();
+				let original_size = this.size.slice();
 
 				let move = (e2) => {
 					convertTouchEvent(e2);
-					let angle = Math.radToDeg(Math.atan2(
-						e2.clientY - center[1],
-						e2.clientX - center[0],
-					))
-					if (initial_angle === null) initial_angle = angle;
+					let offset = [
+						(e2.clientX - e1.clientX),
+						(e2.clientY - e1.clientY),
+					];
+					//console.log(...offset)
+					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
+					this.position[0] = original_position[0] + offset[0] / 2;
 
-					if (angle != initial_angle) {
-						let target_rotation = Math.trimDeg(original_rotation + angle - initial_angle);
-						this.rotation = Math.snapToValues(target_rotation, [-180, -90, 0, 90, 180], 3);
-						this.update();
+
+					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
+						//offset[0] = offset[1] * this.aspect_ratio * Math.sign(offset[1]) * Math.sign(offset[0]);
+						// todo: keep aspect ratio;
+						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
+
+					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
+					this.position[1] = original_position[1] + offset[1] / 2;
+
+					this.update();
 				}
 				let stop = (e2) => {
 					convertTouchEvent(e2);
@@ -2080,59 +2085,144 @@ class ReferenceImage {
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
-			this.node.append(rotate_handle);
-			this._modify_nodes.push(rotate_handle);
+			this.node.append(corner);
+			return corner;
+		});
+		this._modify_nodes.push(...resize_corners);
 
+		let rotate_handle = Interface.createElement('div', {class: 'reference_image_rotate_handle'}, Blockbench.getIconNode('rotate_right'));
+		addEventListeners(rotate_handle, 'mousedown touchstart', e1 => {
+			convertTouchEvent(e1);
 
-			if (!this._edit_events_initialized) {
-				addEventListeners(this.node, 'mousedown touchstart', e1 => {
-					if (!e1.target.classList.contains('reference_image')) return;
-					convertTouchEvent(e1);
+			let original_rotation = this.rotation;
+			let offset = $(this.node).offset();
+			let center = [
+				offset.left + this.size[0]/2,
+				offset.top  + this.size[1]/2,
+			]
+			let initial_angle = null;
 
-					let original_position = this.position.slice();
+			let move = (e2) => {
+				convertTouchEvent(e2);
+				let angle = Math.radToDeg(Math.atan2(
+					e2.clientY - center[1],
+					e2.clientX - center[0],
+				))
+				if (initial_angle === null) initial_angle = angle;
 
-					let move = (e2) => {
-						convertTouchEvent(e2);
-						let offset = [
-							(e2.clientX - e1.clientX),
-							(e2.clientY - e1.clientY),
-						];
-						this.position[0] = original_position[0] + offset[0];
-						this.position[1] = original_position[1] + offset[1];
-
-						this.update();
-					}
-					let stop = (e2) => {
-						convertTouchEvent(e2);
-						removeEventListeners(document, 'mousemove touchmove', move);
-						removeEventListeners(document, 'mouseup touchend', stop);
-					}
-					addEventListeners(document, 'mousemove touchmove', move);
-					addEventListeners(document, 'mouseup touchend', stop);
-				})
-				this._edit_events_initialized = true;
+				if (angle != initial_angle) {
+					let target_rotation = Math.trimDeg(original_rotation + angle - initial_angle);
+					this.rotation = Math.snapToValues(target_rotation, [-180, -90, 0, 90, 180], 3);
+					this.update();
+				}
 			}
-			/*
-			Resize handles
-			Buttons
-				Switch Z layer
-				Flip X and Y?
-				visibility
-				opacity
+			let stop = (e2) => {
+				convertTouchEvent(e2);
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
+		})
+		this.node.append(rotate_handle);
+		this._modify_nodes.push(rotate_handle);
 
-			*/
+		this.toolbar = Interface.createElement('div', {class: 'reference_image_toolbar'});
+		this.node.append(this.toolbar);
+		this._modify_nodes.push(this.toolbar);
+		
+		// Controls
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+
+		}}, Blockbench.getIconNode('wallpaper')));
+		
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+
+		}}, Blockbench.getIconNode('lock')));
+		
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+			self.flip_x = !self.flip_x;
+			self.update().save();
+		}}, Blockbench.getIconNode('icon-mirror_x')));
+		
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+			self.flip_y = !self.flip_y;
+			self.update().save();
+		}}, Blockbench.getIconNode('icon-mirror_y')));
+		
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+
+		}}, Blockbench.getIconNode('flip_to_front')));
+		
+		this.opacity_slider = new NumSlider({
+			id: 'slider_reference_image_opacity',
+			private: true,
+			condition: () => true,
+			get() {
+				return self.opacity * 100;
+			},
+			change(modify) {
+				self.opacity = modify(self.opacity*100) / 100;
+				self.update();
+			},
+			onAfter() {
+				self.save();
+			},
+			settings: {
+				min: 0, max: 100, step: 1, show_bar: true
+			}
+		}).toElement(this.toolbar).update();
+		
+		this.toolbar.append(Interface.createElement('div', {class: 'tool', '@mousedown'() {
+			self.visibility = !self.visibility;
+			self.update();
+		}}, Blockbench.getIconNode('visibility')));
+
+		if (!this._edit_events_initialized) {
+			addEventListeners(this.node, 'mousedown touchstart', e1 => {
+				if (!e1.target.classList.contains('reference_image')) return;
+				convertTouchEvent(e1);
+
+				let original_position = this.position.slice();
+
+				let move = (e2) => {
+					convertTouchEvent(e2);
+					let offset = [
+						(e2.clientX - e1.clientX),
+						(e2.clientY - e1.clientY),
+					];
+					this.position[0] = original_position[0] + offset[0];
+					this.position[1] = original_position[1] + offset[1];
+
+					this.update();
+				}
+				let stop = (e2) => {
+					convertTouchEvent(e2);
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
+			this._edit_events_initialized = true;
 		}
-		// Unselect
-		if (!this.selected && this._modify_nodes.length) {
-			this.node.classList.remove('selected');
-			this._modify_nodes.forEach(node => node.remove());
-			this._modify_nodes.empty();
-		}
+		/*
+		Resize handles
+		Buttons
+			Switch Z layer
+			Flip X and Y?
+			visibility
+			opacity
+
+		*/
+		return this;
 	}
 	openContextMenu(event) {
 		this.menu.show(event);
+		return this;
 	}
 	reset() {
+		return this;
 	}
 	async delete(force) {
 		if (!force) {
@@ -2150,11 +2240,41 @@ class ReferenceImage {
 			case 'global': ReferenceImage.global.remove(this); break;
 			case 'built_in': ReferenceImage.built_in.remove(this); break;
 		}
+		this.save();
 		this.node.remove();
+	}
+	propertiesDialog() {
+		new Dialog('reference_image_properties', {
+			title: 'Reference Image',
+			form: {
+				path: {type: 'file', label: 'Image',  extensions: ['png', 'jpg', 'jpeg']},
+				type: {type: 'select', options: {
+					reference: 'Reference Image',
+					blueprint: 'Blueprint',
+				}},
+				position: {type: 'vector', label: 'Position', dimensions: 2, value: this.position},
+				size: {type: 'vector', label: 'Size', dimensions: 2, value: this.size},
+				rotation: {type: 'number', label: 'Rotation', value: this.rotation},
+				opacity: {type: 'range', label: 'Opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
+			}
+		}).show();
+		return this;
 	}
 }
 ReferenceImage.prototype.menu = new Menu([
-	'delete'
+	/**
+	Type
+
+	 */
+	'delete',
+	'_',
+	{
+		name: 'Properties...',
+		icon: 'list',
+		click(instance) {
+			instance.propertiesDialog();
+		}
+	}
 ])
 
 new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
@@ -2205,7 +2325,8 @@ const ReferenceImageMode = {
 	x save in project
 	x convert old background images to reference images
 	x Add buttons to join and exit editing mode
-	  Implement list of backgrounds (panel?)
+	. Implement list of backgrounds (panel?)
+	  Implement blueprint mode (locked to camera)
 	  Implement display mode references
 	  Start editing references when double clicking preview back
 	 */
@@ -2247,10 +2368,37 @@ function initCanvas() {
 	Canvas.gizmos.push(Canvas.outlines)
 
 	canvas_scenes = {
-		monitor: 			new ReferenceImage({name: tl('display.reference.monitor') }).addAsBuiltIn(),
-		inventory_nine: 	new ReferenceImage({name: tl('display.reference.inventory_nine'), source: './assets/inventory_nine.png', position: [0, -525], size: [1051, 1051], lock: true}).addAsBuiltIn(),
-		inventory_full: 	new ReferenceImage({name: tl('display.reference.inventory_full'), source: './assets/inventory_full.png', position: [0, -1740], size: [2781, 2781], lock: true}).addAsBuiltIn(),
-		hud: 				new ReferenceImage({name: tl('display.reference.hud'), source: './assets/hud.png', position: [-224, -447.5], size: [3391, 3391], lock: true}).addAsBuiltIn(),
+		/*monitor: new ReferenceImage({
+			condition: () => Modes.display && display_slot == 'gui',
+			name: tl('display.reference.monitor')
+		}).addAsBuiltIn(),*/
+
+		inventory_nine: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
+			name: tl('display.reference.inventory_nine'),
+			source: './assets/inventory_nine.png',
+			position: [0, -525],
+			size: [1051, 1051],
+			lock: true
+		}).addAsBuiltIn(),
+
+		inventory_full: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
+			name: tl('display.reference.inventory_full'),
+			source: './assets/inventory_full.png',
+			position: [0, -1740],
+			size: [2781, 2781],
+			lock: true
+		}).addAsBuiltIn(),
+
+		hud: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
+			name: tl('display.reference.hud'),
+			source: './assets/hud.png',
+			position: [-224, -447.5],
+			size: [3391, 3391],
+			lock: true
+		}).addAsBuiltIn(),
 	}
 	if (localStorage.getItem('canvas_scenes')) {
 		/*var stored_canvas_scenes = undefined;
@@ -2380,18 +2528,14 @@ Interface.definePanels(function() {
 			float_size: [300, 250],
 			height: 250
 		},
-		/*toolbars: [
+		toolbars: [
 			new Toolbar({
-				id: 'display',
+				id: 'reference_images',
 				children: [
-					'copy',
-					'paste',
-					'add_display_preset',
-					'apply_display_preset',
-					'gui_light'
+					'add_reference_image'
 				]
 			})
-		],*/
+		],
 		component: {
 			name: 'panel-reference_images',
 			data() {return {
@@ -2406,7 +2550,9 @@ Interface.definePanels(function() {
 			},
 			computed: {
 				references() {
-					return [...this.references_project, ...this.references_global, ...this.references_built_in];
+					return [...this.references_project, ...this.references_global, ...this.references_built_in].filter(ref => {
+						return Condition(ref.condition);
+					});
 				}
 			},
 			template: `
@@ -2418,7 +2564,6 @@ Interface.definePanels(function() {
 							<i class="material-icons">{{ reference.visibility ? 'visibility' : 'visibility_off' }}</i>
 						</li>
 					</ul>
-					<button @click="exit()">Exit Reference Mode</button>
 				</div>
 			`
 		},
@@ -2435,6 +2580,41 @@ BARS.defineActions(function() {
 			} else {
 				ReferenceImageMode.activate()
 			}
+		}
+	});
+	new Action('add_reference_image', {
+		icon: 'add_photo_alternate',
+		category: 'view',
+		click() {
+			if (!ReferenceImageMode.active) {
+				ReferenceImageMode.activate()
+			}
+			Blockbench.import({
+				resource_id: 'reference_image',
+				extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
+				type: 'Image',
+				readtype: 'image'
+			}, async function(files) {
+				let save_mode = await new Promise(resolve => {
+					Blockbench.showMessageBox({
+						title: 'action.add_reference_image',
+						message: 'Select where to load the reference image',
+						icon: files[0].content,
+						commands: {
+							project: 'Save in project',
+							app: 'Save in Blockbench',
+						}
+					}, resolve)
+				})
+				files.forEach(file => {
+					let ref = new ReferenceImage({source: file.content, name: file.name});
+					if (save_mode == 'project') {
+						ref.addAsReference();
+					} else {
+						ref.addAsGlobalReference();
+					}
+				})
+			}, 'image', false)
 		}
 	});
 	new BarSelect('view_mode', {
