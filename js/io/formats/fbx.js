@@ -144,7 +144,7 @@ var codec = new Codec('fbx', {
 				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
 				Version: 232,
 				Properties70: {
-					P1: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('C', 1)]},
+					P1: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('I', 1)]},
 					P2: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
 					P3: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(node).map(v => TNum('D', v))]},
@@ -714,42 +714,42 @@ var codec = new Codec('fbx', {
 							P03: {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P04: {_key: 'P', _values: ["ScalingOffset", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P05: {_key: 'P', _values: ["ScalingPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
-							P06: {_key: 'P', _values: ["TranslationActive", "bool", "", "",TNum('C', 0)]},
+							P06: {_key: 'P', _values: ["TranslationActive", "bool", "", "",TNum('I', 0)]},
 							P07: {_key: 'P', _values: ["TranslationMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P08: {_key: 'P', _values: ["TranslationMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
-							P09: {_key: 'P', _values: ["TranslationMinX", "bool", "", "",TNum('C', 0)]},
-							P10: {_key: 'P', _values: ["TranslationMinY", "bool", "", "",TNum('C', 0)]},
-							P11: {_key: 'P', _values: ["TranslationMinZ", "bool", "", "",TNum('C', 0)]},
-							P12: {_key: 'P', _values: ["TranslationMaxX", "bool", "", "",TNum('C', 0)]},
-							P13: {_key: 'P', _values: ["TranslationMaxY", "bool", "", "",TNum('C', 0)]},
-							P14: {_key: 'P', _values: ["TranslationMaxZ", "bool", "", "",TNum('C', 0)]},
+							P09: {_key: 'P', _values: ["TranslationMinX", "bool", "", "",TNum('I', 0)]},
+							P10: {_key: 'P', _values: ["TranslationMinY", "bool", "", "",TNum('I', 0)]},
+							P11: {_key: 'P', _values: ["TranslationMinZ", "bool", "", "",TNum('I', 0)]},
+							P12: {_key: 'P', _values: ["TranslationMaxX", "bool", "", "",TNum('I', 0)]},
+							P13: {_key: 'P', _values: ["TranslationMaxY", "bool", "", "",TNum('I', 0)]},
+							P14: {_key: 'P', _values: ["TranslationMaxZ", "bool", "", "",TNum('I', 0)]},
 							P15: {_key: 'P', _values: ["RotationOrder", "enum", "", "",5]},
-							P16: {_key: 'P', _values: ["RotationSpaceForLimitOnly", "bool", "", "",TNum('C', 0)]},
+							P16: {_key: 'P', _values: ["RotationSpaceForLimitOnly", "bool", "", "",TNum('I', 0)]},
 							P17: {_key: 'P', _values: ["RotationStiffnessX", "double", "Number", "",TNum('D', 0)]},
 							P18: {_key: 'P', _values: ["RotationStiffnessY", "double", "Number", "",TNum('D', 0)]},
 							P19: {_key: 'P', _values: ["RotationStiffnessZ", "double", "Number", "",TNum('D', 0)]},
 							P20: {_key: 'P', _values: ["AxisLen", "double", "Number", "",TNum('D', 10)]},
 							P21: {_key: 'P', _values: ["PreRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P22: {_key: 'P', _values: ["PostRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
-							P23: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('C', 0)]},
+							P23: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('I', 0)]},
 							P24: {_key: 'P', _values: ["RotationMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P25: {_key: 'P', _values: ["RotationMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
-							P26: {_key: 'P', _values: ["RotationMinX", "bool", "", "",TNum('C', 0)]},
-							P27: {_key: 'P', _values: ["RotationMinY", "bool", "", "",TNum('C', 0)]},
-							P28: {_key: 'P', _values: ["RotationMinZ", "bool", "", "",TNum('C', 0)]},
-							P29: {_key: 'P', _values: ["RotationMaxX", "bool", "", "",TNum('C', 0)]},
-							P30: {_key: 'P', _values: ["RotationMaxY", "bool", "", "",TNum('C', 0)]},
-							P31: {_key: 'P', _values: ["RotationMaxZ", "bool", "", "",TNum('C', 0)]},
+							P26: {_key: 'P', _values: ["RotationMinX", "bool", "", "",TNum('I', 0)]},
+							P27: {_key: 'P', _values: ["RotationMinY", "bool", "", "",TNum('I', 0)]},
+							P28: {_key: 'P', _values: ["RotationMinZ", "bool", "", "",TNum('I', 0)]},
+							P29: {_key: 'P', _values: ["RotationMaxX", "bool", "", "",TNum('I', 0)]},
+							P30: {_key: 'P', _values: ["RotationMaxY", "bool", "", "",TNum('I', 0)]},
+							P31: {_key: 'P', _values: ["RotationMaxZ", "bool", "", "",TNum('I', 0)]},
 							P32: {_key: 'P', _values: ["InheritType", "enum", "", "",0]},
-							P33: {_key: 'P', _values: ["ScalingActive", "bool", "", "",TNum('C', 0)]},
+							P33: {_key: 'P', _values: ["ScalingActive", "bool", "", "",TNum('I', 0)]},
 							P34: {_key: 'P', _values: ["ScalingMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P35: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",TNum('D',1), TNum('D',1), TNum('D',1)]},
-							P36: {_key: 'P', _values: ["ScalingMinX", "bool", "", "",TNum('C', 0)]},
-							P37: {_key: 'P', _values: ["ScalingMinY", "bool", "", "",TNum('C', 0)]},
-							P38: {_key: 'P', _values: ["ScalingMinZ", "bool", "", "",TNum('C', 0)]},
-							P39: {_key: 'P', _values: ["ScalingMaxX", "bool", "", "",TNum('C', 0)]},
-							P40: {_key: 'P', _values: ["ScalingMaxY", "bool", "", "",TNum('C', 0)]},
-							P41: {_key: 'P', _values: ["ScalingMaxZ", "bool", "", "",TNum('C', 0)]},
+							P36: {_key: 'P', _values: ["ScalingMinX", "bool", "", "",TNum('I', 0)]},
+							P37: {_key: 'P', _values: ["ScalingMinY", "bool", "", "",TNum('I', 0)]},
+							P38: {_key: 'P', _values: ["ScalingMinZ", "bool", "", "",TNum('I', 0)]},
+							P39: {_key: 'P', _values: ["ScalingMaxX", "bool", "", "",TNum('I', 0)]},
+							P40: {_key: 'P', _values: ["ScalingMaxY", "bool", "", "",TNum('I', 0)]},
+							P41: {_key: 'P', _values: ["ScalingMaxZ", "bool", "", "",TNum('I', 0)]},
 							P42: {_key: 'P', _values: ["GeometricTranslation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P43: {_key: 'P', _values: ["GeometricRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P44: {_key: 'P', _values: ["GeometricScaling", "Vector3D", "Vector", "",TNum('D',1), TNum('D',1), TNum('D',1)]},
@@ -770,11 +770,11 @@ var codec = new Codec('fbx', {
 							P59: {_key: 'P', _values: ["PreferedAngleZ", "double", "Number", "",TNum('D', 0)]},
 							P60: {_key: 'P', _values: ["LookAtProperty", "object", "", ""]},
 							P61: {_key: 'P', _values: ["UpVectorProperty", "object", "", ""]},
-							P62: {_key: 'P', _values: ["Show", "bool", "", "",TNum('C', 1)]},
-							P63: {_key: 'P', _values: ["NegativePercentShapeSupport", "bool", "", "",TNum('C', 1)]},
+							P62: {_key: 'P', _values: ["Show", "bool", "", "",TNum('I', 1)]},
+							P63: {_key: 'P', _values: ["NegativePercentShapeSupport", "bool", "", "",TNum('I', 1)]},
 							P64: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",-1]},
-							P65: {_key: 'P', _values: ["Freeze", "bool", "", "",TNum('C', 0)]},
-							P66: {_key: 'P', _values: ["LODBox", "bool", "", "",TNum('C', 0)]},
+							P65: {_key: 'P', _values: ["Freeze", "bool", "", "",TNum('I', 0)]},
+							P66: {_key: 'P', _values: ["LODBox", "bool", "", "",TNum('I', 0)]},
 							P67: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P68: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P69: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
@@ -793,9 +793,9 @@ var codec = new Codec('fbx', {
 							P1: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",TNum('D',0.8),TNum('D',0.8),TNum('D',0.8)]},
 							P2: {_key: 'P', _values: ["BBoxMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P3: {_key: 'P', _values: ["BBoxMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
-							P4: {_key: 'P', _values: ["Primary Visibility", "bool", "", "",TNum('C', 1)]},
-							P5: {_key: 'P', _values: ["Casts Shadows", "bool", "", "",TNum('C', 1)]},
-							P6: {_key: 'P', _values: ["Receive Shadows", "bool", "", "",TNum('C', 1)]},
+							P4: {_key: 'P', _values: ["Primary Visibility", "bool", "", "",TNum('I', 1)]},
+							P5: {_key: 'P', _values: ["Casts Shadows", "bool", "", "",TNum('I', 1)]},
+							P6: {_key: 'P', _values: ["Receive Shadows", "bool", "", "",TNum('I', 1)]},
 						}
 					}
 				} : undefined,
@@ -807,7 +807,7 @@ var codec = new Codec('fbx', {
 						_values: ['FbxSurfaceLambert'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["ShadingModel", "KString", "", "", "Lambert"]},
-							P02: {_key: 'P', _values: ["MultiLayer", "bool", "", "",TNum('C', 0)]},
+							P02: {_key: 'P', _values: ["MultiLayer", "bool", "", "",TNum('I', 0)]},
 							P03: {_key: 'P', _values: ["EmissiveColor", "Color", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P04: {_key: 'P', _values: ["EmissiveFactor", "Number", "", "A",TNum('D',1)]},
 							P05: {_key: 'P', _values: ["AmbientColor", "Color", "", "A",TNum('D',0.2), TNum('D',0.2), TNum('D',0.2)]},
@@ -838,8 +838,8 @@ var codec = new Codec('fbx', {
 							P03: {_key: 'P', _values: ["CurrentMappingType", "enum", "", "",0]},
 							P04: {_key: 'P', _values: ["WrapModeU", "enum", "", "",0]},
 							P05: {_key: 'P', _values: ["WrapModeV", "enum", "", "",0]},
-							P06: {_key: 'P', _values: ["UVSwap", "bool", "", "",TNum('C', 0)]},
-							P07: {_key: 'P', _values: ["PremultiplyAlpha", "bool", "", "",TNum('C', 1)]},
+							P06: {_key: 'P', _values: ["UVSwap", "bool", "", "",TNum('I', 0)]},
+							P07: {_key: 'P', _values: ["PremultiplyAlpha", "bool", "", "",TNum('I', 1)]},
 							P08: {_key: 'P', _values: ["Translation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P09: {_key: 'P', _values: ["Rotation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P10: {_key: 'P', _values: ["Scaling", "Vector", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
@@ -847,8 +847,8 @@ var codec = new Codec('fbx', {
 							P12: {_key: 'P', _values: ["TextureScalingPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P13: {_key: 'P', _values: ["CurrentTextureBlendMode", "enum", "", "",1]},
 							P14: {_key: 'P', _values: ["UVSet", "KString", "", "", "default"]},
-							P15: {_key: 'P', _values: ["UseMaterial", "bool", "", "",TNum('C', 0)]},
-							P16: {_key: 'P', _values: ["UseMipMap", "bool", "", "",TNum('C', 0)]},
+							P15: {_key: 'P', _values: ["UseMaterial", "bool", "", "",TNum('I', 0)]},
+							P16: {_key: 'P', _values: ["UseMipMap", "bool", "", "",TNum('I', 0)]},
 						}
 					}
 				} : undefined,
@@ -859,7 +859,7 @@ var codec = new Codec('fbx', {
 					PropertyTemplate: {
 						_values: ['FbxVideo'],
 						Properties70: {
-							P01: {_key: 'P', _values: ["ImageSequence", "bool", "", "",TNum('C', 0)]},
+							P01: {_key: 'P', _values: ["ImageSequence", "bool", "", "",TNum('I', 0)]},
 							P02: {_key: 'P', _values: ["ImageSequenceOffset", "int", "Integer", "",0]},
 							P03: {_key: 'P', _values: ["FrameRate", "double", "Number", "",TNum('D', 0)]},
 							P04: {_key: 'P', _values: ["LastFrame", "int", "Integer", "",0]},
@@ -871,8 +871,8 @@ var codec = new Codec('fbx', {
 							P10: {_key: 'P', _values: ["PlaySpeed", "double", "Number", "",TNum('D', 0)]},
 							P11: {_key: 'P', _values: ["Offset", "KTime", "Time", "",TNum('L', 0)]},
 							P12: {_key: 'P', _values: ["InterlaceMode", "enum", "", "",0]},
-							P13: {_key: 'P', _values: ["FreeRunning", "bool", "", "",TNum('C', 0)]},
-							P14: {_key: 'P', _values: ["Loop", "bool", "", "",TNum('C', 0)]},
+							P13: {_key: 'P', _values: ["FreeRunning", "bool", "", "",TNum('I', 0)]},
+							P14: {_key: 'P', _values: ["Loop", "bool", "", "",TNum('I', 0)]},
 							P15: {_key: 'P', _values: ["AccessMode", "enum", "", "",0]},
 						}
 					}
@@ -902,9 +902,9 @@ var codec = new Codec('fbx', {
 						_values: ['FbxAnimLayer'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",TNum('D',100)]},
-							P02: {_key: 'P', _values: ["Mute", "bool", "", "",TNum('C', 0)]},
-							P03: {_key: 'P', _values: ["Solo", "bool", "", "",TNum('C', 0)]},
-							P04: {_key: 'P', _values: ["Lock", "bool", "", "",TNum('C', 0)]},
+							P02: {_key: 'P', _values: ["Mute", "bool", "", "",TNum('I', 0)]},
+							P03: {_key: 'P', _values: ["Solo", "bool", "", "",TNum('I', 0)]},
+							P04: {_key: 'P', _values: ["Lock", "bool", "", "",TNum('I', 0)]},
 							P05: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",TNum('D',0.8),TNum('D',0.8),TNum('D',0.8)]},
 							P06: {_key: 'P', _values: ["BlendMode", "enum", "", "",0]},
 							P07: {_key: 'P', _values: ["RotationAccumulationMode", "enum", "", "",0]},
@@ -941,12 +941,13 @@ var codec = new Codec('fbx', {
 		model.push(formatFBXComment('Object connections'));
 		let connections = {};
 		Connections.forEach((connection, i) => {
-			let property = connection.property ? `, "${connection.property}"` : '';
-
-			connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
+			//connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
 			connections[`connection_${i}`] = {
 				_key: 'C',
-				_values: [property ? 'OP' : 'OO', ...connection.id, property]
+				_values: [connection.property ? 'OP' : 'OO', ...connection.id]
+			}
+			if (connection.property) {
+				connections[`connection_${i}`]._values.push(connection.property);
 			}
 			//model += `\t;${connection.name.join(', ')}\n`;
 			//model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
@@ -1078,10 +1079,10 @@ class BinaryWriter {
 		this.textEncoder = new TextEncoder();
 	}
 	expand(n) {
-		if (this.cursor+1+n > this.buffer.byteLength) {
+		if (this.cursor+n > this.buffer.byteLength) {
 			var oldArray = this.array;
 			// Expand by at least 160 bytes at a time to improve performance. Only works for FBX since 176+ arbitrary bytes are added to the file end.
-			this.array = new Uint8Array(this.cursor + 1 + Math.max(n, 176));
+			this.array = new Uint8Array(this.cursor + Math.max(n, 176));
 			this.buffer = this.array.buffer;
 			this.array.set(oldArray);
 			this.view = new DataView(this.buffer)
@@ -1236,6 +1237,7 @@ function compileBinaryFBXModel(top_level_object) {
 		} else {
 			tuple = [];
 		}
+		let is_data_array = object._values && object.a && object._type != undefined;
 
 		// EndOffset, change later
 		let end_offset_index = writer.cursor;
@@ -1243,13 +1245,15 @@ function compileBinaryFBXModel(top_level_object) {
 		// NumProperties
 		writer.WriteUInt32(tuple.length);
 		// PropertyListLen, change later
+		let property_length_index = writer.cursor;
 		writer.WriteUInt32(0);
 		// Name
 		writer.WriteString(key);
 
 		
-		// Array
-		if (object._values && object.a && object._type) {
+		let property_start_index = writer.cursor;
+		// Data Array
+		if (is_data_array) {
 			let type = object._type || 'i';
 			if (!object._type) console.log('default', key, 'to int')
 			let array = object.a;
@@ -1271,70 +1275,73 @@ function compileBinaryFBXModel(top_level_object) {
 					case 'b': writer.WriteBoolean(v); break;
 				}
 			}
-			return;
+		} else {
+
+			// Tuple
+			tuple.forEach((value, i) => {
+				let type = typeof value;
+				if (typeof value == 'object' && value.isTNum) {
+					type = value.type;
+					value = value.value;
+				}
+				if (type == 'number') {
+					type = value % 1 ? 'D' : 'I';
+					if (!object._type) console.log('default', key, i, 'to', type, object)
+				}
+				// handle number types
+				// Y: int16
+				// I: int32
+				// F: Float 32
+				// D: Double 64
+				// L: int64
+
+				if (type == 'boolean') {
+					writer.WriteRawString('C');
+					writer.WriteBoolean(value);
+
+				} else if (type == 'string' && value.startsWith('iV')) {
+					// base64
+					writer.WriteRawString('R');
+					writer.WriteU32Base64(value);
+
+				} else if (type == 'string') {
+					// string
+					writer.WriteRawString('S');
+					if (value.startsWith('_')) value = value.substring(1);
+					writer.WriteU32String(value);
+
+				} else if (type == 'Y') {
+					writer.WriteRawString('Y');
+					writer.WriteInt16(value);
+
+				} else if (type == 'I') {
+					writer.WriteRawString('I');
+					writer.WriteInt32(value);
+
+				} else if (type == 'F') {
+					writer.WriteRawString('F');
+					writer.WriteFloat32(value);
+
+				} else if (type == 'D') {
+					writer.WriteRawString('D');
+					writer.WriteFloat64(value);
+
+				} else if (type == 'L') {
+					writer.WriteRawString('L');
+					writer.WriteInt64(value);
+
+				}
+				
+			})
 		}
 
-		// Tuple
-		tuple.forEach((value, i) => {
-			let type = typeof value;
-			if (typeof value == 'object' && value.isTNum) {
-				type = value.type;
-				value = value.value;
-			}
-			if (type == 'number') {
-				type = value % 1 ? 'D' : 'I';
-				if (!object._type) console.log('default', key, i, 'to', type, object)
-			}
-			// handle number types
-			// Y: int16
-			// I: int32
-			// F: Float 32
-			// D: Double 64
-			// L: int64
-
-			if (type == 'boolean') {
-				writer.WriteRawString('C');
-				writer.WriteBoolean(value);
-
-			} else if (type == 'string' && value.startsWith('iV')) {
-				// base64
-				writer.WriteRawString('R');
-				writer.WriteU32Base64(value);
-
-			} else if (type == 'string') {
-				// string
-				writer.WriteRawString('S');
-				if (value.startsWith('_')) value = value.substring(1);
-				writer.WriteU32String(value);
-
-			} else if (type == 'Y') {
-				writer.WriteRawString('Y');
-				writer.WriteInt16(value);
-
-			} else if (type == 'I') {
-				writer.WriteRawString('I');
-				writer.WriteInt32(value);
-
-			} else if (type == 'F') {
-				writer.WriteRawString('F');
-				writer.WriteFloat32(value);
-
-			} else if (type == 'D') {
-				writer.WriteRawString('D');
-				writer.WriteFloat64(value);
-
-			} else if (type == 'L') {
-				writer.WriteRawString('L');
-				writer.WriteInt64(value);
-
-			}
-			
-		})
-
+		// Property Byte Length
+		writer.view.setUint32(property_length_index, writer.cursor - property_start_index, writer.little_endian);
 
 		// Nested List
-		if (typeof object == 'object' && object instanceof Array == false) {
+		if (typeof object == 'object' && object instanceof Array == false && !is_data_array) {
 
+			let is_nested = false;
 			for (let key in object) {
 				if (typeof key == 'string' && key.startsWith('_')) continue;
 				if (object[key] === undefined) continue;
@@ -1342,17 +1349,24 @@ function compileBinaryFBXModel(top_level_object) {
 				if (child._comment) continue;
 				if (child._key) key = child._key;
 
+				is_nested = true;
+
 				writeObjectRecursively(key, child);
 			}
 			// Null Record, indicating a nested list. Length is 13 in v7.3, 25 in v7.5+
-			for (let i = 0; i < 13; i++) {
-				writer.WriteUInt8(0x00);
+			if (is_nested) {
+				for (let i = 0; i < 13; i++) {
+					writer.WriteUInt8(0x00);
+				}
 			}
 		}
 		// End Offset
 		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian);
 	}
-	writeObjectRecursively('', top_level_object);
+	//writeObjectRecursively('', top_level_object);
+	for (let key in top_level_object) {
+		writeObjectRecursively(key, top_level_object[key]);
+	}
 
 	// Footer
 	let footer = [
