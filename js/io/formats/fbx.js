@@ -31,7 +31,7 @@ var codec = new Codec('fbx', {
 		}
 		let UUIDMap = {};
 		function getID(uuid) {
-			if (uuid == 0) return 0;
+			if (uuid == 0) return TNum('L', 0);
 			if (UUIDMap[uuid]) return UUIDMap[uuid];
 			let s = '';
 			for (let i = 0; i < 8; i++) {
@@ -527,8 +527,8 @@ var codec = new Codec('fbx', {
 				Media: `Video::${unique_name}`,
 				FileName: tex.path,
 				RelativeFilename: tex.name,
-				ModelUVTranslation: [0,0],
-				ModelUVScaling: [1,1],
+				ModelUVTranslation: [TNum('D',0),TNum('D',0)],
+				ModelUVScaling: [TNum('D',1),TNum('D',1)],
 				Texture_Alpha_Source: "None",
 				Cropping: [0,0,0,0],
 			};
@@ -601,9 +601,9 @@ var codec = new Codec('fbx', {
 						_key: 'AnimationCurveNode',
 						_values: [track_id, track_name, ''],
 						Properties70: {
-							p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', 1]},
-							p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', 1]},
-							p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', 1]},
+							p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', TNum('D',1)]},
+							p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', TNum('D',1)]},
+							p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', TNum('D',1)]},
 						}
 					};
 					let timecodes = track.times.map(second => Math.round(second * time_factor));
@@ -775,10 +775,10 @@ var codec = new Codec('fbx', {
 							P64: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",-1]},
 							P65: {_key: 'P', _values: ["Freeze", "bool", "", "",TNum('C', 0)]},
 							P66: {_key: 'P', _values: ["LODBox", "bool", "", "",TNum('C', 0)]},
-							P67: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A",0,0,0]},
-							P68: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A",0,0,0]},
-							P69: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A",1,1,1]},
-							P70: {_key: 'P', _values: ["Visibility", "Visibility", "", "A",1]},
+							P67: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P68: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P69: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
+							P70: {_key: 'P', _values: ["Visibility", "Visibility", "", "A",TNum('D',1)]},
 							P71: {_key: 'P', _values: ["Visibility Inheritance", "Visibility Inheritance", "", "",1]},
 						}
 					}
@@ -808,17 +808,17 @@ var codec = new Codec('fbx', {
 						Properties70: {
 							P01: {_key: 'P', _values: ["ShadingModel", "KString", "", "", "Lambert"]},
 							P02: {_key: 'P', _values: ["MultiLayer", "bool", "", "",TNum('C', 0)]},
-							P03: {_key: 'P', _values: ["EmissiveColor", "Color", "", "A",0,0,0]},
-							P04: {_key: 'P', _values: ["EmissiveFactor", "Number", "", "A",1]},
-							P05: {_key: 'P', _values: ["AmbientColor", "Color", "", "A",0.2,0.2,0.2]},
-							P06: {_key: 'P', _values: ["AmbientFactor", "Number", "", "A",1]},
-							P07: {_key: 'P', _values: ["DiffuseColor", "Color", "", "A",0.8,0.8,0.8]},
-							P08: {_key: 'P', _values: ["DiffuseFactor", "Number", "", "A",1]},
+							P03: {_key: 'P', _values: ["EmissiveColor", "Color", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P04: {_key: 'P', _values: ["EmissiveFactor", "Number", "", "A",TNum('D',1)]},
+							P05: {_key: 'P', _values: ["AmbientColor", "Color", "", "A",TNum('D',0.2), TNum('D',0.2), TNum('D',0.2)]},
+							P06: {_key: 'P', _values: ["AmbientFactor", "Number", "", "A",TNum('D',1)]},
+							P07: {_key: 'P', _values: ["DiffuseColor", "Color", "", "A",TNum('D',0.8), TNum('D',0.8), TNum('D',0.8)]},
+							P08: {_key: 'P', _values: ["DiffuseFactor", "Number", "", "A",TNum('D',1)]},
 							P09: {_key: 'P', _values: ["Bump", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P10: {_key: 'P', _values: ["NormalMap", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P11: {_key: 'P', _values: ["BumpFactor", "double", "Number", "",TNum('D', 1)]},
-							P12: {_key: 'P', _values: ["TransparentColor", "Color", "", "A",0,0,0]},
-							P13: {_key: 'P', _values: ["TransparencyFactor", "Number", "", "A",0]},
+							P12: {_key: 'P', _values: ["TransparentColor", "Color", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P13: {_key: 'P', _values: ["TransparencyFactor", "Number", "", "A",TNum('D',0)]},
 							P14: {_key: 'P', _values: ["DisplacementColor", "ColorRGB", "Color", "",TNum('D',0),TNum('D',0),TNum('D',0)]},
 							P15: {_key: 'P', _values: ["DisplacementFactor", "double", "Number", "",TNum('D', 1)]},
 							P16: {_key: 'P', _values: ["VectorDisplacementColor", "ColorRGB", "Color", "",TNum('D',0),TNum('D',0),TNum('D',0)]},
@@ -834,15 +834,15 @@ var codec = new Codec('fbx', {
 						_values: ['FbxFileTexture'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["TextureTypeUse", "enum", "", "",0]},
-							P02: {_key: 'P', _values: ["Texture alpha", "Number", "", "A",1]},
+							P02: {_key: 'P', _values: ["Texture alpha", "Number", "", "A",TNum('D',1)]},
 							P03: {_key: 'P', _values: ["CurrentMappingType", "enum", "", "",0]},
 							P04: {_key: 'P', _values: ["WrapModeU", "enum", "", "",0]},
 							P05: {_key: 'P', _values: ["WrapModeV", "enum", "", "",0]},
 							P06: {_key: 'P', _values: ["UVSwap", "bool", "", "",TNum('C', 0)]},
 							P07: {_key: 'P', _values: ["PremultiplyAlpha", "bool", "", "",TNum('C', 1)]},
-							P08: {_key: 'P', _values: ["Translation", "Vector", "", "A",0,0,0]},
-							P09: {_key: 'P', _values: ["Rotation", "Vector", "", "A",0,0,0]},
-							P10: {_key: 'P', _values: ["Scaling", "Vector", "", "A",1,1,1]},
+							P08: {_key: 'P', _values: ["Translation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P09: {_key: 'P', _values: ["Rotation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P10: {_key: 'P', _values: ["Scaling", "Vector", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
 							P11: {_key: 'P', _values: ["TextureRotationPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P12: {_key: 'P', _values: ["TextureScalingPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P13: {_key: 'P', _values: ["CurrentTextureBlendMode", "enum", "", "",1]},
@@ -901,7 +901,7 @@ var codec = new Codec('fbx', {
 					PropertyTemplate: {
 						_values: ['FbxAnimLayer'],
 						Properties70: {
-							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",100]},
+							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",TNum('D',100)]},
 							P02: {_key: 'P', _values: ["Mute", "bool", "", "",TNum('C', 0)]},
 							P03: {_key: 'P', _values: ["Solo", "bool", "", "",TNum('C', 0)]},
 							P04: {_key: 'P', _values: ["Lock", "bool", "", "",TNum('C', 0)]},
@@ -1251,6 +1251,7 @@ function compileBinaryFBXModel(top_level_object) {
 		// Array
 		if (object._values && object.a && object._type) {
 			let type = object._type || 'i';
+			if (!object._type) console.log('default', key, 'to int')
 			let array = object.a;
 			if (array instanceof Array == false) array = [array];
 			
@@ -1282,6 +1283,7 @@ function compileBinaryFBXModel(top_level_object) {
 			}
 			if (type == 'number') {
 				type = value % 1 ? 'D' : 'I';
+				if (!object._type) console.log('default', key, i, 'to', type, object)
 			}
 			// handle number types
 			// Y: int16
