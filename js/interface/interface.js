@@ -382,7 +382,7 @@ function unselectInterface(event) {
 		stopRenameOutliner()
 	}
 	if (ReferenceImageMode.active &&
-		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode].find(n => n && n.classList.contains('reference_image')) &&
+		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n && n.classList.contains('reference_image')) &&
 		!Panels.reference_images.node.contains(event.target) &&
 		!Dialog.open &&
 		!Menu.open

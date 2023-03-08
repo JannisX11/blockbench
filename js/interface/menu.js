@@ -463,8 +463,8 @@ class Menu {
 		open_menu = scope;
 		return scope;
 	}
-	show(position) {
-		return this.open(position);
+	show(...args) {
+		return this.open(...args);
 	}
 	hide() {
 		if (this.onClose) this.onClose();

@@ -527,6 +527,7 @@ class NumSlider extends Widget {
 		this.icon = 'code'
 		this.value = 0;
 		this.width = 69;
+		this.sensitivity = data.sensitivity || 30;
 		this.uniqueNode = true;
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
@@ -780,7 +781,7 @@ class NumSlider extends Widget {
 		}
 	}
 	slide(clientX, event) {
-		var offset = Math.round((clientX - this.sliding_start_pos)/30)
+		var offset = Math.round((clientX - this.sliding_start_pos)/this.sensitivity)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
