@@ -308,7 +308,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id] = geometry;
+			Objects[geo_id.value] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -483,7 +483,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id] = geometry;
+			Objects[geo_id.value] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
