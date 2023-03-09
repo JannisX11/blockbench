@@ -551,4 +551,54 @@ BARS.defineActions(function() {
 			}, 'image', false)
 		}
 	});
+	new Action('search_reference_image', {
+		icon: 'add_photo_alternate',
+		category: 'view',
+		condition: isApp,
+		click() {
+			if (!ReferenceImageMode.active) {
+				ReferenceImageMode.activate()
+			}
+
+			function confirmImage(image, name) {
+				let icon = new Image();
+				icon.src = image;
+				Blockbench.showMessageBox({
+					title: 'action.add_reference_image',
+					message: 'Select where to load the reference image',
+					icon,
+					commands: {
+						project: 'Save in project',
+						app: 'Save in Blockbench',
+					}
+				}, save_mode => {
+					let ref = new ReferenceImage({source: image, name: name});
+					if (save_mode == 'project') {
+						ref.addAsReference();
+					} else {
+						ref.addAsGlobalReference();
+					}
+					ref.select();
+				})
+			}
+			
+			let window = new electron.BrowserWindow({
+				icon: 'icon.ico',
+				modal: true,
+				parent: currentwindow,
+				width: 1080,
+				height: 720,
+				menuBarVisible: false,
+			})
+			if (process.platform !== 'darwin') {
+				window.setMenu(null);
+			}
+			window.loadURL('https://google.com/images');
+			
+			window.webContents.on('context-menu', (event, url, response, text) => {
+				window.close();
+				confirmImage(url.srcURL, url.altText);
+			})
+		}
+	});
 })
