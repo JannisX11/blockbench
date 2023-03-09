@@ -1042,7 +1042,7 @@ var codec = new Codec('bedrock', {
 				loadDataFromModelMemory();
 				if (!Format.single_texture && no_textures_before && Texture.all.length) {
 					Cube.all.forEach(cube => {
-						cube.applyTexture(Texture.all[0]);
+						cube.applyTexture(Texture.all[0], true);
 					})
 				}
 			}
