@@ -662,7 +662,7 @@
 	}
 	.prism-editor-wrapper .prism-editor__line-numbers {
 		background-color: var(--color-back) !important;
-		height: 56px;
+		height: fit-content;
 	}
 	.prism-editor-wrapper code[class*="language-"] {
 		color: var(--color-text);
