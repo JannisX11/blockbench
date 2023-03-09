@@ -427,7 +427,7 @@ const Vertexsnap = {
 							obj.from[i] = obj.from[i] + cube_pos.getComponent(i);
 						}
 					}
-					if (Format.cube_size_limiter) {
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 						Format.cube_size_limiter.clamp(obj)
 					}
 					if (obj.box_uv && obj.visibility) {
@@ -890,7 +890,7 @@ function rotateOnAxis(modify, axis, slider) {
 	})
 }
 function afterRotateOnAxis() {
-	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
+	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected && !settings.deactivate_size_limit.value) {
 		Cube.all.forEach(cube => {
 			Format.cube_size_limiter.move(cube);
 			Format.cube_size_limiter.clamp(cube);

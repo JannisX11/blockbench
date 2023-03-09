@@ -140,9 +140,9 @@ const ModelScaler = {
 			}
 		})
 		ModelScaler.getScaleGroups().forEach((g) => {
-			g.origin[0] = g.old_origin[0] * size
-			g.origin[1] = g.old_origin[1] * size
-			g.origin[2] = g.old_origin[2] * size
+			if (axis_enabled[0]) g.origin[0] = g.old_origin[0] * size;
+			if (axis_enabled[1]) g.origin[1] = g.old_origin[1] * size;
+			if (axis_enabled[2]) g.origin[2] = g.old_origin[2] * size;
 			if (save === true) {
 				delete g.old_origin
 			}

@@ -54,6 +54,7 @@ class Property {
 		if (options.copy_value == false) this.copy_value = false;
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
+		if (options.placeholder) this.placeholder = options.placeholder;
 		if (options.options) this.options = options.options;
 	}
 	delete() {

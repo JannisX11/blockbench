@@ -20,7 +20,7 @@ class Keybind {
 	}
 	set(keys, dflt) {
 		if (!keys || typeof keys !== 'object') return this;
-		this.key = keys.key
+		this.key = typeof keys.key == 'number' ? keys.key : -1;
 		if (this.ctrl 	!== null) this.ctrl = (keys.ctrl === null) ? null : (keys.ctrl 	== true);
 		if (this.shift 	!== null) this.shift= (keys.shift=== null) ? null : (keys.shift == true);
 		if (this.alt 	!== null) this.alt 	= (keys.alt  === null) ? null : (keys.alt 	== true);
