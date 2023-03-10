@@ -72,7 +72,7 @@ THREE.OrbitControls = function ( object, preview ) {
 	};
 
 	this.updateSceneScale = function() {
-		if (scope.preview.isOrtho === true && scope.preview.camOrtho.axis && scope.preview.background.image !== false) {
+		if (scope.preview.isOrtho === true && scope.preview.camOrtho.axis) {
 			scope.preview.updateBackground()
 		}
 		if (Transformer.visible) Transformer.update()

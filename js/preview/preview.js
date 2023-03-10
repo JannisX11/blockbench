@@ -315,22 +315,10 @@ class Preview {
 		}, false)
 		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
-		Blockbench.addDragHandler('preview_'+this.id, {
-			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-			element: this.canvas,
-			readtype: 'image',
-		}, function(files) {
-			if (isApp) {
-				scope.background.image = files[0].path
-			} else {
-				scope.background.image = files[0].content
-			}
-			//scope.loadBackground()
-		})
 		Preview.all.push(this);
 	}
 	//Render
@@ -1099,7 +1087,7 @@ class Preview {
 	startSelRect(event) {
 		if (this.sr_move_f) return;
 		var scope = this;
-		if (Modes.edit || this.movingBackground) {
+		if (Modes.edit) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
 			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f)
@@ -1111,14 +1099,6 @@ class Preview {
 		this.selection.client_x = event.clientX+0
 		this.selection.client_y = event.clientY+0
 
-		if (this.movingBackground) {
-			this.background.before = {
-				x: this.background.x,
-				y: this.background.y,
-				size: this.background.size
-			}
-			return;
-		};
 		if (Modes.edit && event.type !== 'touchstart') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
@@ -1346,20 +1326,6 @@ class Preview {
 			return this.background = Project && Project.backgrounds['ortho_'+this.angle];
 		}
 	}
-	loadBackground() {
-		this.getBackground()
-		if (this.background && this.background.image) {
-			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
-			this.canvas.style.setProperty('background-image', background_image)
-			this.node.querySelector('.preview_reference_menu').style.setProperty('background-image', background_image);
-			this.node.querySelector('.preview_reference_menu').style.display = 'block';
-		} else {
-			this.canvas.style.setProperty('background-image', 'none')
-			this.node.querySelector('.preview_reference_menu').style.display = 'none';
-		}
-		this.updateBackground()
-		return this;
-	}
 	updateBackground() {
 		if (!this.background) return;
 		var bg = this.background
@@ -1380,16 +1346,6 @@ class Preview {
 		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
 		return this;
 	}
-	clearBackground() {
-		this.loadBackground()
-		this.background.image = false
-		this.background.size = limitNumber(this.background.size, 40, 2400)
-		this.background.x = limitNumber(this.background.x, 0, this.width-30)
-		this.background.y = limitNumber(this.background.y, 0, this.height-30)
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}
 	restoreBackground() {
 		this.loadBackground()
 		if (this.background && this.background.defaults) {
@@ -1401,30 +1357,6 @@ class Preview {
 		this.loadBackground()
 		Settings.saveLocalStorages()
 		return this;
-	}
-	backgroundPositionDialog() {
-		var scope = this;
-		if (this.movingBackground) {
-			this.stopMovingBackground()
-		}
-		new Dialog({
-			id: 'background_position',
-			title: tl('message.set_background_position.title'),
-			form: {
-				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 20}
-			},
-			onConfirm(form) {
-				if (!scope.background) return;
-				
-				scope.background.x = form.position[0];
-				scope.background.y = form.position[1];
-				scope.background.size = form.size;
-
-				scope.updateBackground();
-				Settings.saveLocalStorages();
-			}
-		}).show();
 	}*/
 	//Misc
 	screenshot(options, cb) {
@@ -1483,6 +1415,7 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
+		'add_reference_image',
 		'edit_reference_images',
 		/*{id: 'reference_images', icon: 'wallpaper', name: 'menu.preview.reference_images', condition: (preview) => preview.getBackground(), children(preview) {
 			return [];
@@ -2049,58 +1982,6 @@ function updateCubeHighlights(hover_cube, force_off) {
 		}
 	})
 }
-Interface.definePanels(function() {
-	
-	new Panel('reference_images', {
-		icon: 'wallpaper',
-		condition: () => ReferenceImageMode.active,
-		default_position: {
-			slot: 'float',
-			float_position: [Interface.preview.clientWidth/2 - 150, Interface.preview.clientHeight - 250],
-			float_size: [300, 250],
-			height: 250
-		},
-		toolbars: [
-			new Toolbar({
-				id: 'reference_images',
-				children: [
-					'add_reference_image'
-				]
-			})
-		],
-		component: {
-			name: 'panel-reference_images',
-			data() {return {
-				references_built_in: ReferenceImage.built_in,
-				references_global: ReferenceImage.global,
-				references_project: [],
-			}},
-			methods: {
-				exit() {
-					ReferenceImageMode.deactivate();
-				}
-			},
-			computed: {
-				references() {
-					return [...this.references_project, ...this.references_global, ...this.references_built_in].filter(ref => {
-						return Condition(ref.condition);
-					});
-				}
-			},
-			template: `
-				<div>
-					<ul class="list">
-						<li v-for="reference in references" :key="reference.uuid" @contextmenu="reference.openContextMenu($event)" class="reference_image_in_list" :class="{selected: reference.selected}">
-							<i class="material-icons">wallpaper</i>
-							<span>{{ reference.name }}</span>
-							<i class="material-icons">{{ reference.visibility ? 'visibility' : 'visibility_off' }}</i>
-						</li>
-					</ul>
-				</div>
-			`
-		},
-	})
-})
 
 BARS.defineActions(function() {
 	new BarSelect('view_mode', {

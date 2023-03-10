@@ -383,9 +383,9 @@ function unselectInterface(event) {
 	}
 	if (ReferenceImageMode.active &&
 		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n && n.classList.contains('reference_image')) &&
-		!Panels.reference_images.node.contains(event.target) &&
+		!ReferenceImageMode.toolbar.node.contains(event.target) &&
 		!Dialog.open &&
-		!Menu.open
+		!open_menu
 	) {
 		ReferenceImageMode.deactivate();
 	}
@@ -460,6 +460,11 @@ function setupInterface() {
 
 	// Click binds
 	Interface.preview.addEventListener('click', e => setActivePanel('preview'));
+	
+	Interface.work_screen.addEventListener('dblclick', event => {
+		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
+		if (reference) reference.select();
+	});
 
 	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
 

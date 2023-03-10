@@ -128,19 +128,9 @@ async function loadImages(files, event) {
 				new ReferenceImage({
 					source: file.content,
 					name: file.name || 'Reference'
-				}).addAsReference();
+				}).addAsReference(true);
 			}).last().select();
 			ReferenceImageMode.activate();
-			/*
-			let preview = Preview.selected;
-			let image = isApp ? files[0].path : files[0].content;
-			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-				image = image + '?' + Math.floor(Math.random() * 1000);
-			}
-			preview.background.image = image;
-			preview.loadBackground();
-			Settings.saveLocalStorages();
-			preview.startMovingBackground();*/
 			
 		} else if (method == 'edit') {
 			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);

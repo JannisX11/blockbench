@@ -893,9 +893,21 @@
 		left: 0;
 		pointer-events: none;
 	}
+	.reference_image[reference_layer=viewport] {
+		z-index: 2;
+	}
+	.reference_image[reference_layer=float] {
+		z-index: 8;
+	}
+	.reference_image[reference_layer=float] > img {
+		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
+	}
 	#work_screen.reference_image_mode .reference_image {
 		pointer-events: initial;
-		z-index: 1;
+	}
+	#work_screen.reference_image_mode .single_canvas_wrapper,
+	#work_screen.reference_image_mode .quad_canvas_wrapper {
+		pointer-events: none;
 	}
 	.reference_image.selected {
 		z-index: 2;
@@ -978,8 +990,27 @@
 		flex-wrap: wrap;
 	}
 
+	.toolbar[toolbar_id=reference_images] {
+		position: absolute;
+		width: 280px;
+		max-width: 100vw;
+		margin: auto;
+		left: 0;
+		right: 0;
+		top: 35px;
+		background-color: var(--color-ui);
+		border: 2px solid var(--color-accent);
+		z-index: 4;
+	}
 
 
+	.clamped_reference_images {
+		height: 100%;
+		width: 100%;
+		overflow: hidden;
+		position: absolute;
+		pointer-events: none;
+	}
 
 
 

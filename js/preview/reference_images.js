@@ -2,14 +2,13 @@ class ReferenceImage {
 	constructor(data = {}) {
 
 		this.name = '';
-		this.type = '';
+		this.layer = '';
 		this.scope = '';
 		this.position = [0, 0];
 		this.size = [0, 0];
 		this.flip_x = false;
 		this.flip_y = false;
 		this.rotation = 0;
-		this.z_layer = 0;
 		this.opacity = 0;
 		this.visibility = true;
 		this.clear_mode = false;
@@ -38,11 +37,16 @@ class ReferenceImage {
 		this.image_is_loaded = false;
 		this.auto_aspect_ratio = true;
 		this.img.onload = () => {
+			let was_image_loaded = this.image_is_loaded;
 			this.image_is_loaded = true;
+
 			if (this.auto_aspect_ratio) {
 				let original_size = this.size[1];
 				this.size[1] = this.size[0] / this.aspect_ratio;
 				if (original_size != this.size[1]) this.update();
+
+			} else if (!was_image_loaded) {
+				this.update();
 			}
 		}
 		this.img.onerror = () => {
@@ -68,7 +72,6 @@ class ReferenceImage {
 		}
 	}
 	extend(data) {
-		console.log(data)
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
 		for (let key in ReferenceImage.properties) {
@@ -91,28 +94,34 @@ class ReferenceImage {
 		}
 		return copy;
 	}
-	addAsReference() {
+	addAsReference(save) {
 		Project.reference_images.push(this);
 		this.scope = 'project';
 		this.update();
+		if (save) this.save();
 		return this;
 	}
-	addAsGlobalReference() {
+	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
 		this.scope = 'global';
 		this.update();
+		if (save) this.save();
 		return this;
 	}
-	addAsBuiltIn() {
+	addAsBuiltIn(save) {
 		ReferenceImage.built_in.push(this);
 		this.scope = 'built_in';
 		this.update();
+		if (save) this.save();
 		return this;
 	}
 	select(force) {
 		if (!force && this.selected) return;
 		if (ReferenceImage.selected && ReferenceImage.selected != this) {
 			ReferenceImage.selected.unselect();
+		}
+		if (!ReferenceImageMode.active) {
+			ReferenceImageMode.activate()
 		}
 		ReferenceImage.selected = this;
 		this.update();
@@ -132,31 +141,47 @@ class ReferenceImage {
 				Project.saved = false;
 				break;
 			case 'global':
-				ReferenceImage.global.remove(this);
+				ReferenceImageMode.saveGlobalReferences();
 				break;
 			case 'built_in':
-				ReferenceImage.built_in.remove(this);
+				// todo: save
 				break;
 		}
 		return this;
 	}
 	update() {
-		if (!Interface.preview) return;
-		let shown = Condition(this.condition);// && this.visibility;
-		// update position
+		if (!Interface.preview) return this;
+		let shown = Condition(this.condition);
 		if (!shown) {
 			this.node.remove();
-			return;
+			return this;
 		}
 
-		if (this.type == 'reference') {
-			Interface.preview.append(this.node);
+		this.node.setAttribute('reference_layer', this.layer);
+		switch (this.layer) {
+			case 'background': {
+				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
+				break;
+			}
+			case 'viewport': {
+				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
+				break;
+			}
+			case 'blueprint': {
+				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
+				break;
+			}
+			case 'float': default: {
+				Interface.work_screen.append(this.node);
+				break;
+			}
 		}
+		
 
 		this.node.style.width = this.size[0] + 'px';
 		this.node.style.height = this.size[1] + 'px';
-		this.node.style.left = (this.position[0] - this.size[0]/2) + 'px';
-		this.node.style.top = (this.position[1] - this.size[1]/2) + 'px';
+		this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
+		this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
 		this.img.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
 		this.img.style.opacity = this.opacity;
 
@@ -168,6 +193,17 @@ class ReferenceImage {
 
 		if (this.img.src != this.source) this.img.src = this.source;
 
+		this.img.style.imageRendering = (this.img.naturalWidth > this.size[0]) ? 'auto' : 'pixelated';
+
+		if (!this.selected && this.clear_mode) {
+			let light_mode = document.body.classList.contains('light_mode');
+			this.node.style.filter = light_mode ? '' : 'invert(1)';
+			this.node.style.mixBlendMode = 'lighten';
+
+		} else {
+			this.node.style.filter = '';
+			this.node.style.mixBlendMode = '';
+		}
 
 		// Select
 		if (this.selected && !this._modify_nodes.length) {
@@ -180,6 +216,9 @@ class ReferenceImage {
 			this._modify_nodes.empty();
 		}
 		return this;
+	}
+	detach() {
+		this.node.remove();
 	}
 	setupEditHandles() {
 		let self = this;
@@ -200,10 +239,8 @@ class ReferenceImage {
 						(e2.clientX - e1.clientX),
 						(e2.clientY - e1.clientY),
 					];
-					//console.log(...offset)
 					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
-					this.position[0] = original_position[0] + offset[0] / 2;
-
+					this.position[0] = Math.clamp(original_position[0] + offset[0] / 2, 0, this.node.parentNode.clientWidth);
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
 						//offset[0] = offset[1] * this.aspect_ratio * Math.sign(offset[1]) * Math.sign(offset[0]);
@@ -212,7 +249,7 @@ class ReferenceImage {
 					}
 
 					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
-					this.position[1] = original_position[1] + offset[1] / 2;
+					this.position[1] = Math.clamp(original_position[1] + offset[1] / 2, 0, this.node.parentNode.clientHeight);
 
 					this.update();
 				}
@@ -220,6 +257,7 @@ class ReferenceImage {
 					convertTouchEvent(e2);
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', stop);
+					this.save();
 				}
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
@@ -259,6 +297,7 @@ class ReferenceImage {
 				convertTouchEvent(e2);
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', stop);
+				this.save();
 			}
 			addEventListeners(document, 'mousemove touchmove', move);
 			addEventListeners(document, 'mouseup touchend', stop);
@@ -276,16 +315,12 @@ class ReferenceImage {
 			self.toolbar.append(node);
 			node.onclick = click;
 		}
-		addButton('wallpaper', () => {
 
-		});
-		
-		addButton('lock', () => {
-
+		addButton('flip_to_front', () => {
+			// todo: layer menu
 		});
 		
 		addButton('icon-mirror_x', () => {
-			console.log('flip')
 			self.flip_x = !self.flip_x;
 			self.update().save();
 		});
@@ -293,10 +328,6 @@ class ReferenceImage {
 		addButton('icon-mirror_y', () => {
 			self.flip_y = !self.flip_y;
 			self.update().save();
-		});
-		
-		addButton('flip_to_front', () => {
-
 		});
 		
 		this.opacity_slider = new NumSlider({
@@ -321,7 +352,7 @@ class ReferenceImage {
 		
 		addButton('visibility', () => {
 			self.visibility = !self.visibility;
-			self.update();
+			self.update().save();
 		});
 
 		if (!this._edit_events_initialized) {
@@ -337,8 +368,8 @@ class ReferenceImage {
 						(e2.clientX - e1.clientX),
 						(e2.clientY - e1.clientY),
 					];
-					this.position[0] = original_position[0] + offset[0];
-					this.position[1] = original_position[1] + offset[1];
+					this.position[0] = Math.clamp(original_position[0] + offset[0], 0, this.node.parentNode.clientWidth);
+					this.position[1] = Math.clamp(original_position[1] + offset[1], 0, this.node.parentNode.clientHeight);
 
 					this.update();
 				}
@@ -346,22 +377,32 @@ class ReferenceImage {
 					convertTouchEvent(e2);
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', stop);
+					this.save();
 				}
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
 			this._edit_events_initialized = true;
 		}
-		/*
-		Resize handles
-		Buttons
-			Switch Z layer
-			Flip X and Y?
-			visibility
-			opacity
-
-		*/
 		return this;
+	}
+	projectMouseCursor(x, y) {
+		if (!Condition(this.condition) || !this.visibility) return false;
+
+		let rect = this.img.getBoundingClientRect();
+		console.log(x, y, rect)
+		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
+			let lerp_x = Math.getLerp(rect.x, rect.right,  x);
+			let lerp_y = Math.getLerp(rect.y, rect.bottom, y);
+			console.log(lerp_y)
+			if (this.flip_x) lerp_x = 1 - lerp_x;
+			if (this.flip_y) lerp_y = 1 - lerp_y;
+			return [
+				Math.floor(Math.min(lerp_x, 0.9999) * this.img.naturalWidth),
+				Math.floor(Math.min(lerp_y, 0.9999) * this.img.naturalHeight),
+			]
+		}
+		return false;
 	}
 	openContextMenu(event) {
 		this.menu.open(event, this);
@@ -393,12 +434,14 @@ class ReferenceImage {
 		new Dialog('reference_image_properties', {
 			title: 'Reference Image',
 			form: {
-				path: {type: 'file', label: 'Image',  extensions: ['png', 'jpg', 'jpeg']},
-				type: {type: 'select', label: 'Type', options: {
-					reference: 'Reference Image',
-					blueprint: 'Blueprint',
+				path: {type: 'file', label: 'Image',  value: this.path, extensions: ['png', 'jpg', 'jpeg']},
+				layer: {type: 'select', label: 'Layer', value: this.layer, options: {
+					background: 'Behind Model',
+					viewport: 'Above Model',
+					float: 'Above Interface',
+					blueprint: 'Locked Blueprint',
 				}},
-				scope: {type: 'select', label: 'Scope', options: {
+				scope: {type: 'select', label: 'Scope', value: this.scope, options: {
 					project: 'Save per project',
 					global: 'Save in Blockbench',
 				}},
@@ -406,6 +449,11 @@ class ReferenceImage {
 				size: {type: 'vector', label: 'Size', dimensions: 2, value: this.size},
 				rotation: {type: 'number', label: 'Rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'Opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
+			},
+			onConfirm(result) {
+				// todo: Switch Scope
+				this.extend(result);
+				this.update().save();
 			}
 		}).show();
 		return this;
@@ -414,8 +462,42 @@ class ReferenceImage {
 ReferenceImage.prototype.menu = new Menu([
 	/**
 	Type
-
+	Visibility
 	 */
+	{
+		id: 'clear_mode',
+		icon: (ref) => ref.clear_mode,
+		click(ref) {
+			ref.clear_mode = !ref.clear_mode;
+			ref.update().save();
+		}
+	},
+	{
+
+		name: 'Layer',
+		icon: 'list',
+		children: (reference) => {
+			let layers = {
+				background: 'Behind Model',
+				viewport: 'Above Model',
+				float: 'Above Interface',
+				blueprint: 'Locked Blueprint',
+			}
+			let children = [];
+			for (let key in layers) {
+				children.push({
+					id: key,
+					name: layers[key],
+					icon: reference.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					click() {
+						reference.layer = key;
+						reference.update();
+					}
+				})
+			}
+			return children;
+		}
+	},
 	'delete',
 	'_',
 	{
@@ -428,14 +510,13 @@ ReferenceImage.prototype.menu = new Menu([
 ])
 
 new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
-new Property(ReferenceImage, 'string', 'type', {default: 'reference'}); // reference, blueprint
+new Property(ReferenceImage, 'string', 'layer', {default: 'float'}); // reference, blueprint
 new Property(ReferenceImage, 'string', 'scope', {default: 'global'}); // reference, blueprint
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
-new Property(ReferenceImage, 'number', 'z_layer');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
@@ -467,6 +548,11 @@ ReferenceImage.updateAll = function() {
 	})
 }
 
+StateMemory.init('global_reference_images', 'array');
+StateMemory.global_reference_images.forEach(template => {
+	new ReferenceImage(template).addAsGlobalReference();
+});
+
 
 const ReferenceImageMode = {
 	/**
@@ -476,29 +562,59 @@ const ReferenceImageMode = {
 	x save in project
 	x convert old background images to reference images
 	x Add buttons to join and exit editing mode
-	. Implement list of backgrounds (panel?)
+	x Implement toolbar
 	  Implement blueprint mode (locked to camera)
 	  Implement display mode references
-	  Start editing references when double clicking preview back
-	  Integrate color picker
+	x Start editing references when double clicking preview back
+	x Integrate color picker
 	 */
 	active: false,
+	toolbar: null,
 	activate() {
 		ReferenceImageMode.active = true;
 		Interface.work_screen.classList.add('reference_image_mode');
+		Interface.work_screen.append(ReferenceImageMode.toolbar.node);
 		ReferenceImage.updateAll();
-		updateInterfacePanels();
+		if (!ReferenceImage.selected && ReferenceImage.active[0]) {
+			ReferenceImage.active[0].select();
+		}
 	},
 	deactivate() {
 		ReferenceImageMode.active = false;
 		if (ReferenceImage.selected) ReferenceImage.selected.unselect();
 		Interface.work_screen.classList.remove('reference_image_mode');
+		ReferenceImageMode.toolbar.node.remove();
 		ReferenceImage.updateAll();
-		updateInterfacePanels();
+	},
+	async importReferences(files) {
+		let save_mode = await new Promise(resolve => {
+			let icon = new Image();
+			icon.src = files[0].content;
+			Blockbench.showMessageBox({
+				title: 'action.add_reference_image',
+				message: 'Select where to load the reference image',
+				icon,
+				commands: {
+					project: 'Save in project',
+					app: 'Save in Blockbench',
+				}
+			}, resolve)
+		})
+		files.forEach(file => {
+			let ref = new ReferenceImage({source: file.content, name: file.name});
+			if (save_mode == 'project') {
+				ref.addAsReference(true);
+			} else {
+				ref.addAsGlobalReference(true);
+			}
+			ref.select();
+		})
+	},
+	saveGlobalReferences() {
+		StateMemory.global_reference_images = ReferenceImage.global.map(ref => ref.getSaveCopy());
+		StateMemory.save('global_reference_images');
 	}
 }
-
-let r = new ReferenceImage({source: 'assets/splash_art.png?20'}).addAsGlobalReference();
 
 
 BARS.defineActions(function() {
@@ -526,33 +642,62 @@ BARS.defineActions(function() {
 				type: 'Image',
 				readtype: 'image'
 			}, async function(files) {
-				let save_mode = await new Promise(resolve => {
-					let icon = new Image();
-					icon.src = files[0].content;
-					Blockbench.showMessageBox({
-						title: 'action.add_reference_image',
-						message: 'Select where to load the reference image',
-						icon,
-						commands: {
-							project: 'Save in project',
-							app: 'Save in Blockbench',
-						}
-					}, resolve)
-				})
-				files.forEach(file => {
-					let ref = new ReferenceImage({source: file.content, name: file.name});
-					if (save_mode == 'project') {
-						ref.addAsReference();
-					} else {
-						ref.addAsGlobalReference();
-					}
-					ref.select();
-				})
+				ReferenceImageMode.importReferences(files);
 			}, 'image', false)
 		}
 	});
+	new Action('reference_image_list', {
+		icon: 'list',
+		category: 'view',
+		click(e) {
+			new Menu('apply_display_preset', this.children(), {searchable: false}).open(e.target, 'wrong context');
+		},
+		children() {
+			let list = [];
+			function getSubMenu(reference) {
+				return [
+					/**
+					 * Center
+					 * Reset
+					 */
+					{
+						name: 'Properties...',
+						icon: 'list',
+						click() {
+							reference.propertiesDialog();
+						}
+					}
+				]
+			}
+			ReferenceImage.current_project.forEach(reference => {
+				list.push({
+					name: (reference.name || 'Unknown').substring(0, 24), id: reference.uuid,
+					icon: 'icon-blockbench_file',
+					children: getSubMenu(reference)
+				});
+			});
+			list.push('_');
+			ReferenceImage.global.forEach(reference => {
+				list.push({
+					name: (reference.name || 'Unknown').substring(0, 24), id: reference.uuid,
+					icon: 'icon-blockbench_inverted',
+					children: getSubMenu(reference)
+				});
+			});
+			list.push('_');
+			ReferenceImage.built_in.forEach(reference => {
+				if (!Condition(reference.condition)) return;
+				list.push({
+					name: (reference.name || 'Unknown').substring(0, 24), id: reference.uuid,
+					icon: 'settings',
+					children: getSubMenu(reference)
+				});
+			});
+			return list;
+		}
+	});
 	new Action('search_reference_image', {
-		icon: 'add_photo_alternate',
+		icon: 'image_search',
 		category: 'view',
 		condition: isApp,
 		click() {
@@ -560,28 +705,6 @@ BARS.defineActions(function() {
 				ReferenceImageMode.activate()
 			}
 
-			function confirmImage(image, name) {
-				let icon = new Image();
-				icon.src = image;
-				Blockbench.showMessageBox({
-					title: 'action.add_reference_image',
-					message: 'Select where to load the reference image',
-					icon,
-					commands: {
-						project: 'Save in project',
-						app: 'Save in Blockbench',
-					}
-				}, save_mode => {
-					let ref = new ReferenceImage({source: image, name: name});
-					if (save_mode == 'project') {
-						ref.addAsReference();
-					} else {
-						ref.addAsGlobalReference();
-					}
-					ref.select();
-				})
-			}
-			
 			let window = new electron.BrowserWindow({
 				icon: 'icon.ico',
 				modal: true,
@@ -597,8 +720,20 @@ BARS.defineActions(function() {
 			
 			window.webContents.on('context-menu', (event, url, response, text) => {
 				window.close();
+				
+				ReferenceImageMode.importReferences([{content: url.srcURL, name: url.altText.substring(0, 24)}]);
 				confirmImage(url.srcURL, url.altText);
 			})
 		}
 	});
+})
+
+Interface.definePanels(function() {
+	ReferenceImageMode.toolbar = new Toolbar('reference_images', {
+		children: [
+			'add_reference_image',
+			'search_reference_image',
+			'reference_image_list',
+		]
+	})
 })

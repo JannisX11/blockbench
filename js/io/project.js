@@ -211,8 +211,6 @@ class ModelProject {
 
 		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
-		Panels.reference_images.inside_vue.references_project = this.reference_images;
-
 		UVEditor.loadViewportOffset();
 
 		Modes.options[this.mode].select();
@@ -235,8 +233,6 @@ class ModelProject {
 				preview.loadAnglePreset(preview.default_angle);
 			}
 		})
-
-		ReferenceImage.updateAll();
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;
@@ -268,6 +264,7 @@ class ModelProject {
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();
+		ReferenceImage.updateAll();
 		updateProjectResolution();
 		Validator.validate();
 		Vue.nextTick(() => {
@@ -301,9 +298,8 @@ class ModelProject {
 		}
 
 		this.undo.closeAmendEditMenu();
-		Preview.all.forEach(preview => {
-			if (preview.movingBackground) preview.stopMovingBackground();
-		})
+		this.reference_images.forEach(reference => reference.detach());
+		if (ReferenceImageMode.active) ReferenceImageMode.deactivate();
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};

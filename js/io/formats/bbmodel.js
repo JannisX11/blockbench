@@ -392,6 +392,7 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		ReferenceImage.updateAll();
 		Validator.validate()
 		this.dispatchEvent('parsed', {model})
 
@@ -621,6 +622,7 @@ var codec = new Codec('project', {
 		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		ReferenceImage.updateAll();
 		this.dispatchEvent('parsed', {model})
 	}
 })
