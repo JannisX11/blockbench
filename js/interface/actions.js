@@ -317,9 +317,13 @@ class Action extends BarItem {
 		return false;
 	}
 	updateKeybindingLabel() {
-		this.menu_node.querySelector('.keybinding_label').textContent = this.keybind || '';
+		let keybind_text = this.keybind?.toString() || '';
+		if (!keybind_text && this.id == 'color_picker') {
+			keybind_text = tl('keys.alt');
+		}
+		this.menu_node.querySelector('.keybinding_label').textContent = keybind_text;
 		this.nodes.forEach(node => {
-			node.querySelector('.keybinding_label').textContent = this.keybind || '';
+			node.querySelector('.keybinding_label').textContent = keybind_text;
 		});
 		return this;
 	}
