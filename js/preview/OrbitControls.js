@@ -72,9 +72,11 @@ THREE.OrbitControls = function ( object, preview ) {
 	};
 
 	this.updateSceneScale = function() {
-		if (scope.preview.isOrtho === true && scope.preview.camOrtho.axis) {
-			scope.preview.updateBackground()
-		}
+		ReferenceImage.active.forEach(ref => {
+			if (ref.layer == 'blueprint' && ref.attached_side == scope.preview.angle) {
+				ref.updateTransform()
+			}
+		})
 		if (Transformer.visible) Transformer.update()
 		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
 	};

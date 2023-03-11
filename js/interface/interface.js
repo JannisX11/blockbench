@@ -382,7 +382,7 @@ function unselectInterface(event) {
 		stopRenameOutliner()
 	}
 	if (ReferenceImageMode.active &&
-		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n && n.classList.contains('reference_image')) &&
+		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n?.classList?.contains('reference_image')) &&
 		!ReferenceImageMode.toolbar.node.contains(event.target) &&
 		!Dialog.open &&
 		!open_menu
@@ -555,6 +555,7 @@ function resizeWindow(event) {
 			prev.resize()
 		}
 	})
+	ReferenceImage.active.forEach(ref => ref.updateTransform());
 	Outliner.elements.forEach(element => {
 		if (element.preview_controller.updateWindowSize) {
 			element.preview_controller.updateWindowSize(element);

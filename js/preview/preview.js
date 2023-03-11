@@ -573,7 +573,7 @@ class Preview {
 		}
 
 		Transformer.update();
-		//this.loadBackground()
+		ReferenceImage.updateAll();
 		return this;
 	}
 	setDefaultAnglePreset(preset) {
@@ -1558,7 +1558,7 @@ function openQuadView() {
 
 	quad_previews.enabled = true;
 
-	$('#preview').empty()
+	$('#preview .single_canvas_wrapper').remove();
 	
 	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
 	Interface.preview.append(wrapper1)
@@ -1584,6 +1584,7 @@ function openQuadView() {
 		}
 	})
 	updateInterface()
+	ReferenceImage.updateAll();
 }
 
 function editCameraPreset(preset, presets) {

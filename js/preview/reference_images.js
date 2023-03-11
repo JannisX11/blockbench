@@ -34,6 +34,7 @@ class ReferenceImage {
 		this._modify_nodes = [];
 		this.defaults = data;
 
+		this.dark_background = false;
 		this.image_is_loaded = false;
 		this.auto_aspect_ratio = true;
 		this.img.onload = () => {
@@ -48,6 +49,7 @@ class ReferenceImage {
 			} else if (!was_image_loaded) {
 				this.update();
 			}
+			this.updateClearMode();
 		}
 		this.img.onerror = () => {
 			this.image_is_loaded = false;
@@ -55,15 +57,6 @@ class ReferenceImage {
 
 		this.extend(data);
 	}
-	/*get image() {
-		return this._image;
-	}
-	set image(path) {
-		this._image = path;
-		if (typeof this._image == 'string') {
-			this.img.src = this._image.replace(/#/g, '%23');
-		}
-	}*/
 	get aspect_ratio() {
 		if (this.img && this.img.naturalWidth && this.img.naturalHeight) {
 			return this.img.naturalWidth / this.img.naturalHeight;
@@ -93,6 +86,13 @@ class ReferenceImage {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
 		return copy;
+	}
+	resolveCondition() {
+		if (!Condition(this.condition)) return false;
+		if (this.layer == 'blueprint') {
+			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
+		}
+		return true;
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
@@ -151,7 +151,7 @@ class ReferenceImage {
 	}
 	update() {
 		if (!Interface.preview) return this;
-		let shown = Condition(this.condition);
+		let shown = this.resolveCondition();
 		if (!shown) {
 			this.node.remove();
 			return this;
@@ -177,11 +177,8 @@ class ReferenceImage {
 			}
 		}
 		
+		this.updateTransform();
 
-		this.node.style.width = this.size[0] + 'px';
-		this.node.style.height = this.size[1] + 'px';
-		this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
-		this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
 		this.img.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
 		this.img.style.opacity = this.opacity;
 
@@ -197,7 +194,7 @@ class ReferenceImage {
 
 		if (!this.selected && this.clear_mode) {
 			let light_mode = document.body.classList.contains('light_mode');
-			this.node.style.filter = light_mode ? '' : 'invert(1)';
+			this.node.style.filter = (light_mode != this.dark_background ? '' : 'invert(1) ') + 'contrast(1.2)';
 			this.node.style.mixBlendMode = 'lighten';
 
 		} else {
@@ -215,7 +212,54 @@ class ReferenceImage {
 			this._modify_nodes.forEach(node => node.remove());
 			this._modify_nodes.empty();
 		}
+		if (this.selected) {
+			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
+			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
+			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
+		}
 		return this;
+	}
+	getZoomLevel() {
+		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+		return preview ? preview.camOrtho.zoom * 2 : 1;
+	}
+	updateTransform() {
+		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+		if (preview) {
+
+			let zoom = this.getZoomLevel();;
+			let pos_x = this.position[0];
+			let pos_y = this.position[1];
+			
+			pos_x = preview.controls.target[preview.camOrtho.backgroundHandle[0].a] * zoom * 20;
+			pos_y = preview.controls.target[preview.camOrtho.backgroundHandle[1].a] * zoom * 20;
+			pos_x *= preview.camOrtho.backgroundHandle[0].n === true ? 1 : -1;
+			pos_y *= preview.camOrtho.backgroundHandle[1].n === true ? 1 : -1;
+			pos_x += preview.width/2;
+			pos_y += preview.height/2;
+				
+			pos_x += (this.position[0] * zoom) - (this.size[0] * zoom) / 2;
+			pos_y += (this.position[1] * zoom) - (this.size[1] * zoom) / 2;
+	
+			this.node.style.width = (this.size[0] * zoom) + 'px';
+			this.node.style.height = (this.size[1] * zoom) + 'px';
+			this.node.style.left = pos_x + 'px';
+			this.node.style.top  = pos_y + 'px';
+
+		} else {
+			this.node.style.width = this.size[0] + 'px';
+			this.node.style.height = this.size[1] + 'px';
+			this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
+			this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+		}
+	}
+	updateClearMode() {
+		if (this.clear_mode && this.image_is_loaded) {
+			let average_color = getAverageRGB(this.img);
+			this.dark_background = (average_color.r + average_color.g + average_color.b) < 380;
+		} else {
+			this.dark_background = false;
+		}
 	}
 	detach() {
 		this.node.remove();
@@ -240,7 +284,7 @@ class ReferenceImage {
 						(e2.clientY - e1.clientY),
 					];
 					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
-					this.position[0] = Math.clamp(original_position[0] + offset[0] / 2, 0, this.node.parentNode.clientWidth);
+					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
 						//offset[0] = offset[1] * this.aspect_ratio * Math.sign(offset[1]) * Math.sign(offset[0]);
@@ -249,7 +293,12 @@ class ReferenceImage {
 					}
 
 					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
-					this.position[1] = Math.clamp(original_position[1] + offset[1] / 2, 0, this.node.parentNode.clientHeight);
+					this.position[1] = original_position[1] + offset[1] / 2, 0;
+
+					if (this.layer !== 'blueprint') {
+						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
+						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
+					}
 
 					this.update();
 				}
@@ -310,22 +359,22 @@ class ReferenceImage {
 		this._modify_nodes.push(this.toolbar);
 		
 		// Controls
-		function addButton(icon, click) {
-			let node = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode(icon));
+		function addButton(id, icon, click) {
+			let node = Interface.createElement('div', {class: 'tool', tool_id: id}, Blockbench.getIconNode(icon));
 			self.toolbar.append(node);
 			node.onclick = click;
 		}
 
-		addButton('flip_to_front', () => {
+		addButton('layer', 'flip_to_front', () => {
 			// todo: layer menu
 		});
 		
-		addButton('icon-mirror_x', () => {
+		addButton('flip_x', 'icon-mirror_x', () => {
 			self.flip_x = !self.flip_x;
 			self.update().save();
 		});
 		
-		addButton('icon-mirror_y', () => {
+		addButton('flip_y', 'icon-mirror_y', () => {
 			self.flip_y = !self.flip_y;
 			self.update().save();
 		});
@@ -350,7 +399,7 @@ class ReferenceImage {
 			}
 		}).toElement(this.toolbar).update();
 		
-		addButton('visibility', () => {
+		addButton('visibility', 'visibility', () => {
 			self.visibility = !self.visibility;
 			self.update().save();
 		});
@@ -361,6 +410,7 @@ class ReferenceImage {
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
+				let zoom = this.getZoomLevel();
 
 				let move = (e2) => {
 					convertTouchEvent(e2);
@@ -368,8 +418,13 @@ class ReferenceImage {
 						(e2.clientX - e1.clientX),
 						(e2.clientY - e1.clientY),
 					];
-					this.position[0] = Math.clamp(original_position[0] + offset[0], 0, this.node.parentNode.clientWidth);
-					this.position[1] = Math.clamp(original_position[1] + offset[1], 0, this.node.parentNode.clientHeight);
+					this.position[0] = original_position[0] + offset[0] / zoom;
+					this.position[1] = original_position[1] + offset[1] / zoom;
+
+					if (this.layer !== 'blueprint') {
+						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
+						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
+					}
 
 					this.update();
 				}
@@ -382,19 +437,20 @@ class ReferenceImage {
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
+			this.node.addEventListener('dblclick', event => {
+				this.propertiesDialog();
+			})
 			this._edit_events_initialized = true;
 		}
 		return this;
 	}
 	projectMouseCursor(x, y) {
-		if (!Condition(this.condition) || !this.visibility) return false;
+		if (!this.resolveCondition() || !this.visibility) return false;
 
 		let rect = this.img.getBoundingClientRect();
-		console.log(x, y, rect)
 		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
 			let lerp_x = Math.getLerp(rect.x, rect.right,  x);
 			let lerp_y = Math.getLerp(rect.y, rect.bottom, y);
-			console.log(lerp_y)
 			if (this.flip_x) lerp_x = 1 - lerp_x;
 			if (this.flip_y) lerp_y = 1 - lerp_y;
 			return [
@@ -430,11 +486,22 @@ class ReferenceImage {
 		this.save();
 		this.node.remove();
 	}
+	changeLayer(layer) {
+		if (layer == this.layer) return;
+		if (layer == 'blueprint' && Preview.selected?.angle) {
+			this.attached_side = Preview.selected.angle;
+			this.position.V2_set(0, 0);
+		}
+		this.layer = layer;
+	}
+	changeScope() {
+		// todo
+	}
 	propertiesDialog() {
 		new Dialog('reference_image_properties', {
 			title: 'Reference Image',
 			form: {
-				path: {type: 'file', label: 'Image',  value: this.path, extensions: ['png', 'jpg', 'jpeg']},
+				source: {type: 'file', label: 'Image', condition: () => isApp && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
 				layer: {type: 'select', label: 'Layer', value: this.layer, options: {
 					background: 'Behind Model',
 					viewport: 'Above Model',
@@ -450,9 +517,14 @@ class ReferenceImage {
 				rotation: {type: 'number', label: 'Rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'Opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
 			},
-			onConfirm(result) {
-				// todo: Switch Scope
+			onConfirm: (result) => {
+				let clear_mode_before = this.clear_mode;
+				this.changeLayer(result.layer);
+				this.changeScope(result.scope);
 				this.extend(result);
+				if (this.clear_mode != clear_mode_before) {
+					this.updateClearMode();
+				}
 				this.update().save();
 			}
 		}).show();
@@ -466,14 +538,16 @@ ReferenceImage.prototype.menu = new Menu([
 	 */
 	{
 		id: 'clear_mode',
+		name: 'Clear Mode',
 		icon: (ref) => ref.clear_mode,
+		condition: ref => ref.layer == 'blueprint',
 		click(ref) {
 			ref.clear_mode = !ref.clear_mode;
+			ref.updateClearMode();
 			ref.update().save();
 		}
 	},
 	{
-
 		name: 'Layer',
 		icon: 'list',
 		children: (reference) => {
@@ -490,7 +564,7 @@ ReferenceImage.prototype.menu = new Menu([
 					name: layers[key],
 					icon: reference.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
 					click() {
-						reference.layer = key;
+						reference.changeLayer(key);
 						reference.update();
 					}
 				})
@@ -498,6 +572,7 @@ ReferenceImage.prototype.menu = new Menu([
 			return children;
 		}
 	},
+	'_',
 	'delete',
 	'_',
 	{
@@ -520,7 +595,7 @@ new Property(ReferenceImage, 'number', 'rotation');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
-new Property(ReferenceImage, 'number', 'attached_side');
+new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
 
 ReferenceImage.selected = null;
@@ -538,7 +613,7 @@ Object.defineProperty(ReferenceImage, 'all', {
 })
 Object.defineProperty(ReferenceImage, 'active', {
 	get() {
-		return ReferenceImage.all.filter(ref => Condition(ref.condition));
+		return ReferenceImage.all.filter(ref => ref.resolveCondition());
 	}
 })
 
@@ -722,7 +797,6 @@ BARS.defineActions(function() {
 				window.close();
 				
 				ReferenceImageMode.importReferences([{content: url.srcURL, name: url.altText.substring(0, 24)}]);
-				confirmImage(url.srcURL, url.altText);
 			})
 		}
 	});
