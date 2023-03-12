@@ -67,6 +67,7 @@ var codec = new Codec('fbx', {
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
 				FBXVersion: 7300,
+				EncryptionType: 0,
 				CreationTimeStamp: {
 					Version: 1000,
 					Year: 1900 + date.getYear(),
@@ -153,7 +154,7 @@ var codec = new Codec('fbx', {
 					P7: node.rotation ? {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]} : undefined,
 					P8: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
 				},
-				Shading: '_Y',
+				Shading: true,
 				Culling: "CullingOff",
 			};
 			let parent = node.parent == 'root' ? root : node.parent;
@@ -1400,6 +1401,7 @@ function compileASCIIFBXSection(object) {
 
 	function handleValue(value) {
 		if (typeof value == 'object' && value.isTNum) value = value.value;
+		if (typeof value == 'boolean') return value ? 'Y' : 'N';
 		if (typeof value == 'string' && value.startsWith('_')) return value.substring(1);
 		if (typeof value == 'string') return '"' + value + '"';
 		return value;
