@@ -742,7 +742,7 @@ function rotateOnAxis(modify, axis, slider) {
 	}
 	*/
 	//Warning
-	if (Format.rotation_limit && settings.dialog_rotation_limit.value) {
+	if (Format.rotation_limit && settings.dialog_rotation_limit.value && !Dialog.open) {
 		var i = 0;
 		while (i < Cube.selected.length) {
 			if (Cube.selected[i].rotation[(axis+1)%3] ||
@@ -754,11 +754,12 @@ function rotateOnAxis(modify, axis, slider) {
 					title: tl('message.rotation_limit.title'),
 					icon: 'rotate_right',
 					message: tl('message.rotation_limit.message'),
-					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
-				}, function(r) {
-					if (r === 1) {
-						settings.dialog_rotation_limit.value = false
-						Settings.save()
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (button, {dont_show_again}) => {
+					if (dont_show_again) {
+						settings.dialog_rotation_limit.set(false);
 					}
 				})
 				return;

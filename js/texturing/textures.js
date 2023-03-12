@@ -420,11 +420,11 @@ class Texture {
 					translateKey: 'invalid_characters',
 					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
 					icon: 'folder_open',
-					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')],
-					confirm: 0,
-					cancel: 0
-				}, result => {
-					if (result === 1) {
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (button, {dont_show_again}) => {
+					if (dont_show_again) {
 						settings.dialog_invalid_characters.set(false);
 					}
 				})
@@ -734,14 +734,15 @@ class Texture {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('message.loose_texture.change'), tl('dialog.ok'), tl('dialog.dontshowagain')],
-					confirm: 0,
-					cancel: 1
-				}, result => {
-					if (result === 0) {
+					buttons: [tl('dialog.ok'), tl('message.loose_texture.change')],
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (result, {dont_show_again}) => {
+					if (result === 1) {
 						this.reopen()
 					}
-					if (result === 2) {
+					if (dont_show_again) {
 						settings.dialog_loose_texture.set(false);
 					}
 				})
