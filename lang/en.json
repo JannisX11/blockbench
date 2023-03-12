@@ -1393,7 +1393,7 @@
 	"action.view_mode.solid": "Solid",
 	"action.view_mode.wireframe": "Wireframe",
 	"action.view_mode.uv": "UV Preview",
-	"action.view_mode.normal": "Face Normal",
+	"action.view_mode.normal": "Face Orientation",
 	"action.preview_scene": "Preview Scene",
 	"action.preview_scene.desc": "Change the model preview scene",
 	"action.screenshot_model": "Screenshot Model",
