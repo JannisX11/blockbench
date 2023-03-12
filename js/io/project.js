@@ -345,6 +345,7 @@ class ModelProject {
 					})
 					if (answer === 0) {
 						BarItems.save_project.trigger();
+						return Project.saved;
 					}
 					return answer !== 2;
 				} else {
@@ -899,6 +900,7 @@ BARS.defineActions(function() {
 					label: property.label,
 					description: property.description,
 					value: Project[property.name],
+					placeholder: property.placeholder,
 					type: property.type
 				}
 				if (property.type == 'boolean') entry.type = 'checkbox';
@@ -910,7 +912,8 @@ BARS.defineActions(function() {
 			}
 
 			form.uv_mode = {
-				label: 'dialog.project.uv_mode',
+				label: 'dialog.project.default_uv_mode',
+				description: 'dialog.project.default_uv_mode.description',
 				type: 'select',
 				condition: Format.optional_box_uv,
 				options: {

@@ -1662,13 +1662,13 @@ BARS.defineActions(function() {
 					_: '_',
 
 					info: {type: 'info', text: 'dialog.display_preset.message'},
-					third_right: {type: 'checkbox', label: 'display.slot.third_right', value: true},
-					third_left: {type: 'checkbox', label: 'display.slot.third_left', value: true},
-					first_right: {type: 'checkbox', label: 'display.slot.first_right', value: true},
-					first_left: {type: 'checkbox', label: 'display.slot.first_left', value: true},
+					thirdperson_righthand: {type: 'checkbox', label: 'display.slot.third_right', value: true},
+					thirdperson_lefthand: {type: 'checkbox', label: 'display.slot.third_left', value: true},
+					firstperson_righthand: {type: 'checkbox', label: 'display.slot.first_right', value: true},
+					firstperson_lefthand: {type: 'checkbox', label: 'display.slot.first_left', value: true},
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
-					frame: {type: 'checkbox', label: 'display.slot.frame', value: true},
+					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
 				},
 				onConfirm(form_data) {

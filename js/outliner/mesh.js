@@ -410,6 +410,12 @@ class Mesh extends OutlinerElement {
 				}
 			}
 		}
+		if (typeof object.seams == 'object') {
+			this.seams = {};
+			for (let key in object.seams) {
+				this.seams[key] = object.seams[key];
+			}
+		}
 		this.sanitizeName();
 		return this;
 	}
@@ -432,6 +438,12 @@ class Mesh extends OutlinerElement {
 		var el = {}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
+		}
+		if (Object.keys(this.seams).length) {
+			el.seams = {};
+			for (let key in this.seams) {
+				el.seams[key] = this.seams[key];
+			}
 		}
 
 		el.vertices = {};

@@ -719,7 +719,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.selected.length)},
 		click() {
-			Undo.initEdit({elements: Cube.selected});
+			Undo.initEdit({elements: Cube.selected, outliner: true});
 
 			let new_meshes = [];
 			Cube.selected.forEach(cube => {
@@ -729,19 +729,19 @@ BARS.defineActions(function() {
 					color: cube.color,
 					origin: cube.origin,
 					rotation: cube.rotation,
-					vertices: [
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-					],
+					vertices: []
 				})
+				let vertex_keys = [
+					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
+				];
 
-				let vertex_keys = Object.keys(mesh.vertices);
 				let unused_vkeys = vertex_keys.slice();
 				function addFace(direction, vertices) {
 					let cube_face = cube.faces[direction];
@@ -778,7 +778,7 @@ BARS.defineActions(function() {
 				cube.remove();
 			})
 			updateSelection();
-			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes});
+			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
 		}
 	})
 	new Action('invert_face', {

@@ -630,12 +630,13 @@ function calculateVisibleBox() {
 		}
 		if (b.locators) {
 			for (var key in b.locators) {
-				var coords, rotation;
+				var coords, rotation, ignore_inherited_scale;
 				if (b.locators[key] instanceof Array) {
 					coords = b.locators[key];
 				} else {
 					coords = b.locators[key].offset;
 					rotation = b.locators[key].rotation;
+					ignore_inherited_scale = b.locators[key].ignore_inherited_scale;
 				}
 				coords[0] *= -1;
 				if (rotation instanceof Array) {
@@ -645,7 +646,7 @@ function calculateVisibleBox() {
 				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
-					new Locator({position: coords, name: key, rotation}).addTo(group).init();
+					new Locator({position: coords, name: key, rotation, ignore_inherited_scale}).addTo(group).init();
 				}
 			}
 		}
@@ -1041,7 +1042,7 @@ var codec = new Codec('bedrock', {
 				loadDataFromModelMemory();
 				if (!Format.single_texture && no_textures_before && Texture.all.length) {
 					Cube.all.forEach(cube => {
-						cube.applyTexture(Texture.all[0]);
+						cube.applyTexture(Texture.all[0], true);
 					})
 				}
 			}

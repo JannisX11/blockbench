@@ -70,7 +70,7 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time;
 	}
 }
-Animator.MolangParser.variableHandler = function (variable) {
+Animator.MolangParser.variableHandler = function (variable, variables) {
 	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
@@ -91,7 +91,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 				return button ? parseFloat(button.value) : 0;
 				
 			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+				return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables);
 			}
 		}
 		i++;
