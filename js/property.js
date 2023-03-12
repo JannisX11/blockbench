@@ -14,6 +14,7 @@ class Property {
 		} else {
 			switch (this.type) {
 				case 'string': this.default = ''; break;
+				case 'enum': this.default = options.values?.[0] || ''; break;
 				case 'molang': this.default = '0'; break;
 				case 'number': this.default = 0; break;
 				case 'boolean': this.default = false; break;
@@ -25,6 +26,7 @@ class Property {
 		}
 		switch (this.type) {
 			case 'string': this.isString = true; break;
+			case 'enum': this.isEnum = true; break;
 			case 'molang': this.isMolang = true; break;
 			case 'number': this.isNumber = true; break;
 			case 'boolean': this.isBoolean = true; break;
@@ -43,6 +45,9 @@ class Property {
 					this[name] = val;
 				}
 			})
+		}
+		if (this.isEnum) {
+			this.enum_values = options.values;
 		}
 
 		if (typeof options.merge == 'function') this.merge = options.merge;
@@ -71,6 +76,9 @@ class Property {
 
 		if (this.isString) {
 			Merge.string(instance, data, this.name, this.merge_validation)
+		}
+		else if (this.isEnum) {
+			Merge.string(instance, data, this.name, val => (!this.enum_values || this.enum_values.includes(val)));
 		}
 		else if (this.isNumber) {
 			Merge.number(instance, data, this.name)

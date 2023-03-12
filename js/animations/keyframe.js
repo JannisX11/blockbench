@@ -546,7 +546,7 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
-	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
+	new Property(Keyframe, 'enum', 'interpolation', {default: 'linear'})
 	new Property(Keyframe, 'boolean', 'bezier_linked', {default: true})
 	new Property(Keyframe, 'vector', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
 	new Property(Keyframe, 'vector', 'bezier_left_value');

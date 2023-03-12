@@ -52,7 +52,7 @@ class CubeFace extends Face {
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
-new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
+new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
 new Property(CubeFace, 'string', 'material_name');
 new Property(CubeFace, 'boolean', 'enabled', {default: true});
 

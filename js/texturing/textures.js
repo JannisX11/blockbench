@@ -1614,11 +1614,11 @@ class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
-	new Property(Texture, 'string', 'render_mode', {default: 'default'})
-	new Property(Texture, 'string', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
+	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
-	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})
+	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
 	new Property(Texture, 'string', 'frame_order')
 	new Property(Texture, 'boolean', 'frame_interpolate')
 
