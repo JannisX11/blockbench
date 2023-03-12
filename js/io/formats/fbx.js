@@ -1,20 +1,29 @@
 (function() {
 
+/**
+ * Wraps a number to include the type
+ * @param {('I'|'D'|'F'|'L'|'C'|'Y')} type 
+ * @param {number} value 
+ */
+function TNum(type, value) {
+	return {type, value, isTNum: true}
+}
 
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
 	extension: 'fbx',
 	compile(options = this.getExportOptions()) {
 		let scope = this;
-		let export_scale = options.scale / 100;
-		let model = [
+		let export_scale = (options.scale||16) / 100;
+		let model = [];
+		model.push([
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
 			'; ----------------------------------------------------',
 			'; ',
 			'',
 			'',
-		].join('\n');
+		].join('\n'));
 
 		function formatFBXComment(comment) {
 			return '\n; ' + comment.split(/\n/g).join('\n; ')
@@ -22,14 +31,14 @@ var codec = new Codec('fbx', {
 		}
 		let UUIDMap = {};
 		function getID(uuid) {
-			if (uuid == 0) return 0;
+			if (uuid == 0) return TNum('L', 0);
 			if (UUIDMap[uuid]) return UUIDMap[uuid];
 			let s = '';
 			for (let i = 0; i < 8; i++) {
 				s += Math.floor(Math.random()*10)
 			}
 			s[0] = '7';
-			UUIDMap[uuid] = parseInt(s);
+			UUIDMap[uuid] = TNum('L', parseInt(s));
 			return UUIDMap[uuid];
 		}
 		let UniqueNames = {};
@@ -54,10 +63,11 @@ var codec = new Codec('fbx', {
 
 		// FBXHeaderExtension
 		let date = new Date();
-		model += compileASCIIFBXSection({
+		model.push({
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
 				FBXVersion: 7300,
+				EncryptionType: 0,
 				CreationTimeStamp: {
 					Version: 1000,
 					Year: 1900 + date.getYear(),
@@ -77,7 +87,7 @@ var codec = new Codec('fbx', {
 			Creator: Settings.get('credit'),
 		})
 
-		model += compileASCIIFBXSection({
+		model.push({
 			GlobalSettings: {
 				Version: 1000,
 				Properties60: {
@@ -89,14 +99,14 @@ var codec = new Codec('fbx', {
 					P08: {_key: 'P', _values: ["CoordAxisSign", "int", "Integer", "",1]},
 					P09: {_key: 'P', _values: ["OriginalUpAxis", "int", "Integer", "",-1]},
 					P10: {_key: 'P', _values: ["OriginalUpAxisSign", "int", "Integer", "",1]},
-					P11: {_key: 'P', _values: ["UnitScaleFactor", "double", "Number", "",1]},
-					P12: {_key: 'P', _values: ["OriginalUnitScaleFactor", "double", "Number", "",1]},
-					P13: {_key: 'P', _values: ["AmbientColor", "ColorRGB", "Color", "",0,0,0]},
+					P11: {_key: 'P', _values: ["UnitScaleFactor", "double", "Number", "",TNum('D', 1)]},
+					P12: {_key: 'P', _values: ["OriginalUnitScaleFactor", "double", "Number", "",TNum('D', 1)]},
+					P13: {_key: 'P', _values: ["AmbientColor", "ColorRGB", "Color", "",TNum('D',0),TNum('D',0),TNum('D',0)]},
 					P14: {_key: 'P', _values: ["DefaultCamera", "KString", "", "", "Producer Perspective"]},
 					P15: {_key: 'P', _values: ["TimeMode", "enum", "", "",0]},
-					P16: {_key: 'P', _values: ["TimeSpanStart", "KTime", "Time", "",0]},
-					P17: {_key: 'P', _values: ["TimeSpanStop", "KTime", "Time", "",46186158000]},
-					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",24]},
+					P16: {_key: 'P', _values: ["TimeSpanStart", "KTime", "Time", "",TNum('L', 0)]},
+					P17: {_key: 'P', _values: ["TimeSpanStop", "KTime", "Time", "",TNum('L', 46186158000)]},
+					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",TNum('D', 24)]},
 				}
 			}
 		});
@@ -135,16 +145,16 @@ var codec = new Codec('fbx', {
 				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
 				Version: 232,
 				Properties70: {
-					P1: {_key: 'P', _values: ["RotationActive", "bool", "", "",1]},
+					P1: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('I', 1)]},
 					P2: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
-					P3: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",0,0,0]},
-					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(node)]},
-					P5: node.rotation ? {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "", 0, 0, 0]} : undefined,
-					P6: node.rotation ? {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...node.rotation]} : undefined,
+					P3: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(node).map(v => TNum('D', v))]},
+					P5: node.rotation ? {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "", TNum('D',0), TNum('D',0), TNum('D',0)]} : undefined,
+					P6: node.rotation ? {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...node.rotation.map(v => TNum('D', v))]} : undefined,
 					P7: node.rotation ? {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]} : undefined,
 					P8: node.faces ? {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]} : undefined,
 				},
-				Shading: '_Y',
+				Shading: true,
 				Culling: "CullingOff",
 			};
 			let parent = node.parent == 'root' ? root : node.parent;
@@ -222,10 +232,12 @@ var codec = new Codec('fbx', {
 
 				Vertices: {
 					_values: [`_*${positions.length}`],
+					_type: 'd',
 					a: positions
 				},
 				PolygonVertexIndex: {
 					_values: [`_*${indices.length}`],
+					_type: 'i',
 					a: indices
 				},
 				GeometryVersion: 124,
@@ -237,6 +249,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "Direct",
 					Normals: {
 						_values: [`_*${normals.length}`],
+						_type: 'd',
 						a: normals
 					}
 				},
@@ -248,6 +261,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "Direct",
 					UV: {
 						_values: [`_*${uv.length}`],
+						_type: 'd',
 						a: uv
 					}
 				},
@@ -259,6 +273,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "IndexToDirect",
 					Materials: {
 						_values: [`_*1`],
+						_type: 'i',
 						a: 0
 					},
 				} : {
@@ -270,6 +285,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "IndexToDirect",
 					Materials: {
 						_values: [`_*${textures.length}`],
+						_type: 'i',
 						a: textures.map(t => used_textures.indexOf(t))
 					},
 				},
@@ -293,7 +309,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id] = geometry;
+			Objects[geo_id.value] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -391,10 +407,12 @@ var codec = new Codec('fbx', {
 
 				Vertices: {
 					_values: [`_*${positions.length}`],
+					_type: 'd',
 					a: positions
 				},
 				PolygonVertexIndex: {
 					_values: [`_*${indices.length}`],
+					_type: 'i',
 					a: indices
 				},
 				GeometryVersion: 124,
@@ -406,6 +424,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "Direct",
 					Normals: {
 						_values: [`_*${normals.length}`],
+						_type: 'd',
 						a: normals
 					}
 				},
@@ -417,6 +436,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "Direct",
 					UV: {
 						_values: [`_*${uv.length}`],
+						_type: 'd',
 						a: uv
 					}
 				},
@@ -428,6 +448,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "IndexToDirect",
 					Materials: {
 						_values: [`_*1`],
+						_type: 'i',
 						a: 0
 					},
 				} : {
@@ -439,6 +460,7 @@ var codec = new Codec('fbx', {
 					ReferenceInformationType: "IndexToDirect",
 					Materials: {
 						_values: [`_*${textures.length}`],
+						_type: 'i',
 						a: textures.map(t => used_textures.indexOf(t))
 					},
 				},
@@ -462,7 +484,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id] = geometry;
+			Objects[geo_id.value] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -491,10 +513,10 @@ var codec = new Codec('fbx', {
 				ShadingModel: "lambert",
 				MultiLayer: 0,
 				Properties70:  {
-					P2: {_key: 'P', _values: ["Emissive", "Vector3D", "Vector", "",0,0,0]},
-					P3: {_key: 'P', _values: ["Ambient", "Vector3D", "Vector", "",0.2,0.2,0.2]},
-					P4: {_key: 'P', _values: ["Diffuse", "Vector3D", "Vector", "",0.8,0.8,0.8]},
-					P5: {_key: 'P', _values: ["Opacity", "double", "Number", "",1]},
+					P2: {_key: 'P', _values: ["Emissive", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+					P3: {_key: 'P', _values: ["Ambient", "Vector3D", "Vector", "",TNum('D',0.2), TNum('D',0.2), TNum('D',0.2)]},
+					P4: {_key: 'P', _values: ["Diffuse", "Vector3D", "Vector", "",TNum('D',0.8), TNum('D',0.8), TNum('D',0.8)]},
+					P5: {_key: 'P', _values: ["Opacity", "double", "Number", "",TNum('D', 1)]},
 				}
 			};
 			let tex_object = {
@@ -506,8 +528,8 @@ var codec = new Codec('fbx', {
 				Media: `Video::${unique_name}`,
 				FileName: tex.path,
 				RelativeFilename: tex.name,
-				ModelUVTranslation: [0,0],
-				ModelUVScaling: [1,1],
+				ModelUVTranslation: [TNum('D',0),TNum('D',0)],
+				ModelUVScaling: [TNum('D',1),TNum('D',1)],
 				Texture_Alpha_Source: "None",
 				Cropping: [0,0,0,0],
 			};
@@ -555,8 +577,8 @@ var codec = new Codec('fbx', {
 					_key: 'AnimationStack',
 					_values: [stack_id, `AnimStack::${unique_name}`, ''],
 					Properties70: {
-						p1: {_key: 'P', _values: ['LocalStop', 'KTime', 'Time', '', fbx_duration]},
-						p2: {_key: 'P', _values: ['ReferenceStop', 'KTime', 'Time', '', fbx_duration]},
+						p1: {_key: 'P', _values: ['LocalStop', 'KTime', 'Time', '', TNum('L', fbx_duration)]},
+						p2: {_key: 'P', _values: ['ReferenceStop', 'KTime', 'Time', '', TNum('L', fbx_duration)]},
 					}
 				};
 				let layer = {
@@ -580,9 +602,9 @@ var codec = new Codec('fbx', {
 						_key: 'AnimationCurveNode',
 						_values: [track_id, track_name, ''],
 						Properties70: {
-							p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', 1]},
-							p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', 1]},
-							p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', 1]},
+							p1: {_key: 'P', _values: [`d|X`, 'Number', '', 'A', TNum('D',1)]},
+							p2: {_key: 'P', _values: [`d|Y`, 'Number', '', 'A', TNum('D',1)]},
+							p3: {_key: 'P', _values: [`d|Z`, 'Number', '', 'A', TNum('D',1)]},
 						}
 					};
 					let timecodes = track.times.map(second => Math.round(second * time_factor));
@@ -621,22 +643,27 @@ var codec = new Codec('fbx', {
 							KeyVer: 4008,
 							KeyTime: {
 								_values: [`_*${timecodes.length}`],
+								_type: 'd',
 								a: timecodes
 							},
 							KeyValueFloat: {
 								_values: [`_*${values.length}`],
+								_type: 'f',
 								a: values
 							},
 							KeyAttrFlags: {
 								_values: [`_*${1}`],
+								_type: 'i',
 								a: [24836]
 							},
 							KeyAttrDataFloat: {
 								_values: [`_*${4}`],
+								_type: 'f',
 								a: [0,0,255790911,0]
 							},
 							KeyAttrRefCount: {
 								_values: [`_*${1}`],
+								_type: 'i',
 								a: [timecodes.length]
 							},
 						};
@@ -662,12 +689,12 @@ var codec = new Codec('fbx', {
 		}
 
 		// Object definitions
-		model += formatFBXComment('Object definitions');
+		model.push(formatFBXComment('Object definitions'));
 		let total_definition_count = 1;
 		for (let key in DefinitionCounter) {
 			total_definition_count += DefinitionCounter[key];
 		}
-		model += compileASCIIFBXSection({
+		model.push({
 			Definitions: {
 				Version: 100,
 				Count: total_definition_count,
@@ -684,75 +711,75 @@ var codec = new Codec('fbx', {
 						_values: ['FbxNode'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["QuaternionInterpolate", "enum", "", "",0]},
-							P02: {_key: 'P', _values: ["RotationOffset", "Vector3D", "Vector", "",0,0,0]},
-							P03: {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "",0,0,0]},
-							P04: {_key: 'P', _values: ["ScalingOffset", "Vector3D", "Vector", "",0,0,0]},
-							P05: {_key: 'P', _values: ["ScalingPivot", "Vector3D", "Vector", "",0,0,0]},
-							P06: {_key: 'P', _values: ["TranslationActive", "bool", "", "",0]},
-							P07: {_key: 'P', _values: ["TranslationMin", "Vector3D", "Vector", "",0,0,0]},
-							P08: {_key: 'P', _values: ["TranslationMax", "Vector3D", "Vector", "",0,0,0]},
-							P09: {_key: 'P', _values: ["TranslationMinX", "bool", "", "",0]},
-							P10: {_key: 'P', _values: ["TranslationMinY", "bool", "", "",0]},
-							P11: {_key: 'P', _values: ["TranslationMinZ", "bool", "", "",0]},
-							P12: {_key: 'P', _values: ["TranslationMaxX", "bool", "", "",0]},
-							P13: {_key: 'P', _values: ["TranslationMaxY", "bool", "", "",0]},
-							P14: {_key: 'P', _values: ["TranslationMaxZ", "bool", "", "",0]},
+							P02: {_key: 'P', _values: ["RotationOffset", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P03: {_key: 'P', _values: ["RotationPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P04: {_key: 'P', _values: ["ScalingOffset", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P05: {_key: 'P', _values: ["ScalingPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P06: {_key: 'P', _values: ["TranslationActive", "bool", "", "",TNum('I', 0)]},
+							P07: {_key: 'P', _values: ["TranslationMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P08: {_key: 'P', _values: ["TranslationMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P09: {_key: 'P', _values: ["TranslationMinX", "bool", "", "",TNum('I', 0)]},
+							P10: {_key: 'P', _values: ["TranslationMinY", "bool", "", "",TNum('I', 0)]},
+							P11: {_key: 'P', _values: ["TranslationMinZ", "bool", "", "",TNum('I', 0)]},
+							P12: {_key: 'P', _values: ["TranslationMaxX", "bool", "", "",TNum('I', 0)]},
+							P13: {_key: 'P', _values: ["TranslationMaxY", "bool", "", "",TNum('I', 0)]},
+							P14: {_key: 'P', _values: ["TranslationMaxZ", "bool", "", "",TNum('I', 0)]},
 							P15: {_key: 'P', _values: ["RotationOrder", "enum", "", "",5]},
-							P16: {_key: 'P', _values: ["RotationSpaceForLimitOnly", "bool", "", "",0]},
-							P17: {_key: 'P', _values: ["RotationStiffnessX", "double", "Number", "",0]},
-							P18: {_key: 'P', _values: ["RotationStiffnessY", "double", "Number", "",0]},
-							P19: {_key: 'P', _values: ["RotationStiffnessZ", "double", "Number", "",0]},
-							P20: {_key: 'P', _values: ["AxisLen", "double", "Number", "",10]},
-							P21: {_key: 'P', _values: ["PreRotation", "Vector3D", "Vector", "",0,0,0]},
-							P22: {_key: 'P', _values: ["PostRotation", "Vector3D", "Vector", "",0,0,0]},
-							P23: {_key: 'P', _values: ["RotationActive", "bool", "", "",0]},
-							P24: {_key: 'P', _values: ["RotationMin", "Vector3D", "Vector", "",0,0,0]},
-							P25: {_key: 'P', _values: ["RotationMax", "Vector3D", "Vector", "",0,0,0]},
-							P26: {_key: 'P', _values: ["RotationMinX", "bool", "", "",0]},
-							P27: {_key: 'P', _values: ["RotationMinY", "bool", "", "",0]},
-							P28: {_key: 'P', _values: ["RotationMinZ", "bool", "", "",0]},
-							P29: {_key: 'P', _values: ["RotationMaxX", "bool", "", "",0]},
-							P30: {_key: 'P', _values: ["RotationMaxY", "bool", "", "",0]},
-							P31: {_key: 'P', _values: ["RotationMaxZ", "bool", "", "",0]},
+							P16: {_key: 'P', _values: ["RotationSpaceForLimitOnly", "bool", "", "",TNum('I', 0)]},
+							P17: {_key: 'P', _values: ["RotationStiffnessX", "double", "Number", "",TNum('D', 0)]},
+							P18: {_key: 'P', _values: ["RotationStiffnessY", "double", "Number", "",TNum('D', 0)]},
+							P19: {_key: 'P', _values: ["RotationStiffnessZ", "double", "Number", "",TNum('D', 0)]},
+							P20: {_key: 'P', _values: ["AxisLen", "double", "Number", "",TNum('D', 10)]},
+							P21: {_key: 'P', _values: ["PreRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P22: {_key: 'P', _values: ["PostRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P23: {_key: 'P', _values: ["RotationActive", "bool", "", "",TNum('I', 0)]},
+							P24: {_key: 'P', _values: ["RotationMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P25: {_key: 'P', _values: ["RotationMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P26: {_key: 'P', _values: ["RotationMinX", "bool", "", "",TNum('I', 0)]},
+							P27: {_key: 'P', _values: ["RotationMinY", "bool", "", "",TNum('I', 0)]},
+							P28: {_key: 'P', _values: ["RotationMinZ", "bool", "", "",TNum('I', 0)]},
+							P29: {_key: 'P', _values: ["RotationMaxX", "bool", "", "",TNum('I', 0)]},
+							P30: {_key: 'P', _values: ["RotationMaxY", "bool", "", "",TNum('I', 0)]},
+							P31: {_key: 'P', _values: ["RotationMaxZ", "bool", "", "",TNum('I', 0)]},
 							P32: {_key: 'P', _values: ["InheritType", "enum", "", "",0]},
-							P33: {_key: 'P', _values: ["ScalingActive", "bool", "", "",0]},
-							P34: {_key: 'P', _values: ["ScalingMin", "Vector3D", "Vector", "",0,0,0]},
-							P35: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",1,1,1]},
-							P36: {_key: 'P', _values: ["ScalingMinX", "bool", "", "",0]},
-							P37: {_key: 'P', _values: ["ScalingMinY", "bool", "", "",0]},
-							P38: {_key: 'P', _values: ["ScalingMinZ", "bool", "", "",0]},
-							P39: {_key: 'P', _values: ["ScalingMaxX", "bool", "", "",0]},
-							P40: {_key: 'P', _values: ["ScalingMaxY", "bool", "", "",0]},
-							P41: {_key: 'P', _values: ["ScalingMaxZ", "bool", "", "",0]},
-							P42: {_key: 'P', _values: ["GeometricTranslation", "Vector3D", "Vector", "",0,0,0]},
-							P43: {_key: 'P', _values: ["GeometricRotation", "Vector3D", "Vector", "",0,0,0]},
-							P44: {_key: 'P', _values: ["GeometricScaling", "Vector3D", "Vector", "",1,1,1]},
-							P45: {_key: 'P', _values: ["MinDampRangeX", "double", "Number", "",0]},
-							P46: {_key: 'P', _values: ["MinDampRangeY", "double", "Number", "",0]},
-							P47: {_key: 'P', _values: ["MinDampRangeZ", "double", "Number", "",0]},
-							P48: {_key: 'P', _values: ["MaxDampRangeX", "double", "Number", "",0]},
-							P49: {_key: 'P', _values: ["MaxDampRangeY", "double", "Number", "",0]},
-							P50: {_key: 'P', _values: ["MaxDampRangeZ", "double", "Number", "",0]},
-							P51: {_key: 'P', _values: ["MinDampStrengthX", "double", "Number", "",0]},
-							P52: {_key: 'P', _values: ["MinDampStrengthY", "double", "Number", "",0]},
-							P53: {_key: 'P', _values: ["MinDampStrengthZ", "double", "Number", "",0]},
-							P54: {_key: 'P', _values: ["MaxDampStrengthX", "double", "Number", "",0]},
-							P55: {_key: 'P', _values: ["MaxDampStrengthY", "double", "Number", "",0]},
-							P56: {_key: 'P', _values: ["MaxDampStrengthZ", "double", "Number", "",0]},
-							P57: {_key: 'P', _values: ["PreferedAngleX", "double", "Number", "",0]},
-							P58: {_key: 'P', _values: ["PreferedAngleY", "double", "Number", "",0]},
-							P59: {_key: 'P', _values: ["PreferedAngleZ", "double", "Number", "",0]},
+							P33: {_key: 'P', _values: ["ScalingActive", "bool", "", "",TNum('I', 0)]},
+							P34: {_key: 'P', _values: ["ScalingMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P35: {_key: 'P', _values: ["ScalingMax", "Vector3D", "Vector", "",TNum('D',1), TNum('D',1), TNum('D',1)]},
+							P36: {_key: 'P', _values: ["ScalingMinX", "bool", "", "",TNum('I', 0)]},
+							P37: {_key: 'P', _values: ["ScalingMinY", "bool", "", "",TNum('I', 0)]},
+							P38: {_key: 'P', _values: ["ScalingMinZ", "bool", "", "",TNum('I', 0)]},
+							P39: {_key: 'P', _values: ["ScalingMaxX", "bool", "", "",TNum('I', 0)]},
+							P40: {_key: 'P', _values: ["ScalingMaxY", "bool", "", "",TNum('I', 0)]},
+							P41: {_key: 'P', _values: ["ScalingMaxZ", "bool", "", "",TNum('I', 0)]},
+							P42: {_key: 'P', _values: ["GeometricTranslation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P43: {_key: 'P', _values: ["GeometricRotation", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P44: {_key: 'P', _values: ["GeometricScaling", "Vector3D", "Vector", "",TNum('D',1), TNum('D',1), TNum('D',1)]},
+							P45: {_key: 'P', _values: ["MinDampRangeX", "double", "Number", "",TNum('D', 0)]},
+							P46: {_key: 'P', _values: ["MinDampRangeY", "double", "Number", "",TNum('D', 0)]},
+							P47: {_key: 'P', _values: ["MinDampRangeZ", "double", "Number", "",TNum('D', 0)]},
+							P48: {_key: 'P', _values: ["MaxDampRangeX", "double", "Number", "",TNum('D', 0)]},
+							P49: {_key: 'P', _values: ["MaxDampRangeY", "double", "Number", "",TNum('D', 0)]},
+							P50: {_key: 'P', _values: ["MaxDampRangeZ", "double", "Number", "",TNum('D', 0)]},
+							P51: {_key: 'P', _values: ["MinDampStrengthX", "double", "Number", "",TNum('D', 0)]},
+							P52: {_key: 'P', _values: ["MinDampStrengthY", "double", "Number", "",TNum('D', 0)]},
+							P53: {_key: 'P', _values: ["MinDampStrengthZ", "double", "Number", "",TNum('D', 0)]},
+							P54: {_key: 'P', _values: ["MaxDampStrengthX", "double", "Number", "",TNum('D', 0)]},
+							P55: {_key: 'P', _values: ["MaxDampStrengthY", "double", "Number", "",TNum('D', 0)]},
+							P56: {_key: 'P', _values: ["MaxDampStrengthZ", "double", "Number", "",TNum('D', 0)]},
+							P57: {_key: 'P', _values: ["PreferedAngleX", "double", "Number", "",TNum('D', 0)]},
+							P58: {_key: 'P', _values: ["PreferedAngleY", "double", "Number", "",TNum('D', 0)]},
+							P59: {_key: 'P', _values: ["PreferedAngleZ", "double", "Number", "",TNum('D', 0)]},
 							P60: {_key: 'P', _values: ["LookAtProperty", "object", "", ""]},
 							P61: {_key: 'P', _values: ["UpVectorProperty", "object", "", ""]},
-							P62: {_key: 'P', _values: ["Show", "bool", "", "",1]},
-							P63: {_key: 'P', _values: ["NegativePercentShapeSupport", "bool", "", "",1]},
+							P62: {_key: 'P', _values: ["Show", "bool", "", "",TNum('I', 1)]},
+							P63: {_key: 'P', _values: ["NegativePercentShapeSupport", "bool", "", "",TNum('I', 1)]},
 							P64: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",-1]},
-							P65: {_key: 'P', _values: ["Freeze", "bool", "", "",0]},
-							P66: {_key: 'P', _values: ["LODBox", "bool", "", "",0]},
-							P67: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A",0,0,0]},
-							P68: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A",0,0,0]},
-							P69: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A",1,1,1]},
-							P70: {_key: 'P', _values: ["Visibility", "Visibility", "", "A",1]},
+							P65: {_key: 'P', _values: ["Freeze", "bool", "", "",TNum('I', 0)]},
+							P66: {_key: 'P', _values: ["LODBox", "bool", "", "",TNum('I', 0)]},
+							P67: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P68: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P69: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
+							P70: {_key: 'P', _values: ["Visibility", "Visibility", "", "A",TNum('D',1)]},
 							P71: {_key: 'P', _values: ["Visibility Inheritance", "Visibility Inheritance", "", "",1]},
 						}
 					}
@@ -764,12 +791,12 @@ var codec = new Codec('fbx', {
 					PropertyTemplate: {
 						_values: ['FbxMesh'],
 						Properties70: {
-							P1: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",0.8,0.8,0.8]},
-							P2: {_key: 'P', _values: ["BBoxMin", "Vector3D", "Vector", "",0,0,0]},
-							P3: {_key: 'P', _values: ["BBoxMax", "Vector3D", "Vector", "",0,0,0]},
-							P4: {_key: 'P', _values: ["Primary Visibility", "bool", "", "",1]},
-							P5: {_key: 'P', _values: ["Casts Shadows", "bool", "", "",1]},
-							P6: {_key: 'P', _values: ["Receive Shadows", "bool", "", "",1]},
+							P1: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",TNum('D',0.8),TNum('D',0.8),TNum('D',0.8)]},
+							P2: {_key: 'P', _values: ["BBoxMin", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P3: {_key: 'P', _values: ["BBoxMax", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P4: {_key: 'P', _values: ["Primary Visibility", "bool", "", "",TNum('I', 1)]},
+							P5: {_key: 'P', _values: ["Casts Shadows", "bool", "", "",TNum('I', 1)]},
+							P6: {_key: 'P', _values: ["Receive Shadows", "bool", "", "",TNum('I', 1)]},
 						}
 					}
 				} : undefined,
@@ -781,22 +808,22 @@ var codec = new Codec('fbx', {
 						_values: ['FbxSurfaceLambert'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["ShadingModel", "KString", "", "", "Lambert"]},
-							P02: {_key: 'P', _values: ["MultiLayer", "bool", "", "",0]},
-							P03: {_key: 'P', _values: ["EmissiveColor", "Color", "", "A",0,0,0]},
-							P04: {_key: 'P', _values: ["EmissiveFactor", "Number", "", "A",1]},
-							P05: {_key: 'P', _values: ["AmbientColor", "Color", "", "A",0.2,0.2,0.2]},
-							P06: {_key: 'P', _values: ["AmbientFactor", "Number", "", "A",1]},
-							P07: {_key: 'P', _values: ["DiffuseColor", "Color", "", "A",0.8,0.8,0.8]},
-							P08: {_key: 'P', _values: ["DiffuseFactor", "Number", "", "A",1]},
-							P09: {_key: 'P', _values: ["Bump", "Vector3D", "Vector", "",0,0,0]},
-							P10: {_key: 'P', _values: ["NormalMap", "Vector3D", "Vector", "",0,0,0]},
-							P11: {_key: 'P', _values: ["BumpFactor", "double", "Number", "",1]},
-							P12: {_key: 'P', _values: ["TransparentColor", "Color", "", "A",0,0,0]},
-							P13: {_key: 'P', _values: ["TransparencyFactor", "Number", "", "A",0]},
-							P14: {_key: 'P', _values: ["DisplacementColor", "ColorRGB", "Color", "",0,0,0]},
-							P15: {_key: 'P', _values: ["DisplacementFactor", "double", "Number", "",1]},
-							P16: {_key: 'P', _values: ["VectorDisplacementColor", "ColorRGB", "Color", "",0,0,0]},
-							P17: {_key: 'P', _values: ["VectorDisplacementFactor", "double", "Number", "",1]},
+							P02: {_key: 'P', _values: ["MultiLayer", "bool", "", "",TNum('I', 0)]},
+							P03: {_key: 'P', _values: ["EmissiveColor", "Color", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P04: {_key: 'P', _values: ["EmissiveFactor", "Number", "", "A",TNum('D',1)]},
+							P05: {_key: 'P', _values: ["AmbientColor", "Color", "", "A",TNum('D',0.2), TNum('D',0.2), TNum('D',0.2)]},
+							P06: {_key: 'P', _values: ["AmbientFactor", "Number", "", "A",TNum('D',1)]},
+							P07: {_key: 'P', _values: ["DiffuseColor", "Color", "", "A",TNum('D',0.8), TNum('D',0.8), TNum('D',0.8)]},
+							P08: {_key: 'P', _values: ["DiffuseFactor", "Number", "", "A",TNum('D',1)]},
+							P09: {_key: 'P', _values: ["Bump", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P10: {_key: 'P', _values: ["NormalMap", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P11: {_key: 'P', _values: ["BumpFactor", "double", "Number", "",TNum('D', 1)]},
+							P12: {_key: 'P', _values: ["TransparentColor", "Color", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P13: {_key: 'P', _values: ["TransparencyFactor", "Number", "", "A",TNum('D',0)]},
+							P14: {_key: 'P', _values: ["DisplacementColor", "ColorRGB", "Color", "",TNum('D',0),TNum('D',0),TNum('D',0)]},
+							P15: {_key: 'P', _values: ["DisplacementFactor", "double", "Number", "",TNum('D', 1)]},
+							P16: {_key: 'P', _values: ["VectorDisplacementColor", "ColorRGB", "Color", "",TNum('D',0),TNum('D',0),TNum('D',0)]},
+							P17: {_key: 'P', _values: ["VectorDisplacementFactor", "double", "Number", "",TNum('D', 1)]},
 						}
 					}
 				} : undefined,
@@ -808,21 +835,21 @@ var codec = new Codec('fbx', {
 						_values: ['FbxFileTexture'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["TextureTypeUse", "enum", "", "",0]},
-							P02: {_key: 'P', _values: ["Texture alpha", "Number", "", "A",1]},
+							P02: {_key: 'P', _values: ["Texture alpha", "Number", "", "A",TNum('D',1)]},
 							P03: {_key: 'P', _values: ["CurrentMappingType", "enum", "", "",0]},
 							P04: {_key: 'P', _values: ["WrapModeU", "enum", "", "",0]},
 							P05: {_key: 'P', _values: ["WrapModeV", "enum", "", "",0]},
-							P06: {_key: 'P', _values: ["UVSwap", "bool", "", "",0]},
-							P07: {_key: 'P', _values: ["PremultiplyAlpha", "bool", "", "",1]},
-							P08: {_key: 'P', _values: ["Translation", "Vector", "", "A",0,0,0]},
-							P09: {_key: 'P', _values: ["Rotation", "Vector", "", "A",0,0,0]},
-							P10: {_key: 'P', _values: ["Scaling", "Vector", "", "A",1,1,1]},
-							P11: {_key: 'P', _values: ["TextureRotationPivot", "Vector3D", "Vector", "",0,0,0]},
-							P12: {_key: 'P', _values: ["TextureScalingPivot", "Vector3D", "Vector", "",0,0,0]},
+							P06: {_key: 'P', _values: ["UVSwap", "bool", "", "",TNum('I', 0)]},
+							P07: {_key: 'P', _values: ["PremultiplyAlpha", "bool", "", "",TNum('I', 1)]},
+							P08: {_key: 'P', _values: ["Translation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P09: {_key: 'P', _values: ["Rotation", "Vector", "", "A",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P10: {_key: 'P', _values: ["Scaling", "Vector", "", "A",TNum('D',1), TNum('D',1), TNum('D',1)]},
+							P11: {_key: 'P', _values: ["TextureRotationPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
+							P12: {_key: 'P', _values: ["TextureScalingPivot", "Vector3D", "Vector", "",TNum('D',0), TNum('D',0), TNum('D',0)]},
 							P13: {_key: 'P', _values: ["CurrentTextureBlendMode", "enum", "", "",1]},
 							P14: {_key: 'P', _values: ["UVSet", "KString", "", "", "default"]},
-							P15: {_key: 'P', _values: ["UseMaterial", "bool", "", "",0]},
-							P16: {_key: 'P', _values: ["UseMipMap", "bool", "", "",0]},
+							P15: {_key: 'P', _values: ["UseMaterial", "bool", "", "",TNum('I', 0)]},
+							P16: {_key: 'P', _values: ["UseMipMap", "bool", "", "",TNum('I', 0)]},
 						}
 					}
 				} : undefined,
@@ -833,20 +860,20 @@ var codec = new Codec('fbx', {
 					PropertyTemplate: {
 						_values: ['FbxVideo'],
 						Properties70: {
-							P01: {_key: 'P', _values: ["ImageSequence", "bool", "", "",0]},
+							P01: {_key: 'P', _values: ["ImageSequence", "bool", "", "",TNum('I', 0)]},
 							P02: {_key: 'P', _values: ["ImageSequenceOffset", "int", "Integer", "",0]},
-							P03: {_key: 'P', _values: ["FrameRate", "double", "Number", "",0]},
+							P03: {_key: 'P', _values: ["FrameRate", "double", "Number", "",TNum('D', 0)]},
 							P04: {_key: 'P', _values: ["LastFrame", "int", "Integer", "",0]},
 							P05: {_key: 'P', _values: ["Width", "int", "Integer", "",0]},
 							P06: {_key: 'P', _values: ["Height", "int", "Integer", "",0]},
 							P07: {_key: 'P', _values: ["Path", "KString", "XRefUrl", "", ""]},
 							P08: {_key: 'P', _values: ["StartFrame", "int", "Integer", "",0]},
 							P09: {_key: 'P', _values: ["StopFrame", "int", "Integer", "",0]},
-							P10: {_key: 'P', _values: ["PlaySpeed", "double", "Number", "",0]},
-							P11: {_key: 'P', _values: ["Offset", "KTime", "Time", "",0]},
+							P10: {_key: 'P', _values: ["PlaySpeed", "double", "Number", "",TNum('D', 0)]},
+							P11: {_key: 'P', _values: ["Offset", "KTime", "Time", "",TNum('L', 0)]},
 							P12: {_key: 'P', _values: ["InterlaceMode", "enum", "", "",0]},
-							P13: {_key: 'P', _values: ["FreeRunning", "bool", "", "",0]},
-							P14: {_key: 'P', _values: ["Loop", "bool", "", "",0]},
+							P13: {_key: 'P', _values: ["FreeRunning", "bool", "", "",TNum('I', 0)]},
+							P14: {_key: 'P', _values: ["Loop", "bool", "", "",TNum('I', 0)]},
 							P15: {_key: 'P', _values: ["AccessMode", "enum", "", "",0]},
 						}
 					}
@@ -861,10 +888,10 @@ var codec = new Codec('fbx', {
 						_values: ['FbxAnimStack'],
 						Properties70: {
 							P01: {_key: 'P', _values: ["Description", "KString", "", "", ""]},
-							P02: {_key: 'P', _values: ["LocalStart", "KTime", "Time", "",0]},
-							P03: {_key: 'P', _values: ["LocalStop", "KTime", "Time", "",0]},
-							P04: {_key: 'P', _values: ["ReferenceStart", "KTime", "Time", "",0]},
-							P05: {_key: 'P', _values: ["ReferenceStop", "KTime", "Time", "",0]},
+							P02: {_key: 'P', _values: ["LocalStart", "KTime", "Time", "",TNum('L', 0)]},
+							P03: {_key: 'P', _values: ["LocalStop", "KTime", "Time", "",TNum('L', 0)]},
+							P04: {_key: 'P', _values: ["ReferenceStart", "KTime", "Time", "",TNum('L', 0)]},
+							P05: {_key: 'P', _values: ["ReferenceStop", "KTime", "Time", "",TNum('L', 0)]},
 						}
 					}
 				} : undefined,
@@ -875,11 +902,11 @@ var codec = new Codec('fbx', {
 					PropertyTemplate: {
 						_values: ['FbxAnimLayer'],
 						Properties70: {
-							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",100]},
-							P02: {_key: 'P', _values: ["Mute", "bool", "", "",0]},
-							P03: {_key: 'P', _values: ["Solo", "bool", "", "",0]},
-							P04: {_key: 'P', _values: ["Lock", "bool", "", "",0]},
-							P05: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",0.8,0.8,0.8]},
+							P01: {_key: 'P', _values: ["Weight", "Number", "", "A",TNum('D',100)]},
+							P02: {_key: 'P', _values: ["Mute", "bool", "", "",TNum('I', 0)]},
+							P03: {_key: 'P', _values: ["Solo", "bool", "", "",TNum('I', 0)]},
+							P04: {_key: 'P', _values: ["Lock", "bool", "", "",TNum('I', 0)]},
+							P05: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",TNum('D',0.8),TNum('D',0.8),TNum('D',0.8)]},
 							P06: {_key: 'P', _values: ["BlendMode", "enum", "", "",0]},
 							P07: {_key: 'P', _values: ["RotationAccumulationMode", "enum", "", "",0]},
 							P08: {_key: 'P', _values: ["ScaleAccumulationMode", "enum", "", "",0]},
@@ -906,35 +933,67 @@ var codec = new Codec('fbx', {
 			}
 		})
 
-		model += formatFBXComment('Object properties');
-		model += compileASCIIFBXSection({
+		model.push(formatFBXComment('Object properties'));
+		model.push({
 			Objects
 		});
 
 		// Object connections
-		model += formatFBXComment('Object connections');
-		model += `Connections:  {\n\n`;
-		Connections.forEach(connection => {
-			let property = connection.property ? `, "${connection.property}"` : '';
-			model += `\t;${connection.name.join(', ')}\n`;
-			model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
+		model.push(formatFBXComment('Object connections'));
+		let connections = {};
+		Connections.forEach((connection, i) => {
+			//connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
+			connections[`connection_${i}`] = {
+				_key: 'C',
+				_values: [connection.property ? 'OP' : 'OO', ...connection.id]
+			}
+			if (connection.property) {
+				connections[`connection_${i}`]._values.push(connection.property);
+			}
+			//model += `\t;${connection.name.join(', ')}\n`;
+			//model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
 		})
-		model += `}\n`;
+
+		model.push({
+			Connections: connections
+		});
 
 		// Takes
-		model += formatFBXComment('Takes section');
-		model += compileASCIIFBXSection({
+		model.push(formatFBXComment('Takes section'));
+		model.push({
 			Takes
 		})
 
 		scope.dispatchEvent('compile', {model, options});
-		
-		return model;
+
+		let compiled_model;
+		if (options.encoding == 'binary') {
+			
+			let top_level_object = {};
+			model.forEach(section => {
+				if (typeof section == 'object') {
+					for (let key in section) {
+						top_level_object[key] = section[key];
+					}
+				}
+			})
+			compiled_model = compileBinaryFBXModel(top_level_object);
+			
+		} else {
+			compiled_model = model.map(section => {
+				if (typeof section == 'object') {
+					return compileASCIIFBXSection(section);
+				} else {
+					return section;
+				}
+			}).join('');
+		}
+
+		return compiled_model;
 	},
 	write(content, path) {
 		var scope = this;
 
-		content = this.compile();
 		Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
@@ -952,6 +1011,7 @@ var codec = new Codec('fbx', {
 		})
 	},
 	export_options: {
+		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII', binary: 'Binary'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		include_animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
 	},
@@ -1010,7 +1070,324 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
+class BinaryWriter {
+	constructor(minimal_length, little_endian) {
+		this.array = new Uint8Array(minimal_length);
+		this.buffer = this.array.buffer;
+		this.view = new DataView(this.buffer);
+		this.cursor = 0;
+		this.little_endian = !!little_endian;
+		this.textEncoder = new TextEncoder();
+	}
+	expand(n) {
+		if (this.cursor+n > this.buffer.byteLength) {
+			var oldArray = this.array;
+			// Expand by at least 160 bytes at a time to improve performance. Only works for FBX since 176+ arbitrary bytes are added to the file end.
+			this.array = new Uint8Array(this.cursor + Math.max(n, 176));
+			this.buffer = this.array.buffer;
+			this.array.set(oldArray);
+			this.view = new DataView(this.buffer)
+		}
+	}
+	WriteUInt8(value) {
+		this.expand(1);
+		this.view.setUint8(this.cursor, value);
+		this.cursor += 1;
+	}
+	WriteUInt16(value) {
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
+	}
+	WriteInt16(value) {
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
+	}
+	WriteInt32(value) {
+		this.expand(4);
+		this.view.setInt32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteInt64(value) {
+		this.expand(8);
+		this.view.setBigInt64(this.cursor, BigInt(value), this.little_endian);
+		this.cursor += 8;
+	}
+	WriteUInt32(value) {
+		this.expand(4);
+		this.view.setUint32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat32(value) {
+		this.expand(4);
+		this.view.setFloat32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteFloat64(value) {
+		this.expand(8);
+		this.view.setFloat64(this.cursor, value, this.little_endian);
+		this.cursor += 8;
+	}
+	WriteBoolean(value) {
+		this.WriteUInt8(value ? 1 : 0)
+	}
+	Write7BitEncodedInt(value) {
+		while (value >= 0x80) {
+			this.WriteUInt8(value | 0x80);
+			value = value >> 7;
+		}
+		this.WriteUInt8(value);
+	}
+	WriteRawString(string) {
+		var array = this.EncodeString(string);
+		this.WriteBytes(array);
+	}
+	WriteString(string, raw) {
+		var array = this.EncodeString(string);
+		if (!raw) this.Write7BitEncodedInt(array.byteLength);
+		this.WriteBytes(array);
+	}
+	WriteU32String(string) {
+		var array = this.EncodeString(string);
+		this.WriteUInt32(array.byteLength);
+		this.WriteBytes(array);
+	}
+	WriteU32Base64(base64) {
+		let data = atob(base64);
+		let array = Uint8Array.from(data, c => c.charCodeAt(0));
+		this.WriteUInt32(array.length);
+		this.WriteBytes(array);
+	}
+	WritePoint(point) {
+		this.expand(8);
+		this.view.setInt32(this.cursor, point.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, point.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector2(vector) {
+		this.expand(8);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteVector3(vector) {
+		this.expand(12);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteIntVector3(vector) {
+		this.expand(12);
+		this.view.setInt32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteQuaternion(quat) {
+		this.expand(16);
+		this.view.setFloat32(this.cursor, quat.w, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.z, this.little_endian);
+		this.cursor += 4;
+	}
+	WriteBytes(array) {
+		this.expand(array.byteLength);
+		this.array.set(array, this.cursor);
+		this.cursor += array.byteLength;
+	}
+	EncodeString(string) {
+		return this.textEncoder.encode(string);
+	}
+};
+
+function compileBinaryFBXModel(top_level_object) {
+	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
+	// https://github.com/jskorepa/fbx.js/blob/master/src/lib/index.ts
+
+	var writer = new BinaryWriter(20, true);
+	// Header
+	writer.WriteRawString('Kaydara FBX Binary  ');
+	writer.WriteUInt8(0x00);
+	writer.WriteUInt8(0x1A);
+	writer.WriteUInt8(0x00);
+	// Version
+	writer.WriteUInt32(7300);
+
+
+	function writeObjectRecursively(key, object) {
+
+		let tuple;
+		if (typeof object == 'object' && typeof object.map === 'function') {
+			tuple = object;
+		} else if (typeof object !== 'object') {
+			tuple = [object];
+		} else if (object._values) {
+			tuple = object._values;
+		} else {
+			tuple = [];
+		}
+		let is_data_array = object._values && object.a && object._type != undefined;
+
+		// EndOffset, change later
+		let end_offset_index = writer.cursor;
+		writer.WriteUInt32(0);
+		// NumProperties
+		writer.WriteUInt32(tuple.length);
+		// PropertyListLen, change later
+		let property_length_index = writer.cursor;
+		writer.WriteUInt32(0);
+		// Name
+		writer.WriteString(key);
+
+		
+		let property_start_index = writer.cursor;
+		// Data Array
+		if (is_data_array) {
+			let type = object._type || 'i';
+			if (!object._type) console.log('default', key, 'to int')
+			let array = object.a;
+			if (array instanceof Array == false) array = [array];
+			
+			writer.WriteRawString(type);
+			writer.WriteUInt32(array.length);
+			// Encoding (compression, unused by Blockbench)
+			writer.WriteUInt32(0);
+			// Compressed Length
+			writer.WriteUInt32(0);
+			// Contents
+			for (let v of array) {
+				switch (type) {
+					case 'f': writer.WriteFloat32(v); break;
+					case 'd': writer.WriteFloat64(v); break;
+					case 'l': writer.WriteInt64(v); break;
+					case 'i': writer.WriteInt32(v); break;
+					case 'b': writer.WriteBoolean(v); break;
+				}
+			}
+		} else {
+
+			// Tuple
+			tuple.forEach((value, i) => {
+				let type = typeof value;
+				if (typeof value == 'object' && value.isTNum) {
+					type = value.type;
+					value = value.value;
+				}
+				if (type == 'number') {
+					type = value % 1 ? 'D' : 'I';
+					if (!object._type) console.log('default', key, i, 'to', type, object)
+				}
+				// handle number types
+				// Y: int16
+				// I: int32
+				// F: Float 32
+				// D: Double 64
+				// L: int64
+
+				if (type == 'boolean') {
+					writer.WriteRawString('C');
+					writer.WriteBoolean(value);
+
+				} else if (type == 'string' && value.startsWith('iV')) {
+					// base64
+					writer.WriteRawString('R');
+					writer.WriteU32Base64(value);
+
+				} else if (type == 'string') {
+					// string
+					writer.WriteRawString('S');
+					if (value.startsWith('_')) value = value.substring(1);
+					writer.WriteU32String(value);
+
+				} else if (type == 'Y') {
+					writer.WriteRawString('Y');
+					writer.WriteInt16(value);
+
+				} else if (type == 'I') {
+					writer.WriteRawString('I');
+					writer.WriteInt32(value);
+
+				} else if (type == 'F') {
+					writer.WriteRawString('F');
+					writer.WriteFloat32(value);
+
+				} else if (type == 'D') {
+					writer.WriteRawString('D');
+					writer.WriteFloat64(value);
+
+				} else if (type == 'L') {
+					writer.WriteRawString('L');
+					writer.WriteInt64(value);
+
+				}
+				
+			})
+		}
+
+		// Property Byte Length
+		writer.view.setUint32(property_length_index, writer.cursor - property_start_index, writer.little_endian);
+
+		// Nested List
+		if (typeof object == 'object' && object instanceof Array == false && !is_data_array) {
+
+			let is_nested = false;
+			for (let key in object) {
+				if (typeof key == 'string' && key.startsWith('_')) continue;
+				if (object[key] === undefined) continue;
+				let child = object[key];
+				if (child._comment) continue;
+				if (child._key) key = child._key;
+
+				is_nested = true;
+
+				writeObjectRecursively(key, child);
+			}
+			// Null Record, indicating a nested list. Length is 13 in v7.3, 25 in v7.5+
+			if (is_nested) {
+				for (let i = 0; i < 13; i++) {
+					writer.WriteUInt8(0x00);
+				}
+			}
+		}
+		// End Offset
+		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian);
+	}
+	//writeObjectRecursively('', top_level_object);
+	for (let key in top_level_object) {
+		writeObjectRecursively(key, top_level_object[key]);
+	}
+
+	// Footer
+	let footer = [
+        0xfa, 0xbc, 0xab, 0x09,
+        0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xe8, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8, 0x5a, 0x8c, 0x6a,
+        0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
+    ];
+	writer.WriteBytes(new Uint8Array(footer));
+
+	return writer.array;
+}
 
 function compileASCIIFBXSection(object) {
 	let depth = 0;
@@ -1023,6 +1400,8 @@ function compileASCIIFBXSection(object) {
 	}
 
 	function handleValue(value) {
+		if (typeof value == 'object' && value.isTNum) value = value.value;
+		if (typeof value == 'boolean') return value ? 'Y' : 'N';
 		if (typeof value == 'string' && value.startsWith('_')) return value.substring(1);
 		if (typeof value == 'string') return '"' + value + '"';
 		return value;
@@ -1047,6 +1426,10 @@ function compileASCIIFBXSection(object) {
 			if (typeof key == 'string' && key.startsWith('_')) continue;
 			if (parent[key] === undefined) continue;
 			let object = parent[key];
+			if (object._comment) {
+				output += `\n${indent()};${object._comment}\n`;
+				continue;
+			}
 			if (object._key) key = object._key;
 
 			let values = '';
@@ -1076,3 +1459,5 @@ function compileASCIIFBXSection(object) {
 	}
 	return handleObjectChildren(object);
 }
+
+})()
