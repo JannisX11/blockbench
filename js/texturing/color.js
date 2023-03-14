@@ -61,7 +61,8 @@ Interface.definePanels(() => {
 		}
 	}
 	StateMemory.init('color_picker_tab', 'string')
-	StateMemory.init('color_picker_rgb_mode', 'boolean')
+	StateMemory.init('color_picker_rgb', 'boolean')
+	StateMemory.init('color_palette_locked', 'boolean')
 
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
@@ -167,6 +168,15 @@ Interface.definePanels(() => {
 									this.updateSliders();
 								}}
 							]
+						},
+						{
+							id: 'lock_palette',
+							name: 'menu.palette.lock_palette',
+							icon: () => StateMemory.color_palette_locked,
+							click() {
+								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+								StateMemory.save('color_palette_locked');
+							}
 						}
 						// slider
 					]).open(event.target);
@@ -188,6 +198,16 @@ Interface.definePanels(() => {
 						let sign = Math.sign(event.deltaY);
 						if (event.shiftKey) sign *= 4;
 						BarItems.slider_color_h.change(v => v+sign);
+					}
+				},
+				sortChoose() {
+					if (StateMemory.color_palette_locked) {
+						Blockbench.showQuickMessage('message.palette_locked');
+					}
+				},
+				sortMove() {
+					if (StateMemory.color_palette_locked) {
+						return false;
 					}
 				},
 				sort(event) {
@@ -273,7 +293,7 @@ Interface.definePanels(() => {
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
 						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 							<li
 								class="color" v-for="color in palette"
 								:title="color" :key="color"
@@ -301,9 +321,19 @@ Interface.definePanels(() => {
 			}
 		},
 		menu: new Menu([
+			{
+				id: 'lock_palette',
+				name: 'menu.palette.lock_palette',
+				icon: () => StateMemory.color_palette_locked,
+				click() {
+					StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+					StateMemory.save('color_palette_locked');
+				}
+			},
+			'_',
 			'sort_palette',
 			'save_palette',
-			'load_palette'
+			'load_palette',
 		])
 	})
 	ColorPanel.updateFromHsv = function() {
@@ -750,8 +780,11 @@ BARS.defineActions(function() {
 		icon: 'add',
 		category: 'color',
 		click: function () {
-			var color = ColorPanel.get();
-			if (!ColorPanel.palette.includes(color)) {
+			let color = ColorPanel.get();
+			if (StateMemory.color_palette_locked) {
+				Blockbench.showQuickMessage('message.palette_locked');
+
+			} else if (!ColorPanel.palette.includes(color)) {
 				ColorPanel.palette.push(color);
 				ColorPanel.saveLocalStorages();
 				Blockbench.showQuickMessage('message.add_to_palette');

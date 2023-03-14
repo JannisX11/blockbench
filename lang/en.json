@@ -330,6 +330,7 @@
 	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
 	"message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV.",
 	"message.no_valid_elements": "No valid elements selected...",
+	"message.palette_locked": "The palette is locked",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",
@@ -1679,6 +1680,7 @@
 	"menu.palette.load.empty": "Blank",
 	"menu.palette.load.update": "Update Palette",
 	"menu.palette.load.update.desc": "Updates this palette with the colors of the current Blockbench palette",
+	"menu.palette.lock_palette": "Lock Palette",
 
 	"menu.color_picker.picker_type": "Picker Type",
 	"menu.color_picker.picker_type.square": "Square",

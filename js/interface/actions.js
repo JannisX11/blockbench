@@ -1798,6 +1798,10 @@ const BARS = {
 					if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
+						if (StateMemory.color_palette_locked) {
+							Blockbench.showQuickMessage('message.palette_locked');
+							return;
+						}
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
