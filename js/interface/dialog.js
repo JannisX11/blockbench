@@ -137,6 +137,29 @@ function buildForm(dialog) {
 					break;
 
 
+				case 'inline_select':
+					let options = [];
+					let val = data.value || data.default;
+					let i = 0;
+					let wrapper;
+					for (let key in data.options) {
+						let is_selected = val ? key == val : i == 0;
+						let text = data.options[key].name || data.options[key];
+						let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
+						node.onclick = event => {
+							options.forEach(li => {
+								li.classList.toggle('selected', li == node);
+							})
+							dialog.updateFormValues();
+						}
+						options.push(node);
+						i++;
+					}
+					wrapper = Interface.createElement('ul', {class: 'form_inline_select'}, options);
+					bar.append(wrapper)
+					break;
+
+
 				case 'radio':
 					let el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
 					for (let key in data.options) {
@@ -553,6 +576,11 @@ window.Dialog = class Dialog {
 					case 'select':
 						data.select_input.set(value);
 						break;
+					case 'inline_select':
+						data.bar.find('li').each((i, el) => {
+							el.classList.toggle('selected', el.getAttribute('key') == value);
+						})
+						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
 						break;
@@ -600,6 +628,9 @@ window.Dialog = class Dialog {
 							break;
 						case 'select':
 							result[form_id] = data.bar.find('bb-select#'+form_id).attr('value');
+							break;
+						case 'inline_select':
+							result[form_id] = data.bar.find('li.selected')[0]?.getAttribute('key') || '';
 							break;
 						case 'radio':
 							result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')

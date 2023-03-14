@@ -258,35 +258,57 @@
 		margin-bottom: -14px;
 	}
 
-	dialog .form_bar_file .input_wrapper {
+	.form_bar_file .input_wrapper {
 		position: relative;
 		flex-grow: 1;
 	}
-	dialog .form_bar_file .input_wrapper input {
+	.form_bar_file .input_wrapper input {
 		width: 100%;
 		padding-right: 30px;
 	}
-	dialog .form_bar_file .input_wrapper > .material-icons {
+	.form_bar_file .input_wrapper > .material-icons {
 		position: absolute;
 		margin-left: -28px;
 		margin-top: 4px;
 		opacity: 0.75;
 		right: 4px;
 	}
-	dialog .form_bar_file:hover .input_wrapper > .material-icons {
+	.form_bar_file:hover .input_wrapper > .material-icons {
 		opacity: 1;
 	}
-	dialog .form_bar_radio {
+	.form_inline_select {
 		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		flex-grow: 1;
 	}
-	dialog .form_bar_radio:hover {
+	.form_inline_select > li {
+		height: 30px;
+		padding: 3px 8px;
+		flex-grow: 1;
+		cursor: pointer;
+		background-color: var(--color-button);
+		text-align: center;
+	}
+	.form_inline_select > li:hover {
 		color: var(--color-light);
 	}
-	dialog .form_bar_radio label {
+	.form_inline_select > li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		cursor: default;
+	}
+	.form_bar_radio {
+		display: flex;
+	}
+	.form_bar_radio:hover {
+		color: var(--color-light);
+	}
+	.form_bar_radio label {
 		flex-grow: 1;
 		padding: 3px 5px;
 	}
-	dialog .dialog_form_description {
+	.dialog_form_description {
 		margin-left: auto;
 		padding-top: 8px;
 		font-size: 13px;
@@ -296,7 +318,7 @@
 		width: 16px;
 		text-align: center;
 	}
-	dialog .dialog_form_description:hover {
+	.dialog_form_description:hover {
 		color: var(--color-light);
 		transition: color 750ms linear;
 	}

@@ -675,7 +675,7 @@ class Animation extends AnimationItem {
 				},
 				loop: {
 					label: 'menu.animation.loop',
-					type: 'select',
+					type: 'inline_select',
 					value: this.loop,
 					options: {
 						once: 'menu.animation.loop.once',
