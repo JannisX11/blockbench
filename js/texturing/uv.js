@@ -1332,6 +1332,7 @@ const UVEditor = {
 		'uv_maximize',
 		'uv_auto',
 		'uv_rel_auto',
+		'merge_uv_vertices',
 		'snap_uv_to_pixels',
 		'uv_rotate_left',
 		'uv_rotate_right',
@@ -1643,6 +1644,40 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Set face tint')
 		}
 	})
+	new Action('merge_uv_vertices', {
+		icon: 'close_fullscreen',
+		category: 'uv',
+		condition: () => UVEditor.isFaceUV() && UVEditor.selected_faces.length >= 2 && Mesh.selected[0],
+		click: function (event) {
+			Undo.initEdit({elements: Mesh.selected, uv_only: true})
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				let face1 = mesh.faces[UVEditor.selected_faces.last()];
+				let target_coords = {};
+				let main_target_coord;
+				face1.vertices.forEach(vkey => {
+					if (!selected_vertices.includes(vkey)) return;
+					target_coords[vkey] = face1.uv[vkey];
+					main_target_coord = face1.uv[vkey];
+				});
+				UVEditor.selected_faces.forEach(fkey => {
+					let face = mesh.faces[fkey];
+					if (!face || face == face1) return;
+					let i = 0;
+					face.vertices.forEach(vkey => {
+						if (selected_vertices.includes(vkey) && face.uv[vkey]) {
+							face.uv[vkey][0] = (target_coords[vkey] || main_target_coord)[0];
+							face.uv[vkey][1] = (target_coords[vkey] || main_target_coord)[1];
+							i++;
+						}
+					})
+				})
+				mesh.preview_controller.updateUV(mesh);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Merge UV vertices');
+		}
+	})
 	new Action('snap_uv_to_pixels', {
 		icon: 'grid_goldenratio',
 		category: 'uv',
@@ -1672,7 +1707,7 @@ BARS.defineActions(function() {
 				element.preview_controller.updateUV(element);
 			})
 			UVEditor.loadData();
-			Undo.finishEdit('Set automatic cullface')
+			Undo.finishEdit('Snap UV to pixel grid')
 		}
 	})
 	new Toggle('paint_mode_uv_overlay', {
