@@ -530,6 +530,9 @@
 	}
 
 /*Textures*/
+	#texture_list {
+		padding-bottom: 20px;
+	}
 	.texture {
 		display: flex;
 		height: 48px;
