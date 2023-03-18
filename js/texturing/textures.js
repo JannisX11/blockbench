@@ -18,6 +18,8 @@ class Texture {
 		this.img = 0;
 		this.width = 0;
 		this.height = 0;
+		this.uv_width = Project ? Project.texture_width : 16;
+		this.uv_height = Project ? Project.texture_height : 16;
 		this.currentFrame = 0;
 		this.saved = true;
 
@@ -204,8 +206,8 @@ class Texture {
 				if (Project.box_uv && Format.single_texture && !scope.error) {
 
 					if (!scope.keep_size) {
-						let pw = Project.texture_width;
-						let ph = Project.texture_height;
+						let pw = scope.getUVWidth();
+						let ph = scope.getUVHeight();
 						let nw = img.naturalWidth;
 						let nh = img.naturalHeight;
 
@@ -264,8 +266,8 @@ class Texture {
 		}
 	}
 	get frameCount() {
-		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
-			return (Project.texture_width / Project.texture_height) / this.ratio
+		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (this.getUVWidth() / this.getUVHeight()) && 1/this.ratio % 1 === 0) {
+			return (this.getUVWidth() / this.getUVHeight()) / this.ratio
 		}
 	}
 	get display_height() {
@@ -273,6 +275,12 @@ class Texture {
 	}
 	get ratio() {
 		return this.width / this.height;
+	}
+	getUVWidth() {
+		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
+	}
+	getUVHeight() {
+		return Format.per_texture_uv_size ? this.uv_height : Project.texture_height;
 	}
 	getErrorMessage() {
 		switch (this.error) {
@@ -970,6 +978,9 @@ class Texture {
 				}},
 			});
 		}
+		if (Format.per_texture_uv_size) {
+			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1};
+		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
 				'texture_mcmeta': '_',
@@ -1014,6 +1025,11 @@ class Texture {
 				if (results.namespace !== undefined) this.namespace = results.namespace;
 				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
+				
+				if (Format.per_texture_uv_size) {
+					this.uv_width = results.uv_size[0];
+					this.uv_height = results.uv_size[1];
+				}
 
 				if (this.render_mode == 'layered' && old_render_mode !== this.render_mode) {
 					Texture.all.forEach((tex, i) => {
@@ -1133,15 +1149,20 @@ class Texture {
 					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
 					} else if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
-						Undo.current_save.uv_mode = {
-							box_uv: Project.box_uv,
-							width:  Project.texture_width,
-							height: Project.texture_height
-						}
-						Undo.current_save.aspects.uv_mode = true;
 
-						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
-						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
+						if (Format.per_texture_uv_size) {
+							this.uv_width = Project.texture_width * (formResult.size[0] / old_width);
+							this.uv_height = Project.texture_height * (formResult.size[1] / old_height);
+						} else {
+							Undo.current_save.uv_mode = {
+								box_uv: Project.box_uv,
+								width:  Project.texture_width,
+								height: Project.texture_height
+							}
+							Undo.current_save.aspects.uv_mode = true;
+							Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
+							Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
+						}
 						Canvas.updateAllUVs()
 
 					} else if (formResult.fill !== 'stretch' && Texture.length >= 2 && elements_to_change) {
@@ -1213,9 +1234,9 @@ class Texture {
 				frametime: this.frame_time
 			}
 
-			if (Project.texture_width != Project.texture_height) {
-				animation.width = Project.texture_width;
-				animation.height = Project.texture_height;
+			if (this.getUVWidth() != this.getUVHeight()) {
+				animation.width = this.getUVWidth();
+				animation.height = this.getUVHeight();
 			}
 
 			if (this.frame_interpolate) animation.interpolate = true;
@@ -1614,6 +1635,8 @@ class Texture {
 	new Property(Texture, 'string', 'folder')
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
+	new Property(Texture, 'number', 'uv_width')
+	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})

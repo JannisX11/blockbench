@@ -566,7 +566,9 @@ function setProjectResolution(width, height, modify_uv) {
 		modify_uv = false;
 	}
 
-	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
+	let textures = Project.per_texture_uv_size ? Texture.all : undefined;
+
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true, textures});
 
 	let old_res = {
 		x: Project.texture_width,
@@ -610,6 +612,11 @@ function setProjectResolution(width, height, modify_uv) {
 			Outliner.elements.forEach(element => shiftElement(element, 1));
 		}
 	}
+	textures && textures.forEach(tex => {
+		tex.uv_width = Project.texture_width;
+		tex.uv_height = Project.texture_height;
+	});
+
 	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {

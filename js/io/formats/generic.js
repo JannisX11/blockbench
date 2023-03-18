@@ -19,6 +19,7 @@ new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	optional_box_uv: true,
+	per_texture_uv_size: true,
 	uv_rotation: true,
 	animation_mode: true,
 	animated_textures: true,
