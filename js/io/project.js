@@ -257,9 +257,6 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
-		Preview.all.forEach(p => {
-			if (p.canvas.isConnected) p.loadBackground()
-		})
 		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);

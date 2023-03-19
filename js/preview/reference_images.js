@@ -116,7 +116,8 @@ class ReferenceImage {
 		return this;
 	}
 	select(force) {
-		if (!force && this.selected) return;
+		if (!force && this.selected) return this;
+		if (this.scope == 'built_in') return this;
 		if (ReferenceImage.selected && ReferenceImage.selected != this) {
 			ReferenceImage.selected.unselect();
 		}
@@ -136,6 +137,12 @@ class ReferenceImage {
 		return ReferenceImage.selected == this;
 	}
 	save() {
+		this.position[0] = Math.round(this.position[0]);
+		this.position[1] = Math.round(this.position[1]);
+		this.size[0] = Math.round(this.size[0]);
+		this.size[1] = Math.round(this.size[1]);
+		this.rotation = Math.roundTo(this.rotation, 2);
+
 		switch (this.scope) {
 			case 'project':
 				Project.saved = false;
@@ -224,6 +231,7 @@ class ReferenceImage {
 		return preview ? preview.camOrtho.zoom * 2 : 1;
 	}
 	updateTransform() {
+		if (!this.node.isConnected) return this;
 		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview) {
 
@@ -252,6 +260,7 @@ class ReferenceImage {
 			this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
 			this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
 		}
+		return this;
 	}
 	updateClearMode() {
 		if (this.clear_mode && this.image_is_loaded) {
@@ -287,8 +296,6 @@ class ReferenceImage {
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
-						//offset[0] = offset[1] * this.aspect_ratio * Math.sign(offset[1]) * Math.sign(offset[0]);
-						// todo: keep aspect ratio;
 						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
@@ -365,8 +372,26 @@ class ReferenceImage {
 			node.onclick = click;
 		}
 
-		addButton('layer', 'flip_to_front', () => {
-			// todo: layer menu
+		addButton('layer', 'flip_to_front', (event) => {
+			let layers = {
+				background: 'reference_image.layer.background',
+				viewport: 'reference_image.layer.viewport',
+				float: 'reference_image.layer.float',
+			}
+			if (Preview.selected.angle) {
+				layers.blueprint = 'reference_image.layer.blueprint';
+			}
+			let options = Object.keys(layers).map(key => {
+				return {
+					name: layers[key],
+					icon: this.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					click: () => {
+						this.changeLayer(key);
+						this.update().save();
+					}
+				}
+			})
+			new Menu(options).open(event.target);
 		});
 		
 		addButton('flip_x', 'icon-mirror_x', () => {
@@ -470,8 +495,8 @@ class ReferenceImage {
 	async delete(force) {
 		if (!force) {
 			let result = await new Promise(resolve => Blockbench.showMessageBox({
-				title: 'Reference Image',
-				message: 'Are you sure you want to delete this reference image? This cannot be undone.',
+				title: 'data.reference_image',
+				message: 'message.delete_reference_image',
 				buttons: ['dialog.confirm', 'dialog.cancel']
 			}, resolve));
 			if (result == 1) return;
@@ -493,29 +518,43 @@ class ReferenceImage {
 			this.position.V2_set(0, 0);
 		}
 		this.layer = layer;
+		return this;
 	}
-	changeScope() {
-		// todo
+	changeScope(new_scope) {
+		if (new_scope == this.scope) return this;
+
+		switch (this.scope) {
+			case 'project': Project.reference_images.remove(this); break;
+			case 'global': ReferenceImage.global.remove(this); break;
+			//case 'built_in': ReferenceImage.built_in.remove(this); break;
+		}
+		this.scope = new_scope;
+		switch (this.scope) {
+			case 'project': Project.reference_images.push(this); break;
+			case 'global': ReferenceImage.global.push(this); break;
+			//case 'built_in': ReferenceImage.built_in.push(this); break;
+		}
+		return this;
 	}
 	propertiesDialog() {
 		new Dialog('reference_image_properties', {
-			title: 'Reference Image',
+			title: 'data.reference_image',
 			form: {
-				source: {type: 'file', label: 'Image', condition: () => isApp && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
-				layer: {type: 'select', label: 'Layer', value: this.layer, options: {
-					background: 'Behind Model',
-					viewport: 'Above Model',
-					float: 'Above Interface',
-					blueprint: 'Locked Blueprint',
+				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
+				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
+					background: 'reference_image.layer.background',
+					viewport: 'reference_image.layer.viewport',
+					float: 'reference_image.layer.float',
+					blueprint:  Preview.selected.angle ? 'reference_image.layer.blueprint' : undefined,
 				}},
-				scope: {type: 'select', label: 'Scope', value: this.scope, options: {
-					project: 'Save per project',
-					global: 'Save in Blockbench',
+				scope: {type: 'select', label: 'reference_image.scope', value: this.scope, options: {
+					project: 'reference_image.scope.project',
+					global: 'reference_image.scope.global',
 				}},
-				position: {type: 'vector', label: 'Position', dimensions: 2, value: this.position},
-				size: {type: 'vector', label: 'Size', dimensions: 2, value: this.size},
-				rotation: {type: 'number', label: 'Rotation', value: this.rotation},
-				opacity: {type: 'range', label: 'Opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
+				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
+				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
+				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
+				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
 			},
 			onConfirm: (result) => {
 				let clear_mode_before = this.clear_mode;
@@ -533,29 +572,39 @@ class ReferenceImage {
 }
 ReferenceImage.prototype.menu = new Menu([
 	/**
-	Type
+	 * Todo
 	Visibility
+	Restore
+	Refresh file
 	 */
 	{
 		id: 'clear_mode',
-		name: 'Clear Mode',
+		name: 'reference_image.clear_mode',
 		icon: (ref) => ref.clear_mode,
 		condition: ref => ref.layer == 'blueprint',
 		click(ref) {
 			ref.clear_mode = !ref.clear_mode;
 			ref.updateClearMode();
 			ref.update().save();
+
+			// Preview
+			if (ref.clear_mode) {
+				ref.unselect();
+				setTimeout(() => ref.select(), 400);
+			}
 		}
 	},
 	{
-		name: 'Layer',
+		name: 'reference_image.layer',
 		icon: 'list',
 		children: (reference) => {
 			let layers = {
-				background: 'Behind Model',
-				viewport: 'Above Model',
-				float: 'Above Interface',
-				blueprint: 'Locked Blueprint',
+				background: 'reference_image.layer.background',
+				viewport: 'reference_image.layer.viewport',
+				float: 'reference_image.layer.float',
+			}
+			if (Preview.selected.angle) {
+				layers.blueprint = 'reference_image.layer.blueprint';
 			}
 			let children = [];
 			for (let key in layers) {
@@ -565,7 +614,7 @@ ReferenceImage.prototype.menu = new Menu([
 					icon: reference.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
 					click() {
 						reference.changeLayer(key);
-						reference.update();
+						reference.update().save();
 					}
 				})
 			}
@@ -576,7 +625,7 @@ ReferenceImage.prototype.menu = new Menu([
 	'delete',
 	'_',
 	{
-		name: 'Properties...',
+		name: 'menu.texture.properties',
 		icon: 'list',
 		click(instance, b) {
 			instance.propertiesDialog();
@@ -630,19 +679,6 @@ StateMemory.global_reference_images.forEach(template => {
 
 
 const ReferenceImageMode = {
-	/**
-	TODO
-	x display background images ( no vue :( ))
-	x selected display mode with handles and stuff
-	x save in project
-	x convert old background images to reference images
-	x Add buttons to join and exit editing mode
-	x Implement toolbar
-	  Implement blueprint mode (locked to camera)
-	  Implement display mode references
-	x Start editing references when double clicking preview back
-	x Integrate color picker
-	 */
 	active: false,
 	toolbar: null,
 	activate() {
@@ -650,9 +686,11 @@ const ReferenceImageMode = {
 		Interface.work_screen.classList.add('reference_image_mode');
 		Interface.work_screen.append(ReferenceImageMode.toolbar.node);
 		ReferenceImage.updateAll();
-		if (!ReferenceImage.selected && ReferenceImage.active[0]) {
-			ReferenceImage.active[0].select();
-		}
+		setTimeout(_ => {
+			if (!ReferenceImage.selected && ReferenceImage.active[0]) {
+				ReferenceImage.active[0].select();
+			}
+		}, 1);
 	},
 	deactivate() {
 		ReferenceImageMode.active = false;
@@ -721,6 +759,32 @@ BARS.defineActions(function() {
 			}, 'image', false)
 		}
 	});
+	new Action('reference_image_from_clipboard', {
+		icon: 'fa-clipboard',
+		category: 'view',
+		click() {
+			if (!ReferenceImageMode.active) {
+				ReferenceImageMode.activate()
+			}
+			if (isApp) {
+				var image = clipboard.readImage().toDataURL();
+				if (image.length > 32) {
+					ReferenceImageMode.importReferences([{content: image, name: 'Pasted'}]);
+				}
+			} else {
+				navigator.clipboard.read().then(content => {
+					if (content && content[0] && content[0].types.includes('image/png')) {
+						content[0].getType('image/png').then(blob => {
+							let url = URL.createObjectURL(blob);
+							if (image.length > 32) {
+								ReferenceImageMode.importReferences([{content: url, name: 'Pasted'}]);
+							}
+						})
+					}
+				})
+			}
+		}
+	});
 	new Action('reference_image_list', {
 		icon: 'list',
 		category: 'view',
@@ -731,9 +795,10 @@ BARS.defineActions(function() {
 			let list = [];
 			function getSubMenu(reference) {
 				return [
-					/**
+					/** Todo: add options
 					 * Center
-					 * Reset
+					 * Delete
+					 * Visibility
 					 */
 					{
 						name: 'Properties...',
@@ -764,40 +829,10 @@ BARS.defineActions(function() {
 				if (!Condition(reference.condition)) return;
 				list.push({
 					name: (reference.name || 'Unknown').substring(0, 24), id: reference.uuid,
-					icon: 'settings',
-					children: getSubMenu(reference)
+					icon: 'settings'
 				});
 			});
 			return list;
-		}
-	});
-	new Action('search_reference_image', {
-		icon: 'image_search',
-		category: 'view',
-		condition: isApp,
-		click() {
-			if (!ReferenceImageMode.active) {
-				ReferenceImageMode.activate()
-			}
-
-			let window = new electron.BrowserWindow({
-				icon: 'icon.ico',
-				modal: true,
-				parent: currentwindow,
-				width: 1080,
-				height: 720,
-				menuBarVisible: false,
-			})
-			if (process.platform !== 'darwin') {
-				window.setMenu(null);
-			}
-			window.loadURL('https://google.com/images');
-			
-			window.webContents.on('context-menu', (event, url, response, text) => {
-				window.close();
-				
-				ReferenceImageMode.importReferences([{content: url.srcURL, name: url.altText.substring(0, 24)}]);
-			})
 		}
 	});
 })
@@ -806,7 +841,7 @@ Interface.definePanels(function() {
 	ReferenceImageMode.toolbar = new Toolbar('reference_images', {
 		children: [
 			'add_reference_image',
-			'search_reference_image',
+			'reference_image_from_clipboard',
 			'reference_image_list',
 		]
 	})

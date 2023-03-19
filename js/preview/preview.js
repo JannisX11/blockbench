@@ -2,7 +2,6 @@ var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
 	Transformer,
-	canvas_scenes,
 	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
@@ -150,14 +149,11 @@ class Preview {
 				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
 				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
 				<div class="shading_placeholder"></div>
-				<div class="tool preview_reference_menu"><i class="material-icons">wallpaper</i></div>
 				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
-		menu.querySelector('.preview_reference_menu').onclick = (event) => {
-			//let M = new Menu(this.menu.structure.find(s => s.id == 'reference_images').children(this));
-			//M.open(menu, this);
+		/*menu.querySelector('.preview_reference_menu').onclick = (event) => {
 			BarItems.edit_reference_images.trigger();
-		}
+		}*/
 		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
 		}
@@ -175,10 +171,10 @@ class Preview {
 			name: tl('action.view_mode'),
 			node: menu.querySelector('.preview_view_mode_menu')
 		})
-		BarItem.prototype.addLabel(false, {
+		/*BarItem.prototype.addLabel(false, {
 			name: tl('action.edit_reference_images'),
 			node: menu.querySelector('.preview_reference_menu')
-		})
+		})*/
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
 			node: menu.querySelector('.preview_main_menu')
@@ -295,8 +291,6 @@ class Preview {
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
 
-		//this.loadBackground()
-
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
@@ -347,7 +341,6 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			//this.updateBackground()
 			if (Transformer) {
 				Transformer.update()
 			}
@@ -539,7 +532,6 @@ class Preview {
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
 			}
-			//this.loadBackground();
 
 			var layer = getAxisNumber(this.camOrtho.axis)+1;
 			this.camOrtho.layers.set(0);
@@ -569,7 +561,6 @@ class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
-			//this.loadBackground()
 		}
 
 		Transformer.update();
@@ -1307,57 +1298,13 @@ class Preview {
 		this.selection.box.detach()
 		this.selection.activated = false;
 	}
-
-	loadBackground() {}
-	updateBackground() {}
-	//Backgrounds
-	/*getBackground() {
-		if (display_mode) {
-			var id = displayReferenceObjects.active.id
-			if (id == 'monitor' ||id == 'bow') {
-				return this.background = canvas_scenes.monitor
-			} else if (['inventory_nine', 'inventory_full', 'hud'].includes(id)) {
-				return this.background = canvas_scenes[id]
-			}
-		}
-		if (this.angle === null) {
-			return this.background = Project && Project.backgrounds.normal;
-		} else {
-			return this.background = Project && Project.backgrounds['ortho_'+this.angle];
-		}
+	// Background
+	loadBackground() {
+		console.warn('Preview.loadBackground() is no longer supported')
 	}
 	updateBackground() {
-		if (!this.background) return;
-		var bg = this.background
-		var zoom = (this.angle !== null && bg.lock === true) ? this.camOrtho.zoom : 1
-		var pos_x = 0;
-		var pos_y = 0;
-		if (this.angle !== null && bg.lock !== false) {
-			pos_x = this.camOrtho.backgroundHandle[0].n === true ? 1 : -1
-			pos_x *= this.controls.target[this.camOrtho.backgroundHandle[0].a] * zoom * 40
-			pos_y = this.camOrtho.backgroundHandle[1].n === true ? 1 : -1
-			pos_y *= this.controls.target[this.camOrtho.backgroundHandle[1].a] * zoom * 40
-		}
-		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
-		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
-
-		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
-		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
-		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
-		return this;
+		console.warn('Preview.updateBackground() is no longer supported')
 	}
-	restoreBackground() {
-		this.loadBackground()
-		if (this.background && this.background.defaults) {
-			this.background.image = this.background.defaults.image || false;
-			this.background.size = this.background.defaults.size || 1000
-			this.background.x = this.background.defaults.x || 0
-			this.background.y = this.background.defaults.y || 0
-		}
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}*/
 	//Misc
 	screenshot(options, cb) {
 		return Screencam.screenshotPreview(this, options, cb);
@@ -1416,73 +1363,8 @@ class Preview {
 		}},
 		'preview_checkerboard',
 		'add_reference_image',
+		'reference_image_from_clipboard',
 		'edit_reference_images',
-		/*{id: 'reference_images', icon: 'wallpaper', name: 'menu.preview.reference_images', condition: (preview) => preview.getBackground(), children(preview) {
-			return [];
-			var has_background = !!preview.background.image
-			function applyBackground(image) {
-				if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-					image = image + '?' + Math.floor(Math.random() * 1000);
-				}
-				preview.background.image = image;
-				preview.loadBackground();
-				Settings.saveLocalStorages();
-				preview.startMovingBackground();
-			}
-			return [
-				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
-					Blockbench.import({
-						resource_id: 'preview_background',
-						extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-						type: 'Image',
-						readtype: 'image'
-					}, function(files) {
-						if (files) {
-							applyBackground(isApp ? files[0].path : files[0].content);
-						}
-					}, 'image', false)
-				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					if (isApp) {
-						var image = clipboard.readImage().toDataURL();
-						if (image.length > 32) applyBackground(image);
-					} else {
-						navigator.clipboard.read().then(content => {
-							if (content && content[0] && content[0].types.includes('image/png')) {
-								content[0].getType('image/png').then(blob => {
-									let url = URL.createObjectURL(blob);
-									if (image.length > 32) applyBackground(url);
-								})
-							}
-						})
-					}
-				}},
-				{icon: 'refresh', name: 'menu.texture.refresh', condition: isApp && has_background && preview.background.image && preview.background.image.substring(0, 10) !== 'data:image', click: function(preview) {
-					preview.background.image = preview.background.image.replace(/\?\w+$/, '') + '?' + Math.floor(Math.random() * 1000);
-					preview.loadBackground();
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
-					preview.startMovingBackground()
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.set_position', condition: has_background, click: function(preview) {
-					preview.backgroundPositionDialog()
-				}},
-				{
-					name: 'menu.preview.background.lock',
-					condition: (has_background && preview.background.lock !== null && preview.angle !== null),
-					icon: preview.background.lock?'check_box':'check_box_outline_blank', 
-					click: function(preview) {
-					preview.background.lock = !preview.background.lock
-					preview.updateBackground()
-				}},
-				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
-					preview.clearBackground()
-				}},
-				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
-					preview.restoreBackground()
-				}}
-			]
-		}},*/
 		'_',
 		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
@@ -1843,50 +1725,31 @@ function initCanvas() {
 			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
 			name: tl('display.reference.inventory_nine'),
 			source: './assets/inventory_nine.png',
-			position: [0, -525],
-			size: [1051, 1051],
-			lock: true
+			position: [0, 0],
+			size: [528, 528],
+			attached_side: 'south',
+			layer: 'blueprint'
 		}).addAsBuiltIn(),
 
 		inventory_full: new ReferenceImage({
 			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
 			name: tl('display.reference.inventory_full'),
 			source: './assets/inventory_full.png',
-			position: [0, -1740],
-			size: [2781, 2781],
-			lock: true
+			position: [0, -215.6],
+			size: [1390, 1310],
+			attached_side: 'south',
+			layer: 'blueprint'
 		}).addAsBuiltIn(),
 
 		hud: new ReferenceImage({
 			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
 			name: tl('display.reference.hud'),
 			source: './assets/hud.png',
-			position: [-224, -447.5],
-			size: [3391, 3391],
-			lock: true
+			position: [-112, -70],
+			size: [1695, 308],
+			attached_side: 'south',
+			layer: 'blueprint'
 		}).addAsBuiltIn(),
-	}
-	if (localStorage.getItem('canvas_scenes')) {
-		/*var stored_canvas_scenes = undefined;
-		try {
-			stored_canvas_scenes = JSON.parse(localStorage.getItem('canvas_scenes'))
-		} catch (err) {}
-
-		if (stored_canvas_scenes) {
-			for (var key in canvas_scenes) {
-				if (stored_canvas_scenes.hasOwnProperty(key)) {
-
-					let store = stored_canvas_scenes[key]
-					let real = canvas_scenes[key]
-
-					if (store.image	!== undefined) {real.image = store.image}
-					if (store.size	!== undefined) {real.size = store.size}
-					if (store.x		!== undefined) {real.x = store.x}
-					if (store.y		!== undefined) {real.y = store.y}
-					if (store.lock	!== undefined) {real.lock = store.lock}
-				}
-			}
-		}*/
 	}
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
