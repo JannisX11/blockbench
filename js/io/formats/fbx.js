@@ -1154,7 +1154,7 @@ class BinaryWriter {
 		this.WriteBytes(array);
 	}
 	WriteU32Base64(base64) {
-		let data = atob(base64);
+		let data = patchedAtob(base64);
 		let array = Uint8Array.from(data, c => c.charCodeAt(0));
 		this.WriteUInt32(array.length);
 		this.WriteBytes(array);

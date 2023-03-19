@@ -12,7 +12,7 @@ class BarItem {
 			if (this.id && !BarItems[this.id]) {
 				BarItems[this.id] = this;
 			} else {
-				if (!BarItems[this.id]) {
+				if (BarItems[this.id]) {
 					console.warn(`${this.constructor.name} ${this.id} has a duplicate ID`)
 				} else {
 					console.warn(`${this.constructor.name} defined without a vaild ID`)

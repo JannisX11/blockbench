@@ -158,7 +158,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('setup', {element});
 		},
 		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform(element);
+			NodePreviewController.prototype.updateTransform.call(this, element);
 			this.updateWindowSize(element);
 		},
 		updateSelection(element) {

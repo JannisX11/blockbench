@@ -268,6 +268,23 @@ const Blockbench = {
 	},
 	//Events
 	dispatchEvent(event_name, data) {
+		return EventSystem.prototype.dispatchEvent.call(this, event_name, data);
+	},
+	on(event_name, cb) {
+		console.log(event_name, this)
+		return EventSystem.prototype.on.call(this, event_name, cb);
+	},
+	once(event_name, cb) {
+		return EventSystem.prototype.once.call(this, event_name, cb);
+	},
+	addListener(event_name, cb) {
+		return EventSystem.prototype.addListener.call(this, event_name, cb);
+	},
+	removeListener(event_name, cb) {
+		return EventSystem.prototype.removeListener.call(this, event_name, cb);
+	},
+	//Events
+	/*dispatchEvent(event_name, data) {
 		let list = this.events[event_name];
 		let results;
 		if (list) {
@@ -299,7 +316,8 @@ const Blockbench = {
 	removeListener(event_name, cb) {
 		if (!this.events[event_name]) return;
 		this.events[event_name].remove(cb);
-	},
+	},*/
+	// Update
 	onUpdateTo(version, callback) {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);

@@ -523,8 +523,9 @@ class OutlinerElement extends OutlinerNode {
 	OutlinerElement.types = {};
 
 
-class NodePreviewController {
+class NodePreviewController extends EventSystem {
 	constructor(type, data = {}) {
+		super();
 		this.type = type;
 		this.events = {};
 		type.preview_controller = this;
@@ -626,29 +627,6 @@ class NodePreviewController {
 		}
 
 		this.dispatchEvent('update_selection', {element});
-	}
-
-	//Events
-	dispatchEvent(event_name, data) {
-		if (!this.events) return;
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
 	}
 }
 Outliner.control_menu_group = [

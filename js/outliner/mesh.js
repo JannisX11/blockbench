@@ -1000,7 +1000,7 @@ new NodePreviewController(Mesh, {
 		return mesh.geometry;
 	},
 	updateSelection(element) {
-		NodePreviewController.prototype.updateSelection(element);
+		NodePreviewController.prototype.updateSelection.call(this, element);
 	
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);

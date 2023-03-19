@@ -890,7 +890,7 @@ new NodePreviewController(Cube, {
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
 		let mesh = element.mesh;
 

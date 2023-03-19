@@ -1,6 +1,7 @@
 const Codecs = {};
-class Codec {
+class Codec extends EventSystem {
 	constructor(id, data) {
+		super();
 		if (!data) data = 0;
 		this.id = id;
 		Codecs[id] = this;
@@ -153,27 +154,6 @@ class Codec {
 			updateRecentProjectThumbnail();
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
-	}
-	//Events
-	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
 	}
 	//Delete
 	delete() {
