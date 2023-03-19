@@ -2204,7 +2204,7 @@ Interface.definePanels(function() {
 							selection_rect.width = rect.x;
 							selection_rect.height = rect.y;
 							
-							if (!e1.shiftKey) {
+							if (!e1.shiftKey && !Mesh.selected.length) {
 								scope.selected_faces.empty();
 								if (old_elements) Outliner.selected.empty();
 							} else {
@@ -2269,9 +2269,14 @@ Interface.definePanels(function() {
 							if (old_elements) updateSelection();
 							UVEditor.displayTools();
 						}
-						function stop() {
+						function stop(e2) {
 							removeEventListeners(document, 'mousemove touchmove', drag);
 							removeEventListeners(document, 'mouseup touchend', stop);
+
+							if (Math.pow(event.clientX - e2.clientX, 2) + Math.pow(event.clientY - e2.clientY, 2) < 10) {
+								scope.selected_faces.empty();
+								if (old_elements) Outliner.selected.empty();
+							}
 							setTimeout(() => {
 								selection_rect.active = false;
 							}, 1)
