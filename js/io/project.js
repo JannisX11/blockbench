@@ -34,15 +34,16 @@ class ModelProject {
 		};
 		this.EditSession = null;
 
-		this.backgrounds = {
-			normal: 		new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
-			ortho_top: 		new PreviewBackground({name: 'direction.top', lock: true}),
-			ortho_bottom: 	new PreviewBackground({name: 'direction.bottom', lock: true}),
-			ortho_south: 	new PreviewBackground({name: 'direction.south', lock: true}),
-			ortho_north: 	new PreviewBackground({name: 'direction.north', lock: true}),
-			ortho_east: 	new PreviewBackground({name: 'direction.east', lock: true}),
-			ortho_west: 	new PreviewBackground({name: 'direction.west', lock: true}),
-		}
+		/*this.backgrounds = {
+			normal: 		new ReferenceImage({name: 'menu.preview.perspective.normal', lock: null}),
+			ortho_top: 		new ReferenceImage({name: 'direction.top', lock: true}),
+			ortho_bottom: 	new ReferenceImage({name: 'direction.bottom', lock: true}),
+			ortho_south: 	new ReferenceImage({name: 'direction.south', lock: true}),
+			ortho_north: 	new ReferenceImage({name: 'direction.north', lock: true}),
+			ortho_east: 	new ReferenceImage({name: 'direction.east', lock: true}),
+			ortho_west: 	new ReferenceImage({name: 'direction.west', lock: true}),
+		}*/
+		this.reference_images = [];
 
 		// Data
 		this.elements = [];
@@ -257,13 +258,11 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
-		Preview.all.forEach(p => {
-			if (p.canvas.isConnected) p.loadBackground()
-		})
 		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();
+		ReferenceImage.updateAll();
 		updateProjectResolution();
 		Validator.validate();
 		Vue.nextTick(() => {
@@ -297,9 +296,8 @@ class ModelProject {
 		}
 
 		this.undo.closeAmendEditMenu();
-		Preview.all.forEach(preview => {
-			if (preview.movingBackground) preview.stopMovingBackground();
-		})
+		this.reference_images.forEach(reference => reference.detach());
+		if (ReferenceImageMode.active) ReferenceImageMode.deactivate();
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};

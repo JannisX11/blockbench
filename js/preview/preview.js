@@ -2,7 +2,6 @@ var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
 	Transformer,
-	canvas_scenes,
 	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
@@ -148,15 +147,13 @@ class Preview {
 		let menu = $(`
 			<div class="preview_menu">
 				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
-				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
 				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
 				<div class="shading_placeholder"></div>
 				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
-			menu.querySelector('.preview_background_menu').onclick = (event) => {
-			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
-			M.open(menu, this);
-		}
+		/*menu.querySelector('.preview_reference_menu').onclick = (event) => {
+			BarItems.edit_reference_images.trigger();
+		}*/
 		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
 		}
@@ -174,10 +171,10 @@ class Preview {
 			name: tl('action.view_mode'),
 			node: menu.querySelector('.preview_view_mode_menu')
 		})
-		BarItem.prototype.addLabel(false, {
-			name: tl('menu.preview.background'),
-			node: menu.querySelector('.preview_background_menu')
-		})
+		/*BarItem.prototype.addLabel(false, {
+			name: tl('action.edit_reference_images'),
+			node: menu.querySelector('.preview_reference_menu')
+		})*/
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
 			node: menu.querySelector('.preview_main_menu')
@@ -294,8 +291,6 @@ class Preview {
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
 
-		this.loadBackground()
-
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
@@ -314,22 +309,10 @@ class Preview {
 		}, false)
 		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
-		Blockbench.addDragHandler('preview_'+this.id, {
-			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-			element: this.canvas,
-			readtype: 'image',
-		}, function(files) {
-			if (isApp) {
-				scope.background.image = files[0].path
-			} else {
-				scope.background.image = files[0].content
-			}
-			scope.loadBackground()
-		})
 		Preview.all.push(this);
 	}
 	//Render
@@ -358,7 +341,6 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			this.updateBackground()
 			if (Transformer) {
 				Transformer.update()
 			}
@@ -550,7 +532,6 @@ class Preview {
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
 			}
-			this.loadBackground();
 
 			var layer = getAxisNumber(this.camOrtho.axis)+1;
 			this.camOrtho.layers.set(0);
@@ -580,11 +561,10 @@ class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
-			this.loadBackground()
 		}
 
 		Transformer.update();
-		this.loadBackground()
+		ReferenceImage.updateAll();
 		return this;
 	}
 	setDefaultAnglePreset(preset) {
@@ -1018,7 +998,7 @@ class Preview {
 			Toolbox.selected.onCanvasClick({event})
 		}
 
-		if ((Keybinds.extra.preview_area_select.keybind.isTriggered(event)) || this.movingBackground) {
+		if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
 			this.startSelRect(event)
 		} else {
 			return false;
@@ -1100,7 +1080,7 @@ class Preview {
 	startSelRect(event) {
 		if (this.sr_move_f) return;
 		var scope = this;
-		if (Modes.edit || this.movingBackground) {
+		if (Modes.edit) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
 			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f)
@@ -1112,14 +1092,6 @@ class Preview {
 		this.selection.client_x = event.clientX+0
 		this.selection.client_y = event.clientY+0
 
-		if (this.movingBackground) {
-			this.background.before = {
-				x: this.background.x,
-				y: this.background.y,
-				size: this.background.size
-			}
-			return;
-		};
 		if (Modes.edit && event.type !== 'touchstart') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
@@ -1133,26 +1105,6 @@ class Preview {
 	moveSelRect(event) {
 		var scope = this;
 		convertTouchEvent(event);
-
-		if (this.movingBackground) {
-			if (event.shiftKey || Pressing.overrides.shift) {
-				let diff = event.clientY - this.selection.client_y;
-				this.background.size = Math.clamp( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
-
-			} else {
-				if (event.touches && event.touches.length >= 2) {
-					
-					if (!this.second_touch) this.second_touch = event.touches[1];
-					let diff = Math.sqrt(Math.pow(event.touches[0].clientX - event.touches[1].clientX, 2) + Math.pow(event.touches[0].clientY - event.touches[1].clientY, 2))
-							 / Math.sqrt(Math.pow(event.touches[0].clientX - this.second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - this.second_touch.clientY, 2));
-					this.background.size = Math.clamp( this.background.before.size * diff, 40, 10e3)
-				}
-				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
-				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
-			}
-			this.updateBackground()
-			return;
-		}
 
 		//Overlay
 		var c = getRectangle(
@@ -1345,140 +1297,15 @@ class Preview {
 		removeEventListeners(document, 'mouseup touchend',	this.sr_stop_f);
 		delete this.sr_move_f;
 		delete this.sr_stop_f;
-		if (this.movingBackground) {
-			delete this.background.before;
-			delete this.second_touch;
-			return
-		};
 		this.selection.box.detach()
 		this.selection.activated = false;
 	}
-
-	//Backgrounds
-	getBackground() {
-		if (display_mode) {
-			var id = displayReferenceObjects.active.id
-			if (id == 'monitor' ||id == 'bow') {
-				return this.background = canvas_scenes.monitor
-			} else if (['inventory_nine', 'inventory_full', 'hud'].includes(id)) {
-				return this.background = canvas_scenes[id]
-			}
-		}
-		if (this.angle === null) {
-			return this.background = Project && Project.backgrounds.normal;
-		} else {
-			return this.background = Project && Project.backgrounds['ortho_'+this.angle];
-		}
-	}
+	// Background
 	loadBackground() {
-		this.getBackground()
-		if (this.background && this.background.image) {
-			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
-			this.canvas.style.setProperty('background-image', background_image)
-			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
-			this.node.querySelector('.preview_background_menu').style.display = 'block';
-		} else {
-			this.canvas.style.setProperty('background-image', 'none')
-			this.node.querySelector('.preview_background_menu').style.display = 'none';
-		}
-		this.updateBackground()
-		return this;
+		console.warn('Preview.loadBackground() is no longer supported')
 	}
 	updateBackground() {
-		if (!this.background) return;
-		var bg = this.background
-		var zoom = (this.angle !== null && bg.lock === true) ? this.camOrtho.zoom : 1
-		var pos_x = 0;
-		var pos_y = 0;
-		if (this.angle !== null && bg.lock !== false) {
-			pos_x = this.camOrtho.backgroundHandle[0].n === true ? 1 : -1
-			pos_x *= this.controls.target[this.camOrtho.backgroundHandle[0].a] * zoom * 40
-			pos_y = this.camOrtho.backgroundHandle[1].n === true ? 1 : -1
-			pos_y *= this.controls.target[this.camOrtho.backgroundHandle[1].a] * zoom * 40
-		}
-		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
-		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
-
-		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
-		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
-		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
-		return this;
-	}
-	clearBackground() {
-		this.loadBackground()
-		this.background.image = false
-		this.background.size = limitNumber(this.background.size, 40, 2400)
-		this.background.x = limitNumber(this.background.x, 0, this.width-30)
-		this.background.y = limitNumber(this.background.y, 0, this.height-30)
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}
-	restoreBackground() {
-		this.loadBackground()
-		if (this.background && this.background.defaults) {
-			this.background.image = this.background.defaults.image || false;
-			this.background.size = this.background.defaults.size || 1000
-			this.background.x = this.background.defaults.x || 0
-			this.background.y = this.background.defaults.y || 0
-		}
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}
-	startMovingBackground() {
-		if (this.movingBackground) {
-			this.stopMovingBackground()
-		}
-		this.movingBackground = true;
-		this.controls.enabled_before = this.controls.enabled
-		this.controls.enabled = false
-
-		this.position_toast = Blockbench.showToastNotification({
-			text: 'message.drag_background',
-			icon: 'open_with',
-			click: () => {
-				this.stopMovingBackground();
-				return true;
-			}
-		})
-		Interface.addSuggestedModifierKey('shift', 'modifier_actions.resize_background');
-	}
-	stopMovingBackground() {
-		this.movingBackground = false;
-		this.controls.enabled = this.controls.enabled_before
-		delete this.controls.enabled_before
-		if (this.position_toast) {
-			this.position_toast.delete();
-			delete this.position_toast;
-		}
-		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.resize_background');
-		Settings.saveLocalStorages()
-		return this;
-	}
-	backgroundPositionDialog() {
-		var scope = this;
-		if (this.movingBackground) {
-			this.stopMovingBackground()
-		}
-		new Dialog({
-			id: 'background_position',
-			title: tl('message.set_background_position.title'),
-			form: {
-				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 20}
-			},
-			onConfirm(form) {
-				if (!scope.background) return;
-				
-				scope.background.x = form.position[0];
-				scope.background.y = form.position[1];
-				scope.background.size = form.size;
-
-				scope.updateBackground();
-				Settings.saveLocalStorages();
-			}
-		}).show();
+		console.warn('Preview.updateBackground() is no longer supported')
 	}
 	//Misc
 	screenshot(options, cb) {
@@ -1537,77 +1364,15 @@ class Preview {
 			changeDisplaySkin()
 		}},
 		'preview_checkerboard',
-		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
-			var has_background = !!preview.background.image
-			function applyBackground(image) {
-				if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-					image = image + '?' + Math.floor(Math.random() * 1000);
-				}
-				preview.background.image = image;
-				preview.loadBackground();
-				Settings.saveLocalStorages();
-				preview.startMovingBackground();
-			}
-			return [
-				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
-					Blockbench.import({
-						resource_id: 'preview_background',
-						extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-						type: 'Image',
-						readtype: 'image'
-					}, function(files) {
-						if (files) {
-							applyBackground(isApp ? files[0].path : files[0].content);
-						}
-					}, 'image', false)
-				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					if (isApp) {
-						var image = clipboard.readImage().toDataURL();
-						if (image.length > 32) applyBackground(image);
-					} else {
-						navigator.clipboard.read().then(content => {
-							if (content && content[0] && content[0].types.includes('image/png')) {
-								content[0].getType('image/png').then(blob => {
-									let url = URL.createObjectURL(blob);
-									if (image.length > 32) applyBackground(url);
-								})
-							}
-						})
-					}
-				}},
-				{icon: 'refresh', name: 'menu.texture.refresh', condition: isApp && has_background && preview.background.image && preview.background.image.substring(0, 10) !== 'data:image', click: function(preview) {
-					preview.background.image = preview.background.image.replace(/\?\w+$/, '') + '?' + Math.floor(Math.random() * 1000);
-					preview.loadBackground();
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
-					preview.startMovingBackground()
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.set_position', condition: has_background, click: function(preview) {
-					preview.backgroundPositionDialog()
-				}},
-				{
-					name: 'menu.preview.background.lock',
-					condition: (has_background && preview.background.lock !== null && preview.angle !== null),
-					icon: preview.background.lock?'check_box':'check_box_outline_blank', 
-					click: function(preview) {
-					preview.background.lock = !preview.background.lock
-					preview.updateBackground()
-				}},
-				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
-					preview.clearBackground()
-				}},
-				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
-					preview.restoreBackground()
-				}}
-			]
-		}},
+		'add_reference_image',
+		'reference_image_from_clipboard',
+		'edit_reference_images',
 		'_',
 		'focus_on_selection',
-		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
+		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
-		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
@@ -1652,14 +1417,11 @@ class Preview {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
-		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
+		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !ReferenceImageMode.active && !Modes.display && !Animator.open}, click: function() {
 			openQuadView()
 		}},
-		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
+		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
 			preview.fullscreen();
-		}},
-		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
-			preview.stopMovingBackground()
 		}}
 	])
 
@@ -1680,7 +1442,7 @@ function openQuadView() {
 
 	quad_previews.enabled = true;
 
-	$('#preview').empty()
+	$('#preview .single_canvas_wrapper').remove();
 	
 	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
 	Interface.preview.append(wrapper1)
@@ -1706,6 +1468,7 @@ function openQuadView() {
 		}
 	})
 	updateInterface()
+	ReferenceImage.updateAll();
 }
 
 function editCameraPreset(preset, presets) {
@@ -1934,49 +1697,6 @@ window.addEventListener("gamepadconnected", function(event) {
 	}
 });
 
-class PreviewBackground {
-	constructor(data = {}) {
-		this.name = data.name ? tl(data.name) : ''
-		this._image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-		this.defaults.image = this.image;
-		this.imgtag = new Image();
-	}
-	get image() {
-		return this._image;
-	}
-	set image(path) {
-		this._image = path;
-		if (typeof this._image == 'string') {
-			this.imgtag.src = this._image.replace(/#/g, '%23');
-		}
-	}
-	getSaveCopy() {
-		let dataUrl;
-
-		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
-			let canvas = document.createElement('canvas');
-			canvas.width = this.imgtag.naturalWidth;
-			canvas.height = this.imgtag.naturalHeight;
-			let ctx = canvas.getContext('2d');
-			ctx.drawImage(this.imgtag, 0, 0);
-			dataUrl = canvas.toDataURL('image/png');
-		}
-
-		return {
-			name: this.name,
-			image: dataUrl || this.image,
-			size: this.size,
-			x: this.x,
-			y: this.y,
-			lock: this.lock
-		}
-	}
-}
 
 //Init/Update
 function initCanvas() {
@@ -1998,32 +1718,40 @@ function initCanvas() {
 	Canvas.gizmos.push(Canvas.outlines)
 
 	canvas_scenes = {
-		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
-		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
-	}
-	if (localStorage.getItem('canvas_scenes')) {
-		var stored_canvas_scenes = undefined;
-		try {
-			stored_canvas_scenes = JSON.parse(localStorage.getItem('canvas_scenes'))
-		} catch (err) {}
+		/*monitor: new ReferenceImage({
+			condition: () => Modes.display && display_slot == 'gui',
+			name: tl('display.reference.monitor')
+		}).addAsBuiltIn(),*/
 
-		if (stored_canvas_scenes) {
-			for (var key in canvas_scenes) {
-				if (stored_canvas_scenes.hasOwnProperty(key)) {
+		inventory_nine: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
+			name: tl('display.reference.inventory_nine'),
+			source: './assets/inventory_nine.png',
+			position: [0, 0],
+			size: [528, 528],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 
-					let store = stored_canvas_scenes[key]
-					let real = canvas_scenes[key]
+		inventory_full: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
+			name: tl('display.reference.inventory_full'),
+			source: './assets/inventory_full.png',
+			position: [0, -215.6],
+			size: [1390, 1310],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 
-					if (store.image	!== undefined) {real.image = store.image}
-					if (store.size	!== undefined) {real.size = store.size}
-					if (store.x		!== undefined) {real.x = store.x}
-					if (store.y		!== undefined) {real.y = store.y}
-					if (store.lock	!== undefined) {real.lock = store.lock}
-				}
-			}
-		}
+		hud: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
+			name: tl('display.reference.hud'),
+			source: './assets/hud.png',
+			position: [-112, -70],
+			size: [1695, 308],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 	}
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
@@ -2242,7 +1970,7 @@ BARS.defineActions(function() {
 	new Action('toggle_camera_projection', {
 		icon: 'switch_video',
 		category: 'view',
-		condition: _ => (!preview.movingBackground || !Modes.display),
+		condition: _ => (!ReferenceImageMode.active || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
 			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);

@@ -291,6 +291,31 @@ const Interface = {
 	CustomElements: {},
 	status_bar: {},
 	Panels: {},
+	/**
+	 * 
+	 * @param {string} tag Tag name
+	 * @param {object} [attributes] Attributes
+	 * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
+	 * @returns {HTMLElement} Element
+	 */
+	createElement(tag, attributes = {}, content) {
+		let el = document.createElement(tag);
+		for (let key in attributes) {
+			let value = attributes[key];
+			if (value === undefined) continue;
+			if (key.startsWith('@')) {
+				el.addEventListener(key.substring(1), value);
+			} else {
+				el.setAttribute(key, attributes[key]);
+			}
+		}
+		if (typeof content == 'string') el.textContent = content;
+		if (content instanceof Array) {
+			content.forEach(node => el.append(node));
+		}
+		if (content instanceof HTMLElement) el.append(content);
+		return el;
+	},
 	toggleSidebar(side, status) {
 		if (status == undefined) status = !Prop[`show_${side}_bar`];
 		Prop[`show_${side}_bar`] = !!status;
@@ -355,6 +380,14 @@ function unselectInterface(event) {
 	}
 	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
 		stopRenameOutliner()
+	}
+	if (ReferenceImageMode.active &&
+		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n?.classList?.contains('reference_image')) &&
+		!ReferenceImageMode.toolbar.node.contains(event.target) &&
+		!Dialog.open &&
+		!open_menu
+	) {
+		ReferenceImageMode.deactivate();
 	}
 }
 function setupInterface() {
@@ -425,16 +458,20 @@ function setupInterface() {
 
 
 
-	//Clickbinds
-	$('#preview').click(function() { setActivePanel('preview' )})
+	// Click binds
+	Interface.preview.addEventListener('click', e => setActivePanel('preview'));
+	
+	Interface.work_screen.addEventListener('dblclick', event => {
+		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
+		if (reference) reference.select();
+	});
 
-	$('#texture_list').click(function(){
-		unselectTextures()
-	})
+	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
+
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
-	$(document).on('mousedown touchstart', unselectInterface)
+	addEventListeners(document, 'mousedown touchstart', unselectInterface);
 
 	window.addEventListener('resize', resizeWindow);
 	window.addEventListener('orientationchange', () => {
@@ -521,6 +558,7 @@ function resizeWindow(event) {
 			}
 		}
 	})
+	ReferenceImage.active.forEach(ref => ref.updateTransform());
 	Outliner.elements.forEach(element => {
 		if (element.preview_controller.updateWindowSize) {
 			element.preview_controller.updateWindowSize(element);
@@ -620,27 +658,6 @@ $(document).keyup(function(event) {
 		$('.tooltip_shift').hide()
 	}
 })
-/**
- * 
- * @param {string} tag Tag name
- * @param {object} [attributes] Attributes
- * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
- * @returns {HTMLElement} Element
- */
-Interface.createElement = (tag, attributes = {}, content) => {
-	let el = document.createElement(tag);
-	for (let key in attributes) {
-		if (attributes[key] !== undefined) {
-			el.setAttribute(key, attributes[key]);
-		}
-	}
-	if (typeof content == 'string') el.textContent = content;
-	if (content instanceof Array) {
-		content.forEach(node => el.append(node));
-	}
-	if (content instanceof HTMLElement) el.append(content);
-	return el;
-}
 
 
 // Custom Elements

@@ -105,7 +105,7 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"blockbench-types": "^4.6.0",
+		"blockbench-types": "^4.6.1",
 		"electron": "^22.3.1",
 		"electron-builder": "^23.6.0",
 		"electron-notarize": "^1.0.0",

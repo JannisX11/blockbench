@@ -73,11 +73,31 @@ const Painter = {
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
-			var preview = Preview.selected;
+			let projection;
+			let reference = ReferenceImage.active.find(reference => projection = reference.projectMouseCursor(e.clientX, e.clientY));
+
+			if (projection) {
+				var ctx = Painter.getCanvas(reference.img).getContext('2d');
+				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
+				console.log(projection, color, ctx)
+				if (settings.pick_color_opacity.value) {
+					let opacity = Math.floor(color.getAlpha()*256);
+					for (let id in BarItems) {
+						let tool = BarItems[id];
+						if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
+							tool.tool_settings.brush_opacity = opacity;
+						}
+					}
+				}
+				ColorPanel.set(color);
+			}
+
+			/*var preview = Preview.selected;
 			if (preview && preview.background && preview.background.imgtag) {
 				
 				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
 				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
+
 				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
 				var pixel_ratio = preview.background.imgtag.width / bg_size;
 				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
@@ -95,7 +115,7 @@ const Painter = {
 					}
 					ColorPanel.set(color);
 				}
-			}
+			}*/
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
 		var texture = data.element.faces[data.face].getTexture()
@@ -1307,12 +1327,22 @@ const Painter = {
 		}
 	},
 	getCanvas(texture) {
-		let canvas = texture instanceof Texture ? texture.canvas : document.createElement('canvas');
-		let ctx = canvas.getContext('2d');
-		canvas.width = texture.width;
-		canvas.height = texture.height;
-		ctx.drawImage(texture instanceof Texture ? texture.img : texture, 0, 0)
-		return canvas;
+		if (texture instanceof Texture) {
+			let canvas = texture.canvas;
+			let ctx = canvas.getContext('2d');
+			canvas.width = texture.width;
+			canvas.height = texture.height;
+			ctx.drawImage(texture.img, 0, 0)
+			return canvas;
+		} else {
+			let img = texture;
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = img.naturalWidth;
+			canvas.height = img.naturalHeight;
+			ctx.drawImage(img, 0, 0)
+			return canvas;
+		}
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		let arr = ctx.getImageData(x, y, w, h)

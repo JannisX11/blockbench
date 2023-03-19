@@ -159,6 +159,7 @@ class Menu {
 		if (position && position.changedTouches) {
 			convertTouchEvent(position);
 		}
+		let last_context = context;
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
@@ -258,6 +259,11 @@ class Menu {
 
 		function getEntry(s, parent) {
 
+			if (s.context) {
+				last_context = context;
+				context = s.context;
+			}
+			let scope_context = context;
 			var entry;
 			if (s === '_') {
 				entry = new MenuSeparator().menu_node
@@ -270,7 +276,7 @@ class Menu {
 			if (typeof s == 'string' && BarItems[s]) {
 				s = BarItems[s];
 			}
-			if (!Condition(s.condition, context)) return;
+			if (!Condition(s.condition, scope_context)) return;
 
 			if (s instanceof Action) {
 
@@ -293,7 +299,7 @@ class Menu {
 						s.trigger(e)
 					});
 					if (s.side_menu instanceof Menu) {
-						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
+						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
 
 					} else if (s.side_menu instanceof Dialog) {
@@ -314,7 +320,7 @@ class Menu {
 			} else if (s instanceof BarSelect) {
 				
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -390,7 +396,7 @@ class Menu {
 				
 				let child_count;
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -405,7 +411,7 @@ class Menu {
 				if (typeof s.click === 'function') {
 					entry.on('click', e => {
 						if (e.target == entry.get(0)) {
-							s.click(context, e)
+							s.click(scope_context, e)
 						}
 					})
 				}
@@ -428,6 +434,7 @@ class Menu {
 					obj = obj.parent().parent();
 				}
 			}
+			if (s.context && last_context != context) context = last_context;
 			return entry;
 		}
 
@@ -505,8 +512,8 @@ class Menu {
 		open_menu = scope;
 		return scope;
 	}
-	show(position) {
-		return this.open(position);
+	show(...args) {
+		return this.open(...args);
 	}
 	hide() {
 		if (this.onClose) this.onClose();

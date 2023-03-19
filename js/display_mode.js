@@ -471,7 +471,7 @@ class refModel {
 		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
 		DisplayMode.vue.reference_model = this.id;
 		
-		display_preview.loadBackground()
+		ReferenceImage.updateAll()
 	}
 	buildPlayer(slim) {
 		var scope = this;
@@ -1269,6 +1269,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	//$('.selection_only').css('visibility', 'hidden')
 	$('body').removeClass('display_mode')
 	resizeWindow()
+	ReferenceImage.updateAll()
 	if (quad_previews.enabled_before) {
 		openQuadView()
 	}

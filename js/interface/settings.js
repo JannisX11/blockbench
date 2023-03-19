@@ -593,9 +593,6 @@ const Settings = {
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 		localStorage.setItem('settings_profiles', JSON.stringify(SettingsProfile.all));
 
-		if (window.canvas_scenes) {
-			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
-		}
 		if (window.ColorPanel) {
 			ColorPanel.saveLocalStorages()
 		}

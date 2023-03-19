@@ -539,6 +539,7 @@ class NumSlider extends Widget {
 		this.icon = 'code'
 		this.value = 0;
 		this.width = 69;
+		this.sensitivity = data.sensitivity || 30;
 		this.uniqueNode = true;
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
@@ -792,7 +793,7 @@ class NumSlider extends Widget {
 		}
 	}
 	slide(clientX, event) {
-		var offset = Math.round((clientX - this.sliding_start_pos)/30)
+		var offset = Math.round((clientX - this.sliding_start_pos)/this.sensitivity)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
@@ -1795,8 +1796,12 @@ const BARS = {
 				keybind: new Keybind({key: 46}),
 				click() {
 					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
-					if (Prop.active_panel == 'textures' && Texture.selected) {
+					if (ReferenceImageMode.active && ReferenceImage.selected) {
+						ReferenceImage.selected.delete();
+
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
+
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (StateMemory.color_palette_locked) {
 							Blockbench.showQuickMessage('message.palette_locked');
