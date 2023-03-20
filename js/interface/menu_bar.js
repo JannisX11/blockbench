@@ -447,7 +447,7 @@ const MenuBar = {
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
+					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
 				}},
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
