@@ -384,6 +384,7 @@ const Settings = {
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
+		new Setting('always_show_splash_art',{category: 'interface', value: true});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {

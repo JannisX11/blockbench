@@ -757,6 +757,8 @@
 	"settings.mobile_panel_side.desc": "Select which side of the screen panels are displayed on when using Blockbench on in landscape orientation",
 	"settings.status_bar_modifier_keys": "Suggest Modifier Keys in Status Bar",
 	"settings.status_bar_modifier_keys.desc": "Display context aware suggested modifier keys in the status bar",
+	"settings.always_show_splash_art": "Always Show Splash Art",
+	"settings.always_show_splash_art.desc": "Always display the splash art on the start screen",
 	"settings.origin_size": "Pivot Marker",
 	"settings.origin_size.desc": "Size of the pivot point marker",
 	"settings.control_size": "Transform Gizmo Size",

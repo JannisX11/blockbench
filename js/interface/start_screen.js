@@ -431,19 +431,21 @@ onVueSetup(function() {
 	if (settings.streamer_mode.value) {
 		updateStreamerModeNotification()
 	}
-	addStartScreenSection('splash_screen', {
-		"text_color": '#000000',
-		"graphic": {
-			"type": "image",
-			"source": "./assets/splash_art.png?46",
-			"width": 1000,
-			"aspect_ratio": "64/27",
-			"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
-			"text_color": '#cfcfcf'
+	if (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value) {
+		addStartScreenSection('splash_screen', {
+			"text_color": '#000000',
+			"graphic": {
+				"type": "image",
+				"source": "./assets/splash_art.png?46",
+				"width": 1000,
+				"aspect_ratio": "64/27",
+				"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
+				"text_color": '#cfcfcf'
+			}
+		})
+		if (!Blockbench.hasFlag('after_update')) {
+			document.getElementById('start_screen').scrollTop = 100;
 		}
-	})
-	if (!Blockbench.hasFlag('after_update')) {
-		document.getElementById('start_screen').scrollTop = 100;
 	}
 	
 	//Backup Model
@@ -453,7 +455,7 @@ onVueSetup(function() {
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'fa-archive'},
-			insert_after: 'splash_screen',
+			insert_before: 'start_files',
 			text: [
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
