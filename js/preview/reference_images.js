@@ -16,6 +16,7 @@ class ReferenceImage {
 		this.source = '';
 		
 		this.uuid = guid();
+		this.cache_version = 0;
 		this.condition = data.condition;
 
 		for (let key in ReferenceImage.properties) {
@@ -151,7 +152,7 @@ class ReferenceImage {
 				ReferenceImageMode.saveGlobalReferences();
 				break;
 			case 'built_in':
-				// todo: save
+				// built in references are not saved
 				break;
 		}
 		return this;
@@ -195,7 +196,9 @@ class ReferenceImage {
 		if (this.flip_y) transforms.push('scaleY(-1)');
 		this.img.style.transform = transforms.join(' ');
 
-		if (this.img.src != this.source) this.img.src = this.source;
+		if (this.img.src.split('?')[0] != this.source) {
+			this.img.src = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
+		}
 
 		this.img.style.imageRendering = (this.img.naturalWidth > this.size[0]) ? 'auto' : 'pixelated';
 
@@ -554,7 +557,9 @@ class ReferenceImage {
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
-				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1}
+				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1},
+				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
+				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
 				let clear_mode_before = this.clear_mode;
@@ -571,17 +576,20 @@ class ReferenceImage {
 	}
 }
 ReferenceImage.prototype.menu = new Menu([
-	/**
-	 * Todo
-	Visibility
-	Restore
-	Refresh file
-	 */
+	{
+		id: 'visibility',
+		name: 'reference_image.visibility',
+		icon: (ref) => ref.visibility,
+		click(ref) {
+			ref.visibility = !ref.visibility;
+			ref.update().save();
+		}
+	},
 	{
 		id: 'clear_mode',
 		name: 'reference_image.clear_mode',
 		icon: (ref) => ref.clear_mode,
-		condition: ref => ref.layer == 'blueprint',
+		//condition: ref => ref.layer == 'blueprint',
 		click(ref) {
 			ref.clear_mode = !ref.clear_mode;
 			ref.updateClearMode();
@@ -622,6 +630,15 @@ ReferenceImage.prototype.menu = new Menu([
 		}
 	},
 	'_',
+	{
+		name: 'menu.texture.refresh',
+		icon: 'refresh',
+		condition: (reference) => (isApp && PathModule.isAbsolute(reference.source)),
+		click(reference) {
+			reference.cache_version++;
+			reference.update();
+		}
+	},
 	'delete',
 	'_',
 	{
@@ -795,10 +812,28 @@ BARS.defineActions(function() {
 			let list = [];
 			function getSubMenu(reference) {
 				return [
+					{
+						id: 'visibility',
+						name: 'reference_image.visibility',
+						icon: () => reference.visibility,
+						click() {
+							reference.visibility = !reference.visibility;
+							reference.update().save();
+						}
+					},
+					'_',
+					{
+						name: 'menu.texture.refresh',
+						icon: 'refresh',
+						condition: (reference) => (isApp && PathModule.isAbsolute(reference.source)),
+						click(reference) {
+							reference.cache_version++;
+							reference.update();
+						}
+					},
 					/** Todo: add options
 					 * Center
 					 * Delete
-					 * Visibility
 					 */
 					{
 						name: 'Properties...',

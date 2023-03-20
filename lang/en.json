@@ -1828,6 +1828,7 @@
 	"reference_image.size": "Size",
 	"reference_image.rotation": "Rotation",
 	"reference_image.opacity": "Opacity",
+	"reference_image.visibility": "Visibility",
 	"reference_image.clear_mode": "Clear Mode",
 	"reference_image.layer": "Layer",
 	"reference_image.layer.background": "Behind Model",

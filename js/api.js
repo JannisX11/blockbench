@@ -268,23 +268,6 @@ const Blockbench = {
 	},
 	//Events
 	dispatchEvent(event_name, data) {
-		return EventSystem.prototype.dispatchEvent.call(this, event_name, data);
-	},
-	on(event_name, cb) {
-		console.log(event_name, this)
-		return EventSystem.prototype.on.call(this, event_name, cb);
-	},
-	once(event_name, cb) {
-		return EventSystem.prototype.once.call(this, event_name, cb);
-	},
-	addListener(event_name, cb) {
-		return EventSystem.prototype.addListener.call(this, event_name, cb);
-	},
-	removeListener(event_name, cb) {
-		return EventSystem.prototype.removeListener.call(this, event_name, cb);
-	},
-	//Events
-	/*dispatchEvent(event_name, data) {
 		let list = this.events[event_name];
 		let results;
 		if (list) {
@@ -296,27 +279,20 @@ const Blockbench = {
 				}
 			}
 		}
-		if (Validator.triggers.includes(event_name)) {
-			Validator.validate(event_name);
-		}
 		return results;
 	},
-	addListener(event_names, cb) {
-		event_names.split(' ').forEach(event_name => {
-			if (!this.events[event_name]) {
-				this.events[event_name] = [];
-			}
-			this.events[event_name].safePush(cb);
-		})
-		return Blockbench;
-	},
 	on(event_name, cb) {
-		return Blockbench.addListener(event_name, cb) 
+		return EventSystem.prototype.on.call(this, event_name, cb);
+	},
+	once(event_name, cb) {
+		return EventSystem.prototype.once.call(this, event_name, cb);
+	},
+	addListener(event_name, cb) {
+		return EventSystem.prototype.addListener.call(this, event_name, cb);
 	},
 	removeListener(event_name, cb) {
-		if (!this.events[event_name]) return;
-		this.events[event_name].remove(cb);
-	},*/
+		return EventSystem.prototype.removeListener.call(this, event_name, cb);
+	},
 	// Update
 	onUpdateTo(version, callback) {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
