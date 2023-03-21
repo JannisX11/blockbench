@@ -1447,6 +1447,10 @@ BARS.defineActions(function() {
 								delete face_b.uv[edge_vkey];
 							}
 						})
+						// Make sure orientation stays the same
+						if (face_b.getAngleTo(face_a) > 90) {
+							face_b.invert();
+						}
 					}
 					
 					// Remove all other faces and lines
