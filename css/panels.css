@@ -1359,6 +1359,33 @@
 		margin-top: 2px;
 	}
 
+	#timeline_graph_editor_amplifier {
+		position: absolute;
+		width: 14px;
+		border-radius: 7px;
+		background-color: var(--color-ui);
+		right: 12px;
+		margin-top: 29px;
+		z-index: 2;
+	}
+	#timeline_graph_editor_amplifier > div {
+		position: absolute;
+		top: 0;
+		bottom: auto;
+		width: 14px;
+		height: 14px;
+		border-radius: 7px;
+		cursor: ns-resize;
+		background-color: var(--color-button);
+	}
+	#timeline_graph_editor_amplifier > div:hover {
+		background-color: var(--color-accent);
+	}
+	#timeline_graph_editor_amplifier > div:last-child {
+		top: auto;
+		bottom: 0;
+	}
+
 /* Animation Controllers */
 #animation_controllers_wrapper {
 	flex-grow: 1;

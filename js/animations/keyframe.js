@@ -34,7 +34,8 @@ class Keyframe {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
-		this.selected = 0;
+		this.selected = false;
+		this.display_value = 0;
 		this.data_points = []
 
 		if (typeof data === 'object') {
@@ -364,7 +365,6 @@ class Keyframe {
 		})
 	}
 	select(event) {
-		var scope = this;
 		if (Timeline.dragging_keyframes) {
 			Timeline.dragging_keyframes = false
 			return this;

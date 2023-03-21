@@ -1129,6 +1129,75 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
+				slideGraphAmplify(e1, anchor_side) {
+					convertTouchEvent(e1);
+					let original_values = {};
+					let values_changed;
+					let is_setup = false;
+					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
+					let original_range = this.getSelectedGraphRange();
+					let original_pixel_range = (original_range[1] - original_range[0]) * this.graph_size;
+					let axis = this.graph_editor_axis;
+
+					function setup() {
+						Undo.initEdit({keyframes});
+						dragging_range = [Infinity, 0];
+						previousValue = 0;
+						values_changed = false;
+						Timeline.dragging_keyframes = true;
+						is_setup = true;
+
+						for (let kf of keyframes) {
+							original_values[kf.uuid] = kf.display_value || kf.get(this.graph_editor_axis);
+						}
+					}
+
+					function slide(e2) {
+						convertTouchEvent(e2);
+						e2.preventDefault();
+						let offset = e2.clientY - e1.clientY;
+						if (anchor_side == 1) offset *= -1;
+						if (!is_setup) {
+							if (Math.abs(offset) > 4) {
+								setup();
+							} else {
+								return;
+							}
+						}
+						
+						let value = 1 - offset / original_pixel_range;
+						value = Math.round(value*100)/100;
+
+						for (let kf of keyframes) {
+							let target_value = (original_values[kf.uuid] - original_range[anchor_side]) * value + original_range[anchor_side];
+							kf.offset(axis, -kf.get(axis) + target_value);
+							values_changed = true;
+						}
+						let text = Math.round(value * 100) + '%';
+						Blockbench.setStatusBarText(text);
+						Animator.showMotionTrail()
+						Animator.preview()
+
+					}
+					function off() {
+						removeEventListeners(document, 'mousemove touchmove', slide);
+						removeEventListeners(document, 'mouseup touchend', off);
+
+						if (is_setup) {
+							Blockbench.setStatusBarText();
+							if (values_changed) {
+								Undo.finishEdit('Amplify keyframes');
+							} else {
+								Undo.cancelEdit();
+							}
+							setTimeout(() => {
+								Timeline.dragging_keyframes = false;
+							}, 20);
+						}
+					}
+					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off);
+				},
 				getBezierHandleStyle(keyframe, side) {
 					let axis_number = getAxisNumber(this.graph_editor_axis);
 					let x_offset = -keyframe[`bezier_${side}_time`][axis_number] * this.size;
@@ -1141,6 +1210,19 @@ Interface.definePanels(() => {
 						'--length': Math.max(length - 6, 0) + 'px',
 						'--angle': Math.radToDeg(angle) + 'deg',
 					}
+				},
+				getSelectedGraphRange() {
+					if (Keyframe.selected.length == 0) return null;
+					let keyframes = this.graph_editor_animator[this.graph_editor_channel];
+					if (!keyframes || keyframes.length < 2) return null;
+					let range = [Infinity, -Infinity];
+					keyframes.forEach(kf => {
+						if (!kf.selected) return;
+						range[0] = Math.min(range[0], kf.display_value);
+						range[1] = Math.max(range[1], kf.display_value);
+					})
+					if (range[0] == range[1]) return null;
+					return range;
 				},
 				clamp: Math.clamp,
 				trimFloatNumber
@@ -1184,6 +1266,14 @@ Interface.definePanels(() => {
 								></div>
 							</div>
 						</div>
+					</div>
+					<div id="timeline_graph_editor_amplifier"
+						v-if="graph_editor_open && getSelectedGraphRange()"
+						:style="{top: (graph_offset - getSelectedGraphRange()[1] * graph_size - 8) + 'px', height: ((getSelectedGraphRange()[1] - getSelectedGraphRange()[0]) * graph_size + 15) + 'px'}"
+						title="${tl('timeline.amplify')}"
+					>
+						<div @mousedown="slideGraphAmplify($event, 0)" @touchstart="slideGraphAmplify($event, 0)"></div>
+						<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
