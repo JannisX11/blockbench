@@ -466,6 +466,12 @@ new Property(ModelProject, 'string', 'skin_pose', {
 	condition: {formats: ['skin']},
 	default: 'none'
 });
+new Property(ModelProject, 'enum', 'bedrock_animation_mode', {
+	exposed: false,
+	values: ['entity', 'attachable_first'],
+	condition: {formats: ['bedrock']},
+	default: 'entity'
+});
 new Property(ModelProject, 'array', 'timeline_setups', {
 	exposed: false,
 	condition: () => Format.animation_mode,

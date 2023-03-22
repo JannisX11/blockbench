@@ -1589,6 +1589,11 @@
 	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 	"action.looped_animation_playback": "Looped Playback",
 	"action.looped_animation_playback.desc": "Preview animations in an infinite loop",
+	"action.bedrock_animation_mode": "Bedrock Animation Mode",
+	"action.bedrock_animation_mode.desc": "Select the mode to edit animations for Minecraft: Bedrock Edition in",
+	"action.bedrock_animation_mode.entity": "Entity",
+	"action.bedrock_animation_mode.attachable_first": "Item 1st Person",
+	"action.bedrock_animation_mode.attachable_third": "Item 3rd Person",
 
 	"timeline.rotation": "Rotation",
 	"timeline.position": "Position",
@@ -1843,6 +1848,8 @@
 	"reference_image.scope.global": "Save in Blockbench",
 
 	"codec.fbx.export_animations": "Export Animations",
+
+	"preview.center_camera": "Center Camera",
 
 	"panel.uv": "UV",
 	"panel.display": "Display",

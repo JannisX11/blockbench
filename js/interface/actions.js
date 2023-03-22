@@ -2174,6 +2174,7 @@ const BARS = {
 				'rotation_space',
 				'selection_mode',
 				'animation_controller_preview_mode',
+				'bedrock_animation_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',

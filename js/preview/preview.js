@@ -1381,7 +1381,7 @@ class Preview {
 				DefaultCameraPresets[0], '_',
 				...DefaultCameraPresets.slice(1, 7), '_',
 				...DefaultCameraPresets.slice(7, 11), '_',
-				...DefaultCameraPresets.slice(11), '_',
+				...DefaultCameraPresets.slice(11).filter(preset => Condition(preset.condition)), '_',
 				...presets
 			];
 

@@ -211,6 +211,10 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
+		if (this.client_entity && this.client_entity.type == 'attachable') {
+			Project.bedrock_animation_mode = 'attachable_first';
+			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
+		}
 	}
 	initAnimations() {
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
