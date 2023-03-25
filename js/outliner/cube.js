@@ -784,7 +784,8 @@ class Cube extends OutlinerElement {
 		this.mapAutoUV();
 		if (this.box_uv) {
 			if (axis == 2) {
-				let difference = Math.ceil(before - this.size(axis));
+				let difference = before - this.size(axis);
+				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
 				this.uv_offset[0] = this.oldUVOffset[0] + difference;
 				this.uv_offset[1] = this.oldUVOffset[1] + difference;
 			}

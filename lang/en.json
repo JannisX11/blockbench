@@ -481,6 +481,15 @@
 	"dialog.scale.select_overflow": "Select Overflow",
 	"dialog.scale.box_uv_warning": "Scaling a Box UV model may break the UV of your model. Instead, try to scale your model externally, or switch to Per-face UV Mode in File > Project.",
 
+	"dialog.proportional_editing.range": "Range",
+	"dialog.proportional_editing.falloff": "Falloff",
+	"dialog.proportional_editing.falloff.linear": "Linear",
+	"dialog.proportional_editing.falloff.hermite_spline": "Smooth",
+	"dialog.proportional_editing.falloff.constant": "Constant",
+	"dialog.proportional_editing.selection": "Selection",
+	"dialog.proportional_editing.selection.linear": "Linear Distance",
+	"dialog.proportional_editing.selection.connections": "Connections",
+
 	"dialog.material_instances.title": "Material Instances",
 
 	"dialog.plugins.title": "Plugins",
@@ -1334,6 +1343,8 @@
 	"action.merge_vertices.merge_by_distance_in_center": "Merge by Distance in Center",
 	"action.merge_meshes": "Merge Meshes",
 	"action.merge_meshes.desc": "Merge multiple meshes into one",
+	"action.proportional_editing": "Proportional Editing",
+	"action.proportional_editing.desc": "Proportionally affect surrounding vertices when editing parts of a mesh",
 
 	"action.adjust_brightness_contrast": "Adjust Brightness & Contrast...",
 	"action.adjust_brightness_contrast.desc": "Adjust the brightness and contrast of the selected texture",

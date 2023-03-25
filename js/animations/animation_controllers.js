@@ -183,6 +183,7 @@ class AnimationControllerState {
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
@@ -510,6 +511,8 @@ class AnimationController extends AnimationItem {
 		this.states.forEach(state => {
 			object.states[state.name] = state.compileForBedrock();
 		})
+
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller', {animation_controller: this, json: object});
 
 		return object;
 	}

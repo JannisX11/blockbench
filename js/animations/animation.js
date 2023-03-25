@@ -277,6 +277,7 @@ class Animation extends AnimationItem {
 		if (Object.keys(ani_tag.bones).length == 0) {
 			delete ani_tag.bones;
 		}
+		Blockbench.dispatchEvent('compile_bedrock_animation', {animation: this, json: ani_tag});
 		return ani_tag;
 	}
 	sampleIK(sample_rate = settings.animation_sample_rate.value) {

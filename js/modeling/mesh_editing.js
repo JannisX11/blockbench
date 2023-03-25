@@ -6,7 +6,7 @@ function proportionallyEditMeshVertices(mesh, callback) {
 	if (!BarItems.proportional_editing.value) return;
 
 	let selected_vertices = mesh.getSelectedVertices();
-	let {range, shape, selection} = StateMemory.proportional_editing_options;
+	let {range, falloff, selection} = StateMemory.proportional_editing_options;
 	let linear_distance = selection == 'linear';
 	
 	let all_mesh_connections;
@@ -74,7 +74,7 @@ function proportionallyEditMeshVertices(mesh, callback) {
 		if (distance > range) continue;
 
 		let blend = 1 - (distance / (linear_distance ? range : range+1));
-		switch (shape) {
+		switch (falloff) {
 			case 'hermite_spline': blend = Math.hermiteBlend(blend); break;
 			case 'constant': blend = 1; break;
 		}
@@ -1883,8 +1883,8 @@ BARS.defineActions(function() {
 	if (!StateMemory.proportional_editing_options.range) {
 		StateMemory.proportional_editing_options.range = 8;
 	}
-	if (!StateMemory.proportional_editing_options.shape) {
-		StateMemory.proportional_editing_options.shape = 'linear';
+	if (!StateMemory.proportional_editing_options.falloff) {
+		StateMemory.proportional_editing_options.falloff = 'linear';
 	}
 	if (!StateMemory.proportional_editing_options.selection) {
 		StateMemory.proportional_editing_options.selection = 'linear';
@@ -1912,15 +1912,15 @@ BARS.defineActions(function() {
 			singleButton: true,
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
-				range: {type: 'number', label: 'Range', value: StateMemory.proportional_editing_options.range},
-				shape: {type: 'select', label: 'Falloff', value: StateMemory.proportional_editing_options.shape, options: {
-					linear: 'Linear',
-					hermite_spline: 'Smooth',
-					constant: 'Constant',
+				range: {type: 'number', label: 'dialog.proportional_editing.range', value: StateMemory.proportional_editing_options.range},
+				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: StateMemory.proportional_editing_options.falloff, options: {
+					linear: 'dialog.proportional_editing.falloff.linear',
+					hermite_spline: 'dialog.proportional_editing.falloff.hermite_spline',
+					constant: 'dialog.proportional_editing.falloff.constant',
 				}},
-				selection: {type: 'select', label: 'Selection', value: StateMemory.proportional_editing_options.selection, options: {
-					linear: 'Linear Distance',
-					connections: 'Connections',
+				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: StateMemory.proportional_editing_options.selection, options: {
+					linear: 'dialog.proportional_editing.selection.linear',
+					connections: 'dialog.proportional_editing.selection.connections',
 					//path: 'Connection Path',
 				}},
 			},
@@ -1932,9 +1932,10 @@ BARS.defineActions(function() {
 					BarItems.proportional_editing.trigger();
 				}
 				StateMemory.proportional_editing_options.range = formResult.range;
-				StateMemory.proportional_editing_options.shape = formResult.shape;
+				StateMemory.proportional_editing_options.falloff = formResult.falloff;
 				StateMemory.proportional_editing_options.selection = formResult.selection;
 				StateMemory.save('proportional_editing_options');
+				BarItems.proportional_editing_range.update();
 			}
 		})
 	})
