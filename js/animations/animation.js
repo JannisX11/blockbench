@@ -1777,7 +1777,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			new Animation({
-				name: 'animation.' + (Project.geometry_name||'model') + '.new'
+				name: 'animation.' + (Project.geometry_name||'model') + '.new',
+				saved: false
 			}).add(true).propertiesDialog()
 
 		}
@@ -2014,12 +2015,14 @@ Interface.definePanels(function() {
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path
+							path,
+							saved: false
 						}).add(true).propertiesDialog()
 					} else {
 						new AnimationController({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path
+							path,
+							saved: false
 						}).add(true);
 					}
 				},

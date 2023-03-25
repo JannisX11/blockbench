@@ -1106,6 +1106,7 @@
 		padding-right: 30px;
 		margin: auto;
 		width: fit-content;
+		z-index: 3;
 	}
 	#amend_edit_menu > div.amend_edit_line {
 		background-color: var(--color-ui);

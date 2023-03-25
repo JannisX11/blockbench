@@ -1755,7 +1755,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers']},
 		click() {
 			let controller = new AnimationController({
-				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
+				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new',
+				saved: false
 			}).add(true).propertiesDialog();
 			Blockbench.dispatchEvent('add_animation_controller', {animation_controller: controller})
 		}

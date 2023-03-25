@@ -504,38 +504,3 @@
 	.quick_setup_theme.selected > div {
 		border-color: var(--color-accent);
 	}
-
-
-	#amend_edit_menu {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding-right: 30px;
-		margin: auto;
-		width: fit-content;
-	}
-	#amend_edit_menu > div.amend_edit_line {
-		background-color: var(--color-ui);
-		padding: 0px 8px;
-		height: 30px;
-		display: flex;
-	}
-	#amend_edit_menu > div.amend_edit_line .nslide_tool {
-		float: none;
-	}
-	#amend_edit_menu > div.amend_edit_line > label {
-		padding: 4px 6px;
-	}
-	.amend_edit_close_button {
-		position: absolute;
-		right: 0px;
-		top: 0px;
-		height: 30px;
-		width: 30px;
-		padding: 4px;
-		cursor: pointer;
-	}
-	.amend_edit_close_button:hover {
-		color: var(--color-light);
-	}
