@@ -1938,82 +1938,8 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Bake animation into model')
 		}
 	})
-
-	// Attachable Preview
-	let camera_preset_1st = {
-		name: tl('action.bedrock_animation_mode.attachable_first'),
-		id: 'attachable_first',
-		condition: () => Format.id == 'bedrock' && Project.bedrock_animation_mode == 'attachable_first',
-		position: [0, 16, -37],
-		projection: "perspective",
-		target: [0, 16, 0],
-		focal_length: 20,
-	};
-	DefaultCameraPresets.push(camera_preset_1st);
-
-	function updateBase(mode) {
-		if (mode == 'attachable_first') {
-			Project.model_3d.position.set(-23, 21, 0);
-			Project.model_3d.rotation.set(
-				Math.degToRad(-86.6),
-				Math.degToRad(42),
-				Math.degToRad(124),
-				'ZYX'
-			);
-
-		} else {
-			Project.model_3d.position.set(0, 0, 0);
-			Project.model_3d.rotation.set(0, 0, 0);
-		}
-	}
-	let bedrock_animation_mode_select = new BarSelect('bedrock_animation_mode', {
-		condition: {
-			modes: ['animate'],
-			formats: ['bedrock'],
-		},
-		category: 'animation',
-		value: 'entity',
-		options: {
-			entity: true,
-			attachable_first: true,
-			attachable_third: true
-		},
-		onChange() {
-			if (Project.bedrock_animation_mode == this.value) return;
-			Project.bedrock_animation_mode = this.value;
-
-			updateBase(this.value);
-
-			if (this.value == 'entity') {
-				Preview.selected.loadAnglePreset(DefaultCameraPresets[0]);
-	
-			} else if (this.value == 'attachable_first') {
-				Preview.selected.loadAnglePreset(camera_preset_1st);
-			}
-		}
-	})
-	/*
-	todo
-	
-	Third
-	Add player rig as reference model
-	Attach model based on binding return values
-
-	First
-	Add center camera button
-	*/
-	
-	Blockbench.on('select_project', ({project}) => {
-		bedrock_animation_mode_select.set(project.bedrock_animation_mode || 'entity');
-	})
-	Blockbench.on('select_mode', ({mode}) => {
-		if (Modes.animate && Project.bedrock_animation_mode) {
-			updateBase(Project.bedrock_animation_mode);
-		} else {
-			updateBase();
-		}
-	})
 })
+
 
 Interface.definePanels(function() {
 

@@ -1360,9 +1360,15 @@ class Preview {
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',
-		{icon: 'icon-player', name: 'settings.display_skin', condition: () => (display_mode && displayReferenceObjects.active.id === 'player'), click: function() {
-			changeDisplaySkin()
-		}},
+		{
+			icon: 'icon-player',
+			name: 'settings.display_skin',
+			condition: () => ((display_mode && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
+			click: function() {
+			
+				changeDisplaySkin()
+			}
+		},
 		'preview_checkerboard',
 		'add_reference_image',
 		'reference_image_from_clipboard',

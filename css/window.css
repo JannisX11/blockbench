@@ -887,6 +887,15 @@
 		color: white;
 		width: 16px;
 	}
+	#center_first_person_button {
+		position: absolute;
+		margin: auto;
+		right: 0;
+		left: 0;
+		bottom: 7px;
+		width: fit-content;
+		z-index: 2;
+	}
 
 	.reference_image {
 		position: absolute;

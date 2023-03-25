@@ -294,7 +294,7 @@
 	"message.display_skin.title": "Display Skin",
 	"message.display_skin.message": "Select a skin file from your computer or enter a player name",
 	"message.display_skin.upload": "Select File",
-	"message.display_skin.name": "Username",
+	"message.display_skin.username": "Username (Java)",
 	"message.display_skin.reset": "Reset",
 	"message.display_skin.invalid_name": "Cannot find Minecraft account with the name \"%0\".",
 
