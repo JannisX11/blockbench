@@ -313,7 +313,7 @@ const UVEditor = {
 				}
 			}
 		})
-		let pixel_size = UVEditor.getPixelSize();
+		let pixel_size = UVEditor.inner_width / UVEditor.vue.project_resolution[0];
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
 		let margin = UVEditor.vue.getFrameMargin();

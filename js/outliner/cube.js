@@ -783,6 +783,11 @@ class Cube extends OutlinerElement {
 		}
 		this.mapAutoUV();
 		if (this.box_uv) {
+			if (axis == 2) {
+				let difference = Math.ceil(before - this.size(axis));
+				this.uv_offset[0] = this.oldUVOffset[0] + difference;
+				this.uv_offset[1] = this.oldUVOffset[1] + difference;
+			}
 			Canvas.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
