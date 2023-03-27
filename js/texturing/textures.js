@@ -1052,7 +1052,7 @@ class Texture {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
 					dimensions: 2,
-					value: [this.width, this.height],
+					value: [this.width, this.display_height],
 					min: 1
 				},
 				frames: {
@@ -1091,7 +1091,7 @@ class Texture {
 					if (elements.length) elements_to_change = elements;
 				}
 				if (Format.animated_textures && formResult.frames > 1) {
-					formResult.size[1] *= formResult.frames / (scope.frameCount || 1);
+					formResult.size[1] *= formResult.frames;
 				}
 
 				Undo.initEdit({
