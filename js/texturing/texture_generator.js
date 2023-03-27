@@ -266,8 +266,8 @@ const TextureGenerator = {
 				var fill_map = {};
 
 				if (makeTexture instanceof Texture) {
-					extend_x = makeTexture.width;
-					extend_y = makeTexture.height;
+					extend_x = makeTexture.width / res_multiple;
+					extend_y = makeTexture.height / res_multiple;
 					Cube.all.forEach(element => {
 						for (let fkey in element.faces) {
 							let face = element.faces[fkey];
