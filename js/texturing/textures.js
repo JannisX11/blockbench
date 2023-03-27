@@ -192,6 +192,7 @@ class Texture {
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
+			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
 
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')

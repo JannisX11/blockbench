@@ -342,7 +342,11 @@ class ModelProject {
 						noLink: true
 					})
 					if (answer === 0) {
-						BarItems.save_project.trigger();
+						if (Project.save_path || Project.export_path) {
+							BarItems.save_project.trigger();
+						} else {
+							await BarItems.export_over.click();
+						}
 						return Project.saved;
 					}
 					return answer !== 2;

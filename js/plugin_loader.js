@@ -31,7 +31,7 @@ const Plugins = {
 	}
 }
 StateMemory.init('installed_plugins', 'array')
-Plugins.installed = StateMemory.installed_plugins.filter(p => typeof p == 'object');
+Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
 class Plugin {
 	constructor(id, data) {
@@ -435,8 +435,6 @@ async function loadInstalledPlugins() {
 		await Plugins.loading_promise;
 	}
 	const install_promises = [];
-
-	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
 
 	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store

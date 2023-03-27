@@ -1197,6 +1197,14 @@ const Animator = {
 			let texture = Texture.all[tex_index % Texture.all.length];
 			if (texture) texture.select();
 		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture_frame\s*=/mi)) {
+			let frame = Animator.MolangParser.variableHandler('preview.texture_frame');
+
+			Texture.all.forEach(tex => {
+				tex.currentFrame = (frame % tex.frameCount) || 0;
+			})
+			TextureAnimator.update(Texture.all.filter(tex => tex.frameCount > 1));
+		}
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
 			let scale = Animator.MolangParser.variableHandler('preview.scale');
