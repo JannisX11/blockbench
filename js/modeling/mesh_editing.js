@@ -580,6 +580,7 @@ BARS.defineActions(function() {
 					}
 					// Split face
 					if (
+						reference_face &&
 						(selected_vertices.length == 2 || selected_vertices.length == 3) &&
 						reference_face.vertices.length == 4 &&
 						reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == selected_vertices.length
@@ -615,7 +616,7 @@ BARS.defineActions(function() {
 						
 						let new_face = new MeshFace(mesh, {
 							vertices: selected_vertices,
-							texture: reference_face.texture,
+							texture: reference_face?.texture,
 						} );
 						let [face_key] = mesh.addFaces(new_face);
 						UVEditor.selected_faces.push(face_key);

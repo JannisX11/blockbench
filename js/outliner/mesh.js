@@ -235,14 +235,14 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	UVToLocal(uv) {
-		let p0 = this.uv[this.vertices[0]];
-		let p1 = this.uv[this.vertices[1]];
-		let p2 = this.uv[this.vertices[2]];
+	UVToLocal(uv, vertices = this.vertices) {
+		let p0 = this.uv[vertices[0]];
+		let p1 = this.uv[vertices[1]];
+		let p2 = this.uv[vertices[2]];
 
-		let vertexa = this.mesh.vertices[this.vertices[0]];
-		let vertexb = this.mesh.vertices[this.vertices[1]];
-		let vertexc = this.mesh.vertices[this.vertices[2]];
+		let vertexa = this.mesh.vertices[vertices[0]];
+		let vertexb = this.mesh.vertices[vertices[1]];
+		let vertexc = this.mesh.vertices[vertices[2]];
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
 		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
@@ -256,14 +256,14 @@ class MeshFace extends Face {
 		)
 		return local_space;	
 	}
-	localToUV(vector) {
-		let va = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[0]]);
-		let vb = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[1]]);
-		let vc = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[2]]);
+	localToUV(vector, vertices = this.vertices) {
+		let va = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[0]]);
+		let vb = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[1]]);
+		let vc = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[2]]);
 
-		let uva = new THREE.Vector2().fromArray(this.uv[this.vertices[0]]);
-		let uvb = new THREE.Vector2().fromArray(this.uv[this.vertices[1]]);
-		let uvc = new THREE.Vector2().fromArray(this.uv[this.vertices[2]]);
+		let uva = new THREE.Vector2().fromArray(this.uv[vertices[0]]);
+		let uvb = new THREE.Vector2().fromArray(this.uv[vertices[1]]);
+		let uvc = new THREE.Vector2().fromArray(this.uv[vertices[2]]);
 
 		let uv = THREE.Triangle.getUV(vector, va, vb, vc, uva, uvb, uvc, new THREE.Vector2());
 		return uv.toArray();
@@ -1109,43 +1109,47 @@ new NodePreviewController(Mesh, {
 			let face = element.faces[fkey];
 			if (face.vertices.length <= 2) continue;
 			let offset = face.getNormal(true).V3_multiply(0.01);
-			let x_memory = {};
-			let y_memory = {};
 			let texture = face.getTexture();
 			var psize_x = texture ? Project.texture_width / texture.width : 1;
 			var psize_y = texture ? Project.texture_height / texture.height : 1;
 			let vertices = face.getSortedVertices();
-			vertices.forEach((vkey1, i) => {
-				let vkey2 = vertices[i+1] || vertices[0];
-				let uv1 = face.uv[vkey1].slice();
-				let uv2 = face.uv[vkey2].slice();
-				let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
-				let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
+			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];
+			tris.forEach(tri_vertices => {
+				let x_memory = {};
+				let y_memory = {};
+				
+				tri_vertices.forEach((vkey1, i) => {
+					let vkey2 = tri_vertices[i+1] || tri_vertices[0];
+					let uv1 = face.uv[vkey1].slice();
+					let uv2 = face.uv[vkey2].slice();
+					let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
+					let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
 
-				for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
-					if (!x_memory[x]) x_memory[x] = [];
-					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
-					x_memory[x].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
+					for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
+						if (!x_memory[x]) x_memory[x] = [];
+						let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
+						x_memory[x].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
+					}
+					for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
+						if (!y_memory[y]) y_memory[y] = [];
+						let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
+						y_memory[y].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
+					}
+				})
+
+				for (let key in x_memory) {
+					let points = x_memory[key];
+					if (points.length == 2) {
+						positions.push(...points[0], ...points[1]);
+					}
 				}
-				for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
-					if (!y_memory[y]) y_memory[y] = [];
-					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
-					y_memory[y].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
+				for (let key in y_memory) {
+					let points = y_memory[key];
+					if (points.length == 2) {
+						positions.push(...points[0], ...points[1]);
+					}
 				}
 			})
-
-			for (let key in x_memory) {
-				let points = x_memory[key];
-				if (points.length == 2) {
-					positions.push(...points[0], ...points[1]);
-				}
-			}
-			for (let key in y_memory) {
-				let points = y_memory[key];
-				if (points.length == 2) {
-					positions.push(...points[0], ...points[1]);
-				}
-			}
 		}
 
 		var geometry = new THREE.BufferGeometry();
