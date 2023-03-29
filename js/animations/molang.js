@@ -66,6 +66,9 @@ Animator.MolangParser.global_variables = {
 		let distance = Preview.selected.camera.position.length() / 16;
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
+	get 'query.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
 	get 'time'() {
 		return Timeline.time;
 	}
