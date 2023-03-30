@@ -874,11 +874,11 @@ Blockbench.on('finish_edit', event => {
 
 
 const WinterskyScene = new Wintersky.Scene({
-	fetchTexture: isApp && function(config) {
+	fetchTexture: function(config) {
 		if (config.preview_texture) {
 			return config.preview_texture;
 		}
-		if (config.file_path && config.particle_texture_path) {
+		if (isApp && config.file_path && config.particle_texture_path) {
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
 			path_arr.splice(particle_index)

@@ -275,6 +275,8 @@
 	"message.update_notification.title": "Could not Install Update",
 	"message.update_notification.message": "A new Blockbench version is available. Please enable Automatic Updates in the settings in order to update!",
 	"message.update_after_restart": "The update will be installed after the next restart",
+	"message.import_particle_texture.import": "Import Particle Texture",
+	"message.import_particle_texture.message": "Would you like to import a texture file to be used for your particle?",
 
 	"message.image_editor.title": "Select an image editor",
 	"message.image_editor.file": "Select File...",

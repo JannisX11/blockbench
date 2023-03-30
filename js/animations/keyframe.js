@@ -1366,7 +1366,29 @@ Interface.definePanels(function() {
 							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+							if (!isApp) {
+								Blockbench.showMessageBox({
+									title: 'message.import_particle_texture.import',
+									message: 'message.import_particle_texture.message',
+									buttons: ['dialog.cancel'],
+									commands: {
+										import: 'message.import_particle_texture.import'
+									}
+								}, result => {
+									if (result != 'import') return;
+
+									Blockbench.import({
+										extensions: ['png'],
+										type: 'Particle Texture',
+										readtype: 'image',
+										startpath: effect.config.preview_texture || path
+									}, function(files) {
+										effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+										effect.config.updateTexture();
+									})
+								})
+
+							} else if (effect.config.texture.image.src.startsWith('data:')) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
@@ -1374,7 +1396,7 @@ Interface.definePanels(function() {
 									startpath: effect.config.preview_texture || path
 								}, function(files) {
 									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-									if (isApp) effect.config.updateTexture();
+									effect.config.updateTexture();
 								})
 							}
 						})
