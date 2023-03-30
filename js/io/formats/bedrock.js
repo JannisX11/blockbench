@@ -1386,6 +1386,7 @@ var block_format = new ModelFormat({
 			});
 			return vertices;
 		},
+		// Test if it overlaps
 		test(cube, values = 0) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
@@ -1394,11 +1395,12 @@ var block_format = new ModelFormat({
 			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
 			let center = block_format.cube_size_limiter.getModelCenter([cube]);
 
-			return undefined !== vertices.find((v, i) => {
+			let vertex_outside_bounds = vertices.find((v, i) => {
 				return (v[0] > center[3]+15 || v[0] < center[0]-15)
 					|| (v[1] > center[4]+15 || v[1] < center[1]-15)
 					|| (v[2] > center[5]+15 || v[2] < center[2]-15);
 			})
+			return vertex_outside_bounds !== undefined;
 		},
 		move(cube, values = 0) {
 			let from = values.from || cube.from;

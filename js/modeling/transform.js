@@ -1167,13 +1167,13 @@ BARS.defineActions(function() {
 
 						obj.inflate = v;
 					} else {
-						if (Format.cube_size_limiter.test(obj, {inflate: v})) {
+						if (Format.cube_size_limiter.test(obj, {inflate: v}) == false) {
 							obj.inflate = v;
 						} else {
 							let step = Math.sign(v - v_before) * 0.1;
 							let steps = (v - v_before) / step;
 							for (let i = 0; i < steps; i++) {
-								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)})) {
+								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)}) == false) {
 									obj.inflate = v_before + i * steps;
 									break;
 								}
