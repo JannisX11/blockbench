@@ -1343,6 +1343,7 @@ class Toolbar {
 		this.name = data.name && tl(data.name);
 		this.label = !!data.label;
 		this.label_node = null;
+		this.condition = data.condition;
 		this.children = [];
 		this.condition_cache = [];
 		Toolbars[this.id] = this;
@@ -1357,6 +1358,7 @@ class Toolbar {
 		this.narrow = !!data.narrow
 		this.vertical = !!data.vertical
 		this.default_children = data.children ? data.children.slice() : [];
+		this.previously_enabled = true;
 
 		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
 		toolbar_menu.addEventListener('click', event => {
@@ -1479,6 +1481,16 @@ class Toolbar {
 	}
 	update(force) {
 		var scope = this;
+
+		let enabled = Condition(this.condition);
+		if (enabled != this.previously_enabled) {
+			this.node.style.display = enabled ? '' : 'none';
+			if (this.label_node) {
+				this.label_node.style.display = this.node.style.display;
+			}
+			this.previously_enabled = enabled;
+		}
+		if (!enabled) return this;
 
 		// check if some unkown actions are now known
 		if (this.postload) {
