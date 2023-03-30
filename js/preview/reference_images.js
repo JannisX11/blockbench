@@ -516,6 +516,15 @@ class ReferenceImage {
 	}
 	changeLayer(layer) {
 		if (layer == this.layer) return;
+
+		if (layer == 'float' || this.layer == 'float') {
+			let preview_offset = $(Interface.preview).offset();
+			let workscreen_offset = $(Interface.work_screen).offset();
+			let sign = layer == 'float' ? 1 : -1;
+			
+			this.position[0] += (preview_offset.left - workscreen_offset.left) * sign;
+			this.position[1] += (preview_offset.top - workscreen_offset.top) * sign;
+		}
 		if (layer == 'blueprint' && Preview.selected?.angle) {
 			this.attached_side = Preview.selected.angle;
 			this.position.V2_set(0, 0);
@@ -563,9 +572,17 @@ class ReferenceImage {
 			},
 			onConfirm: (result) => {
 				let clear_mode_before = this.clear_mode;
+				this.extend({
+					source: result.source,
+					position: result.position,
+					size: result.size,
+					rotation: result.rotation,
+					opacity: result.opacity,
+					visibility: result.visibility,
+					clear_mode: result.clear_mode,
+				});
 				this.changeLayer(result.layer);
 				this.changeScope(result.scope);
-				this.extend(result);
 				if (this.clear_mode != clear_mode_before) {
 					this.updateClearMode();
 				}
