@@ -15,9 +15,7 @@ class BarMenu extends Menu {
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
 			if (open_menu === scope) {
-				if (event instanceof PointerEvent == false) {
-					scope.hide()
-				}
+				scope.hide()
 			} else {
 				scope.open()
 			}
