@@ -974,7 +974,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		grow: true,
+		growable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},

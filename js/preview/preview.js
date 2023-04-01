@@ -1370,6 +1370,7 @@ class Preview {
 			}
 		},
 		'preview_checkerboard',
+		'_',
 		'add_reference_image',
 		'reference_image_from_clipboard',
 		'edit_reference_images',

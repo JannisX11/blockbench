@@ -613,7 +613,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		grow: true,
+		growable: true,
 		toolbars: [
 			new Toolbar('timeline', {
 				children: [
