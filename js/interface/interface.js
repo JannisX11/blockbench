@@ -610,6 +610,10 @@ function setZoomLevel(mode) {
 			case 'reset': zoom = 1; break;
 		}
 		UVEditor.setZoom(zoom);
+		if (mode == 'reset') {
+			Project.uv_viewport.offset.V2_set(0, 0);
+			UVEditor.loadViewportOffset();
+		}
 
 	} else if (Prop.active_panel == 'timeline') {
 		

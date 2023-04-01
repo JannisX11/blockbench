@@ -68,7 +68,7 @@ function getSelectionCenter(all = false) {
 			min[2] = Math.min(pos.z, min[2]);	max[2] = Math.max(pos.z, max[2]);
 		}
 	})
-	let center = max.V3_add(min).V3_divide(2);
+	let center = (min[0] == Infinity) ? [0, 0, 0] : max.V3_add(min).V3_divide(2);
 	
 	if (!Format.centered_grid) {
 		center.V3_add(8, 8, 8)
