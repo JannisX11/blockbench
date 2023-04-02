@@ -668,8 +668,8 @@ ReferenceImage.prototype.menu = new Menu([
 ])
 
 new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
-new Property(ReferenceImage, 'string', 'layer', {default: 'float'}); // reference, blueprint
-new Property(ReferenceImage, 'string', 'scope', {default: 'global'}); // reference, blueprint
+new Property(ReferenceImage, 'string', 'layer', {default: 'background'});
+new Property(ReferenceImage, 'string', 'scope', {default: 'global'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'boolean', 'flip_x');

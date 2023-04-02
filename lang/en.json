@@ -1436,6 +1436,7 @@
 	"action.add_reference_image": "Add Reference Image",
 	"action.reference_image_from_clipboard": "Reference Image from Clipboard",
 	"action.reference_image_list": "Reference Images",
+	"action.search_reference_image": "Reference Image Web Search",
 
 	"action.import_texture": "Import Texture",
 	"action.import_texture.desc": "Import one or more textures from your file system",

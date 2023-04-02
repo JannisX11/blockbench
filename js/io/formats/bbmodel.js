@@ -375,9 +375,9 @@ var codec = new Codec('project', {
 			for (let key in model.backgrounds) {
 				let template = model.backgrounds[key];
 				let reference = new ReferenceImage({
-					position: [template.x, template.y],
-					size: [template.size, template.size],
-					type: template.lock ? 'blueprint' : 'reference',
+					position: [template.x, template.y + template.size/2],
+					size: [template.size/2, template.size/2],
+					layer: template.lock ? 'blueprint' : 'background',
 					source: template.image,
 					name: (template.image && !template.image.startsWith('data:')) ? template.image.split([/[/\\]/]).last() : 'Reference'
 				}).addAsReference();
