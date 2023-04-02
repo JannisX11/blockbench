@@ -1498,6 +1498,8 @@
 	"action.face_tint.desc": "Enables the tint option for the current face",
 	"action.slider_face_tint": "Tint Index",
 	"action.slider_face_tint.desc": "Set the tint index of the current face. -1 means unset.",
+	"action.connect_uv_faces": "Connect UV Faces",
+	"action.connect_uv_faces.desc": "Connect the selected UV faces to the last selected UV face",
 	"action.merge_uv_vertices": "Merge UV Vertices",
 	"action.merge_uv_vertices.desc": "Snap the first selected UV vertices to the last selected UV vertices",
 	"action.snap_uv_to_pixels": "Snap UV to Pixels",

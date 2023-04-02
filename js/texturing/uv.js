@@ -1332,6 +1332,7 @@ const UVEditor = {
 		'uv_maximize',
 		'uv_auto',
 		'uv_rel_auto',
+		'connect_uv_faces',
 		'merge_uv_vertices',
 		'snap_uv_to_pixels',
 		'uv_rotate_left',
@@ -1676,6 +1677,94 @@ BARS.defineActions(function() {
 			})
 			UVEditor.loadData();
 			Undo.finishEdit('Merge UV vertices');
+		}
+	})
+	new Action('connect_uv_faces', {
+		icon: 'move_up',
+		category: 'uv',
+		condition: () => UVEditor.isFaceUV() && UVEditor.selected_faces.length == 2 && Mesh.selected[0],
+		click: function (event) {
+			Undo.initEdit({elements: Mesh.selected, uv_only: true})
+			Mesh.selected.forEach(mesh => {
+				let selected_vertices = mesh.getSelectedVertices();
+				let face1 = mesh.faces[UVEditor.selected_faces.last()];
+				let face2 = mesh.faces[UVEditor.selected_faces[0]];
+
+				// Get edge to connect
+				let connection_edge_1 = face1.vertices.filter(vkey => face2.vertices.includes(vkey));
+				let connection_edge_2;
+				if (connection_edge_1.length == 2) {
+					connection_edge_2 = connection_edge_1;
+				} else {
+					// array to make sure we don't end up with 2x the same vkey on face 2
+					let face2_used_vkeys = [];
+					let distance_a = Infinity;
+					let vertex_distances = face1.vertices.map(vkey => {
+						let uv_1 = face1.uv[vkey];
+						let distance_b = Infinity;
+						let closest_from_face_2;
+						face2.vertices.forEach(vkey2 => {
+							if (face2_used_vkeys.includes(vkey2)) return;
+							let uv_2 = face2.uv[vkey2]
+							let distance = Math.sqrt(Math.pow(uv_2[0] - uv_1[0], 2), Math.pow(uv_2[1] - uv_1[1], 2))
+							if (distance < distance_b) {
+								closest_from_face_2 = vkey2;
+								distance_b = distance;
+							}
+						})
+						face2_used_vkeys.push(face2_used_vkeys);
+						return {
+							vkey1: vkey,
+							vkey2: closest_from_face_2,
+							distance: distance_b
+						}
+					})
+					vertex_distances.sort((a, b) => a.distance - b.distance);
+					connection_edge_1 = [vertex_distances[0].vkey1, vertex_distances[1].vkey1];
+					connection_edge_2 = [vertex_distances[0].vkey2, vertex_distances[1].vkey2];
+				}
+
+				// Fix angle
+				let angle1 = Math.PI + Math.atan2(
+					face1.uv[connection_edge_1[0]][1] - face1.uv[connection_edge_1[1]][1],
+					face1.uv[connection_edge_1[0]][0] - face1.uv[connection_edge_1[1]][0],
+				);
+				let angle2 = Math.PI + Math.atan2(
+					face2.uv[connection_edge_2[0]][1] - face2.uv[connection_edge_2[1]][1],
+					face2.uv[connection_edge_2[0]][0] - face2.uv[connection_edge_2[1]][0],
+				);
+				let angle_total = (angle1 - angle2 + Math.PI*6) % (Math.PI*2);
+				let sin = Math.sin(angle_total);
+				let cos = Math.cos(angle_total);
+				UVEditor.selected_faces.forEach(fkey => {
+					let face = mesh.faces[fkey];
+					if (!face || face == face1) return;
+					face.vertices.forEach(vkey => {
+						if (!face.uv[vkey]) return;
+						face.uv[vkey][0] = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
+						face.uv[vkey][1] = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
+					})
+				})
+
+				// Fix offset
+				let offset = [
+					face1.uv[connection_edge_1[0]][0] - face2.uv[connection_edge_2[0]][0],
+					face1.uv[connection_edge_1[0]][1] - face2.uv[connection_edge_2[0]][1]
+				];
+				UVEditor.selected_faces.forEach(fkey => {
+					let face = mesh.faces[fkey];
+					if (!face || face == face1) return;
+					face.vertices.forEach(vkey => {
+						if (!face.uv[vkey]) return;;
+						face.uv[vkey][0] = Math.clamp(face.uv[vkey][0] + offset[0], 0, Project.texture_width);
+						face.uv[vkey][1] = Math.clamp(face.uv[vkey][1] + offset[1], 0, Project.texture_height);
+					})
+				})
+
+				mesh.preview_controller.updateUV(mesh);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Connect UV faces');
 		}
 	})
 	new Action('snap_uv_to_pixels', {
