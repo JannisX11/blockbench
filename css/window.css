@@ -992,12 +992,12 @@
 		margin: auto;
 		height: auto;
 		bottom: 0;
-		right: 0;
-		left: 0;
+		right: -150px;
+		left: -150px;
 		background-color: var(--color-ui);
 		max-width: fit-content;
 		display: flex;
-		flex-wrap: wrap;
+		width: fit-content;
 	}
 
 	.toolbar[toolbar_id=reference_images] {
