@@ -823,7 +823,7 @@ class Animation extends AnimationItem {
 		}}
 	])
 	Animation.prototype.file_menu = new Menu([
-		{name: 'menu.animation_file.unload', icon: 'clear_all', click(id) {
+		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
 			let animations_to_remove = [];
 			let controllers_to_remove = [];
 			AnimationItem.all.forEach(animation => {

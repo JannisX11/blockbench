@@ -562,7 +562,7 @@ var codec = new Codec('fbx', {
 
 		// Animations
 		if (options.include_animations) {
-			let anim_clips = Codecs.gltf.buildAnimationTracks(false); // Handles sampling of math based curves etc.
+			let anim_clips = Codecs.gltf.buildAnimationTracks(export_scale, false); // Handles sampling of math based curves etc.
 			let time_factor = 46186158000; // Arbitrary factor, found in three.js FBX importer
 			anim_clips.forEach(clip => {
 				DefinitionCounter.animation_stack++;

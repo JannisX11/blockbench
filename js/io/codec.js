@@ -87,9 +87,7 @@ class Codec extends EventSystem {
 					if (!Project.export_options[codec.id]) Project.export_options[codec.id] = {};
 					for (let key in result) {
 						let value = result[key];
-						if (value !== form[key].value) {
-							Project.export_options[codec.id][key] = value;
-						}
+						Project.export_options[codec.id][key] = value;
 					}
 					resolve(result);
 				},
