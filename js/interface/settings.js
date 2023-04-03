@@ -531,6 +531,7 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('export_gltf_for_blender',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),
 			tris: tl('settings.obj_face_export_mode.tris'),

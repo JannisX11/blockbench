@@ -925,6 +925,8 @@
 	"settings.sketchfab_token.desc": "Token to authorize Blockbench to upload to your Sketchfab account",
 	"settings.default_path": "Default Minecraft Textures Path",
 	"settings.default_path.desc": "Folder from where Blockbench loads default textures",
+	"settings.export_gltf_for_blender": "Export glTF model for Blender",
+	"settings.export_gltf_for_blender.desc": "Exports such that the texture is displayed consitently between Blockbench and Blender - despite differing UV coordinate systems - by flipping across the X-axis.",
 
 	"settings.recent_projects": "Recent Model Cap",
 	"settings.recent_projects.desc": "Maximum number of recent models to remember",
