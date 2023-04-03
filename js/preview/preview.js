@@ -1243,15 +1243,19 @@ class Preview {
 						}
 
 					} else if (element instanceof Cube && (selection_mode == 'object' || !Format.meshes || !scope.selection.old_selected.find(el => el instanceof Mesh))) {
+						var adjustedFrom = element.from.slice();
+						var adjustedTo = element.to.slice();
+						adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
+
 						let vertices = [
-							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
-							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
-							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
-							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
-							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
-							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
-							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
-							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
+							[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
+							[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
+							[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
+							[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
+							[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
+							[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
+							[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
+							[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
 						].map(coords => {
 							coords.V3_subtract(element.origin);
 							vector.fromArray(coords);

@@ -1199,6 +1199,109 @@ BARS.defineActions(function() {
 		}
 	})
 
+	//Stretch
+	new NumSlider('slider_stretch_x', {
+		name: tl('action.slider_stretch', ['X']),
+		description: tl('action.slider_stretch.desc', ['X']),
+		color: 'x',
+		category: 'transform',
+		condition: function() {return Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[0]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[0];
+				var v = modify(obj.stretch[0]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[0] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_y', {
+		name: tl('action.slider_stretch', ['Y']),
+		description: tl('action.slider_stretch.desc', ['Y']),
+		color: 'y',
+		category: 'transform',
+		condition: function() {return Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[1]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[1];
+				var v = modify(obj.stretch[1]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[1] = v;
+				}				
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_z', {
+		name: tl('action.slider_stretch', ['Z']),
+		description: tl('action.slider_stretch.desc', ['Z']),
+		color: 'z',
+		category: 'transform',
+		condition: function() {return Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[2]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[2];
+				var v = modify(obj.stretch[2]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[2] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	let slider_vector_stretch = [BarItems.slider_stretch_x, BarItems.slider_stretch_y, BarItems.slider_stretch_z];
+	slider_vector_stretch.forEach(slider => slider.slider_vector = slider_vector_stretch);
+
 	//Rotation
 	new NumSlider('slider_rotation_x', {
 		name: tl('action.slider_rotation', ['X']),
@@ -1646,6 +1749,16 @@ BARS.defineActions(function() {
 				})
 				Undo.finishEdit('Update auto UV')
 			}
+		}
+	})
+	new Toggle('toggle_stretch_linked', {
+		icon: 'fas.fa-link',
+		category: 'transform',
+		linked_setting: 'stretch_linked',
+		condition: {
+			modes: ['edit', 'animate'], 
+			selected: {outliner: true},
+			method: () => Cube.selected.length
 		}
 	})
 	new Action('origin_to_geometry', {
