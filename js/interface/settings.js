@@ -408,7 +408,9 @@ const Settings = {
 		}});
 		
 		//Preview 
-		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400});
+		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400, onChange() {
+			Canvas.updateShading();
+		}});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			Canvas.updateShading()
 		}});
@@ -619,9 +621,7 @@ const Settings = {
 			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-		if (hasSettingChanged('brightness')) {
-			Canvas.updateShading()
-		}
+
 		for (var id in settings) {
 			var setting = settings[id];
 			if (!Condition(setting.condition)) continue;
@@ -949,7 +949,7 @@ onVueSetup(function() {
 							</div>
 
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>

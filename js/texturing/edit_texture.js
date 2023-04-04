@@ -85,12 +85,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -173,12 +173,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
-								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -542,8 +542,8 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model="opacity" @input="change()">
-								<input lang="en" type="number" class="tool" style="width: 64px;" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">

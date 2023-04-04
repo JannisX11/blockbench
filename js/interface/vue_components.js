@@ -80,3 +80,59 @@ Vue.component('select-input', {
 		</bb-select>
 	`
 })
+
+Vue.component('numeric-input', {
+	props: {
+		value: Number,
+		min: Number,
+		max: Number,
+		step: Number,
+	},
+	data() {return {
+		string_value: (this.value||0).toString(),
+		resolved_value: (this.value||0)
+	}},
+	watch: {
+		value(v) {
+			if (this.resolved_value != v) {
+				this.string_value = trimFloatNumber(v, 10);
+				this.resolved_value = v;
+			}
+		}
+	},
+	methods: {
+		change(value) {
+			this.string_value = typeof value == 'number' ? trimFloatNumber(value) : value;
+			this.resolved_value = Math.clamp(NumSlider.MolangParser.parse(this.string_value), this.min, this.max);
+			this.$emit('input', this.resolved_value);
+		},
+		slide(e1) {
+			convertTouchEvent(e1);
+			let last_difference = 0;
+			let move = e2 => {
+				convertTouchEvent(e2);
+				let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (this.step || 1);
+				if (difference != last_difference) {
+					let value = Math.clamp((parseFloat(this.value) || 0) + (difference - last_difference), this.min, this.max);
+					this.change(value);
+					last_difference = difference;
+				}
+			}
+			let stop = e2 => {
+				removeEventListeners(document, 'mousemove touchmove', move);
+				removeEventListeners(document, 'mouseup touchend', stop);
+			}
+			addEventListeners(document, 'mousemove touchmove', move);
+			addEventListeners(document, 'mouseup touchend', stop);
+		},
+		resolve() {
+			this.string_value = trimFloatNumber(this.resolved_value, 10);
+		}
+	},
+	template: `
+		<div class="numeric_input">
+			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" inputmode="decimal" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
+			<div class="tool numeric_input_slider" @mousedown="slide($event)" @touchstart="slide($event)"><i class="material-icons">code</i></div>
+		</div>
+	`
+})

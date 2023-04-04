@@ -301,7 +301,19 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 	}
-	.bar.slider_input_combo input.tool[type="number"] {
+	.bar.slider_input_combo > .numeric_input  {
+		width: 72px;
+		float: none;
+		flex-grow: 0;
+		flex-shrink: 0;
+	}
+	.bar.slider_input_combo > .numeric_input > input  {
+		padding-left: 8px;
+		padding-bottom: 3px;
+		border: none;
+		background-color: transparent;
+	}
+	.bar.slider_input_combo > input.tool[type="number"] {
 		width: 52px;
 		float: none;
 		flex-grow: 0;

@@ -1860,8 +1860,8 @@
 	"reference_image.layer.float": "Above Interface",
 	"reference_image.layer.blueprint": "Locked Blueprint",
 	"reference_image.scope": "Scope",
-	"reference_image.scope.project": "Save per project",
-	"reference_image.scope.global": "Save in Blockbench",
+	"reference_image.scope.project": "Just this project",
+	"reference_image.scope.global": "All projects",
 
 	"codec.fbx.export_animations": "Export Animations",
 

@@ -2481,7 +2481,7 @@ Interface.definePanels(function() {
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}" @click="button.type == 'impulse' && changeButtonValue(button, $event)" :buttontype="button.type">
 							<i v-if="button.type == 'impulse'" class="material-icons">play_arrow</i>
 							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<input v-if="button.type == 'slider'" type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<numeric-input v-if="button.type == 'slider'" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)" />
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>
