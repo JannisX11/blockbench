@@ -250,12 +250,12 @@ class Animation extends AnimationItem {
 					if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
 						bone_tag[channel] = bone_tag[channel][timecodes[0]]
 						if (channel == 'scale' &&
-							bone_tag[channel][timecodes[0]] instanceof Array &&
-							bone_tag[channel][timecodes[0]].allEqual(bone_tag[channel][timecodes[0]][0])
+							bone_tag[channel] instanceof Array &&
+							bone_tag[channel].allEqual(bone_tag[channel][0])
 						) {
-							bone_tag[channel] = bone_tag[channel][timecodes[0]][0];
+							bone_tag[channel] = bone_tag[channel][0];
 						}
-					}
+					} 
 				}
 			}
 		}
