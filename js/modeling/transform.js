@@ -1205,7 +1205,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_stretch.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: function() {return Cube.selected.length && Modes.edit},
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
 		getInterval: getSpatialInterval,
 		get: function() {
 			return Cube.selected[0].stretch[0]
@@ -1238,7 +1238,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_stretch.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: function() {return Cube.selected.length && Modes.edit},
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
 		getInterval: getSpatialInterval,
 		get: function() {
 			return Cube.selected[0].stretch[1]
@@ -1271,7 +1271,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_stretch.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: function() {return Cube.selected.length && Modes.edit},
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
 		getInterval: getSpatialInterval,
 		get: function() {
 			return Cube.selected[0].stretch[2]
@@ -1755,11 +1755,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-link',
 		category: 'transform',
 		linked_setting: 'stretch_linked',
-		condition: {
-			modes: ['edit', 'animate'], 
-			selected: {outliner: true},
-			method: () => Cube.selected.length
-		}
+		condition: () => Format.stretch_cubes && Cube.selected.length && Modes.edit
 	})
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',

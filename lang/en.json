@@ -823,8 +823,6 @@
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
 	"settings.stretch_linked": "Link Stretching",
 	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
-	"settings.stretch_enabled": "Enable Stretching",
-	"settings.stretch_enabled.desc": "Enables the stretching tool for generic models only",
 
 	"settings.base_grid": "Small Grid",
 	"settings.base_grid.desc": "Show small grid and axes",

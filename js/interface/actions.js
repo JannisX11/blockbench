@@ -2249,7 +2249,7 @@ const BARS = {
 			id: 'element_stretch',
 			name: 'panel.element.stretch',
 			label: true,
-			condition: () => settings.stretch_enabled.value && Format.id === "free",
+			condition: () => Format.stretch_cubes,
 			children: [
 				'slider_stretch_x',
 				'slider_stretch_y',

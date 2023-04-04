@@ -458,7 +458,6 @@ const Settings = {
 			'face': tl('menu.paste.face'),
 			'mesh_selection': tl('menu.paste.mesh_selection'),
 		}});
-		new Setting('stretch_enabled',{category: 'edit', value: true});
 		new Setting('stretch_linked',{category: 'edit', value: true});
 		
 		//Grid

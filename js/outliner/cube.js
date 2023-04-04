@@ -878,11 +878,19 @@ new Property(Cube, 'boolean', 'locked');
 OutlinerElement.registerType(Cube, 'cube');
 
 function adjustFromAndToForInflateAndStretch(from, to, element) {
+	var halfSize = element.size().slice();
+	halfSize.forEach((v, i) => {
+		halfSize[i] /= 2;
+	});
+	var center = [
+		element.from[0] + halfSize[0],
+		element.from[1] + halfSize[1],
+		element.from[2] + halfSize[2]
+	];
+
 	for (let i = 0; i < from.length; i++) {
-		from[i] = (from[i] - element.inflate) * element.stretch[i];
-	}
-	for (let i = 0; i < to.length; i++) {
-		to[i] = (to[i] + element.inflate) * element.stretch[i];
+		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
+		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
 	}
 }
 
