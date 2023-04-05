@@ -540,12 +540,21 @@ onVueSetup(function() {
 								var missmatch = false;
 								for (var word of keywords) {
 									if (
+										!missmatch &&
 										!action.name.toLowerCase().includes(word) &&
 										!action.id.toLowerCase().includes(word) &&
-										!action.keybind.label.toLowerCase().includes(word)
+										!action.keybind.label.toLowerCase().includes(word) 
 									) {
 										missmatch = true;
 									}
+									if (missmatch && action.sub_keybinds) {
+										for (let key in action.sub_keybinds) {
+											if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
+												missmatch = false;
+											}
+										}
+									}
+									if (missmatch) break;
 								}
 								if (!missmatch) {
 									actions.push(action)

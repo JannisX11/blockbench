@@ -499,6 +499,7 @@ function autoParseJSON(data, feedback) {
 			data = JSON.parse(data)
 		} catch (err) {
 			if (feedback === false) return;
+			let error_part = '';
 			function logErrantPart(whole, start, length) {
 				var line = whole.substr(0, start).match(/\n/gm)
 				line = line ? line.length+1 : 1
@@ -507,7 +508,8 @@ function autoParseJSON(data, feedback) {
 				lines.forEach((s, i) => {
 					result += `#${line+i} ${s}\n`
 				})
-				console.log(result.substr(0, result.length-1) + ' <-- HERE')
+				error_part = result.substr(0, result.length-1) + ' <-- HERE';
+				console.log(error_part);
 			}
 			console.error(err)
 			var length = err.toString().split('at position ')[1]
@@ -523,7 +525,7 @@ function autoParseJSON(data, feedback) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
-				message: tl('message.invalid_file.message', [err])
+				message: tl('message.invalid_file.message', [err]) + (error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : '')
 			})
 			return;
 		}
