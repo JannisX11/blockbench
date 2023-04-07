@@ -1011,9 +1011,9 @@ var codec = new Codec('fbx', {
 		})
 	},
 	export_options: {
-		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII', binary: 'Binary'}},
+		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII', binary: 'Binary'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
-		include_animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
+		include_animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async export() {
 		if (Object.keys(this.export_options).length) {

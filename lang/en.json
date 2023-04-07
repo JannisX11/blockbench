@@ -1865,7 +1865,10 @@
 	"reference_image.scope.project": "Just this project",
 	"reference_image.scope.global": "All projects",
 
-	"codec.fbx.export_animations": "Export Animations",
+	"codec.common.encoding": "Encoding",
+	"codec.common.armature": "Armature",
+	"codec.common.export_animations": "Export Animations",
+	"codec.common.embed_textures": "Embed Textures",
 
 	"preview.center_camera": "Center Camera",
 

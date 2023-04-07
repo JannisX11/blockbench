@@ -187,7 +187,7 @@ function buildSkinnedMesh(root_group, scale) {
 			let index_offset = position_array.length / 3;
 			for (let i = 0; i < geometry.attributes.position.count; i++) {
 				vertex.fromBufferAttribute(geometry.attributes.position, i);
-				vertex.fromBufferAttribute(geometry.attributes.position, i);
+				normal.fromBufferAttribute(geometry.attributes.normal, i);
 				// todo: apply transform
 				vertex.applyMatrix4(matrix);
 				normal.transformDirection(matrix);
@@ -259,10 +259,11 @@ var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
 	export_options: {
-		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
+		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
-		armature: {type: 'checkbox', label: 'Armature', value: false},
-		animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
+		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
+		armature: {type: 'checkbox', label: 'codec.common.armature', value: false},
+		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options = this.getExportOptions()) {
 		let scope = this;
@@ -318,6 +319,7 @@ var codec = new Codec('gltf', {
 					truncateDrawRange: false,
 					forcePowerOfTwoTextures: true,
 					scale_factor: 1/options.scale,
+					embedImages: options.embed_textures,
 					exportFaceColors: false,
 				});
 			})
