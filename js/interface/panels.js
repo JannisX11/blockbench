@@ -21,7 +21,7 @@ class Panel extends EventSystem {
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
 		this.position_data = Interface.data.panels[this.id];
-		let defaultp = data.default_position || 0;
+		let defaultp = this.default_position = data.default_position || 0;
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
@@ -331,6 +331,9 @@ class Panel extends EventSystem {
 	}
 	set folded(state) {
 		this.position_data.folded = !!state;
+	}
+	resetCustomLayout() {
+
 	}
 	addToolbar(toolbar, position = this.toolbars.length) {
 		let nodes = [];
