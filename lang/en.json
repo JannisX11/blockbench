@@ -1269,6 +1269,8 @@
 	"action.save_palette.desc": "Save the current color palette inside Blockbench for later use",
 	"action.load_palette": "Load Palette",
 	"action.load_palette.desc": "Load one of the built-in or saved palette presets",
+	"action.slider_palette_color": "Switch Palette Color",
+	"action.slider_palette_color.desc": "Cycle between the colors in the palette",
 	"action.pick_screen_color": "Pick Screen Color",
 	"action.pick_screen_color.desc": "Pick a color from somewhere on your screen",
 

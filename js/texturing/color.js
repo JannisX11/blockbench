@@ -191,6 +191,7 @@ Interface.definePanels(() => {
 						BarItems.slider_color_s.update();
 						BarItems.slider_color_v.update();
 					}
+					BarItems.slider_palette_color.update();
 				},
 				onMouseWheel(event) {
 					if (!event.target) return;
@@ -889,6 +890,7 @@ BARS.defineActions(function() {
 	new Action('load_palette', {
 		icon: 'fa-tasks',
 		category: 'color',
+		condition: {modes: ['paint']},
 		click: function (e) {
 			new Menu(this.children()).open(e.target)
 		},
@@ -941,6 +943,7 @@ BARS.defineActions(function() {
 
 	new Action('save_palette', {
 		icon: 'playlist_add',
+		condition: {modes: ['paint']},
 		click(event) {	
 			let dialog = new Dialog({
 				id: 'save_palette',
@@ -1080,6 +1083,20 @@ BARS.defineActions(function() {
 	let slider_vector_rgb = [red, green, blue];
 	slider_vector_rgb.forEach(slider => slider.slider_vector = slider_vector_rgb);
 
+
+	new NumSlider('slider_palette_color', {
+		condition: {modes: ['paint']},
+		category: 'color',
+		get() {
+			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
+		},
+		getInterval() {return 1},
+		change(modify) {
+			let value = Math.clamp(modify(this.get()), 1, ColorPanel.palette.length);
+			let color = ColorPanel.palette[value-1];
+			ColorPanel.set(color);
+		}
+	})
 
 	new Action('pick_screen_color', {
 		icon: 'colorize',
