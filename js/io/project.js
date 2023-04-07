@@ -376,6 +376,16 @@ class ModelProject {
 			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
 
+			// Clear memory
+			for (let uuid in ProjectData[this.uuid].nodes_3d) {
+				let node_3d = ProjectData[this.uuid].nodes_3d[uuid];
+				if (node_3d.parent) node_3d.parent.remove(node_3d);
+				if (node_3d.geometry) node_3d.geometry.dispose();
+				if (node_3d.outline && node_3d.outline.geometry) {
+					node_3d.outline.geometry.dispose();
+				}
+			}
+
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];

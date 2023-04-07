@@ -264,7 +264,7 @@ const skin_dialog = new Dialog({
 			}
 		},
 		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-			16: '16x',
+			16: 'generic.default',
 			32: '32x',
 			64: '64x',
 			128: '128x',

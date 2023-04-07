@@ -515,12 +515,12 @@ function autoParseJSON(data, feedback) {
 			var length = err.toString().split('at position ')[1]
 			if (length) {
 				length = parseInt(length)
-				var start = limitNumber(length-20, 0, Infinity)
+				var start = limitNumber(length-32, 0, Infinity)
 
 				logErrantPart(data, start, 1+length-start)
 			} else if (err.toString().includes('Unexpected end of JSON input')) {
 
-				logErrantPart(data, data.length-10, 10)
+				logErrantPart(data, data.length-16, 10)
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
