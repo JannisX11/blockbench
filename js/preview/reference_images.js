@@ -14,6 +14,7 @@ class ReferenceImage {
 		this.clear_mode = false;
 		this.attached_side = 0;
 		this.source = '';
+		this.modes = [];
 		
 		this.uuid = guid();
 		this.cache_version = 0;
@@ -68,6 +69,10 @@ class ReferenceImage {
 	extend(data) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
+		if (data.modes instanceof Array) {
+			this.modes.replace(data.modes);
+		}
+
 		for (let key in ReferenceImage.properties) {
 			ReferenceImage.properties[key].merge(this, data)
 		}
@@ -86,10 +91,12 @@ class ReferenceImage {
 		for (let key in ReferenceImage.properties) {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
+		if (this.modes.length) copy.modes = this.modes.slice();
 		return copy;
 	}
 	resolveCondition() {
 		if (!Condition(this.condition)) return false;
+		if (this.modes.length && !this.modes.includes(Modes.selected.id)) return false;
 		if (this.layer == 'blueprint') {
 			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
 		}
@@ -211,6 +218,7 @@ class ReferenceImage {
 			this.node.style.filter = '';
 			this.node.style.mixBlendMode = '';
 		}
+		this.node.classList.toggle('invisible', this.visibility == false || this.opacity < 0.1);
 
 		// Select
 		if (this.selected && !this._modify_nodes.length) {
@@ -552,7 +560,7 @@ class ReferenceImage {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
-				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
+				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && this.source && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -646,11 +654,40 @@ ReferenceImage.prototype.menu = new Menu([
 			return children;
 		}
 	},
+	{
+		name: 'reference_image.enabled_modes',
+		icon: 'fact_check',
+		children: (reference) => {
+			let children = [];
+			let all_modes = [];
+			for (let key in Modes.options) {
+				let mode = Modes.options[key];
+				all_modes.push(key);
+				children.push({
+					id: key,
+					name: mode.name,
+					icon: (reference.modes.length == 0 || reference.modes.includes(key)),
+					click() {
+						if (reference.modes.length == 0) {
+							reference.modes.replace(all_modes);
+						}
+						reference.modes.toggle(key);
+						// Clear invalid modes (uninstalled plugins etc.)
+						reference.modes.forEachReverse((mode) => {
+							if (!Modes.options[mode]) reference.modes.remove(mode);
+						})
+						reference.update().save();
+					}
+				})
+			}
+			return children;
+		}
+	},
 	'_',
 	{
 		name: 'menu.texture.refresh',
 		icon: 'refresh',
-		condition: (reference) => (isApp && PathModule.isAbsolute(reference.source)),
+		condition: (reference) => (isApp && reference.source && PathModule.isAbsolute(reference.source)),
 		click(reference) {
 			reference.cache_version++;
 			reference.update();
@@ -739,11 +776,11 @@ const ReferenceImageMode = {
 			icon.src = files[0].content;
 			Blockbench.showMessageBox({
 				title: 'action.add_reference_image',
-				message: 'Select where to load the reference image',
+				message: 'message.add_reference_image.message',
 				icon,
 				commands: {
-					project: 'Save in project',
-					app: 'Save in Blockbench',
+					project: 'message.add_reference_image.project',
+					app: 'message.add_reference_image.app',
 				}
 			}, resolve)
 		})
@@ -822,6 +859,7 @@ BARS.defineActions(function() {
 	new Action('reference_image_list', {
 		icon: 'list',
 		category: 'view',
+		condition: () => ReferenceImageMode.active,
 		click(e) {
 			new Menu('apply_display_preset', this.children(), {searchable: false}).open(e.target, 'wrong context');
 		},
@@ -838,22 +876,60 @@ BARS.defineActions(function() {
 							reference.update().save();
 						}
 					},
+					{
+						name: 'reference_image.enabled_modes',
+						icon: 'fact_check',
+						children: () => {
+							let children = [];
+							let all_modes = [];
+							for (let key in Modes.options) {
+								let mode = Modes.options[key];
+								all_modes.push(key);
+								children.push({
+									id: key,
+									name: mode.name,
+									icon: (reference.modes.length == 0 || reference.modes.includes(key)),
+									click() {
+										if (reference.modes.length == 0) {
+											reference.modes.replace(all_modes);
+										}
+										reference.modes.toggle(key);
+										// Clear invalid modes (uninstalled plugins etc.)
+										reference.modes.forEachReverse((mode) => {
+											if (!Modes.options[mode]) reference.modes.remove(mode);
+										})
+										reference.update().save();
+									}
+								})
+							}
+							return children;
+						}
+					},
 					'_',
 					{
 						name: 'menu.texture.refresh',
 						icon: 'refresh',
-						condition: (reference) => (isApp && PathModule.isAbsolute(reference.source)),
-						click(reference) {
+						condition: () => (isApp && reference.source && PathModule.isAbsolute(reference.source)),
+						click() {
 							reference.cache_version++;
 							reference.update();
 						}
 					},
+					{
+						name: 'generic.delete',
+						icon: 'delete',
+						click() {
+							reference.select();
+							if (reference.selected) BarItems.delete.trigger();
+						}
+					},
+					'_',
 					/** Todo: add options
 					 * Center
 					 * Delete
 					 */
 					{
-						name: 'Properties...',
+						name: 'menu.texture.properties',
 						icon: 'list',
 						click() {
 							reference.propertiesDialog();

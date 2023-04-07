@@ -919,8 +919,11 @@
 	#work_screen.reference_image_mode .quad_canvas_wrapper {
 		pointer-events: none;
 	}
+	#work_screen.reference_image_mode .reference_image.invisible:not(.selected):not(:hover) {
+		outline: 1px solid var(--color-grid);
+	}
 	.reference_image.selected {
-		z-index: 2;
+		z-index: 9;
 		pointer-events: initial;
 		cursor: move;
 	}
@@ -1021,13 +1024,6 @@
 		position: absolute;
 		pointer-events: none;
 	}
-
-
-
-
-
-
-
 
 
 /* GIF Recorder */

@@ -241,6 +241,9 @@
 	"message.child_model_only.open_with_textures": "Open Parent & Adopt Textures",
 	"message.invalid_link": "Invalid or Expired Model Link",
 	"message.delete_reference_image": "Are you sure you want to delete this reference image? This cannot be undone.",
+	"message.add_reference_image.message": "Select where to load the reference image",
+	"message.add_reference_image.project": "Add to this project",
+	"message.add_reference_image.app": "Add to all projects",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",
@@ -1868,6 +1871,7 @@
 	"reference_image.scope": "Scope",
 	"reference_image.scope.project": "Just this project",
 	"reference_image.scope.global": "All projects",
+	"reference_image.enabled_modes": "Enabled in Modes",
 
 	"codec.common.encoding": "Encoding",
 	"codec.common.armature": "Armature",

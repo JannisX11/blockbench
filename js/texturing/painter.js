@@ -73,13 +73,23 @@ const Painter = {
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
-			let projection;
-			let reference = ReferenceImage.active.find(reference => projection = reference.projectMouseCursor(e.clientX, e.clientY));
+			let projections = {};
+			let references = ReferenceImage.active.filter(reference => {
+				let result = reference.projectMouseCursor(e.clientX, e.clientY);
+				if (result) {
+					projections[reference.uuid] = result;
+					return true;
+				}
+			});
+			if (references.length > 1) {
+				let z_indices = {background: 1, viewport: 2, blueprint: 0, float: 4};
+				references.sort((a, b) => z_indices[a.layer] - z_indices[b.layer]);
+			}
 
-			if (projection) {
-				var ctx = Painter.getCanvas(reference.img).getContext('2d');
+			if (references.length) {
+				let projection = projections[references.last().uuid];
+				var ctx = Painter.getCanvas(references.last().img).getContext('2d');
 				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
-				console.log(projection, color, ctx)
 				if (settings.pick_color_opacity.value) {
 					let opacity = Math.floor(color.getAlpha()*256);
 					for (let id in BarItems) {
@@ -91,31 +101,6 @@ const Painter = {
 				}
 				ColorPanel.set(color);
 			}
-
-			/*var preview = Preview.selected;
-			if (preview && preview.background && preview.background.imgtag) {
-				
-				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
-				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
-
-				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
-				var pixel_ratio = preview.background.imgtag.width / bg_size;
-				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
-				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
-				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
-					let color = Painter.getPixelColor(ctx, x, y);
-					if (settings.pick_color_opacity.value) {
-						let opacity = Math.floor(color.getAlpha()*256);
-						for (let id in BarItems) {
-							let tool = BarItems[id];
-							if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
-								tool.tool_settings.brush_opacity = opacity;
-							}
-						}
-					}
-					ColorPanel.set(color);
-				}
-			}*/
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
 		var texture = data.element.faces[data.face].getTexture()
