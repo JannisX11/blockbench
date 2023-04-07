@@ -253,7 +253,7 @@ function buildForm(dialog) {
 					bar.append(group)
 					for (let i = 0; i < (data.dimensions || 3); i++) {
 						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
-							value: data.value[i],
+							value: data.value ? data.value[i] : 0,
 							min: data.min, max: data.max, step: data.step,
 							onChange() {
 								dialog.updateFormValues()

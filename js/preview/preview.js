@@ -629,7 +629,7 @@ class Preview {
 					orthographic: 'dialog.save_angle.projection.orthographic'
 				}},
 				divider1: '_',
-				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'inline_select', value: rotation_mode, options: {
 					target: 'dialog.save_angle.target',
 					rotation: 'dialog.save_angle.rotation'
 				}},
@@ -1493,7 +1493,7 @@ function editCameraPreset(preset, presets) {
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
 			divider1: '_',
-			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'inline_select', value: rotation_mode, options: {
 				target: 'dialog.save_angle.target',
 				rotation: 'dialog.save_angle.rotation'
 			}},
