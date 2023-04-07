@@ -202,7 +202,7 @@ function buildForm(dialog) {
 				case 'number':
 					let numeric_input = new Interface.CustomElements.NumericInput(form_id, {
 						value: data.value,
-						min: data.min, max: data.max,
+						min: data.min, max: data.max, step: data.step,
 						onChange() {
 							dialog.updateFormValues()
 						}
@@ -254,7 +254,7 @@ function buildForm(dialog) {
 					for (let i = 0; i < (data.dimensions || 3); i++) {
 						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
 							value: data.value[i],
-							min: data.min, max: data.max,
+							min: data.min, max: data.max, step: data.step,
 							onChange() {
 								dialog.updateFormValues()
 							}

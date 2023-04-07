@@ -550,6 +550,9 @@
 	"dialog.create_texture.pixel_density": "Pixel Density",
 	"dialog.create_texture.pixel_density.desc": "The pixel density of the texture, in pixels per meter. The size of the texture map may differ depending on the amount and size of elements.",
 
+	"dialog.mirror_painting_texture_center.middle": "Middle",
+	"dialog.mirror_painting_texture_center.custom": "Custom",
+
 	"dialog.create_gif.title": "Record GIF",
 	"dialog.create_gif.format": "Format",
 	"dialog.create_gif.format.gif": "GIF",
@@ -1781,7 +1784,8 @@
 	"menu.mirror_painting.local.desc": "Enable mirror painting in local space for each element",
 	"menu.mirror_painting.texture": "2D Editor Symmetry",
 	"menu.mirror_painting.texture.desc": "Enable mirror painting in 2D space on the image or texture",
-	"menu.mirror_painting.texture_frames": "Animated Texture Frames",
+	"menu.mirror_painting.configure_texture_center": "Configure Texture Center...",
+	"menu.mirror_painting.texture_frames": "Repeat on Animated Texture Frames",
 	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
 
 	"menu.toolbar.edit": "Customize",
