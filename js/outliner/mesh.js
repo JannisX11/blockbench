@@ -335,7 +335,7 @@ class Mesh extends OutlinerElement {
 	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
 		let pos = Reusable.vec1.set(0, 0, 0);
-		let vertice_count = 0;
+		let vertex_count = 0;
 
 		for (let key in this.vertices) {
 			if (ignore_mesh_selection || !Project.mesh_selection[this.uuid] || (Project.mesh_selection[this.uuid] && Project.mesh_selection[this.uuid].vertices.includes(key))) {
@@ -343,12 +343,14 @@ class Mesh extends OutlinerElement {
 				pos.x += vector[0];
 				pos.y += vector[1];
 				pos.z += vector[2];
-				vertice_count++;
+				vertex_count++;
 			}
 		}
-		pos.x /= vertice_count;
-		pos.y /= vertice_count;
-		pos.z /= vertice_count;
+		if (vertex_count) {
+			pos.x /= vertex_count;
+			pos.y /= vertex_count;
+			pos.z /= vertex_count;
+		}
 
 		if (m) {
 			let r = m.getWorldQuaternion(Reusable.quat1);
