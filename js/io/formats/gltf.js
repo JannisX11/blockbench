@@ -174,6 +174,8 @@ function buildSkinnedMesh(root_group, scale) {
 	let bones = [];
 	let material;
 
+	let root_counter_matrix = new THREE.Matrix4().copy(root_group.mesh.matrix).invert();
+
 	let vertex = Reusable.vec1;
 	let normal = Reusable.vec2;
 
@@ -182,7 +184,8 @@ function buildSkinnedMesh(root_group, scale) {
 		for (child of group.children) {
 			if (!child.mesh.geometry) continue;
 			let {geometry} = child.mesh;
-			let matrix = child.mesh.matrixWorld;
+			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
+			matrix.premultiply(root_counter_matrix);
 			
 			let index_offset = position_array.length / 3;
 			for (let i = 0; i < geometry.attributes.position.count; i++) {
@@ -213,6 +216,9 @@ function buildSkinnedMesh(root_group, scale) {
 		bone.uuid = group.mesh.uuid;
 		let parent_offset = THREE.fastWorldPosition(group.mesh.parent, Reusable.vec3);
 		THREE.fastWorldPosition(group.mesh, bone.position).sub(parent_offset);
+		if (group == root_group) {
+			bone.position.set(0, 0, 0);
+		}
 		bone.position.multiplyScalar(1 / scale);
 		bones.push(bone);
 		if (parent_bone) {
