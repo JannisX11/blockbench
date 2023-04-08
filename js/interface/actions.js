@@ -540,6 +540,7 @@ class NumSlider extends Widget {
 		this.value = 0;
 		this.width = 69;
 		this.sensitivity = data.sensitivity || 30;
+		this.invert_scroll_direction = data.invert_scroll_direction == true;
 		this.uniqueNode = true;
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
@@ -887,7 +888,10 @@ class NumSlider extends Widget {
 		if (typeof this.onBefore === 'function') {
 			this.onBefore()
 		}
-		var difference = this.getInterval(false) * (event.shiftKey != event.deltaY > 0) ? -1 : 1;
+		let sign = event.shiftKey ? -1 : 1;
+		if (event.deltaY > 0) sign *= -1;
+		if (event instanceof WheelEvent && this.invert_scroll_direction) sign *= -1;
+		var difference = this.getInterval(false) * sign;
 		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {

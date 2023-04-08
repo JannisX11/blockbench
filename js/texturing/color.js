@@ -1087,6 +1087,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_palette_color', {
 		condition: {modes: ['paint']},
 		category: 'color',
+		invert_scroll_direction: true,
 		get() {
 			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
 		},
