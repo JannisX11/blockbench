@@ -390,14 +390,16 @@ const Screencam = {
 
 				gif.finish();
 
-				Blockbench.setProgress();
-				Blockbench.setStatusBarText();
-
 				let buffer = gif.bytesView();
 				let blob = new Blob([buffer], {type: 'image/gif'});
-				let url = URL.createObjectURL(blob);
-				Screencam.returnScreenshot(url, cb, blob);
-
+				var reader = new FileReader();
+				reader.onload = () => {
+					Blockbench.setProgress();
+					Blockbench.setStatusBarText();
+					delete Screencam.processing_gif;
+					Screencam.returnScreenshot(reader.result, cb, blob);
+				}
+				reader.readAsDataURL(blob);
 
 			} else if (options.format == 'apng') {
 
