@@ -2165,7 +2165,7 @@ BARS.defineActions(function() {
 			player_preview_model.disable()
 		}
 	
-		if (mode != 'attachable_first' && mode != 'attachable_third') {
+		if (mode != 'attachable_first' && mode != 'attachable_third' && Format.id == 'bedrock') {
 			Project.model_3d.position.set(0, 0, 0);
 			Project.model_3d.rotation.set(0, 0, 0);
 		}
