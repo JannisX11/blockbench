@@ -1857,8 +1857,7 @@
 	"switches.autouv": "Auto UV",
 
 	"texture.error.file": "File not found",
-	"texture.error.invalid": "Invalid file",
-	"texture.error.ratio": "Invalid aspect ratio",
+	"texture.error.too_large": "Resolution exceeds the maximum of %0",
 	"texture.error.parent": "Texture file provided by parent model",
 
 	"reference_image.position": "Position",

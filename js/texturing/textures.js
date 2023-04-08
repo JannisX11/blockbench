@@ -192,6 +192,9 @@ class Texture {
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
+			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
+				scope.error = 2;
+			}
 			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
 
 			if (scope.isDefault) {
@@ -279,6 +282,7 @@ class Texture {
 		switch (this.error) {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
+			case 2: return tl('texture.error.too_large', ['16384']); break;
 			//case 1: return tl('texture.error.invalid'); break;
 			//case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
