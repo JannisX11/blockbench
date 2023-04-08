@@ -1355,6 +1355,8 @@
 	"action.merge_meshes.desc": "Merge multiple meshes into one",
 	"action.proportional_editing": "Proportional Editing",
 	"action.proportional_editing.desc": "Proportionally affect surrounding vertices when editing parts of a mesh",
+	"action.proportional_editing_range": "Proportional Editing Range",
+	"action.proportional_editing_range.desc": "Adjust the range for proportional editing",
 
 	"action.adjust_brightness_contrast": "Adjust Brightness & Contrast...",
 	"action.adjust_brightness_contrast.desc": "Adjust the brightness and contrast of the selected texture",
@@ -1526,6 +1528,8 @@
 	"action.add_animation.desc": "Create a blank animation",
 	"action.add_animation_controller": "Add Animation Controller",
 	"action.add_animation_controller.desc": "Create a blank animation controller",
+	"action.add_animation_controller_state": "Add Animation Controller State",
+	"action.add_animation_controller_state.desc": "Add a new state to the animation controller",
 	"action.animation_controller_preview_mode": "Controller Preview",
 	"action.animation_controller_preview_mode.paused": "Paused",
 	"action.animation_controller_preview_mode.manual": "Manual Preview",

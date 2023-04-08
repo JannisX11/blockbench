@@ -3,25 +3,23 @@ class UndoSystem {
 		this.index = 0;
 		this.history = [];
 	}
+	startChange(amended) {
+		if (this.current_save && Painter.painting) {
+			throw 'Canceled edit: Cannot perform edits while painting'
+		}
+		if (this.current_save && Transformer.dragging) {
+			throw 'Canceled edit: Cannot perform other edits while transforming elements'
+		}
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
+	}
 	initEdit(aspects, amended = false) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
 		}
-		/*
-		if (
-			aspects && this.current_save &&
-			Objector.equalKeys(aspects, this.current_save.aspects) &&
-			aspects.elements !== selected &&
-			this.history.length == this.index
-		) {
-			return;
-		}
-		- This still causes issues, for example with different texture selections
-		*/
-		if (!amended && this.amend_edit_menu) {
-			this.closeAmendEditMenu();
-		}
+		this.startChange(amended);
 		this.current_save = new UndoSystem.save(aspects)
 		return this.current_save;
 	}
@@ -43,8 +41,8 @@ class UndoSystem {
 		this.current_save = entry.post
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
-			delete this.current_save;
 		}
+		delete this.current_save;
 	 
 		this.history.push(entry)
 
@@ -64,9 +62,7 @@ class UndoSystem {
 	cancelEdit() {
 		if (!this.current_save) return;
 		Canvas.outlines.children.empty();
-		if (this.amend_edit_menu) {
-			this.closeAmendEditMenu();
-		}
+		this.startChange();
 		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
 	}
@@ -164,9 +160,7 @@ class UndoSystem {
 		})
 	}
 	undo(remote, amended) {
-		if (!amended && this.amend_edit_menu) {
-			this.closeAmendEditMenu();
-		}
+		this.startChange(amended);
 		if (this.history.length <= 0 || this.index < 1) return;
 
 		Project.saved = false;
@@ -180,9 +174,7 @@ class UndoSystem {
 		Blockbench.dispatchEvent('undo', {entry})
 	}
 	redo(remote, amended) {
-		if (!amended && this.amend_edit_menu) {
-			this.closeAmendEditMenu();
-		}
+		this.startChange(amended);
 		if (this.history.length <= 0) return;
 		if (this.index >= this.history.length) {
 			return;

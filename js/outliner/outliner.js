@@ -1197,6 +1197,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
+			if (Painter.painting) return;
 			let enabled = !Project.only_hidden_elements;
 
 			if (Project.only_hidden_elements) {
