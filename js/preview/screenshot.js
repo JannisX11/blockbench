@@ -263,14 +263,8 @@ const Screencam = {
 			}
 
 			if (options.format == 'gif') {
-				gif = new GIF({
-					repeat: options.repeat,
-					quality: options.quality,
-					background: options.background ? options.background : {r: 30, g: 0, b: 255},
-					transparent: options.background ? undefined : 0x1e01ff,
-					width: canvas_width,
-					height: canvas_height
-				});
+				gif = GIFEnc.GIFEncoder();
+
 			} else if (options.format == 'apng') {
 				let [canvas] = createEmptyCanvas();
 				apng_encoder = new APNGencoder(canvas);
@@ -301,7 +295,6 @@ const Screencam = {
 	
 			if (!options.silent) {
 				Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
-				if (gif) gif.on('progress', Blockbench.setProgress);
 			}
 
 			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
@@ -332,7 +325,7 @@ const Screencam = {
 
 					NoAAPreview.render();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					if (options.format != 'gif' && options.background) {
+					if (options.background) {
 						ctx.fillStyle = options.background;
 						ctx.fillRect(0, 0, canvas.width, canvas.height);
 					}
@@ -345,10 +338,7 @@ const Screencam = {
 						Math.round(NoAAPreview.width * options.pixelate),
 						Math.round(NoAAPreview.height * options.pixelate)
 					);
-					if (options.format == 'gif') {
-						gif.addFrame(canvas, {delay: interval});
-
-					} else if (options.format == 'png_sequence' || options.format == 'apng') {
+					if (options.format == 'png_sequence' || options.format == 'gif' || options.format == 'apng') {
 						frame_canvases.push(canvas);
 					}
 				})
@@ -361,20 +351,6 @@ const Screencam = {
 				}
 	
 			}, interval)
-			if (options.format == 'gif') {
-				gif.on('finished', blob => {
-					delete Screencam.processing_gif;
-					var reader = new FileReader();
-					reader.onload = () => {
-						if (!options.silent) {
-							Blockbench.setProgress();
-							Blockbench.setStatusBarText();
-						}
-						Screencam.returnScreenshot(reader.result, cb, blob);
-					}
-					reader.readAsDataURL(blob);
-				});
-			}
 
 			frame.classList.add('recording');
 		}
@@ -400,7 +376,28 @@ const Screencam = {
 				Screencam.processing_gif = gif;
 			}
 			if (options.format == 'gif') {
-				gif.render();
+				let i = 0;
+				let format = 'rgb4444';
+				for (let canvas of frame_canvases) {
+					let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+					let palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
+					let index = GIFEnc.applyPalette(data, palette, format);
+					gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: interval, transparent: true});
+					i++;
+					Blockbench.setProgress(i / frame_canvases.length);
+					await new Promise(resolve => setTimeout(resolve, 0));
+				}
+
+				gif.finish();
+
+				Blockbench.setProgress();
+				Blockbench.setStatusBarText();
+
+				let buffer = gif.bytesView();
+				let blob = new Blob([buffer], {type: 'image/gif'});
+				let url = URL.createObjectURL(blob);
+				Screencam.returnScreenshot(url, cb, blob);
+
 
 			} else if (options.format == 'apng') {
 
@@ -409,7 +406,7 @@ const Screencam = {
 					apng_encoder.addFrame(canvas);
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 1));
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 
 				apng_encoder.finish();
@@ -429,7 +426,7 @@ const Screencam = {
 					archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 1));
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
 				archive.generateAsync({type: 'blob'}).then(content => {
 					Blockbench.export({
