@@ -1877,7 +1877,7 @@
 	"reference_image.enabled_modes": "Enabled in Modes",
 
 	"codec.common.encoding": "Encoding",
-	"codec.common.armature": "Armature",
+	"codec.common.armature": "Export Groups as Armature",
 	"codec.common.export_animations": "Export Animations",
 	"codec.common.embed_textures": "Embed Textures",
 
