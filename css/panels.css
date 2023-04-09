@@ -1889,7 +1889,7 @@ span.controller_state_section_info {
 		height: 21.4px;
 		position: absolute;
 		text-align: center;
-		cursor: ne-resize;
+		cursor: url('../assets/rotate_cursor.png') 9 9, auto;
 		z-index: 1;
 		background: var(--color-back);
 		border-radius: 12px;

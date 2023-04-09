@@ -571,7 +571,7 @@ class Cube extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
-		if (Blockbench.box_uv) return;
+		if (this.box_uv) return;
 		var scope = this;
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;

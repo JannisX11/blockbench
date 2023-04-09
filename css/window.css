@@ -981,7 +981,7 @@
 		top: 4px;
 		left: 4px;
 		position: absolute;
-		cursor: ne-resize;
+		cursor: url('../assets/rotate_cursor.png') 9 9, auto;
 		text-shadow: 1px 1px 0px black;
 	}
 	.reference_image_rotate_handle:hover {

@@ -510,7 +510,8 @@ const UVEditor = {
 		let elements = this.getMappableElements();
 		Undo.initEdit({elements, uv_only: true})
 		elements.forEach(el => {
-			this.vue.selected_faces.forEach(face => {
+			let faces = el.box_uv ? UVEditor.cube_faces : this.vue.selected_faces
+			faces.forEach(face => {
 				if (el.faces[face]) {
 					el.faces[face].texture = texture.uuid;
 				}
@@ -2462,24 +2463,24 @@ Interface.definePanels(function() {
 
 					let pos = [0, 0];
 					let last_pos = [0, 0];
+					let viewport = this.$refs.viewport;
+					let initial_scroll_offset = [viewport.scrollLeft, viewport.scrollTop];
 					function drag(e1) {
 						convertTouchEvent(e1);
+						let step_x, step_y;
 
 						if (snap == undefined) {
-							let snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
+							snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
 	
-							let step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
-							let step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
+							step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
+							step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
 
-							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
-							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
 						} else {	
-							let step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
-							let step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
-
-							pos[0] = Math.round((e1.clientX - event.clientX) / step_x) / snap;
-							pos[1] = Math.round((e1.clientY - event.clientY) / step_y) / snap;
+							step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
+							step_y = (scope.inner_height / UVEditor.getResolution(1) / snap);
 						}
+						pos[0] = Math.round((e1.clientX - event.clientX + viewport.scrollLeft - initial_scroll_offset[0]) / step_x) / snap;
+						pos[1] = Math.round((e1.clientY - event.clientY + viewport.scrollTop  - initial_scroll_offset[1]) / step_y) / snap;
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
 							let applied_difference = onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
