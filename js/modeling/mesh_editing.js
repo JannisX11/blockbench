@@ -811,7 +811,7 @@ BARS.defineActions(function() {
 
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices().slice();
-					let selected_edges = mesh.getSelectedEdges();
+					let selected_edges = mesh.getSelectedEdges(true);
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
@@ -890,7 +890,21 @@ BARS.defineActions(function() {
 								// Instead, construct the normal between the first 2 selected vertices
 								direction = combined_direction;
 
+							} else if (match && true) {
+								let difference = new THREE.Vector3();
+								let signs_done = [];
+								match.vertices.forEach(vkey => {
+									let sign = original_vertices.includes(vkey) ? 1 : -1;
+									if (signs_done.includes(sign)) return;
+									difference.x += mesh.vertices[vkey][0] * sign;
+									difference.y += mesh.vertices[vkey][1] * sign;
+									difference.z += mesh.vertices[vkey][2] * sign;
+									signs_done.push(sign);
+								})
+								direction = difference.normalize().toArray();
+
 							} else if (match) {
+								// perpendicular edge, currently unused
 								direction = match.getNormal(true);
 							}
 						}
@@ -980,6 +994,13 @@ BARS.defineActions(function() {
 							});
 							mesh.addFaces(new_face);
 						}
+					})
+
+					// Update edge selection
+					selected_edges.forEach(edge => {
+						edge.forEach((vkey, i) => {
+							edge[i] = new_vertices[original_vertices.indexOf(vkey)];
+						});
 					})
 
 					UVEditor.setAutoSize(null, true, new_face_keys);
