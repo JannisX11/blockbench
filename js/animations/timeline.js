@@ -773,17 +773,20 @@ Interface.definePanels(() => {
 					else if (this.size < 860) {step = 0.1}
 					else {step = 0.05}
 
+					// Rounding to "FPS" to better match snapping
 					if (step < 1) {
-						var FPS = Timeline.getStep();
+						let substep_simplification = Math.max((Math.floor(Math.sqrt(step / Timeline.getStep()))-1), 1);
+						var FPS = Timeline.getStep() / substep_simplification;
 						step = Math.round(step/FPS) * FPS
-						//step = 1/Math.round(1/step)
 					}
 
+					// Substep simplification
 					let substeps = step / Timeline.getStep()
 					while (substeps > 8) {
 						substeps /= 2;
 					}
 					
+					// Generate
 					var i = Math.floor(this.scroll_left / this.size / step) * step;
 					while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
 						if (settings.timecode_frame_number.value) {
