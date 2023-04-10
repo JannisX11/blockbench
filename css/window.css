@@ -140,6 +140,7 @@
 		position: absolute !important;
 		z-index: 12;
 		opacity: 0;
+		touch-action: none;
 	}
 	.resizer.vertical { /*	|	*/
 		cursor: ew-resize;
@@ -154,11 +155,11 @@
 	.resizer.disabled {
 		pointer-events: none;
 	}
-	.resizer:hover, .resizer.ui-draggable-dragging {
+	.resizer:hover, .resizer.dragging {
 	    background-color: var(--color-accent);
 		opacity: 0.3;
 	}
-	.resizer:hover:not(.ui-draggable-dragging) {
+	.resizer:hover:not(.dragging) {
 		animation: resize_line_fade_in 500ms;
 	}
 	@keyframes resize_line_fade_in {

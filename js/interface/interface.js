@@ -15,26 +15,27 @@ class ResizeLine {
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
-		$(this.node).draggable({
-			axis: this.horizontal ? 'y' : 'x',
-			containment: '#work_screen',
-			revert: true,
-			revertDuration: 0,
-			start(e, u) {
-				scope.before = data.get()
-			},
-			drag(e, u) {
-				if (scope.horizontal) {
-					data.set(scope.before, u.position.top - u.originalPosition.top)
-				} else {
-					data.set(scope.before, (u.position.left - u.originalPosition.left))
-				}
-				updateInterface()
-			},
-			stop(e, u) {
-				updateInterface()
-				scope.update();
+
+		this.node.addEventListener('pointerdown', event => {
+			this.before = data.get();
+			this.node.classList.add('dragging');
+			let move = (e2) => {
+				let difference = scope.horizontal
+					? e2.clientY - event.clientY
+					: e2.clientX - event.clientX;
+				data.set(scope.before, difference);
+				updateInterface();
+				this.update();
 			}
+			let stop = (e2) => {
+				document.removeEventListener('pointermove', move, false);
+				document.removeEventListener('pointerup', stop, false);
+				updateInterface()
+				this.update();
+				this.node.classList.remove('dragging');
+			}
+			document.addEventListener('pointermove', move, false);
+			document.addEventListener('pointerup', stop, false);
 		})
 	}
 	update() {
