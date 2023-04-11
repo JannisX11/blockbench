@@ -627,6 +627,7 @@ class NumSlider extends Widget {
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {
 			if (scope.jq_inner.hasClass('editing')) return;
+			scope.last_value = scope.value;
 			
 			let drag_event = await new Promise((resolve, reject) => {
 				function move(e2) {
@@ -653,7 +654,6 @@ class NumSlider extends Widget {
 			scope.sliding = true;
 			scope.pre = 0;
 			scope.sliding_start_pos = drag_event.clientX;
-			scope.last_value = scope.value;
 			let move_calls = 0;
 
 			if (!drag_event.touches) scope.jq_inner.get(0).requestPointerLock();
@@ -743,6 +743,22 @@ class NumSlider extends Widget {
 							this.stopInput();
 						}, 20);
 					}
+				},
+				'_',
+				{
+					id: 'round',
+					name: 'menu.slider.round_value',
+					icon: 'percent',
+					click: () => {
+						if (typeof this.onBefore === 'function') {
+							this.onBefore()
+						}
+						this.change(n => Math.round(n));
+						this.update()
+						if (typeof this.onAfter === 'function') {
+							this.onAfter()
+						}
+					}
 				}
 			]).open(event);
 		});
@@ -810,7 +826,7 @@ class NumSlider extends Widget {
 	stopInput() {
 		if (!this.jq_inner.hasClass('editing')) return;
 		var text = this.jq_inner.text();
-		if (this.last_value !== text) {
+		if (this.last_value?.toString() !== text) {
 			var first_token = text.substr(0, 1);
 
 			if (typeof this.onBefore === 'function') {
@@ -2197,7 +2213,6 @@ const BARS = {
 				'loop_cut',
 				'create_face',
 				'invert_face',
-				'proportional_editing',
 			]
 		})
 
