@@ -62,7 +62,7 @@ class MeshFace extends Face {
 		let texture = texture_space && this.getTexture();
 		let sorted_vertices = this.getSortedVertices();
 		let factor_x = texture ? (texture.width  / Project.texture_width) : 1;
-		let factor_y = texture ? (texture.height / Project.texture_height) : 1;
+		let factor_y = texture ? (texture.display_height / Project.texture_height) : 1;
 
 		if (texture_space && texture) {
 			rect.ax *= factor_x;
@@ -977,7 +977,7 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_faces', {element});
 	},
-	updateUV(element, animation = true) {
+	updateUV(element) {
 		var {mesh} = element;
 		if (mesh === undefined || !mesh.geometry) return;
 		let uv_array = [];
@@ -985,12 +985,22 @@ new NodePreviewController(Mesh, {
 		for (let key in element.faces) {
 			let face = element.faces[key];
 			if (face.vertices.length <= 2) continue;
+			
+			let stretch = 1;
+			let frame = 0;
+			let tex = face.getTexture();
+			if (tex instanceof Texture && tex.frameCount > 1) {
+				stretch = tex.frameCount
+				frame = tex.currentFrame || 0;
+			}
 
 			face.vertices.forEach((key, i) => {
-				uv_array.push(
-					  ((face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width),
-					1-((face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height)
-				)
+				let u = (face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width;
+				let v = (face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height;
+				if (stretch > 1) {
+					v = (v + frame) / stretch;
+				}
+				uv_array.push(u, 1-v);
 			})
 		}
 
@@ -1113,7 +1123,8 @@ new NodePreviewController(Mesh, {
 			let offset = face.getNormal(true).V3_multiply(0.01);
 			let texture = face.getTexture();
 			var psize_x = texture ? Project.texture_width / texture.width : 1;
-			var psize_y = texture ? Project.texture_height / texture.height : 1;
+			var psize_y = texture ? Project.texture_height / texture.display_height : 1;
+
 			let vertices = face.getSortedVertices();
 			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];
 			tris.forEach(tri_vertices => {

@@ -512,7 +512,7 @@ const Painter = {
 				Painter.editSquare(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py]) {
+						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
 							return pxcolor;
 						}
 					}
@@ -522,7 +522,7 @@ const Painter = {
 				Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py]) {
+						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
 							return pxcolor;
 						}
 					}

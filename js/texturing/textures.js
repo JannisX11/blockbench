@@ -1890,13 +1890,14 @@ TextureAnimator = {
 		animated_textures.forEach(tex => {
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
-		Cube.all.forEach(cube => {
-			var update = false
-			for (var face in cube.faces) {
-				update = update || animated_textures.includes(cube.faces[face].getTexture());
+		Outliner.elements.forEach(el => {
+			if (!el.faces || !el.preview_controller.updateUV) return;
+			let update = false
+			for (let face in el.faces) {
+				update = update || animated_textures.includes(el.faces[face].getTexture());
 			}
 			if (update) {
-				Canvas.updateUV(cube, true)
+				el.preview_controller.updateUV(el, true);
 			}
 		})
 		BarItems.animated_texture_frame.update();
@@ -1910,10 +1911,10 @@ TextureAnimator = {
 			} 
 		})
 		UVEditor.img.style.objectPosition = '';
-		while (i < elements.length) {
-			Canvas.updateUV(elements[i], true)
-			i++;
-		}
+		Outliner.elements.forEach(el => {
+			if (!el.faces || !el.preview_controller.updateUV) return;
+			el.preview_controller.updateUV(el);
+		})
 	},
 	updateButton() {
 		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
