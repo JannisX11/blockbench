@@ -360,6 +360,7 @@ const Painter = {
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
+		delete Painter.current.last_pixel;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -899,6 +900,24 @@ const Painter = {
 			interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
 		} else {
 			interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+		}
+
+		if (Toolbox.selected.brush?.pixel_perfect && BarItems.slider_brush_size.get() == 1) {
+			let direction = 0;
+			if (length == 1 && diff_x && !diff_y) {direction = 1;}
+			if (length == 1 && !diff_x && diff_y) {direction = 2;}
+			let image_data = Painter.current.ctx.getImageData(end_x, end_y, 1, 1);
+			let pixel = {
+				direction,
+				image_data,
+				position: [end_x, end_y]
+			};
+			if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
+				Painter.current.ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
+				delete Painter.current.last_pixel;
+			} else {
+				Painter.current.last_pixel = pixel;
+			}
 		}
 
 		while (i <= length) {
@@ -1740,6 +1759,7 @@ BARS.defineActions(function() {
 			softness: true,
 			opacity: true,
 			offset_even_radius: true,
+			pixel_perfect: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
