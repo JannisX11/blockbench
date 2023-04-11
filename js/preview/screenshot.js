@@ -378,10 +378,50 @@ const Screencam = {
 			if (options.format == 'gif') {
 				let i = 0;
 				let format = 'rgb4444';
+				function quantize(data) {
+					let palette = [[0, 0, 0]];
+					for (let i = 0; i < data.length; i += 4) {
+						if (data[i+3] < 127) {
+							continue;
+						}
+						let r = data[i];
+						let g = data[i+1];
+						let b = data[i+2];
+						let match = palette.findIndex(color => color[0] == r && color[1] == g && color[2] == b);
+						if (match == -1) {
+							palette.push([r, g, b])
+						}
+						if (palette.length > 256) break;
+					}
+					return palette;
+				}
+				function applyPalette(data, palette) {
+					let array = new Uint8Array(data.length / 4);
+					for (let i = 0; i < array.length; i++) {
+						if (data[i*4+3] < 127) {
+							array[i] = 0; continue;
+						}
+						let r = data[i*4];
+						let g = data[i*4+1];
+						let b = data[i*4+2];
+						let match = palette.findIndex(color => color[0] == r && color[1] == g && color[2] == b);
+						if (match == -1) {match = 0;}
+						array[i] = match;
+					}
+					return array;
+				}
 				for (let canvas of frame_canvases) {
 					let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-					let palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
-					let index = GIFEnc.applyPalette(data, palette, format);
+					let palette = quantize(data, 256, {format, oneBitAlpha: true});
+					let index;
+					if (palette.length > 256) {
+						// Built-in methods
+						palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
+						index = GIFEnc.applyPalette(data, palette, format);
+					} else {
+						// Direct flicker-free color mapping
+						index = applyPalette(data, palette, format);
+					}
 					gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: interval, transparent: true});
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
