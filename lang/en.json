@@ -1564,6 +1564,8 @@
 	"action.timeline_focus.hide_empty": "Hide empty channels",
 	"action.set_ik_target": "Set IK Target",
 	"action.set_ik_target.desc": "Select the target bone that should be moved by this null object via Inverse Kinematics",
+	"action.set_ik_source": "Set IK Source",
+	"action.set_ik_source.desc": "Select the root bone that will be the root of the chain used in Inverse Kinematics",
 	"action.lock_motion_trail": "Lock Motion Trail",
 	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 	"action.looped_animation_playback": "Looped Playback",

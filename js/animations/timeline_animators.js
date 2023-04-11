@@ -546,14 +546,25 @@ class NullObjectAnimator extends BoneAnimator {
 		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
 		let bone_references = [];
 		let current = target.parent;
-
+		
+		let source;
+		if (null_object.ik_source) {
+			source = [...Group.all].find(node => node.uuid == null_object.ik_source);
+		} else {
+			source = null_object.parent;
+		}
+		if (!source) return;
+		if (!target.isChildOf(source)) return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
-		while (current !== null_object.parent) {
+		while (current !== source) {
 			bones.push(current);
 			current = current.parent;
+		}
+		if (null_object.ik_source) {
+			bones.push(source);
 		}
 		if (!bones.length) return;
 		bones.reverse();
