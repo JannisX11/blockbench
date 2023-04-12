@@ -976,98 +976,6 @@ BARS.defineActions(function() {
 			return list;
 		}
 	});
-	new Action('search_reference_image', {
-		icon: 'image_search',
-		category: 'view',
-		condition: isApp,
-		async click() {
-			if (!ReferenceImageMode.active) {
-				ReferenceImageMode.activate()
-			}
-
-			let win = new electron.BrowserWindow({
-				icon: 'icon.ico',
-				modal: true,
-				parent: currentwindow,
-				width: 1080,
-				height: 720,
-				menuBarVisible: false,
-				webPreferences: {
-					nodeIntegration: false,
-					contextIsolation: true
-				}
-			})
-			if (process.platform !== 'darwin') {
-				win.setMenu(null);
-			}
-			let { getCursorScreenPoint, getDisplayNearestPoint } = electron.screen;
-			let currentScreen = getDisplayNearestPoint(getCursorScreenPoint());
-			win.setBounds(currentScreen.workArea);
-
-			win.loadURL('https://google.com/images');
-
-			win.webContents.setWindowOpenHandler(details => ({action: 'deny'}));
-			win.webContents.openDevTools()
-
-			function addButton() {
-				win.webContents.insertCSS(`
-					#blockbench_load_reference {
-						position: fixed;
-						bottom: 20px;
-						left: 0;
-						right: 0;
-						margin: auto;
-						appearance: none;
-						border: none;
-						background-color: #3e90ff;
-						color: black;
-						width: 160px;
-						font-family: "segoe ui", roboto, sans-serif;
-						font-weight: normal;
-						height: 40px;
-						font-size: 18px;
-						cursor: pointer;
-						box-shadow: 2px 2px 20px rgba(0, 0, 0, 60%);
-					}
-					#blockbench_load_reference:hover {
-						color: #ffffff;
-					}
-				`)
-				win.webContents.executeJavaScript(`
-					let button = document.createElement('button');
-					button.id = 'blockbench_load_reference';
-					button.textContent = 'Load Image';
-					button.onclick = event => {
-						let img;
-						document.querySelectorAll('c-wiz > div > div > div > div > div > a > img').forEach(node => {
-							if (node.checkVisibility()) img = node;
-						});
-						if (img && img.src) {
-							location.assign(img.src);
-						}
-					};
-					document.body.append(button);
-				`);
-			}
-
-			win.webContents.on('did-stop-loading', () => {
-				try {
-					addButton();
-				} catch (err) {
-					console.error(err)
-				}
-			})
-			win.webContents.on('did-navigate', (event, url) => {
-
-				if (url.match(/\.(png|gif|jpg|jpeg|tif|tiff)($|\?|\/)/i)) {
-					ReferenceImageMode.importReferences([{content: url, name: win.webContents.getTitle().substring(0, 24)}]);
-					win.close();
-				} else if (!url.includes('google.com/')) {
-					win.close();
-				}
-			})
-		}
-	});
 })
 
 Interface.definePanels(function() {
@@ -1075,7 +983,6 @@ Interface.definePanels(function() {
 		children: [
 			'add_reference_image',
 			'reference_image_from_clipboard',
-			'search_reference_image',
 			'reference_image_list',
 			'toggle_all_reference_images',
 		]

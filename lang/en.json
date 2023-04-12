@@ -1448,7 +1448,6 @@
 	"action.toggle_all_reference_images": "Hide/Show All Reference Images",
 	"action.toggle_all_reference_images.desc": "Toggle the visibility of all reference images at once",
 	"action.reference_image_list": "Reference Images",
-	"action.search_reference_image": "Reference Image Web Search",
 
 	"action.import_texture": "Import Texture",
 	"action.import_texture.desc": "Import one or more textures from your file system",
