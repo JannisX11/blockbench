@@ -1039,6 +1039,18 @@ new NodePreviewController(Mesh, {
 			mesh.outline.geometry.needsUpdate = true;
 		}
 
+		let face_outlines = {};
+		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
+			selected_faces.forEach(fkey => {
+				let face = element.faces[fkey];
+				face.vertices.forEach(vkey => {
+					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
+					face.vertices.forEach(vkey2 => {
+						if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
+					})
+				})
+			})
+		}
 		let line_colors = [];
 		mesh.outline.vertex_order.forEach((key, i) => {
 			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
@@ -1049,7 +1061,7 @@ new NodePreviewController(Mesh, {
 			} else if (BarItems.selection_mode.value == 'edge' && selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
 				color = white;
 				selected = true;
-			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.find(fkey => element.faces[fkey].vertices.includes(key) && element.faces[fkey].vertices.includes(key_b))) {
+			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && face_outlines[key] && face_outlines[key].has(key_b)) {
 				color = white;
 				selected = true;
 			} else {
@@ -1085,13 +1097,14 @@ new NodePreviewController(Mesh, {
 
 		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
 		let selection_mode = BarItems.selection_mode.value;
+		let selected_faces = element.getSelectedFaces();
 		
 		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (face.vertices.length < 3) continue;
-				if (face.isSelected() && (selection_mode == 'face' || selection_mode == 'cluster')) {
+				if (selected_faces.indexOf(fkey) != -1 && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
 						array[i] = 2;
 						i++;

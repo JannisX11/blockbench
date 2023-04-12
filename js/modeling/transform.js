@@ -113,6 +113,12 @@ function moveElementsRelative(difference, index, event) { //Multiple
 		difference *= canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 	}
 
+	if (BarItems.proportional_editing.value) {
+		Mesh.selected.forEach(mesh => {
+			ProportionalEdit.calculateWeights(mesh);
+		})
+	}
+
 	moveElementsInSpace(difference, axes[index]);
 	updateSelection();
 
@@ -582,8 +588,7 @@ function moveElementsInSpace(difference, axis) {
 			selected_vertices.forEach(key => {
 				el.vertices[key].V3_add(difference_vec);
 			})
-			proportionallyEditMeshVertices(el, (vkey, blend) => {
-				console.log(vkey, blend)
+			ProportionalEdit.editVertices(el, (vkey, blend) => {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
