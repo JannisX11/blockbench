@@ -30,7 +30,7 @@ const Validator = {
 					console.error(error);
 				}
 			})
-		}, 400)
+		}, 40)
 	},
 	openDialog() {
 		if (!Validator.dialog) {

@@ -1482,5 +1482,32 @@ BARS.defineActions(function() {
 	})
 })
 
+new ValidatorCheck('bedrock_binding', {
+	condition: isApp && {formats: ['bedrock']},
+	update_triggers: ['update_selection'],
+	run() {
+		if (Project.BedrockEntityManager?.client_entity?.type == 'attachable') {
+			if (Group.all.length && !Group.all.find(g => g.bedrock_binding)) {
+				this.warn({
+					message: `The project is an attachable, but no bone is bound to the player. Define a binding on one of the root bones.`,
+					buttons: [
+						{
+							name: 'Bind root bone to player hand',
+							icon: 'fa-paperclip',
+							click() {
+								let root = Outliner.root.find(n => n instanceof Group);
+								Undo.initEdit({group: root});
+								root.bedrock_binding = 'q.item_slot_to_bone_name(c.item_slot)';
+								Undo.finishEdit('Set binding');
+								Validator.validate();
+							}
+						}
+					]
+				})
+			}
+		}
+	}
+})
+
 })()
 
