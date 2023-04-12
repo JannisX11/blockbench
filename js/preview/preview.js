@@ -1373,6 +1373,7 @@ class Preview {
 		'_',
 		'add_reference_image',
 		'reference_image_from_clipboard',
+		'toggle_all_reference_images',
 		'edit_reference_images',
 		'_',
 		'focus_on_selection',

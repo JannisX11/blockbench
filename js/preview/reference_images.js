@@ -856,6 +856,19 @@ BARS.defineActions(function() {
 			}
 		}
 	});
+	new Action('toggle_all_reference_images', {
+		icon: 'hide_image',
+		category: 'view',
+		condition: () => ReferenceImage.active.length > 0,
+		click() {
+			let references = ReferenceImage.active;
+			let most_are_hidden = references.filter(r => r.visibility == true).length < references.length/2;
+			references.forEach(ref => {
+				ref.visibility = most_are_hidden;
+				ref.update().save();
+			})
+		}
+	});
 	new Action('reference_image_list', {
 		icon: 'list',
 		category: 'view',
@@ -1062,7 +1075,9 @@ Interface.definePanels(function() {
 		children: [
 			'add_reference_image',
 			'reference_image_from_clipboard',
+			'search_reference_image',
 			'reference_image_list',
+			'toggle_all_reference_images',
 		]
 	})
 })
