@@ -329,7 +329,7 @@
 	"message.load_keymap": "Are you sure you want to load this keymap? This will overwrite your current keybindings.",
 	"message.keymap_loaded": "Keymap loaded",
 	"message.no_animation_to_import": "No animations to import",
-	"message.copy_paste_tool_viewport": "This tool can only be used in the UV panel",
+	"message.copy_paste_tool_viewport": "This tool can only be used in the 2D editor",
 	"message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV.",
 	"message.no_valid_elements": "No valid elements selected...",
 	"message.palette_locked": "The palette is locked",

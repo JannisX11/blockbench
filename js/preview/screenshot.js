@@ -387,7 +387,7 @@ const Screencam = {
 						let r = data[i];
 						let g = data[i+1];
 						let b = data[i+2];
-						let match = palette.findIndex(color => color[0] == r && color[1] == g && color[2] == b);
+						let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
 						if (match == -1) {
 							palette.push([r, g, b])
 						}
@@ -399,12 +399,12 @@ const Screencam = {
 					let array = new Uint8Array(data.length / 4);
 					for (let i = 0; i < array.length; i++) {
 						if (data[i*4+3] < 127) {
-							array[i] = 0; continue;
+							continue;
 						}
 						let r = data[i*4];
 						let g = data[i*4+1];
 						let b = data[i*4+2];
-						let match = palette.findIndex(color => color[0] == r && color[1] == g && color[2] == b);
+						let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
 						if (match == -1) {match = 0;}
 						array[i] = match;
 					}
