@@ -127,6 +127,7 @@ const UVEditor = {
 			}
 		}
 		delete Painter.selection.calcrect;
+		let viewport = UVEditor.vue.$refs.viewport;
 		if (!Painter.selection.overlay) {
 			$(this.vue.$refs.frame).find('#texture_selection_rect').detach();
 			let rect = document.createElement('div');
@@ -141,6 +142,8 @@ const UVEditor = {
 		} else {
 			Painter.selection.start_x = Painter.selection.x;
 			Painter.selection.start_y = Painter.selection.y;
+			Painter.selection.start_scroll_x = viewport.scrollLeft;
+			Painter.selection.start_scroll_y = viewport.scrollTop;
 			Painter.selection.start_event = event;
 		}
 
@@ -151,12 +154,12 @@ const UVEditor = {
 			UVEditor.dragSelection(x, y, e1);
 		}
 		function stop() {
-			removeEventListeners(document, 'mousemove touchmove', drag);
-			removeEventListeners(document, 'mouseup touchend', stop);
+			removeEventListeners(document, 'pointermove', drag);
+			removeEventListeners(document, 'pointerup', stop);
 			UVEditor.stopSelection();
 		}
-		addEventListeners(document, 'mousemove touchmove', drag);
-		addEventListeners(document, 'mouseup touchend', stop);
+		addEventListeners(document, 'pointermove', drag);
+		addEventListeners(document, 'pointerup', stop);
 	},
 	dragSelection(x, y, event) {
 		let m = UVEditor.inner_width / UVEditor.texture.width;
@@ -189,8 +192,11 @@ const UVEditor = {
 				.css('visibility', 'visible')
 
 		} else if (UVEditor.texture && Painter.selection.canvas) {
-			Painter.selection.x = Painter.selection.start_x + Math.round((event.clientX - Painter.selection.start_event.clientX) / m);
-			Painter.selection.y = Painter.selection.start_y + Math.round((event.clientY - Painter.selection.start_event.clientY) / m);
+			let viewport = UVEditor.vue.$refs.viewport;
+			let move_offset_x = event.clientX - Painter.selection.start_event.clientX - Painter.selection.start_scroll_x + viewport.scrollLeft;
+			let move_offset_y = event.clientY - Painter.selection.start_event.clientY - Painter.selection.start_scroll_y + viewport.scrollTop;
+			Painter.selection.x = Painter.selection.start_x + Math.round((move_offset_x) / m);
+			Painter.selection.y = Painter.selection.start_y + Math.round((move_offset_y) / m);
 			Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
 			Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
 			UVEditor.updatePastingOverlay()
