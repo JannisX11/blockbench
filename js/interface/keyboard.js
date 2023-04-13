@@ -679,7 +679,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog) {
+		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
