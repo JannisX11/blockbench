@@ -1102,6 +1102,14 @@ Interface.definePanels(() => {
 										kf.bezier_left_value[axis_number] = -kf.bezier_right_value[axis_number];
 									}
 								}
+								if (kf.uniform) {
+									let off_axis_a = (axis_number+1) % 3;
+									let off_axis_b = (axis_number+2) % 3;
+									kf.bezier_right_time[off_axis_a] = kf.bezier_right_time[off_axis_b] = kf.bezier_right_time[axis_number];
+									kf.bezier_right_value[off_axis_a] = kf.bezier_right_value[off_axis_b] = kf.bezier_right_value[axis_number];
+									kf.bezier_left_time[off_axis_a] = kf.bezier_left_time[off_axis_b] = kf.bezier_left_time[axis_number];
+									kf.bezier_left_value[off_axis_a] = kf.bezier_left_value[off_axis_b] = kf.bezier_left_value[axis_number];
+								}
 								values_changed = true;
 							}
 						}

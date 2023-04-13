@@ -485,6 +485,14 @@ class ReferenceImage {
 
 		let rect = this.img.getBoundingClientRect();
 		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
+			// Check if not clipped behind UI
+			if (this.layer != 'float') {
+				let parent = this.node.parentElement;
+				if (!parent) return false;
+				let parent_rect = parent.getBoundingClientRect();
+				if (!(x > parent_rect.x && y > parent_rect.y && x < parent_rect.right && y < parent_rect.bottom)) return false;
+			}
+
 			let lerp_x = Math.getLerp(rect.x, rect.right,  x);
 			let lerp_y = Math.getLerp(rect.y, rect.bottom, y);
 			if (this.flip_x) lerp_x = 1 - lerp_x;
