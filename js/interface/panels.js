@@ -135,6 +135,7 @@ class Panel extends EventSystem {
 
 
 			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
+				if (e1.which == 2 || e1.which == 3) return;
 				convertTouchEvent(e1);
 				let started = false;
 				let position_before = this.slot == 'float'
