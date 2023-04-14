@@ -677,8 +677,8 @@
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 
-	"keybindings.item.num_slider.increase": "Incrase",
-	"keybindings.item.num_slider.decrease": "Decrase",
+	"keybindings.item.num_slider.increase": "Increase",
+	"keybindings.item.num_slider.decrease": "Decrease",
 
 	"layout.select": "Select",
 	"layout.options": "Options",
