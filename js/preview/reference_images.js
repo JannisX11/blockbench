@@ -377,13 +377,17 @@ class ReferenceImage {
 		this._modify_nodes.push(this.toolbar);
 		
 		// Controls
-		function addButton(id, icon, click) {
+		function addButton(id, name, icon, click) {
 			let node = Interface.createElement('div', {class: 'tool', tool_id: id}, Blockbench.getIconNode(icon));
 			self.toolbar.append(node);
 			node.onclick = click;
+			BarItem.prototype.addLabel(false, {
+				name: tl(name),
+				node: node
+			})
 		}
 
-		addButton('layer', 'flip_to_front', (event) => {
+		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
 			let layers = {
 				background: 'reference_image.layer.background',
 				viewport: 'reference_image.layer.viewport',
@@ -405,18 +409,19 @@ class ReferenceImage {
 			new Menu(options).open(event.target);
 		});
 		
-		addButton('flip_x', 'icon-mirror_x', () => {
+		addButton('flip_x', tl('action.flip', 'X'), 'icon-mirror_x', () => {
 			self.flip_x = !self.flip_x;
 			self.update().save();
 		});
 		
-		addButton('flip_y', 'icon-mirror_y', () => {
+		addButton('flip_y', tl('action.flip', 'Y'), 'icon-mirror_y', () => {
 			self.flip_y = !self.flip_y;
 			self.update().save();
 		});
 		
 		this.opacity_slider = new NumSlider({
 			id: 'slider_reference_image_opacity',
+			name: 'reference_image.opacity',
 			private: true,
 			condition: () => true,
 			get() {
@@ -435,7 +440,7 @@ class ReferenceImage {
 			}
 		}).toElement(this.toolbar).update();
 		
-		addButton('visibility', 'visibility', () => {
+		addButton('visibility', 'reference_image.visibility', 'visibility', () => {
 			self.visibility = !self.visibility;
 			self.update().save();
 		});
@@ -474,6 +479,7 @@ class ReferenceImage {
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
 			this.node.addEventListener('dblclick', event => {
+				if (event.target !== this.node) return;
 				this.propertiesDialog();
 			})
 			this._edit_events_initialized = true;
@@ -582,7 +588,7 @@ class ReferenceImage {
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
-				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity, min: 0, max: 1},
+				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
@@ -593,7 +599,7 @@ class ReferenceImage {
 					position: result.position,
 					size: result.size,
 					rotation: result.rotation,
-					opacity: result.opacity,
+					opacity: result.opacity / 100,
 					visibility: result.visibility,
 					clear_mode: result.clear_mode,
 				});
