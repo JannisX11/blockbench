@@ -13,6 +13,8 @@
 	"dialog.continue": "Continue",
 	"dialog.ignore": "Ignore",
 	"dialog.dontshowagain": "Don't Show Again",
+	"dialog.copy_to_clipboard": "Copy to clipboard",
+	"dialog.open_url": "Open URL",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
 
 	"data.cube": "Cube",
