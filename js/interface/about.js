@@ -74,27 +74,26 @@ BARS.defineActions(() => {
 								</a>
 							</div>
 
-							<p>Created by Jannis Petersen</p>
-							<p style="color: var(--color-subtle_text);">A free and open-source low-poly model editor. To make 3D art easy and accessible for everyone.
-								For all who enjoy stylized 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
+							<p>${tl('about.created_by')}</p>
+							<p style="color: var(--color-subtle_text);">${tl('about.description')}</p>
 
-							<h4>SPECIAL THANKS TO</h4>
+							<h4>${tl('about.special_thanks.title')}</h4>
 							<ul class="multi_column_list special_thanks_mentions">
 								<li>Mojang Studios</li>
-								<li>All contributors</li>
-								<li>The community moderators</li>
-								<li>All donators</li>
-								<li>All translators</li>
+								<li>${tl('about.special_thanks.contributors')}</li>
+								<li>${tl('about.special_thanks.community_moderators')}</li>
+								<li>${tl('about.special_thanks.donators')}</li>
+								<li>${tl('about.special_thanks.translators')}</li>
 								<li>Wacky</li>
 								<li>Ewan Howell and Lukas</li>
 								<li>SirBenet</li>
 								<li>Sultan Taha and Kanno</li>
-								<li>The Blockbench Community</li>
+								<li>${tl('about.special_thanks.blockbench_community')}</li>
 							</ul>
 
-							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
+							<h4>${tl('about.usages.title')}</h4>
 
-							<p style="margin-bottom: 16px" v-if="isApp">This program is powered by <a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
+							<p style="margin-bottom: 16px" v-if="isApp">${tl('about.usages.powered_by')} <a class="open-in-browser" href="https://electronjs.org">Electron</a></p>
 
 							<ul class="multi_column_list">
 								<li><a class="open-in-browser" href="https://material.io/icons/">Material Icons</a></li>
@@ -125,8 +124,8 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
 							</ul>
 
-							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
-							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+							<p style="margin-top: 20px">${tl('about.license')} <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">${tl('about.license.link')}</a></p>
+							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">${tl('about.privacy_policy')}</a></p>
 
 						</div>`
 				}
