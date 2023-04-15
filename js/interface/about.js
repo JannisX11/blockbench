@@ -50,7 +50,7 @@ BARS.defineActions(() => {
 							<div class="socials">
 								<a class="open-in-browser" href="https://blockbench.net">
 									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
-									<label>Website</label>
+									<label>${tl('about.links.website')}</label>
 								</a>
 								<a class="open-in-browser" href="https://twitter.com/blockbench">
 									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>

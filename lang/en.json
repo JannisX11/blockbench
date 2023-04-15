@@ -736,6 +736,7 @@
 	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
 	"about.icons": "Icon Packs:",
 	"about.libraries": "Libraries:",
+	"about.links.website": "Website",
 
 	"settings_profile.confirm_delete": "Are you sure you want to delete this settings profile?",
 	"settings_profile.condition": "Condition",
