@@ -3551,13 +3551,28 @@ Interface.definePanels(function() {
 				return trimFloatNumber(face.uv[axis])
 			}
 		} else if (elements[0] instanceof Mesh) {
-			var face = UVEditor.getReferenceFace();
-			if (face) {
-				let selected_vertices = elements[0].getSelectedVertices();
-				let has_selected_vertices = selected_vertices && face.vertices.find(vkey => selected_vertices.includes(vkey))
+			let selected_vertices = elements[0].getSelectedVertices();
+
+			if (selected_vertices.length) {
+				let min = Infinity;
+				UVEditor.vue.selected_faces.forEach(fkey => {
+					let face = elements[0].faces[fkey];
+					if (!face) return;
+					face.vertices.forEach(vkey => {
+						if (selected_vertices.includes(vkey) && face.uv[vkey]) {
+							min = Math.min(min, face.uv[vkey][axis]);
+						}
+					})
+				})
+				if (min == Infinity) min = 0;
+				return trimFloatNumber(min);
+
+			} else {
+				let face = UVEditor.getReferenceFace();
+				if (!face) return 0;
 				let min = Infinity;
 				face.vertices.forEach(vkey => {
-					if ((!has_selected_vertices || selected_vertices.includes(vkey)) && face.uv[vkey]) {
+					if (face.uv[vkey]) {
 						min = Math.min(min, face.uv[vkey][axis]);
 					}
 				})

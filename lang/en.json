@@ -1348,7 +1348,7 @@
 	"action.split_mesh": "Split Mesh",
 	"action.split_mesh.desc": "Split the selected faces of the mesh into a new mesh",
 	"action.merge_vertices": "Merge Vertices",
-	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected verted",
+	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected vertex",
 	"action.merge_vertices.merge_all": "Merge All",
 	"action.merge_vertices.merge_all_in_center": "Merge All in Center",
 	"action.merge_vertices.merge_by_distance": "Merge by Distance",
