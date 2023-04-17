@@ -267,7 +267,7 @@ var codec = new Codec('gltf', {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
-		armature: {type: 'checkbox', label: 'codec.common.armature', value: false},
+		armature: {type: 'checkbox', label: tl('codec.common.armature') + ' (Experimental)', value: false},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options) {
