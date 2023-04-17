@@ -1014,6 +1014,15 @@ const TextureGenerator = {
 							}
 						}
 					}
+					// ... or on the side
+					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
+						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += offset_x;
+							}
+						}
+					}
 					// Or align right if face points to right side of model
 					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
 						for (let fkey in vertex_uvs) {
