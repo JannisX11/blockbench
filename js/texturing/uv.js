@@ -1384,7 +1384,7 @@ const UVEditor = {
 			icon: () => (UVEditor.isSelectedFaceMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
 			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
-				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorX(event);
 				Undo.finishEdit('Flip UV');
 			}
@@ -1394,7 +1394,7 @@ const UVEditor = {
 			icon: () => (UVEditor.isSelectedFaceMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
 			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
-				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorY(event);
 				Undo.finishEdit('Flip UV');
 			}
@@ -1538,7 +1538,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
-			Undo.initEdit({elements: Cube.selected, uv_only: true})
+			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
 			Undo.finishEdit('Mirror UV')
 		}
@@ -1548,7 +1548,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
-			Undo.initEdit({elements: Cube.selected, uv_only: true})
+			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
 			Undo.finishEdit('Mirror UV')
 		}

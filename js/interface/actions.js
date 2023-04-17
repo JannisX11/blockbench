@@ -1844,7 +1844,8 @@ const BARS = {
 						}
 					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
-						Undo.initEdit({elements: Mesh.selected})
+						let meshes = Mesh.selected.slice();
+						Undo.initEdit({elements: meshes})
 
 						Mesh.selected.forEach(mesh => {
 							let selected_vertices = mesh.getSelectedVertices();
@@ -1926,13 +1927,13 @@ const BARS = {
 									delete mesh.vertices[vkey];
 								})
 							} else {
-								Mesh.selected.remove(mesh);
+								meshes.remove(mesh);
 								mesh.remove(false);
 							}
 						})
 
 						Undo.finishEdit('Delete mesh part')
-						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true, uv: Mesh.selected.length > 0}})
+						Canvas.updateView({elements: meshes, selection: true, element_aspects: {geometry: true, faces: true, uv: meshes.length > 0}})
 
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 
