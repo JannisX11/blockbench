@@ -910,7 +910,7 @@
 	.reference_image[reference_layer=float] {
 		z-index: 8;
 	}
-	.reference_image[reference_layer=float] > img {
+	.reference_image.selected[reference_layer=float] > img {
 		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
 	}
 	#work_screen.reference_image_mode .reference_image {

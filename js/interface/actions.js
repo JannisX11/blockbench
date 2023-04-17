@@ -1896,16 +1896,21 @@ const BARS = {
 								})
 
 							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
-								selected_vertices.forEach(vertex_key => {
-									delete mesh.vertices[vertex_key];
-
+								selected_vertices.forEach(vkey => {
 									for (let key in mesh.faces) {
 										let face = mesh.faces[key];
-										if (!face.vertices.includes(vertex_key)) continue;
+										if (!face.vertices.includes(vkey)) continue;
 										if (face.vertices.length > 2) {
-											face.vertices.remove(vertex_key);
-											delete face.uv[vertex_key];
+											let initial_normal;
+											if (face.vertices.length == 4) {
+												initial_normal = face.getNormal();
+											}
+											face.vertices.remove(vkey);
+											delete face.uv[vkey];
 											
+											if (face.vertices.length == 3 && face.getAngleTo(initial_normal) > 90) {
+												face.invert();
+											}
 											if (face.vertices.length == 2) {
 												for (let fkey2 in mesh.faces) {
 													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
@@ -1918,6 +1923,7 @@ const BARS = {
 											delete mesh.faces[key];
 										}
 									}
+									delete mesh.vertices[vkey];
 								})
 							} else {
 								Mesh.selected.remove(mesh);
