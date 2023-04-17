@@ -684,8 +684,6 @@
     "action.element_colors": "Màu khối",
     "action.element_colors.desc": "Hiển thị màu sắc của khối lập phương ở lớp ngoài",
     "texture.error.file": "Không tìm thấy tệp",
-    "texture.error.invalid": "Tệp không hợp lệ",
-    "texture.error.ratio": "Tỷ lệ khung hình chính không hợp lệ",
     "texture.error.parent": "Tệp kết cấu do chế độ gốc cung cấp",
     "message.recover_backup.title": "Khôi phục mô hình",
     "message.recover_backup.message": "Blockbench đã bị đóng mà không lưu. Bạn có muốn khôi phục mô hình?",
@@ -1824,7 +1822,6 @@
     "action.add_reference_image": "Add Reference Image",
     "action.reference_image_from_clipboard": "Reference Image from Clipboard",
     "action.reference_image_list": "Reference Images",
-    "action.search_reference_image": "Reference Image Web Search",
     "action.connect_uv_faces": "Connect UV Faces",
     "action.connect_uv_faces.desc": "Connect the selected UV faces to the last selected UV face",
     "action.merge_uv_vertices": "Merge UV Vertices",
@@ -1871,5 +1868,7 @@
     "action.add_animation_controller_state": "Add Animation Controller State",
     "action.add_animation_controller_state.desc": "Add a new state to the animation controller",
     "menu.slider.round_value": "Round Value",
-    "texture.error.too_large": "Resolution exceeds the maximum of %0"
+    "texture.error.too_large": "Resolution exceeds the maximum of %0",
+    "dialog.copy_to_clipboard": "Copy to clipboard",
+    "dialog.open_url": "Open URL"
 }
