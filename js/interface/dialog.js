@@ -73,7 +73,7 @@ function buildForm(dialog) {
 						let text = data.value.toString();
 						let is_url = text.startsWith('https://');
 
-						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('content_paste'));
+						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
 						copy_button.addEventListener('click', e => {
 							if (isApp || navigator.clipboard) {
 								Clipbench.setText(text);
@@ -91,14 +91,14 @@ function buildForm(dialog) {
 						bar.append(copy_button);
 
 						if (is_url) {
-							let open_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('open_in_browser'));
+							let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
 							open_button.addEventListener('click', e => {
 								Blockbench.openLink(text);
 							});
 							bar.append(open_button);
 						}
 						if (navigator.share) {
-							let share_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('share'));
+							let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
 							share_button.addEventListener('click', e => {
 								navigator.share({
 									label: data.label ? tl(data.label) : 'Share',

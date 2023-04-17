@@ -151,9 +151,9 @@ class MeshFace extends Face {
 		crawl(this);
 		return keys;
 	}
-	getAngleTo(other_face) {
+	getAngleTo(other) {
 		let a = new THREE.Vector3().fromArray(this.getNormal());
-		let b = new THREE.Vector3().fromArray(other_face.getNormal());
+		let b = new THREE.Vector3().fromArray(other instanceof Array ? other : other.getNormal());
 		return Math.radToDeg(a.angleTo(b));
 	}
 	invert() {

@@ -1384,7 +1384,7 @@ const UVEditor = {
 			icon: () => (UVEditor.isSelectedFaceMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
 			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
-				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorX(event);
 				Undo.finishEdit('Flip UV');
 			}
@@ -1394,7 +1394,7 @@ const UVEditor = {
 			icon: () => (UVEditor.isSelectedFaceMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
 			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
-				Undo.initEdit({elements: Cube.selected, uv_only: true});
+				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorY(event);
 				Undo.finishEdit('Flip UV');
 			}
@@ -1538,7 +1538,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
-			Undo.initEdit({elements: Cube.selected, uv_only: true})
+			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
 			Undo.finishEdit('Mirror UV')
 		}
@@ -1548,7 +1548,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
-			Undo.initEdit({elements: Cube.selected, uv_only: true})
+			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
 			Undo.finishEdit('Mirror UV')
 		}
@@ -2479,9 +2479,11 @@ Interface.definePanels(function() {
 					let last_pos = [0, 0];
 					let viewport = this.$refs.viewport;
 					let initial_scroll_offset = [viewport.scrollLeft, viewport.scrollTop];
+					let original_snap = snap;
 					function drag(e1) {
 						convertTouchEvent(e1);
 						let step_x, step_y;
+						let snap = original_snap;
 
 						if (snap == undefined) {
 							snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
@@ -3551,13 +3553,28 @@ Interface.definePanels(function() {
 				return trimFloatNumber(face.uv[axis])
 			}
 		} else if (elements[0] instanceof Mesh) {
-			var face = UVEditor.getReferenceFace();
-			if (face) {
-				let selected_vertices = elements[0].getSelectedVertices();
-				let has_selected_vertices = selected_vertices && face.vertices.find(vkey => selected_vertices.includes(vkey))
+			let selected_vertices = elements[0].getSelectedVertices();
+
+			if (selected_vertices.length) {
+				let min = Infinity;
+				UVEditor.vue.selected_faces.forEach(fkey => {
+					let face = elements[0].faces[fkey];
+					if (!face) return;
+					face.vertices.forEach(vkey => {
+						if (selected_vertices.includes(vkey) && face.uv[vkey]) {
+							min = Math.min(min, face.uv[vkey][axis]);
+						}
+					})
+				})
+				if (min == Infinity) min = 0;
+				return trimFloatNumber(min);
+
+			} else {
+				let face = UVEditor.getReferenceFace();
+				if (!face) return 0;
 				let min = Infinity;
 				face.vertices.forEach(vkey => {
-					if ((!has_selected_vertices || selected_vertices.includes(vkey)) && face.uv[vkey]) {
+					if (face.uv[vkey]) {
 						min = Math.min(min, face.uv[vkey][axis]);
 					}
 				})

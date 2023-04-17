@@ -5,25 +5,25 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.6", "type": "h2"},
-			{"text": "The Animation Controller Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.6.0)!"}
+			{"text": "Welcome to Blockbench 4.7", "type": "h2"},
+			{"text": "The Reference Image Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.7.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/bezier.png",
-				"title": "Bézier Curves",
-				"text": "Create extra dynamic and smooth animations with bézier curves!"
+				"image": "https://web.blockbench.net/content/thumb_references.png",
+				"title": "Reference Images",
+				"text": "Load reference images into the program, arrange them to your liking, or use them as blueprints!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/animation_controller.png",
-				"title": "Animation Controller Editing",
-				"text": "Edit and preview animation controllers for Minecraft Bedrock directly in Blockbench"
+				"image": "https://web.blockbench.net/content/thumb_mesh_edit.png",
+				"title": "Mesh Improvements",
+				"text": "Proportional Editing, glTF Armature export, UV features, and much more!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/profiles.png",
-				"title": "Settings Profiles",
-				"text": "Create profiles to define settings for specific formats, situations, or for other users"
+				"image": "https://web.blockbench.net/content/thumb_attachables.png",
+				"title": "Attachable Preview",
+				"text": "Position and animate attachables for Minecraft Bedrock Edition with live preview"
 			}
 		]
 	}

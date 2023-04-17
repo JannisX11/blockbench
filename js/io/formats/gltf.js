@@ -191,7 +191,6 @@ function buildSkinnedMesh(root_group, scale) {
 			for (let i = 0; i < geometry.attributes.position.count; i++) {
 				vertex.fromBufferAttribute(geometry.attributes.position, i);
 				normal.fromBufferAttribute(geometry.attributes.normal, i);
-				// todo: apply transform
 				vertex.applyMatrix4(matrix);
 				normal.transformDirection(matrix);
 
@@ -271,7 +270,8 @@ var codec = new Codec('gltf', {
 		armature: {type: 'checkbox', label: 'codec.common.armature', value: false},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
-	async compile(options = this.getExportOptions()) {
+	async compile(options) {
+		options = Object.assign(this.getExportOptions(), options);
 		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
@@ -325,7 +325,7 @@ var codec = new Codec('gltf', {
 					truncateDrawRange: false,
 					forcePowerOfTwoTextures: true,
 					scale_factor: 1/options.scale,
-					embedImages: options.embed_textures,
+					embedImages: options.embed_textures != false,
 					exportFaceColors: false,
 				});
 			})

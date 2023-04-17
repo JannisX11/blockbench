@@ -13,6 +13,8 @@
 	"dialog.continue": "Continue",
 	"dialog.ignore": "Ignore",
 	"dialog.dontshowagain": "Don't Show Again",
+	"dialog.copy_to_clipboard": "Copy to clipboard",
+	"dialog.open_url": "Open URL",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
 
 	"data.cube": "Cube",
@@ -677,8 +679,8 @@
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 
-	"keybindings.item.num_slider.increase": "Incrase",
-	"keybindings.item.num_slider.decrease": "Decrase",
+	"keybindings.item.num_slider.increase": "Increase",
+	"keybindings.item.num_slider.decrease": "Decrease",
 
 	"layout.select": "Select",
 	"layout.options": "Options",
@@ -1346,7 +1348,7 @@
 	"action.split_mesh": "Split Mesh",
 	"action.split_mesh.desc": "Split the selected faces of the mesh into a new mesh",
 	"action.merge_vertices": "Merge Vertices",
-	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected verted",
+	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected vertex",
 	"action.merge_vertices.merge_all": "Merge All",
 	"action.merge_vertices.merge_all_in_center": "Merge All in Center",
 	"action.merge_vertices.merge_by_distance": "Merge by Distance",

@@ -855,6 +855,7 @@ const TextureGenerator = {
 							let perimeter = {};
 							for (let fkey in faces) {
 								let face = faces[fkey];
+								let face_connection_count = 0;
 								processed_faces.push(face);
 								[2, 0, 3, 1].forEach(i => {
 									if (!face.vertices[i]) return;
@@ -872,7 +873,7 @@ const TextureGenerator = {
 											let angle_total = face_group.faces[0].getAngleTo(other_face);
 											if (angle_total > (options.max_island_angle||45)) return;
 											let edge_length = getEdgeLength(other_face_match.edge);
-											if (edge_length < 2.2) return;
+											if (edge_length < 2.2 && face_connection_count >= 2) return;
 										}
 										let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
 										if (!projection_success) return;
@@ -881,6 +882,7 @@ const TextureGenerator = {
 										face_group.keys.push(other_face_match.key);
 										face_groups.remove(other_face_group);
 										perimeter[other_face_match.key] = other_face;
+										face_connection_count++;
 									}
 								})
 							}
@@ -1003,8 +1005,26 @@ const TextureGenerator = {
 							max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
 						}
 					}
-					// Align right if face points to right side of model
-					if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
+					// Center island if it faces front of back
+					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
+						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += offset_x;
+							}
+						}
+					}
+					// ... or on the side
+					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
+						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += offset_x;
+							}
+						}
+					}
+					// Or align right if face points to right side of model
+					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;

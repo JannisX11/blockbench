@@ -62,7 +62,7 @@ BARS.defineActions(function() {
 			},
 			onConfirm: function(formResult) {
 	
-				if (formResult.token && !formResult.name) {
+				if (!formResult.token || !formResult.name) {
 					Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
 					return;
 				}
@@ -87,7 +87,7 @@ BARS.defineActions(function() {
 					data.append('categories', selected_categories);
 				}
 	
-				settings.sketchfab_token.value = formResult.token
+				settings.sketchfab_token.set(formResult.token);
 	
 				Codecs.gltf.compile({animations: formResult.animations}).then(content => {
 	

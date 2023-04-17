@@ -26,7 +26,13 @@ class Codec extends EventSystem {
 		this.export_action = data.export_action;
 	}
 	getExportOptions() {
-		return Project.export_options[this.id] || {};
+		let options = {};
+		for (let key in this.export_options) {
+			options[key] = this.export_options[key].value;
+		}
+		let saved = Project.export_options[this.id];
+		if (saved) Object.assign(options, saved);
+		return options;
 	}
 	//Import
 	load(model, file, add) {

@@ -102,7 +102,7 @@ async function loadImages(files, event) {
 		if (Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		options.reference_image = 'Reference Image';// todo: translation
+		options.reference_image = 'data.reference_image';
 	}
 	options.edit = 'message.load_images.edit_image';
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {

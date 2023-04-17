@@ -216,6 +216,7 @@
 		bottom: 0;
 		right: 0;
 		left: 0;
+		z-index: 6;
 	}
 	#center[snapside=top]::after {
 		bottom: unset;
@@ -243,6 +244,7 @@
 		background-color: var(--color-accent);
 		opacity: 0.1;
 		height: 64px;
+		z-index: 6;
 	}
 	#center[snapside=bottom]::before {
 		top: unset;
