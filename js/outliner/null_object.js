@@ -170,7 +170,7 @@ class NullObject extends OutlinerElement {
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform(element);
+			NodePreviewController.prototype.updateTransform.call(this, element);
 
 			element.mesh.fix_position.copy(element.mesh.position);
 

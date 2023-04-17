@@ -714,6 +714,8 @@ const Canvas = {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
 				if (mesh.grid_box) edit(mesh.grid_box);
+				if (element instanceof Locator) edit(mesh.children[0]);
+				if (element instanceof NullObject) edit(mesh);
 			})
 		}
 		editVis(obj => {
@@ -1214,107 +1216,7 @@ const Canvas = {
 	},
 	updateUV(cube, animation = true) {
 		// Deprecated
-		var mesh = cube.mesh
-		if (mesh === undefined || !mesh.geometry) return;
-
-		if (cube.box_uv) {
-
-			var size = cube.size(undefined, true)
-			
-			var face_list = [   
-				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
-				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
-				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
-				{face: 'down',	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]},
-				{face: 'south',	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
-				{face: 'north',	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
-			]
-
-			if (cube.mirror_uv) {
-				face_list.forEach(function(f) {
-					f.from[0] += f.size[0]
-					f.size[0] *= -1
-				})
-				//East+West
-				
-				var p = {}
-
-				p.from = face_list[0].from.slice()
-				p.size = face_list[0].size.slice()
-
-				face_list[0].from = face_list[1].from.slice()
-				face_list[0].size = face_list[1].size.slice()
-
-				face_list[1].from = p.from.slice()
-				face_list[1].size = p.size.slice()
-
-			}
-			face_list.forEach(function(f, fIndex) {
-
-				if (cube.faces[f.face].texture === null) return;
-
-				var uv= [
-					f.from[0]			 +  cube.uv_offset[0],
-					f.from[1]			 +  cube.uv_offset[1],
-					f.from[0] + f.size[0] + cube.uv_offset[0],
-					f.from[1] + f.size[1] + cube.uv_offset[1]
-				]
-				uv.forEach(function(s, si) {
-					uv[si] *= 1
-				})
-
-				cube.faces[f.face].uv[0] = uv[0]
-				cube.faces[f.face].uv[1] = uv[1]
-				cube.faces[f.face].uv[2] = uv[2]
-				cube.faces[f.face].uv[3] = uv[3]
-
-				//Fight Bleeding
-				for (var si = 0; si < 2; si++) {
-					let margin = 1/64;
-					if (uv[si] > uv[si+2]) {
-						margin = -margin
-					}
-					uv[si] += margin
-					uv[si+2] -= margin
-				}
-
-				stretch = 1;
-				frame = 0;
-				let tex = cube.faces[f.face].getTexture();
-				if (tex instanceof Texture && tex.frameCount !== 1) {
-					stretch = tex.frameCount
-					if (animation === true && tex.currentFrame) {
-						frame = tex.currentFrame
-					}
-				}
-
-				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
-			})
-
-		} else {
-		
-			var stretch = 1
-			var frame = 0
-
-			Canvas.face_order.forEach((face, fIndex) => {
-
-				if (cube.faces[face].texture === null) return;
-
-				stretch = 1;
-				frame = 0;
-				let tex = cube.faces[face].getTexture();
-				if (tex instanceof Texture && tex.frameCount !== 1) {
-					stretch = tex.frameCount
-					if (animation === true && tex.currentFrame) {
-						frame = tex.currentFrame
-					}
-				}
-				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
-			})
-
-		}
-		mesh.geometry.attributes.uv.needsUpdate = true;
-		return mesh.geometry
+		return Cube.preview_controller.updateUV(cube, animation);
 	},
 	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
 		stretch *= -1;

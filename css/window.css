@@ -111,6 +111,7 @@
 		/*overflow: hidden;*/
 		position: absolute;
 		cursor: inherit;
+		z-index: 1;
 	}
 	.quad_canvas_wrapper {
 		height: 50%;
@@ -139,6 +140,7 @@
 		position: absolute !important;
 		z-index: 12;
 		opacity: 0;
+		touch-action: none;
 	}
 	.resizer.vertical { /*	|	*/
 		cursor: ew-resize;
@@ -153,11 +155,11 @@
 	.resizer.disabled {
 		pointer-events: none;
 	}
-	.resizer:hover, .resizer.ui-draggable-dragging {
+	.resizer:hover, .resizer.dragging {
 	    background-color: var(--color-accent);
 		opacity: 0.3;
 	}
-	.resizer:hover:not(.ui-draggable-dragging) {
+	.resizer:hover:not(.dragging) {
 		animation: resize_line_fade_in 500ms;
 	}
 	@keyframes resize_line_fade_in {
@@ -763,6 +765,7 @@
 	}
 	#status_bar .status_bar_modifier_key {
 		flex-grow: 0.06;
+		flex-shrink: 1;
 		text-align: center;
 		padding-top: 2px;
 		font-size: 0.92em;
@@ -885,6 +888,145 @@
 		color: white;
 		width: 16px;
 	}
+	#center_first_person_button {
+		position: absolute;
+		margin: auto;
+		right: 0;
+		left: 0;
+		bottom: 7px;
+		width: fit-content;
+		z-index: 2;
+	}
+
+	.reference_image {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+	}
+	.reference_image[reference_layer=viewport] {
+		z-index: 2;
+	}
+	.reference_image[reference_layer=float] {
+		z-index: 8;
+	}
+	.reference_image.selected[reference_layer=float] > img {
+		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
+	}
+	#work_screen.reference_image_mode .reference_image {
+		pointer-events: initial;
+	}
+	#work_screen.reference_image_mode .single_canvas_wrapper,
+	#work_screen.reference_image_mode .quad_canvas_wrapper {
+		pointer-events: none;
+	}
+	#work_screen.reference_image_mode .reference_image.invisible:not(.selected):not(:hover) {
+		outline: 1px solid var(--color-grid);
+	}
+	.reference_image.selected {
+		z-index: 9;
+		pointer-events: initial;
+		cursor: move;
+	}
+	.reference_image.selected, .reference_image:hover {
+		outline: 1px solid var(--color-accent);
+	}
+	.reference_image > img {
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
+	.reference_image.flip_x > img {
+		transform: scaleX(-1);
+	}
+	.reference_image.flip_y > img {
+		transform: scaleY(-1);
+	}
+	.reference_image.flip_y.flip_x > img {
+		transform: scaleX(-1) scaleY(-1);
+	}
+
+	.reference_image_resize_corner {
+		position: absolute;
+		width: 10px;
+		height: 10px;
+		background-color: var(--color-text);
+		border: 1px solid var(--color-border);
+	}
+	.reference_image_resize_corner:hover {
+		background-color: var(--color-light);
+	}
+	.reference_image_resize_corner.nw {
+		top: -5px;
+		left: -5px;
+		cursor: nw-resize;
+	}
+	.reference_image_resize_corner.ne {
+		top: -5px;
+		right: -5px;
+		cursor: ne-resize;
+	}
+	.reference_image_resize_corner.sw {
+		bottom: -5px;
+		left: -5px;
+		cursor: sw-resize;
+	}
+	.reference_image_resize_corner.se {
+		bottom: -5px;
+		right: -5px;
+		cursor: se-resize;
+	}
+	.reference_image_rotate_handle {
+		width: 25px;
+		height: 25px;
+		top: 4px;
+		left: 4px;
+		position: absolute;
+		cursor: url('../assets/rotate_cursor.png') 9 9, auto;
+		text-shadow: 1px 1px 0px black;
+	}
+	.reference_image_rotate_handle:hover {
+		color: var(--color-light);
+	}
+	body.light_mode .reference_image_rotate_handle {
+		text-shadow: none;
+	}
+	.reference_image_toolbar {
+		position: absolute;
+		margin: auto;
+		height: auto;
+		bottom: 0;
+		right: -150px;
+		left: -150px;
+		background-color: var(--color-ui);
+		max-width: fit-content;
+		display: flex;
+		width: fit-content;
+	}
+
+	.toolbar[toolbar_id=reference_images] {
+		position: absolute;
+		width: 280px;
+		max-width: 100vw;
+		margin: auto;
+		left: 0;
+		right: 0;
+		top: 35px;
+		background-color: var(--color-ui);
+		border: 2px solid var(--color-accent);
+		z-index: 4;
+	}
+
+
+	.clamped_reference_images {
+		height: 100%;
+		width: 100%;
+		overflow: hidden;
+		position: absolute;
+		pointer-events: none;
+	}
+
+
 /* GIF Recorder */
 	#gif_recording_frame {
 		pointer-events: none;
@@ -961,6 +1103,7 @@
 		padding-right: 30px;
 		margin: auto;
 		width: fit-content;
+		z-index: 3;
 	}
 	#amend_edit_menu > div.amend_edit_line {
 		background-color: var(--color-ui);

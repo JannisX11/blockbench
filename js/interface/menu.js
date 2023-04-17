@@ -159,6 +159,7 @@ class Menu {
 		if (position && position.changedTouches) {
 			convertTouchEvent(position);
 		}
+		let last_context = context;
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
@@ -200,7 +201,7 @@ class Menu {
 		function populateList(list, menu_node, searchable) {
 			
 			if (searchable) {
-				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search')});
+				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search'), inputmode: 'search'});
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
 				menu_node.append(search_bar);
@@ -258,6 +259,11 @@ class Menu {
 
 		function getEntry(s, parent) {
 
+			if (s.context) {
+				last_context = context;
+				context = s.context;
+			}
+			let scope_context = context;
 			var entry;
 			if (s === '_') {
 				entry = new MenuSeparator().menu_node
@@ -270,7 +276,7 @@ class Menu {
 			if (typeof s == 'string' && BarItems[s]) {
 				s = BarItems[s];
 			}
-			if (!Condition(s.condition, context)) return;
+			if (!Condition(s.condition, scope_context)) return;
 
 			if (s instanceof Action) {
 
@@ -292,9 +298,20 @@ class Menu {
 						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
 						s.trigger(e)
 					});
-					if (s.side_menu) {
-						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
+					if (s.side_menu instanceof Menu) {
+						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
+
+					} else if (s.side_menu instanceof Dialog) {
+						createChildList(s, entry, [
+							{
+								name: 'menu.options',
+								icon: 'web_asset',
+								click() {
+									s.side_menu.show();
+								}
+							}
+						]);
 					}
 				}
 
@@ -303,7 +320,7 @@ class Menu {
 			} else if (s instanceof BarSelect) {
 				
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -343,6 +360,35 @@ class Menu {
 					scope.hover(this, e)
 				})
 
+			/*} else if (s instanceof NumSlider) {
+				
+				let icon = Blockbench.getIconNode(s.icon, s.color);
+				let numeric_input = new Interface.CustomElements.NumericInput(s.id, {
+					value: s.get(),
+					min: s.settings?.min, max: s.settings?.max,
+					onChange(value) {
+						if (typeof s.onBefore === 'function') {
+							s.onBefore()
+						}
+						s.change(() => value);
+						if (typeof s.onAfter === 'function') {
+							s.onAfter()
+						}
+						s.update();
+					}
+				});
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, [
+					Interface.createElement('span', {}, tl(s.name)),
+					numeric_input.node
+				]);
+				entry.prepend(icon);
+
+				parent.append(entry);
+
+				$(entry).mouseenter(function(e) {
+					scope.hover(this, e)
+				})
+				*/
 			} else if (s instanceof HTMLElement) {
 				parent.append(s);
 
@@ -350,7 +396,7 @@ class Menu {
 				
 				let child_count;
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -365,7 +411,7 @@ class Menu {
 				if (typeof s.click === 'function') {
 					entry.on('click', e => {
 						if (e.target == entry.get(0)) {
-							s.click(context, e)
+							s.click(scope_context, e)
 						}
 					})
 				}
@@ -388,6 +434,7 @@ class Menu {
 					obj = obj.parent().parent();
 				}
 			}
+			if (s.context && last_context != context) context = last_context;
 			return entry;
 		}
 
@@ -465,8 +512,8 @@ class Menu {
 		open_menu = scope;
 		return scope;
 	}
-	show(position) {
-		return this.open(position);
+	show(...args) {
+		return this.open(...args);
 	}
 	hide() {
 		if (this.onClose) this.onClose();

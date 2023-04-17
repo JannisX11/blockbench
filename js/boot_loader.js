@@ -87,6 +87,18 @@ if (!Blockbench.isWeb || !Blockbench.isPWA) {
 	$.ajaxSetup({ cache: false });
 }
 
+if (Blockbench.startup_count == 1) {
+	try {
+		jQuery.ajax({
+			url: 'https://blckbn.ch/api/event/new_installation',
+			type: 'POST',
+			data: {}
+		})
+	} catch (err) {
+		console.error(err);
+	}
+}
+
 Blockbench.on('before_closing', (event) => {
 	if (!Blockbench.hasFlag('no_localstorage_saving')) {
 		Settings.saveLocalStorages()

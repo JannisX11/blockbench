@@ -102,7 +102,7 @@ async function loadImages(files, event) {
 		if (Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		options.background = 'menu.view.background';
+		options.reference_image = 'data.reference_image';
 	}
 	options.edit = 'message.load_images.edit_image';
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
@@ -122,16 +122,15 @@ async function loadImages(files, event) {
 			replace_texture.fromFile(files[0])
 			updateSelection();
 			
-		} else if (method == 'background') {
-			let preview = Preview.selected;
-			let image = isApp ? files[0].path : files[0].content;
-			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-				image = image + '?' + Math.floor(Math.random() * 1000);
-			}
-			preview.background.image = image;
-			preview.loadBackground();
-			Settings.saveLocalStorages();
-			preview.startMovingBackground();
+		} else if (method == 'reference_image') {
+			
+			files.map(file => {
+				new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference(true);
+			}).last().select();
+			ReferenceImageMode.activate();
 			
 		} else if (method == 'edit') {
 			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
@@ -409,130 +408,6 @@ const Extruder = {
 		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 	}
 }
-//Export
-function uploadSketchfabModel() {
-	if (elements.length === 0 || !Format) {
-		return;
-	}
-	let tag_suggestions = ['low-poly', 'pixel-art'];
-	if (Format.id !== 'free') tag_suggestions.push('minecraft');
-	if (Format.id === 'skin') tag_suggestions.push('skin');
-	if (!Mesh.all.length) tag_suggestions.push('voxel');
-	let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '')
-	if (Project.name) tag_suggestions.push(clean_project_name);
-	if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
-
-	let categories = {
-		"": "-",
-		"animals-pets": "Animals & Pets",
-		"architecture": "Architecture",
-		"art-abstract": "Art & Abstract",
-		"cars-vehicles": "Cars & Vehicles",
-		"characters-creatures": "Characters & Creatures",
-		"cultural-heritage-history": "Cultural Heritage & History",
-		"electronics-gadgets": "Electronics & Gadgets",
-		"fashion-style": "Fashion & Style",
-		"food-drink": "Food & Drink",
-		"furniture-home": "Furniture & Home",
-		"music": "Music",
-		"nature-plants": "Nature & Plants",
-		"news-politics": "News & Politics",
-		"people": "People",
-		"places-travel": "Places & Travel",
-		"science-technology": "Science & Technology",
-		"sports-fitness": "Sports & Fitness",
-		"weapons-military": "Weapons & Military",
-	}
-
-	var dialog = new Dialog({
-		id: 'sketchfab_uploader',
-		title: 'dialog.sketchfab_uploader.title',
-		width: 640,
-		form: {
-			token: {label: 'dialog.sketchfab_uploader.token', value: settings.sketchfab_token.value, type: 'password'},
-			about_token: {type: 'info', text: tl('dialog.sketchfab_uploader.about_token', ['[sketchfab.com/settings/password](https://sketchfab.com/settings/password)'])},
-			name: {label: 'dialog.sketchfab_uploader.name', value: capitalizeFirstLetter(Project.name.replace(/\..+/, '').replace(/[_.-]/g, ' '))},
-			description: {label: 'dialog.sketchfab_uploader.description', type: 'textarea'},
-			category1: {label: 'dialog.sketchfab_uploader.category', type: 'select', options: categories, value: ''},
-			category2: {label: 'dialog.sketchfab_uploader.category2', type: 'select', options: categories, value: ''},
-			tags: {label: 'dialog.sketchfab_uploader.tags', placeholder: 'Tag1 Tag2'},
-			tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
-				let {tags} = dialog.getFormResult();
-				let new_tag = tag_suggestions[index];
-				if (!tags.split(/\s/g).includes(new_tag)) {
-					tags += ' ' + new_tag;
-					dialog.setFormValues({tags});
-				}
-			}},
-			animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
-			draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
-			divider: '_',
-			private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
-			password: {label: 'dialog.sketchfab_uploader.password'},
-		},
-		onConfirm: function(formResult) {
-
-			if (formResult.token && !formResult.name) {
-				Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
-				return;
-			}
-			if (!formResult.tags.split(' ').includes('blockbench')) {
-				formResult.tags += ' blockbench';
-			}
-			var data = new FormData()
-			data.append('token', formResult.token)
-			data.append('name', formResult.name)
-			data.append('description', formResult.description)
-			data.append('tags', formResult.tags)
-			data.append('isPublished', !formResult.draft)
-			//data.append('background', JSON.stringify({color: '#00ff00'}))
-			data.append('private', formResult.private)
-			data.append('password', formResult.password)
-			data.append('source', 'blockbench')
-
-			if (formResult.category1 || formResult.category2) {
-				let selected_categories = [];
-				if (formResult.category1) selected_categories.push(formResult.category1);
-				if (formResult.category2) selected_categories.push(formResult.category2);
-				data.append('categories', selected_categories);
-			}
-
-			settings.sketchfab_token.value = formResult.token
-
-			Codecs.gltf.compile({animations: formResult.animations}).then(content => {
-
-				var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
-				var file = new File([blob], 'model.gltf')
-
-				data.append('modelFile', file)
-
-				$.ajax({
-					url: 'https://api.sketchfab.com/v3/models',
-					data: data,
-					cache: false,
-					contentType: false,
-					processData: false,
-					type: 'POST',
-					success: function(response) {
-						Blockbench.showMessageBox({
-							title: tl('message.sketchfab.success'),
-							message:
-								`[${formResult.name} on Sketchfab](https://sketchfab.com/models/${response.uid})`, //\n\n&nbsp;\n\n`+
-							icon: 'icon-sketchfab',
-						})
-					},
-					error: function(response) {
-						Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
-						console.error(response);
-					}
-				})
-			})
-
-			dialog.hide()
-		}
-	})
-	dialog.show()
-}
 //Json
 function compileJSON(object, options) {
 	if (typeof options !== 'object') options = {}
@@ -624,6 +499,7 @@ function autoParseJSON(data, feedback) {
 			data = JSON.parse(data)
 		} catch (err) {
 			if (feedback === false) return;
+			let error_part = '';
 			function logErrantPart(whole, start, length) {
 				var line = whole.substr(0, start).match(/\n/gm)
 				line = line ? line.length+1 : 1
@@ -632,23 +508,24 @@ function autoParseJSON(data, feedback) {
 				lines.forEach((s, i) => {
 					result += `#${line+i} ${s}\n`
 				})
-				console.log(result.substr(0, result.length-1) + ' <-- HERE')
+				error_part = result.substr(0, result.length-1) + ' <-- HERE';
+				console.log(error_part);
 			}
 			console.error(err)
 			var length = err.toString().split('at position ')[1]
 			if (length) {
 				length = parseInt(length)
-				var start = limitNumber(length-20, 0, Infinity)
+				var start = limitNumber(length-32, 0, Infinity)
 
 				logErrantPart(data, start, 1+length-start)
 			} else if (err.toString().includes('Unexpected end of JSON input')) {
 
-				logErrantPart(data, data.length-10, 10)
+				logErrantPart(data, data.length-16, 10)
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
-				message: tl('message.invalid_file.message', [err])
+				message: tl('message.invalid_file.message', [err]) + (error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : '')
 			})
 			return;
 		}
@@ -725,24 +602,60 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	//Export
+	// Smart Save
 	new Action('export_over', {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
-		click: function () {
+		condition: () => Project,
+		click: async function() {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
+					let export_codec = Format.codec;
 					if (Project.save_path) {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
-					if (Project.export_path && Format.codec && Format.codec.compile) {
-						Format.codec.write(Format.codec.compile(), Project.export_path)
-					} else if (Format.codec && Format.codec.export && !Project.save_path) {
-						Format.codec.export()
+					if (Project.export_path && export_codec?.compile) {
+						export_codec.write(export_codec.compile(), Project.export_path)
+
+					} else if (export_codec?.export && !Project.save_path) {
+						if (export_codec.id === 'project' || settings.dialog_save_codec.value == false) {
+							export_codec.export();
+
+						} else {
+							await new Promise(resolve => Blockbench.showMessageBox({
+								translateKey: 'save_codec_selector',
+								icon: 'save',
+								commands: {
+									project: 'message.save_codec_selector.project_file',
+									[export_codec.id]: export_codec.name || 'Default Format',
+									both: 'message.save_codec_selector.both',
+								},
+								checkboxes: {
+									dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+								},
+								buttons: ['dialog.cancel']
+							}, (codec, {dont_show_again}) => {
+								if (codec == 'both') {
+									Codecs.project.export();
+									export_codec.export();
+	
+								} else if (codec) {
+									Codecs[codec].export();
+								}
+								if (dont_show_again) {
+									settings.dialog_save_codec.set(false);
+								}
+								resolve();
+							}));
+						}
 					} else if (!Project.save_path) {
-						Project.saved = true;
+						if (Format.edit_mode) {
+							Codecs.project.export();
+						} else {
+							Project.saved = false;
+						}
 					}
 				}
 				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
@@ -751,7 +664,31 @@ BARS.defineActions(function() {
 			} else {
 				saveTextures()
 				if (Format.codec && Format.codec.export) {
-					Format.codec.export()
+
+					let codec = await new Promise(resolve => Blockbench.showMessageBox({
+						translateKey: 'save_codec_selector',
+						icon: 'save',
+						commands: {
+							project: 'message.save_codec_selector.project_file',
+							[export_codec.id]: export_codec.name || 'Default Format',
+							both: 'message.save_codec_selector.both',
+						},
+						buttons: ['dialog.cancel']
+					}, resolve));
+					
+					if (codec == 'both') {
+						Codecs.project.export();
+						export_codec.export();
+
+					} else if (codec) {
+						Codecs[codec].export();
+					}
+
+				} else if (Format.edit_mode) {
+					Codecs.project.export();
+
+				} else {
+					Project.saved = false;
 				}
 			}
 		}
@@ -785,104 +722,5 @@ BARS.defineActions(function() {
 			}
 		})
 	}
-	new Action('upload_sketchfab', {
-		icon: 'icon-sketchfab',
-		category: 'file',
-		click: function(ev) {
-			uploadSketchfabModel()
-		}
-	})
-
-
-	new Action('share_model', {
-		icon: 'share',
-		condition: () => Outliner.elements.length,
-		async click() {
-			let thumbnail = await new Promise(resolve => {
-				Preview.selected.screenshot({width: 640, height: 480}, resolve);
-			});
-			let image = new Image();
-			image.src = thumbnail;
-			image.width = 320;
-			image.style.display = 'block';
-			image.style.margin = 'auto';
-			image.style.backgroundColor = 'var(--color-back)';
-
-			var dialog = new Dialog({
-				id: 'share_model',
-				title: 'dialog.share_model.title',
-				form: {
-					name: {type: 'text', label: 'generic.name', value: Project.name},
-					expire_time: {label: 'dialog.share_model.expire_time', type: 'select', default: '2d', options: {
-						'10m': tl('dates.minutes', [10]),
-						'1h': tl('dates.hour', [1]),
-						'1d': tl('dates.day', [1]),
-						'2d': tl('dates.days', [2]),
-						'1w': tl('dates.week', [1]),
-						'2w': tl('dates.weeks', [2]),
-					}},
-					info: {type: 'info', text: 'The model and thumbnail will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'},
-					thumbnail: {type: 'checkbox', label: 'dialog.share_model.thumbnail', value: true},
-				},
-				lines: [image],
-				part_order: ['form', 'lines'],
-				onFormChange(form) {
-					image.style.display = form.thumbnail ? 'block' : 'none';
-				},
-				buttons: ['generic.share', 'dialog.cancel'],
-				onConfirm: function(formResult) {
-		
-					let name = formResult.name;
-					let expire_time = formResult.expire_time;
-					let model = Codecs.project.compile({compressed: false, absolute_paths: false});
-					let data = {name, expire_time, model}
-					if (formResult.thumbnail) data.thumbnail = thumbnail;
-
-					$.ajax({
-						url: 'https://blckbn.ch/api/model',
-						data: JSON.stringify(data),
-						cache: false,
-						contentType: 'application/json; charset=utf-8',
-						dataType: 'json',
-						type: 'POST',
-						success: function(response) {
-							let link = `https://blckbn.ch/${response.id}`
-
-							let link_dialog = new Dialog({
-								id: 'share_model_link',
-								title: 'dialog.share_model.title',
-								form: {
-									link: {type: 'text', value: link}
-								},
-								buttons: ['action.copy', 'dialog.close'],
-								onConfirm() {
-									link_dialog.hide();
-									if (isApp || navigator.clipboard) {
-										Clipbench.setText(link);
-										Blockbench.showQuickMessage('dialog.share_model.copied_to_clipboard');
-									} else {
-										Blockbench.showMessageBox({
-											title: 'dialog.share_model.title',
-											message: `[${link}](${link})`,
-										})
-									}
-								}
-							}).show();
-
-						},
-						error: function(response) {
-							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
-							console.error(response);
-						}
-					})
-		
-					dialog.hide()
-				}
-			})
-			dialog.show()
-		}
-	})
-
-
 
 })

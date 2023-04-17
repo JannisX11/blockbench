@@ -376,7 +376,11 @@ Object.assign(Blockbench, {
 
 		} else {
 			//text or binary
-			fs.writeFileSync(file_path, options.content)
+			let content = options.content;
+			if (content instanceof ArrayBuffer) {
+				content = Buffer.from(content);
+			}
+			fs.writeFileSync(file_path, content)
 			if (cb) {
 				cb(file_path)
 			}

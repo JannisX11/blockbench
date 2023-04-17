@@ -55,7 +55,8 @@ class Keybind {
 			if (this.alt)	 obj.alt = true
 			if (this.meta)	 obj.meta = true
 
-			Keybinds.stored[this.action] = obj
+			let key = this.sub_id ? (this.action + '.' + this.sub_id) : this.action;
+			Keybinds.stored[key] = obj
 			if (save !== false) {
 				Keybinds.save();
 				TickUpdates.keybind_conflicts = true;
@@ -67,7 +68,7 @@ class Keybind {
 		}
 		return this;
 	}
-	setAction(id) {
+	setAction(id, sub_id) {
 		var action = BarItems[id]
 		if (!action) {
 			action = Keybinds.extra[id]
@@ -75,7 +76,9 @@ class Keybind {
 		if (!action) {
 			return;
 		}
-		this.action = id
+		this.action = id;
+		this.sub_id = sub_id;
+
 		if (!Keybinds.structure[action.category]) {
 			Keybinds.structure[action.category] = {
 				actions: [],
@@ -85,7 +88,7 @@ class Keybind {
 				conflict: false,
 			}
 		}
-		Keybinds.structure[action.category].actions.push(action)
+		Keybinds.structure[action.category].actions.safePush(action)
 		return this;
 	}
 	getText(colorized = false) {
@@ -159,11 +162,19 @@ class Keybind {
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
 
-			case 187: return '+';
 			case 188: return ',';
 			case 190: return '.';
 			case 189: return '-';
-			case 191: return '#';
+			case 191: return '/';
+			case 219: return '[';
+			case 221: return ']';
+			case 186: return ';';
+			case 222: return "'";
+			case 220: return '\\';
+			case 187: return '=';
+			case 226: return '\\';
+			case 192: return '`';
+			//case 187: return '+';
 			default : return String.fromCharCode(key).toLowerCase();
 		}
 	}
@@ -255,18 +266,13 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 	let controls_only = from_start_screen && (id == 'default' || id == 'mouse');
 	let answer = controls_only || confirm(tl('message.load_keymap'));
 	if (!answer) return;
-	let preset = KeymapPresets[id];
+	let preset = KeymapPresets[id] || {keys: {}};
 
-
-	if (!controls_only)
-		Keybinds.actions.forEach(item => {
-			if (!item.keybind) return;
-
-			if (preset && preset.keys[item.id] !== undefined) {
-				let keys = preset.keys[item.id]
-
+	if (!controls_only) {
+		function applyKeybinding(keys, keybind, default_keybind) {
+			if (keys) {
 				if (keys === null) {
-					item.keybind.clear();
+					keybind.clear();
 				} else if (keys) {
 					if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
 						keys.meta = true;
@@ -275,18 +281,33 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 					if (typeof keys.key == 'string') {
 						keys.key = keys.key.toUpperCase().charCodeAt(0);
 					}
-					item.keybind.set(keys).save(false);
+					keybind.set(keys).save(false);
 				}
 			} else {
-				if (item.default_keybind) {
-					item.keybind.set(item.default_keybind);
+				if (default_keybind) {
+					keybind.set(default_keybind);
 				} else {
-					item.keybind.clear();
+					keybind.clear();
+				}
+			}
+		}
+		Keybinds.actions.forEach(item => {
+			if (!item.keybind) return;
+
+			applyKeybinding(preset.keys[item.id], item.keybind, item.default_keybind);
+			if (item.sub_keybinds) {
+				for (let key in item.sub_keybinds) {
+					applyKeybinding(
+						preset.keys[item.id + '.' + key],
+						item.sub_keybinds[key].keybind,
+						item.sub_keybinds[key].default_keybind
+					);
 				}
 			}
 
 			item.keybind.save(false);
 		})
+	}
 
 	if (id == 'mouse') {
 		Keybinds.extra.preview_rotate.keybind.set({key: 2}).save(false);
@@ -432,7 +453,7 @@ onVueSetup(function() {
 		id: 'keybindings',
 		title: 'dialog.settings.keybinds',
 		singleButton: true,
-		width: 920,
+		width: 800,
 		title_menu: new Menu([
 			'settings_window',
 			'keybindings_window',
@@ -458,14 +479,26 @@ onVueSetup(function() {
 				search_term: '',
 			}},
 			methods: {
-				record(item) {
-					if (!item.keybind) {
-						item.keybind = new Keybind()
+				record(item, sub_id) {
+					if (sub_id) {
+						item.sub_keybinds[sub_id].keybind.record();
+
+					} else {
+						if (!item.keybind) item.keybind = new Keybind();
+						item.keybind.record();
 					}
-					item.keybind.record()
 				},
-				reset(item) {
-					if (item.keybind) {
+				reset(item, sub_id) {
+					if (sub_id) {
+						let sub_keybind = item.sub_keybinds[sub_id];
+						if (sub_keybind.default_keybind) {
+							sub_keybind.keybind.set(sub_keybind.default_keybind);
+						} else {
+							sub_keybind.keybind.clear();
+						}
+						sub_keybind.keybind.save(true);
+
+					} else if (item.keybind) {
 						if (item.default_keybind) {
 							item.keybind.set(item.default_keybind);
 						} else {
@@ -474,8 +507,11 @@ onVueSetup(function() {
 						item.keybind.save(true);
 					}
 				},
-				clear(item) {
-					if (item.keybind) {
+				clear(item, sub_id) {
+					if (sub_id) {
+						item.sub_keybinds[sub_id].keybind.clear().save(true);
+
+					} else if (item.keybind) {
 						item.keybind.clear().save(true)
 					}
 				},
@@ -487,6 +523,9 @@ onVueSetup(function() {
 						
 					}
 					category.open = !category.open
+				},
+				hasSubKeybinds(item) {
+					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
 				}
 			},
 			computed: {
@@ -501,12 +540,21 @@ onVueSetup(function() {
 								var missmatch = false;
 								for (var word of keywords) {
 									if (
+										!missmatch &&
 										!action.name.toLowerCase().includes(word) &&
 										!action.id.toLowerCase().includes(word) &&
-										!action.keybind.label.toLowerCase().includes(word)
+										!action.keybind.label.toLowerCase().includes(word) 
 									) {
 										missmatch = true;
 									}
+									if (missmatch && action.sub_keybinds) {
+										for (let key in action.sub_keybinds) {
+											if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
+												missmatch = false;
+											}
+										}
+									}
+									if (missmatch) break;
 								}
 								if (!missmatch) {
 									actions.push(action)
@@ -534,14 +582,27 @@ onVueSetup(function() {
 
 					<ul id="keybindlist">
 						<li v-for="action in list">
-							<div v-bind:title="action.description">{{action.name}}</div>
-							<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)" v-html="action.keybind ? action.keybind.getText(true) : ''"></div>
-							<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}">
-								<i class="material-icons">replay</i>
+							<div class="keybind_line">
+								<div :title="action.description"><span>{{action.name}}</span><span class="keybind_guide_line" /></div>
+								<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)" v-html="action.keybind ? action.keybind.getText(true) : ''"></div>
+
+								<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}"><i class="material-icons">replay</i></div>
+								<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}"><i class="material-icons">clear</i></div>
 							</div>
-							<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}">
-								<i class="material-icons">clear</i>
-							</div>
+
+							<ul class="keybind_item_sub_keybinds" v-if="hasSubKeybinds(action)">
+								<li v-for="(sub_keybind, sub_id) in action.sub_keybinds" class="keybind_line keybind_line__sub" :key="sub_id">
+									<div><span>{{ sub_keybind.name }}</span><span class="keybind_guide_line" /></div>
+									<div class="keybindslot"
+										:class="{conflict: sub_keybind.keybind && sub_keybind.keybind.conflict}"
+										@click.stop="record(action, sub_id)"
+										v-html="sub_keybind.keybind ? sub_keybind.keybind.getText(true) : ''"
+									></div>
+		
+									<div class="tool" v-on:click="reset(action, sub_id)" title="${tl('keybindings.reset')}"><i class="material-icons">replay</i></div>
+									<div class="tool" v-on:click="clear(action, sub_id)" title="${tl('keybindings.clear')}"><i class="material-icons">clear</i></div>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</div>`
@@ -618,7 +679,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog) {
+		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
@@ -705,14 +766,19 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	//Keybinds
 	if (!input_focus) {
 		Keybinds.actions.forEach(function(action) {
-			if (
-				action.keybind &&
-				(!open_dialog || action.work_in_dialog) &&
-				typeof action.trigger === 'function' &&
-				action.keybind.isTriggered(e)
-			) {
-				if (action.trigger(e)) {
-					used = true
+			if (!open_dialog || action.work_in_dialog) {
+				// Condition for actions is not checked here because tools can be triggered from different modes under certain circumstances, which switches the mode
+				if (action.keybind && typeof action.trigger === 'function' && action.keybind.isTriggered(e)) {
+					if (action.trigger(e)) used = true
+				}
+				if (action.sub_keybinds && Condition(action.condition)) {
+					for (let sub_id in action.sub_keybinds) {
+						let sub = action.sub_keybinds[sub_id];
+						if (sub.keybind.isTriggered(e)) {
+							sub.trigger(e)
+							used = true;
+						}
+					}
 				}
 			}
 		})
@@ -725,6 +791,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (Dialog.open) {
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+				if (input_focus) {
+					input_focus.blur();
+				}
 				Dialog.open.confirm(e);
 				used = true
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
@@ -739,6 +808,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			open_interface.hide(e)
 			used = true
+		}
+	} else if (ReferenceImageMode.active) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			ReferenceImageMode.deactivate();
+			used = true;
 		}
 	}
 	if (ActionControl.open) {

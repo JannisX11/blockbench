@@ -613,17 +613,33 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		grow: true,
-		toolbars: {
-			timeline: Toolbars.timeline
-		},
+		growable: true,
+		toolbars: [
+			new Toolbar('timeline', {
+				children: [
+					'timeline_graph_editor',
+					'timeline_focus',
+					'clear_timeline',
+					'bring_up_all_animations',
+					'select_effect_animator',
+					'add_marker',
+					'+',
+					'jump_to_timeline_start',
+					'play_animation',
+					'jump_to_timeline_end',
+					'+',
+					'slider_animation_speed',
+				],
+				default_place: true
+			})
+		],
 		onResize() {
 			Timeline.updateSize();
 		},
 		component: {
 			name: 'panel-timeline',
 			data() {return {
-				size: 200,
+				size: 300,
 				length: 10,
 				animation_length: 0,
 				scroll_left: 0,
@@ -757,17 +773,20 @@ Interface.definePanels(() => {
 					else if (this.size < 860) {step = 0.1}
 					else {step = 0.05}
 
+					// Rounding to "FPS" to better match snapping
 					if (step < 1) {
-						var FPS = Timeline.getStep();
+						let substep_simplification = Math.max((Math.floor(Math.sqrt(step / Timeline.getStep()))-1), 1);
+						var FPS = Timeline.getStep() / substep_simplification;
 						step = Math.round(step/FPS) * FPS
-						//step = 1/Math.round(1/step)
 					}
 
+					// Substep simplification
 					let substeps = step / Timeline.getStep()
 					while (substeps > 8) {
 						substeps /= 2;
 					}
 					
+					// Generate
 					var i = Math.floor(this.scroll_left / this.size / step) * step;
 					while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
 						if (settings.timecode_frame_number.value) {
@@ -1083,6 +1102,14 @@ Interface.definePanels(() => {
 										kf.bezier_left_value[axis_number] = -kf.bezier_right_value[axis_number];
 									}
 								}
+								if (kf.uniform) {
+									let off_axis_a = (axis_number+1) % 3;
+									let off_axis_b = (axis_number+2) % 3;
+									kf.bezier_right_time[off_axis_a] = kf.bezier_right_time[off_axis_b] = kf.bezier_right_time[axis_number];
+									kf.bezier_right_value[off_axis_a] = kf.bezier_right_value[off_axis_b] = kf.bezier_right_value[axis_number];
+									kf.bezier_left_time[off_axis_a] = kf.bezier_left_time[off_axis_b] = kf.bezier_left_time[axis_number];
+									kf.bezier_left_value[off_axis_a] = kf.bezier_left_value[off_axis_b] = kf.bezier_left_value[axis_number];
+								}
 								values_changed = true;
 							}
 						}
@@ -1113,6 +1140,75 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
+				slideGraphAmplify(e1, anchor_side) {
+					convertTouchEvent(e1);
+					let original_values = {};
+					let values_changed;
+					let is_setup = false;
+					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
+					let original_range = this.getSelectedGraphRange();
+					let original_pixel_range = (original_range[1] - original_range[0]) * this.graph_size;
+					let axis = this.graph_editor_axis;
+
+					function setup() {
+						Undo.initEdit({keyframes});
+						dragging_range = [Infinity, 0];
+						previousValue = 0;
+						values_changed = false;
+						Timeline.dragging_keyframes = true;
+						is_setup = true;
+
+						for (let kf of keyframes) {
+							original_values[kf.uuid] = kf.display_value || kf.get(this.graph_editor_axis);
+						}
+					}
+
+					function slide(e2) {
+						convertTouchEvent(e2);
+						e2.preventDefault();
+						let offset = e2.clientY - e1.clientY;
+						if (anchor_side == 1) offset *= -1;
+						if (!is_setup) {
+							if (Math.abs(offset) > 4) {
+								setup();
+							} else {
+								return;
+							}
+						}
+						
+						let value = 1 - offset / original_pixel_range;
+						value = Math.round(value*100)/100;
+
+						for (let kf of keyframes) {
+							let target_value = (original_values[kf.uuid] - original_range[anchor_side]) * value + original_range[anchor_side];
+							kf.offset(axis, -kf.get(axis) + target_value);
+							values_changed = true;
+						}
+						let text = Math.round(value * 100) + '%';
+						Blockbench.setStatusBarText(text);
+						Animator.showMotionTrail()
+						Animator.preview()
+
+					}
+					function off() {
+						removeEventListeners(document, 'mousemove touchmove', slide);
+						removeEventListeners(document, 'mouseup touchend', off);
+
+						if (is_setup) {
+							Blockbench.setStatusBarText();
+							if (values_changed) {
+								Undo.finishEdit('Amplify keyframes');
+							} else {
+								Undo.cancelEdit();
+							}
+							setTimeout(() => {
+								Timeline.dragging_keyframes = false;
+							}, 20);
+						}
+					}
+					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off);
+				},
 				getBezierHandleStyle(keyframe, side) {
 					let axis_number = getAxisNumber(this.graph_editor_axis);
 					let x_offset = -keyframe[`bezier_${side}_time`][axis_number] * this.size;
@@ -1125,6 +1221,19 @@ Interface.definePanels(() => {
 						'--length': Math.max(length - 6, 0) + 'px',
 						'--angle': Math.radToDeg(angle) + 'deg',
 					}
+				},
+				getSelectedGraphRange() {
+					if (Keyframe.selected.length == 0) return null;
+					let keyframes = this.graph_editor_animator[this.graph_editor_channel];
+					if (!keyframes || keyframes.length < 2) return null;
+					let range = [Infinity, -Infinity];
+					keyframes.forEach(kf => {
+						if (!kf.selected) return;
+						range[0] = Math.min(range[0], kf.display_value);
+						range[1] = Math.max(range[1], kf.display_value);
+					})
+					if (range[0] == range[1]) return null;
+					return range;
 				},
 				clamp: Math.clamp,
 				trimFloatNumber
@@ -1168,6 +1277,14 @@ Interface.definePanels(() => {
 								></div>
 							</div>
 						</div>
+					</div>
+					<div id="timeline_graph_editor_amplifier"
+						v-if="graph_editor_open && getSelectedGraphRange()"
+						:style="{top: (graph_offset - getSelectedGraphRange()[1] * graph_size - 8) + 'px', height: ((getSelectedGraphRange()[1] - getSelectedGraphRange()[0]) * graph_size + 15) + 'px'}"
+						title="${tl('timeline.amplify')}"
+					>
+						<div @mousedown="slideGraphAmplify($event, 0)" @touchstart="slideGraphAmplify($event, 0)"></div>
+						<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">

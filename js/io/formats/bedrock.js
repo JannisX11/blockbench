@@ -211,6 +211,10 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
+		if (this.client_entity && this.client_entity.type == 'attachable') {
+			Project.bedrock_animation_mode = 'attachable_first';
+			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
+		}
 	}
 	initAnimations() {
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
@@ -1382,6 +1386,7 @@ var block_format = new ModelFormat({
 			});
 			return vertices;
 		},
+		// Test if it overlaps
 		test(cube, values = 0) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
@@ -1390,11 +1395,12 @@ var block_format = new ModelFormat({
 			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
 			let center = block_format.cube_size_limiter.getModelCenter([cube]);
 
-			return undefined !== vertices.find((v, i) => {
+			let vertex_outside_bounds = vertices.find((v, i) => {
 				return (v[0] > center[3]+15 || v[0] < center[0]-15)
 					|| (v[1] > center[4]+15 || v[1] < center[1]-15)
 					|| (v[2] > center[5]+15 || v[2] < center[2]-15);
 			})
+			return vertex_outside_bounds !== undefined;
 		},
 		move(cube, values = 0) {
 			let from = values.from || cube.from;
@@ -1474,6 +1480,33 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
+})
+
+new ValidatorCheck('bedrock_binding', {
+	condition: isApp && {formats: ['bedrock']},
+	update_triggers: ['update_selection'],
+	run() {
+		if (Project.BedrockEntityManager?.client_entity?.type == 'attachable') {
+			if (Group.all.length && !Group.all.find(g => g.bedrock_binding)) {
+				this.warn({
+					message: `The project is an attachable, but no bone is bound to the player. Define a binding on one of the root bones.`,
+					buttons: [
+						{
+							name: 'Bind root bone to player hand',
+							icon: 'fa-paperclip',
+							click() {
+								let root = Outliner.root.find(n => n instanceof Group);
+								Undo.initEdit({group: root});
+								root.bedrock_binding = 'q.item_slot_to_bone_name(c.item_slot)';
+								Undo.finishEdit('Set binding');
+								Validator.validate();
+							}
+						}
+					]
+				})
+			}
+		}
+	}
 })
 
 })()

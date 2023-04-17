@@ -1120,8 +1120,9 @@
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
 							} else if (obj.resizable) {
-								obj.oldScale = obj.size(axisnr)
-								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2)
+								obj.oldScale = obj.size(axisnr);
+								obj.oldUVOffset = obj.uv_offset.slice();
+								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
 							} 
 						})
 					}
@@ -1134,6 +1135,11 @@
 								if (Format.cube_size_limiter.test(obj)) {
 									Format.cube_size_limiter.move(obj);
 								}
+							})
+						}
+						if (BarItems.proportional_editing.value) {
+							Mesh.selected.forEach(mesh => {
+								ProportionalEdit.calculateWeights(mesh);
 							})
 						}
 					}
@@ -1594,6 +1600,7 @@
 							selected.forEach(function(obj) {
 								delete obj.oldScale;
 								delete obj.oldCenter;
+								delete obj.oldUVOffset;
 							})
 							if (scope.hasChanged && keep_changes) {
 								Undo.finishEdit('Resize')

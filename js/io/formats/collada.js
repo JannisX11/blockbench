@@ -589,7 +589,7 @@ var codec = new Codec('collada', {
 		})
 
 		
-		let compiled_animations = Codecs.gltf.buildAnimationTracks(false);
+		let compiled_animations = Codecs.gltf.buildAnimationTracks(export_scale, false);
 		if (compiled_animations.length) {
 			let animations_tag = {
 				type: 'library_animations',

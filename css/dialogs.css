@@ -182,14 +182,12 @@
 	}
 	.dialog_vector_group {
 		display: flex;
+		gap: 3px;
 	}
 	.dialog_vector_group > input {
 		min-width: 30px;
 		flex-grow: 1;
 		flex-shrink: 1;
-	}
-	.dialog_vector_group > input:not(:last-child) {
-		margin-right: 3px;
 	}
 	.dialog_bar > .range_input_label {
 		overflow: hidden;
@@ -255,36 +253,62 @@
 		margin-right: 10px;
 		pointer-events: none;
 	}
+	.dialog_message_box_checkboxes {
+		margin-top: 15px;
+		margin-bottom: -14px;
+	}
 
-	dialog .form_bar_file .input_wrapper {
+	.form_bar_file .input_wrapper {
 		position: relative;
 		flex-grow: 1;
 	}
-	dialog .form_bar_file .input_wrapper input {
+	.form_bar_file .input_wrapper input {
 		width: 100%;
 		padding-right: 30px;
 	}
-	dialog .form_bar_file .input_wrapper > .material-icons {
+	.form_bar_file .input_wrapper > .material-icons {
 		position: absolute;
 		margin-left: -28px;
 		margin-top: 4px;
 		opacity: 0.75;
 		right: 4px;
 	}
-	dialog .form_bar_file:hover .input_wrapper > .material-icons {
+	.form_bar_file:hover .input_wrapper > .material-icons {
 		opacity: 1;
 	}
-	dialog .form_bar_radio {
+	.form_inline_select {
 		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		flex-grow: 1;
 	}
-	dialog .form_bar_radio:hover {
+	.form_inline_select > li {
+		height: 30px;
+		padding: 3px 8px;
+		flex-grow: 1;
+		cursor: pointer;
+		background-color: var(--color-button);
+		text-align: center;
+	}
+	.form_inline_select > li:hover {
 		color: var(--color-light);
 	}
-	dialog .form_bar_radio label {
+	.form_inline_select > li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		cursor: default;
+	}
+	.form_bar_radio {
+		display: flex;
+	}
+	.form_bar_radio:hover {
+		color: var(--color-light);
+	}
+	.form_bar_radio label {
 		flex-grow: 1;
 		padding: 3px 5px;
 	}
-	dialog .dialog_form_description {
+	.dialog_form_description {
 		margin-left: auto;
 		padding-top: 8px;
 		font-size: 13px;
@@ -294,7 +318,7 @@
 		width: 16px;
 		text-align: center;
 	}
-	dialog .dialog_form_description:hover {
+	.dialog_form_description:hover {
 		color: var(--color-light);
 		transition: color 750ms linear;
 	}
@@ -557,13 +581,8 @@
 	#settingslist li:hover .setting_icon i {
 		color: var(--color-light);
 	}
-	.password_toggle {
-		display: inline-block;
-		margin-left: 4px;
-		margin-top: 4px;
-		width: 24px;
-		text-align: center;
-		vertical-align: text-bottom;
+	.form_input_tool {
+		width: 30px;
 	}
 
 	/*Keybinds*/
@@ -572,18 +591,44 @@
 	}
 	#keybindlist {
 		max-height: 600px;
-		margin-top: 16px;
+		margin-top: 10px;
 		overflow-y: scroll;
 		overflow-x: hidden;
 		clear: both;
 	}
-	#keybindlist .tool {
-		height: 30px;
-		width: 25px;
-		float: right;
+	.keybind_line {
+		position: relative;
+		display: flex;
+		width: 100%;
 	}
-	#keybindlist li > div.keybindslot {
-		width: calc(48% - 32px);
+	.keybind_line__sub::before {
+		display: block;
+		position: relative;
+		content: "\f061";
+		font-family: 'Font Awesome 6 Free';
+		font-weight: 600;
+		color: var(--color-subtle_text);
+		height: 24px;
+		padding: 3px 2px;
+		margin-left: 22px;
+	}
+	.keybind_line > div:first-child {
+		flex-grow: 1;
+		flex-shrink: 1;
+		padding: 4px;
+		padding-left: 8px;
+		display: flex;
+	}
+	.keybind_line > div:first-child > .keybind_guide_line {
+		border-bottom: 3px solid var(--color-button);
+		width: 0;
+		height: 14px;
+		flex-grow: 1;
+		margin-left: 5px;
+		margin-right: 3px;
+	}
+	.keybind_line > div.keybindslot {
+		width: calc(51% - 32px);
 		padding: 4px;
 		padding-left: 8px;
 		height: 30px;
@@ -592,28 +637,13 @@
 		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
-		display: inline-block;
 		cursor: text;
 	}
-	#keybindlist li > div.keybindslot:hover {
+	.keybind_line > div.keybindslot:hover {
 		color: var(--color-light);
 	}
-	#keybindlist li > div.keybindslot.conflict {
+	.keybind_line > div.keybindslot.conflict {
 		  border-left: 4px solid var(--color-close);
-	}
-	#keybindlist li > div:first-child {
-		background: transparent;
-		width: calc(52% - 28px);
-		text-align: right;
-		padding: 4px;
-		padding-left: 8px;
-		vertical-align: top;
-		display: inline-block;
-	}
-	#keybindlist > li {
-		position: relative;
-		display: flex;
-		width: 100%;
 	}
 	.keybindslot .punctuation {
 		color: var(--color-subtle_text);
@@ -625,6 +655,11 @@
 	.keybindslot .optional {
 		color: var(--color-subtle_text);
 		padding: 2px 5px;
+	}
+	#keybindlist .tool {
+		height: 30px;
+		width: 25px;
+		float: right;
 	}
 
 	/*Colors*/
@@ -1551,6 +1586,13 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	dialog .slider_input_combo {
 		clear: both;
+	}
+	.bar.button_bar_checkbox {
+		position: absolute;
+		bottom: 14px;
+		display: flex;
+		align-items: center;
+		z-index: 1;
 	}
 	dialog#adjust_curves .dialog_content {
 		margin-top: 6px;
