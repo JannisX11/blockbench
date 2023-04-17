@@ -299,6 +299,18 @@
 	.markdown a {
 		cursor: pointer;
 	}
+	.markdown pre {
+		border: 1px solid var(--color-border);
+		background: var(--color-back);
+		font-family: var(--font-code);
+		padding: 6px 10px;
+		clear: both;
+		cursor: text;
+		user-select: text;
+	}
+	.markdown pre code {
+		user-select: text;
+	}
 
 /*Actions*/
 	.toolbar {

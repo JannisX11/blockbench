@@ -523,8 +523,9 @@ class OutlinerElement extends OutlinerNode {
 	OutlinerElement.types = {};
 
 
-class NodePreviewController {
+class NodePreviewController extends EventSystem {
 	constructor(type, data = {}) {
+		super();
 		this.type = type;
 		this.events = {};
 		type.preview_controller = this;
@@ -626,29 +627,6 @@ class NodePreviewController {
 		}
 
 		this.dispatchEvent('update_selection', {element});
-	}
-
-	//Events
-	dispatchEvent(event_name, data) {
-		if (!this.events) return;
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
 	}
 }
 Outliner.control_menu_group = [
@@ -1219,6 +1197,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
+			if (Painter.painting) return;
 			let enabled = !Project.only_hidden_elements;
 
 			if (Project.only_hidden_elements) {
@@ -1372,9 +1351,20 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.outliner
-		},
+		toolbars: [
+			new Toolbar('outliner', {
+				children: [
+					'add_mesh',
+					'add_cube',
+					'add_group',
+					'outliner_toggle',
+					'toggle_skin_layer',
+					'explode_skin_model',
+					'+',
+					'cube_counter'
+				]
+			})
+		],
 		growable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.width = this.width;
@@ -1614,8 +1604,8 @@ Interface.definePanels(function() {
 			`
 		},
 		menu: new Menu([
-			'add_cube',
 			'add_mesh',
+			'add_cube',
 			'add_texture_mesh',
 			'add_group',
 			'_',
@@ -1653,12 +1643,12 @@ Interface.definePanels(function() {
 				float_size: [300, 400],
 				height: 400
 			},
-			toolbars: {
-				element_position: 	Toolbars.element_position,
-				element_size: 		Toolbars.element_size,
-				element_origin: 	Toolbars.element_origin,
-				element_rotation: 	Toolbars.element_rotation,
-			}
+			toolbars: [
+				Toolbars.element_position,
+				Toolbars.element_size,
+				Toolbars.element_origin,
+				Toolbars.element_rotation,
+			]
 		})
 		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 	}

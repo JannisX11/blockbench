@@ -73,28 +73,33 @@ const Painter = {
 	// Preview Brush
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
-			var preview = Preview.selected;
-			if (preview && preview.background && preview.background.imgtag) {
-				
-				let bg_pos = preview.canvas.style.backgroundPosition.split(' ').map(v => parseFloat(v));
-				let bg_size = parseFloat(preview.canvas.style.backgroundSize);
-				var ctx = Painter.getCanvas(preview.background.imgtag).getContext('2d')
-				var pixel_ratio = preview.background.imgtag.width / bg_size;
-				var x = (e.offsetX - bg_pos[0]) * pixel_ratio
-				var y = (e.offsetY - bg_pos[1]) * pixel_ratio
-				if (x >= 0 && y >= 0 && x < preview.background.imgtag.width && y < preview.background.imgtag.height) {
-					let color = Painter.getPixelColor(ctx, x, y);
-					if (settings.pick_color_opacity.value) {
-						let opacity = Math.floor(color.getAlpha()*256);
-						for (let id in BarItems) {
-							let tool = BarItems[id];
-							if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
-								tool.tool_settings.brush_opacity = opacity;
-							}
+			let projections = {};
+			let references = ReferenceImage.active.filter(reference => {
+				let result = reference.projectMouseCursor(e.clientX, e.clientY);
+				if (result) {
+					projections[reference.uuid] = result;
+					return true;
+				}
+			});
+			if (references.length > 1) {
+				let z_indices = {background: 1, viewport: 2, blueprint: 0, float: 4};
+				references.sort((a, b) => z_indices[a.layer] - z_indices[b.layer]);
+			}
+
+			if (references.length) {
+				let projection = projections[references.last().uuid];
+				var ctx = Painter.getCanvas(references.last().img).getContext('2d');
+				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
+				if (settings.pick_color_opacity.value) {
+					let opacity = Math.floor(color.getAlpha()*256);
+					for (let id in BarItems) {
+						let tool = BarItems[id];
+						if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
+							tool.tool_settings.brush_opacity = opacity;
 						}
 					}
-					ColorPanel.set(color);
 				}
+				ColorPanel.set(color);
 			}
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
@@ -150,8 +155,8 @@ const Painter = {
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
 		if (Toolbox.selected.id !== 'color_picker') {
-			addEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
-			addEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
+			addEventListeners(document, 'pointermove', Painter.movePaintToolCanvas, false );
+			addEventListeners(document, 'pointerup', Painter.stopPaintToolCanvas, false );
 		}
 	},
 	movePaintToolCanvas(event, data) {
@@ -235,8 +240,8 @@ const Painter = {
 		}
 	},
 	stopPaintToolCanvas() {
-		removeEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
-		removeEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
+		removeEventListeners(document, 'pointermove', Painter.movePaintToolCanvas, false );
+		removeEventListeners(document, 'pointerup', Painter.stopPaintToolCanvas, false );
 		Painter.stopPaintTool();
 	},
 	// Paint Tool Main
@@ -468,22 +473,32 @@ const Painter = {
 				}
 			}
 		}
+		let pressure;
+		let angle;
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force !== undefined) {
 			// Stylus
 			var touch = event.touches[0];
+			pressure = touch.force;
+			angle = touch.altitudeAngle;
 
-			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force !== undefined) {
-				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
+		} else if (event.pressure >= 0 && event.pressure <= 1 && event.pressure !== 0.5) {
+			pressure = event.pressure;
+			angle = event.altitudeAngle;
+		}
 
-			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
+		if (pressure !== undefined) {
+			if (settings.brush_opacity_modifier.value == 'pressure' && pressure !== undefined) {
+				b_opacity = Math.clamp(b_opacity * Math.clamp(pressure*1.25, 0, 1), 0, 100);
+
+			} else if (settings.brush_opacity_modifier.value == 'tilt' && angle !== undefined) {
+				var modifier = Math.clamp(0.5 / (angle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
-			if (settings.brush_size_modifier.value == 'pressure' && touch.force !== undefined) {
-				size = Math.clamp(touch.force * size * 2, 1, 20);
+			if (settings.brush_size_modifier.value == 'pressure' && pressure !== undefined) {
+				size = Math.clamp(pressure * size * 2, 1, 20);
 
-			} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
+			} else if (settings.brush_size_modifier.value == 'tilt' && angle !== undefined) {
+				size *= Math.clamp(1.5 / (angle + 0.3), 1, 4);
 			}
 		}
 
@@ -497,7 +512,7 @@ const Painter = {
 				Painter.editSquare(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py]) {
+						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
 							return pxcolor;
 						}
 					}
@@ -507,7 +522,7 @@ const Painter = {
 				Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
 					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
 						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py]) {
+						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
 							return pxcolor;
 						}
 					}
@@ -818,22 +833,26 @@ const Painter = {
 			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
 			}
+			let center = Painter.mirror_painting_options.texture_center;
+			if (center[0] == 0 && center[1] == 0) {
+				center = [texture.width/2, texture.display_height/2];
+			}
 			if (Painter.mirror_painting_options.axis.x) {
 				targets.push({
-					x: texture.width - x - offset,
+					x: center[0]*2 - x - offset,
 					y: y
 				});
 			}
 			if (Painter.mirror_painting_options.axis.z) {
 				targets.push({
 					x: x,
-					y: texture.display_height - y - offset
+					y: center[1]*2 - y - offset
 				});
 			}
 			if (Painter.mirror_painting_options.axis.x && Painter.mirror_painting_options.axis.z) {
 				targets.push({
-					x: texture.width - x - offset,
-					y: texture.display_height - y - offset
+					x: center[0]*2 - x - offset,
+					y: center[1]*2 - y - offset
 				});
 			}
 		}
@@ -1307,12 +1326,22 @@ const Painter = {
 		}
 	},
 	getCanvas(texture) {
-		let canvas = texture instanceof Texture ? texture.canvas : document.createElement('canvas');
-		let ctx = canvas.getContext('2d');
-		canvas.width = texture.width;
-		canvas.height = texture.height;
-		ctx.drawImage(texture instanceof Texture ? texture.img : texture, 0, 0)
-		return canvas;
+		if (texture instanceof Texture) {
+			let canvas = texture.canvas;
+			let ctx = canvas.getContext('2d');
+			canvas.width = texture.width;
+			canvas.height = texture.height;
+			ctx.drawImage(texture.img, 0, 0)
+			return canvas;
+		} else {
+			let img = texture;
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = img.naturalWidth;
+			canvas.height = img.naturalHeight;
+			ctx.drawImage(img, 0, 0)
+			return canvas;
+		}
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		let arr = ctx.getImageData(x, y, w, h)
@@ -1397,7 +1426,7 @@ const Painter = {
 			var distance = Math.sqrt(v_px*v_px + v_py*v_py)
 			if (soft*r != 0) {
 				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
-				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
+				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
 				if (r < 8) {
 					distance *= 1.2;
@@ -2145,6 +2174,9 @@ BARS.defineActions(function() {
 	if (!Painter.mirror_painting_options.global && !Painter.mirror_painting_options.local) {
 		Painter.mirror_painting_options.global = true;
 	}
+	if (!Painter.mirror_painting_options.texture_center) {
+		Painter.mirror_painting_options.texture_center = [0, 0];
+	}
 	function toggleMirrorPaintingAxis(axis) {
 		let axes = Painter.mirror_painting_options.axis
 		axes[axis] = !axes[axis];
@@ -2206,11 +2238,10 @@ BARS.defineActions(function() {
 		side_menu: new Menu('mirror_painting', [
 			// Enabled
 			{
-				name: 'Enabled',
+				name: 'menu.mirror_painting.enabled',
 				icon: () => Painter.mirror_painting,
 				click() {BarItems.mirror_painting.trigger()}
 			},
-			'_',
 			// Axis
 			{
 				name: 'menu.mirror_painting.axis',
@@ -2222,6 +2253,7 @@ BARS.defineActions(function() {
 					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
 				]
 			},
+			'_',
 			// Global
 			{
 				name: 'menu.mirror_painting.global',
@@ -2236,6 +2268,7 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.local,
 				click() {toggleMirrorPaintingSpace('local')}
 			},
+			'_',
 			// Texture
 			{
 				name: 'menu.mirror_painting.texture',
@@ -2243,10 +2276,48 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.texture,
 				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
 			},
+			{
+				name: 'menu.mirror_painting.configure_texture_center',
+				icon: 'align_horizontal_center',
+				click() {
+					let center = Painter.mirror_painting_options.texture_center;
+					let is_custom = !!(center[0] || center[1]);
+					let default_center = [Project.texture_width/2, Project.texture_height/2];
+					let texture = Texture.getDefault();
+					if (texture) {
+						default_center.V2_set(texture.width/2, texture.height/2);
+					}
+					new Dialog({
+						id: 'mirror_painting_texture_center',
+						title: 'menu.mirror_painting.configure_texture_center',
+						width: 400,
+						form: {
+							mode: {type: 'inline_select', value: is_custom ? 'custom' : 'middle', options: {
+								middle: 'dialog.mirror_painting_texture_center.middle',
+								custom: 'dialog.mirror_painting_texture_center.custom',
+							}},
+							center: {type: 'vector', dimensions: 2, value: is_custom ? center : default_center, min: 0, step: 0.5, condition: (result) => result.mode == 'custom'}
+						},
+						onConfirm(result) {
+							if (result.mode == 'custom') {
+								center.replace(result.center.map(v => Math.round(v*2)/2));
+							} else {
+								center.V2_set(0, 0);
+							}
+							StateMemory.save('mirror_painting_options');
+						}
+					}).show();
+					if (open_menu) {
+						setTimeout(() => open_menu.hide(), 10);
+					}
+				}
+			},
+			'_',
 			// Animated Texture Frames
 			{
 				name: 'menu.mirror_painting.texture_frames',
 				description: 'menu.mirror_painting.texture_frames.desc',
+				condition: () => Texture.all.find(tex => tex.frameCount > 1),
 				icon: () => !!Painter.mirror_painting_options.texture_frames,
 				click() {toggleMirrorPaintingSpace('texture_frames')}
 			},

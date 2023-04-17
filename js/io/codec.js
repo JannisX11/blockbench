@@ -1,11 +1,13 @@
 const Codecs = {};
-class Codec {
+class Codec extends EventSystem {
 	constructor(id, data) {
+		super();
 		if (!data) data = 0;
 		this.id = id;
 		Codecs[id] = this;
 		this.name = data.name || 'Unknown Format';
 		this.events = {};
+		this.export_options = data.export_options || {};
 		Merge.function(this, data, 'load');
 		Merge.function(this, data, 'compile');
 		Merge.function(this, data, 'parse');
@@ -22,6 +24,15 @@ class Codec {
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
+	}
+	getExportOptions() {
+		let options = {};
+		for (let key in this.export_options) {
+			options[key] = this.export_options[key].value;
+		}
+		let saved = Project.export_options[this.id];
+		if (saved) Object.assign(options, saved);
+		return options;
 	}
 	//Import
 	load(model, file, add) {
@@ -54,22 +65,57 @@ class Codec {
 	}
 	//parse(model, path)
 
-	//Export
-	compile() {
+	compile(options = this.getExportOptions()) {
 		this.dispatchEvent('compile', {content: ''})
 		return '';
 	}
-	export() {
-		var scope = this;
+	async promptExportOptions() {
+		let codec = this;
+		return await new Promise((resolve, reject) => {
+			let form = {};
+			let opts_in_project = Project.export_options[codec.id];
+
+			for (let form_id in this.export_options) {
+				if (!Condition(this.export_options[form_id].condition)) continue;
+				form[form_id] = {};
+				for (let key in this.export_options[form_id]) {
+					form[form_id][key] = this.export_options[form_id][key];
+				}
+				if (opts_in_project && opts_in_project[form_id] != undefined) {
+					form[form_id].value = opts_in_project[form_id];
+				}
+			}
+			new Dialog('export_options', {
+				title: 'dialog.export_options.title',
+				width: 480,
+				form,
+				onConfirm(result) {
+					if (!Project.export_options[codec.id]) Project.export_options[codec.id] = {};
+					for (let key in result) {
+						let value = result[key];
+						Project.export_options[codec.id][key] = value;
+					}
+					resolve(result);
+				},
+				onCancel() {
+					resolve(null);
+				}
+			}).show();
+		})
+	}
+	async export() {
+		if (Object.keys(this.export_options).length) {
+			await this.promptExportOptions();
+		}
 		Blockbench.export({
 			resource_id: 'model',
-			type: scope.name,
-			extensions: [scope.extension],
-			name: scope.fileName(),
-			startpath: scope.startPath(),
-			content: scope.compile(),
-			custom_writer: isApp ? (a, b) => scope.write(a, b) : null,
-		}, path => scope.afterDownload(path))
+			type: this.name,
+			extensions: [this.extension],
+			name: this.fileName(),
+			startpath: this.startPath(),
+			content: this.compile(),
+			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
+		}, path => this.afterDownload(path))
 	}
 	fileName() {
 		return Project.name||'model';
@@ -78,11 +124,10 @@ class Codec {
 		return Project.export_path;
 	}
 	write(content, path) {
-		var scope = this;
 		if (fs.existsSync(path) && this.overwrite) {
-			this.overwrite(content, path, path => scope.afterSave(path))
+			this.overwrite(content, path, path => this.afterSave(path))
 		} else {
-			Blockbench.writeFile(path, {content}, path => scope.afterSave(path));
+			Blockbench.writeFile(path, {content}, path => this.afterSave(path));
 		}
 	}
 	//overwrite(content, path, cb)
@@ -113,27 +158,6 @@ class Codec {
 			updateRecentProjectThumbnail();
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
-	}
-	//Events
-	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
 	}
 	//Delete
 	delete() {

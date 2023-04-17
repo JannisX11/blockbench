@@ -4,6 +4,7 @@
 		margin: 0;
 		padding: 0;
 		user-select: none;
+		-webkit-user-select: none;
 		outline: none;
 		outline-color: rgba(0, 0, 0, 0);
 	}
@@ -651,6 +652,27 @@
 	input:-webkit-autofill,
 	input:-webkit-autofill:focus {
 		transition: background-color 600000s 0s, color 600000s 0s;
+	}
+	.numeric_input {
+		position: relative;
+		flex-shrink: 1;
+		flex-grow: 1;
+	}
+	.numeric_input > input {
+		position: relative;
+		width: 100%;
+	}
+	.numeric_input > div.tool {
+		position: absolute;
+		width: 22px;
+		right: 1px;
+		top: 0;
+		color: var(--color-subtle_text);
+		cursor: ew-resize;
+	}
+	.numeric_input > div.tool > i {
+		font-size: 20px;
+		margin-top: 5px;
 	}
 
 	div.nslide {

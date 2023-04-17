@@ -15,9 +15,7 @@ class BarMenu extends Menu {
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
 			if (open_menu === scope) {
-				if (event instanceof PointerEvent == false) {
-					scope.hide()
-				}
+				scope.hide()
 			} else {
 				scope.open()
 			}
@@ -170,7 +168,7 @@ const MenuBar = {
 				'import_obj',
 				'extrude_texture'
 			]},
-			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', children: [
+			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', condition: () => Project, children: [
 				'export_blockmodel',
 				'export_bedrock',
 				'export_entity',
@@ -254,6 +252,8 @@ const MenuBar = {
 				'dissolve_edges',
 				'split_mesh',
 				'merge_meshes',
+				'_',
+				'proportional_editing',
 			]},
 			'_',
 			'select_window',
@@ -404,23 +404,25 @@ const MenuBar = {
 			'fullscreen',
 			'_',
 			'view_mode',
-			'preview_scene',
 			'toggle_shading',
 			'toggle_motion_trails',
 			'toggle_ground_plane',
 			'preview_checkerboard',
 			'painting_grid',
 			'_',
+			'preview_scene',
+			'edit_reference_images',
+			'_',
 			'toggle_sidebars',
 			'toggle_quad_view',
 			'hide_everything_except_selection',
 			'focus_on_selection',
-			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
-				'screenshot_model',
-				'screenshot_app',
-				'record_model_gif',
-				'timelapse',
-			]},
+			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: []},
+			'_',
+			'screenshot_model',
+			'screenshot_app',
+			'record_model_gif',
+			'timelapse',
 		])
 		new BarMenu('help', [
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
@@ -443,7 +445,7 @@ const MenuBar = {
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
+					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
 				}},
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {

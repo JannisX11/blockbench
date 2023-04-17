@@ -49,6 +49,7 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
+						preview_changes: true,
 						brightness: 100,
 						contrast: 100,
 						textures
@@ -59,7 +60,11 @@ BARS.defineActions(function() {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
+									if (this.preview_changes) {
+										ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
+									} else {
+										ctx.filter = `brightness(1.0) contrast(1.0)`;
+									}
 									ctx.drawImage(original_imgs[i], 0, 0);
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
@@ -80,12 +85,16 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
+							</div>
+							<div class="bar button_bar_checkbox">
+								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
+								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
 							</div>
 						</div>
 					`,
@@ -98,6 +107,10 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
+					if (!this.content_vue.preview_changes) {
+						this.content_vue.preview_changes = true;
+						this.content_vue.change();
+					}
 					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
@@ -124,6 +137,7 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
+						preview_changes: true,
 						saturation: 100,
 						hue: 0,
 						textures
@@ -134,7 +148,11 @@ BARS.defineActions(function() {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
+									if (this.preview_changes) {
+										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
+									} else {
+										ctx.filter = `brightness(1.0)`;
+									}
 									ctx.drawImage(original_imgs[i], 0, 0);
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
@@ -155,12 +173,16 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
-								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
+							</div>
+							<div class="bar button_bar_checkbox">
+								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
+								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
 							</div>
 						</div>
 					`,
@@ -173,6 +195,10 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
+					if (!this.content_vue.preview_changes) {
+						this.content_vue.preview_changes = true;
+						this.content_vue.change();
+					}
 					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
@@ -268,6 +294,7 @@ BARS.defineActions(function() {
 				width: 460,
 				component: {
 					data() {return {
+						preview_changes: true,
 						light_data: '',
 						graph: 'rgb',
 						graphs: {
@@ -303,25 +330,34 @@ BARS.defineActions(function() {
 									let ctx = canvas.getContext('2d');
 									let image_data = original_image_data[i];
 
-									for (let i = 0; i < image_data.data.length; i += 4) {
+									if (this.preview_changes) {
+										for (let i = 0; i < image_data.data.length; i += 4) {
+											
+											let R = image_data.original_data[i+0]
+											let G = image_data.original_data[i+1]
+											let B = image_data.original_data[i+2]
+											let A = image_data.original_data[i+3]
+											let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
 
-										let R = image_data.original_data[i+0]
-										let G = image_data.original_data[i+1]
-										let B = image_data.original_data[i+2]
-										let A = image_data.original_data[i+3]
-										let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
-
-										let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
-										let r = !curves.r ? Math.max(brightness, 1) : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
-										let g = !curves.g ? Math.max(brightness, 1) : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
-										let b = !curves.b ? Math.max(brightness, 1) : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
-										let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
-										brightness = Math.max(brightness, 1);
-									
-										image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
-										image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
-										image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
-										image_data.data[i+3] = a;
+											let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
+											let r = !curves.r ? Math.max(brightness, 1) : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
+											let g = !curves.g ? Math.max(brightness, 1) : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
+											let b = !curves.b ? Math.max(brightness, 1) : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
+											let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
+											brightness = Math.max(brightness, 1);
+										
+											image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
+											image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
+											image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
+											image_data.data[i+3] = a;
+										}
+									} else {
+										for (let i = 0; i < image_data.data.length; i += 4) {
+											image_data.data[i+0] = image_data.original_data[i+0];
+											image_data.data[i+1] = image_data.original_data[i+1];
+											image_data.data[i+2] = image_data.original_data[i+2];
+											image_data.data[i+3] = image_data.original_data[i+3];
+										}
 									}
 									ctx.putImageData(image_data, 0, 0);
 
@@ -417,6 +453,10 @@ BARS.defineActions(function() {
 									@contextmenu="contextMenu(point, $event)"
 								></div>
 							</div>
+							<div class="bar button_bar_checkbox">
+								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
+								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+							</div>
 						</div>
 					`,
 					mounted() {
@@ -432,6 +472,10 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
+					if (!this.content_vue.preview_changes) {
+						this.content_vue.preview_changes = true;
+						this.content_vue.change();
+					}
 					Undo.finishEdit('Invert colors');
 				},
 				onCancel() {
@@ -458,6 +502,7 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
+						preview_changes: true,
 						opacity: 100,
 						textures
 					}},
@@ -467,10 +512,15 @@ BARS.defineActions(function() {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									ctx.filter = `opacity(${this.opacity}%)`;
-									ctx.drawImage(original_imgs[i], 0, 0);
-									if (this.opacity > 100) {
-										ctx.filter = `opacity(${this.opacity-100}%)`;
+									if (this.preview_changes) {
+										ctx.filter = `opacity(${this.opacity}%)`;
+										ctx.drawImage(original_imgs[i], 0, 0);
+										if (this.opacity > 100 && this.preview_changes) {
+											ctx.filter = `opacity(${this.opacity-100}%)`;
+											ctx.drawImage(original_imgs[i], 0, 0);
+										}
+									} else {
+										ctx.filter = `opacity(100%)`;
 										ctx.drawImage(original_imgs[i], 0, 0);
 									}
 
@@ -492,8 +542,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model="opacity" @input="change()">
-								<input lang="en" type="number" class="tool" style="width: 64px;" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
+							</div>
+							<div class="bar button_bar_checkbox">
+								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
+								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
 							</div>
 						</div>
 					`,
@@ -506,6 +560,10 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
+					if (!this.content_vue.preview_changes) {
+						this.content_vue.preview_changes = true;
+						this.content_vue.change();
+					}
 					Undo.finishEdit('Adjust opacity');
 				},
 				onCancel() {

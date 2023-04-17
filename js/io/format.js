@@ -231,6 +231,7 @@ class ModelFormat {
 
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
+new Property(ModelFormat, 'boolean', 'box_uv_float_size');
 new Property(ModelFormat, 'boolean', 'single_texture');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
 new Property(ModelFormat, 'boolean', 'parent_model_id');

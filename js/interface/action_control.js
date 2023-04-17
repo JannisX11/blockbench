@@ -69,7 +69,7 @@ const ActionControl = {
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
-				plugin.download(true);
+				plugin.install();
 			}
 
 		} else {
@@ -394,7 +394,7 @@ BARS.defineActions(function() {
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
 					<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
 				</div>
-				<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
+				<input type="text" v-model="search_input" inputmode="search" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 				<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
 				<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
 				<div id="action_selector_list">

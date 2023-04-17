@@ -6,6 +6,18 @@ class Setting {
 		settings[id] = this;
 		this.type = 'toggle';
 		if (data.type) this.type = data.type;
+		if (data.value != undefined) {
+			this.default_value = data.value;
+		} else {
+			switch (this.type) {
+				case 'toggle': this.default_value = true; break;
+				case 'number': this.default_value = 0; break;
+				case 'text': this.default_value = ''; break;
+				case 'password': this.default_value = ''; break;
+				case 'select': this.default_value; break;
+				case 'click': this.default_value = false; break;
+			}
+		}
 		if (typeof Settings.stored[id] === 'object') {
 			this.master_value = Settings.stored[id].value;
 
@@ -13,14 +25,7 @@ class Setting {
 			this.master_value = data.value
 
 		} else {
-			switch (this.type) {
-				case 'toggle': this.master_value = true; break;
-				case 'number': this.master_value = 0; break;
-				case 'text': this.master_value = ''; break;
-				case 'password': this.master_value = ''; break;
-				case 'select': this.master_value; break;
-				case 'click': this.master_value = false; break;
-			}
+			this.master_value = this.default_value;
 		}
 		this.condition = data.condition;
 		this.category = data.category || 'general';
@@ -156,7 +161,7 @@ class Setting {
 			this.click(e)
 
 		} else {
-			new Dialog({
+			let dialog = new Dialog({
 				id: 'setting_' + this.id,
 				title: tl('data.setting'),
 				form: {
@@ -169,7 +174,14 @@ class Setting {
 					description: this.description ? {
 						type: 'info',
 						text: this.description
-					} : undefined
+					} : undefined,
+					reset: {
+						type: 'buttons',
+						buttons: ['dialog.settings.reset_to_default'],
+						click() {
+							dialog.setFormValues({input: setting.default_value});
+						}
+					}
 				},
 				onConfirm({input}) {
 					setting.set(input);
@@ -372,6 +384,7 @@ const Settings = {
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
+		new Setting('always_show_splash_art',{category: 'interface', value: true});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
@@ -395,7 +408,9 @@ const Settings = {
 		}});
 		
 		//Preview 
-		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400});
+		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400, onChange() {
+			Canvas.updateShading();
+		}});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			Canvas.updateShading()
 		}});
@@ -502,6 +517,7 @@ const Settings = {
 		new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
 		new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 		new Setting('dialog_invalid_characters',{category: 'dialogs', value: true, name: tl('message.invalid_characters.title'), description: tl('settings.dialog.desc', [tl('message.invalid_characters.title')])});
+		new Setting('dialog_save_codec',		{category: 'dialogs', value: true, name: tl('message.save_codec_selector.title'), description: tl('settings.dialog.desc', [tl('message.save_codec_selector.title')])});
 		
 		//Application
 		new Setting('recent_projects', {category: 'application', value: 32, max: 256, min: 0, type: 'number', condition: isApp});
@@ -580,9 +596,6 @@ const Settings = {
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 		localStorage.setItem('settings_profiles', JSON.stringify(SettingsProfile.all));
 
-		if (window.canvas_scenes) {
-			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
-		}
 		if (window.ColorPanel) {
 			ColorPanel.saveLocalStorages()
 		}
@@ -608,9 +621,7 @@ const Settings = {
 			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-		if (hasSettingChanged('brightness')) {
-			Canvas.updateShading()
-		}
+
 		for (var id in settings) {
 			var setting = settings[id];
 			if (!Condition(setting.condition)) continue;
@@ -811,6 +822,18 @@ onVueSetup(function() {
 				saveSettings() {
 					Settings.saveLocalStorages();
 				},
+				settingContextMenu(setting, event) {
+					new Menu([
+						{
+							name: 'dialog.settings.reset_to_default',
+							icon: 'replay',
+							click: () => {
+								setting.ui_value = setting.default_value;
+								this.saveSettings();
+							}
+						}
+					]).open(event);
+				},
 				showProfileMenu(event) {
 					let items = [
 						{
@@ -919,13 +942,14 @@ onVueSetup(function() {
 						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
 							v-on="setting.click ? {click: setting.click} : {}"
 							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
+							@contextmenu="settingContextMenu(setting, $event)"
 						>
 							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('Clear profile value')}">
 								<i class="material-icons">clear</i>
 							</div>
 
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>

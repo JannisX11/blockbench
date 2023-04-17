@@ -66,6 +66,9 @@ Animator.MolangParser.global_variables = {
 		let distance = Preview.selected.camera.position.length() / 16;
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
+	get 'query.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
 	get 'time'() {
 		return Timeline.time;
 	}
@@ -447,9 +450,9 @@ Animator.MolangParser.variableHandler = function (variable, variables) {
 	}
 
 	function filterAndSortList(list, match, blacklist, labels) {
-		let result = list.filter(f => f.startsWith(match));
+		let result = list.filter(f => f.startsWith(match) && f.length != match.length);
 		list.forEach(f => {
-			if (!result.includes(f) && f.includes(match)) result.push(f);
+			if (!result.includes(f) && f.includes(match) && f.length != match.length) result.push(f);
 		})
 		if (blacklist) blacklist.forEach(black => result.remove(black));
 		return result.map(text => {return {text, label: labels && labels[text], overlap: match.length}})

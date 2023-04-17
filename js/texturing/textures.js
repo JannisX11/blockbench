@@ -192,6 +192,10 @@ class Texture {
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
+			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
+				scope.error = 2;
+			}
+			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
 
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
@@ -278,6 +282,7 @@ class Texture {
 		switch (this.error) {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
+			case 2: return tl('texture.error.too_large', ['16384']); break;
 			//case 1: return tl('texture.error.invalid'); break;
 			//case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
@@ -420,11 +425,11 @@ class Texture {
 					translateKey: 'invalid_characters',
 					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
 					icon: 'folder_open',
-					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')],
-					confirm: 0,
-					cancel: 0
-				}, result => {
-					if (result === 1) {
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (button, {dont_show_again}) => {
+					if (dont_show_again) {
 						settings.dialog_invalid_characters.set(false);
 					}
 				})
@@ -734,14 +739,15 @@ class Texture {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('message.loose_texture.change'), tl('dialog.ok'), tl('dialog.dontshowagain')],
-					confirm: 0,
-					cancel: 1
-				}, result => {
-					if (result === 0) {
+					buttons: [tl('dialog.ok'), tl('message.loose_texture.change')],
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (result, {dont_show_again}) => {
+					if (result === 1) {
 						this.reopen()
 					}
-					if (result === 2) {
+					if (dont_show_again) {
 						settings.dialog_loose_texture.set(false);
 					}
 				})
@@ -1050,7 +1056,7 @@ class Texture {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
 					dimensions: 2,
-					value: [this.width, this.height],
+					value: [this.width, this.display_height],
 					min: 1
 				},
 				frames: {
@@ -1089,7 +1095,7 @@ class Texture {
 					if (elements.length) elements_to_change = elements;
 				}
 				if (Format.animated_textures && formResult.frames > 1) {
-					formResult.size[1] *= formResult.frames / (scope.frameCount || 1);
+					formResult.size[1] *= formResult.frames;
 				}
 
 				Undo.initEdit({
@@ -1614,11 +1620,11 @@ class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'boolean', 'particle')
-	new Property(Texture, 'string', 'render_mode', {default: 'default'})
-	new Property(Texture, 'string', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
+	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
-	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})
+	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
 	new Property(Texture, 'string', 'frame_order')
 	new Property(Texture, 'boolean', 'frame_interpolate')
 
@@ -1884,13 +1890,14 @@ TextureAnimator = {
 		animated_textures.forEach(tex => {
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
-		Cube.all.forEach(cube => {
-			var update = false
-			for (var face in cube.faces) {
-				update = update || animated_textures.includes(cube.faces[face].getTexture());
+		Outliner.elements.forEach(el => {
+			if (!el.faces || !el.preview_controller.updateUV) return;
+			let update = false
+			for (let face in el.faces) {
+				update = update || animated_textures.includes(el.faces[face].getTexture());
 			}
 			if (update) {
-				Canvas.updateUV(cube, true)
+				el.preview_controller.updateUV(el, true);
 			}
 		})
 		BarItems.animated_texture_frame.update();
@@ -1904,10 +1911,10 @@ TextureAnimator = {
 			} 
 		})
 		UVEditor.img.style.objectPosition = '';
-		while (i < elements.length) {
-			Canvas.updateUV(elements[i], true)
-			i++;
-		}
+		Outliner.elements.forEach(el => {
+			if (!el.faces || !el.preview_controller.updateUV) return;
+			el.preview_controller.updateUV(el);
+		})
 	},
 	updateButton() {
 		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
@@ -2072,9 +2079,15 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.texturelist
-		},
+		toolbars: [
+			new Toolbar('texturelist', {
+				children: [
+					'import_texture',
+					'create_texture',
+					'append_to_template',
+				]
+			})
+		],
 		onResize() {
 			this.inside_vue._data.currentFrame += 1;
 			this.inside_vue._data.currentFrame -= 1;

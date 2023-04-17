@@ -19,7 +19,7 @@ If you want to contribute Blockbench translations, you can visit [blockbench.net
 
 Blockbench, the program itself, is mostly just coded by me. But sometimes, code contributions can be helpful!
 
-If you want to contribute to the Blockbench code, please contact me (@Jannis) on [Discord](https://discord.gg/sGkj78W) *before* to discuss whether a change is necessary and how it can be approached.
+If you want to contribute to the Blockbench code, please contact me (@Jannis) on [Discord](https://discord.gg/sGkj78W) (e.g. in #bb-feedback) *before* to discuss whether a change is necessary in the base program and how it can be approached.
 Some changes make sense in Blockbench itself, while others could work better as a plugin.
 
 By contributing to the Blockbench source, you agree that the changes are in accordance with the applicable [GPL-3.0 license](LICENSE.MD).

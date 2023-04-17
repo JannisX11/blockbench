@@ -183,6 +183,7 @@ class AnimationControllerState {
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
@@ -511,6 +512,8 @@ class AnimationController extends AnimationItem {
 			object.states[state.name] = state.compileForBedrock();
 		})
 
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller', {animation_controller: this, json: object});
+
 		return object;
 	}
 	save() {
@@ -662,12 +665,13 @@ class AnimationController extends AnimationItem {
 	}
 	createUniqueName(arr) {
 		var scope = this;
-		var others = AnimationController.all;
+		var others = AnimationController.all.slice();
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
 			})
 		}
+		others = others.filter(a => a.path == this.path);
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -735,6 +739,7 @@ class AnimationController extends AnimationItem {
 		if (!AnimationController.all.includes(this)) {
 			AnimationController.all.push(this)
 		}
+		this.createUniqueName();
 		if (undo) {
 			this.select()
 			Undo.finishEdit('Add animation controller', {animation_controllers: [this]})
@@ -803,8 +808,8 @@ class AnimationController extends AnimationItem {
 					Undo.initEdit({animation_controllers: [this]});
 
 					this.name = form_data.name;
-					this.createUniqueName();
 					if (isApp) this.path = form_data.path;
+					this.createUniqueName();
 
 					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controllers: [this]})
 
@@ -969,7 +974,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		grow: true,
+		growable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -1309,7 +1314,29 @@ Interface.definePanels(() => {
 						delete effect.config.preview_texture;
 						Undo.finishEdit('Change animation controller particle file');
 
-						if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+						if (!isApp) {
+							Blockbench.showMessageBox({
+								title: 'message.import_particle_texture.import',
+								message: 'message.import_particle_texture.message',
+								buttons: ['dialog.cancel'],
+								commands: {
+									import: 'message.import_particle_texture.import'
+								}
+							}, result => {
+								if (result != 'import') return;
+
+								Blockbench.import({
+									extensions: ['png'],
+									type: 'Particle Texture',
+									readtype: 'image',
+									startpath: effect.config.preview_texture || path
+								}, function(files) {
+									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+									effect.config.updateTexture();
+								})
+							})
+
+						} else if (effect.config.texture.image.src.startsWith('data:')) {
 							Blockbench.import({
 								extensions: ['png'],
 								type: 'Particle Texture',
@@ -1317,7 +1344,7 @@ Interface.definePanels(() => {
 								startpath: effect.config.preview_texture || path
 							}, (files) => {
 								effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-								if (isApp) effect.config.updateTexture();
+								effect.config.updateTexture();
 							})
 						}
 					})
@@ -1654,7 +1681,7 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<input type="number" class="dark_bordered" style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05">
+										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05" />
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
@@ -1753,7 +1780,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers']},
 		click() {
 			let controller = new AnimationController({
-				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
+				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new',
+				saved: false
 			}).add(true).propertiesDialog();
 			Blockbench.dispatchEvent('add_animation_controller', {animation_controller: controller})
 		}

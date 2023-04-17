@@ -56,7 +56,7 @@ function buildForm(dialog) {
 						bar.append(list);
 					}
 					if (data.type == 'password') {
-						bar.append(`<div class="password_toggle">
+						bar.append(`<div class="password_toggle form_input_tool tool">
 								<i class="fas fa-eye-slash"></i>
 							</div>`)
 						input_element.type = 'password';
@@ -68,6 +68,45 @@ function buildForm(dialog) {
 							this_input_element.attributes.type.value = hidden ? 'password' : 'text';
 							this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 						})
+					}
+					if (data.share_text && data.value) {
+						let text = data.value.toString();
+						let is_url = text.startsWith('https://');
+
+						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
+						copy_button.addEventListener('click', e => {
+							if (isApp || navigator.clipboard) {
+								Clipbench.setText(text);
+								Blockbench.showQuickMessage('dialog.copied_to_clipboard');
+								input_element.focus();
+								document.execCommand('selectAll');
+
+							} else if (is_url) {
+								Blockbench.showMessageBox({
+									title: 'dialog.share_model.title',
+									message: `[${text}](${text})`,
+								})
+							}
+						});
+						bar.append(copy_button);
+
+						if (is_url) {
+							let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
+							open_button.addEventListener('click', e => {
+								Blockbench.openLink(text);
+							});
+							bar.append(open_button);
+						}
+						if (navigator.share) {
+							let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
+							share_button.addEventListener('click', e => {
+								navigator.share({
+									label: data.label ? tl(data.label) : 'Share',
+									[is_url ? 'url' : 'text']: text
+								});
+							});
+							bar.append(share_button);
+						}
 					}
 					break;
 				case 'textarea':
@@ -95,6 +134,29 @@ function buildForm(dialog) {
 					});
 					data.select_input = select_input;
 					bar.append(select_input.node)
+					break;
+
+
+				case 'inline_select':
+					let options = [];
+					let val = data.value || data.default;
+					let i = 0;
+					let wrapper;
+					for (let key in data.options) {
+						let is_selected = val ? key == val : i == 0;
+						let text = data.options[key].name || data.options[key];
+						let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
+						node.onclick = event => {
+							options.forEach(li => {
+								li.classList.toggle('selected', li == node);
+							})
+							dialog.updateFormValues();
+						}
+						options.push(node);
+						i++;
+					}
+					wrapper = Interface.createElement('ul', {class: 'form_inline_select'}, options);
+					bar.append(wrapper)
 					break;
 
 
@@ -138,12 +200,14 @@ function buildForm(dialog) {
 
 
 				case 'number':
-					input_element = $(`<input class="dark_bordered half focusable_input" type="number" id="${form_id}"
-						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
-					bar.append(input_element)
-					input_element.on('change', () => {
-						dialog.updateFormValues()
-					})
+					let numeric_input = new Interface.CustomElements.NumericInput(form_id, {
+						value: data.value,
+						min: data.min, max: data.max, step: data.step,
+						onChange() {
+							dialog.updateFormValues()
+						}
+					});
+					bar.append(numeric_input.node)
 					break;
 
 
@@ -188,12 +252,14 @@ function buildForm(dialog) {
 					let group = $(`<div class="dialog_vector_group half"></div>`)
 					bar.append(group)
 					for (let i = 0; i < (data.dimensions || 3); i++) {
-						input_element = $(`<input class="dark_bordered focusable_input" type="number" id="${form_id}_${i}"
-							value="${data.value ? parseFloat(data.value[i]): 0}" step="${data.step||1}" min="${data.min}" max="${data.max}">`)
-						group.append(input_element)
-						input_element.on('input', () => {
-							dialog.updateFormValues()
-						})
+						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
+							value: data.value ? data.value[i] : 0,
+							min: data.min, max: data.max, step: data.step,
+							onChange() {
+								dialog.updateFormValues()
+							}
+						});
+						group.append(numeric_input.node)
 					}
 					break;
 
@@ -510,6 +576,11 @@ window.Dialog = class Dialog {
 					case 'select':
 						data.select_input.set(value);
 						break;
+					case 'inline_select':
+						data.bar.find('li').each((i, el) => {
+							el.classList.toggle('selected', el.getAttribute('key') == value);
+						})
+						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
 						break;
@@ -557,6 +628,9 @@ window.Dialog = class Dialog {
 							break;
 						case 'select':
 							result[form_id] = data.bar.find('bb-select#'+form_id).attr('value');
+							break;
+						case 'inline_select':
+							result[form_id] = data.bar.find('li.selected')[0]?.getAttribute('key') || '';
 							break;
 						case 'radio':
 							result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')
@@ -855,13 +929,15 @@ window.MessageBox = class MessageBox extends Dialog {
 		if (!options.buttons) this.buttons = ['dialog.ok'];
 		this.callback = callback;
 	}
-	close(button, event) {
-		if (this.callback) this.callback(button, event);
+	close(button, result, event) {
+		if (this.callback) this.callback(button, result, event);
 		this.hide();
 		this.delete();
 	}
 	build() {
 		let options = this.options;
+
+		let results;
 
 		if (options.translateKey) {
 			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
@@ -892,7 +968,28 @@ window.MessageBox = class MessageBox extends Dialog {
 				let text = tl(typeof command == 'string' ? command : command.text);
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
 				entry.addEventListener('click', e => {
-					this.close(id);
+					this.close(id, results);
+				})
+				list.append(entry);
+			}
+			content.append(list);
+		}
+
+		if (options.checkboxes) {
+			let list = Interface.createElement('ul', {class: 'dialog_message_box_checkboxes'});
+			results = {};
+			for (let id in options.checkboxes) {
+				let checkbox = options.checkboxes[id];
+				results[id] = !!checkbox.value;
+				if (!checkbox || !Condition(checkbox.condition)) continue;
+
+				let text = tl(typeof checkbox == 'string' ? checkbox : checkbox.text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_checkbox'}, [
+					Interface.createElement('input', {type: 'checkbox', id: 'dialog_message_box_checkbox_'+id}),
+					Interface.createElement('label', {for: 'dialog_message_box_checkbox_'+id, checked: !!checkbox.value}, text)
+				])
+				entry.firstElementChild.addEventListener('change', e => {
+					results[id] = e.target.checked;
 				})
 				list.append(entry);
 			}
@@ -907,7 +1004,7 @@ window.MessageBox = class MessageBox extends Dialog {
 				let btn = $('<button type="button">'+tl(b)+'</button> ')
 				buttons.push(btn)
 				btn.on('click', (event) => {
-					this.close(i, event);
+					this.close(i, results, event);
 				})
 			})
 			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')

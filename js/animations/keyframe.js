@@ -34,7 +34,8 @@ class Keyframe {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
-		this.selected = 0;
+		this.selected = false;
+		this.display_value = 0;
 		this.data_points = []
 
 		if (typeof data === 'object') {
@@ -364,7 +365,6 @@ class Keyframe {
 		})
 	}
 	select(event) {
-		var scope = this;
 		if (Timeline.dragging_keyframes) {
 			Timeline.dragging_keyframes = false
 			return this;
@@ -546,7 +546,7 @@ class Keyframe {
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
-	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
+	new Property(Keyframe, 'enum', 'interpolation', {default: 'linear'})
 	new Property(Keyframe, 'boolean', 'bezier_linked', {default: true})
 	new Property(Keyframe, 'vector', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
 	new Property(Keyframe, 'vector', 'bezier_left_value');
@@ -1226,9 +1226,18 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: {
-			head: Toolbars.keyframe
-		},
+		toolbars: [
+			new Toolbar({
+				id: 'keyframe',
+				children: [
+					'slider_keyframe_time',
+					'keyframe_interpolation',
+					'keyframe_uniform',
+					'change_keyframe_file',
+					'reset_keyframe'
+				]
+			})
+		],
 		component: {
 			name: 'panel-keyframe',
 			components: {VuePrismEditor},
@@ -1357,7 +1366,29 @@ Interface.definePanels(function() {
 							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+							if (!isApp) {
+								Blockbench.showMessageBox({
+									title: 'message.import_particle_texture.import',
+									message: 'message.import_particle_texture.message',
+									buttons: ['dialog.cancel'],
+									commands: {
+										import: 'message.import_particle_texture.import'
+									}
+								}, result => {
+									if (result != 'import') return;
+
+									Blockbench.import({
+										extensions: ['png'],
+										type: 'Particle Texture',
+										readtype: 'image',
+										startpath: effect.config.preview_texture || path
+									}, function(files) {
+										effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+										effect.config.updateTexture();
+									})
+								})
+
+							} else if (effect.config.texture.image.src.startsWith('data:')) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
@@ -1365,7 +1396,7 @@ Interface.definePanels(function() {
 									startpath: effect.config.preview_texture || path
 								}, function(files) {
 									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-									if (isApp) effect.config.updateTexture();
+									effect.config.updateTexture();
 								})
 							}
 						})

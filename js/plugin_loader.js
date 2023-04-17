@@ -31,7 +31,7 @@ const Plugins = {
 	}
 }
 StateMemory.init('installed_plugins', 'array')
-Plugins.installed = StateMemory.installed_plugins;
+Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
 class Plugin {
 	constructor(id, data) {
@@ -79,7 +79,10 @@ class Plugin {
 	get name() {
 		return this.title;
 	}
-	async install(first, cb) {
+	async install() {
+		return await this.download(true);
+	}
+	async load(first, cb) {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
@@ -130,7 +133,7 @@ class Plugin {
 		}
 		if (!isApp) {
 			if (first) register();
-			return await scope.install(first)
+			return await scope.load(first)
 		}
 		return await new Promise((resolve, reject) => {
 			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
@@ -138,7 +141,7 @@ class Plugin {
 				response.pipe(file);
 				response.on('end', function() {
 					setTimeout(async function() {
-						await scope.install(first);
+						await scope.load(first);
 						resolve()
 					}, 20)
 					if (first) register();
@@ -245,21 +248,24 @@ class Plugin {
 				}
 			}).fail(() => {
 				if (isApp) {
-					this.install().then(resolve).catch(resolve)
+					this.load().then(resolve).catch(resolve)
 				}
 			})
 		})
 		return this;
 	}
 	remember(id = this.id, path = this.path) {
-		if (Plugins.installed.find(plugin => plugin.id == this.id)) {
-			return this;
-		}
-		Plugins.installed.push({
-			id: id,
-			path: path,
-			source: this.source
-		})
+		let entry = Plugins.installed.find(plugin => plugin.id == this.id);
+		let already_exists = !!entry;
+		if (!entry) entry = {};
+
+		entry.id = id;
+		entry.version = this.version;
+		entry.path = path;
+		entry.source = this.source;
+
+		if (!already_exists) Plugins.installed.push(entry);
+
 		StateMemory.save('installed_plugins')
 		return this;
 	}
@@ -429,42 +435,25 @@ async function loadInstalledPlugins() {
 		await Plugins.loading_promise;
 	}
 	const install_promises = [];
-	// Legacy Plugins Import
-	if (localStorage.getItem('installed_plugins')) {
-		var legacy_plugins = JSON.parse(localStorage.getItem('installed_plugins'))
-		if (legacy_plugins instanceof Array) {
-			legacy_plugins.forEach((string, i) => {
-				if (typeof string == 'string') {
-					if (string.match(/\.js$/)) {
-						Plugins.installed[i] = {
-							id: string.split(/[\\/]/).last().replace(/\.js$/, ''),
-							path: string,
-							source: 'file'
-						}
-					} else {
-						Plugins.installed[i] = {
-							id: string,
-							source: 'store'
-						}
-					}
-				}
-			})
-		}
-		StateMemory.save('installed_plugins')
-		localStorage.removeItem('installed_plugins')
-	}
-	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
 
 	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store
 		for (var id in Plugins.json) {
-			var plugin = new Plugin(id, Plugins.json[id])
-			if (Plugins.installed.find(p => {
+			var plugin = new Plugin(id, Plugins.json[id]);
+			let installed_match = Plugins.installed.find(p => {
 				return p && p.id == id && p.source == 'store'
-			})) {
-				let promise = plugin.download();
-				if (plugin.await_loading) {
+			});
+			if (installed_match) {
+				if (isApp && installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) {
+					// Get from file
+					let promise = plugin.load(false);
 					install_promises.push(promise);
+				} else {
+					// Update
+					let promise = plugin.download();
+					if (plugin.await_loading) {
+						install_promises.push(promise);
+					}
 				}
 			}
 		}
@@ -474,9 +463,9 @@ async function loadInstalledPlugins() {
 		Plugins.installed.forEach(function(plugin) {
 
 			if (plugin.source == 'store') {
-				var promise = new Plugin(plugin.id).install(false, function() {
-					this.extend(window.plugin_data)
-					Plugins.sort()
+				let plugin = new Plugin(plugin.id); 
+				let promise = plugin.load(false, function() {
+					Plugins.sort();
 				})
 				install_promises.push(promise);
 			}
@@ -587,7 +576,7 @@ BARS.defineActions(function() {
 							<div class="plugin_version">{{ plugin.version }}</div>
 							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
 								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
-								<button type="button" class="" v-on:click="plugin.download(true)" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
+								<button type="button" class="" v-on:click="plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
 								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
 							</div>
 							<div class="button_bar tiny" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>

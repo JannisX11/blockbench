@@ -15,26 +15,27 @@ class ResizeLine {
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
-		$(this.node).draggable({
-			axis: this.horizontal ? 'y' : 'x',
-			containment: '#work_screen',
-			revert: true,
-			revertDuration: 0,
-			start(e, u) {
-				scope.before = data.get()
-			},
-			drag(e, u) {
-				if (scope.horizontal) {
-					data.set(scope.before, u.position.top - u.originalPosition.top)
-				} else {
-					data.set(scope.before, (u.position.left - u.originalPosition.left))
-				}
-				updateInterface()
-			},
-			stop(e, u) {
-				updateInterface()
-				scope.update();
+
+		this.node.addEventListener('pointerdown', event => {
+			this.before = data.get();
+			this.node.classList.add('dragging');
+			let move = (e2) => {
+				let difference = scope.horizontal
+					? e2.clientY - event.clientY
+					: e2.clientX - event.clientX;
+				data.set(scope.before, difference);
+				updateInterface();
+				this.update();
 			}
+			let stop = (e2) => {
+				document.removeEventListener('pointermove', move, false);
+				document.removeEventListener('pointerup', stop, false);
+				updateInterface()
+				this.update();
+				this.node.classList.remove('dragging');
+			}
+			document.addEventListener('pointermove', move, false);
+			document.addEventListener('pointerup', stop, false);
 		})
 	}
 	update() {
@@ -291,6 +292,31 @@ const Interface = {
 	CustomElements: {},
 	status_bar: {},
 	Panels: {},
+	/**
+	 * 
+	 * @param {string} tag Tag name
+	 * @param {object} [attributes] Attributes
+	 * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
+	 * @returns {HTMLElement} Element
+	 */
+	createElement(tag, attributes = {}, content) {
+		let el = document.createElement(tag);
+		for (let key in attributes) {
+			let value = attributes[key];
+			if (value === undefined) continue;
+			if (key.startsWith('@')) {
+				el.addEventListener(key.substring(1), value);
+			} else {
+				el.setAttribute(key, attributes[key]);
+			}
+		}
+		if (typeof content == 'string') el.textContent = content;
+		if (content instanceof Array) {
+			content.forEach(node => el.append(node));
+		}
+		if (content instanceof HTMLElement) el.append(content);
+		return el;
+	},
 	toggleSidebar(side, status) {
 		if (status == undefined) status = !Prop[`show_${side}_bar`];
 		Prop[`show_${side}_bar`] = !!status;
@@ -355,6 +381,14 @@ function unselectInterface(event) {
 	}
 	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
 		stopRenameOutliner()
+	}
+	if (ReferenceImageMode.active &&
+		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n?.classList?.contains('reference_image')) &&
+		!ReferenceImageMode.toolbar.node.contains(event.target) &&
+		!Dialog.open &&
+		!open_menu
+	) {
+		ReferenceImageMode.deactivate();
 	}
 }
 function setupInterface() {
@@ -425,16 +459,20 @@ function setupInterface() {
 
 
 
-	//Clickbinds
-	$('#preview').click(function() { setActivePanel('preview' )})
+	// Click binds
+	Interface.preview.addEventListener('click', e => setActivePanel('preview'));
+	
+	Interface.work_screen.addEventListener('dblclick', event => {
+		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
+		if (reference) reference.select();
+	});
 
-	$('#texture_list').click(function(){
-		unselectTextures()
-	})
+	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
+
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
-	$(document).on('mousedown touchstart', unselectInterface)
+	addEventListeners(document, 'mousedown touchstart', unselectInterface);
 
 	window.addEventListener('resize', resizeWindow);
 	window.addEventListener('orientationchange', () => {
@@ -489,9 +527,9 @@ function setupInterface() {
 	})
 
 	//Mousemove
-	$(document).mousemove(function(event) {
-		mouse_pos.x = event.clientX
-		mouse_pos.y = event.clientY
+	document.addEventListener('mousemove', event => {
+		mouse_pos.x = event.clientX;
+		mouse_pos.y = event.clientY;
 	})
 	updateInterface()
 }
@@ -516,8 +554,12 @@ function resizeWindow(event) {
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.resize()
+			if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) {
+				prev.render();
+			}
 		}
 	})
+	ReferenceImage.active.forEach(ref => ref.updateTransform());
 	Outliner.elements.forEach(element => {
 		if (element.preview_controller.updateWindowSize) {
 			element.preview_controller.updateWindowSize(element);
@@ -569,6 +611,10 @@ function setZoomLevel(mode) {
 			case 'reset': zoom = 1; break;
 		}
 		UVEditor.setZoom(zoom);
+		if (mode == 'reset') {
+			Project.uv_viewport.offset.V2_set(0, 0);
+			UVEditor.loadViewportOffset();
+		}
 
 	} else if (Prop.active_panel == 'timeline') {
 		
@@ -617,27 +663,6 @@ $(document).keyup(function(event) {
 		$('.tooltip_shift').hide()
 	}
 })
-/**
- * 
- * @param {string} tag Tag name
- * @param {object} [attributes] Attributes
- * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
- * @returns {HTMLElement} Element
- */
-Interface.createElement = (tag, attributes = {}, content) => {
-	let el = document.createElement(tag);
-	for (let key in attributes) {
-		if (attributes[key] !== undefined) {
-			el.setAttribute(key, attributes[key]);
-		}
-	}
-	if (typeof content == 'string') el.textContent = content;
-	if (content instanceof Array) {
-		content.forEach(node => el.append(node));
-	}
-	if (content instanceof HTMLElement) el.append(content);
-	return el;
-}
 
 
 // Custom Elements
@@ -683,6 +708,40 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	})
 	this.node = select;
 	this.set = setKey;
+}
+Interface.CustomElements.NumericInput = function(id, data) {
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'decimal'});
+	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
+	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
+		input, slider
+	])
+
+	addEventListeners(slider, 'mousedown touchstart', e1 => {
+		convertTouchEvent(e1);
+		let last_difference = 0;
+		let move = e2 => {
+			convertTouchEvent(e2);
+			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
+			if (difference != last_difference) {
+				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
+				last_difference = difference;
+			}
+		}
+		let stop = e2 => {
+			removeEventListeners(document, 'mousemove touchmove', move);
+			removeEventListeners(document, 'mouseup touchend', stop);
+		}
+		addEventListeners(document, 'mousemove touchmove', move);
+		addEventListeners(document, 'mouseup touchend', stop);
+	})
+
+	addEventListeners(input, 'focusout dblclick', () => {
+		input.value = Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max);
+	})
+	input.addEventListener('input', (event) => {
+		if (data.onChange) data.onChange(Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max), event);
+	})
 }
 
 function openTouchKeyboardModifierMenu(node) {
@@ -860,4 +919,37 @@ onVueSetup(function() {
 	Interface.removeSuggestedModifierKey = (key, text) => {
 		Interface.status_bar.vue.modifier_keys[key].remove(text);
 	};
+})
+
+
+BARS.defineActions(function() {
+	
+	new Action('reset_layout', {
+		icon: 'replay',
+		category: 'blockbench',
+		click: function () {
+			Interface.data = $.extend(true, {}, Interface.default_data);
+
+			for (let id in Panels) {
+				let panel = Panels[id];
+
+				if (!Interface.data.panels[id]) Interface.data.panels[id] = {};
+				panel.position_data = Interface.data.panels[id];
+				
+				let defaultp = panel.default_position || 0;
+				if (!panel.position_data.slot) 			panel.position_data.slot 			= defaultp.slot || 'left_bar';
+				if (!panel.position_data.float_position)panel.position_data.float_position 	= defaultp.float_position || [0, 0];
+				if (!panel.position_data.float_size) 	panel.position_data.float_size 		= defaultp.float_size || [300, 300];
+				if (!panel.position_data.height) 		panel.position_data.height 			= defaultp.height || 300;
+				if (panel.position_data.folded == undefined) panel.position_data.folded 	= defaultp.folded || false;
+
+				panel.moveTo(panel.slot);
+			}
+
+			Blockbench.dispatchEvent('reset_layout', {});
+
+			updateInterface();
+			updateSidebarOrder();
+		}
+	})
 })

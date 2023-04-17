@@ -2,10 +2,10 @@ const workbox = require('workbox-build');
 const fs = require('fs');
 
 let bundle_file = fs.readFileSync('./js/webpack/bundle.js', 'utf-8');
-if (bundle_file.match(/</)) {
+/*if (bundle_file.match(/</)) {
 	console.error('\x1b[31m', 'Invalid symbol detected in bundle');
 	process.exit(1);
-}
+}*/
 
 workbox.generateSW({
 	cacheId: 'blockbench',

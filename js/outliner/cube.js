@@ -52,7 +52,7 @@ class CubeFace extends Face {
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
-new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
+new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
 new Property(CubeFace, 'string', 'material_name');
 new Property(CubeFace, 'boolean', 'enabled', {default: true});
 
@@ -187,8 +187,12 @@ class Cube extends OutlinerElement {
 		var scope = this;
 		let epsilon = 0.0000001;
 		function getA(axis) {
-			if (floored) {
+			if (floored == true) {
 				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
+
+			} else if (floored == 'box_uv' && Format.box_uv_float_size != true) {
+				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
+
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}
@@ -567,7 +571,7 @@ class Cube extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
-		if (Blockbench.box_uv) return;
+		if (this.box_uv) return;
 		var scope = this;
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
@@ -779,6 +783,12 @@ class Cube extends OutlinerElement {
 		}
 		this.mapAutoUV();
 		if (this.box_uv) {
+			if (axis == 2) {
+				let difference = before - this.size(axis);
+				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
+				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
+				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
+			}
 			Canvas.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
@@ -886,7 +896,7 @@ new NodePreviewController(Cube, {
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
 		let mesh = element.mesh;
 
@@ -1005,7 +1015,7 @@ new NodePreviewController(Cube, {
 
 		if (element.box_uv) {
 
-			var size = element.size(undefined, true)
+			var size = element.size(undefined, Format.box_uv_float_size != true);
 			
 			var face_list = [   
 				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},

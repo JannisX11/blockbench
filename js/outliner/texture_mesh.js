@@ -313,7 +313,7 @@ new NodePreviewController(TextureMesh, {
 	},
 	updateTransform(element) {
 		let {mesh} = element;
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 		mesh.scale.set(1, 1, 1);
 
 		this.dispatchEvent('update_transform', {element});

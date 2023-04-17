@@ -68,7 +68,7 @@ function getSelectionCenter(all = false) {
 			min[2] = Math.min(pos.z, min[2]);	max[2] = Math.max(pos.z, max[2]);
 		}
 	})
-	let center = max.V3_add(min).V3_divide(2);
+	let center = (min[0] == Infinity) ? [0, 0, 0] : max.V3_add(min).V3_divide(2);
 	
 	if (!Format.centered_grid) {
 		center.V3_add(8, 8, 8)
@@ -111,6 +111,12 @@ function moveElementsRelative(difference, index, event) { //Multiple
 
 	if (event) {
 		difference *= canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+	}
+
+	if (BarItems.proportional_editing.value) {
+		Mesh.selected.forEach(mesh => {
+			ProportionalEdit.calculateWeights(mesh);
+		})
 	}
 
 	moveElementsInSpace(difference, axes[index]);
@@ -560,25 +566,30 @@ function moveElementsInSpace(difference, axis) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
 			let selected_vertices = el.getSelectedVertices();
-			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices)
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
+
+			let difference_vec = [0, 0, 0];
+			if (space == 2) {
+				difference_vec[axis] += difference;
+
+			} else if (space == 3) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyEuler(selection_rotation);
+				difference_vec.V3_set(m.x, m.y, m.z);
+
+			} else {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+			}
+
 			selected_vertices.forEach(key => {
-
-				if (space == 2) {
-					el.vertices[key][axis] += difference;
-
-				} else if (space == 3) {
-					let m = vector.set(0, 0, 0);
-					m[getAxisLetter(axis)] = difference;
-					m.applyEuler(selection_rotation);
-					el.vertices[key].V3_add(m.x, m.y, m.z);
-
-				} else {
-					let m = vector.set(0, 0, 0);
-					m[getAxisLetter(axis)] = difference;
-					m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
-					el.vertices[key].V3_add(m.x, m.y, m.z);
-				}
-
+				el.vertices[key].V3_add(difference_vec);
+			})
+			ProportionalEdit.editVertices(el, (vkey, blend) => {
+				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
 		} else {
@@ -736,7 +747,7 @@ function rotateOnAxis(modify, axis, slider) {
 	}
 	*/
 	//Warning
-	if (Format.rotation_limit && settings.dialog_rotation_limit.value) {
+	if (Format.rotation_limit && settings.dialog_rotation_limit.value && !Dialog.open) {
 		var i = 0;
 		while (i < Cube.selected.length) {
 			if (Cube.selected[i].rotation[(axis+1)%3] ||
@@ -748,11 +759,12 @@ function rotateOnAxis(modify, axis, slider) {
 					title: tl('message.rotation_limit.title'),
 					icon: 'rotate_right',
 					message: tl('message.rotation_limit.message'),
-					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
-				}, function(r) {
-					if (r === 1) {
-						settings.dialog_rotation_limit.value = false
-						Settings.save()
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (button, {dont_show_again}) => {
+					if (dont_show_again) {
+						settings.dialog_rotation_limit.set(false);
 					}
 				})
 				return;
@@ -932,6 +944,13 @@ BARS.defineActions(function() {
 		onChange() {
 			updateSelection();
 		}
+	})
+	new BarSelect('vertex_snap_mode', {
+		options: {
+			move: true,
+			scale: {condition: () => !Format.integer_size, name: true}
+		},
+		category: 'edit'
 	})
 
 	function moveOnAxis(modify, axis) {
@@ -1153,13 +1172,13 @@ BARS.defineActions(function() {
 
 						obj.inflate = v;
 					} else {
-						if (Format.cube_size_limiter.test(obj, {inflate: v})) {
+						if (Format.cube_size_limiter.test(obj, {inflate: v}) == false) {
 							obj.inflate = v;
 						} else {
 							let step = Math.sign(v - v_before) * 0.1;
 							let steps = (v - v_before) / step;
 							for (let i = 0; i < steps; i++) {
-								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)})) {
+								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)}) == false) {
 									obj.inflate = v_before + i * steps;
 									break;
 								}
