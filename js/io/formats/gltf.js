@@ -191,7 +191,6 @@ function buildSkinnedMesh(root_group, scale) {
 			for (let i = 0; i < geometry.attributes.position.count; i++) {
 				vertex.fromBufferAttribute(geometry.attributes.position, i);
 				normal.fromBufferAttribute(geometry.attributes.normal, i);
-				// todo: apply transform
 				vertex.applyMatrix4(matrix);
 				normal.transformDirection(matrix);
 

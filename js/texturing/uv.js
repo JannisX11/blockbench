@@ -2479,9 +2479,11 @@ Interface.definePanels(function() {
 					let last_pos = [0, 0];
 					let viewport = this.$refs.viewport;
 					let initial_scroll_offset = [viewport.scrollLeft, viewport.scrollTop];
+					let original_snap = snap;
 					function drag(e1) {
 						convertTouchEvent(e1);
 						let step_x, step_y;
+						let snap = original_snap;
 
 						if (snap == undefined) {
 							snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);

@@ -953,7 +953,6 @@ BARS.defineActions(function() {
 					'_',
 					/** Todo: add options
 					 * Center
-					 * Delete
 					 */
 					{
 						name: 'menu.texture.properties',
