@@ -807,7 +807,7 @@ class Cube extends OutlinerElement {
 		return this;
 	}
 	isStretched() {
-		!this.stretch.allEqual(1);
+		return !this.stretch.allEqual(1);
 	}
 }
 	Cube.prototype.title = tl('data.cube');
