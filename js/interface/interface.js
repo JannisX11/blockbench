@@ -943,7 +943,6 @@ BARS.defineActions(function() {
 				if (!panel.position_data.height) 		panel.position_data.height 			= defaultp.height || 300;
 				if (panel.position_data.folded == undefined) panel.position_data.folded 	= defaultp.folded || false;
 
-				console.log(id, panel.slot)
 				panel.moveTo(panel.slot);
 			}
 
