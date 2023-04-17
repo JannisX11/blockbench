@@ -491,12 +491,12 @@ const Settings = {
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
-		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'pressure', type: 'select', options: {
+		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
 		}});
-		new Setting('brush_size_modifier', {category: 'paint', value: 'tilt', type: 'select', options: {
+		new Setting('brush_size_modifier', {category: 'paint', value: 'none', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
@@ -542,6 +542,11 @@ const Settings = {
 		new Setting('model_export_scale',	{category: 'export', value: 16, type: 'number', min: 0.0001, max: 4096});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
+
+		Blockbench.onUpdateTo('4.7.1', () => {
+			settings.brush_opacity_modifier.set('none');
+			settings.brush_size_modifier.set('none');
+		})
 	},
 	setupProfiles() {
 		if (localStorage.getItem('settings_profiles') != null) {

@@ -724,7 +724,7 @@ class Preview {
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0;
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.button === 0;
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
@@ -1032,21 +1032,6 @@ class Preview {
 		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
 		return scope.raycaster.ray.origin
 	}
-	occupyTransformer(event) {
-		if (this.offscreen || Transformer.dragging) return this;
-
-		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
-		Transformer.orbit_controls = this.controls
-		Transformer.setCanvas(this.canvas)
-		main_preview.controls.updateSceneScale()
-		if (quad_previews) {
-			quad_previews.hovered = this;
-		}
-		if (event && event.type == 'touchstart') {
-			Transformer.simulateMouseDown(event);
-		}
-		return this;
-	}
 	showContextMenu(event) {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
@@ -1064,6 +1049,21 @@ class Preview {
 		}
 		clearTimeout(this.rclick_cooldown);
 		delete this.rclick_cooldown;
+		return this;
+	}
+	occupyTransformer(event) {
+		if (this.offscreen || Transformer.dragging) return this;
+
+		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
+		Transformer.orbit_controls = this.controls
+		Transformer.setCanvas(this.canvas)
+		main_preview.controls.updateSceneScale()
+		if (quad_previews) {
+			quad_previews.hovered = this;
+		}
+		if (event && event.type == 'touchstart') {
+			Transformer.simulateMouseDown(event);
+		}
 		return this;
 	}
 	calculateControlScale(position) {
