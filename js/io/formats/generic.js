@@ -16,7 +16,6 @@ new ModelFormat({
 	},
 	meshes: true,
 	rotate_cubes: true,
-	stretch_cubes: true,
 	bone_rig: true,
 	centered_grid: true,
 	optional_box_uv: true,
