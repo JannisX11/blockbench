@@ -72,19 +72,15 @@ const UVEditor = {
 			}
 		}
 		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'copy_paste_tool' && texture) {
-			addEventListeners(UVEditor.vue.$refs.frame, 'pointermove', UVEditor.movePaintTool, false );
-			addEventListeners(document, 'pointerup', UVEditor.stopBrush, false );
+			addEventListeners(this.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
+			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
 	},
 	movePaintTool(event) {
-		if (event.pointerType === 'pen' && event.pressure === 0) {
-			UVEditor.stopBrush(event);
-			return;
-		}
 		var texture = UVEditor.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
-		} else if (event.which <= 1 || event.pointerType === 'pen' || (event.touches && event.touches.length == 1)) {
+		} else if (event.which === 1 || (event.touches && event.touches.length == 1)) {
 			var new_face;
 			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
@@ -92,8 +88,6 @@ const UVEditor = {
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
 			}
-			UVEditor.vue.mouse_coords.x = x;
-			UVEditor.vue.mouse_coords.y = y;
 			if (Painter.current.face !== UVEditor.selected_faces[0]) {
 				Painter.current.x = x
 				Painter.current.y = y
@@ -109,8 +103,8 @@ const UVEditor = {
 		}
 	},
 	stopBrush(event) {
-		removeEventListeners( UVEditor.vue.$refs.frame, 'pointermove', UVEditor.movePaintTool, false );
-		removeEventListeners( document, 'pointerup', UVEditor.stopBrush, false );
+		removeEventListeners( UVEditor.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
+		removeEventListeners( document, 'mouseup touchend', UVEditor.stopBrush, false );
 		if (Toolbox.selected.id !== 'copy_paste_tool') {
 			Painter.stopPaintTool()
 		} else {
@@ -1325,7 +1319,6 @@ const UVEditor = {
 			}})
 		}},
 		'focus_on_selection',
-		'painting_grid',
 		'uv_checkerboard',
 		'paint_mode_uv_overlay',
 		'_',
@@ -1951,7 +1944,6 @@ Interface.definePanels(function() {
 				uv_overlay: false,
 				texture: 0,
 				mouse_coords: {x: -1, y: -1},
-				is_touch: Blockbench.isTouch,
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
 				brush_type: BarItems.brush_shape.value,
@@ -2259,23 +2251,23 @@ Interface.definePanels(function() {
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
 						}
 						function dragMouseWheelStop(e) {
-							removeEventListeners(document, 'pointermove', dragMouseWheel);
-							removeEventListeners(document, 'pointerup', dragMouseWheelStop);
+							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+							removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 						}
-						addEventListeners(document, 'pointermove', dragMouseWheel);
-						addEventListeners(document, 'pointerup', dragMouseWheelStop);
+						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
+						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
 						event.preventDefault();
 						$(getFocusedTextInput()).trigger('blur');
 						return false;
 
-					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || event.pointerType === 'pen' || (Blockbench.isTouch && event.touches && event.touches.length == 1))) {
+					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						// Paint
 						if (event.target && event.target.id === 'uv_viewport') return;
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;
 
-					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || event.pointerType === 'pen' || (event.touches && event.touches.length == 1))) {
+					} else if (this.mode == 'uv' && event.target.id == 'uv_frame' && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 
 						if (event.altKey || Pressing.overrides.alt) {
 							return this.dragFace(null, event);
@@ -2374,8 +2366,8 @@ Interface.definePanels(function() {
 							UVEditor.displayTools();
 						}
 						function stop(e2) {
-							removeEventListeners(document, 'pointermove', drag);
-							removeEventListeners(document, 'pointerup', stop);
+							removeEventListeners(document, 'mousemove touchmove', drag);
+							removeEventListeners(document, 'mouseup touchend', stop);
 
 							if (Math.pow(event.clientX - e2.clientX, 2) + Math.pow(event.clientY - e2.clientY, 2) < 10) {
 								scope.selected_faces.empty();
@@ -2385,8 +2377,8 @@ Interface.definePanels(function() {
 								selection_rect.active = false;
 							}, 1)
 						}
-						addEventListeners(document, 'pointermove', drag, false);
-						addEventListeners(document, 'pointerup', stop, false);
+						addEventListeners(document, 'mousemove touchmove', drag, false);
+						addEventListeners(document, 'mouseup touchend', stop, false);
 					}
 				},
 				onMouseLeave(event) {
@@ -3325,8 +3317,8 @@ Interface.definePanels(function() {
 
 					<div id="uv_viewport"
 						@contextmenu="contextMenu($event)"
-						@pointerdown="onMouseDown($event)"
-						
+						@mousedown="onMouseDown($event)"
+						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
 						class="checkerboard_target"
 						ref="viewport"
