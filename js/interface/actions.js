@@ -1432,9 +1432,9 @@ class Toolbar {
 				var item = BarItems[itemId];
 				if (item) {
 					item.pushToolbar(this);
-					if (BARS.condition(item.condition)) {
+					/*if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
-					}
+					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
 					var postloadAction = [itemId, itemPosition];
