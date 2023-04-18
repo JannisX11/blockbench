@@ -279,6 +279,9 @@ const Blockbench = {
 				}
 			}
 		}
+		if (Validator.triggers.includes(event_name)) {
+			Validator.validate(event_name);
+		}
 		return results;
 	},
 	on(event_name, cb) {
