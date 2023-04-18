@@ -1319,6 +1319,7 @@ const UVEditor = {
 			}})
 		}},
 		'focus_on_selection',
+		'painting_grid',
 		'uv_checkerboard',
 		'paint_mode_uv_overlay',
 		'_',
