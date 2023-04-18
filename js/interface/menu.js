@@ -541,7 +541,7 @@ class Menu {
 			} else {
 				for (var i = 0; i < arr.length; i++) {
 					var item = arr[i]
-					if (item.children && item.children.length > 0 && item.id === track[layer] && layer < 20) {
+					if (item.children instanceof Array && item.id === track[layer] && layer < 20) {
 						traverse(item.children, layer+1)
 						i = 1000
 					}
