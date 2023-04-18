@@ -713,18 +713,18 @@ class Preview {
 		unselectInterface(event);
 		convertTouchEvent(event);
 		Preview.selected = this;
-		this.static_rclick = event.which === 3 || event.pointerType == 'touch';
+		this.static_rclick = event.which === 3 || event.type == 'touchstart';
 		if (this.static_rclick) {
 			this.event_start = [event.clientX, event.clientY];
 		}
-		if (event.pointerType == 'touch') {
+		if (event.type == 'touchstart') {
 			this.rclick_cooldown = setTimeout(() => {
 				this.rclick_cooldown = true;
 			}, 420)
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.button === 0;
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0;
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
@@ -1092,7 +1092,7 @@ class Preview {
 		this.selection.client_x = event.clientX+0
 		this.selection.client_y = event.clientY+0
 
-		if (Modes.edit && event.pointerType != 'touch') {
+		if (Modes.edit && event.type !== 'touchstart') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
