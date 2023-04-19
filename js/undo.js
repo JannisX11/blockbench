@@ -4,9 +4,9 @@ class UndoSystem {
 		this.history = [];
 	}
 	startChange(amended) {
-		if (this.current_save && Painter.painting) {
+		/*if (this.current_save && Painter.painting) {
 			throw 'Canceled edit: Cannot perform edits while painting'
-		}
+		}*/
 		/*if (this.current_save && Transformer.dragging) {
 			throw 'Canceled edit: Cannot perform other edits while transforming elements'
 		}*/
