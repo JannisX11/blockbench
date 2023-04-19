@@ -1685,7 +1685,7 @@ Interface.definePanels(() => {
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
-										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.shortest_path">
+										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.blend_via_shortest_path">
 									</div>
 								</template>
 
