@@ -664,6 +664,10 @@ BARS.defineActions(function() {
 			} else {
 				saveTextures()
 				if (Format.codec && Format.codec.export) {
+					Format.codec.export()
+				}
+				/*
+				if (Format.codec && Format.codec.export) {
 
 					let codec = await new Promise(resolve => Blockbench.showMessageBox({
 						translateKey: 'save_codec_selector',
@@ -689,7 +693,7 @@ BARS.defineActions(function() {
 
 				} else {
 					Project.saved = false;
-				}
+				}*/
 			}
 		}
 	})
