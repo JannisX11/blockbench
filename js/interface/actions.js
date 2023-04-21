@@ -1826,6 +1826,7 @@ const BARS = {
 				icon: 'delete',
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
+				condition: () => !Dialog.open,
 				click() {
 					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
 					if (ReferenceImageMode.active && ReferenceImage.selected) {
