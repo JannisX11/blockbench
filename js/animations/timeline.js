@@ -1223,7 +1223,7 @@ Interface.definePanels(() => {
 					}
 				},
 				getSelectedGraphRange() {
-					if (Keyframe.selected.length == 0) return null;
+					if (Keyframe.selected.length == 0 || !this.graph_editor_animator) return null;
 					let keyframes = this.graph_editor_animator[this.graph_editor_channel];
 					if (!keyframes || keyframes.length < 2) return null;
 					let range = [Infinity, -Infinity];
