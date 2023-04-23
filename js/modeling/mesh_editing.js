@@ -906,12 +906,11 @@ BARS.defineActions(function() {
 								// Instead, construct the normal between the first 2 selected vertices
 								direction = combined_direction;
 
-							} else if (match && true) {
+							} else if (match) {
 								let difference = new THREE.Vector3();
 								let signs_done = [];
 								match.vertices.forEach(vkey => {
 									let sign = original_vertices.includes(vkey) ? 1 : -1;
-									if (signs_done.includes(sign)) return;
 									difference.x += mesh.vertices[vkey][0] * sign;
 									difference.y += mesh.vertices[vkey][1] * sign;
 									difference.z += mesh.vertices[vkey][2] * sign;
