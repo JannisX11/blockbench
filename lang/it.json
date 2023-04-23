@@ -1870,5 +1870,6 @@
     "menu.slider.round_value": "Round Value",
     "texture.error.too_large": "Resolution exceeds the maximum of %0",
     "dialog.copy_to_clipboard": "Copy to clipboard",
-    "dialog.open_url": "Open URL"
+    "dialog.open_url": "Open URL",
+    "reference_image.image": "Image"
 }
