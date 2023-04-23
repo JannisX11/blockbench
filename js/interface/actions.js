@@ -200,6 +200,11 @@ class BarItem {
 		})
 		delete BarItems[this.id];
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class KeybindItem {
@@ -227,6 +232,11 @@ class KeybindItem {
 	}
 	delete() {
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class Action extends BarItem {
