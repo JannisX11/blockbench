@@ -1870,5 +1870,6 @@
     "menu.slider.round_value": "Wert runden",
     "texture.error.too_large": "Auslösung übersteigt das Maximum von %0",
     "dialog.copy_to_clipboard": "In Zwischenablage kopieren",
-    "dialog.open_url": "Link öffnen"
+    "dialog.open_url": "Link öffnen",
+    "reference_image.image": "Bild"
 }
