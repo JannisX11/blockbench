@@ -2321,6 +2321,7 @@ span.controller_state_section_info {
 	#chat_history li b {
 	    margin-left: -6px;
 	    user-select: text;
+		-webkit-user-select: text;
 	    color: var(--color-text);
 	    background-color: var(--color-button);
 	    border-radius: 4px;
@@ -2332,6 +2333,7 @@ span.controller_state_section_info {
 	}
 	#chat_history li span.text {
 		user-select: text;
+		-webkit-user-select: text;
 	}
 	#chat_history li span.timestamp {
 		color: var(--color-subtle_text);
