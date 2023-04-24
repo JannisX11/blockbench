@@ -431,6 +431,7 @@
 		font-size: 1em;
 		font-family: inherit;
 		outline: none;
+		-webkit-user-select: initial;
 	}
 	button {
 		border: none;
@@ -493,6 +494,7 @@
 	}
 	select option {
 		-webkit-appearance: none;
+		appearance: none;
 		background-color: var(--color-back);
 		outline: none;
 		border: none;
@@ -507,6 +509,12 @@
 		cursor: default;
 		resize: none;
 		outline: none;
+		user-select: initial;
+		-webkit-user-select: initial;
+	}
+	div[contenteditable="true"] {
+		user-select: initial;
+		-webkit-user-select: initial;
 	}
 	bb-select {
 		display: block;

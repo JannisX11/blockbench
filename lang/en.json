@@ -1865,6 +1865,7 @@
 	"texture.error.too_large": "Resolution exceeds the maximum of %0",
 	"texture.error.parent": "Texture file provided by parent model",
 
+	"reference_image.image": "Image",
 	"reference_image.position": "Position",
 	"reference_image.size": "Size",
 	"reference_image.rotation": "Rotation",

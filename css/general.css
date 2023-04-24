@@ -307,9 +307,11 @@
 		clear: both;
 		cursor: text;
 		user-select: text;
+		-webkit-user-select: text;
 	}
 	.markdown pre code {
 		user-select: text;
+		-webkit-user-select: text;
 	}
 
 /*Actions*/

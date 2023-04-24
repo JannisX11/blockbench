@@ -972,6 +972,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_h', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 15,
 		settings: {
 			min: 0, max: 360, default: 0, show_bar: true
 		},
@@ -991,6 +992,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_s', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 0, show_bar: true
 		},
@@ -1010,6 +1012,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_v', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 100, show_bar: true
 		},
