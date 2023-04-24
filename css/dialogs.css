@@ -583,6 +583,14 @@
 	#settingslist li:hover .setting_icon i {
 		color: var(--color-light);
 	}
+	.password_toggle {
+		display: inline-block;
+		margin-left: 4px;
+		margin-top: 4px;
+		width: 24px;
+		text-align: center;
+		vertical-align: text-bottom;
+	}
 	.form_input_tool {
 		width: 30px;
 	}
