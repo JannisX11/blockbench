@@ -1431,12 +1431,8 @@ BARS.defineActions(function() {
 					form_options.offset.slider.update();
 					saved_direction = direction;
 				}
-
-				if (form_options.direction) {
-					//form_options.direction.slider.value = direction % selected_face.vertices.length;
-				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction ? form_options.direction.slider.value : 0);
+				runEdit(true, form_options.offset.slider.value, form_options.direction ? direction : 0);
 			})
 		}
 	})
