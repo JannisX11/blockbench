@@ -1236,14 +1236,16 @@ const Canvas = {
 			arr[2][1] += offset
 			arr[3][1] += offset
 		}
-		var rot = (face.rotation+0)
-		while (rot > 0) {
-			let a = arr[0];
-			arr[0] = arr[2];
-			arr[2] = arr[3];
-			arr[3] = arr[1];
-			arr[1] = a;
-			rot = rot-90;
+		if (Format.uv_rotation) {
+			var rot = (face.rotation+0)
+			while (rot > 0) {
+				let a = arr[0];
+				arr[0] = arr[2];
+				arr[2] = arr[3];
+				arr[3] = arr[1];
+				arr[1] = a;
+				rot = rot-90;
+			}
 		}
 		vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
 		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1

@@ -328,6 +328,7 @@ class Cube extends OutlinerElement {
 		}
 
 		function rotateUVFace(number, iterations) {
+			if (!Format.uv_rotation) return 0;
 			if (!number) number = 0;
 			number += iterations * 90;
 			return number % 360;
