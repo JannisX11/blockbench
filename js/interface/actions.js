@@ -2245,6 +2245,18 @@ const BARS = {
 				'slider_inflate'
 			]
 		})
+		Toolbars.element_stretch = new Toolbar({
+			id: 'element_stretch',
+			name: 'panel.element.stretch',
+			label: true,
+			condition: () => Format.stretch_cubes,
+			children: [
+				'slider_stretch_x',
+				'slider_stretch_y',
+				'slider_stretch_z',
+				'toggle_stretch_linked'
+			]
+		})
 		Toolbars.element_origin = new Toolbar({
 			id: 'element_origin',
 			name: 'panel.element.origin',
@@ -2270,6 +2282,7 @@ const BARS = {
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
+				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
 			].forEach(toolbar => {

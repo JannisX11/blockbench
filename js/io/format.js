@@ -240,6 +240,7 @@ new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
+new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');

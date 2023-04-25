@@ -748,15 +748,22 @@ BARS.defineActions(function() {
 					rotation: cube.rotation,
 					vertices: []
 				})
+				var adjustedFrom = cube.from.slice();
+				var adjustedTo = cube.to.slice();
+				adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
+				for (let i = 0; i < adjustedFrom.length; i++) {
+					adjustedFrom[i] - cube.origin[i];
+					adjustedTo[i] - cube.origin[i]
+				}
 				let vertex_keys = [
-					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2]   + cube.inflate - cube.origin[2]] )[0],
-					mesh.addVertices([cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]] )[0],
+					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedFrom[1], 	adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedFrom[1], 	adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedTo[1], 		adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedFrom[1], 	adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedFrom[1], 	adjustedFrom[2] ])[0],
 				];
 
 				let unused_vkeys = vertex_keys.slice();

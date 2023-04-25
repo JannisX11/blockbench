@@ -1646,6 +1646,7 @@ Interface.definePanels(function() {
 			toolbars: [
 				Toolbars.element_position,
 				Toolbars.element_size,
+				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation,
 			]

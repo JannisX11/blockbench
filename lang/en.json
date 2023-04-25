@@ -821,6 +821,8 @@
 	"settings.timecode_frame_number.desc": "Display fraction timecodes in the timeline as frame number instead of centisecond",
 	"settings.only_selected_bezier_handles": "Show Only Selected Bézier Handles",
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
+	"settings.stretch_linked": "Link Stretching",
+	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
 
 	"settings.base_grid": "Small Grid",
 	"settings.base_grid.desc": "Show small grid and axes",
@@ -977,6 +979,8 @@
 	"action.slider_size.desc": "Resize elements on the %0 axis",
 	"action.slider_inflate": "Inflate",
 	"action.slider_inflate.desc": "Inflate cubes in all directions without changing the UV",
+	"action.slider_stretch": "Stretch",
+	"action.slider_stretch.desc": "Stretches cubes multiplicatively on the %0 axis without changing the UV",
 	"action.slider_rotation": "Rotation %0",
 	"action.slider_rotation.desc": "Rotate elements on the %0 axis",
 	"action.slider_origin": "Pivot %0",
@@ -1922,6 +1926,7 @@
 	"panel.element": "Element",
 	"panel.element.position": "Position",
 	"panel.element.size": "Size",
+	"panel.element.stretch": "Stretch",
 	"panel.element.origin": "Pivot Point",
 	"panel.element.rotation": "Rotation",
 
