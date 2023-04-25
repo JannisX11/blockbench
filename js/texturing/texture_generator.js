@@ -1007,7 +1007,7 @@ const TextureGenerator = {
 					}
 					// Center island if it faces front of back
 					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
-						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += offset_x;
@@ -1016,7 +1016,7 @@ const TextureGenerator = {
 					}
 					// ... or on the side
 					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
-						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += offset_x;
@@ -1027,7 +1027,7 @@ const TextureGenerator = {
 					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;
+								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
 							}
 						}
 					}
@@ -1035,7 +1035,7 @@ const TextureGenerator = {
 					if (face_group.normal[1] < 0) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z) - max_z;
+								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
 							}
 						}
 					}
