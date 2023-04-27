@@ -69,6 +69,12 @@ function updateNslideValues() {
 			BarItems.slider_inflate.update()
 		}
 
+		if (Condition(BarItems.slider_stretch_x)) {
+			BarItems.slider_stretch_x.update()
+			BarItems.slider_stretch_y.update()
+			BarItems.slider_stretch_z.update()
+		}
+
 		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}

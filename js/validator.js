@@ -167,7 +167,7 @@ new ValidatorCheck('box_uv', {
 		Cube.all.forEach(cube => {
 			if (!cube.box_uv) return;
 			let size = cube.size();
-			let invalid_size_axes = size.filter(value => value < 0.999 && (value+cube.inflate*2) > 0.005);
+			let invalid_size_axes = size.filter((value, axis) => value < 0.999 && (value+cube.inflate*2) * cube.stretch[axis] > 0.005);
 			if (invalid_size_axes.length) {
 				let buttons = [
 					{

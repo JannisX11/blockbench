@@ -384,14 +384,18 @@ var codec = new Codec('fbx', {
 				);
 			}
 
-			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
+			var adjustedFrom = cube.from.slice();
+			var adjustedTo = cube.to.slice();
+			adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
+
+			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedTo[2]  );
+			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedFrom[2]);
+			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedTo[2]  );
+			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedTo[2]  );
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedTo[2]  );
 
 			let textures = [];
 
