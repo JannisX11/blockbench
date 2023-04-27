@@ -464,7 +464,11 @@ function setupInterface() {
 	
 	Interface.work_screen.addEventListener('dblclick', event => {
 		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
-		if (reference) reference.select();
+		if (!reference) return;
+		if (document.querySelector('.preview:hover')) {
+			if (Preview.selected.raycast(event)) return;
+		}
+		reference.select();
 	});
 
 	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
