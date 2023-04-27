@@ -113,6 +113,7 @@ class NullObject extends OutlinerElement {
 	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
 			'set_ik_target',
+			'set_ik_source',
 			{
 				id: 'lock_ik_target_rotation',
 				name: 'menu.null_object.lock_ik_target_rotation',
@@ -138,6 +139,7 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'position')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
@@ -256,5 +258,46 @@ BARS.defineActions(function() {
 		click(event) {
 			new Menu('set_ik_target', this.children(this), {searchable: true}).show(event.target, this);
 		}
+	})
+
+	new Action('set_ik_source', {
+		icon: 'fa-link',
+		category: 'edit',
+		condition() {
+			let action = BarItems.set_ik_source;
+			return NullObject.selected.length && action.children(action).length
+		},
+		searchable: true,
+		children() {
+			let nodes = [];
+			iterate(Outliner.root)
+
+			function iterate(arr) {
+				arr.forEach(node => {
+					if (node instanceof Group) {
+						nodes.push(node);
+						iterate(node.children)
+					}
+				})
+			}
+			return nodes.map(node => {
+				return {
+					name: node.name + (node.uuid == NullObject.selected[0].ik_source ? ' (✔)' : ''),
+					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
+					click() {
+						Undo.initEdit({elements: NullObject.selected});
+						NullObject.selected.forEach(null_object => {
+							null_object.ik_source = node.uuid;
+						})
+						Undo.finishEdit('Set IK source');
+					}
+				}
+			})
+		},
+		click(event) {
+			new Menu('set_ik_source', this.children(this), {searchable: true}).show(event.target, this);
+		}
+
 	})
 })
