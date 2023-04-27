@@ -1944,7 +1944,8 @@ BARS.defineActions(function() {
 				offset(node);
 			});
 
-			Modes.options.edit.select()
+			Modes.options.edit.select();
+			Canvas.updateAllBones();
 			Undo.finishEdit('Bake animation into model')
 		}
 	})

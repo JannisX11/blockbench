@@ -145,6 +145,7 @@ class ReferenceImage {
 		return ReferenceImage.selected == this;
 	}
 	save() {
+		if (this.removed) return this;
 		this.position[0] = Math.round(this.position[0]);
 		this.position[1] = Math.round(this.position[1]);
 		this.size[0] = Math.round(this.size[0]);
@@ -165,7 +166,7 @@ class ReferenceImage {
 		return this;
 	}
 	update() {
-		if (!Interface.preview) return this;
+		if (!Interface.preview || this.removed) return this;
 		let shown = this.resolveCondition();
 		if (!shown) {
 			this.node.remove();
@@ -533,6 +534,7 @@ class ReferenceImage {
 			case 'global': ReferenceImage.global.remove(this); break;
 			case 'built_in': ReferenceImage.built_in.remove(this); break;
 		}
+		this.removed = true;
 		this.save();
 		this.node.remove();
 	}
@@ -593,6 +595,7 @@ class ReferenceImage {
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
+				if (this.removed) return;
 				let clear_mode_before = this.clear_mode;
 				this.extend({
 					source: result.source,

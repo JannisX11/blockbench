@@ -200,6 +200,11 @@ class BarItem {
 		})
 		delete BarItems[this.id];
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class KeybindItem {
@@ -227,6 +232,11 @@ class KeybindItem {
 	}
 	delete() {
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class Action extends BarItem {
@@ -1826,6 +1836,7 @@ const BARS = {
 				icon: 'delete',
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
+				condition: () => !Dialog.open,
 				click() {
 					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
 					if (ReferenceImageMode.active && ReferenceImage.selected) {

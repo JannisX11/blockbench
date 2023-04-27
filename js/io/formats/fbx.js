@@ -64,6 +64,7 @@ var codec = new Codec('fbx', {
 
 		// FBXHeaderExtension
 		let date = new Date();
+		let model_url = 'C:\\Users\\Blockbench\\foobar.fbx';
 		model.push({
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
@@ -82,10 +83,41 @@ var codec = new Codec('fbx', {
 				Creator: 'Blockbench '+Blockbench.version,
 				OtherFlags: {
 					FlagPLE: 0
+				},
+				SceneInfo: {
+					_values: ["SceneInfo::GlobalInfo", "UserData"],
+					Type: "UserData",
+					Version: 100,
+					MetaData:  {
+						Version: 100,
+						Title: "",
+						Subject: "",
+						Author: "",
+						Keywords: "",
+						Revision: "",
+						Comment: ""
+					},
+					Properties70:  {
+						P01: {_key: 'P', _values: ["DocumentUrl", "KString", "Url", "", model_url]},
+						P02: {_key: 'P', _values: ["SrcDocumentUrl", "KString", "Url", "", model_url]},
+						P03: {_key: 'P', _values: ["Original", "Compound", "", ""]},
+						P04: {_key: 'P', _values: ["Original|ApplicationVendor", "KString", "", "", "Blockbench"]},
+						P05: {_key: 'P', _values: ["Original|ApplicationName", "KString", "", "", "Blockbench FBX Exporter"]},
+						P06: {_key: 'P', _values: ["Original|ApplicationVersion", "KString", "", "", Blockbench.version]},
+						P07: {_key: 'P', _values: ["Original|DateTime_GMT", "DateTime", "", "", "01/01/1970 00:00:00.000"]},
+						P08: {_key: 'P', _values: ["Original|FileName", "KString", "", "", "/foobar.fbx"]},
+						P09: {_key: 'P', _values: ["LastSaved", "Compound", "", ""]},
+						P10: {_key: 'P', _values: ["LastSaved|ApplicationVendor", "KString", "", "", "Blockbench"]},
+						P11: {_key: 'P', _values: ["LastSaved|ApplicationName", "KString", "", "", "Blockbench FBX Exporter"]},
+						P12: {_key: 'P', _values: ["LastSaved|ApplicationVersion", "KString", "", "", Blockbench.version]},
+						P13: {_key: 'P', _values: ["LastSaved|DateTime_GMT", "DateTime", "", "", "01/01/1970 00:00:00.000"]},
+						P14: {_key: 'P', _values: ["Original|ApplicationNativeFile", "KString", "", "", ""]},
+					}
 				}
 			},
 			CreationTime: new Date().toISOString().replace('T', ' ').replace('.', ':').replace('Z', ''),
 			Creator: Settings.get('credit'),
+
 		})
 
 		model.push({
@@ -1102,7 +1134,7 @@ class BinaryWriter {
 	}
 	WriteInt16(value) {
 		this.expand(2);
-		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.view.setInt16(this.cursor, value, this.little_endian);
 		this.cursor += 2;
 	}
 	WriteInt32(value) {

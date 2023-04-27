@@ -39,7 +39,7 @@ const TextureGenerator = {
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
-				type:	{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options},
+				type:	{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
 				section2:    "_",
 
 				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
@@ -1007,7 +1007,7 @@ const TextureGenerator = {
 					}
 					// Center island if it faces front of back
 					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
-						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += offset_x;
@@ -1016,7 +1016,7 @@ const TextureGenerator = {
 					}
 					// ... or on the side
 					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
-						let offset_x = (Math.ceil(max_x) - max_x) / 2;
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
 								vertex_uvs[fkey][vkey][0] += offset_x;
@@ -1027,7 +1027,7 @@ const TextureGenerator = {
 					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;
+								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
 							}
 						}
 					}
@@ -1035,7 +1035,7 @@ const TextureGenerator = {
 					if (face_group.normal[1] < 0) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z) - max_z;
+								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
 							}
 						}
 					}

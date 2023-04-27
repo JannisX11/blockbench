@@ -377,7 +377,7 @@ const Screencam = {
 			}
 			if (options.format == 'gif') {
 				let i = 0;
-				let format = 'rgb4444';
+				let format = 'rgba4444';
 				function quantize(data) {
 					let palette = [[0, 0, 0]];
 					for (let i = 0; i < data.length; i += 4) {

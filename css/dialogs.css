@@ -95,6 +95,7 @@
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
 		user-select: text;
+		-webkit-user-select: text;
 		font-family: var(--font-code);
 	}
 
@@ -232,6 +233,7 @@
 		margin-right: 12px;
 		font-size: 0.86em;
 		user-select: text;
+		-webkit-user-select: text;
 	}
 
 	.dialog_message_box_command {
@@ -581,6 +583,14 @@
 	#settingslist li:hover .setting_icon i {
 		color: var(--color-light);
 	}
+	.password_toggle {
+		display: inline-block;
+		margin-left: 4px;
+		margin-top: 4px;
+		width: 24px;
+		text-align: center;
+		vertical-align: text-bottom;
+	}
 	.form_input_tool {
 		width: 30px;
 	}
@@ -915,6 +925,7 @@
 	}
 	p.multiline_text span {
 		user-select: inherit;
+		-webkit-user-select: text;
 	}
 	#texture_menu_thumbnail {
 		float: right;
