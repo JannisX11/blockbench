@@ -550,16 +550,10 @@ BARS.defineActions(function() {
 			if (value == 'auto') value = null;
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				let selected_vertices = mesh.getSelectedVertices();
-				mesh.forAllFaces((face) => {
-					let vertices = face.getSortedVertices();
-					vertices.forEach((vkey_a, i) => {
-						let vkey_b = vertices[i+1] || vertices[0];
-						if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
-							mesh.setSeam([vkey_a, vkey_b], value);
-						}
-					})
-				});
+				let selected_edges = mesh.getSelectedEdges();
+				selected_edges.forEach(edge => {
+					mesh.setSeam(edge, value);
+				})
 				Mesh.preview_controller.updateSelection(mesh);
 			})
 			Undo.finishEdit('Set mesh seam');
