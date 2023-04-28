@@ -1143,7 +1143,7 @@ const Animator = {
 			let controller = AnimationController.selected;
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
-			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
 
 			// Active State
 			Timeline.time = state_time;
