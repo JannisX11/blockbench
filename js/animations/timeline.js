@@ -1180,7 +1180,11 @@ Interface.definePanels(() => {
 						value = Math.round(value*100)/100;
 
 						for (let kf of keyframes) {
-							let target_value = (original_values[kf.uuid] - original_range[anchor_side]) * value + original_range[anchor_side];
+							let origin = original_range[anchor_side];
+							if (e2.altKey) {
+								origin = Math.lerp(original_range[0], original_range[1], 0.5);
+							}
+							target_value = (original_values[kf.uuid] - origin) * value + origin;
 							kf.offset(axis, -kf.get(axis) + target_value);
 							values_changed = true;
 						}
