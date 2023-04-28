@@ -8,6 +8,19 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'reference_image',
+		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		function(files, event) {
+			files.map(file => {
+				return new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference(true);
+			}).last().select();
+			ReferenceImageMode.activate();
+		}
+	)
+	Blockbench.addDragHandler(
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
@@ -125,7 +138,7 @@ async function loadImages(files, event) {
 		} else if (method == 'reference_image') {
 			
 			files.map(file => {
-				new ReferenceImage({
+				return new ReferenceImage({
 					source: file.content,
 					name: file.name || 'Reference'
 				}).addAsReference(true);

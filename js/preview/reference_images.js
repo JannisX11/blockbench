@@ -520,9 +520,12 @@ class ReferenceImage {
 	}
 	async delete(force) {
 		if (!force) {
+			let img = new Image();
+			img.src = this.source;
 			let result = await new Promise(resolve => Blockbench.showMessageBox({
 				title: 'data.reference_image',
 				message: 'message.delete_reference_image',
+				icon: img,
 				buttons: ['dialog.confirm', 'dialog.cancel']
 			}, resolve));
 			if (result == 1) return;
