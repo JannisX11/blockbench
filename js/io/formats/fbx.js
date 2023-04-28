@@ -663,9 +663,6 @@ var codec = new Codec('fbx', {
 						let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`;
 
 						let values = track.values.filter((val, i) => (i % 3) == axis_number);
-						if (track.channel == 'position') {
-							values.forEach((v, i) => values[i] = v * 100);
-						}
 						if (track.channel == 'rotation') {
 							values.forEach((v, i) => values[i] = Math.radToDeg(v));
 						}
