@@ -2634,7 +2634,7 @@ Interface.definePanels(function() {
 
 								} else {
 									this.selected_faces.forEach(key => {
-										if (element.faces[key] && element instanceof Cube) {
+										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
 											diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], Project.texture_width  - element.faces[key].uv[0]);
 											diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], Project.texture_height - element.faces[key].uv[1]);
 											diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], Project.texture_width  - element.faces[key].uv[2]);
@@ -2658,7 +2658,7 @@ Interface.definePanels(function() {
 									element.uv_offset[1] = Math.floor(element.uv_offset[1] + diff_y);
 								} else {
 									this.selected_faces.forEach(key => {
-										if (element.faces[key] && element instanceof Cube) {
+										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
 											element.faces[key].uv[0] += diff_x;
 											element.faces[key].uv[1] += diff_y;
 											element.faces[key].uv[2] += diff_x;
