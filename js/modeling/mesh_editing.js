@@ -1039,15 +1039,9 @@ BARS.defineActions(function() {
 					if (original_vertices.length < 3) return;
 					original_vertices = original_vertices.slice();
 					let new_vertices;
-					let selected_faces = [];
-					let selected_face_keys = [];
-					for (let key in mesh.faces) {
-						let face = mesh.faces[key]; 
-						if (face.isSelected()) {
-							selected_faces.push(face);
-							selected_face_keys.push(key);
-						}
-					}
+					let selected_face_keys = mesh.getSelectedFaces();
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
+					let modified_face_keys = selected_face_keys.slice();
 	
 					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
 						let vector = mesh.vertices[vkey].slice();
@@ -1104,15 +1098,24 @@ BARS.defineActions(function() {
 							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
 							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
 
+							let new_face_vertices = [
+								b,
+								a,
+								original_vertices[new_vertices.indexOf(a)],
+								original_vertices[new_vertices.indexOf(b)],
+							];
+							let new_face_uv = {
+								[a]: face.uv[a],
+								[b]: face.uv[b],
+								[new_face_vertices[2]]: face.uv[a],
+								[new_face_vertices[3]]: face.uv[b],
+							};
 							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
-								vertices: [
-									b,
-									a,
-									original_vertices[new_vertices.indexOf(a)],
-									original_vertices[new_vertices.indexOf(b)],
-								]
+								vertices: new_face_vertices,
+								uv: new_face_uv
 							});
-							mesh.addFaces(new_face);
+							let [fkey] = mesh.addFaces(new_face);
+							modified_face_keys.push(fkey);
 							remaining_vertices.remove(a);
 							remaining_vertices.remove(b);
 						})
@@ -1132,6 +1135,7 @@ BARS.defineActions(function() {
 						}
 						delete mesh.vertices[b];
 					})
+					UVEditor.setAutoSize(null, true, modified_face_keys);
 
 				})
 				Undo.finishEdit('Extrude mesh selection')
