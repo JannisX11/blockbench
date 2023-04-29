@@ -501,8 +501,8 @@ const Timeline = {
 			if (Animation.selected.loop == 'hold') {
 				time = Math.clamp(time, 0, Animation.selected.length);
 			}
-			Timeline.setTime(time);
 			Timeline.last_frame_timecode = Date.now();
+			Timeline.setTime(time);
 
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
