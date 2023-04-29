@@ -578,6 +578,12 @@ function moveElementsInSpace(difference, axis) {
 				m.applyEuler(selection_rotation);
 				difference_vec.V3_set(m.x, m.y, m.z);
 
+			} else if (space instanceof Group) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(new THREE.Quaternion().copy(el.mesh.quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+
 			} else {
 				let m = vector.set(0, 0, 0);
 				m[getAxisLetter(axis)] = difference;
