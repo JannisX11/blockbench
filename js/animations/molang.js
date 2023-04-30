@@ -3,7 +3,7 @@ Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
 	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
+		let time = (Date.now() - Timeline.last_frame_timecode) / 1000;
 		if (time < 0) time += 1;
 		return Math.clamp(time, 0, 0.1);
 	},

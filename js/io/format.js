@@ -84,6 +84,7 @@ class ModelFormat {
 		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
+		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
 		Canvas.updateShading();

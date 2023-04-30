@@ -1380,7 +1380,7 @@
 		background-color: var(--color-ui);
 		right: 12px;
 		margin-top: 29px;
-		z-index: 2;
+		z-index: 5;
 	}
 	#timeline_graph_editor_amplifier > div {
 		position: absolute;

@@ -217,6 +217,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		}
 	}
 	initAnimations() {
+		this.initialized_animations = true;
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
@@ -256,7 +257,6 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				} catch (err) {}
 			})
 		}
-		this.initialized_animations = true;
 	}
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
