@@ -155,7 +155,7 @@ onVueSetup(function() {
 				},
 				{
 					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [MorganFreeguy](https://morganfreeguy.artstation.com/) & [WOLLAND](https://wolland-services.com/)",
+					description: "Splash Art 2nd Place by [MorganFreeguy](https://www.artstation.com/morganfreeguy) & [WOLLAND](https://wolland-services.com/)",
 				},
 				{
 					source: "./assets/splash_art/3.png",
