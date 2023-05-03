@@ -654,10 +654,38 @@ BARS.defineActions(function() {
 						showPresetMenu(event) {
 							new Menu([
 								{
-									name: 'Item',
+									name: 'Main Hand',
 									icon: 'build',
 									click: () => {
 										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
+									}
+								},
+								{
+									name: 'Right Hand',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'rightitem\'';
+									}
+								},
+								{
+									name: 'Left Hand',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'leftitem\'';
+									}
+								},
+								{
+									name: 'Body',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'body\'';
+									}
+								},
+								{
+									name: 'Head',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'head\'';
 									}
 								}
 							]).show(event.target);
