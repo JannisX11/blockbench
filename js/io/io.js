@@ -671,7 +671,7 @@ BARS.defineActions(function() {
 						}
 					}
 				}
-				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
+				if (Format.animation_mode && Format.animation_files && AnimationItem.all.length) {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {

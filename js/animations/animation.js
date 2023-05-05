@@ -959,8 +959,8 @@ const Animator = {
 			Canvas.outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
-			Animation.all[0].select();
+		if (AnimationItem.all.length && !AnimationItem.all.includes(Animation.selected)) {
+			AnimationItem.all[0].select();
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
