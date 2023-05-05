@@ -257,6 +257,11 @@ class ReferenceImage {
 			pos_y *= preview.camOrtho.backgroundHandle[1].n === true ? 1 : -1;
 			pos_x += preview.width/2;
 			pos_y += preview.height/2;
+
+			if (quad_previews.enabled) {
+				pos_x += preview.node.parentElement.offsetLeft;
+				pos_y += preview.node.parentElement.offsetTop;
+			}
 				
 			pos_x += (this.position[0] * zoom) - (this.size[0] * zoom) / 2;
 			pos_y += (this.position[1] * zoom) - (this.size[1] * zoom) / 2;
@@ -292,6 +297,7 @@ class ReferenceImage {
 			let corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
 			let sign_x = direction[1] == 'e' ? 1 : -1;
 			let sign_y = direction[0] == 's' ? 1 : -1;
+			let multiplier = 1 / this.getZoomLevel();
 			addEventListeners(corner, 'mousedown touchstart', e1 => {
 				convertTouchEvent(e1);
 
@@ -301,8 +307,8 @@ class ReferenceImage {
 				let move = (e2) => {
 					convertTouchEvent(e2);
 					let offset = [
-						(e2.clientX - e1.clientX),
-						(e2.clientY - e1.clientY),
+						(e2.clientX - e1.clientX) * multiplier,
+						(e2.clientY - e1.clientY) * multiplier,
 					];
 					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
