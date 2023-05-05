@@ -301,6 +301,7 @@ class ModelProject {
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};
+		Animator.MolangParser.context = {};
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
 		Format = 0;

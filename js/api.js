@@ -202,7 +202,7 @@ const Blockbench = {
 					text: {full_width: true, placeholder, value}
 				},
 				onConfirm({text}) {
-					callback(text);
+					if (callback) callback(text);
 					resolve(text);
 				},
 				onOpen() {

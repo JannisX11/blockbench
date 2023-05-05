@@ -477,7 +477,13 @@ class Animation extends AnimationItem {
 		}
 	}
 	get time() {
-		return (this.length && this.loop === 'loop') ? ((Timeline.time - 0.001) % this.length) + 0.001 : Timeline.time;
+		if (!this.length || this.loop == 'once') {
+			return Timeline.time;
+		} else if (this.loop === 'loop') {
+			return ((Timeline.time - 0.001) % this.length) + 0.001;
+		} else if (this.loop === 'hold') {
+			return Math.min(Timeline.time, this.length);
+		}
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -1116,6 +1122,9 @@ const Animator = {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			animations.forEach(animation => {
+				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
+					return;
+				}
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
 				animation.getBoneAnimator(node).displayFrame(multiplier);

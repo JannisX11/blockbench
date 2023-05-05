@@ -1,4 +1,4 @@
-
+Animator.MolangParser.context = {};
 Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
@@ -8,7 +8,7 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Animation.selected ? Animation.selected.time : Timeline.time;
+		return Animator.MolangParser.context.animation ? Animator.MolangParser.context.animation.time : Timeline.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;
@@ -67,6 +67,9 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
 	get 'query.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
+	get 'context.is_first_person'() {
 		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
 	},
 	get 'time'() {
