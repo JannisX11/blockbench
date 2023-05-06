@@ -115,9 +115,8 @@ class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	//Sorting
-	sortInBefore(element, index_mod) {
+	sortInBefore(element, index_mod = 0) {
 		var index = -1;
-		index_mod = index_mod || 0;
 
 		if (element.parent === 'root') {
 			index = Outliner.root.indexOf(element)
