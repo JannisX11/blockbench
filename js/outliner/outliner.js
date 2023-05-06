@@ -519,6 +519,12 @@ class OutlinerElement extends OutlinerNode {
 			console.warn('You cannot modify this')
 		}
 	})
+	OutlinerElement.hasAny = function() {
+		return Outliner.elements.length > 0 && Outliner.elements.findIndex(element => element instanceof this) !== -1;
+	}
+	OutlinerElement.hasSelected = function() {
+		return Outliner.selected.length > 0 && Outliner.selected.findIndex(element => element instanceof this) !== -1;
+	}
 	OutlinerElement.types = {};
 
 
