@@ -489,6 +489,7 @@ const Settings = {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
 		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});

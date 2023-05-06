@@ -623,7 +623,11 @@ class NodePreviewController extends EventSystem {
 	updateSelection(element) {
 		let {mesh} = element;
 		if (mesh && mesh.outline) {
-			mesh.outline.visible = element.selected
+			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
+				mesh.outline.visible = false;
+			} else {
+				mesh.outline.visible = element.selected;
+			}
 		}
 
 		this.dispatchEvent('update_selection', {element});

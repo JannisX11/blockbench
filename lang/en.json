@@ -891,6 +891,8 @@
 	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.pick_color_opacity": "Pick Color Opacity",
 	"settings.pick_color_opacity.desc": "Pick the color opacity with the Color Picker and set it as brush opacity",
+	"settings.outlines_in_paint_mode": "Selection Outlines in Paint Mode",
+	"settings.outlines_in_paint_mode.desc": "Display element selection outlines while in paint mode",
 	"settings.paint_through_transparency": "Paint Through Transparency",
 	"settings.paint_through_transparency.desc": "Paint through transparent pixels when Lock Alpha Channel is enabled",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
