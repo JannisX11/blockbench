@@ -1203,6 +1203,85 @@ skin_presets.bat = {
 		]
 	}`
 };
+skin_presets.bed = {
+	display_name: 'Bed',
+	model_bedrock: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, -16, -9], "size": [16, 32, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -3], "size": [3, 3, 3], "uv": [0, 44]},
+					{"origin": [5, 13, -3], "size": [3, 3, 3], "uv": [12, 38]},
+					{"origin": [-8, 13, -3], "size": [3, 3, 3], "uv": [0, 38]},
+					{"origin": [5, -16, -3], "size": [3, 3, 3], "uv": [12, 44]}
+				]
+			},
+			{
+				"name": "Layer",
+				"parent": "bed",
+				"cubes": [
+					{"origin": [-5, 15, -3], "size": [10, 1, 3], "uv": [38, 2], "layer": true},
+					{"origin": [-5, -16, -3], "size": [10, 1, 3], "uv": [38, 38], "layer": true},
+					{"origin": [7, -13, -3], "size": [1, 26, 3], "uv": [52, 6], "layer": true},
+					{"origin": [-8, -13, -3], "size": [1, 26, 3], "uv": [44, 6], "layer": true}
+				]
+			}
+		]
+	}`,
+	model_java: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0, -9], "size": [16, 16, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -9], "size": [16, 16, 6], "uv": [0, 22]}
+				]
+			},
+			{
+				"name": "leg0",
+				"pivot": [-6.5, 1.5, -14.5],
+				"cubes": [
+					{"origin": [-8, 0, -16], "size": [3, 3, 3], "uv": [50, 0]}
+				]
+			},
+			{
+				"name": "leg1",
+				"pivot": [-6.5, 1.5, 14.5],
+				"rotation": [0, 90, 0],
+				"cubes": [
+					{"origin": [-8, 0, 13], "size": [3, 3, 3], "uv": [50, 6]}
+				]
+			},
+			{
+				"name": "leg2",
+				"pivot": [6.5, 1.5, -14.5],
+				"rotation": [0, -90, 0],
+				"cubes": [
+					{"origin": [5, 0, -16], "size": [3, 3, 3], "uv": [50, 12]}
+				]
+			},
+			{
+				"name": "leg3",
+				"pivot": [6.5, 1.5, 14.5],
+				"rotation": [0, 180, 0],
+				"cubes": [
+					{"origin": [5, 0, 13], "size": [3, 3, 3], "uv": [50, 18]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.bee = {
 	display_name: 'Bee',
 	model: `{
