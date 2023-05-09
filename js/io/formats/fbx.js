@@ -1322,7 +1322,8 @@ function compileBinaryFBXModel(top_level_object) {
 		} else {
 			tuple = [];
 		}
-		let is_data_array = object._values && object.a && object._type != undefined;
+		let is_data_array = object.hasOwnProperty('_values') && object.hasOwnProperty('a') && 
+								object._type != undefined;
 
 		// EndOffset, change later
 		let end_offset_index = writer.cursor;
