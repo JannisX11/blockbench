@@ -414,7 +414,7 @@ const MenuBar = {
 			'edit_reference_images',
 			'_',
 			'toggle_sidebars',
-			'toggle_quad_view',
+			'split_screen',
 			'hide_everything_except_selection',
 			'focus_on_selection',
 			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: []},

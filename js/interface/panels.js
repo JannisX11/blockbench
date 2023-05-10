@@ -617,11 +617,14 @@ function updateInterfacePanels() {
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
-	if (quad_previews.enabled) {
-		$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
-		$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
-		$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
-		$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+
+	let height = document.getElementById('center').clientHeight;
+	height -= Interface.getBottomPanel()?.height || 0;
+	height -= Interface.getTopPanel()?.height || 0;
+	Interface.preview.style.height = height > 0 ? (height + 'px') : '';
+
+	if (Preview.split_screen.enabled) {
+		Preview.split_screen.updateSize()
 	}
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]

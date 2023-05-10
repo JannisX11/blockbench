@@ -77,7 +77,7 @@ function getSelectionCenter(all = false) {
 }
 //Movement
 function moveElementsRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current || !Outliner.selected.length) {
+	if (!Preview.selected || !Outliner.selected.length) {
 		return;
 	}
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
@@ -87,8 +87,8 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	// < >
 	// PageUpDown
 	// ^ v
-	var facing = quad_previews.current.getFacingDirection()
-	var height = quad_previews.current.getFacingHeight()
+	var facing = Preview.selected.getFacingDirection()
+	var height = Preview.selected.getFacingHeight()
 	switch (facing) {
 		case 'north': axes = [0, 2, 1]; break;
 		case 'south': axes = [0, 2, 1]; break;

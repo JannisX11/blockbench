@@ -1221,8 +1221,8 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	if (!display_preview) {
 		display_preview = new Preview({id: 'display'})
 	}
-	if (quad_previews.enabled) {
-		quad_previews.enabled_before = true
+	if (Preview.split_screen.enabled) {
+		Preview.split_screen.before = Preview.split_screen.mode;
 	}
 	display_preview.fullscreen()
 	display_preview.loadAnglePreset(display_angle_preset)
@@ -1270,8 +1270,8 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	$('body').removeClass('display_mode')
 	resizeWindow()
 	ReferenceImage.updateAll()
-	if (quad_previews.enabled_before) {
-		openQuadView()
+	if (Preview.split_screen.before) {
+		Preview.split_screen.setMode(Preview.split_screen.before)
 	}
 	scene.add(Transformer)
 	Canvas.buildGrid()

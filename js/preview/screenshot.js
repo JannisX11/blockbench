@@ -210,7 +210,7 @@ const Screencam = {
 	},
 	// deprecated
 	cleanCanvas(options, cb) {
-		quad_previews.current.screenshot(options, cb)
+		Preview.selected.screenshot(options, cb)
 	},
 	gif_crop: {top: 0, left: 0, right: 0, bottom: 0},
 
@@ -601,14 +601,14 @@ const Screencam = {
 			
 		}
 		if (options.source === 'locked') {
-			var view_pos = new THREE.Vector3().copy(quad_previews.current.camera.position);
-			var view_tar = new THREE.Vector3().copy(quad_previews.current.controls.target);
+			var view_pos = new THREE.Vector3().copy(Preview.selected.camera.position);
+			var view_tar = new THREE.Vector3().copy(Preview.selected.controls.target);
 		}
 		Screencam.timelapse_loop = setInterval(function() {
 			index++;
 
 			if (!isApp || options.source === 'preview' || options.source === 'locked') {
-				var scope = quad_previews.current;
+				var scope = Preview.selected;
 				if (options.source === 'locked') {
 					var old_pos = new THREE.Vector3().copy(scope.camera.position);
 					var old_tar = new THREE.Vector3().copy(scope.controls.target);

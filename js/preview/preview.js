@@ -5,7 +5,6 @@ var scene,
 	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
-var quad_previews = {};
 const three_grid = new THREE.Object3D();
 const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
@@ -1058,9 +1057,6 @@ class Preview {
 		Transformer.orbit_controls = this.controls
 		Transformer.setCanvas(this.canvas)
 		main_preview.controls.updateSceneScale()
-		if (quad_previews) {
-			quad_previews.hovered = this;
-		}
 		if (event && event.type == 'touchstart') {
 			Transformer.simulateMouseDown(event);
 		}
@@ -1316,12 +1312,12 @@ class Preview {
 		return Screencam.screenshotPreview(this, options, cb);
 	}
 	fullscreen() {
-		if (quad_previews.current) {
-			quad_previews.current.controls.stopMovement()
+		if (Preview.selected) {
+			Preview.selected.controls.stopMovement()
 		}
 		Preview.selected = this;
-		quad_previews.enabled = false;
-		$('#preview > .quad_canvas_wrapper, #preview > .single_canvas_wrapper').remove()
+		Preview.split_screen.enabled = false;
+		$('#preview > .split_screen_wrapper, #preview > .single_canvas_wrapper').remove()
 
 		var wrapper = Interface.createElement('div', {class: 'single_canvas_wrapper'});
 		wrapper.append(this.node)
@@ -1345,10 +1341,10 @@ class Preview {
 		return this;
 	}
 	toggleFullscreen() {
-		if (quad_previews.enabled) {
+		if (Preview.split_screen.enabled) {
 			this.fullscreen()
 		} else {
-			openQuadView()
+			Preview.split_screen.setMode(Preview.split_screen.before);
 		}
 	}
 	delete() {
@@ -1429,15 +1425,101 @@ class Preview {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
 		'_',
-		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !ReferenceImageMode.active && !Modes.display && !Animator.open}, click: function() {
-			openQuadView()
-		}},
-		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
+		'split_screen',
+		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
 			preview.fullscreen();
 		}}
 	])
 
 Preview.all = [];
+Preview.split_screen = {
+	enabled: false,
+	mode: 'single',
+	before: null,
+
+	previews: [],
+	lazyLoadPreview(index, camera_preset) {
+		let preview = Preview.split_screen.previews[index];
+		if (!preview) {
+			if (index == 0) {
+				preview = main_preview;
+			} else {
+				preview = new Preview({id: `split_screen_${index}`});
+			}
+			if (camera_preset) {
+				preview.setDefaultAnglePreset(camera_preset);
+			}
+			Preview.split_screen.previews[index] = preview;
+		}
+		return preview;
+	},
+
+	/**
+	 * 
+	 * @param {'single'|'double_horizontal'|'double_vertical'|'quad'|'triple_left'|'triple_right'|'triple_top'|'triple_bottom'} mode 
+	 * @returns 
+	 */
+	setMode(mode = 'single') {
+		Preview.split_screen.mode = mode;
+		if (mode == 'single') {
+			Preview.split_screen.enabled = false;
+			Interface.preview.setAttribute('split_screen_mode', null);
+			Preview.selected.fullscreen();
+			updateInterface()
+			ReferenceImage.updateAll();
+			return;
+		}
+		Preview.split_screen.enabled = true;
+
+		$('#preview .single_canvas_wrapper').remove();
+		$('#preview .split_screen_wrapper').remove();
+
+		let previews;
+		if (mode.startsWith('double')) {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[5]),
+			];
+
+		} else if (mode.startsWith('triple')) {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[3]),
+				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[5]),
+			];
+
+		} else if (mode == 'quad') {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[1]),
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[3]),
+				Preview.split_screen.lazyLoadPreview(3, DefaultCameraPresets[5]),
+			];
+		}
+		previews.forEach((preview, i) => {
+			let wrapper = Interface.createElement('div', {class: `split_screen_wrapper split_screen_wrapper_${i}`}, preview.node);
+			wrapper.style.gridArea = `preview_${i}`
+			Interface.preview.append(wrapper);
+
+			preview.node.querySelectorAll('.quad_view_only').forEach(child => {
+				child.style.display = 'block';
+			})
+			if (preview !== main_preview) {
+				preview.node.querySelectorAll('.one_is_enough').forEach(child => {
+					child.style.display = 'none';
+				})
+			}
+		})
+		Interface.preview.setAttribute('split_screen_mode', mode);
+	
+		updateInterface()
+		ReferenceImage.updateAll();
+	},
+	updateSize() {
+		Interface.preview.style.setProperty('--split-x', Math.roundTo(Interface.data.quad_view_x, 2) + '%');
+		Interface.preview.style.setProperty('--split-y', Math.roundTo(Interface.data.quad_view_y, 2) + '%');
+	}
+}
 
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
@@ -1448,40 +1530,6 @@ Blockbench.on('update_camera_position', e => {
 		}
 	})
 })
-
-function openQuadView() {
-	if (quad_previews.setup) quad_previews.setup();
-
-	quad_previews.enabled = true;
-
-	$('#preview .single_canvas_wrapper').remove();
-	
-	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
-	Interface.preview.append(wrapper1)
-	
-	var wrapper2 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_y'}, quad_previews.two.node);
-	Interface.preview.append(wrapper2)
-	
-	var wrapper3 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x'}, quad_previews.three.node);
-	Interface.preview.append(wrapper3)
-	
-	var wrapper4 = Interface.createElement('div', {class: 'quad_canvas_wrapper'}, quad_previews.four.node);
-	Interface.preview.append(wrapper4)
-
-	Preview.all.forEach(preview => {
-		if (preview.offscreen) return;
-		preview.node.querySelectorAll('.quad_view_only').forEach(child => {
-			child.style.display = 'block';
-		})
-		if (preview !== main_preview) {
-			preview.node.querySelectorAll('.one_is_enough').forEach(child => {
-				child.style.display = 'none';
-			})
-		}
-	})
-	updateInterface()
-	ReferenceImage.updateAll();
-}
 
 function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
@@ -1778,24 +1826,6 @@ function initCanvas() {
 	Canvas.gizmos.push(Transformer);
 	main_preview.occupyTransformer()
 
-	quad_previews = {
-		get current() {return Preview.selected},
-		set current(p) {Preview.selected = p},
-
-		one: null,
-		two: main_preview,
-		three: null,
-		four: null,
-		setup() {
-			quad_previews.one = new Preview({id: 'one'}).setDefaultAnglePreset(DefaultCameraPresets[1]);
-			quad_previews.three = new Preview({id: 'three'}).setDefaultAnglePreset(DefaultCameraPresets[3]);
-			quad_previews.four = new Preview({id: 'four'}).setDefaultAnglePreset(DefaultCameraPresets[5]);
-			quad_previews.setup = null;
-		},
-		get current() {
-			return Preview.selected;
-		}
-	}
 
 	Canvas.setup();
 	CustomTheme.updateColors();
@@ -1813,8 +1843,8 @@ function animate() {
 			AnimationController.selected.updatePreview();
 		}
 	}
-	if (quad_previews.current) {
-		WinterskyScene.updateFacingRotation(quad_previews.current.camera);
+	if (Preview.selected) {
+		WinterskyScene.updateFacingRotation(Preview.selected.camera);
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -1931,13 +1961,29 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']}
 	})
 
-	new Action('toggle_quad_view', {
+	function getRotatedIcon(key, angle) {
+		let icon_node = Blockbench.getIconNode(key);
+		icon_node.style.transform = `rotate(${angle}deg)`;
+		return icon_node;
+	}
+	new BarSelect('split_screen', {
 		icon: 'grid_view',
 		category: 'view',
 		condition: () => !Modes.display && !Format.image_editor,
-		keybind: new Keybind({key: 9}),
-		click: function () {
-			main_preview.toggleFullscreen()
+		value: 'single',
+		icon_mode: true,
+		options: {
+			single: {name: true, icon: 'video_label'},
+			double_horizontal: {name: true, icon: 'splitscreen'},
+			double_vertical: {name: true, icon: getRotatedIcon('splitscreen', 90)},
+			quad: {name: true, icon: 'grid_view', condition: !Blockbench.isMobile},
+			triple_left: {name: true, icon: 'space_dashboard', condition: !Blockbench.isMobile},
+			triple_right: {name: true, icon: getRotatedIcon('space_dashboard', 180), condition: !Blockbench.isMobile},
+			triple_top: {name: true, icon: getRotatedIcon('space_dashboard', 90), condition: !Blockbench.isMobile},
+			triple_bottom: {name: true, icon: getRotatedIcon('space_dashboard', 270), condition: !Blockbench.isMobile},
+		},
+		onChange() {
+			Preview.split_screen.setMode(this.value);
 		}
 	})
 	new Action('focus_on_selection', {
@@ -1951,7 +1997,7 @@ BARS.defineActions(function() {
 				UVEditor.focusOnSelection()
 
 			} else {
-				let preview = quad_previews.current;
+				let preview = Preview.selected;
 				if (!preview.controls.enabled) return;
 				let center = new THREE.Vector3();
 				if (!Modes.display) {
@@ -1985,7 +2031,7 @@ BARS.defineActions(function() {
 		condition: _ => (!ReferenceImageMode.active || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);
+			Preview.selected.setProjectionMode(!Preview.selected.isOrtho, true);
 		}
 	})
 	new Action('camera_initial', {
@@ -1997,7 +2043,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 97}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[0])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[0])
 		}
 	})
 	new Action('camera_top', {
@@ -2009,7 +2055,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 104}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[1])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[1])
 		}
 	})
 	new Action('camera_bottom', {
@@ -2021,7 +2067,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 98}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[2])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[2])
 		}
 	})
 	new Action('camera_south', {
@@ -2033,7 +2079,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 100}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[3])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[3])
 		}
 	})
 	new Action('camera_north', {
@@ -2045,7 +2091,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 102}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[4])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[4])
 		}
 	})
 	new Action('camera_east', {
@@ -2057,7 +2103,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 103}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[5])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[5])
 		}
 	})
 	new Action('camera_west', {
@@ -2069,7 +2115,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 105}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[6])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[6])
 		}
 	})
 })

@@ -205,30 +205,43 @@ const Interface = {
 			}
 		}),
 		quad_view_x: new ResizeLine('quad_view_x', {
-			condition() {return quad_previews.enabled},
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
 			get() {return Interface.data.quad_view_x},
-			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
+			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
 			position() {
-				var p = document.getElementById('preview')
-				this.setPosition({
-					top: 32,
-					bottom: p ? window.innerHeight - (p.clientHeight + $(p).offset().top) : 0,
-					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
+				let p = Interface.preview;
+				if (!p) return;
+				let top = 32;
+				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
+				let left = Interface.left_bar_width + p.clientWidth*Interface.data.quad_view_x/100;
+				if (Preview.split_screen.mode == 'triple_top') {
+					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
+				} else if (Preview.split_screen.mode == 'triple_bottom') {
+					bottom = bottom + p.clientHeight * (1 - Interface.data.quad_view_y/100);
 				}
-			)}
+				this.setPosition({top, bottom, left});
+			}
 		}),
 		quad_view_y: new ResizeLine('quad_view_y', {
 			horizontal: true,
-			condition() {return quad_previews.enabled},
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_vertical'},
 			get() {return Interface.data.quad_view_y},
 			set(o, diff) {
-				Interface.data.quad_view_y = limitNumber(o + diff/document.getElementById('preview').clientHeight*100, 5, 95)
+				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
 			},
-			position() {this.setPosition({
-				left: Interface.left_bar_width+2,
-				right: Interface.right_bar_width+2,
-				top: Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100
-			})}
+			position() {
+				let p = Interface.preview;
+				if (!p) return;
+				let left = Interface.left_bar_width+2;
+				let right = Interface.right_bar_width+2;
+				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
+				if (Preview.split_screen.mode == 'triple_left') {
+					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
+				} else if (Preview.split_screen.mode == 'triple_right') {
+					right = right + p.clientWidth * (1 - Interface.data.quad_view_x/100);
+				}
+				this.setPosition({left, right, top});
+			}
 		}),
 		top: new ResizeLine('top', {
 			horizontal: true,

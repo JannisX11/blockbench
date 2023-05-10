@@ -775,11 +775,11 @@ class Texture {
 		}
 		if (this.render_mode == 'layered') {
 			Canvas.updatePaintingGrid()
-			updateSelection()
 		} else if (Format.single_texture && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}
+		updateSelection()
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
