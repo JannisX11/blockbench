@@ -1736,31 +1736,29 @@ function loadTextureDraggable() {
 							Undo.finishEdit('Reorder textures')
 						} else if ($('#cubes_list:hover').length) {
 
-							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							let target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
 							$('.drag_hover').removeClass('drag_hover');
 							if (!target_node) return;
 							let uuid = target_node.id;
-							var target = OutlinerNode.uuids[uuid];
-
-							var array = [];
-		
+							let target = OutlinerNode.uuids[uuid];
+							
+							let array = [];
 							if (target.type === 'group') {
-								target.forEachChild(function(cube) {
-									array.push(cube)
-								}, [Cube, Mesh])
+								target.forEachChild((element) => {
+									array.push(element);
+								})
 							} else {
 								array = selected.includes(target) ? selected : [target];
 							}
+							array = array.filter(element => element.applyTexture);
+
 							Undo.initEdit({elements: array, uv_only: true})
-							array.forEach(function(cube) {
-								for (var face in cube.faces) {
-									cube.faces[face].texture = tex.uuid;
-								}
-							})
-							Undo.finishEdit('Drop texture')
+							array.forEach(element => {
+								element.applyTexture(tex, true);
+							});
+							Undo.finishEdit('Apply texture')
 		
 							UVEditor.loadData()
-							Canvas.updateAllFaces()
 						} else if ($('#uv_viewport:hover').length) {
 							UVEditor.applyTexture(tex);
 						}
