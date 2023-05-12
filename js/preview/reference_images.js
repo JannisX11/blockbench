@@ -543,8 +543,8 @@ class ReferenceImage {
 			case 'global': ReferenceImage.global.remove(this); break;
 			case 'built_in': ReferenceImage.built_in.remove(this); break;
 		}
-		this.removed = true;
 		this.save();
+		this.removed = true;
 		this.node.remove();
 	}
 	changeLayer(layer) {
@@ -783,6 +783,7 @@ const ReferenceImageMode = {
 		Interface.work_screen.classList.add('reference_image_mode');
 		Interface.work_screen.append(ReferenceImageMode.toolbar.node);
 		ReferenceImage.updateAll();
+		BARS.updateConditions();
 		setTimeout(_ => {
 			if (!ReferenceImage.selected && ReferenceImage.active[0]) {
 				ReferenceImage.active[0].select();
@@ -795,6 +796,7 @@ const ReferenceImageMode = {
 		Interface.work_screen.classList.remove('reference_image_mode');
 		ReferenceImageMode.toolbar.node.remove();
 		ReferenceImage.updateAll();
+		BARS.updateConditions();
 	},
 	async importReferences(files) {
 		let save_mode = await new Promise(resolve => {
