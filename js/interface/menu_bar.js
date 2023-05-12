@@ -459,6 +459,7 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
+				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()
