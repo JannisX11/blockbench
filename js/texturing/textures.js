@@ -783,6 +783,8 @@ class Texture {
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
+		Blockbench.dispatchEvent('select_texture', {texture: this});
+		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
 	add(undo) {
@@ -827,6 +829,7 @@ class Texture {
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		delete Project.materials[this.uuid];
+		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
@@ -1772,7 +1775,8 @@ function unselectTextures() {
 		s.selected = false;
 	})
 	Texture.selected = undefined;
-	Canvas.updateLayeredTextures()
+	Canvas.updateLayeredTextures();
+	Blockbench.dispatchEvent('update_texture_selection');
 }
 function getTexturesById(id) {
 	if (id === undefined) return;
