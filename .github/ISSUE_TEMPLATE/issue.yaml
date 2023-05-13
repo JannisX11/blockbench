@@ -13,9 +13,15 @@ body:
     value: |
       Please make sure to provide the following information:
 - type: textarea
-  id: details
+  id: description
   attributes:
-    label: Detailed description of your issue
+    label: What are you trying to do, and what do you expect to happen?
+  validations:
+    required: true
+- type: textarea
+  id: error
+  attributes:
+    label: What happens instead?
   validations:
     required: true
 - type: input
@@ -41,3 +47,7 @@ body:
     label: Operating System
   validations:
     required: true
+- type: input
+  id: plugins
+  attributes:
+    label: Installed Blockbench plugins
