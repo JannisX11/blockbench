@@ -1349,6 +1349,7 @@ class Preview {
 	}
 	delete() {
 		this.renderer.dispose();
+		this.renderer.forceContextLoss()
 		this.canvas.remove();
 		this.node.remove();
 		Blockbench.removeDragHandler('preview_'+this.id)
