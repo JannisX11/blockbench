@@ -21,6 +21,7 @@ class UndoSystem {
 		}
 		this.startChange(amended);
 		this.current_save = new UndoSystem.save(aspects)
+		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
 	finishEdit(action, aspects) {

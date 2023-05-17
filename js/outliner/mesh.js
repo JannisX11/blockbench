@@ -713,6 +713,7 @@ class Mesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		'_',
 		'rename',
+		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -848,9 +849,12 @@ new NodePreviewController(Mesh, {
 
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
-				face.vertices.forEach((key, i) => {
-					position_array.push(...element.vertices[key])
-					face_indices[key] = index_offset + i;
+				face.vertices.forEach((vkey, i) => {
+					if (!element.vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					position_array.push(...element.vertices[vkey])
+					face_indices[vkey] = index_offset + i;
 				})
 
 				let normal = face.getNormal(true);
