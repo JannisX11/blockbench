@@ -1178,6 +1178,9 @@
 	#amend_edit_menu > div.amend_edit_line .nslide_tool {
 		float: none;
 	}
+	#amend_edit_menu > div.amend_edit_line > input {
+		width: 73px;
+	}
 	#amend_edit_menu > div.amend_edit_line > label {
 		padding: 4px 6px;
 	}
