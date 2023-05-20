@@ -1000,8 +1000,8 @@ const Canvas = {
 				if (Group.selected.visibility) {
 					Group.selected.mesh.add(Canvas.pivot_marker)
 				}
-			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
-				let selected_elements = [...Cube.selected, ...Mesh.selected];
+			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
+				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];
 				if (selected_elements.length === 1) {
 					let mesh = selected_elements[0].mesh
 					if (mesh) {
