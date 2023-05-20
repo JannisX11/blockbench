@@ -1358,6 +1358,12 @@
 		stroke-width: 2px;
 		fill: none;
 	}
+	#timeline_graph_editor svg .main_graph:not(.selected) {
+		opacity: 0.25;
+	}
+	#timeline_graph_editor svg .loop_graph:not(.selected) {
+		opacity: 0.25;
+	}
 	#timeline_graph_editor .keyframe {
 		height: 16px;
 		width: 11px;

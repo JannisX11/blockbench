@@ -599,6 +599,8 @@ const Timeline = {
 		'bring_up_all_animations',
 		'clear_timeline',
 		'_',
+		'graph_editor_other_graphs',
+		'graph_editor_include_other_graphs',
 		'graph_editor_zero_line',
 	])
 }
@@ -657,9 +659,11 @@ Interface.definePanels(() => {
 				graph_editor_axis: 'x',
 				graph_offset: 200,
 				graph_size: 200,
+				show_other_graphs: true,
+				include_other_graphs: true,
 				show_zero_line: true,
 				show_all_handles: !Settings.get('only_selected_bezier_handles'),
-				loop_graph: '',
+				loop_graphs: [''],
 
 				channels: {
 					rotation: true,
@@ -680,11 +684,11 @@ Interface.definePanels(() => {
 					let height = this.graph_offset - this.graph_size;
 					return `M0 ${height} L10000 ${height}`
 				},
-				graph() {
+				graphs() {
 					let ba = this.graph_editor_animator;
 					if (!ba || !ba[this.graph_editor_channel] || !ba[this.graph_editor_channel].length) {
-						this.loop_graph = '';
-						return '';
+						this.loop_graphs.empty();
+						return [];
 					}
 					let original_time = Timeline.time;
 					let step = 2;
@@ -693,6 +697,7 @@ Interface.definePanels(() => {
 					let keyframes = ba[this.graph_editor_channel];
 					let points = [];
 					let loop_points = [];
+
 					let min = this.show_zero_line ? -1 : 10000,
 						max = this.show_zero_line ? 1 : -10000;
 
@@ -704,16 +709,26 @@ Interface.definePanels(() => {
 							Timeline.time = snap_kf.time;
 						}
 						Animator.resetLastValues();
-						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+						let values = [
+							(this.show_other_graphs || this.graph_editor_axis === 'x') ? ba.interpolate(this.graph_editor_channel, false, 'x') : 0,
+							(this.show_other_graphs || this.graph_editor_axis === 'y') ? ba.interpolate(this.graph_editor_channel, false, 'y') : 0,
+							(this.show_other_graphs || this.graph_editor_axis === 'z') ? ba.interpolate(this.graph_editor_channel, false, 'z') : 0
+						];
+						let value = values[this.graph_editor_axis_number];
 						if (snap_kf) snap_kf.display_value = value;
 						
 						if (Timeline.time > Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
 							if (points.length && !loop_points.length) loop_points.push(points.last())
-							loop_points.push(value);
+							loop_points.push(values);
 						} else {
-							points.push(value);
-							min = Math.min(min, value);
-							max = Math.max(max, value);
+							points.push(values);
+							if (this.show_other_graphs && this.include_other_graphs) {
+								min = Math.min(min, ...values);
+								max = Math.max(max, ...values);
+							} else {
+								min = Math.min(min, value);
+								max = Math.max(max, value);
+							}
 						}
 					}
 					keyframes.forEach(kf => {
@@ -734,20 +749,39 @@ Interface.definePanels(() => {
 					let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
 					this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
 
-					let string = '';
-					points.forEach((value, i) => {
-						string += `${string.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+					let graphs = this.show_other_graphs ? ['', '', ''] : [''];
+					points.forEach((values, i) => {
+						let command = i == 0 ? 'M' : 'L';
+						if (this.show_other_graphs) {
+							values.forEach((value, axis) => {
+								graphs[axis] += `${command}${i*step} ${this.graph_offset - value * this.graph_size} `;
+							})
+						} else {
+							graphs[0] += `${command}${i*step} ${this.graph_offset - values[this.graph_editor_axis_number] * this.graph_size} `;
+						}
 					})
 
-					this.loop_graph = '';
+					this.loop_graphs.empty();
 					if (loop_points.length) {
-						loop_points.forEach((value, i) => {
+						if (this.show_other_graphs) {
+							this.loop_graphs.push('', '', '');
+						} else {
+							this.loop_graphs.push('');
+						}
+						loop_points.forEach((values, i) => {
+							let command = i == 0 ? 'M' : 'L';
 							i = i + points.length - 1;
-							this.loop_graph += `${this.loop_graph.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+							if (this.show_other_graphs) {
+								values.forEach((value, axis) => {
+									this.loop_graphs[axis] += `${command}${i*step} ${this.graph_offset - value * this.graph_size} `;
+								})
+							} else {
+								this.loop_graphs[0] += `${command}${i*step} ${this.graph_offset - values[this.graph_editor_axis_number] * this.graph_size} `;
+							}
 						})
 					}
 
-					return string;
+					return graphs;
 				},
 				graph_editor_axis_number() {
 					return getAxisNumber(this.graph_editor_axis)
@@ -1236,7 +1270,8 @@ Interface.definePanels(() => {
 					return range;
 				},
 				clamp: Math.clamp,
-				trimFloatNumber
+				trimFloatNumber,
+				getAxisLetter
 			},
 			watch: {
 				size() {this.updateTimecodes()},
@@ -1378,8 +1413,28 @@ Interface.definePanels(() => {
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
-									<path :d="loop_graph" class="loop_graph" style="stroke: var(--color-grid);"></path>
-									<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
+
+									<path v-for="(loop_graph, i) in loop_graphs"
+										:d="loop_graph"
+										class="loop_graph"
+										:class="{selected: loop_graphs.length == 0 || i == graph_editor_axis_number}"
+										style="stroke: var(--color-grid);"
+									></path>
+									<path v-if="graphs.length == 3"
+										:d="graphs[(graph_editor_axis_number+1) % 3]"
+										class="main_graph"
+										:style="{stroke: 'var(--color-axis-' + getAxisLetter((graph_editor_axis_number+1) % 3) + ')'}"
+									></path>
+									<path v-if="graphs.length == 3"
+										:d="graphs[(graph_editor_axis_number+2) % 3]"
+										class="main_graph"
+										:style="{stroke: 'var(--color-axis-' + getAxisLetter((graph_editor_axis_number+2) % 3) + ')'}"
+									></path>
+									<path
+										:d="graphs[graphs.length == 3 ? graph_editor_axis_number : 0]"
+										class="main_graph selected"
+										:style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"
+									></path>
 								</svg>
 								<template v-if="graph_editor_animator">
 									<div
@@ -1444,6 +1499,24 @@ BARS.defineActions(function() {
 			) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
+		}
+	})
+	new Toggle('graph_editor_other_graphs', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open},
+		default: true,
+		onChange(state) {
+			Timeline.vue.show_other_graphs = state;
+		}
+	})
+	new Toggle('graph_editor_include_other_graphs', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open && Timeline.vue.show_other_graphs},
+		default: true,
+		onChange(state) {
+			Timeline.vue.include_other_graphs = state;
 		}
 	})
 	new Toggle('graph_editor_zero_line', {
