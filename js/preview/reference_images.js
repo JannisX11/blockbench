@@ -104,6 +104,7 @@ class ReferenceImage {
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
+		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -111,6 +112,7 @@ class ReferenceImage {
 	}
 	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
+		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
 		this.scope = 'global';
 		this.update();
 		if (save) this.save();
