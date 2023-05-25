@@ -7,6 +7,7 @@ body:
     value: |
       - Before you report an issue, check if if has already been reported.
       - Also check if you are using the latest version of Blockbench.
+      - Please only report one issue per issue.
       - If applicable, go to Help > Developer > Open Dev Tools. Switch to the Console tab. If there are any (red) error messages, please attach a screenshot of them.
 - type: markdown
   attributes:
