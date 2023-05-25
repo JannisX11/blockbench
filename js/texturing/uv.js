@@ -2133,6 +2133,9 @@ Interface.definePanels(function() {
 							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
 							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 							this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
+							if (wrapper.firstChild) {
+								wrapper.firstChild.remove();
+							}
 							wrapper.append(this.texture.canvas);
 						})
 					}
