@@ -104,7 +104,7 @@ BARS.defineActions(function() {
 		title: 'action.add_mesh',
 		form: {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
-				cube: 'dialog.add_primitive.shape.cube',
+				cuboid: 'dialog.add_primitive.shape.cube',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
 				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
@@ -115,8 +115,8 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cube', 'pyramid', 'plane'].includes(shape)},
-			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'pyramid', 'plane'].includes(shape)},
+			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
@@ -321,7 +321,7 @@ BARS.defineActions(function() {
 						}
 					}
 				}
-				if (result.shape == 'cube') {
+				if (result.shape == 'cuboid') {
 					let r = result.diameter/2;
 					let h = result.height;
 					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
@@ -391,7 +391,7 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},

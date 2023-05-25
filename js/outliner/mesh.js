@@ -894,7 +894,7 @@ new NodePreviewController(Mesh, {
 
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
-		updateCubeHighlights()
+		Mesh.preview_controller.updateHighlight(element);
 
 		if (Modes.paint) {
 			Mesh.preview_controller.updatePaintingGrid(element);

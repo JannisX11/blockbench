@@ -447,7 +447,7 @@ class Tool extends Action {
 		}
 		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
 			Project.view_mode = 'textured';
-			Canvas.updateAllFaces()
+			BarItems.view_mode.change('textured');
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options')
