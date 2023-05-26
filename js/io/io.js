@@ -608,7 +608,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
 		condition: () => Project,
-		click: async function() {
+		click: async function(event) {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
@@ -695,6 +695,7 @@ BARS.defineActions(function() {
 					Project.saved = false;
 				}*/
 			}
+			Blockbench.dispatchEvent('save_model_action', {event});
 		}
 	})
 	if (!isApp) {
