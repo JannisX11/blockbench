@@ -359,6 +359,14 @@ const MenuBar = {
 			condition: {modes: ['animate']}
 		})
 
+		new BarMenu('timeline', Timeline.menu.structure, {
+			name: 'panel.timeline',
+			condition: {modes: ['animate'], method: () => !AnimationController.selected},
+			onOpen() {
+				setActivePanel('timeline');
+			}
+		})
+
 		new BarMenu('display', [
 			'copy',
 			'paste',
