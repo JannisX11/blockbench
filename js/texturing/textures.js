@@ -1514,6 +1514,9 @@ class Texture {
 				}
 			},
 			'_',
+			'copy',
+			'duplicate',
+			'_',
 			{
 				icon: 'edit',
 				name: 'menu.texture.edit_externally',

@@ -1981,9 +1981,13 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => {
+					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
+						|| (Prop.active_panel == 'textures' && Texture.selected)
+						|| (Modes.edit && (selected.length || Group.selected));
+				},
 				keybind: new Keybind({key: 'd', ctrl: true}),
-				click: function () {
+				click() {
 					if (Modes.animate) {
 						if (Animation.selected && Prop.active_panel == 'animations') {
 							var copy = Animation.selected.getUndoCopy();
@@ -2012,6 +2016,14 @@ const BARS = {
 							Undo.finishEdit('Duplicate animation controller state');
 
 						}
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
+						let copy = Texture.selected.getUndoCopy();
+						delete copy.path;
+						copy.mode = 'bitmap';
+						copy.saved = false;
+						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
+						new Texture(copy).fillParticle().load().add(true);
+
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;
 						Undo.initEdit({outliner: true, elements: [], selection: true});
