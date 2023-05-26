@@ -823,6 +823,26 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
 		}
 	})
+	new Action('switch_face_crease', {
+		icon: 'signal_cellular_off',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().find(fkey => Mesh.selected[0].faces[fkey].vertices.length == 4))},
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key];
+					if (face.vertices.length == 4 && face.isSelected()) {
+						let new_vertices = face.getSortedVertices().slice();
+						new_vertices.push(new_vertices.shift());
+						face.vertices.replace(new_vertices);
+					}
+				}
+			})
+			Undo.finishEdit('Switch mesh face crease');
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
+		}
+	})
 	new Action('extrude_mesh_selection', {
 		icon: 'upload',
 		category: 'edit',

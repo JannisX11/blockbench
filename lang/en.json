@@ -1343,6 +1343,8 @@
 	"action.convert_to_mesh.desc": "Convert the selected elements into meshes",
 	"action.invert_face": "Invert Face",
 	"action.invert_face.desc": "Invert the selected faces to make them face the opposite direction",
+	"action.switch_face_crease": "Switch Face Crease",
+	"action.switch_face_crease.desc": "Switch in which direction the quad folds in the middle",
 	"action.extrude_mesh_selection": "Extrude Selection",
 	"action.extrude_mesh_selection.desc": "Extrude the selected parts of the mesh",
 	"action.inset_mesh_selection": "Inset Selection",

@@ -705,6 +705,7 @@ class Mesh extends OutlinerElement {
 		'loop_cut',
 		'create_face',
 		'invert_face',
+		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
 		'_',
