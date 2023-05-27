@@ -483,7 +483,7 @@ async function loadInstalledPlugins() {
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
 				} else {
-					Plugins.installed.remove(plugin)
+					Plugins.installed.remove(plugin);
 				}
 
 			} else if (plugin.source == 'url') {
@@ -493,8 +493,12 @@ async function loadInstalledPlugins() {
 				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
 
 			} else {
-				load_counter++;
-				console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`)
+				if (Plugins.all.find(p => p.id == plugin.id)) {
+					load_counter++;
+					console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`);
+				} else {
+					Plugins.installed.remove(plugin);
+				}
 			}
 		})
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)

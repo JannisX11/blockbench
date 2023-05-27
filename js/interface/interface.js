@@ -936,18 +936,7 @@ BARS.defineActions(function() {
 
 			for (let id in Panels) {
 				let panel = Panels[id];
-
-				if (!Interface.data.panels[id]) Interface.data.panels[id] = {};
-				panel.position_data = Interface.data.panels[id];
-				
-				let defaultp = panel.default_position || 0;
-				if (!panel.position_data.slot) 			panel.position_data.slot 			= defaultp.slot || 'left_bar';
-				if (!panel.position_data.float_position)panel.position_data.float_position 	= defaultp.float_position || [0, 0];
-				if (!panel.position_data.float_size) 	panel.position_data.float_size 		= defaultp.float_size || [300, 300];
-				if (!panel.position_data.height) 		panel.position_data.height 			= defaultp.height || 300;
-				if (panel.position_data.folded == undefined) panel.position_data.folded 	= defaultp.folded || false;
-
-				panel.moveTo(panel.slot);
+				panel.resetCustomLayout();
 			}
 
 			Blockbench.dispatchEvent('reset_layout', {});

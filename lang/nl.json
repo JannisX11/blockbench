@@ -1871,5 +1871,6 @@
     "texture.error.too_large": "Resolutie overschrijdt het maximum van %0",
     "dialog.copy_to_clipboard": "Kopieer naar klembord",
     "dialog.open_url": "Open URL",
-    "reference_image.image": "Image"
+    "reference_image.image": "Image",
+    "uv_editor.rotate_uv": "Rotate UV"
 }

@@ -777,7 +777,7 @@ const UVEditor = {
 			plane = new THREE.Plane();
 
 		this.getMappableElements().forEach(obj => {
-			var top2, left2;
+			let height, width;
 			let faces = face_keys || this.getFaces(obj, event);
 			if (obj instanceof Cube) {
 				faces.forEach(function(side) {
@@ -787,21 +787,25 @@ const UVEditor = {
 					face.uv[0] = Math.min(face.uv[0], face.uv[2]);
 					face.uv[1] = Math.min(face.uv[1], face.uv[3]);
 					if (side == 'north' || side == 'south') {
-						left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
-						top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
+						width = obj.size(0);
+						height = obj.size(1);
 					} else if (side == 'east' || side == 'west') {
-						left2 = limitNumber(obj.size('2'), 0, Project.texture_width)
-						top2 = limitNumber(obj.size('1'), 0, Project.texture_height)
+						width = obj.size(2);
+						height = obj.size(1);
 					} else if (side == 'up' || side == 'down') {
-						left2 = limitNumber(obj.size('0'), 0, Project.texture_width)
-						top2 = limitNumber(obj.size('2'), 0, Project.texture_height)
+						width = obj.size(0);
+						height = obj.size(2);
 					}
 					if (face.rotation % 180) {
-						[left2, top2] = [top2, left2];
+						[width, height] = [height, width];
 					}
-					left2 *= UVEditor.getResolution(0, face) / Project.texture_width;
-					top2 *= UVEditor.getResolution(1, face) / Project.texture_height;
-					face.uv_size = [left2, top2];
+					width *= UVEditor.getResolution(0, face) / Project.texture_width;
+					height *= UVEditor.getResolution(1, face) / Project.texture_height;
+					width = Math.clamp(width, 0, Project.texture_width);
+					height = Math.clamp(height, 0, Project.texture_height);
+					face.uv[0] = Math.min(face.uv[0], Project.texture_width - width);
+					face.uv[1] = Math.min(face.uv[1], Project.texture_height - height);
+					face.uv_size = [width, height];
 					if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
 					if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
 				})
@@ -2129,6 +2133,9 @@ Interface.definePanels(function() {
 							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
 							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 							this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
+							if (wrapper.firstChild) {
+								wrapper.firstChild.remove();
+							}
 							wrapper.append(this.texture.canvas);
 						})
 					}

@@ -104,7 +104,7 @@ BARS.defineActions(function() {
 		title: 'action.add_mesh',
 		form: {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
-				cube: 'dialog.add_primitive.shape.cube',
+				cuboid: 'dialog.add_primitive.shape.cube',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
 				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
@@ -115,8 +115,8 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cube', 'pyramid', 'plane'].includes(shape)},
-			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'pyramid', 'plane'].includes(shape)},
+			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
@@ -321,7 +321,7 @@ BARS.defineActions(function() {
 						}
 					}
 				}
-				if (result.shape == 'cube') {
+				if (result.shape == 'cuboid') {
 					let r = result.diameter/2;
 					let h = result.height;
 					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
@@ -391,7 +391,7 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
@@ -420,7 +420,7 @@ BARS.defineActions(function() {
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
@@ -516,7 +516,7 @@ BARS.defineActions(function() {
 		category: 'tools',
 		selectElements: true,
 		modes: ['edit'],
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onCanvasClick(data) {
 			if (!seam_timeout) {
 				seam_timeout = setTimeout(() => {
@@ -545,7 +545,7 @@ BARS.defineActions(function() {
 			divide: true,
 			join: true,
 		},
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onChange({value}) {
 			if (value == 'auto') value = null;
 			Undo.initEdit({elements: Mesh.selected});
@@ -1286,85 +1286,117 @@ BARS.defineActions(function() {
 								}
 							}
 
-						} else if (direction > 2) {
-							// Split tri from edge to edge
+						} else if (face.vertices.length == 3) {
+							if (direction > 2) {
+								// Split tri from edge to edge
 
-							let opposed_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
-							let opposite_vertices = [opposed_vertex, side_vertices[direction % side_vertices.length]];
+								let opposed_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+								let opposite_vertices = [opposed_vertex, side_vertices[direction % side_vertices.length]];
 
-							let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
-							if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
+								let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
+								if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
 
-							let center_vertices = [
-								getCenterVertex(side_vertices),
-								getCenterVertex(opposite_vertices)
-							]
+								let center_vertices = [
+									getCenterVertex(side_vertices),
+									getCenterVertex(opposite_vertices)
+								]
 
-							let c1_uv_coords = [
-								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
-								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
-							];
-							let c2_uv_coords = [
-								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/length),
-								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/length),
-							];
+								let c1_uv_coords = [
+									Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
+								];
+								let c2_uv_coords = [
+									Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/length),
+								];
 
-							let other_quad_vertex = side_vertices.find(vkey => !opposite_vertices.includes(vkey));
-							let other_tri_vertex = side_vertices.find(vkey => opposite_vertices.includes(vkey));
-							let new_face = new MeshFace(mesh, face).extend({
-								vertices: [other_tri_vertex, center_vertices[0], center_vertices[1]],
-								uv: {
-									[other_tri_vertex]: face.uv[other_tri_vertex],
-									[center_vertices[0]]: c1_uv_coords,
-									[center_vertices[1]]: c2_uv_coords,
+								let other_quad_vertex = side_vertices.find(vkey => !opposite_vertices.includes(vkey));
+								let other_tri_vertex = side_vertices.find(vkey => opposite_vertices.includes(vkey));
+								let new_face = new MeshFace(mesh, face).extend({
+									vertices: [other_tri_vertex, center_vertices[0], center_vertices[1]],
+									uv: {
+										[other_tri_vertex]: face.uv[other_tri_vertex],
+										[center_vertices[0]]: c1_uv_coords,
+										[center_vertices[1]]: c2_uv_coords,
+									}
+								})
+								if (new_face.getAngleTo(face) > 90) {
+									new_face.invert();
 								}
-							})
-							if (new_face.getAngleTo(face) > 90) {
-								new_face.invert();
-							}
-							face.extend({
-								vertices: [opposed_vertex, center_vertices[0], center_vertices[1], other_quad_vertex],
-								uv: {
-									[opposed_vertex]: face.uv[opposed_vertex],
-									[center_vertices[0]]: c1_uv_coords,
-									[center_vertices[1]]: c2_uv_coords,
-									[other_quad_vertex]: face.uv[other_quad_vertex],
+								face.extend({
+									vertices: [opposed_vertex, center_vertices[0], center_vertices[1], other_quad_vertex],
+									uv: {
+										[opposed_vertex]: face.uv[opposed_vertex],
+										[center_vertices[0]]: c1_uv_coords,
+										[center_vertices[1]]: c2_uv_coords,
+										[other_quad_vertex]: face.uv[other_quad_vertex],
+									}
+								})
+								if (face.getAngleTo(new_face) > 90) {
+									face.invert();
 								}
-							})
-							if (face.getAngleTo(new_face) > 90) {
-								face.invert();
-							}
-							mesh.addFaces(new_face);
+								mesh.addFaces(new_face);
 
-							// Find next (and previous) face
-							for (let fkey in mesh.faces) {
-								let ref_face = mesh.faces[fkey];
-								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
-								let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
-								if (vertices.length >= 2) {
-									splitFace(ref_face, opposite_vertices, ref_face.vertices.length == 4);
-									break;
-								}
-							}
-
-							if (double_side) {
+								// Find next (and previous) face
 								for (let fkey in mesh.faces) {
 									let ref_face = mesh.faces[fkey];
 									if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
-									let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+									let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
 									if (vertices.length >= 2) {
-										let ref_sorted_vertices = ref_face.getSortedVertices();
-										let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
-										
-										if (ref_opposite_vertices.length == 2) {
-											splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4);
-											break;
+										splitFace(ref_face, opposite_vertices, ref_face.vertices.length == 4);
+										break;
+									}
+								}
+
+								if (double_side) {
+									for (let fkey in mesh.faces) {
+										let ref_face = mesh.faces[fkey];
+										if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+										let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+										if (vertices.length >= 2) {
+											let ref_sorted_vertices = ref_face.getSortedVertices();
+											let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+											
+											if (ref_opposite_vertices.length == 2) {
+												splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4);
+												break;
+											}
 										}
 									}
 								}
+							} else {
+								let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+
+								let center_vertex = getCenterVertex(side_vertices);
+
+								let c1_uv_coords = [
+									Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
+								];
+
+								let new_face = new MeshFace(mesh, face).extend({
+									vertices: [side_vertices[1], center_vertex, opposite_vertex],
+									uv: {
+										[side_vertices[1]]: face.uv[side_vertices[1]],
+										[center_vertex]: c1_uv_coords,
+										[opposite_vertex]: face.uv[opposite_vertex],
+									}
+								})
+								face.extend({
+									vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+									uv: {
+										[opposite_vertex]: face.uv[opposite_vertex],
+										[center_vertex]: c1_uv_coords,
+										[side_vertices[0]]: face.uv[side_vertices[0]],
+									}
+								})
+								if (direction % 3 == 2) {
+									new_face.invert();
+									face.invert();
+								}
+								mesh.addFaces(new_face);
 							}
-						} else {
-							let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+						} else if (face.vertices.length == 2) {
 
 							let center_vertex = getCenterVertex(side_vertices);
 
@@ -1374,25 +1406,19 @@ BARS.defineActions(function() {
 							];
 
 							let new_face = new MeshFace(mesh, face).extend({
-								vertices: [side_vertices[1], center_vertex, opposite_vertex],
+								vertices: [side_vertices[1], center_vertex],
 								uv: {
 									[side_vertices[1]]: face.uv[side_vertices[1]],
 									[center_vertex]: c1_uv_coords,
-									[opposite_vertex]: face.uv[opposite_vertex],
 								}
 							})
 							face.extend({
-								vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+								vertices: [center_vertex, side_vertices[0]],
 								uv: {
-									[opposite_vertex]: face.uv[opposite_vertex],
 									[center_vertex]: c1_uv_coords,
 									[side_vertices[0]]: face.uv[side_vertices[0]],
 								}
 							})
-							if (direction % 3 == 2) {
-								new_face.invert();
-								face.invert();
-							}
 							mesh.addFaces(new_face);
 						}
 					}

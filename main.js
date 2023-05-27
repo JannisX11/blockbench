@@ -276,19 +276,19 @@ app.on('ready', () => {
 				ipcMain.on('allow-auto-update', () => {
 					autoUpdater.downloadUpdate()
 				})
-				orig_win.webContents.send('update-available', a);
+				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-available', a);
 			})
 			autoUpdater.on('update-downloaded', (a) => {
 				console.log('update-downloaded', a)
-				orig_win.webContents.send('update-downloaded', a)
+				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-downloaded', a)
 			})
 			autoUpdater.on('error', (a) => {
 				console.log('update-error', a)
-				orig_win.webContents.send('update-error', a)
+				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-error', a)
 			})
 			autoUpdater.on('download-progress', (a) => {
 				console.log('update-progress', a)
-				orig_win.webContents.send('update-progress', a)
+				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-progress', a)
 			})
 			autoUpdater.checkForUpdates().catch(err => {})
 		}
