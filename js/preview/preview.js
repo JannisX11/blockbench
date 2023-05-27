@@ -738,6 +738,9 @@ class Preview {
 			}
 
 			let select_mode = BarItems.selection_mode.value
+			if (!Condition(BarItems.selection_mode.condition)) {
+				select_mode = 'object';
+			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace && data.face) {
