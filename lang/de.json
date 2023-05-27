@@ -1872,5 +1872,6 @@
     "dialog.copy_to_clipboard": "In Zwischenablage kopieren",
     "dialog.open_url": "Link öffnen",
     "reference_image.image": "Bild",
-    "uv_editor.rotate_uv": "UV drehen"
+    "uv_editor.rotate_uv": "UV drehen",
+	"projects.start_screen": "Start Screen"
 }

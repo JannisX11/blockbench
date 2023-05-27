@@ -1872,5 +1872,6 @@
     "dialog.copy_to_clipboard": "클립보드에 복사",
     "dialog.open_url": "URL 열기",
     "reference_image.image": "이미지",
-    "uv_editor.rotate_uv": "Rotate UV"
+    "uv_editor.rotate_uv": "Rotate UV",
+	"projects.start_screen": "Start Screen"
 }

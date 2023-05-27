@@ -708,6 +708,7 @@ BARS.defineActions(function() {
 					Project.saved = false;
 				}*/
 			}
+			Blockbench.dispatchEvent('quick_save_model', {});
 		}
 	})
 	if (!isApp) {

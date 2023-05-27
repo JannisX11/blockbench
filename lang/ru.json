@@ -1872,5 +1872,6 @@
     "dialog.copy_to_clipboard": "Скопировать в буфер обмена",
     "dialog.open_url": "Открыть URL",
     "reference_image.image": "Изображение",
-    "uv_editor.rotate_uv": "Rotate UV"
+    "uv_editor.rotate_uv": "Rotate UV",
+	"projects.start_screen": "Start Screen"
 }

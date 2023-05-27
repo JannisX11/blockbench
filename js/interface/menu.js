@@ -186,8 +186,13 @@ class Menu {
 						node.addClass('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
 						node.append(more_button);
-						$(more_button).mouseenter(e => {
+						more_button.addEventListener('mouseenter', e => {
 							scope.hover(node.get(0), e, true);
+						})
+						more_button.addEventListener('mouseleave', e => {
+							if (node.is(':hover') && !childlist.is(':hover')) {
+								scope.hover(node, e);
+							}
 						})
 					}
 				} else {

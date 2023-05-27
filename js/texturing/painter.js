@@ -460,7 +460,9 @@ const Painter = {
 		let softness = BarItems.slider_brush_softness.get()/100;
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
 		let tool = Toolbox.selected;
-		let matrix_id = Painter.current.element.uuid + Painter.current.face;
+		let matrix_id = Painter.current.element
+					  ? (Painter.current.element.uuid + Painter.current.face)
+					  : Painter.current.face;
 
 		ctx.clip()
 		if (Painter.current.element instanceof Mesh) {
