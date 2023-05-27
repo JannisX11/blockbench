@@ -1871,5 +1871,6 @@
     "texture.error.too_large": "Auslösung übersteigt das Maximum von %0",
     "dialog.copy_to_clipboard": "In Zwischenablage kopieren",
     "dialog.open_url": "Link öffnen",
-    "reference_image.image": "Bild"
+    "reference_image.image": "Bild",
+    "uv_editor.rotate_uv": "UV drehen"
 }
