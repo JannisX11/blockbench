@@ -1872,5 +1872,6 @@
     "dialog.copy_to_clipboard": "Copier dans le presse-papier",
     "dialog.open_url": "Ouvrir l'URL",
     "reference_image.image": "Image",
-    "uv_editor.rotate_uv": "Rotate UV"
+    "uv_editor.rotate_uv": "Rotate UV",
+	"projects.start_screen": "Start Screen"
 }
