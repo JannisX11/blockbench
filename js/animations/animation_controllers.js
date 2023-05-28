@@ -104,7 +104,7 @@ class AnimationControllerState {
 		// From Bedrock
 		if (data.particle_effects instanceof Array) {
 			this.particles.empty();
-			data.particles.forEach(effect => {
+			data.particle_effects.forEach(effect => {
 				let particle = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -118,7 +118,7 @@ class AnimationControllerState {
 		}
 		if (data.sound_effects instanceof Array) {
 			this.sounds.empty();
-			data.sounds.forEach(effect => {
+			data.sound_effects.forEach(effect => {
 				let sound = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -1064,7 +1064,8 @@ Interface.definePanels(() => {
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
-				openParticleMenu(state, particle) {
+				openParticleMenu(state, particle, event) {
+					if (getFocusedTextInput()) return;
 					new Menu('controller_state_particle', [
 						{
 							name: 'generic.remove',
@@ -1075,9 +1076,11 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove particle from controller state');
 							}
 						}
-					])
+					]).open(event);
+					event.stopPropagation();
 				},
-				openSoundMenu(state, sound) {
+				openSoundMenu(state, sound, event) {
+					if (getFocusedTextInput()) return;
 					new Menu('controller_state_sound', [
 						{
 							name: 'generic.remove',
@@ -1088,7 +1091,8 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove sound from controller state');
 							}
 						}
-					])
+					]).open(event);
+					event.stopPropagation();
 				},
 				addAnimationButton(state, event) {
 					state.select();
@@ -1568,7 +1572,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle)">
+									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle, $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
@@ -1612,7 +1616,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound)">
+									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound, $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">

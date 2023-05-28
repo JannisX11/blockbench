@@ -121,6 +121,9 @@ const codec = new Codec('skin_model', {
 				group.addTo(parent_group)
 			})
 		}
+		if (!Cube.all.find(cube => cube.box_uv)) {
+			Project.box_uv = false;
+		}
 		if (texture_path) {
 			var texture = new Texture().fromPath(texture_path).add(false);
 		} else if (resolution) {

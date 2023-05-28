@@ -186,8 +186,13 @@ class Menu {
 						node.addClass('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
 						node.append(more_button);
-						$(more_button).mouseenter(e => {
+						more_button.addEventListener('mouseenter', e => {
 							scope.hover(node.get(0), e, true);
+						})
+						more_button.addEventListener('mouseleave', e => {
+							if (node.is(':hover') && !childlist.is(':hover')) {
+								scope.hover(node, e);
+							}
 						})
 					}
 				} else {
@@ -251,9 +256,13 @@ class Menu {
 					getEntry(object, menu_node);
 				})
 			}
-			var last = menu_node.children().last();
-			if (last.length && last.hasClass('menu_separator')) {
-				last.remove()
+			let nodes = menu_node.children();
+			if (nodes.length && nodes.last().hasClass('menu_separator')) {
+				nodes.last().remove();
+			}
+
+			if (!nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'))) {
+				menu_node.addClass('scrollable');
 			}
 		}
 
@@ -472,12 +481,16 @@ class Menu {
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 			if (offset_left < 0) offset_left = 0;
 		}
-		if (!this.options.searchable) {
-			if (offset_top  > window_height - el_height ) {
+		if (offset_top > window_height - el_height ) {
+			if (el_height < offset_top - 50) {
+				// Snap to element top
 				offset_top -= el_height;
 				if (position instanceof HTMLElement) {
 					offset_top -= position.clientHeight;
 				}
+			} else {
+				// Move up
+				offset_top = window_height - el_height;
 			}
 		}
 		offset_top = Math.max(offset_top, 26);

@@ -106,6 +106,7 @@
 	"mode.start.quick_setup.more_themes": "More...",
 
 	"projects.new_tab": "New Tab",
+	"projects.start_screen": "Start Screen",
 	"projects.close_tab": "Close Tab",
 
 	"format.free": "Generic Model",
@@ -1963,6 +1964,7 @@
 	"uv_editor.all_faces": "All",
 	"uv_editor.no_faces": "None",
 	"uv_editor.rotated": "Rotated",
+	"uv_editor.rotate_uv": "Rotate UV",
 	"uv_editor.scale_uv": "Scale UV",
 	"uv_editor.auto_cull": "Cullface To Self",
 	"uv_editor.copied": "Copied Face",

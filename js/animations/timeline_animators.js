@@ -444,6 +444,7 @@ class BoneAnimator extends GeneralAnimator {
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getGroup()
+		Animator.MolangParser.context.animation = this.animation;
 
 		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)

@@ -460,16 +460,19 @@ const Painter = {
 		let softness = BarItems.slider_brush_softness.get()/100;
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
 		let tool = Toolbox.selected;
+		let matrix_id = Painter.current.element
+					  ? (Painter.current.element.uuid + Painter.current.face)
+					  : Painter.current.face;
 
 		ctx.clip()
 		if (Painter.current.element instanceof Mesh) {
 			let face = Painter.current.element.faces[Painter.current.face];
-			if (face && face.vertices.length > 2 && !Painter.current.face_matrices[Painter.current.face]) {
-				Painter.current.face_matrices[Painter.current.face] = face.getOccupationMatrix(true, [0, 0]);
+			if (face && face.vertices.length > 2 && !Painter.current.face_matrices[matrix_id]) {
+				Painter.current.face_matrices[matrix_id] = face.getOccupationMatrix(true, [0, 0]);
 				let island = face.getUVIsland();
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
-					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[Painter.current.face]);
+					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[matrix_id]);
 				}
 			}
 		}
@@ -497,27 +500,20 @@ const Painter = {
 			tool.brush.draw({ctx, x, y, size, softness, texture, event});
 
 		} else {
+			let run_per_pixel = (pxcolor, local_opacity, px, py) => {
+				if (Painter.current.face_matrices[matrix_id] && settings.paint_side_restrict.value) {
+					let matrix = Painter.current.face_matrices[matrix_id];
+					if (!matrix[px] || !matrix[px][py % texture.display_height]) {
+						return pxcolor;
+					}
+				}
+				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
+			}
 			let shape = BarItems.brush_shape.value;
 			if (shape == 'square') {
-				Painter.editSquare(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
-					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
-						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
-							return pxcolor;
-						}
-					}
-					return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
-				})
+				Painter.editSquare(ctx, x, y, size, softness, run_per_pixel);
 			} else if (shape == 'circle') {
-				Painter.editCircle(ctx, x, y, size, softness, function(pxcolor, local_opacity, px, py) {
-					if (Painter.current.face_matrices[Painter.current.face] && settings.paint_side_restrict.value) {
-						let matrix = Painter.current.face_matrices[Painter.current.face];
-						if (!matrix[px] || !matrix[px][py % texture.display_height]) {
-							return pxcolor;
-						}
-					}
-					return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
-				})
+				Painter.editCircle(ctx, x, y, size, softness, run_per_pixel);
 			}
 
 		}
@@ -572,8 +568,8 @@ const Painter = {
 				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
 				
-				let matrix = Painter.current.face_matrices[fkey] || face.getOccupationMatrix(true, [0, 0]);
-				Painter.current.face_matrices[fkey] = matrix;
+				let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
+				Painter.current.face_matrices[element.uuid + fkey] = matrix;
 				for (let x in matrix) {
 					for (let y in matrix[x]) {
 						if (!matrix[x][y]) continue;

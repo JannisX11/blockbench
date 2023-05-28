@@ -477,7 +477,13 @@ class Animation extends AnimationItem {
 		}
 	}
 	get time() {
-		return (this.length && this.loop === 'loop') ? ((Timeline.time - 0.001) % this.length) + 0.001 : Timeline.time;
+		if (!this.length || this.loop == 'once') {
+			return Timeline.time;
+		} else if (this.loop === 'loop') {
+			return ((Timeline.time - 0.001) % this.length) + 0.001;
+		} else if (this.loop === 'hold') {
+			return Math.min(Timeline.time, this.length);
+		}
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -953,8 +959,8 @@ const Animator = {
 			Canvas.outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
-			Animation.all[0].select();
+		if (AnimationItem.all.length && !AnimationItem.all.includes(Animation.selected)) {
+			AnimationItem.all[0].select();
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
@@ -1116,6 +1122,9 @@ const Animator = {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			animations.forEach(animation => {
+				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
+					return;
+				}
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
 				animation.getBoneAnimator(node).displayFrame(multiplier);
@@ -1143,7 +1152,7 @@ const Animator = {
 			let controller = AnimationController.selected;
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
-			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
 
 			// Active State
 			Timeline.time = state_time;

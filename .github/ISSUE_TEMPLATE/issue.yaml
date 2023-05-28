@@ -1,21 +1,28 @@
 name: Bug / Issue
 description: Use this form to report an issue that occurs when using Blockbench
-title: "[Issue] Issue summary"
+title: "Issue Summary"
 body:
 - type: markdown
   attributes:
     value: |
       - Before you report an issue, check if if has already been reported.
       - Also check if you are using the latest version of Blockbench.
+      - Please only report one issue per issue.
       - If applicable, go to Help > Developer > Open Dev Tools. Switch to the Console tab. If there are any (red) error messages, please attach a screenshot of them.
 - type: markdown
   attributes:
     value: |
       Please make sure to provide the following information:
 - type: textarea
-  id: details
+  id: description
   attributes:
-    label: Detailed description of your issue
+    label: What are you trying to do, and what do you expect to happen?
+  validations:
+    required: true
+- type: textarea
+  id: error
+  attributes:
+    label: What happens instead?
   validations:
     required: true
 - type: input
@@ -41,3 +48,7 @@ body:
     label: Operating System
   validations:
     required: true
+- type: input
+  id: plugins
+  attributes:
+    label: Installed Blockbench plugins

@@ -783,6 +783,8 @@ class Texture {
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
+		Blockbench.dispatchEvent('select_texture', {texture: this});
+		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
 	add(undo) {
@@ -827,6 +829,7 @@ class Texture {
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		delete Project.materials[this.uuid];
+		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
@@ -1736,31 +1739,29 @@ function loadTextureDraggable() {
 							Undo.finishEdit('Reorder textures')
 						} else if ($('#cubes_list:hover').length) {
 
-							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							let target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
 							$('.drag_hover').removeClass('drag_hover');
 							if (!target_node) return;
 							let uuid = target_node.id;
-							var target = OutlinerNode.uuids[uuid];
-
-							var array = [];
-		
+							let target = OutlinerNode.uuids[uuid];
+							
+							let array = [];
 							if (target.type === 'group') {
-								target.forEachChild(function(cube) {
-									array.push(cube)
-								}, [Cube, Mesh])
+								target.forEachChild((element) => {
+									array.push(element);
+								})
 							} else {
 								array = selected.includes(target) ? selected : [target];
 							}
+							array = array.filter(element => element.applyTexture);
+
 							Undo.initEdit({elements: array, uv_only: true})
-							array.forEach(function(cube) {
-								for (var face in cube.faces) {
-									cube.faces[face].texture = tex.uuid;
-								}
-							})
-							Undo.finishEdit('Drop texture')
+							array.forEach(element => {
+								element.applyTexture(tex, true);
+							});
+							Undo.finishEdit('Apply texture')
 		
 							UVEditor.loadData()
-							Canvas.updateAllFaces()
 						} else if ($('#uv_viewport:hover').length) {
 							UVEditor.applyTexture(tex);
 						}
@@ -1775,7 +1776,8 @@ function unselectTextures() {
 		s.selected = false;
 	})
 	Texture.selected = undefined;
-	Canvas.updateLayeredTextures()
+	Canvas.updateLayeredTextures();
+	Blockbench.dispatchEvent('update_texture_selection');
 }
 function getTexturesById(id) {
 	if (id === undefined) return;

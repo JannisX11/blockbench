@@ -342,6 +342,7 @@ class UndoSystem {
 					}
 					if (Texture.selected == tex) {
 						Texture.selected = undefined;
+						Blockbench.dispatchEvent('update_texture_selection');
 					}
 				}
 			}

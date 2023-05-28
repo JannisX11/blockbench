@@ -115,9 +115,8 @@ class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	//Sorting
-	sortInBefore(element, index_mod) {
+	sortInBefore(element, index_mod = 0) {
 		var index = -1;
-		index_mod = index_mod || 0;
 
 		if (element.parent === 'root') {
 			index = Outliner.root.indexOf(element)
@@ -520,6 +519,12 @@ class OutlinerElement extends OutlinerNode {
 			console.warn('You cannot modify this')
 		}
 	})
+	OutlinerElement.hasAny = function() {
+		return Outliner.elements.length > 0 && Outliner.elements.findIndex(element => element instanceof this) !== -1;
+	}
+	OutlinerElement.hasSelected = function() {
+		return Outliner.selected.length > 0 && Outliner.selected.findIndex(element => element instanceof this) !== -1;
+	}
 	OutlinerElement.types = {};
 
 

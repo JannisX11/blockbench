@@ -578,6 +578,10 @@
 		display: none;
 		margin-top: -4px;
 	}
+	.contextMenu.scrollable {
+		max-height: min(500px, 100vh);
+		overflow: auto;
+	}
 	.contextMenu li {
 		display: flex;
 		height: 30px;

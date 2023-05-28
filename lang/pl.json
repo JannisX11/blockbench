@@ -1871,5 +1871,7 @@
     "texture.error.too_large": "Resolution exceeds the maximum of %0",
     "dialog.copy_to_clipboard": "Copy to clipboard",
     "dialog.open_url": "Open URL",
-    "reference_image.image": "Image"
+    "reference_image.image": "Image",
+    "uv_editor.rotate_uv": "Rotate UV",
+	"projects.start_screen": "Start Screen"
 }

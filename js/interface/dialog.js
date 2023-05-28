@@ -751,14 +751,14 @@ window.Dialog = class Dialog {
 
 			let buttons = []
 			this.buttons.forEach((b, i) => {
-				let btn = $('<button type="button">'+tl(b)+'</button> ')
-				buttons.push(btn)
-				btn.on('click', (event) => {
+				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				buttons.push(btn);
+				btn.addEventListener('click', (event) => {
 					this.close(i, event);
 				})
 			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
@@ -968,7 +968,7 @@ window.MessageBox = class MessageBox extends Dialog {
 				let text = tl(typeof command == 'string' ? command : command.text);
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
 				entry.addEventListener('click', e => {
-					this.close(id, results);
+					this.close(id, results, e);
 				})
 				list.append(entry);
 			}
@@ -1001,14 +1001,14 @@ window.MessageBox = class MessageBox extends Dialog {
 
 			let buttons = []
 			this.buttons.forEach((b, i) => {
-				let btn = $('<button type="button">'+tl(b)+'</button> ')
-				buttons.push(btn)
-				btn.on('click', (event) => {
+				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				buttons.push(btn);
+				btn.addEventListener('click', (event) => {
 					this.close(i, results, event);
 				})
 			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {

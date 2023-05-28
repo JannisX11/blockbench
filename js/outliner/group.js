@@ -58,9 +58,6 @@ class Group extends OutlinerNode {
 	init() {
 		super.init();
 		Project.groups.push(this);
-		if (typeof this.parent !== 'object') {
-			this.addTo();
-		}
 		if (!this.mesh || !this.mesh.parent) {
 			this.constructor.preview_controller.setup(this);
 		}

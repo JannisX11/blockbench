@@ -334,7 +334,19 @@ class Panel extends EventSystem {
 		this.position_data.folded = !!state;
 	}
 	resetCustomLayout() {
+		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
+		this.position_data = Interface.data.panels[this.id];
+		
+		let defaultp = this.default_position || 0;
+		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || 'left_bar';
+		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
+		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
+		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
+		if (this.position_data.folded == undefined) this.position_data.folded 	= defaultp.folded || false;
 
+		this.moveTo(this.slot);
+		this.fold(this.folded);
+		return this;
 	}
 	addToolbar(toolbar, position = this.toolbars.length) {
 		let nodes = [];

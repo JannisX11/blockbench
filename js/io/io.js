@@ -8,6 +8,19 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'reference_image',
+		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		function(files, event) {
+			files.map(file => {
+				return new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference(true);
+			}).last().select();
+			ReferenceImageMode.activate();
+		}
+	)
+	Blockbench.addDragHandler(
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
@@ -125,7 +138,7 @@ async function loadImages(files, event) {
 		} else if (method == 'reference_image') {
 			
 			files.map(file => {
-				new ReferenceImage({
+				return new ReferenceImage({
 					source: file.content,
 					name: file.name || 'Reference'
 				}).addAsReference(true);
@@ -658,7 +671,7 @@ BARS.defineActions(function() {
 						}
 					}
 				}
-				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
+				if (Format.animation_mode && Format.animation_files && AnimationItem.all.length) {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {
@@ -695,7 +708,7 @@ BARS.defineActions(function() {
 					Project.saved = false;
 				}*/
 			}
-			Blockbench.dispatchEvent('save_model_action', {event});
+			Blockbench.dispatchEvent('quick_save_model', {});
 		}
 	})
 	if (!isApp) {

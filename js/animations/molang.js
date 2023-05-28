@@ -1,14 +1,14 @@
-
+Animator.MolangParser.context = {};
 Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
 	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
+		let time = (Date.now() - Timeline.last_frame_timecode) / 1000;
 		if (time < 0) time += 1;
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Animation.selected ? Animation.selected.time : Timeline.time;
+		return Animator.MolangParser.context.animation ? Animator.MolangParser.context.animation.time : Timeline.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;
@@ -67,6 +67,9 @@ Animator.MolangParser.global_variables = {
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
 	get 'query.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
+	get 'context.is_first_person'() {
 		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
 	},
 	get 'time'() {

@@ -447,7 +447,7 @@ class Tool extends Action {
 		}
 		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
 			Project.view_mode = 'textured';
-			Canvas.updateAllFaces()
+			BarItems.view_mode.change('textured');
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options')
@@ -1502,7 +1502,7 @@ class Toolbar {
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update().save();
+				this.update(true).save();
 				return this;
 			}
 			i--;
@@ -1520,7 +1520,7 @@ class Toolbar {
 			}
 			this.previously_enabled = enabled;
 		}
-		if (!enabled) return this;
+		if (!enabled && !force) return this;
 
 		// check if some unkown actions are now known
 		if (this.postload) {

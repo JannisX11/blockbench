@@ -213,12 +213,13 @@ const Timeline = {
 		Timeline.revealTime(seconds)
 	},
 	revealTime(time) {
-		var scroll = $('#timeline_body').scrollLeft();
+		let body = document.getElementById('timeline_body');
+		var scroll = body.scrollLeft;
 		var playhead = time * Timeline.vue._data.size + 8;
-		if (playhead < scroll || playhead > scroll + $('#timeline_vue').width() - Timeline.vue._data.head_width) {
-			$('#timeline_body').scrollLeft(playhead-16);
+		if (playhead < scroll || playhead > scroll + document.getElementById('timeline_vue').clientWidth - Timeline.vue._data.head_width) {
+			body.scrollLeft = playhead-16;
 		} else if (time == 0) {
-			$('#timeline_body').scrollLeft(0);
+			body.scrollLeft = 0;
 		}
 	},
 	setTimecode(time) {
@@ -228,7 +229,7 @@ const Timeline = {
 		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
-		$('#timeline_timestamp').text(m + ':' + s  + ':' + f)
+		Timeline.vue.timestamp = `${m}:${s}:${f}`;
 	},
 	snapTime(time, animation) {
 		//return time;
@@ -501,8 +502,8 @@ const Timeline = {
 			if (Animation.selected.loop == 'hold') {
 				time = Math.clamp(time, 0, Animation.selected.length);
 			}
-			Timeline.setTime(time);
 			Timeline.last_frame_timecode = Date.now();
+			Timeline.setTime(time);
 
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
@@ -653,6 +654,7 @@ Interface.definePanels(() => {
 				waveforms: Timeline.waveforms,
 				focus_channel: null,
 				playhead: Timeline.time,
+				timestamp: '0',
 
 				graph_editor_open: false,
 				graph_editor_channel: 'rotation',
@@ -1214,7 +1216,11 @@ Interface.definePanels(() => {
 						value = Math.round(value*100)/100;
 
 						for (let kf of keyframes) {
-							let target_value = (original_values[kf.uuid] - original_range[anchor_side]) * value + original_range[anchor_side];
+							let origin = original_range[anchor_side];
+							if (e2.altKey) {
+								origin = Math.lerp(original_range[0], original_range[1], 0.5);
+							}
+							target_value = (original_values[kf.uuid] - origin) * value + origin;
 							kf.offset(axis, -kf.get(axis) + target_value);
 							values_changed = true;
 						}
@@ -1282,7 +1288,7 @@ Interface.definePanels(() => {
 				<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
-							<div id="timeline_timestamp"></div>
+							<div id="timeline_timestamp">{{ timestamp }}</div>
 							<div class="channel_axis_selector" v-if="graph_editor_open">
 								<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
 								<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
