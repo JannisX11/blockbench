@@ -311,6 +311,7 @@ const MenuBar = {
 			'adjust_curves',
 			'_',
 			'limit_to_palette',
+			'clear_unused_texture_space',
 			'_',
 			'flip_texture_x',
 			'flip_texture_y',
