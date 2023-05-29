@@ -788,10 +788,9 @@ class Texture {
 		return this;
 	}
 	add(undo) {
-		var scope = this;
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
-				if (tex.path === scope.path) return tex;
+				if (tex.path === this.path) return tex;
 			}
 		}
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
@@ -811,6 +810,10 @@ class Texture {
 			if (selected.length) {
 				UVEditor.loadData()
 			}
+		} else if (Format.id == 'bedrock_block' && Cube.all.length && Project.textures.length == 1) {
+			Cube.all.forEach(cube => {
+				cube.applyTexture(this, true);
+			})
 		}
 		TickUpdates.selection = true;
 		

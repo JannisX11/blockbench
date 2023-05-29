@@ -127,9 +127,13 @@ async function loadImages(files, event) {
 
 	function doLoadImages(method) {
 		if (method == 'texture') {
+			let new_textures = [];
+			Undo.initEdit({textures: new_textures});
 			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
+				let tex = new Texture().fromFile(f).add().fillParticle();
+				new_textures.push(tex);
+			});
+			Undo.finishEdit('Add texture');
 
 		} else if (method == 'replace_texture') {
 			replace_texture.fromFile(files[0])
