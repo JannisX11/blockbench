@@ -451,7 +451,6 @@ function createBackup(init) {
 	})
 }
 //Close
-
 window.onbeforeunload = function (event) {
 	try {
 		updateRecentProjectData()
@@ -464,27 +463,82 @@ window.onbeforeunload = function (event) {
 				currentwindow.webContents.closeDevTools()
 			}
 		} catch (err) {}
-	} else {
-		setTimeout(async function() {
-			let projects = ModelProject.all.slice();
-			if (projects[0]) await projects[0].select();
-			for (let project of projects) {
-				let closed = await project.close();
-				if (!closed) return false;
-			}
-			if (ModelProject.all.length === 0) {
-				closeBlockbenchWindow()
-				return true;
+
+	} else if (ModelProject.all.find(project => !project.saved)) {
+		let ul = Interface.createElement('ul', {class: 'list unsaved_models_list'});
+		let dialog;
+
+		async function saveProject(project) {
+			project.select();
+			if (Project.save_path) {
+				BarItems.save_project.trigger();
+			} else if (Project.export_path)  {
+				await BarItems.export_over.click();
 			} else {
-				return false;
+				await BarItems.export_over.click();
 			}
-		}, 2)
+		}
+
+		ModelProject.all.forEach(project => {
+			if (project.saved) return;
+			let li = Interface.createElement('li', {class: 'unsaved_model'}, [
+				Blockbench.getIconNode(project.format?.icon),
+				Interface.createElement('span', {}, project.getDisplayName()),
+				Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('save')),
+			]);
+			li.addEventListener('click', event => {
+				project.select();
+			})
+			li.lastChild.addEventListener('click', async (event) => {
+				await saveProject(project);
+				if (Project.saved) {
+					li.remove();
+					if (ul.childElementCount == 0) {
+						wait(200);
+						closeBlockbenchWindow();
+					}
+				}
+			})
+			ul.append(li);
+		})
+
+		dialog = new Dialog('close', {
+			title: 'Unsaved Projects',
+			lines: [
+				Interface.createElement('p', {}, tl('dialog.unsaved_work.text')),
+				ul
+			],
+			buttons: [tl('dialog.unsaved_work.save_all'), tl('dialog.unsaved_work.discard_all'), tl('dialog.cancel')],
+			cancel_on_click_outside: false,
+			onButton: async (button) => {
+				if (button == 0) {
+					for (let project of ModelProject.all.slice()) {
+						await saveProject(project);
+						if (!project.saved) return;
+					}
+					wait(200);
+					closeBlockbenchWindow();
+
+				} else if (button == 1) {
+					closeBlockbenchWindow();
+				}
+			}
+		})
+		dialog.show();
+		shell.beep();
+
 		event.returnValue = true;
 		return true;
+	} else {
+		closeBlockbenchWindow();
+		return false;
 	}
 }
 
 function closeBlockbenchWindow() {
+	for (let project of ModelProject.all.slice()) {
+		project.closeOnQuit();
+	}
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')

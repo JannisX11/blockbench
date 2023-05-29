@@ -670,8 +670,6 @@ BARS.defineActions(function() {
 					} else if (!Project.save_path) {
 						if (Format.edit_mode) {
 							Codecs.project.export();
-						} else {
-							Project.saved = false;
 						}
 					}
 				}

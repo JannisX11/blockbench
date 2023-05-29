@@ -1473,6 +1473,33 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		left: 49px;
 	}
 
+/* Quit */
+	ul.unsaved_models_list {
+		max-height: 264px;
+	}
+	li.unsaved_model {
+		display: flex;
+		display: flex;
+		height: 40px;
+		align-items: center;
+		padding: 0 5px;
+		gap: 5px;
+	}
+	li.unsaved_model:hover {
+		color: var(--color-light);
+	}
+	li.unsaved_model:active {
+		background-color: var(--color-selected);
+	}
+	li.unsaved_model > .icon {
+		width: 32px;
+		text-align: center;
+		max-width: unset;
+	}
+	li.unsaved_model > span {
+		flex-grow: 1;
+	}
+
 /* Validator */
 	li.validator_dialog_problem {
 		background-color: var(--color-back);

@@ -93,6 +93,12 @@ Condition.mutuallyExclusive = function(a, b) {
 	return false;
 }
 
+async function wait(delay) {
+	await new Promise((resolve) => {
+		setTimeout(resolve, delay);
+	})
+}
+
 function pureMarked(input) {
 	let dom = marked(input);
 	return DOMPurify.sanitize(dom);

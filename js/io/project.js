@@ -319,6 +319,22 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
+	closeOnQuit() {
+		try {
+			if (isApp) {
+				updateRecentProjectData();
+			}
+			Blockbench.dispatchEvent('close_project', {on_quit: true});
+
+		} catch (err) {
+			console.error(err);
+		}
+		delete AutoBackupModels[this.uuid];
+		localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
+		if (this.EditSession) {
+			this.EditSession.quit();
+		}
+	}
 	async close(force) {
 		if (this.locked) return false;
 		let last_selected = Project;
@@ -363,7 +379,6 @@ class ModelProject {
 				if (isApp) {
 					updateRecentProjectData();
 				}
-	
 				Blockbench.dispatchEvent('close_project');
 
 			} catch (err) {
