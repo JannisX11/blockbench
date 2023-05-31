@@ -64,6 +64,7 @@
 	"generic.delete_all": "Delete All",
 	"generic.left": "Left",
 	"generic.right": "Right",
+	"generic.error": "Error",
 
 	"dates.today": "Today",
 	"dates.yesterday": "Yesterday",
@@ -616,8 +617,11 @@
 
 	"dialog.share_model.title": "Share Model",
 	"dialog.share_model.expire_time": "Expire Time",
+	"dialog.share_model.reference_images": "Include Reference Images",
 	"dialog.share_model.thumbnail": "Thumbnail",
 	"dialog.share_model.failed": "Failed to upload model",
+	"dialog.share_model.too_large": "Failed to upload: Model is too large",
+	"dialog.share_model.too_large_references": "Failed to upload: Model is too large. Try without reference images.",
 
 	"dialog.model_stats.title": "Model Stats",
 	"dialog.model_stats.cubes": "Cubes",

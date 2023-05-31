@@ -163,6 +163,7 @@ BARS.defineActions(function() {
 						'2w': tl('dates.weeks', [2]),
 					}},
 					info: {type: 'info', text: 'The model and thumbnail will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'},
+					reference_images: {type: 'checkbox', label: 'dialog.share_model.reference_images', value: true, condition: () => ReferenceImage.current_project.length},
 					thumbnail: {type: 'checkbox', label: 'dialog.share_model.thumbnail', value: true},
 				},
 				lines: [image],
@@ -175,7 +176,11 @@ BARS.defineActions(function() {
 		
 					let name = formResult.name;
 					let expire_time = formResult.expire_time;
-					let model = Codecs.project.compile({compressed: false, absolute_paths: false});
+					let model = Codecs.project.compile({
+						compressed: false,
+						absolute_paths: false,
+						reference_images: formResult.reference_images
+					});
 					let data = {name, expire_time, model}
 					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
@@ -199,7 +204,19 @@ BARS.defineActions(function() {
 
 						},
 						error: function(response) {
-							Blockbench.showQuickMessage('dialog.share_model.failed', 1500)
+							let error_text = 'dialog.share_model.failed' + ' - ' + response.status;
+							if (response.status == 413) {
+								if (ReferenceImage.current_project.length && formResult.reference_images) {
+									error_text = 'dialog.share_model.too_large_references';
+								} else {
+									error_text = 'dialog.share_model.too_large';
+								}
+							}
+							Blockbench.showMessageBox({
+								title: tl('generic.error'),
+								message: error_text,
+								icon: 'error'
+							})
 							console.error(response);
 						}
 					})
