@@ -82,7 +82,7 @@ class ReferenceImage {
 		for (let key in ReferenceImage.properties) {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
-		if (isApp && copy.source && !copy.source.startsWith('data:')) {
+		if (isApp && copy.source && !copy.source.startsWith('data:') && copy.source.match(/\.(png|jpg|jpeg)$/i)) {
 			let frame = new CanvasFrame(this.img);
 			copy.source = frame.canvas.toDataURL('image/png');
 
