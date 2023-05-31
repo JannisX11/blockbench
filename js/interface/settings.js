@@ -530,6 +530,11 @@ const Settings = {
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
+		new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {
+			tabs: tl('settings.json_indentation.tabs'),
+			spaces_4: tl('settings.json_indentation.spaces_4'),
+			spaces_2: tl('settings.json_indentation.spaces_2'),
+		}});
 		new Setting('minifiedout', 			{category: 'export', value: false});
 		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});

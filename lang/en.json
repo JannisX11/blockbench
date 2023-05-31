@@ -918,6 +918,11 @@
 
 	"settings.dialog.desc": "Show the \"%0\" dialog",
 
+	"settings.json_indentation": "JSON Indentation",
+	"settings.json_indentation.desc": "Indentation style for exported JSON files",
+	"settings.json_indentation.tabs": "Tabs",
+	"settings.json_indentation.spaces_4": "Spaces: 4",
+	"settings.json_indentation.spaces_2": "Spaces: 2",
 	"settings.minifiedout": "Minified Export",
 	"settings.minifiedout.desc": "Write JSON file in one line",
 	"settings.minify_bbmodel": "Minified Project Files",

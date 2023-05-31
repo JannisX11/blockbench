@@ -426,13 +426,20 @@ const Extruder = {
 	}
 }
 //Json
-function compileJSON(object, options) {
-	if (typeof options !== 'object') options = {}
+function compileJSON(object, options = {}) {
+	let indentation = options.indentation;
+	if (typeof indentation !== 'string') {
+		switch (settings.json_indentation.value) {
+			case 'spaces_4': indentation = '    '; break;
+			case 'spaces_2': indentation = '  '; break;
+			case 'tabs': default: indentation = '\t'; break;
+		}
+	}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
 		var s = '\n'
 		for (var i = 0; i < tabs; i++) {
-			s += '\t'
+			s += indentation;
 		}
 		return s;
 	}
