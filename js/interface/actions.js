@@ -1429,17 +1429,17 @@ class Toolbar {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
-				var itemId = items[itemPosition];
-				if (typeof itemId === 'string' && itemId.match(/^[_+#]/)) {
-					let char = itemId.substr(0, 1);
+				let item = items[itemPosition];
+				if (typeof item === 'string' && item.match(/^[_+#]/)) {
+					let char = item.substring(0, 1);
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
-					this.children.push(char + guid().substr(0,8));
+					this.children.push(char + guid().substring(0,8));
 					this.positionLookup[itemPosition] = char;
 
 					continue;
 				}
+				if (typeof item == 'string') item = BarItems[item]
 
-				var item = BarItems[itemId];
 				if (item) {
 					item.pushToolbar(this);
 					/*if (BARS.condition(item.condition)) {
@@ -1447,7 +1447,7 @@ class Toolbar {
 					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
-					var postloadAction = [itemId, itemPosition];
+					var postloadAction = [items[itemPosition], itemPosition];
 					if (this.postload) {
 						this.postload.push(postloadAction);
 					} else {
