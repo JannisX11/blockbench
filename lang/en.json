@@ -414,12 +414,14 @@
 	"dialog.texture.frame_order": "Frame Order",
 	"dialog.texture.frame_order.desc": "Set a custom frame order by listing frame indices in a new order. Frame indices start at 0 with the first frame.",
 
+	"dialog.resize_texture.mode": "Mode",
+	"dialog.resize_texture.mode.crop": "Crop/Expand",
+	"dialog.resize_texture.mode.scale": "Scale",
 	"dialog.resize_texture.animation_frames": "Animation Frames",
 	"dialog.resize_texture.fill": "Fill with",
 	"dialog.resize_texture.fill.transparent": "Transparent",
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
-	"dialog.resize_texture.fill.stretch": "Stretch",
 
 	"dialog.export_emission_map.title": "Export Emission Map",
 	"dialog.export_emission_map.format": "Format",

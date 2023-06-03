@@ -1058,6 +1058,10 @@ class Texture {
 			id: 'resize_texture',
 			title: 'action.resize_texture',
 			form: {
+				mode: {label: 'dialog.resize_texture.mode', type: 'inline_select', default: 'crop', options: {
+					crop: 'dialog.resize_texture.mode.crop',
+					scale: 'dialog.resize_texture.mode.scale',
+				}},
 				size: {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
@@ -1074,11 +1078,10 @@ class Texture {
 					max: 2048,
 					step: 1,
 				},
-				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
+				fill: {label: 'dialog.resize_texture.fill', type: 'select', condition: form => form.mode == 'crop', default: 'transparent', options: {
 					transparent: 'dialog.resize_texture.fill.transparent',
 					color: 'dialog.resize_texture.fill.color',
 					repeat: 'dialog.resize_texture.fill.repeat',
-					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
 			},
 			onFormChange(formResult) {
@@ -1092,7 +1095,7 @@ class Texture {
 				let old_width = scope.width;
 				let old_height = scope.height;
 				let elements_to_change = null;
-				if (formResult.fill !== 'stretch' && Texture.length >= 2 && !Format.single_texture) {
+				if (formResult.mode === 'crop' && Texture.length >= 2 && !Format.single_texture) {
 					let elements = [...Cube.all, ...Mesh.all].filter(el => {
 						for (let fkey in el.faces) {
 							if (el.faces[fkey].texture == scope.uuid) return true;
@@ -1118,32 +1121,35 @@ class Texture {
 					let new_ctx = canvas.getContext('2d');
 					new_ctx.imageSmoothingEnabled = false;
 
-					switch (formResult.fill) {
-						case 'transparent':
-							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
-							break;
-						case 'color':
-							new_ctx.fillStyle = ColorPanel.get();
-							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
-							new_ctx.clearRect(0, 0, scope.width, scope.height)
-							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
-							break;
-						case 'repeat':
-							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
-								for (var y = 0; y < formResult.size[1]; y += scope.height) {
-									new_ctx.drawImage(scope.img, x, y, scope.width, scope.height);
+					if (formResult.mode == 'crop') {
+						switch (formResult.fill) {
+							case 'transparent':
+								new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
+								break;
+							case 'color':
+								new_ctx.fillStyle = ColorPanel.get();
+								new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
+								new_ctx.clearRect(0, 0, scope.width, scope.height)
+								new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
+								break;
+							case 'repeat':
+								for (var x = 0; x < formResult.size[0]; x += scope.width) {		
+									for (var y = 0; y < formResult.size[1]; y += scope.height) {
+										new_ctx.drawImage(scope.img, x, y, scope.width, scope.height);
+									}
 								}
-							}
-							break;
-						case 'stretch':
-							new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
-							break;
+								break;
+						}
+					} else {
+						new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
 					}
 
 					scope.keep_size = true;
-					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
+					if (formResult.mode == 'scale') {
+						// Nothing
+					} else if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
-					} else if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
+					} else if ((Format.single_texture || Texture.all.length == 1)) {
 						Undo.current_save.uv_mode = {
 							box_uv: Project.box_uv,
 							width:  Project.texture_width,
@@ -1155,7 +1161,7 @@ class Texture {
 						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
 
-					} else if (formResult.fill !== 'stretch' && Texture.length >= 2 && elements_to_change) {
+					} else if (Texture.length >= 2 && elements_to_change) {
 						elements_to_change.forEach(element => {
 							if (element instanceof Cube) {
 								for (var key in element.faces) {
