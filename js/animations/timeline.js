@@ -686,6 +686,40 @@ Interface.definePanels(() => {
 					let height = this.graph_offset - this.graph_size;
 					return `M0 ${height} L10000 ${height}`
 				},
+				rulers() {
+					let lines = [];
+					let values = [0];
+
+					let interval_options = [1, 2, 4, 8, 10, 20, 25, 50, 100, 200, 250, 400, 500];
+					let estimate = 100 / Timeline.vue.graph_size;
+					if (estimate > 500) return values;
+					let interval = Math.snapToValues(estimate, interval_options);
+					let box_height = Timeline.vue.$refs.timeline_body.clientHeight;
+
+					for (let i = 1; i < 20; i += 1) {
+						let value = i * interval;
+						let keep_going = false;
+						if (this.graph_offset - value * this.graph_size > 0) {
+							values.push(value);
+							keep_going = true;
+						}
+						if (this.graph_offset + value * this.graph_size < box_height) {
+							values.push(i * -interval);
+							keep_going = true;
+						}
+						if (!keep_going) break;
+					}
+
+					values.forEach(value => {
+						let height = this.graph_offset - this.graph_size * value;
+						lines.push({
+							position: height,
+							label: value,
+							path: `M0 ${height} L10000 ${height}`
+						});
+					})
+					return lines;
+				},
 				graphs() {
 					let ba = this.graph_editor_animator;
 					if (!ba || !ba[this.graph_editor_channel] || !ba[this.graph_editor_channel].length) {
@@ -1419,6 +1453,10 @@ Interface.definePanels(() => {
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
+									<template v-for="ruler in rulers">
+										<path :d="ruler.path" style="stroke: var(--color-grid); stroke-width: 0.5px;"></path>
+										<text :y="ruler.position - 4">{{ ruler.label }}</text>
+									</template>
 
 									<path v-for="(loop_graph, i) in loop_graphs"
 										:d="loop_graph"

@@ -1358,6 +1358,11 @@
 		stroke-width: 2px;
 		fill: none;
 	}
+	#timeline_graph_editor svg text {
+		stroke: var(--color-subtle_text);
+		font-weight: 200;
+		opacity: 0.8;
+	}
 	#timeline_graph_editor svg .main_graph:not(.selected) {
 		opacity: 0.25;
 	}
