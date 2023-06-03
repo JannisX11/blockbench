@@ -79,7 +79,7 @@ class TextureMesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		'_',
 		'rename',
-		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
+		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Format.single_texture, click(context) {
 			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
 				Undo.initEdit({elements: TextureMesh.all}),
 				TextureMesh.all.forEach(element => {

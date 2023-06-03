@@ -725,7 +725,7 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {

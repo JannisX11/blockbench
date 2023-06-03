@@ -1424,7 +1424,7 @@ const UVEditor = {
 				'auto_cullface'
 			]
 		}},
-		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Project.single_texture, children: function() {
+		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Format.single_texture, children: function() {
 			let arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements;
