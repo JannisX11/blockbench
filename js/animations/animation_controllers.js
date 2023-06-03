@@ -1492,7 +1492,7 @@ Interface.definePanels(() => {
 					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
 				>
 
-					<div style="position: relative;" id="animation_controllers_pickwhip_anchor" style="height: 0px;">
+					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
 						<div id="animation_controllers_pickwhip"
 							v-if="connecting"
 							:style="{left: pickwhip.start_x + 'px', top: pickwhip.start_y + 'px', width: pickwhip.length + 'px', rotate: pickwhip.angle + 'deg'}"

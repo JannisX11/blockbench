@@ -138,6 +138,7 @@ onVueSetup(function() {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
+			viewed_format: null,
 			recent: isApp ? recent_projects : [],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
@@ -366,7 +367,7 @@ onVueSetup(function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
@@ -455,7 +456,7 @@ onVueSetup(function() {
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
@@ -474,7 +475,7 @@ onVueSetup(function() {
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 								</li>
 							</ul>
