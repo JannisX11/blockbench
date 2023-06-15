@@ -386,6 +386,73 @@ Object.assign(Blockbench, {
 			}
 		}
 	},
+	//Find
+	/**
+	 * @callback checkFileCallback
+	 * @param {{name: string, path: string, content: (string|object)}} x - test
+	 */
+	/**
+	 * Find a file in a directory based on content within the file, optionally optimized via file name match
+	 * @param {string[]} base_directories List of base directory paths to search in
+	 * @param {{recursive: boolean, filter_regex: RegExp, priority_regex: RegExp, json: boolean}} options 
+	 * @param {checkFileCallback} check_file 
+	 */
+	findFileFromContent(base_directories, options, check_file) {
+		let deprioritized_files = [];
+
+		function checkFile(path) {
+			try {
+				let content;
+				if (options.read_file !== false) content = fs.readFileSync(path, 'utf-8');
+				
+				return check_file(path, options.json ? autoParseJSON(content, false) : content);
+
+			} catch (err) {
+				console.error(err);
+				return false;
+			}
+		}
+
+		let searchFolder = (path) => {
+			let files;
+			try {
+				files = fs.readdirSync(path, {withFileTypes: true});
+			} catch (err) {
+				files = [];
+			}
+			for (let dirent of files) {
+				if (dirent.isDirectory()) continue;
+
+				if (!options.filter_regex || options.filter_regex.exec(dirent.name)) {
+					let new_path = path + osfs + dirent.name;
+					if (!options.priority_regex || options.priority_regex.exec(dirent.name)) {
+						// priority checking
+						let result = checkFile(new_path);
+						if (result) return result;
+					} else {
+						deprioritized_files.push(new_path);
+					}
+				}
+			}
+			if (options.recursive !== false) {
+				for (let dirent of files) {
+					if (!dirent.isDirectory()) continue;
+
+					let result = searchFolder(path + osfs + dirent.name);
+					if (result) return result;
+				}
+			}
+		}
+		for (let directory of base_directories) {
+			let result = searchFolder(directory);
+			if (result) return result;
+		}
+
+		for (let path of deprioritized_files) {
+			let result = checkFile(path);
+			if (result) return result;
+		}
+	},
 	//File Drag
 	addDragHandler(id, options, cb) {
 		var entry = {

@@ -37,7 +37,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		this.root_path = path.slice().join(osfs);
 
 		if (BedrockEntityManager.CurrentContext?.entity_file_path) {
-			var content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
+			let content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
 			if (content) {
 				return content;
 			}
@@ -45,39 +45,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 		path.push('entity');
 		path = path.join(osfs);
-		var entity_path = findExistingFile([
-			path+osfs+name+'.entity.json',
-			path+osfs+name+'.json',
-		])
-		if (entity_path) {
-			var content = this.checkEntityFile(entity_path);
-			if (content) {
-				return content;
-			}
-		} else {
-			let searchFolder = (path) => {
-				try {
-					var files = fs.readdirSync(path);	
-					for (var name of files) {
-						var new_path = path + osfs + name;
-						if (name.match(/\.json$/)) {
-							var result = this.checkEntityFile(new_path);
-							if (result) return result;
-						} else if (!name.includes('.')) {
-							var result = searchFolder(new_path);
-							if (result) return result;
-						}
-					}
-				} catch (err) {}
-			}
-			if (Group.all.find(group => group.bedrock_binding)) {
-				// Primarily an attachable
-				return searchFolder(path.replace(/entity$/, 'attachables')) || searchFolder(path);
-			} else {
-				// Entity
-				return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
-			}
+
+		let base_directories = [path, path.replace(/entity$/, 'attachables')];
+		if (Group.all.find(group => group.bedrock_binding)) {
+			// probably an attachable
+			base_directories.reverse();
 		}
+		return Blockbench.findFileFromContent(base_directories, {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), read_file: false}, (path) => {
+			return this.checkEntityFile(path);
+		});
 	}
 	initEntity() {
 		this.client_entity = this.getEntityFile();
@@ -420,22 +396,9 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				return content;
 			}
 		} else {
-			let searchFolder = (path) => {
-				try {
-					var files = fs.readdirSync(path);	
-					for (var name of files) {
-						var new_path = path + osfs + name;
-						if (name.match(/\.json$/)) {
-							var result = this.checkBlockFile(new_path);
-							if (result) return result;
-						} else if (!name.includes('.')) {
-							var result = searchFolder(new_path);
-							if (result) return result;
-						}
-					}
-				} catch (err) {}
-			}
-			return searchFolder(path);
+			return Blockbench.findFileFromContent([path], {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), read_file: false}, (path) => {
+				return this.checkBlockFile(path);
+			});
 		}
 	}
 	initBlock() {
@@ -944,7 +907,33 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 		let root_index = path.indexOf(is_attachable ? 'attachables' : 'entity');
 		path.splice(root_index);
 
-		let entity_path = findExistingFile([
+		let [matched_geo_path, matched_geo_content] = Blockbench.findFileFromContent([
+			[...path, 'models', 'entity'].join(osfs),
+			[...path, 'models', 'blocks'].join(osfs),
+		], {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), json: true}, (path, content) => {
+
+			if (content['minecraft:geometry'] instanceof Array) {
+				let geo = content['minecraft:geometry'].find(geo => {
+					return geo.description?.identifier == models[0];
+				})
+				if (geo) return [path, content];
+			} else if (content[models[0]]) {
+				return [path, content];
+			}
+		}) || [];
+
+		if (matched_geo_path) {
+			BedrockEntityManager.CurrentContext = {
+				geometry: models[0],
+				entity_file_path: file.path,
+				type: 'entity'
+			};
+			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
+			codec.load(matched_geo_content, {path: matched_geo_path}, false);
+			delete BedrockEntityManager.CurrentContext;
+		}
+
+		/*let entity_path = findExistingFile([
 			[...path, 'models', 'entity', name+'.geo.json'].join(osfs),
 			[...path, 'models', 'entity', name+'.json'].join(osfs),
 			[...path, 'models', 'block', name+'.geo.json'].join(osfs),
@@ -1009,7 +998,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
 			codec.load(matched_geo_content, {path: matched_geo_path}, false);
 			delete BedrockEntityManager.CurrentContext;
-		}
+		}*/
 	},
 })
 
