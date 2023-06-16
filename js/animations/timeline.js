@@ -1000,14 +1000,18 @@ Interface.definePanels(() => {
 						}
 						
 						// Time
-						var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
-						let [min, max] = dragging_range;
-						
-						if (time_stretching) {
-							var time_factor = (clicked && clicked.time_before < (min + max) / 2)
-								? ((max-min-difference) / (max-min))
-								: ((max-min+difference) / (max-min));
-							time_factor = Math.roundTo(time_factor, 2);
+						let difference = 0;
+						let max, min;
+						if ((!e2.ctrlOrCmd && !e2.shiftKey) || time_stretching || !Timeline.vue.graph_editor_open) {
+							difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
+							[min, max] = dragging_range;
+							
+							if (time_stretching) {
+								var time_factor = (clicked && clicked.time_before < (min + max) / 2)
+									? ((max-min-difference) / (max-min))
+									: ((max-min+difference) / (max-min));
+								time_factor = Math.roundTo(time_factor, 2);
+							}
 						}
 
 						// Value
