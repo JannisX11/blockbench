@@ -118,3 +118,7 @@ function getAxisNumber(letter) {
 		case 'z': return 2; break;
 	}
 }
+let string_num_regex = /^-?\d+(\.\d+f?)?$/;
+function isStringNumber(string) {
+	return string_num_regex.test(string);
+}

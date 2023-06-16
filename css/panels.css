@@ -1092,6 +1092,17 @@
 		margin-left: -2px;
 		transform: rotate(-90deg);
 	}
+	#panel_timeline .keyframe.has_expressions::after {
+		content: "M";
+		position: absolute;
+		width: 100%;
+		text-align: center;
+		font-size: 10px;
+		color: var(--color-back);
+		top: 3px;
+		left: 0;
+		font-weight: 600;
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 		pointer-events: none;
