@@ -450,7 +450,7 @@ const MenuBar = {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},
 			'_',
-			'open_backup_folder',
+			'view_backups',
 			'_',
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',

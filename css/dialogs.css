@@ -1568,6 +1568,66 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		color: inherit;
 	}
 
+/* View Backups */
+	ul#view_backups_list {
+		max-height: calc(95vh - 220px);
+		margin-top: 8px;
+		margin-bottom: 8px;
+	}
+	ul#view_backups_list > li {
+		padding: 2px 6px;
+		cursor: pointer;
+		border: 2px solid transparent;
+		display: flex;
+		justify-content: space-between;
+		flex-wrap: wrap;
+	}
+	ul#view_backups_list > li.current {
+		border-color: var(--color-accent);
+	}
+	ul#view_backups_list > li:hover {
+		color: var(--color-light);
+	}
+	ul#view_backups_list > li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		position: relative;
+	}
+	#view_backups_list span {
+		flex-grow: 1;
+	}
+	#view_backups_list .view_backups_info_field {
+		color: var(--color-subtle_text);
+		width: 90px;
+		white-space: nowrap;
+		overflow: hidden;
+		cursor: inherit;
+		text-align: right;
+	}
+	#view_backups_list .view_backups_info_field:last-child {
+		width: 82px;
+	}
+	ul#view_backups_list > li.selected .view_backups_info_field {
+		color: inherit;
+	}
+
+	ol.pagination_numbers {
+		display: flex;
+		gap: 3px;
+		justify-content: center;
+	}
+	ol.pagination_numbers > li {
+		border-radius: 3px;
+		cursor: pointer;
+		padding: 0px 7px;
+		min-width: 22px;
+	}
+	ol.pagination_numbers > li:hover, ol.pagination_numbers > li.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+
+
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,
 	dialog#brush_options:not(.preset_selected) hr {

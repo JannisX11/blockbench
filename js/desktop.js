@@ -450,6 +450,118 @@ function createBackup(init) {
 		}
 	})
 }
+
+BARS.defineActions(() => {
+
+	let selected_id; // Remember selected one after re-opening
+	new Action('view_backups', {
+		icon: 'fa-archive',
+		category: 'file',
+		condition: () => isApp,
+		click(e) {
+
+			let backup_directory = app.getPath('userData')+osfs+'backups';
+			let files = fs.readdirSync(backup_directory);
+
+			let entries = files.map((file, i) => {
+				let path = PathModule.join(backup_directory, file);
+				let stats = fs.statSync(path);
+				
+				let size = `${separateThousands(Math.round(stats.size / 1024))} KB`;
+				let entry = {
+					id: file,
+					path,
+					name: file.replace(/backup_\d+\.\d+\.\d+_\d+\.\d+_?/, '').replace(/\.bbmodel$/, '').replace(/_/g, ' ') || 'no name',
+					date: stats.mtime.toLocaleDateString(),
+					time: stats.mtime.toLocaleTimeString().replace(/:\d+ /, ' '),
+					date_long: stats.mtime.toString(),
+					timestamp: stats.mtime.getTime(),
+					size,
+				}
+				return entry;
+			})
+			entries.sort((a, b) => b.timestamp - a.timestamp);
+
+			let selected;
+			const dialog = new Dialog({
+				id: 'view_backups',
+				title: 'action.view_backups',
+				width: 720,
+				buttons: ['dialog.confirm', 'dialog.view_backups.open_folder', 'dialog.cancel'],
+				component: {
+					data() {return {
+						backups: entries,
+						page: 0,
+						per_page: 80,
+						search_term: '',
+						selected: (selected_id ? entries.find(e => e.id == selected_id) : null)
+					}},
+					methods: {
+						select(backup) {
+							selected = this.selected = backup;
+							selected_id = backup.id;
+						},
+						open() {
+							dialog.confirm();
+						},
+						setPage(number) {
+							this.page = number;
+						}
+					},
+					computed: {
+						filtered_backups() {
+							let term = this.search_term.toLowerCase();
+							return this.backups.filter(backup => {
+								return backup.name.includes(term);
+							})
+						},
+						viewed_backups() {
+							return this.filtered_backups.slice(this.page * this.per_page, (this.page+1) * this.per_page);
+						},
+						pages() {
+							let pages = [];
+							let length = this.filtered_backups.length;
+							for (let i = 0; i * this.per_page < length; i++) {
+								pages.push(i);
+							}
+							return pages;
+						}
+					},
+					template: `
+						<div>
+							<div class="bar">
+								<search-bar v-model="search_term" @input="setPage(0)"></search-bar>
+							</div>
+							<ul id="view_backups_list" class="list">
+								<li v-for="backup in viewed_backups" :key="backup.id" :class="{selected: selected == backup}" @dblclick="open(backup)" @click="select(backup);">
+									<span :title="backup.id">{{ backup.name }}</span>
+									<div class="view_backups_info_field" :title="backup.date_long">{{ backup.date }}</div>
+									<div class="view_backups_info_field" :title="backup.date_long">{{ backup.time }}</div>
+									<div class="view_backups_info_field">{{ backup.size }}</div>
+								</li>
+							</ul>
+							<ol class="pagination_numbers" v-if="pages.length > 1">
+								<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
+							</ol>
+						</div>
+					`
+				},
+				onButton(button) {
+					if (button == 1) {
+						shell.openPath(backup_directory);
+					}
+				},
+				onConfirm() {
+					Blockbench.read([selected.path], {}, (files) => {
+						loadModelFile(files[0]);
+					})
+					dialog.close();
+				}
+			}).show();
+		}
+	})
+})
+
 //Close
 window.onbeforeunload = function (event) {
 	try {

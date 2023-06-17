@@ -1798,14 +1798,6 @@ const BARS = {
 					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
-			new Action('open_backup_folder', {
-				icon: 'fa-archive',
-				category: 'file',
-				condition: () => isApp,
-				click: function (e) {
-					shell.openPath(app.getPath('userData')+osfs+'backups')
-				}
-			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',

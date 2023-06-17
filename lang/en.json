@@ -603,6 +603,8 @@
 
 	"dialog.input.title": "Input",
 
+	"dialog.view_backups.open_folder": "Open Folder",
+
 	"dialog.sketchfab_uploader.title": "Upload Sketchfab Model",
 	"dialog.sketchfab_uploader.token": "API Token",
 	"dialog.sketchfab_uploader.about_token": "The token is used to connect Blockbench to your Sketchfab account. You can find it on %0",
@@ -1110,8 +1112,8 @@
 	"action.new_window.desc": "Opens a new Blockbench window",
 	"action.open_model_folder": "Open Model Folder",
 	"action.open_model_folder.desc": "Opens the folder that the model is contained in",
-	"action.open_backup_folder": "Open Backup Folder",
-	"action.open_backup_folder.desc": "Opens the Blockbench backup folder",
+	"action.view_backups": "View Backups",
+	"action.view_backups.desc": "Browse the list of auto-saved project backups",
 	"action.open_model": "Open Model",
 	"action.open_model.desc": "Open a model file from your computer",
 	"action.open_from_link": "Open Model from Link...",

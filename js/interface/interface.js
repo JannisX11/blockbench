@@ -422,7 +422,7 @@ function setupInterface() {
 	Interface.status_bar.menu = new Menu([
 		'project_window',
 		'open_model_folder',
-		'open_backup_folder',
+		'view_backups',
 		'save',
 		'timelapse',
 		'cancel_gif',
