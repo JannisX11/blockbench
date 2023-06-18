@@ -1,9 +1,24 @@
 class PreviewScene {
-	constructor(id, data) {
+	constructor(id, data = 0) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
+		this.loaded = false;
 
 		this.name = tl(data.name || `preview_scene.${id}`);
+		this.light_color = {r: 1, g: 1, b: 1};
+		this.light_side = 0;
+		this.condition;
+
+		this.preview_models = [];
+
+		if (data) this.extend(data);
+
+		PreviewScene.select_options[id] = this.name;
+	}
+	extend(data) {
+		this.loaded = data.lazy_load_from_web ? false : true;
+
+		this.name = tl(data.name || `preview_scene.${this.id}`);
 		if (data.description) {
 			this.description = tl(data.description);
 		} else {
@@ -11,18 +26,32 @@ class PreviewScene {
 			this.description = tl('action.'+this.id+'.desc')
 			if (this.description == key) this.description = '';
 		}
-		this.light_color = data.light_color || {r: 1, g: 1, b: 1};
-		this.light_side = data.light_side || 0;
+		if (data.light_color) this.light_color = data.light_color;
+		if (data.light_sid) this.light_side = data.light_sid;
 		this.condition = data.condition;
 
 		this.preview_models = (!data.preview_models) ? [] : data.preview_models.map(model => {
 			if (typeof model == 'string') return PreviewModel.models[model];
+			if (model instanceof PreviewModel && typeof model == 'object') {
+				model = new PreviewModel(model.id || this.id, model);
+			}
 			return model;
 		})
-
-		PreviewScene.select_options[id] = this.name;
 	}
-	select() {
+	async lazyLoadFromWeb() {
+		this.loaded = true;
+		let response = await fetch(`./minecraft_snowy_tundra.json`);
+		if (!response.ok) {
+			console.log(response)
+			return;
+		}
+		let json = await response.json();
+		this.extend(json);yy
+	}
+	async select() {
+		if (!this.loaded) {
+			await this.lazyLoadFromWeb()
+		}
 		if (PreviewScene.active) PreviewScene.active.unselect();
 		this.preview_models.forEach(model => {
 			model.enable();
@@ -858,6 +887,9 @@ new PreviewScene('studio', {
 	light_side: 1,
 	preview_models: ['studio']
 });
+new PreviewScene('landscape', {
+	light_color: {r: 1, g: 1, b: 1}
+});
 new PreviewScene('minecraft_overworld', {
 	preview_models: ['minecraft_overworld']
 });
@@ -872,18 +904,38 @@ new PreviewScene('minecraft_end', {
 });
 
 
+new PreviewScene('minecraft_snowy_tundra').lazyLoadFromWeb();
+
+
 BARS.defineActions(function() {
-	new BarSelect('preview_scene', {
+	new Action('preview_scene', {
 		category: 'view',
-		value: 'none',
-		options: PreviewScene.select_options,
-		onChange() {
+		icon: 'nature_people',
+		click(event) {
+			new Menu(this.children).show(event.target);
+		},
+		/*onChange() {
 			let scene = PreviewScene.scenes[this.value];
 			if (scene) {
 				scene.select();
 			} else if (PreviewScene.active) {
 				PreviewScene.active.unselect();
 			}
-		}
+		},*/
+		children: [
+			{name: 'Studio'},
+			{name: 'Landscape'},
+			'_',
+			{name: 'Minecraft Player', icon: 'check_box_outline_blank'},
+			{name: 'Overworld'},
+			{name: 'Snowy Tundra'},
+			{name: 'Lush Caves'},
+			{name: 'Deep Dark'},
+			{name: 'Nether'},
+			{name: 'Basalt Deltas'},
+			{name: 'Soul Sand Valley'},
+			{name: 'The End'},
+			{name: 'Overworld'},
+		]
 	})
 })

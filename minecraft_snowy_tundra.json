@@ -1,0 +1,38 @@
+{
+	"light_color": {"r": 1.04, "g": 1.03, "b": 1.1},
+	"light_side": 1,
+	"preview_models": [
+		{
+			"id": "minecraft_snowy_tundra",
+			"texture": "./assets/preview_scenes/mc_end.png",
+			"texture_size": [16, 16],
+			"color": "#6f8377",
+			"cubes": [
+				{"position": [-8, -16, -8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [8, -16, 8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [8, -16, -8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-8, -16, 8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-24, -16, -24], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-24, -16, -8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-8, -16, -24], "size": [16, 16, 16], "faces": "solid_uv"},
+
+				{"position": [-24, -32, 8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [8, -32, -24], "size": [16, 16, 16], "faces": "solid_uv"},
+
+				{"position": [8, -32, -40], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-8, -32, -40], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-24, -32, -40], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [8, -32, 24], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-8, -32, 24], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-24, -32, 24], "size": [16, 16, 16], "faces": "solid_uv"},
+
+				{"position": [-40, -32, -24], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-40, -32, -8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [-40, -32, 8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [24, -32, -24], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [24, -32, -8], "size": [16, 16, 16], "faces": "solid_uv"},
+				{"position": [24, -32, 8], "size": [16, 16, 16], "faces": "solid_uv"}
+			]
+		}
+	]
+}
