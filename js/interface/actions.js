@@ -510,6 +510,11 @@ class Toggle extends Action {
 
 		this.updateEnabledState();
 	}
+	set(value) {
+		if (value == this.value) return this;
+		this.click();
+		return this;
+	}
 	setIcon(icon) {
 		if (icon) {
 			this.icon = icon;
@@ -524,6 +529,7 @@ class Toggle extends Action {
 			node.classList.toggle('enabled', this.value);
 		})
 		this.menu_icon_node.innerText = this.value ? 'check_box' : 'check_box_outline_blank';
+		return this;
 	}
 }
 class Widget extends BarItem {

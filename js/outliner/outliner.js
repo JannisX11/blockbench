@@ -327,6 +327,15 @@ class OutlinerNode {
 			return true;
 		}
 	}
+	matchesFilter(search_term) {
+		if (!this.children) {
+			return this.name.includes(search_term);
+		} else {
+			if (this.name.includes(search_term)) return true;
+			let match = false;
+			return this.children.find(child => child.matchesFilter(search_term));
+		}
+	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
 			if (!obj || obj === 'root') {
@@ -949,6 +958,19 @@ BARS.defineActions(function() {
 			StateMemory.save('advanced_outliner_toggles');
 		}
 	})
+	new Toggle('search_outliner', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Outliner.vue._data.options.search_term = '';
+			Outliner.vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('outliner_search_bar').firstChild.focus();
+				});
+			}
+		}
+	})
 	new BarText('cube_counter', {
 		right: true,
 		click: function() {
@@ -1347,10 +1369,14 @@ Interface.definePanels(function() {
 				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
 			},
 			visible_children() {
+				let filtered = this.node.children;
+				if (this.options.search_term) {
+					filtered = this.node.children.filter(child => child.matchesFilter(this.options.search_term))
+				}
 				if (!this.options.hidden_types.length) {
-					return this.node.children;
+					return filtered;
 				} else {
-					return this.node.children.filter(node => !this.options.hidden_types.includes(node.type));
+					return filtered.filter(node => !this.options.hidden_types.includes(node.type));
 				}
 			}
 		},
@@ -1430,6 +1456,7 @@ Interface.definePanels(function() {
 					'toggle_skin_layer',
 					'explode_skin_model',
 					'+',
+					'search_outliner',
 					'cube_counter'
 				]
 			})
@@ -1442,15 +1469,23 @@ Interface.definePanels(function() {
 			name: 'panel-outliner',
 			data() { return {
 				root: Outliner.root,
+				search_enabled: false,
 				options: {
 					width: 300,
 					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
-					hidden_types: []
+					hidden_types: [],
+					search_term: ''
 				}
 			}},
 			methods: {
 				openMenu(event) {
-					Interface.Panels.outliner.menu.show(event)
+					Panels.outliner.menu.show(event)
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.options.search_term && !document.querySelector('#outliner_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_outliner.set(false);
+					}
 				},
 				dragToggle(e1) {
 					let [original] = eventTargetToNode(e1.target);
@@ -1661,15 +1696,27 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
+			computed: {
+				filtered_root() {
+					if (!this.options.search_term) {
+						return this.root;
+					} else {
+						return this.root.filter(node => node.matchesFilter(this.options.search_term))
+					}
+				}
+			},
 			template: `
-				<ul id="cubes_list"
-					class="list mobile_scrollbar"
-					@contextmenu.stop.prevent="openMenu($event)"
-					@mousedown="dragNode($event)"
-					@touchstart="dragNode($event)"
-				>
-					<vue-tree-item v-for="item in root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
-				</ul>
+				<div>
+					<search-bar id="outliner_search_bar" v-if="search_enabled" v-model="options.search_term" @input="updateSearch()" onfocusout="Panels.outliner.vue.updateSearch()" />
+					<ul id="cubes_list"
+						class="list mobile_scrollbar"
+						@contextmenu.stop.prevent="openMenu($event)"
+						@mousedown="dragNode($event)"
+						@touchstart="dragNode($event)"
+					>
+						<vue-tree-item v-for="item in filtered_root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
+					</ul>
+				</div>
 			`
 		},
 		menu: new Menu([
@@ -1682,6 +1729,8 @@ Interface.definePanels(function() {
 			'select_all',
 			'collapse_groups',
 			'unfold_groups',
+			'_',
+			'search_outliner',
 			'element_colors',
 			'outliner_toggle'
 		])

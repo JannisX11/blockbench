@@ -369,6 +369,9 @@
 
 
 /*Outliner*/
+	#outliner_search_bar {
+		width: 100%;
+	}
 	#cubes_list {
 		padding-top: 1px;
 		overflow-y: scroll;
