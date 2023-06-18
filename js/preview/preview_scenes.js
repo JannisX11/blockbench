@@ -30,6 +30,24 @@ class PreviewScene {
 		if (data.light_sid) this.light_side = data.light_sid;
 		this.condition = data.condition;
 
+		this.cubemap = null;
+		if (data.cubemap) {
+			let urls = data.cubemap;
+			let texture_cube = new THREE.CubeTextureLoader().load( urls );
+			texture_cube.colorSpace = THREE.SRGBColorSpace;
+			texture_cube.mapping = THREE.CubeRefractionMapping;
+			this.cubemap = texture_cube;
+		}
+
+		this.fog = null;
+		if (data.fog) {
+			if (data.fog.type == 'linear') {
+				this.fog = new THREE.Fog(data.fog.color, data.fog.near, data.fog.far);
+			} else {
+				this.fog = new THREE.FogExp2(data.fog.color, data.fog.density);
+			}
+		}
+
 		this.preview_models = (!data.preview_models) ? [] : data.preview_models.map(model => {
 			if (typeof model == 'string') return PreviewModel.models[model];
 			if (model instanceof PreviewModel && typeof model == 'object') {
@@ -59,6 +77,8 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
+		scene.background = this.cubemap;
+		scene.fog = this.fog;
 		PreviewScene.active = this;
 		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
 		Canvas.updateShading();
@@ -70,6 +90,8 @@ class PreviewScene {
 
 		Canvas.global_light_color.set(0xffffff);
 		Canvas.global_light_side = 0;
+		if (this.cubemap) scene.background = null;
+		if (this.fog) scene.fog = null;
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
 	}
@@ -891,7 +913,16 @@ new PreviewScene('landscape', {
 	light_color: {r: 1, g: 1, b: 1}
 });
 new PreviewScene('minecraft_overworld', {
-	preview_models: ['minecraft_overworld']
+	preview_models: ['minecraft_overworld'],
+	fog: {color: '#bbe9fc', density: 0.002},
+	cubemap: [
+		'assets/preview_scenes/overworld_panorama/panorama_1.png',
+		'assets/preview_scenes/overworld_panorama/panorama_3.png',
+		'assets/preview_scenes/overworld_panorama/panorama_4.png',
+		'assets/preview_scenes/overworld_panorama/panorama_5.png',
+		'assets/preview_scenes/overworld_panorama/panorama_0.png',
+		'assets/preview_scenes/overworld_panorama/panorama_2.png',
+	]
 });
 new PreviewScene('minecraft_nether', {
 	light_color: {r: 0.68, g: 0.61, b: 0.49},
