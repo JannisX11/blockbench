@@ -244,6 +244,7 @@
 	"message.child_model_only.open": "Open Parent",
 	"message.child_model_only.open_with_textures": "Open Parent & Adopt Textures",
 	"message.invalid_link": "Invalid or Expired Model Link",
+	"message.invalid_link.message": "The shared model \"%0\" that you are trying to load is either invalid or has expired.",
 	"message.delete_reference_image": "Are you sure you want to delete this reference image? This cannot be undone.",
 	"message.add_reference_image.message": "Select where to load the reference image",
 	"message.add_reference_image.project": "Add to this project",
