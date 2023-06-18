@@ -96,6 +96,7 @@ class ValidatorCheck {
 		this.run = options.run;
 		this.errors = [];
 		this.warnings = [];
+		this._timeout = null;
 
 		Validator.checks.push(this);
 		Validator.updateCashedTriggers();
@@ -115,6 +116,26 @@ class ValidatorCheck {
 		} catch (error) {
 			console.error(error);
 		}
+	}
+	validate() {
+		if (this._timeout) {
+			clearTimeout(this._timeout);
+			this._timeout = null;
+		}
+
+		this._timeout = setTimeout(() => {
+			this._timeout = null;
+
+			this.update();
+
+			Validator.warnings.empty();
+			Validator.errors.empty();
+
+			Validator.checks.forEach(check => {
+				Validator.warnings.push(...check.warnings);
+				Validator.errors.push(...check.errors);
+			})
+		}, 40)
 	}
 	warn(...warnings) {
 		this.warnings.push(...warnings);
@@ -186,15 +207,10 @@ new ValidatorCheck('box_uv', {
 						click() {
 							Validator.dialog.hide();
 							
-							save = Undo.initEdit({uv_mode: true})
-							Project.box_uv = false;
-							Canvas.updateAllUVs()
-							updateSelection()
-							Undo.finishEdit('Change project UV settings')
-							BARS.updateConditions()
-							if (Project.EditSession) {
-								Project.EditSession.sendAll('change_project_meta', JSON.stringify({box_uv: false}));
-							}
+							Undo.initEdit({elements: [cube], uv_only: true});
+							cube.setUVMode(false);
+							Undo.finishEdit('Change UV mode')
+							updateSelection();
 						}
 					})
 				}
