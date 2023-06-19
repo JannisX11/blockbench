@@ -3241,7 +3241,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && (mappable_elements[0].type == 'cube' || mappable_elements[0].has_uv_cube_face_bar) && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key" :class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}" @mousedown="selectFace(key, $event, false, true)">
 							{{ face_names[key] }}
 						</li>
@@ -3252,7 +3252,7 @@ Interface.definePanels(function() {
 					</div>
 
 
-					<div id="uv_face_properties" v-if="mode === 'face_properties' && mappable_elements[0] && mappable_elements[0].type == 'cube'">
+					<div id="uv_face_properties" v-if="mode === 'face_properties' && mappable_elements[0] && (mappable_elements[0].type == 'cube' || mappable_elements[0].has_uv_cube_face_bar)">
 						<div class="bar" id="face_properties_header_bar">
 							<li></li>
 							<li @click="mode = 'uv'" class="tool face_properties_toggle">
@@ -3348,7 +3348,7 @@ Interface.definePanels(function() {
 
 							<template v-for="element in getDisplayedUVElements()">
 
-								<template v-if="element.type == 'cube' && !element.box_uv">
+								<template v-if="(element.type == 'cube' || element.has_uv_cube_face_bar) && !element.box_uv">
 									<div class="cube_uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
 										v-if="(face.getTexture() == texture || texture == 0) && (display_uv !== 'selected_faces' || selected_faces.includes(key))"
@@ -3386,7 +3386,7 @@ Interface.definePanels(function() {
 									</div>
 								</template>
 								
-								<div v-else-if="element.type == 'cube'" class="cube_box_uv"
+								<div v-else-if="(element.type == 'cube' || element.has_uv_cube_face_bar)" class="cube_box_uv"
 									:key="element.uuid"
 									@mousedown.prevent="dragFace(null, $event)"
 									@touchstart.prevent="dragFace(null, $event)"
