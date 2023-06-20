@@ -112,6 +112,7 @@ class NullObject extends OutlinerElement {
 	];
 	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
+			new MenuSeparator('ik'),
 			'set_ik_target',
 			'set_ik_source',
 			{
@@ -129,9 +130,8 @@ class NullObject extends OutlinerElement {
 					if (Modes.animate) Animator.preview();
 				}
 			},
-			'_',
 			...Outliner.control_menu_group,
-			'_',
+			new MenuSeparator('manage'),
 			'rename',
 			'delete'
 		])

@@ -820,8 +820,7 @@ class Cube extends OutlinerElement {
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		'convert_to_mesh',
 		'update_autouv',
 		'cube_uv_mode',
@@ -859,6 +858,8 @@ class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);

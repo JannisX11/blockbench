@@ -1446,6 +1446,7 @@ class Texture {
 	}
 }
 	Texture.prototype.menu = new Menu([
+			new MenuSeparator('apply'),
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
@@ -1476,7 +1477,7 @@ class Texture {
 					}
 				}
 			},
-			'_',
+			new MenuSeparator('settings'),
 			{
 				icon: 'list',
 				name: 'menu.texture.render_mode',
@@ -1525,10 +1526,10 @@ class Texture {
 					Undo.finishEdit('Merged textures')
 				}
 			},
-			'_',
+			new MenuSeparator('copypaste'),
 			'copy',
 			'duplicate',
-			'_',
+			new MenuSeparator('edit'),
 			{
 				icon: 'edit',
 				name: 'menu.texture.edit_externally',
@@ -1556,21 +1557,23 @@ class Texture {
 				name: 'menu.texture.edit',
 				condition: {modes: ['paint']},
 				children: [
+					new MenuSeparator('adjustment'),
 					'adjust_brightness_contrast',
 					'adjust_saturation_hue',
 					'adjust_opacity',
 					'invert_colors',
 					'adjust_curves',
-					'_',
+					new MenuSeparator('filters'),
 					'limit_to_palette',
 					'clear_unused_texture_space',
-					'_',
+					new MenuSeparator('transform'),
 					'flip_texture_x',
 					'flip_texture_y',
 					'rotate_texture_cw',
 					'rotate_texture_ccw'
 				]
 			},
+			new MenuSeparator('file'),
 			{
 				icon: 'folder',
 				name: 'menu.texture.folder',
@@ -1594,7 +1597,7 @@ class Texture {
 				condition: tex => tex.render_mode == 'emissive',
 				click(texture) {texture.exportEmissionMap()}
 			},
-			'_',
+			new MenuSeparator('manage'),
 			{
 				icon: 'refresh',
 				name: 'menu.texture.refresh',
@@ -1607,7 +1610,7 @@ class Texture {
 				click(texture) { texture.reopen()}
 			},
 			'delete',
-			'_',
+			new MenuSeparator('properties'),
 			{
 				icon: 'list',
 				name: 'menu.texture.properties',
@@ -2228,7 +2231,9 @@ Interface.definePanels(function() {
 			}
 		},
 		menu: new Menu([
+			new MenuSeparator('copypaste'),
 			'paste',
+			new MenuSeparator('file'),
 			'import_texture',
 			'create_texture',
 			'change_textures_folder',

@@ -520,8 +520,7 @@ class Keyframe {
 	}
 }
 	Keyframe.prototype.menu = new Menu([
-		'change_keyframe_file',
-		'_',
+		new MenuSeparator('settings'),
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
@@ -540,7 +539,7 @@ class Keyframe {
 				}})
 			];
 		}},
-		'_',
+		new MenuSeparator('copypaste'),
 		'copy',
 		'delete',
 	])

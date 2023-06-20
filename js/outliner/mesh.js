@@ -700,6 +700,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
+		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
 		'inset_mesh_selection',
 		'loop_cut',
@@ -708,12 +709,11 @@ class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'_',
+		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -747,6 +747,8 @@ class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);

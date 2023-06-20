@@ -436,10 +436,7 @@ class Group extends OutlinerNode {
 	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'add_locator',
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		'edit_bedrock_binding',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
@@ -452,7 +449,10 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
+		'add_locator',
+		new MenuSeparator('manage'),
 		'resolve_group',
+		'rename',
 		'delete'
 	]);
 	Object.defineProperty(Group, 'all', {

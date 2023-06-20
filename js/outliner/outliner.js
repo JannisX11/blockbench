@@ -647,7 +647,23 @@ class NodePreviewController extends EventSystem {
 		this.dispatchEvent('update_selection', {element});
 	}
 }
+/**
+Standardied outliner node context menu group order
+
+(mesh editing)
+(settings)
+copypaste
+	copy, paste, duplicate
+outliner_control
+	group, move
+(add)
+settings
+	color, options, texture
+manage
+	visibility, rename, delete
+ */
 Outliner.control_menu_group = [
+	new MenuSeparator('outliner_control'),
 	'copy',
 	'paste',
 	'duplicate',
@@ -1720,17 +1736,18 @@ Interface.definePanels(function() {
 			`
 		},
 		menu: new Menu([
+			new MenuSeparator('add_element'),
 			'add_mesh',
 			'add_cube',
 			'add_texture_mesh',
 			'add_group',
-			'_',
-			'sort_outliner',
+			new MenuSeparator('manage'),
 			'select_all',
+			'sort_outliner',
 			'collapse_groups',
 			'unfold_groups',
-			'_',
 			'search_outliner',
+			new MenuSeparator('options'),
 			'element_colors',
 			'outliner_toggle'
 		])

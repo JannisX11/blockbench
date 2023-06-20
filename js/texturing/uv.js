@@ -1304,6 +1304,7 @@ const UVEditor = {
 
 
 	menu: new Menu([
+		new MenuSeparator('interface'),
 		{name: 'menu.view.zoom', id: 'zoom', icon: 'search', children: [
 			'zoom_in',
 			'zoom_out',
@@ -1328,11 +1329,11 @@ const UVEditor = {
 		'painting_grid',
 		'uv_checkerboard',
 		'paint_mode_uv_overlay',
-		'_',
+		new MenuSeparator('copypaste'),
 		'copy',
 		'paste',
 		'cube_uv_mode',
-		'_',
+		new MenuSeparator('uv'),
 		{
 			name: 'menu.uv.export',
 			icon: () => UVEditor.getReferenceFace()?.enabled !== false ? 'check_box' : 'check_box_outline_blank',
@@ -1399,7 +1400,7 @@ const UVEditor = {
 				Undo.finishEdit('Flip UV');
 			}
 		},
-		'_',
+		new MenuSeparator('face_options'),
 		'face_tint',
 		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
 			let off = 'radio_button_unchecked';

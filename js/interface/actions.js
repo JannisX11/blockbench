@@ -724,6 +724,7 @@ class NumSlider extends Widget {
 		})
 		.on('contextmenu', event => {
 			new Menu([
+				new MenuSeparator('copypaste'),
 				{
 					id: 'copy',
 					name: 'action.copy',
@@ -755,7 +756,7 @@ class NumSlider extends Widget {
 						}, 20);
 					}
 				},
-				'_',
+				new MenuSeparator('edit'),
 				{
 					id: 'round',
 					name: 'menu.slider.round_value',

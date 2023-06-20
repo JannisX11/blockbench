@@ -1374,12 +1374,12 @@ class Preview {
 			}
 		},
 		'preview_checkerboard',
-		'_',
+		new MenuSeparator('reference_images'),
 		'add_reference_image',
 		'reference_image_from_clipboard',
 		'toggle_all_reference_images',
 		'edit_reference_images',
-		'_',
+		new MenuSeparator('controls'),
 		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
@@ -1428,7 +1428,7 @@ class Preview {
 		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
-		'_',
+		new MenuSeparator('interface'),
 		'split_screen',
 		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
 			preview.fullscreen();
