@@ -97,6 +97,7 @@
 		user-select: text;
 		-webkit-user-select: text;
 		font-family: var(--font-code);
+		word-break: break-word;
 	}
 
 	.dialog {

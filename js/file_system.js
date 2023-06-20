@@ -180,7 +180,9 @@ Object.assign(Blockbench, {
 							if (!errant && options.errorbox !== false) {
 								Blockbench.showMessageBox({
 									translateKey: 'file_not_found',
-									icon: 'error_outline'
+									message: tl('message.file_not_found.message') + '\n\n```' + file.replace(/[`"<>]/g, '') + '```',
+									icon: 'error_outline',
+									width: 520
 								})
 							}
 							errant = true;
