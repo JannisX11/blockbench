@@ -664,6 +664,18 @@
 		padding: 0;
 		background-color: var(--color-menu_separator);
 	}
+	li.menu_separator.has_label {
+		margin-top: 12px;
+		margin-bottom: 6px;
+	}
+	li.menu_separator.has_label > label {
+		background-color: var(--color-bright_ui);
+		color: color-mix(in srgb, var(--color-bright_ui_text) 70%, transparent);
+		margin-top: -12px;
+		margin-left: 12px;
+		padding: 0 5px;
+		height: 20px;
+	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
 	}

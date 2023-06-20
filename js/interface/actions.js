@@ -1,10 +1,5 @@
 var Toolbars, BarItems, Toolbox;
 //Bars
-class MenuSeparator {
-	constructor() {
-		this.menu_node = Interface.createElement('li', {class: 'menu_separator'});
-	}
-}
 class BarItem {
 	constructor(id, data) {
 		this.id = id;

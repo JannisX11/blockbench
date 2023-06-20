@@ -1,5 +1,15 @@
 var open_menu = null;
-
+class MenuSeparator {
+	constructor(id, label) {
+		this.id = id || '';
+		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
+		if (label) {
+			label = tl(label);
+			this.menu_node.append(Interface.createElement('label', {}, label));
+			this.menu_node.classList.add('has_label');
+		}
+	}
+}
 function handleMenuOverflow(node) {
 	node = node.get(0);
 	if (!node) return;
@@ -275,7 +285,12 @@ class Menu {
 			let scope_context = context;
 			var entry;
 			if (s === '_') {
-				entry = new MenuSeparator().menu_node
+				s = new MenuSeparator();
+			} else if (typeof s == 'string' && s.startsWith('#')) {
+				s = new MenuSeparator(s.substring(1));
+			}
+			if (s instanceof MenuSeparator) {
+				entry = s.menu_node;
 				var last = parent.children().last()
 				if (last.length && !last.hasClass('menu_separator')) {
 					parent.append(entry)
@@ -542,21 +557,38 @@ class Menu {
 		if (this.structure instanceof Array == false) return;
 		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
-		var track = path.split('.')
+		let track = path.split('.')
 
 		function traverse(arr, layer) {
-			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer]))) {
-				var index = arr.length;
+			if (track.length === layer || !track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
+				let index = arr.length;
 				if (track[layer] !== '' && track.length !== layer) {
-					index = parseInt(track[layer])
+					if (track[layer].startsWith('#')) {
+						// Group Anchor
+						let group = track[layer].substring(1);
+						let group_match = false;
+						index = 0;
+						for (let item of arr) {
+							if (item instanceof MenuSeparator) {
+								if (item.id == group) {
+									group_match = true;
+								} else if (group_match && item.id != group) {
+									break;
+								}
+							}
+							index++;
+						}
+					} else {
+						index = parseInt(track[layer])
+					}
 				}
 				arr.splice(index, 0, action)
 			} else {
-				for (var i = 0; i < arr.length; i++) {
-					var item = arr[i]
+				for (let i = 0; i < arr.length; i++) {
+					let item = arr[i]
 					if (item.children instanceof Array && item.id === track[layer] && layer < 20) {
-						traverse(item.children, layer+1)
-						i = 1000
+						traverse(item.children, layer+1);
+						break;
 					}
 				}
 			}
