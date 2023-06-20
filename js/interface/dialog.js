@@ -930,7 +930,11 @@ window.MessageBox = class MessageBox extends Dialog {
 		this.callback = callback;
 	}
 	close(button, result, event) {
-		if (this.callback) this.callback(button, result, event);
+		if (this.callback) {
+			let allow_close = this.callback(button, result, event);
+			console.log(allow_close)
+			if (allow_close === false) return;
+		}
 		this.hide();
 		this.delete();
 	}

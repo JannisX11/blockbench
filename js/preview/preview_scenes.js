@@ -3,8 +3,11 @@ class PreviewScene {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
 		this.loaded = false;
+		this.require_minecraft_eula = false;
 
 		this.name = tl(data.name || `preview_scene.${id}`);
+		this.category = data.category || 'generic';
+
 		this.light_color = {r: 1, g: 1, b: 1};
 		this.light_side = 0;
 		this.condition;
@@ -13,10 +16,12 @@ class PreviewScene {
 
 		if (data) this.extend(data);
 
-		PreviewScene.select_options[id] = this.name;
+		PreviewScene.menu_categories[this.category][id] = this.name;
 	}
 	extend(data) {
-		this.loaded = data.lazy_load_from_web ? false : true;
+		this.loaded = data.web_config ? false : true;
+		this.web_config_path = data.web_config;
+		if (data.require_minecraft_eula) this.require_minecraft_eula = true;
 
 		this.name = tl(data.name || `preview_scene.${this.id}`);
 		if (data.description) {
@@ -48,25 +53,44 @@ class PreviewScene {
 			}
 		}
 
-		this.preview_models = (!data.preview_models) ? [] : data.preview_models.map(model => {
-			if (typeof model == 'string') return PreviewModel.models[model];
-			if (model instanceof PreviewModel && typeof model == 'object') {
-				model = new PreviewModel(model.id || this.id, model);
-			}
-			return model;
-		})
+		if (data.preview_models) {
+			this.preview_models = data.preview_models.map(model => {
+				if (typeof model == 'string') return PreviewModel.models[model];
+				if (model instanceof PreviewModel == false && typeof model == 'object') {
+					model = new PreviewModel(model.id || this.id, model);
+				}
+				return model;
+			})
+		}
 	}
 	async lazyLoadFromWeb() {
 		this.loaded = true;
-		let response = await fetch(`./minecraft_snowy_tundra.json`);
+		let response = await fetch(`https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes/${this.web_config_path}`);
 		if (!response.ok) {
-			console.log(response)
-			return;
+			console.error(response);
+			Blockbench.showQuickMessage('message.preview_scene_load_failed', 2000);
 		}
 		let json = await response.json();
-		this.extend(json);yy
+		function convertURL(url) {
+			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes/${url}`;
+		}
+		if (json.preview_models) {
+			json.preview_models.forEach(model => {
+				if (model.texture) model.texture = convertURL(model.texture);
+			})
+		}
+		if (json.cubemap instanceof Array) {
+			json.cubemap.forEach((url, i) => {
+				json.cubemap[i] = convertURL(url);
+			})
+		}
+		this.extend(json);
 	}
 	async select() {
+		if (this.require_minecraft_eula) {
+			let accepted = await MinecraftEULA.promptUser();
+			if (accepted != true) return false;
+		}
 		if (!this.loaded) {
 			await this.lazyLoadFromWeb()
 		}
@@ -94,16 +118,26 @@ class PreviewScene {
 		if (this.fog) scene.fog = null;
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
+		PreviewScene.active = null;
 	}
 	delete() {
 		delete PreviewScene.scenes[this.id];
-		delete PreviewScene.select_options[this.id];
+		delete PreviewScene.menu_categories[this.category][this.id];
 	}
 }
 PreviewScene.scenes = {};
 PreviewScene.active = null;
-PreviewScene.select_options = {
-	none: tl('generic.none')
+PreviewScene.select_options = {};
+PreviewScene.menu_categories = {
+	main: {
+		none: tl('generic.none')
+	},
+	generic: {
+		_label: 'Generic'
+	},
+	minecraft: {
+		_label: 'Minecraft'
+	},
 };
 
 class PreviewModel {
@@ -114,8 +148,11 @@ class PreviewModel {
 		this.model_3d = new THREE.Object3D();
 		this.onUpdate = data.onUpdate;
 
-		this.cubes = data.cubes || [];
-		this.texture = data.texture;
+		this.build_data = {
+			prefabs: data.prefabs,
+			cubes: data.cubes || [],
+			texture: data.texture,
+		}
 		this.color = data.color || '#ffffff';
 		this.shading = data.shading !== false;
 		this.render_side = data.render_side == undefined ? THREE.DoubleSide : data.render_side;
@@ -139,9 +176,9 @@ class PreviewModel {
 	}
 	buildModel() {
 		let tex;
-		if (this.texture) {
+		if (this.build_data.texture) {
 			let img = new Image();
-			img.src = this.texture;
+			img.src = this.build_data.texture;
 			tex = new THREE.Texture(img);
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
@@ -157,7 +194,15 @@ class PreviewModel {
 			alphaTest: 0.05
 		});
 
-		this.cubes.forEach(cube => {
+		this.build_data.cubes.forEach(cube => {
+			if (cube.prefab) {
+				cube = Object.assign(cube, this.build_data.prefabs[cube.prefab]);
+				if (cube.offset) {
+					if (cube.offset_space == 'block') cube.offset.V3_multiply(16);
+					cube.position = cube.position.slice().V3_add(cube.offset);
+					if (cube.origin) cube.origin = cube.origin.slice().V3_add(cube.offset);
+				}
+			}
 			let mesh = new THREE.Mesh(new THREE.BoxGeometry(cube.size[0], cube.size[1], cube.size[2]), this.material)
 			if (cube.origin) {
 				mesh.position.set(cube.origin[0], cube.origin[1], cube.origin[2])
@@ -238,6 +283,20 @@ PreviewModel.getActiveModels = function() {
 new PreviewModel('minecraft_overworld', {
 	texture: './assets/preview_scenes/mc_overworld.png',
 	texture_size: [32, 32],
+	prefabs: {
+		grass_block: {
+			position: [-8, 0, -8],
+			size: [16, 16, 16],
+			faces: {
+				north: {uv: [0, 16, 16, 32]},
+				south: {uv: [0, 16, 16, 32]},
+				east: {uv: [0, 16, 16, 32]},
+				west: {uv: [0, 16, 16, 32]},
+				up: {uv: [0, 0, 16, 16]},
+				down: {uv: [16, 16, 32, 32]},
+			}
+		}
+	},
 	cubes: [
 		{
 			position: [-24, 0, 0],
@@ -258,112 +317,44 @@ new PreviewModel('minecraft_overworld', {
 			}
 		},
 		{
-			position: [-24, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [-1, -1, 0],
+			offset_space: 'block'
 		},
 		{
-			position: [-8, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [0, -1, 0],
+			offset_space: 'block'
 		},
 		{
-			position: [8, -16, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [1, -1, 1],
+			offset_space: 'block'
 		},
 		{
-			position: [8, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [1, -1, 0],
+			offset_space: 'block'
 		},
 		{
-			position: [-8, -16, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [0, -1, 1],
+			offset_space: 'block'
 		},
 		{
-			position: [-24, -16, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [-1, -1, -1],
+			offset_space: 'block'
 		},
 		{
-			position: [-24, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [0, -1, -1],
+			offset_space: 'block'
 		},
 		{
-			position: [-8, -16, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-24, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
+			prefab: 'grass_block',
+			offset: [-1, -2, 1],
+			offset_space: 'block'
 		},
 		{
 			position: [8, -32, -24],
@@ -904,15 +895,19 @@ new PreviewModel('studio', {
 		}},
 	]
 })
+// Scenes
 new PreviewScene('studio', {
+	category: 'generic',
 	light_color: {r: 1.04, g: 1.03, b: 1.1},
 	light_side: 1,
 	preview_models: ['studio']
 });
 new PreviewScene('landscape', {
+	category: 'generic',
 	light_color: {r: 1, g: 1, b: 1}
 });
 new PreviewScene('minecraft_overworld', {
+	category: 'minecraft',
 	preview_models: ['minecraft_overworld'],
 	fog: {color: '#bbe9fc', density: 0.002},
 	cubemap: [
@@ -924,19 +919,55 @@ new PreviewScene('minecraft_overworld', {
 		'assets/preview_scenes/overworld_panorama/panorama_2.png',
 	]
 });
+new PreviewScene('minecraft_snowy_tundra', {
+	category: 'minecraft',
+	web_config: 'minecraft/snowy_tundra/snowy_tundra.json',
+	require_minecraft_eula: true,
+});
 new PreviewScene('minecraft_nether', {
+	category: 'minecraft',
 	light_color: {r: 0.68, g: 0.61, b: 0.49},
 	light_side: 1,
 	preview_models: ['minecraft_nether']
 });
 new PreviewScene('minecraft_end', {
+	category: 'minecraft',
 	light_color: {r: 0.45, g: 0.52, b: 0.48},
 	preview_models: ['minecraft_end']
 });
 
 
-new PreviewScene('minecraft_snowy_tundra').lazyLoadFromWeb();
 
+StateMemory.init('minecraft_eula_accepted', 'boolean');
+const MinecraftEULA = {
+	isAccepted() {
+		return StateMemory.minecraft_eula_accepted;
+	},
+	async promptUser() {
+		if (MinecraftEULA.isAccepted()) {
+			return true;
+		}
+		return await new Promise((resolve) => {
+			Blockbench.showMessageBox({
+				width: 540,
+				title: 'Minecraft EULA',
+				message: 'This feature includes Minecraft assets. In order to use it, you need to agree to the [Minecraft End User License Agreement (EULA)](https://www.minecraft.net/en-us/eula).',
+				icon: 'icon-format_bedrock',
+				checkboxes: {
+					accepted: {text: 'I have read the End User License Agreement and I agree to its terms', value: false}
+				},
+				buttons: ['dialog.ok', 'dialog.cancel']
+			}, (button, result) => {
+				if (button == 0 && result.accepted) {
+					StateMemory.set('minecraft_eula_accepted', true);
+				} else if (button == 0) {
+					return false;
+				}
+				resolve(result.accepted);
+			})
+		})
+	}
+}
 
 BARS.defineActions(function() {
 	new Action('preview_scene', {
@@ -945,28 +976,46 @@ BARS.defineActions(function() {
 		click(event) {
 			new Menu(this.children).show(event.target);
 		},
-		/*onChange() {
-			let scene = PreviewScene.scenes[this.value];
-			if (scene) {
-				scene.select();
-			} else if (PreviewScene.active) {
-				PreviewScene.active.unselect();
+		children: () => {
+			let list = [];
+			for (let category in PreviewScene.menu_categories) {
+				let options = PreviewScene.menu_categories[category];
+				if (options._label) {
+					list.push('_') // Menu Sub Title
+				}
+				for (let key in options) {
+					if (key.startsWith('_')) continue;
+					let scene = PreviewScene.scenes[key];
+					list.push({
+						id: key,
+						name: options[key],
+						icon: PreviewScene.active == scene ? 'radio_button_checked' : 'radio_button_unchecked',
+						click() {
+							if (scene) {
+								scene.select();
+							} else if (PreviewScene.active) {
+								PreviewScene.active.unselect();
+							}
+						}
+					})
+				}
 			}
-		},*/
-		children: [
-			{name: 'Studio'},
-			{name: 'Landscape'},
+			return list;
+
+		}/*: [
+			{icon: 'radio_button_unchecked', name: 'Studio'},
+			{icon: 'radio_button_unchecked', name: 'Landscape'},
 			'_',
 			{name: 'Minecraft Player', icon: 'check_box_outline_blank'},
-			{name: 'Overworld'},
-			{name: 'Snowy Tundra'},
-			{name: 'Lush Caves'},
-			{name: 'Deep Dark'},
-			{name: 'Nether'},
-			{name: 'Basalt Deltas'},
-			{name: 'Soul Sand Valley'},
-			{name: 'The End'},
-			{name: 'Overworld'},
-		]
+			{icon: 'radio_button_unchecked', name: 'Overworld'},
+			{icon: 'radio_button_unchecked', name: 'Snowy Tundra', click() {PreviewScene.scenes.minecraft_snowy_tundra.select()}},
+			{icon: 'radio_button_unchecked', name: 'Lush Caves'},
+			{icon: 'radio_button_unchecked', name: 'Deep Dark'},
+			{icon: 'radio_button_unchecked', name: 'Nether'},
+			{icon: 'radio_button_unchecked', name: 'Basalt Deltas'},
+			{icon: 'radio_button_unchecked', name: 'Soul Sand Valley'},
+			{icon: 'radio_button_unchecked', name: 'The End'},
+			{icon: 'radio_button_unchecked', name: 'Overworld'},
+		]*/
 	})
 })
