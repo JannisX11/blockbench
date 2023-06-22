@@ -394,7 +394,7 @@ BARS.defineActions(function() {
 		template: `
 			<dialog id="action_selector" v-if="open">
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
-					<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
+					<dynamic-icon :icon="search_types[search_type] ? search_types[search_type].icon : 'fullscreen'" />
 				</div>
 				<input type="text" v-model="search_input" inputmode="search" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 				<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
@@ -407,7 +407,7 @@ BARS.defineActions(function() {
 							@click="click(item, $event)"
 							@mouseenter="index = i"
 						>
-							<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>
 							<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
 						</li>

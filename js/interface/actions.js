@@ -2510,7 +2510,7 @@ const BARS = {
 			
 						<ul class="list" id="bar_item_list">
 							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
-								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+								<dynamic-icon :icon="item.icon" :color="item.color" />
 								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
 								{{ item.name }}
 							</li>
