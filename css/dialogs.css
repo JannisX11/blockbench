@@ -1116,6 +1116,42 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 
 /*Plugin Menu*/
+	dialog#plugins {
+		max-width: min(1400px, 100%);
+		height: calc(96% - 108px);
+	}
+	dialog#plugins .dialog_wrapper {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 1;
+		overflow: hidden;
+	}
+	dialog#plugins content.dialog_content {
+		margin: 0;
+		display: flex;
+		max-height: initial;
+	}
+	#plugin_browser_sidebar {
+		width: 38.2%;
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
+		padding-top: 10px;
+	}
+	#plugin_browser_page,
+	#plugin_browser_start_page {
+		width: 61.8%;
+		flex-grow: 1;
+		padding: 16px 24px;
+		overflow-y: auto;
+	}
+	#plugin_browser_page {
+		
+	}
+	#plugin_browser_start_page {
+		
+	}
+
 	.bar.next_to_title {
 		display: inline-block;
 		vertical-align: text-bottom;
@@ -1127,8 +1163,12 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		float: left;
 		z-index: inherit;
 	}
+	#plugin_search_bar {
+		flex-grow: 1;
+	}
 	#plugins .tab_bar {
-		width: calc(100% - 300px);
+		width: 100%;
+		margin-top: 10px;
 	}
 	#plugin_list {
 		max-height: 600px;
@@ -1136,28 +1176,43 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		min-height: 80px;
 	}
 	#plugin_list > li {
-		min-height: 128px;
 		overflow-y: hidden;
-		margin: 8px;
-		background-color: var(--color-ui);
+		margin: 12px;
+		padding: 8px 12px;
+		padding-bottom: 12px;
 		margin-right: 2px;
+		cursor: pointer;
+		background-color: var(--color-ui);
+	}
+	#plugin_list > li.selected {
+		background-color: var(--color-button);
 	}
 	body.theme_borders #plugin_list > li {
 		border: 1px solid var(--color-border);
 		margin: 0;
 		margin-bottom: -1px;
 	}
-	#plugin_list > li.expanded {
-		min-height: 128px;
-		height: auto;
+	#plugin_list > li > div:first-child {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 2px;
 	}
-	#plugin_list > li .icon_wrapper {
-		display: inline;
+	#plugin_list > li:hover .title {
+		color: var(--color-light);
 	}
-	#plugin_list > li > * {
-		margin: 0;
-		margin-left: 12px;
-		cursor: default;
+	.plugin_icon_area {
+		flex: 0 0 48px;
+		padding-top: 8px;
+		text-align: center;
+		margin-left: -2px;
+	}
+	.plugin_icon_area .icon {
+		font-size: 32px;
+		width: 48px;
+		max-width: unset;
+	}
+	#plugin_list > li * {
+		cursor: inherit;
 	}
 	#plugin_list > li .button_bar {
 		height: auto;
@@ -1187,29 +1242,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin-top: 2px;
 	}
 	#plugin_list > li .title {
-		width: auto;
-		float: left;
 		font-size: 1.34em;
-		padding-top: 8px;
-		margin-bottom: -5px;
-		height: 48px;
-	}
-	#plugin_list > li .title i {
-		width: 22px;
-		font-size: 0.9em;
-		padding: 3px;
-		float: left;
-		margin-top: 5px;
-		margin-right: 6px;
-	}
-	#plugin_list > li .title i.plugin_expand_icon {
-		display: none;
-	}
-	#plugin_list > li.has_about_text .title:hover i.plugin_expand_icon {
-		display: inline-block;
-	}
-	#plugin_list > li.has_about_text .title:hover .plugin_icon {
-		display: none;
 	}
 
 	#plugin_list .plugin_version {
@@ -1236,24 +1269,31 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		padding: 6px 12px;
 		background: var(--color-button);
 	}
+	dialog#plugins .author {
+		color: var(--color-subtle_text);
+		margin-top: -6px;
+	}
 	#plugin_list > li ul.plugin_tag_list {
-		margin: 5px 8px;
+		margin-top: 4px;
 		line-height: 0;
 	}
 	.plugin_tag_list li {
 		display: inline-block;
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
-		max-width: 180px;
-		height: 22px;
-		padding: 1px 4px;
+		height: 25px;
+		padding: 1px 6px;
 		border-radius: 5px;
-		font-size: 0.9em;
 		margin: 2px;
 		white-space: nowrap;
-    	overflow: hidden;
+		overflow: hidden;
 		line-height: normal;
 		cursor: pointer;
+	}
+	#plugin_list .plugin_tag_list li {
+		height: 22px;
+		font-size: 0.9em;
+		padding: 1px 4px;
 	}
 	.plugin_tag_list li.plugin_tag_source {
 		background-color: #ff7a52;
@@ -1272,6 +1312,26 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin-top: 30px;
 		color: var(--color-subtle_text);
 	}
+	#plugin_browser_page .button_bar {
+		margin: 8px 0px;
+	}
+	#plugin_browser_page .button_bar button {
+		height: 40px;
+		min-width: 130px;
+	}
+	.plugin_browser_page_header {
+		display: flex;
+		margin-bottom: 12px;
+	}
+	.plugin_browser_page_header .plugin_icon_area {
+		flex-basis: 64px;
+		padding-top: 14px;
+	}
+	.plugin_browser_page_header h1 {
+		margin: 0;
+	}
+
+/* Search Bar */
 	.search_bar {
 		float: right;
 		position: relative;
@@ -1301,7 +1361,6 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	.search_bar.folded i:hover {
 		color: var(--color-light);
 	}
-
 
 /*Toolbar Dialog*/
 	dialog#toolbar_edit .search_bar {
