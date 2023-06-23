@@ -1166,9 +1166,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin-top: 10px;
 	}
 	#plugin_list {
-		max-height: 600px;
 		overflow-y: scroll;
-		min-height: 80px;
 	}
 	#plugin_list > li {
 		overflow-y: hidden;
@@ -1337,10 +1335,28 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	#plugin_browser_page .button_bar {
 		margin: 8px 0px;
+		float: right;
 	}
 	#plugin_browser_page .button_bar button {
-		height: 40px;
-		min-width: 130px;
+		min-width: 36px;
+		height: 70px;
+		background-color: transparent;
+		margin: 0;
+		width: 72px;
+		margin-right: 0;
+		padding: 0;
+		text-decoration: none;
+	}
+	#plugin_browser_page .button_bar button:hover {
+		background-color: var(--color-accent);
+	}
+	#plugin_browser_page .button_bar button i {
+		display: block;
+		text-align: center;
+		width: 100%;
+		max-width: unset;
+		font-size: 35px;
+		text-decoration: none;
 	}
 	.plugin_browser_page_header {
 		display: flex;

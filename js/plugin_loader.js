@@ -574,7 +574,7 @@ BARS.defineActions(function() {
 							plugins,
 						}
 					}).filter(row => row.plugins.length > 1);
-					return rows.slice(0, 4);
+					return rows.sort((a, b) => a.plugins.length - b.plugins.length).slice(0, 3);
 				}
 			},
 			methods: {
@@ -652,17 +652,18 @@ BARS.defineActions(function() {
 							</div>
 						</div>
 
+						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+							<button type="button" class="" v-on:click="selected_plugin.uninstall()" v-if="selected_plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
+							<button type="button" class="" v-on:click="selected_plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
+							<button type="button" v-on:click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
+						</div>
+
 						<ul class="plugin_tag_list">
 							<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
 						</ul>
 
 						<div class="description">{{ selected_plugin.description }}</div>
 
-						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
-							<button type="button" class="" v-on:click="selected_plugin.uninstall()" v-if="selected_plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
-							<button type="button" class="" v-on:click="selected_plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
-							<button type="button" v-on:click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
-						</div>
 						<div class="button_bar tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
 							<i class="material-icons icon">error</i>
 							{{ selected_plugin.isInstallable() }}
@@ -716,7 +717,6 @@ BARS.defineActions(function() {
 				BarItems.load_plugin_from_url.toElement('#plugins_list_main_bar');
 				actions_setup = true;
 			}
-			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-226, 80, 800)+'px');
 			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})
