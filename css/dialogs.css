@@ -222,7 +222,7 @@
 		margin: 4px 0;
 	}
 	.dialog h3 {
-		margin-left: 16px;
+		margin-left: 0;
 	}
 	.dialog_bar label.in_toolbar {
 		padding-left: 0;
@@ -1137,6 +1137,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		display: flex;
 		flex-direction: column;
 		padding-top: 10px;
+		border-right: 1px solid var(--color-border);
 	}
 	#plugin_browser_page,
 	#plugin_browser_start_page {
@@ -1144,12 +1145,6 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		flex-grow: 1;
 		padding: 16px 24px;
 		overflow-y: auto;
-	}
-	#plugin_browser_page {
-		
-	}
-	#plugin_browser_start_page {
-		
 	}
 
 	.bar.next_to_title {
@@ -1187,6 +1182,9 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	#plugin_list > li.selected {
 		background-color: var(--color-button);
 	}
+	#plugin_list > li.incompatible {
+		color: var(--color-subtle_text);
+	}
 	body.theme_borders #plugin_list > li {
 		border: 1px solid var(--color-border);
 		margin: 0;
@@ -1197,19 +1195,26 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		gap: 8px;
 		margin-bottom: 2px;
 	}
-	#plugin_list > li:hover .title {
+	#plugin_list > li:hover:not(.incompatible) .title {
 		color: var(--color-light);
 	}
 	.plugin_icon_area {
 		flex: 0 0 48px;
-		padding-top: 8px;
+		padding-top: 2px;
 		text-align: center;
 		margin-left: -2px;
+		height: 52px;
 	}
 	.plugin_icon_area .icon {
 		font-size: 32px;
 		width: 48px;
 		max-width: unset;
+		margin-top: 8px;
+		display: inline-block;
+	}
+	.plugin_icon_area img {
+		border-radius: 8px;
+		pointer-events: none;
 	}
 	#plugin_list > li * {
 		cursor: inherit;
@@ -1221,10 +1226,11 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin-top: 0;
 		text-align: right;
 	}
-	#plugin_list > li .button_bar.tiny {
-		color: var(--color-subtle_text);
-		font-size: 0.86em;
-		padding-right: 2px;
+	.plugin_compatibility_issue {
+		color: var(--color-error);
+	}
+	.plugin_compatibility_issue > .icon {
+		vertical-align: text-bottom;
 	}
 	#plugin_list > li button {
 		min-width: 100px;
@@ -1261,6 +1267,23 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		font-size: 0.94em;
 		max-height: 148px;
 		margin-right: 12px;
+	}
+	.plugin_installed_tag {
+		display: inline-block;
+		background-color: var(--color-back);
+		color: var(--color-confirm);
+		height: 25px;
+		padding: 1px 6px;
+		border-radius: 5px;
+		margin-left: 8px;
+	}
+	dialog#plugins .version {
+		display: inline-block;
+		color: var(--color-subtle_text);
+		background-color: var(--color-back);
+		font-size: 15px;
+		padding: 1px 6px;
+		border-radius: 5px;
 	}
 	#plugin_list .about {
 		overflow-y: auto;
@@ -1325,10 +1348,72 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	.plugin_browser_page_header .plugin_icon_area {
 		flex-basis: 64px;
-		padding-top: 14px;
+		margin-top: 14px;
 	}
 	.plugin_browser_page_header h1 {
 		margin: 0;
+	}
+	#plugin_page_background_decoration {
+		pointer-events: none;
+		color: black;
+		opacity: 0.1;
+		font-size: 700px;
+		height: 614px;
+		width: 584px;
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		overflow: hidden;
+		max-width: unset;
+	}
+
+	
+	#plugin_browser_start_page > img {
+		float: right;
+		width: 320px;
+		margin-bottom: -26px;
+		margin-top: -20px;
+	}
+	.plugins_suggested_row {
+		width: 100%;
+		clear: both;
+		margin-top: 30px;
+	}
+	.plugins_suggested_row > ul {
+		display: flex;
+		gap: 12px;
+		background-color: var(--color-back);
+		overflow-x: scroll;
+		padding: 12px 32px;
+		width: calc(100% + 48px);
+		margin-right: -24px;
+		margin-left: -24px;
+	}
+	.plugins_suggested_row > ul > li {
+		width: 211px;
+		height: 130px;
+		text-align: center;
+		flex-shrink: 0;
+		flex-grow: 0;
+		padding-top: 5px;
+		background-color: var(--color-ui);
+		overflow: hidden;
+		cursor: pointer;
+		padding: 4px 4px;
+	}
+	.plugins_suggested_row > ul > li:hover {
+		background-color: var(--color-button);
+	}
+	.plugins_suggested_row > ul > li * {
+		cursor: inherit;
+	}
+	.plugins_suggested_row > ul > li .title {
+		height: 50px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		line-height: normal;
+		font-weight: 600;
 	}
 
 /* Search Bar */

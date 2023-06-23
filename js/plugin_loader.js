@@ -47,7 +47,8 @@ class Plugin {
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
-		this.source = 'store'
+		this.source = 'store';
+		this.creation_date = 0;
 		this.await_loading = false;
 		this.about_fetched = false;
 
@@ -67,6 +68,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
+		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
 		Merge.function(this, data, 'onload')
@@ -342,12 +344,26 @@ class Plugin {
 		}
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
+	hasImageIcon() {
+		return this.icon.endsWith('.png');
+	}
 	getIcon() {
+		if (this.hasImageIcon()) {
+			// todo: offline support
+			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`
+		}
 		return this.icon;
 	}
-	fetchAbout() {
-		if (!this.about_fetched && !this.about) {
-
+	async fetchAbout() {
+		if (!this.about_fetched && !this.about && !compareVersions('4.8.0', this.min_version)) {
+			// todo: offline support
+			let url = `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/about.md`;
+			let result = await fetch(url).catch(() => {
+				console.error('about.md missing for plugin ' + this.id);
+			});
+			if (result.ok) {
+				this.about = await result.text();
+			}
 			this.about_fetched = true;
 		}
 	}
@@ -376,7 +392,6 @@ Plugin.register = function(id, data) {
 		})
 	};
 	plugin.extend(data)
-	if (data.icon) plugin.icon = Blockbench.getIconNode(data.icon)
 	if (plugin.isInstallable() == true) {
 		if (plugin.onload instanceof Function) {
 			plugin.onload()
@@ -403,6 +418,14 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
+			
+			// testing (todo: remove)
+			data.animation_sliders.icon = 'icon.png';
+			data.animation_sliders.about = '';
+			data.animation_sliders.min_version = '4.8.0';
+			data.animation_sliders.creation_date = '2023-06-23';
+			console.log()
+				
 			resolve();
 			Plugins.loading_promise.resolved = true;
 		},
@@ -537,6 +560,21 @@ BARS.defineActions(function() {
 						}
 						return false;
 					})
+				},
+				suggested_rows() {
+					let tags = ["Animation"];
+					this.items.forEach(plugin => {
+						if (!plugin.installed) return;
+						tags.safePush(...plugin.tags)
+					})
+					let rows = tags.map(tag => {
+						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated'));
+						return {
+							title: tag,
+							plugins,
+						}
+					}).filter(row => row.plugins.length > 1);
+					return rows.slice(0, 4);
 				}
 			},
 			methods: {
@@ -564,7 +602,7 @@ BARS.defineActions(function() {
 			mount_directly: true,
 			template: `
 				<content style="display: flex;" class="dialog_content">
-					<div id="plugin_browser_sidebar" v-if="!isMobile || !selected_plugin">
+					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
 						<div class="bar flex" id="plugins_list_main_bar">
 							<div class="tool" v-if="!isMobile" @click="selected_plugin = null"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
@@ -574,10 +612,11 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'available'}" @click="tab = 'available'">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" id="plugin_list">
-							<li v-for="plugin in plugin_search" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin}" @click="selectPlugin(plugin)">
+							<li v-for="plugin in plugin_search" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
 								<div>
 									<div class="plugin_icon_area">
-										<dynamic-icon :icon="plugin.icon" />
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<dynamic-icon v-else :icon="plugin.icon" />
 									</div>
 									<div>
 										<div class="title">{{ plugin.title || plugin.id }}</div>
@@ -598,11 +637,18 @@ BARS.defineActions(function() {
 						<div v-if="isMobile" @click="selected_plugin = null;">Back to Overview todo</div>
 						<div class="plugin_browser_page_header">
 							<div class="plugin_icon_area">
-								<dynamic-icon :icon="selected_plugin.icon" />
+								<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
+								<dynamic-icon v-else :icon="selected_plugin.icon" />
 							</div>
 							<div>
-								<h1>{{ selected_plugin.title || selected_plugin.id }}</h1>
-								<div class="author">{{ tl('dialog.plugins.author', [selected_plugin.author]) }}, {{ selected_plugin.version }}</div>
+								<h1>
+									{{ selected_plugin.title || selected_plugin.id }}
+									<div class="version">v{{ selected_plugin.version }}</div>
+								</h1>
+								<div class="author">
+									{{ tl('dialog.plugins.author', [selected_plugin.author]) }}
+									<div v-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
+								</div>
 							</div>
 						</div>
 
@@ -617,13 +663,35 @@ BARS.defineActions(function() {
 							<button type="button" class="" v-on:click="selected_plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
 							<button type="button" v-on:click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
 						</div>
+						<div class="button_bar tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
+							<i class="material-icons icon">error</i>
+							{{ selected_plugin.isInstallable() }}
+						</div>
 
-						<h2 v-if="selected_plugin.about">About</h2>
+						<h2 v-if="selected_plugin.about" style="margin-top: 36px;">About</h2>
+						<dynamic-icon v-else-if="!selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
 						<div class="about markdown" v-html="formatAbout(selected_plugin.about)"><button>a</button></div>
 					</div>
 					
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
+						<h1>Blockbench Plugins</h1>
+						<img src="./assets/plugins.png" />
+						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a list of 100 community created plugins.</p>
+						<p>Want to write your own plugin? Check out the <a href="https://www.blockbench.net/wiki/docs/plugin" target="_blank">Plugin Documentation</a>.</p>
 						
+						<div v-for="row in suggested_rows" class="plugins_suggested_row">
+							<h3>{{row.title}}</h3>
+							<ul>
+								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)">
+									<div class="plugin_icon_area">
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<dynamic-icon v-else :icon="plugin.icon" />
+									</div>
+									<div class="title"><span>{{ plugin.title || plugin.id }}</span></div>
+									<div class="author">{{ plugin.author }}</div>
+								</li>
+							</ul>
+						</div>
 					</div>
 					
 				</content>
