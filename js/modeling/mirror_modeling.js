@@ -1,6 +1,5 @@
-(function() {
-
-	function isCentered(element) {
+const MirrorModeling = {
+	isCentered(element) {
 		if (element.origin[0] != 0) return false;
 		if (element.rotation[1] || element.rotation[2]) return false;
 		if (element instanceof Cube && !Math.epsilon(element.to[0], -element.from[0], 0.01)) return false;
@@ -14,29 +13,64 @@
 		}
 		if (checkParent(element.parent)) return false;
 		return true;
-	}
-	function createClone(original) {
+	},
+	createClone(original, undo_aspects) {
 		// Create or update clone
 		var center = Format.centered_grid ? 0 : 8;
-		let mirror_element = cached_mirror_elements[original.uuid]?.counterpart;
+		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
+		let element_before_snapshot;
 
 		if (mirror_element) {
+			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
 			mirror_element.extend(original);
 
 		} else {
-			let add_to = 'root';
-			// todo: figure out add to
+			function getParentMirror(child) {
+				let parent = child.parent;
+				if (parent instanceof Group == false) return 'root';
+
+				if (parent.origin[0] == center) {
+					return parent;
+				} else {
+					let mirror_group_parent = getParentMirror(parent);
+					let mirror_group = new Group(parent);
+
+					flipNameOnAxis(mirror_group, 0, name => true, parent.name);
+					mirror_group.origin[0] *= -1;
+					mirror_group.rotation[1] *= -1;
+					mirror_group.rotation[2] *= -1;
+					mirror_group.isOpen = parent.isOpen;
+
+					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
+					let match = parent_list.find(node => {
+						if (node instanceof Group == false) return false;
+						if (node.name == mirror_group.name && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+							return true;
+						}
+					})
+					if (match) {
+						return match;
+					} else {
+						mirror_group.createUniqueName();
+						mirror_group.addTo(mirror_group_parent).init();
+						return mirror_group;
+					}
+				}
+			}
+			let add_to = getParentMirror(original);
 			mirror_element = new original.constructor(original).addTo(add_to).init();
 		}
 		mirror_element.flip(0, center);
+
+		MirrorModeling.insertElementIntoUndo(mirror_element, undo_aspects, element_before_snapshot);
 
 		let {preview_controller} = mirror_element;
 		preview_controller.updateTransform(mirror_element);
 		preview_controller.updateGeometry(mirror_element);
 		preview_controller.updateFaces(mirror_element);
 		preview_controller.updateUV(mirror_element);
-	}
-	function createLocalSymmetry(mesh) {
+	},
+	createLocalSymmetry(mesh) {
 		// Create or update clone
 		let edit_side = Math.sign(Transformer.position.x) || 1;
 		let deleted_vertices = [];
@@ -107,81 +141,95 @@
 		preview_controller.updateGeometry(mesh);
 		preview_controller.updateFaces(mesh);
 		preview_controller.updateUV(mesh);
-	}
+	},
+	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
+		// pre
+		if (element_before_snapshot) {
+			if (!Undo.current_save.elements[element.uuid]) Undo.current_save.elements[element.uuid] = element_before_snapshot;
+		} else {
+			if (!Undo.current_save.outliner) Undo.current_save.outliner = MirrorModeling.outliner_snapshot;
+		}
 
-	let cached_mirror_elements = {};
-	Blockbench.on('init_edit', ({aspects}) => {
-		if (!BarItems.mirror_modeling.value) return;
-		if (!aspects.elements) return;
+		// post
+		if (!element_before_snapshot) undo_aspects.outliner = true;
+		undo_aspects.elements.safePush(element);
+	},
+	cached_elements: {}
+}
 
-		cached_mirror_elements = {};
+Blockbench.on('init_edit', ({aspects}) => {
+	if (!BarItems.mirror_modeling.value) return;
+	if (!aspects.elements) return;
 
-		aspects.elements.forEach((element) => {
-			if ((element instanceof Cube || element instanceof Mesh) && element.allow_mirror_modeling) {
-				let is_centered = isCentered(element);
+	MirrorModeling.cached_elements = {};
+	MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
 
-				cached_mirror_elements[element.uuid] = {is_centered};
-				if (!is_centered) {
-					cached_mirror_elements[element.uuid].counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
-				}
+	aspects.elements.forEach((element) => {
+		if (element.allow_mirror_modeling) {
+			let is_centered = MirrorModeling.isCentered(element);
+
+			MirrorModeling.cached_elements[element.uuid] = {is_centered};
+			if (!is_centered) {
+				MirrorModeling.cached_elements[element.uuid].counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
 			}
-		})
-
-		setTimeout(() => {cached_mirror_elements = {}}, 10_000);
-	})
-	Blockbench.on('finish_edit', ({aspects}) => {
-		if (!BarItems.mirror_modeling.value) return;
-		if (!aspects.elements) return;
-		let last_save = Undo.current_save;
-
-		aspects.elements.forEach((element) => {
-			if ((element instanceof Cube || element instanceof Mesh) && element.allow_mirror_modeling) {
-				let is_centered = isCentered(element);
-
-				if (is_centered && element instanceof Mesh) {
-					// Complete other side of mesh
-					createLocalSymmetry(element);
-				}
-				if (!is_centered) {
-					// Construct clone at other side of model
-					createClone(element);
-				}
-			}
-		})
+		}
 	})
 
-	// Element property on cube and mesh
-	new Property(Cube, 'boolean', 'allow_mirror_modeling', {default: true});
-	new Property(Mesh, 'boolean', 'allow_mirror_modeling', {default: true});
+	setTimeout(() => {MirrorModeling.cached_elements = {}}, 10_000);
+})
+Blockbench.on('finish_edit', ({aspects}) => {
+	if (!BarItems.mirror_modeling.value) return;
+	if (!aspects.elements) return;
 
-	BARS.defineActions(() => {
-		
-		new Toggle('mirror_modeling', {
-			icon: 'align_horizontal_center',
-			category: 'edit',
-			condition: {modes: ['edit']},
-			onChange() {
-				updateSelection();
+	aspects.elements = aspects.elements.slice();
+	let static_elements_copy = aspects.elements.slice();
+	static_elements_copy.forEach((element) => {
+		if (element.allow_mirror_modeling) {
+			let is_centered = MirrorModeling.isCentered(element);
+
+			if (is_centered && element instanceof Mesh) {
+				// Complete other side of mesh
+				MirrorModeling.createLocalSymmetry(element);
 			}
-		})
-		let allow_toggle = new Toggle('allow_element_mirror_modeling', {
-			icon: 'align_horizontal_center',
-			category: 'edit',
-			condition: {modes: ['edit'], selected: {element: true}, method: () => BarItems.mirror_modeling.value},
-			onChange(value) {
-				Cube.selected.concat(Mesh.selected).forEach(element => {
-					element.allow_mirror_modeling = value;
-				})
+			if (!is_centered) {
+				// Construct clone at other side of model
+				MirrorModeling.createClone(element, aspects);
 			}
-		})
-		Blockbench.on('update_selection', () => {
-			if (!Condition(allow_toggle.condition)) return;
-			let disabled = Cube.selected.find(el => el.allow_mirror_modeling == false) || Mesh.selected.find(el => el.allow_mirror_modeling == false);
-			if (allow_toggle.value != !disabled) {
-				allow_toggle.value = !disabled;
-				allow_toggle.updateEnabledState();
-			}
-		})
+		}
 	})
+})
 
-})()
+// Element property on cube and mesh
+new Property(Cube, 'boolean', 'allow_mirror_modeling', {default: true});
+new Property(Mesh, 'boolean', 'allow_mirror_modeling', {default: true});
+
+BARS.defineActions(() => {
+	
+	new Toggle('mirror_modeling', {
+		icon: 'align_horizontal_center',
+		category: 'edit',
+		condition: {modes: ['edit']},
+		onChange() {
+			updateSelection();
+		}
+	})
+	let allow_toggle = new Toggle('allow_element_mirror_modeling', {
+		icon: 'align_horizontal_center',
+		category: 'edit',
+		condition: {modes: ['edit'], selected: {element: true}, method: () => BarItems.mirror_modeling.value},
+		onChange(value) {
+			Outliner.selected.forEach(element => {
+				if (!element.constructor.properties.allow_mirror_modeling) return;
+				element.allow_mirror_modeling = value;
+			})
+		}
+	})
+	Blockbench.on('update_selection', () => {
+		if (!Condition(allow_toggle.condition)) return;
+		let disabled = Outliner.selected.find(el => el.allow_mirror_modeling === false);
+		if (allow_toggle.value != !disabled) {
+			allow_toggle.value = !disabled;
+			allow_toggle.updateEnabledState();
+		}
+	})
+})

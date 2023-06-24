@@ -145,6 +145,43 @@ function rotateSelected(axis, steps) {
 	Undo.finishEdit('Rotate elements')
 }
 //Mirror
+function flipNameOnAxis(node, axis, check, original_name) {
+	const flip_pairs = {
+		0: {
+			right: 'left',
+			Right: 'Left',
+			RIGHT: 'LEFT',
+		},
+		1: {
+			top: 'bottom',
+			Top: 'Bottom',
+			TOP: 'BOTTOM',
+		},
+		2: {
+			back: 'front',
+			rear: 'front',
+			Back: 'Front',
+			Rear: 'Front',
+			BACK: 'FRONT',
+			REAR: 'FRONT',
+		}
+	};
+	function matchAndReplace(a, b) {
+		if (node.name.includes(a)) {
+			let name = original_name
+						? original_name.replace(a, b)
+						: node.name.replace(a, b).replace(/2/, '');
+			if (check(name)) node.name = name;
+			return true;
+		}
+	}
+	let pairs = flip_pairs[axis];
+	for (let a in pairs) {
+		let b = pairs[a];
+		if (matchAndReplace(a, b)) break;
+		if (matchAndReplace(b, a)) break;
+	}
+}
 function mirrorSelected(axis) {
 	if (Modes.animate && Timeline.selected.length) {
 
@@ -160,26 +197,6 @@ function mirrorSelected(axis) {
 		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.selected, selection: true})
 		var center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
-			let flip_pairs = {
-				0: {
-					right: 'left',
-					Right: 'Left',
-					RIGHT: 'LEFT',
-				},
-				1: {
-					top: 'bottom',
-					Top: 'Bottom',
-					TOP: 'BOTTOM',
-				},
-				2: {
-					back: 'front',
-					rear: 'front',
-					Back: 'Front',
-					Rear: 'Front',
-					BACK: 'FRONT',
-					REAR: 'FRONT',
-				}
-			}
 			if (Group.selected && Group.selected.matchesSelection()) {
 				function flipGroup(group) {
 					for (var i = 0; i < 3; i++) {
@@ -189,21 +206,7 @@ function mirrorSelected(axis) {
 							group.rotation[i] *= -1
 						}
 					}
-					function matchAndReplace(a, b) {
-						if (group.name.includes(a)) {
-							let name = group._original_name
-										? group._original_name.replace(a, b)
-										: group.name.replace(a, b).replace(/2/, '');
-							if (!Group.all.find(g => g.name == name)) group.name = name;
-							return true;
-						}
-					}
-					let pairs = flip_pairs[axis];
-					for (let a in pairs) {
-						let b = pairs[a];
-						if (matchAndReplace(a, b)) break;
-						if (matchAndReplace(b, a)) break;
-					}
+					flipNameOnAxis(group, axis, name => (!Group.all.find(g => g.name == name)), group._original_name);
 					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
@@ -211,7 +214,11 @@ function mirrorSelected(axis) {
 			}
 		}
 		selected.forEach(function(obj) {
-			obj.flip(axis, center, false)
+			if (obj instanceof Mesh) {
+				obj.flipSelection(axis, center, false);
+			} else {
+				obj.flip(axis, center, false);
+			}
 		})
 		updateSelection()
 		Undo.finishEdit('Flip selection')
