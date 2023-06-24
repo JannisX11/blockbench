@@ -73,15 +73,15 @@ const MirrorModeling = {
 	createLocalSymmetry(mesh) {
 		// Create or update clone
 		let edit_side = Math.sign(Transformer.position.x) || 1;
-		let deleted_vertices = [];
-		let deleted_vertex_positions = {};
+		// Delete all vertices on the non-edit side
+		let deleted_vertices = {};
 		for (let vkey in mesh.vertices) {
 			if (mesh.vertices[vkey][0] && mesh.vertices[vkey][0] * edit_side < 0) {
-				deleted_vertex_positions[vkey] = mesh.vertices[vkey];
+				deleted_vertices[vkey] = mesh.vertices[vkey];
 				delete mesh.vertices[vkey];
-				deleted_vertices.push(vkey);
 			}
 		}
+		// Copy existing vertices back to the non-edit side
 		let added_vertices = [];
 		let vertex_counterpart = {};
 		for (let vkey in mesh.vertices) {
@@ -98,21 +98,28 @@ const MirrorModeling = {
 
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices.includes(vkey));
+			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
 			if (deleted_face_vertices.length == face.vertices.length) {
 				delete mesh.faces[fkey];
+
+			} else if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2) {
+				// cannot flip. restore vertices instead?
+				deleted_face_vertices.forEach(vkey => {
+					mesh.vertices[vkey] = deleted_vertices[vkey];
+					//delete deleted_vertices[vkey];
+				})
 
 			} else if (deleted_face_vertices.length) {
 				// face across zero line
 				//let kept_face_keys = face.vertices.filter(vkey => mesh.vertices[vkey] != 0 && !deleted_face_vertices.includes(vkey));
-				let new_counterparts = face.vertices.filter(vkey => !deleted_vertices.includes(vkey)).map(vkey => vertex_counterpart[vkey]);
+				let new_counterparts = face.vertices.filter(vkey => !deleted_vertices[vkey]).map(vkey => vertex_counterpart[vkey]);
 				face.vertices.forEach((vkey, i) => {
 					if (deleted_face_vertices.includes(vkey)) {
 						// Across
 						//let kept_key = kept_face_keys[i%kept_face_keys.length];
 						new_counterparts.sort((a, b) => {
-							let a_distance = Math.pow(mesh.vertices[a][1] - deleted_vertex_positions[vkey][1], 2) + Math.pow(mesh.vertices[a][2] - deleted_vertex_positions[vkey][2], 2);
-							let b_distance = Math.pow(mesh.vertices[b][1] - deleted_vertex_positions[vkey][1], 2) + Math.pow(mesh.vertices[b][2] - deleted_vertex_positions[vkey][2], 2);
+							let a_distance = Math.pow(mesh.vertices[a][1] - deleted_vertices[vkey][1], 2) + Math.pow(mesh.vertices[a][2] - deleted_vertices[vkey][2], 2);
+							let b_distance = Math.pow(mesh.vertices[b][1] - deleted_vertices[vkey][1], 2) + Math.pow(mesh.vertices[b][2] - deleted_vertices[vkey][2], 2);
 							return b_distance - a_distance;
 						})
 
