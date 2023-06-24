@@ -50,6 +50,7 @@ class CubeFace extends Face {
 		}
 	}
 }
+CubeFace.prototype.is_rectangular = true;
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
 new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
@@ -734,7 +735,7 @@ class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		var before = this.old_size != undefined ? this.old_size : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		var modify = val instanceof Function ? val : n => (n+val)
 

@@ -39,6 +39,7 @@ class BillboardFace extends Face {
 		return getRectangle(...this.uv);
 	}
 }
+BillboardFace.prototype.is_rectangular = true;
 new Property(BillboardFace, 'number', 'rotation', {default: 0});
 
 
@@ -47,7 +48,7 @@ class Billboard extends OutlinerElement {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
 		this.position = [0, 0, 0];
-		this.to = [size, size];
+		this.size = [size, size];
 		this.shade = true;
 		this.mirror_uv = false;
 		this.color = Math.floor(Math.random()*markerColors.length)
@@ -66,6 +67,9 @@ class Billboard extends OutlinerElement {
 			this.extend(data)
 		}
 	}
+	get origin() {
+		return this.position;
+	}
 	extend(object) {
 		for (var key in Billboard.properties) {
 			Billboard.properties[key].merge(this, object)
@@ -73,35 +77,8 @@ class Billboard extends OutlinerElement {
 
 		this.sanitizeName();
 		if (object.size) {
-			if (typeof object.size[0] == 'number' && !isNaN(object.size[0])) this.to[0] = this.from[0] + object.size[0]
-			if (typeof object.size[1] == 'number' && !isNaN(object.size[1])) this.to[1] = this.from[1] + object.size[1]
-			if (typeof object.size[2] == 'number' && !isNaN(object.size[2])) this.to[2] = this.from[2] + object.size[2]
-		}
-		if (object.uv_offset) {
-			Merge.number(this.uv_offset, object.uv_offset, 0)
-			Merge.number(this.uv_offset, object.uv_offset, 1)
-		}
-		if (typeof object.rotation === 'object' && object.rotation.constructor.name === 'Object') {
-			if (object.rotation.angle && object.rotation.axis) {
-				let axis = getAxisNumber(object.rotation.axis)
-				if (axis >= 0) {
-					this.rotation.V3_set(0)
-					this.rotation[axis] = object.rotation.angle
-				}
-			}
-			if (object.rotation.origin) {
-				Merge.number(this.origin, object.rotation.origin, 0)
-				Merge.number(this.origin, object.rotation.origin, 1)
-				Merge.number(this.origin, object.rotation.origin, 2)
-			}
-			Merge.boolean(this, object.rotation, 'rescale')
-			if (typeof object.rotation.axis === 'string') {
-				this.rotation_axis = object.rotation.axis
-			}
-		} else if (object.rotation) {
-			Merge.number(this.rotation, object.rotation, 0)
-			Merge.number(this.rotation, object.rotation, 1)
-			Merge.number(this.rotation, object.rotation, 2)
+			if (typeof object.size[0] == 'number' && !isNaN(object.size[0])) this.size[0] = object.size[0];
+			if (typeof object.size[1] == 'number' && !isNaN(object.size[1])) this.size[1] = object.size[1];
 		}
 		if (object.faces) {
 			for (var face in this.faces) {
@@ -119,39 +96,6 @@ class Billboard extends OutlinerElement {
 		}
 		return this;
 	}
-	size(axis, floored) {
-		let scope = this;
-		let epsilon = 0.0000001;
-		function getA(axis) {
-			if (floored == true) {
-				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
-
-			} else if (floored == 'box_uv' && Format.box_uv_float_size != true) {
-				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
-
-			} else {
-				return scope.to[axis] - scope.from[axis]
-			}
-		}
-		if (axis !== undefined) {
-			return getA(axis);
-		} else {
-			return [
-				getA(0),
-				getA(1),
-				getA(2)
-			]
-		}
-	}
-	rotationAxis() {
-		for (var axis = 0; axis < 3; axis++) {
-			if (this.rotation[axis] !== 0) {
-				this.rotation_axis = getAxisLetter(axis);
-				return this.rotation_axis;
-			}
-		}
-		return this.rotation_axis;
-	}
 	getMesh() {
 		return this.mesh;
 	}
@@ -159,16 +103,7 @@ class Billboard extends OutlinerElement {
 		return Project.nodes_3d[this.uuid];
 	}
 	getUndoCopy(aspects = 0) {
-		let copy = new Billboard(this)
-		if (aspects.uv_only) {
-			copy = {
-				box_uv: copy.box_uv,
-				uv_offset: copy.uv_offset,
-				faces: copy.faces,
-				mirror_uv: copy.mirror_uv,
-				autouv: copy.autouv,
-			}
-		}
+		let copy = new Billboard(this);
 		for (let face_id in copy.faces) {
 			copy.faces[face_id] = copy.faces[face_id].getUndoCopy()
 		}
@@ -185,148 +120,19 @@ class Billboard extends OutlinerElement {
 		}
 
 		el.from = this.from;
-		el.to = this.to;
 		el.autouv = this.autouv;
 		el.color = this.color;
 
 		if (!this.visibility) el.visibility = false;
 		if (!this.export) el.export = false;
 		if (!this.shade) el.shade = false;
-		if (this.mirror_uv) el.mirror_uv = true;
-		if (this.inflate) el.inflate = this.inflate;
-		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
-		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
 		el.faces = {
 			front: this.faces.front.getSaveCopy(project)
 		}
 		el.type = this.type;
 		el.uuid = this.uuid;
 		return el;
-	}
-	roll(axis, steps, origin) {
-		if (!origin) {origin = this.origin}
-		function rotateCoord(array) {
-			if (origin === undefined) {
-				origin = [8, 8, 8]
-			}
-			let a, b;
-			array.forEach(function(s, i) {
-				if (i == axis) {
-					//
-				} else {
-					if (a == undefined) {
-						a = s - origin[i]
-						b = i
-					} else {
-						array[b] = s - origin[i]
-						array[b] = origin[b] - array[b]
-						array[i] = origin[i] + a;
-					}
-				}
-			})
-			return array
-		}
-
-		// Check limits
-		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-			let from = this.from.slice(), to = this.to.slice();
-			for (let check_steps = steps; check_steps > 0; check_steps--) {
-				switch(axis) {
-					case 0: [from[2], to[2]] = [to[2], from[2]]; break;
-					case 1: [from[2], to[2]] = [to[2], from[2]]; break;
-					case 2: [from[1], to[1]] = [to[1], from[1]]; break;
-				}
-				from.V3_set(rotateCoord(from));
-				to.V3_set(rotateCoord(to));
-			}
-			if (Format.cube_size_limiter.test(this, {from, to})) {
-				return false;
-			}
-		}
-
-		//Rotations
-		let i = 0;
-		let temp_rot = undefined;
-		let temp_i = undefined;
-		while (i < 3) {
-			if (i !== axis) {
-				if (temp_rot === undefined) {
-					temp_rot = this.rotation[i]
-					temp_i = i
-				} else {
-					this.rotation[temp_i] = -this.rotation[i]
-					this.rotation[i] = temp_rot
-				}
-			}
-			i++;
-		}
-
-		function rotateUVFace(number, iterations) {
-			if (!number) number = 0;
-			number += iterations * 90;
-			return number % 360;
-		}
-		while (steps > 0) {
-			steps--;
-			//Swap coordinate thingy
-			switch(axis) {
-				case 0: [this.from[2], this.to[2]] = [this.to[2], this.from[2]]; break;
-				case 1: [this.from[2], this.to[2]] = [this.to[2], this.from[2]]; break;
-				case 2: [this.from[1], this.to[1]] = [this.to[1], this.from[1]]; break;
-			}
-			this.from.V3_set(rotateCoord(this.from))
-			this.to.V3_set(rotateCoord(this.to))
-			if (origin != this.origin) {
-				this.origin.V3_set(rotateCoord(this.origin))
-			}
-			if (!this.box_uv) {
-				if (axis === 0) {
-					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 1)
-					this.faces.east.rotation = rotateUVFace(this.faces.east.rotation, 3)
-					this.faces.north.rotation= rotateUVFace(this.faces.north.rotation, 2)
-					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 2)
-
-					let temp = new BillboardFace(true, this.faces.north)
-					this.faces.north.extend(this.faces.down)
-					this.faces.down.extend(this.faces.south)
-					this.faces.south.extend(this.faces.up)
-					this.faces.up.extend(temp)
-
-				} else if (axis === 1) {
-
-					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 1)
-					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
-
-					let temp = new BillboardFace(true, this.faces.north)
-					this.faces.north.extend(this.faces.west)
-					this.faces.west.extend(this.faces.south)
-					this.faces.south.extend(this.faces.east)
-					this.faces.east.extend(temp)
-
-				} else if (axis === 2) {
-
-					this.faces.north.rotation = rotateUVFace(this.faces.north.rotation, 1)
-					this.faces.south.rotation= rotateUVFace(this.faces.south.rotation, 3)
-
-					this.faces.up.rotation= rotateUVFace(this.faces.up.rotation, 3)
-					this.faces.east.rotation= rotateUVFace(this.faces.east.rotation, 3)
-					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 3)
-					this.faces.down.rotation = rotateUVFace(this.faces.down.rotation, 3)
-
-					let temp = new BillboardFace(true, this.faces.east)
-					this.faces.east.extend(this.faces.down)
-					this.faces.down.extend(this.faces.west)
-					this.faces.west.extend(this.faces.up)
-					this.faces.up.extend(temp)
-				}
-			}
-		}
-		this.preview_controller.updateTransform(this);
-		this.preview_controller.updateGeometry(this);
-		this.preview_controller.updateFaces(this);
-		this.preview_controller.updateUV(this);
-		return this;
 	}
 	flip(axis) {
 		var offset = this.position[axis] - center
@@ -363,7 +169,6 @@ class Billboard extends OutlinerElement {
 		return this;
 	}
 	applyTexture(texture) {
-		let scope = this;
 		let value = null
 		if (texture) {
 			value = texture.uuid
@@ -389,19 +194,14 @@ class Billboard extends OutlinerElement {
 		let in_box = true;
 		arr.forEach((val, i) => {
 
-			let size = scope.size(i);
 			val += scope.from[i];
 
 			let val_before = val;
 			if (Math.abs(val_before - val) >= 1e-4) in_box = false;
 			val -= scope.from[i]
 
-			scope.from[i] += val;
-			scope.to[i] += val;
+			scope.position[i] += val;
 		})
-		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-			Format.cube_size_limiter.move(this);
-		}
 		if (update) {
 			this.mapAutoUV()
 			this.preview_controller.updateTransform(this);
@@ -410,66 +210,28 @@ class Billboard extends OutlinerElement {
 		TickUpdates.selection = true;
 		return in_box;
 	}
-	resize(val, axis, negative, allow_negative, bidirectional) {
-		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+	resize(val, axis, negative) {
+		if (axis == 2) return;
+		if (negative) val = -val;
+
+		let before = this.old_size != undefined ? this.old_size : this.size[axis];
 		if (before instanceof Array) before = before[axis];
-		let modify = val instanceof Function ? val : n => (n+val)
+		let modify = val instanceof Function ? val : n => (n+val);
 
-		if (bidirectional) {
+		this.size[axis] = modify(before);
 
-			let center = this.oldCenter[axis] || 0;
-			let difference = modify(before) - before;
-			if (negative) difference *= -1;
-
-			let from = center - (before/2) - difference;
-			let to = center + (before/2) + difference;
-
-			if (Format.integer_size) {
-				from = Math.round(from-this.from[axis])+this.from[axis];
-				to = Math.round(to-this.to[axis])+this.to[axis];
-			}
-			this.from[axis] = from;
-			this.to[axis] = to;
-			if (from > to && !(settings.negative_size.value || allow_negative)) {
-				this.from[axis] = this.to[axis] = (from + to) / 2;
-			}
-
-		} else if (!negative) {
-			let pos = this.from[axis] + modify(before);
-			if (Format.integer_size) {
-				pos = Math.round(pos-this.from[axis])+this.from[axis];
-			}
-			if (pos >= this.from[axis] || settings.negative_size.value || allow_negative) {
-				this.to[axis] = pos;
-			} else {
-				this.to[axis] = this.from[axis];
-			}
-		} else {
-			let pos = this.to[axis] + modify(-before);
-			if (Format.integer_size) {
-				pos = Math.round(pos-this.to[axis])+this.to[axis];
-			}
-			if (pos <= this.to[axis] || settings.negative_size.value || allow_negative) {
-				this.from[axis] = pos;
-			} else {
-				this.from[axis] = this.to[axis];
-			}
-		}
-		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-			Format.cube_size_limiter.clamp(this, {}, axis, bidirectional ? null : !!negative);
-		}
 		this.mapAutoUV();
-		if (this.box_uv) {
-			Canvas.updateUV(this);
-		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
 		return this;
 	}
+	mapAutoUV() {
+
+	}
 }
 	Billboard.prototype.title = tl('data.billboard');
 	Billboard.prototype.type = 'billboard';
-	Billboard.prototype.icon = 'fa-solid fa-chess-board';
+	Billboard.prototype.icon = 'fa fas fa-bookmark';
 	Billboard.prototype.movable = true;
 	Billboard.prototype.resizable = true;
 	Billboard.prototype.rotatable = false;
@@ -531,7 +293,8 @@ OutlinerElement.registerType(Billboard, 'billboard');
 
 new NodePreviewController(Billboard, {
 	setup(element) {
-		let mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let geometry = new THREE.PlaneBufferGeometry(2, 2);
+		let mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = 'billboard';
@@ -539,11 +302,11 @@ new NodePreviewController(Billboard, {
 		mesh.visible = element.visibility;
 		mesh.rotation.order = 'ZYX'
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24).fill(0), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(4).fill(0), 1));
 
 		// Outline
-		let geometry = new THREE.BufferGeometry();
-		let line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		let line_geometry = new THREE.BufferGeometry();
+		let line = new THREE.Line(line_geometry, Canvas.outlineMaterial);
 		line.no_export = true;
 		line.name = element.uuid+'_outline';
 		line.visible = element.selected;
@@ -551,6 +314,7 @@ new NodePreviewController(Billboard, {
 		line.frustumCulled = false;
 		mesh.outline = line;
 		mesh.add(line);
+		line_geometry.setAttribute('position', new THREE.BufferAttribute(new Uint8Array(12).fill(0), 3));
 
 		// Update
 		this.updateTransform(element);
@@ -563,78 +327,40 @@ new NodePreviewController(Billboard, {
 	updateTransform(element) {
 		NodePreviewController.prototype.updateTransform(element);
 
-		let mesh = element.mesh;
-
-		if (Format.rotate_cubes && element.rescale === true) {
-			let axis = element.rotationAxis()||'y';
-			let rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
-			mesh.scale.set(rescale, rescale, rescale);
-			mesh.scale[axis] = 1;
-		}
+		this.updateFacingCamera(element);
 
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {
 		if (element.resizable) {
 			let mesh = element.mesh;
-			let from = element.from.slice()
-			from.forEach((v, i) => {
-				from[i] -= element.inflate;
-				from[i] -= element.origin[i];
-			})
-			let to = element.to.slice()
-			to.forEach((v, i) => {
-				to[i] += element.inflate
-				to[i] -= element.origin[i];
-				if (from[i] === to[i]) {
-					to[i] += 0.001
-				}
-			})
-			mesh.geometry.setShape(from, to)
+			let half_size = [element.size[0]/2, element.size[1]/2];
+
+			let corners = [
+				-half_size[0],  half_size[1], 0,
+				 half_size[0],  half_size[1], 0,
+				-half_size[0], -half_size[1], 0,
+				 half_size[0], -half_size[1], 0,
+			];
+			mesh.geometry.attributes.position.array.set(corners, 0);
+			mesh.geometry.attributes.position.needsUpdate = true;
 			mesh.geometry.computeBoundingBox()
 			mesh.geometry.computeBoundingSphere()
 
-			// Update outline
-			let vs = [0,1,2,3,4,5,6,7].map(i => {
-				return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-			});
-			let points = [
-				vs[2], vs[3],
-				vs[6], vs[7],
-				vs[2], vs[0],
-				vs[1], vs[4],
-				vs[5], vs[0],
-				vs[5], vs[7],
-				vs[6], vs[4],
-				vs[1], vs[3]
-			].map(a => new THREE.Vector3().fromArray(a))
-			mesh.outline.geometry.setFromPoints(points);
+			let outline_corners = [
+				-half_size[0],  half_size[1], 0,
+				 half_size[0],  half_size[1], 0,
+				 half_size[0], -half_size[1], 0,
+				-half_size[0], -half_size[1], 0,
+				-half_size[0],  half_size[1], 0,
+			];
+			mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_corners), 3));
 		}
 
 		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
 		let {mesh} = element;
-
-		let indices = [];
-		let j = 0;
-		mesh.geometry.faces = [];
-		mesh.geometry.clearGroups();
-		let last_tex;
-		Canvas.face_order.forEach((fkey, i) => {
-			if (element.faces[fkey].texture !== null) {
-				indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
-				if (last_tex && element.faces[fkey].texture === last_tex) {
-					mesh.geometry.groups[mesh.geometry.groups.length-1].count += 6;
-				} else {
-					mesh.geometry.addGroup(j*6, 6, j)
-					last_tex = element.faces[fkey].texture;
-				}
-				mesh.geometry.faces.push(fkey)
-				j++;
-			}
-		})
-		mesh.geometry.setIndex(indices)
 
 		if (Project.view_mode === 'solid') {
 			mesh.material = Canvas.solidMaterial
@@ -656,7 +382,6 @@ new NodePreviewController(Billboard, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
-			let material;
 			let tex = element.faces.front.getTexture();
 			if (tex && tex.uuid) {
 				mesh.material = Project.materials[tex.uuid];
@@ -685,13 +410,17 @@ new NodePreviewController(Billboard, {
 				frame = tex.currentFrame
 			}
 		}
-		Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, element.faces.front, frame, stretch)
+		Canvas.updateUVFace(mesh.geometry.attributes.uv, 0, element.faces.front, frame, stretch)
 
 		mesh.geometry.attributes.uv.needsUpdate = true;
 
 		this.dispatchEvent('update_uv', {element});
 
 		return mesh.geometry;
+	},
+	updateFacingCamera(element) {
+		//let scale = Preview.selected.calculateControlScale(billboard.getWorldPosition());
+		element.mesh.lookAt(Preview.selected.camera.position);
 	},
 	updateHighlight(element, hover_cube, force_off) {
 		let mesh = element.mesh;
@@ -710,6 +439,8 @@ new NodePreviewController(Billboard, {
 		this.dispatchEvent('update_highlight', {element});
 	},
 	updatePaintingGrid(cube) {
+		return;
+
 		let mesh = cube.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
@@ -818,43 +549,33 @@ new NodePreviewController(Billboard, {
 	}
 })
 
+Blockbench.on('update_camera_position', e => {
+	Billboard.all.forEach(billboard => {
+		Billboard.preview_controller.updateFacingCamera(billboard);
+	})
+})
+
 BARS.defineActions(function() {
 	new Action({
 		id: 'add_billboard',
-		icon: 'new_window',
+		icon: 'bookmark_add',
 		category: 'edit',
 		condition: () => Modes.edit,
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let new_billboard = new Billboard().init()
-			if (!new_billboard.box_uv) new_billboard.mapAutoUV()
+			new_billboard.mapAutoUV()
 			let group = getCurrentGroup();
 			if (group) {
 				new_billboard.addTo(group)
 				new_billboard.color = group.color;
 			}
 
-			new_billboard.faces.front.texture = Texture.getDefault().uuid;
-			UVEditor.loadData();
-
-			if (Format.bone_rig) {
-				let pos1 = group ? group.origin.slice() : [0, 0, 0];
-				let size = Settings.get('default_cube_size');
-				if (size % 2 == 0) {
-					new_billboard.extend({
-						from:[ pos1[0] - size/2, pos1[1] - 0,    pos1[2] - size/2 ],
-						to:[   pos1[0] + size/2, pos1[1] + size, pos1[2] + size/2 ],
-						origin: pos1.slice()
-					})
-				} else {
-					new_billboard.extend({
-						from:[ pos1[0], pos1[1], pos1[2] ],
-						to:[   pos1[0]+size, pos1[1]+size, pos1[2]+size ],
-						origin: pos1.slice()
-					})
-				}
+			if (Texture.getDefault()) {
+				new_billboard.faces.front.texture = Texture.getDefault().uuid;
 			}
+			UVEditor.loadData();
 
 			if (Group.selected) Group.selected.unselect()
 			new_billboard.select()

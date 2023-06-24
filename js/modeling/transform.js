@@ -1077,7 +1077,9 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[0]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[0];
+			} else if (Outliner.selected[0].to) {
 				return Outliner.selected[0].to[0] - Outliner.selected[0].from[0]
 			}
 		},
@@ -1101,7 +1103,9 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[1]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[1];
+			} else if (Outliner.selected[0].to) {
 				return Outliner.selected[0].to[1] - Outliner.selected[0].from[1]
 			}
 		},
@@ -1125,7 +1129,9 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[2]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[2];
+			} else if (Outliner.selected[0].to) {
 				return Outliner.selected[0].to[2] - Outliner.selected[0].from[2]
 			}
 		},
