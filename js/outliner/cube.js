@@ -414,6 +414,9 @@ class Cube extends OutlinerElement {
 
 		if (!skipUV) {
 
+			if (this.box_uv && axis === 0) {
+				this.mirror_uv = !this.mirror_uv;
+			}
 			function mirrorUVX(face, skip_rot) {
 				var f = scope.faces[face]
 				if (skip_rot) {}
@@ -824,6 +827,7 @@ class Cube extends OutlinerElement {
 		'convert_to_mesh',
 		'update_autouv',
 		'cube_uv_mode',
+		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
