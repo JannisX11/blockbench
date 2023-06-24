@@ -31,7 +31,7 @@ const Plugins = {
 	}
 }
 StateMemory.init('installed_plugins', 'array')
-Plugins.installed = StateMemory.installed_plugins.filter(p => typeof p == 'object');
+Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
 class Plugin {
 	constructor(id, data) {
@@ -436,8 +436,6 @@ async function loadInstalledPlugins() {
 	}
 	const install_promises = [];
 
-	Plugins.installed.replace(Plugins.installed.filter(p => p !== null))
-
 	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store
 		for (var id in Plugins.json) {
@@ -485,7 +483,7 @@ async function loadInstalledPlugins() {
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
 				} else {
-					Plugins.installed.remove(plugin)
+					Plugins.installed.remove(plugin);
 				}
 
 			} else if (plugin.source == 'url') {
@@ -495,8 +493,12 @@ async function loadInstalledPlugins() {
 				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
 
 			} else {
-				load_counter++;
-				console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`)
+				if (Plugins.all.find(p => p.id == plugin.id)) {
+					load_counter++;
+					console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`);
+				} else {
+					Plugins.installed.remove(plugin);
+				}
 			}
 		})
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)

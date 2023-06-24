@@ -1,10 +1,5 @@
 var Toolbars, BarItems, Toolbox;
 //Bars
-class MenuSeparator {
-	constructor() {
-		this.menu_node = Interface.createElement('li', {class: 'menu_separator'});
-	}
-}
 class BarItem {
 	constructor(id, data) {
 		this.id = id;
@@ -12,7 +7,7 @@ class BarItem {
 			if (this.id && !BarItems[this.id]) {
 				BarItems[this.id] = this;
 			} else {
-				if (!BarItems[this.id]) {
+				if (BarItems[this.id]) {
 					console.warn(`${this.constructor.name} ${this.id} has a duplicate ID`)
 				} else {
 					console.warn(`${this.constructor.name} defined without a vaild ID`)
@@ -200,6 +195,11 @@ class BarItem {
 		})
 		delete BarItems[this.id];
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class KeybindItem {
@@ -227,6 +227,11 @@ class KeybindItem {
 	}
 	delete() {
 		Keybinds.actions.remove(this);
+		for (let key in Keybinds.structure) {
+			if (Keybinds.structure[key]?.actions?.length) {
+				Keybinds.structure[key].actions.remove(this);
+			}
+		}
 	}
 }
 class Action extends BarItem {
@@ -317,9 +322,13 @@ class Action extends BarItem {
 		return false;
 	}
 	updateKeybindingLabel() {
-		this.menu_node.querySelector('.keybinding_label').textContent = this.keybind || '';
+		let keybind_text = this.keybind?.toString() || '';
+		if (!keybind_text && this.id == 'color_picker') {
+			keybind_text = tl('keys.alt');
+		}
+		this.menu_node.querySelector('.keybinding_label').textContent = keybind_text;
 		this.nodes.forEach(node => {
-			node.querySelector('.keybinding_label').textContent = this.keybind || '';
+			node.querySelector('.keybinding_label').textContent = keybind_text;
 		});
 		return this;
 	}
@@ -433,7 +442,7 @@ class Tool extends Action {
 		}
 		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
 			Project.view_mode = 'textured';
-			Canvas.updateAllFaces()
+			BarItems.view_mode.change('textured');
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options')
@@ -496,6 +505,11 @@ class Toggle extends Action {
 
 		this.updateEnabledState();
 	}
+	set(value) {
+		if (value == this.value) return this;
+		this.click();
+		return this;
+	}
 	setIcon(icon) {
 		if (icon) {
 			this.icon = icon;
@@ -510,6 +524,7 @@ class Toggle extends Action {
 			node.classList.toggle('enabled', this.value);
 		})
 		this.menu_icon_node.innerText = this.value ? 'check_box' : 'check_box_outline_blank';
+		return this;
 	}
 }
 class Widget extends BarItem {
@@ -535,6 +550,8 @@ class NumSlider extends Widget {
 		this.icon = 'code'
 		this.value = 0;
 		this.width = 69;
+		this.sensitivity = data.sensitivity || 30;
+		this.invert_scroll_direction = data.invert_scroll_direction == true;
 		this.uniqueNode = true;
 		if (data.tool_setting) this.tool_setting = data.tool_setting;
 		if (typeof data.get === 'function') this.get = data.get;
@@ -621,6 +638,7 @@ class NumSlider extends Widget {
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {
 			if (scope.jq_inner.hasClass('editing')) return;
+			scope.last_value = scope.value;
 			
 			let drag_event = await new Promise((resolve, reject) => {
 				function move(e2) {
@@ -647,7 +665,6 @@ class NumSlider extends Widget {
 			scope.sliding = true;
 			scope.pre = 0;
 			scope.sliding_start_pos = drag_event.clientX;
-			scope.last_value = scope.value;
 			let move_calls = 0;
 
 			if (!drag_event.touches) scope.jq_inner.get(0).requestPointerLock();
@@ -707,6 +724,7 @@ class NumSlider extends Widget {
 		})
 		.on('contextmenu', event => {
 			new Menu([
+				new MenuSeparator('copypaste'),
 				{
 					id: 'copy',
 					name: 'action.copy',
@@ -736,6 +754,22 @@ class NumSlider extends Widget {
 						setTimeout(() => {
 							this.stopInput();
 						}, 20);
+					}
+				},
+				new MenuSeparator('edit'),
+				{
+					id: 'round',
+					name: 'menu.slider.round_value',
+					icon: 'percent',
+					click: () => {
+						if (typeof this.onBefore === 'function') {
+							this.onBefore()
+						}
+						this.change(n => Math.round(n));
+						this.update()
+						if (typeof this.onAfter === 'function') {
+							this.onAfter()
+						}
 					}
 				}
 			]).open(event);
@@ -788,7 +822,7 @@ class NumSlider extends Widget {
 		}
 	}
 	slide(clientX, event) {
-		var offset = Math.round((clientX - this.sliding_start_pos)/30)
+		var offset = Math.round((clientX - this.sliding_start_pos)/this.sensitivity)
 		var difference = (offset - this.pre) * this.getInterval(event);
 		this.pre = offset;
 
@@ -804,7 +838,7 @@ class NumSlider extends Widget {
 	stopInput() {
 		if (!this.jq_inner.hasClass('editing')) return;
 		var text = this.jq_inner.text();
-		if (this.last_value !== text) {
+		if (this.last_value?.toString() !== text) {
 			var first_token = text.substr(0, 1);
 
 			if (typeof this.onBefore === 'function') {
@@ -882,7 +916,10 @@ class NumSlider extends Widget {
 		if (typeof this.onBefore === 'function') {
 			this.onBefore()
 		}
-		var difference = this.getInterval(false) * (event.shiftKey != event.deltaY > 0) ? -1 : 1;
+		let sign = event.shiftKey ? -1 : 1;
+		if (event.deltaY > 0) sign *= -1;
+		if (event instanceof WheelEvent && this.invert_scroll_direction) sign *= -1;
+		var difference = this.getInterval(false) * sign;
 		this.change(n => n + difference)
 		this.update()
 		if (typeof this.onAfter === 'function') {
@@ -1338,6 +1375,7 @@ class Toolbar {
 		this.name = data.name && tl(data.name);
 		this.label = !!data.label;
 		this.label_node = null;
+		this.condition = data.condition;
 		this.children = [];
 		this.condition_cache = [];
 		Toolbars[this.id] = this;
@@ -1352,6 +1390,7 @@ class Toolbar {
 		this.narrow = !!data.narrow
 		this.vertical = !!data.vertical
 		this.default_children = data.children ? data.children.slice() : [];
+		this.previously_enabled = true;
 
 		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
 		toolbar_menu.addEventListener('click', event => {
@@ -1392,25 +1431,25 @@ class Toolbar {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
-				var itemId = items[itemPosition];
-				if (typeof itemId === 'string' && itemId.match(/^[_+#]/)) {
-					let char = itemId.substr(0, 1);
+				let item = items[itemPosition];
+				if (typeof item === 'string' && item.match(/^[_+#]/)) {
+					let char = item.substring(0, 1);
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
-					this.children.push(char + guid().substr(0,8));
+					this.children.push(char + guid().substring(0,8));
 					this.positionLookup[itemPosition] = char;
 
 					continue;
 				}
+				if (typeof item == 'string') item = BarItems[item]
 
-				var item = BarItems[itemId];
 				if (item) {
 					item.pushToolbar(this);
-					if (BARS.condition(item.condition)) {
+					/*if (BARS.condition(item.condition)) {
 						content.append(item.getNode())
-					}
+					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
-					var postloadAction = [itemId, itemPosition];
+					var postloadAction = [items[itemPosition], itemPosition];
 					if (this.postload) {
 						this.postload.push(postloadAction);
 					} else {
@@ -1465,7 +1504,7 @@ class Toolbar {
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update().save();
+				this.update(true).save();
 				return this;
 			}
 			i--;
@@ -1474,6 +1513,16 @@ class Toolbar {
 	}
 	update(force) {
 		var scope = this;
+
+		let enabled = Condition(this.condition);
+		if (enabled != this.previously_enabled) {
+			this.node.style.display = enabled ? '' : 'none';
+			if (this.label_node) {
+				this.label_node.style.display = this.node.style.display;
+			}
+			this.previously_enabled = enabled;
+		}
+		if (!enabled && !force) return this;
 
 		// check if some unkown actions are now known
 		if (this.postload) {
@@ -1751,14 +1800,6 @@ const BARS = {
 					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
-			new Action('open_backup_folder', {
-				icon: 'fa-archive',
-				category: 'file',
-				condition: () => isApp,
-				click: function (e) {
-					shell.openPath(app.getPath('userData')+osfs+'backups')
-				}
-			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
@@ -1789,17 +1830,27 @@ const BARS = {
 				icon: 'delete',
 				category: 'edit',
 				keybind: new Keybind({key: 46}),
+				condition: () => !Dialog.open,
 				click() {
 					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
-					if (Prop.active_panel == 'textures' && Texture.selected) {
+					if (ReferenceImageMode.active && ReferenceImage.selected) {
+						ReferenceImage.selected.delete();
+
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
+
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
+						if (StateMemory.color_palette_locked) {
+							Blockbench.showQuickMessage('message.palette_locked');
+							return;
+						}
 						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
 							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
 						}
 					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
-						Undo.initEdit({elements: Mesh.selected})
+						let meshes = Mesh.selected.slice();
+						Undo.initEdit({elements: meshes})
 
 						Mesh.selected.forEach(mesh => {
 							let selected_vertices = mesh.getSelectedVertices();
@@ -1851,16 +1902,21 @@ const BARS = {
 								})
 
 							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
-								selected_vertices.forEach(vertex_key => {
-									delete mesh.vertices[vertex_key];
-
+								selected_vertices.forEach(vkey => {
 									for (let key in mesh.faces) {
 										let face = mesh.faces[key];
-										if (!face.vertices.includes(vertex_key)) continue;
+										if (!face.vertices.includes(vkey)) continue;
 										if (face.vertices.length > 2) {
-											face.vertices.remove(vertex_key);
-											delete face.uv[vertex_key];
+											let initial_normal;
+											if (face.vertices.length == 4) {
+												initial_normal = face.getNormal();
+											}
+											face.vertices.remove(vkey);
+											delete face.uv[vkey];
 											
+											if (face.vertices.length == 3 && face.getAngleTo(initial_normal) > 90) {
+												face.invert();
+											}
 											if (face.vertices.length == 2) {
 												for (let fkey2 in mesh.faces) {
 													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
@@ -1873,15 +1929,16 @@ const BARS = {
 											delete mesh.faces[key];
 										}
 									}
+									delete mesh.vertices[vkey];
 								})
 							} else {
-								Mesh.selected.remove(mesh);
+								meshes.remove(mesh);
 								mesh.remove(false);
 							}
 						})
 
 						Undo.finishEdit('Delete mesh part')
-						Canvas.updateView({elements: Mesh.selected, selection: true, element_aspects: {geometry: true, faces: true, uv: Mesh.selected.length > 0}})
+						Canvas.updateView({elements: meshes, selection: true, element_aspects: {geometry: true, faces: true, uv: meshes.length > 0}})
 
 					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
 
@@ -1918,9 +1975,13 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => {
+					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
+						|| (Prop.active_panel == 'textures' && Texture.selected)
+						|| (Modes.edit && (selected.length || Group.selected));
+				},
 				keybind: new Keybind({key: 'd', ctrl: true}),
-				click: function () {
+				click() {
 					if (Modes.animate) {
 						if (Animation.selected && Prop.active_panel == 'animations') {
 							var copy = Animation.selected.getUndoCopy();
@@ -1949,6 +2010,14 @@ const BARS = {
 							Undo.finishEdit('Duplicate animation controller state');
 
 						}
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
+						let copy = Texture.selected.getUndoCopy();
+						delete copy.path;
+						copy.mode = 'bitmap';
+						copy.saved = false;
+						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
+						new Texture(copy).fillParticle().load().add(true);
+
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;
 						Undo.initEdit({outliner: true, elements: [], selection: true});
@@ -2161,13 +2230,13 @@ const BARS = {
 				'rotation_space',
 				'selection_mode',
 				'animation_controller_preview_mode',
+				'bedrock_animation_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',
 				'loop_cut',
 				'create_face',
 				'invert_face',
-				'proportional_editing',
 			]
 		})
 
@@ -2191,6 +2260,18 @@ const BARS = {
 				'slider_size_y',
 				'slider_size_z',
 				'slider_inflate'
+			]
+		})
+		Toolbars.element_stretch = new Toolbar({
+			id: 'element_stretch',
+			name: 'panel.element.stretch',
+			label: true,
+			condition: () => Format.stretch_cubes,
+			children: [
+				'slider_stretch_x',
+				'slider_stretch_y',
+				'slider_stretch_z',
+				'toggle_stretch_linked'
 			]
 		})
 		Toolbars.element_origin = new Toolbar({
@@ -2218,6 +2299,7 @@ const BARS = {
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
+				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
 			].forEach(toolbar => {

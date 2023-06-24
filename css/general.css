@@ -299,6 +299,20 @@
 	.markdown a {
 		cursor: pointer;
 	}
+	.markdown pre {
+		border: 1px solid var(--color-border);
+		background: var(--color-back);
+		font-family: var(--font-code);
+		padding: 6px 10px;
+		clear: both;
+		cursor: text;
+		user-select: text;
+		-webkit-user-select: text;
+	}
+	.markdown pre code {
+		user-select: text;
+		-webkit-user-select: text;
+	}
 
 /*Actions*/
 	.toolbar {
@@ -564,6 +578,10 @@
 		display: none;
 		margin-top: -4px;
 	}
+	.contextMenu.scrollable {
+		max-height: min(500px, 100vh);
+		overflow: auto;
+	}
 	.contextMenu li {
 		display: flex;
 		height: 30px;
@@ -645,6 +663,18 @@
 		width: 100%;
 		padding: 0;
 		background-color: var(--color-menu_separator);
+	}
+	li.menu_separator.has_label {
+		margin-top: 12px;
+		margin-bottom: 6px;
+	}
+	li.menu_separator.has_label > label {
+		background-color: var(--color-bright_ui);
+		color: color-mix(in srgb, var(--color-bright_ui_text) 70%, transparent);
+		margin-top: -12px;
+		margin-left: 12px;
+		padding: 0 5px;
+		height: 20px;
 	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;

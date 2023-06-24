@@ -58,9 +58,6 @@ class Group extends OutlinerNode {
 	init() {
 		super.init();
 		Project.groups.push(this);
-		if (typeof this.parent !== 'object') {
-			this.addTo();
-		}
 		if (!this.mesh || !this.mesh.parent) {
 			this.constructor.preview_controller.setup(this);
 		}
@@ -439,10 +436,7 @@ class Group extends OutlinerNode {
 	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'add_locator',
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		'edit_bedrock_binding',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
@@ -455,7 +449,10 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
+		'add_locator',
+		new MenuSeparator('manage'),
 		'resolve_group',
+		'rename',
 		'delete'
 	]);
 	Object.defineProperty(Group, 'all', {
@@ -654,10 +651,38 @@ BARS.defineActions(function() {
 						showPresetMenu(event) {
 							new Menu([
 								{
-									name: 'Item',
+									name: 'Main Hand',
 									icon: 'build',
 									click: () => {
 										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
+									}
+								},
+								{
+									name: 'Right Hand',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'rightitem\'';
+									}
+								},
+								{
+									name: 'Left Hand',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'leftitem\'';
+									}
+								},
+								{
+									name: 'Body',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'body\'';
+									}
+								},
+								{
+									name: 'Head',
+									icon: 'build',
+									click: () => {
+										this.binding = '\'head\'';
 									}
 								}
 							]).show(event.target);

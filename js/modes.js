@@ -55,6 +55,7 @@ class Mode extends KeybindItem {
 			this.onSelect()
 		}
 		updatePanelSelector();
+		ReferenceImage.updateAll();
 
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';

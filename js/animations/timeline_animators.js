@@ -407,15 +407,18 @@ class BoneAnimator extends GeneralAnimator {
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
 			let alpha = Math.getLerp(before.time, after.time, time)
-			
+			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
 
-			if (no_interpolations || (before.interpolation === Keyframe.interpolation.linear && after.interpolation === Keyframe.interpolation.linear)) {
+			if (no_interpolations || (
+				before.interpolation === linear &&
+				(after.interpolation === linear || after.interpolation === step)
+			)) {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
 				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
 
-			} else if (before.interpolation === Keyframe.interpolation.catmullrom || after.interpolation === Keyframe.interpolation.catmullrom) {
+			} else if (before.interpolation === catmullrom || after.interpolation === catmullrom) {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
 				let before_index = sorted.indexOf(before);
@@ -424,7 +427,7 @@ class BoneAnimator extends GeneralAnimator {
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
 
-			} else if (before.interpolation === Keyframe.interpolation.bezier || after.interpolation === Keyframe.interpolation.bezier) {
+			} else if (before.interpolation === bezier || after.interpolation === bezier) {
 				// Bezier
 				return mapAxes(axis => before.getBezierLerp(before, after, axis, alpha));
 			}
@@ -441,6 +444,7 @@ class BoneAnimator extends GeneralAnimator {
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getGroup()
+		Animator.MolangParser.context.animation = this.animation;
 
 		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
@@ -544,14 +548,24 @@ class NullObjectAnimator extends BoneAnimator {
 		let bone_references = [];
 		let current = target.parent;
 
+		let source;
+		if (null_object.ik_source) {
+			source = [...Group.all].find(node => node.uuid == null_object.ik_source);
+		} else {
+			source = null_object.parent;
+		}
+		if (!source) return;
+		if (!target.isChildOf(source)) return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
-		while (current !== null_object.parent) {
+		while (current !== source) {
 			bones.push(current);
 			current = current.parent;
 		}
+		if (null_object.ik_source)
+			bones.push(source);
 		if (!bones.length) return;
 		bones.reverse();
 		

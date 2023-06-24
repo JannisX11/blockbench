@@ -53,7 +53,7 @@ class CubeFace extends Face {
 CubeFace.prototype.is_rectangular = true;
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
-new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
+new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
 new Property(CubeFace, 'string', 'material_name');
 new Property(CubeFace, 'boolean', 'enabled', {default: true});
 
@@ -77,6 +77,7 @@ class Cube extends OutlinerElement {
 		this.color = Math.floor(Math.random()*markerColors.length)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
+		this.stretch = [1, 1, 1];
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
 		this.visibility = true;
@@ -130,6 +131,11 @@ class Cube extends OutlinerElement {
 		if (object.uv_offset) {
 			Merge.number(this.uv_offset, object.uv_offset, 0)
 			Merge.number(this.uv_offset, object.uv_offset, 1)
+		}
+		if (object.stretch) {
+			Merge.number(this.stretch, object.stretch, 0)
+			Merge.number(this.stretch, object.stretch, 1)
+			Merge.number(this.stretch, object.stretch, 2)
 		}
 		if (typeof object.rotation === 'object' && object.rotation.constructor.name === 'Object') {
 			if (object.rotation.angle && object.rotation.axis) {
@@ -259,6 +265,7 @@ class Cube extends OutlinerElement {
 		if (!this.shade) el.shade = false;
 		if (this.mirror_uv) el.mirror_uv = true;
 		if (this.inflate) el.inflate = this.inflate;
+		if (this.isStretched()) el.stretch = this.stretch;
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
@@ -329,6 +336,7 @@ class Cube extends OutlinerElement {
 		}
 
 		function rotateUVFace(number, iterations) {
+			if (!Format.uv_rotation) return 0;
 			if (!number) number = 0;
 			number += iterations * 90;
 			return number % 360;
@@ -499,15 +507,19 @@ class Cube extends OutlinerElement {
 		return pos;
 	}
 	getGlobalVertexPositions() {
+		var adjustedFrom = this.from.slice();
+		var adjustedTo = this.to.slice();
+		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, this);
+		
 		let vertices = [
-			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
-			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
-			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
-			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
-			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
+			[adjustedTo[0]	,  adjustedTo[1]  ,  adjustedTo[2]	],
+			[adjustedTo[0]  ,  adjustedTo[1]  ,  adjustedFrom[2]],
+			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedTo[2]	],
+			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedTo[2]	],
+			[adjustedFrom[0],  adjustedFrom[1],  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedFrom[1],  adjustedTo[2]	],
 		];
 		let vec = new THREE.Vector3();
 		return vertices.map(coords => {
@@ -572,7 +584,7 @@ class Cube extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
-		if (Blockbench.box_uv) return;
+		if (this.box_uv) return;
 		var scope = this;
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
@@ -784,11 +796,20 @@ class Cube extends OutlinerElement {
 		}
 		this.mapAutoUV();
 		if (this.box_uv) {
+			if (axis == 2) {
+				let difference = before - this.size(axis);
+				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
+				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
+				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
+			}
 			Canvas.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
 		return this;
+	}
+	isStretched() {
+		return !this.stretch.allEqual(1);
 	}
 }
 	Cube.prototype.title = tl('data.cube');
@@ -800,8 +821,7 @@ class Cube extends OutlinerElement {
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		'convert_to_mesh',
 		'update_autouv',
 		'cube_uv_mode',
@@ -839,6 +859,8 @@ class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -858,6 +880,22 @@ new Property(Cube, 'boolean', 'locked');
 
 OutlinerElement.registerType(Cube, 'cube');
 
+function adjustFromAndToForInflateAndStretch(from, to, element) {
+	var halfSize = element.size().slice();
+	halfSize.forEach((v, i) => {
+		halfSize[i] /= 2;
+	});
+	var center = [
+		element.from[0] + halfSize[0],
+		element.from[1] + halfSize[1],
+		element.from[2] + halfSize[2]
+	];
+
+	for (let i = 0; i < from.length; i++) {
+		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
+		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
+	}
+}
 
 new NodePreviewController(Cube, {
 	setup(element) {
@@ -891,7 +929,7 @@ new NodePreviewController(Cube, {
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
 		let mesh = element.mesh;
 
@@ -908,13 +946,14 @@ new NodePreviewController(Cube, {
 		if (element.resizable) {
 			let mesh = element.mesh;
 			var from = element.from.slice()
+			var to = element.to.slice()
+
+			adjustFromAndToForInflateAndStretch(from, to, element);
+
 			from.forEach((v, i) => {
-				from[i] -= element.inflate;
 				from[i] -= element.origin[i];
 			})
-			var to = element.to.slice()
 			to.forEach((v, i) => {
-				to[i] += element.inflate
 				to[i] -= element.origin[i];
 				if (from[i] === to[i]) {
 					to[i] += 0.001
@@ -1136,9 +1175,8 @@ new NodePreviewController(Cube, {
 
 		var from = cube.from.slice();
 		var to = cube.to.slice();
-		if (cube.inflate) {
-			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
-			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
+		if (cube.inflate || cube.isStretched()) {
+			adjustFromAndToForInflateAndStretch(from, to, cube);
 		}
 
 		var vertices = [];

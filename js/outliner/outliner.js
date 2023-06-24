@@ -115,9 +115,8 @@ class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	//Sorting
-	sortInBefore(element, index_mod) {
+	sortInBefore(element, index_mod = 0) {
 		var index = -1;
-		index_mod = index_mod || 0;
 
 		if (element.parent === 'root') {
 			index = Outliner.root.indexOf(element)
@@ -328,6 +327,15 @@ class OutlinerNode {
 			return true;
 		}
 	}
+	matchesFilter(search_term) {
+		if (!this.children) {
+			return this.name.includes(search_term);
+		} else {
+			if (this.name.includes(search_term)) return true;
+			let match = false;
+			return this.children.find(child => child.matchesFilter(search_term));
+		}
+	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
 			if (!obj || obj === 'root') {
@@ -520,11 +528,18 @@ class OutlinerElement extends OutlinerNode {
 			console.warn('You cannot modify this')
 		}
 	})
+	OutlinerElement.hasAny = function() {
+		return Outliner.elements.length > 0 && Outliner.elements.findIndex(element => element instanceof this) !== -1;
+	}
+	OutlinerElement.hasSelected = function() {
+		return Outliner.selected.length > 0 && Outliner.selected.findIndex(element => element instanceof this) !== -1;
+	}
 	OutlinerElement.types = {};
 
 
-class NodePreviewController {
+class NodePreviewController extends EventSystem {
 	constructor(type, data = {}) {
+		super();
 		this.type = type;
 		this.events = {};
 		type.preview_controller = this;
@@ -618,36 +633,33 @@ class NodePreviewController {
 	updateSelection(element) {
 		let {mesh} = element;
 		if (mesh && mesh.outline) {
-			mesh.outline.visible = element.selected
+			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
+				mesh.outline.visible = false;
+			} else {
+				mesh.outline.visible = element.selected;
+			}
 		}
 
 		this.dispatchEvent('update_selection', {element});
 	}
-
-	//Events
-	dispatchEvent(event_name, data) {
-		if (!this.events) return;
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
-	}
 }
+/**
+Standardied outliner node context menu group order
+
+(mesh editing)
+(settings)
+copypaste
+	copy, paste, duplicate
+outliner_control
+	group, move
+(add)
+settings
+	color, options, texture
+manage
+	visibility, rename, delete
+ */
 Outliner.control_menu_group = [
+	new MenuSeparator('outliner_control'),
 	'copy',
 	'paste',
 	'duplicate',
@@ -958,6 +970,19 @@ BARS.defineActions(function() {
 			StateMemory.save('advanced_outliner_toggles');
 		}
 	})
+	new Toggle('search_outliner', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Outliner.vue._data.options.search_term = '';
+			Outliner.vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('outliner_search_bar').firstChild.focus();
+				});
+			}
+		}
+	})
 	new BarText('cube_counter', {
 		right: true,
 		click: function() {
@@ -1164,16 +1189,76 @@ BARS.defineActions(function() {
 		icon: 'swap_vert',
 		category: 'edit',
 		keybind: new Keybind({key: 'i', ctrl: true}),
-		condition: () => Modes.edit || Modes.paint,
+		condition: () => Modes.edit || Modes.paint || Modes.animate,
 		click: function () {
-			elements.forEach(function(s) {
-				if (s.selected) {
-					s.unselect()
+			if (Modes.animate) {
+				if (!Animation.selected) return;
+				Timeline.keyframes.forEach((kf) => {
+					if (!kf.selected) {
+						Timeline.selected.push(kf)
+						kf.selected = true;
+					} else {
+						Timeline.selected.remove(kf);
+						kf.selected = false;
+					}
+				})
+				updateKeyframeSelection()
+
+			} else if (Modes.edit && BarItems.selection_mode.value !== 'object' && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length) {
+				let selection_mode = BarItems.selection_mode.value;
+				if (selection_mode == 'vertex') {
+					Mesh.selected.forEach(mesh => {
+						let selected = mesh.getSelectedVertices();
+						let now_selected = Object.keys(mesh.vertices).filter(vkey => !selected.includes(vkey));
+						mesh.getSelectedVertices(true).replace(now_selected);
+					})
+				} else if (selection_mode == 'edge') {
+					Mesh.selected.forEach(mesh => {
+						let old_vertices = mesh.getSelectedVertices().slice();
+						let old_edges = mesh.getSelectedEdges().slice();
+						let vertices = mesh.getSelectedVertices(true).empty();
+						let edges = mesh.getSelectedEdges(true).empty();
+						
+						for (let fkey in mesh.faces) {
+							let face = mesh.faces[fkey];
+							let f_vertices = face.getSortedVertices();
+							f_vertices.forEach((vkey_a, i) => {
+								let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+								if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
+									edges.push(edge);
+									vertices.safePush(edge[0], edge[1]);
+								}
+							})
+						}
+					})
 				} else {
-					s.selectLow()
+					Mesh.selected.forEach(mesh => {
+						let old_vertices = mesh.getSelectedVertices().slice();
+						let old_faces = mesh.getSelectedFaces().slice();
+						let vertices = mesh.getSelectedVertices(true).empty();
+						let faces = mesh.getSelectedFaces(true).empty();
+						
+						for (let fkey in mesh.faces) {
+							if (!old_faces.includes(fkey)) {
+								let face = mesh.faces[fkey];
+								faces.push(fkey);
+								vertices.safePush(...face.vertices);
+							}
+						}
+					})
 				}
-			})
-			if (Group.selected) Group.selected.unselect()
+				updateSelection();
+		
+			} else {
+				elements.forEach(function(s) {
+					if (s.selected) {
+						s.unselect()
+					} else {
+						s.selectLow()
+					}
+				})
+				if (Group.selected) Group.selected.unselect()
+			}
 			updateSelection()
 			Blockbench.dispatchEvent('invert_selection')
 		}
@@ -1215,6 +1300,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
+			if (Painter.painting) return;
 			let enabled = !Project.only_hidden_elements;
 
 			if (Project.only_hidden_elements) {
@@ -1295,10 +1381,14 @@ Interface.definePanels(function() {
 				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
 			},
 			visible_children() {
+				let filtered = this.node.children;
+				if (this.options.search_term) {
+					filtered = this.node.children.filter(child => child.matchesFilter(this.options.search_term))
+				}
 				if (!this.options.hidden_types.length) {
-					return this.node.children;
+					return filtered;
 				} else {
-					return this.node.children.filter(node => !this.options.hidden_types.includes(node.type));
+					return filtered.filter(node => !this.options.hidden_types.includes(node.type));
 				}
 			}
 		},
@@ -1378,6 +1468,7 @@ Interface.definePanels(function() {
 					'toggle_skin_layer',
 					'explode_skin_model',
 					'+',
+					'search_outliner',
 					'cube_counter'
 				]
 			})
@@ -1390,15 +1481,23 @@ Interface.definePanels(function() {
 			name: 'panel-outliner',
 			data() { return {
 				root: Outliner.root,
+				search_enabled: false,
 				options: {
 					width: 300,
 					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
-					hidden_types: []
+					hidden_types: [],
+					search_term: ''
 				}
 			}},
 			methods: {
 				openMenu(event) {
-					Interface.Panels.outliner.menu.show(event)
+					Panels.outliner.menu.show(event)
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.options.search_term && !document.querySelector('#outliner_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_outliner.set(false);
+					}
 				},
 				dragToggle(e1) {
 					let [original] = eventTargetToNode(e1.target);
@@ -1609,28 +1708,43 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
+			computed: {
+				filtered_root() {
+					if (!this.options.search_term) {
+						return this.root;
+					} else {
+						return this.root.filter(node => node.matchesFilter(this.options.search_term))
+					}
+				}
+			},
 			template: `
-				<ul id="cubes_list"
-					class="list mobile_scrollbar"
-					@contextmenu.stop.prevent="openMenu($event)"
-					@mousedown="dragNode($event)"
-					@touchstart="dragNode($event)"
-				>
-					<vue-tree-item v-for="item in root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
-				</ul>
+				<div>
+					<search-bar id="outliner_search_bar" v-if="search_enabled" v-model="options.search_term" @input="updateSearch()" onfocusout="Panels.outliner.vue.updateSearch()" />
+					<ul id="cubes_list"
+						class="list mobile_scrollbar"
+						@contextmenu.stop.prevent="openMenu($event)"
+						@mousedown="dragNode($event)"
+						@touchstart="dragNode($event)"
+					>
+						<vue-tree-item v-for="item in filtered_root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
+					</ul>
+				</div>
 			`
 		},
 		menu: new Menu([
-			'add_cube',
+			new MenuSeparator('add_element'),
 			'add_mesh',
+			'add_cube',
 			'add_texture_mesh',
 			'add_billboard',
 			'add_group',
-			'_',
-			'sort_outliner',
+			new MenuSeparator('manage'),
 			'select_all',
+			'sort_outliner',
 			'collapse_groups',
 			'unfold_groups',
+			'search_outliner',
+			new MenuSeparator('options'),
 			'element_colors',
 			'outliner_toggle'
 		])
@@ -1664,6 +1778,7 @@ Interface.definePanels(function() {
 			toolbars: [
 				Toolbars.element_position,
 				Toolbars.element_size,
+				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation,
 			]

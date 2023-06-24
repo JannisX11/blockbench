@@ -34,7 +34,9 @@ class Keyframe {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
-		this.selected = 0;
+		this.selected = false;
+		this.has_expressions = false;
+		this.display_value = 0;
 		this.data_points = []
 
 		if (typeof data === 'object') {
@@ -364,7 +366,6 @@ class Keyframe {
 		})
 	}
 	select(event) {
-		var scope = this;
 		if (Timeline.dragging_keyframes) {
 			Timeline.dragging_keyframes = false
 			return this;
@@ -519,8 +520,7 @@ class Keyframe {
 	}
 }
 	Keyframe.prototype.menu = new Menu([
-		'change_keyframe_file',
-		'_',
+		new MenuSeparator('settings'),
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
@@ -539,14 +539,14 @@ class Keyframe {
 				}})
 			];
 		}},
-		'_',
+		new MenuSeparator('copypaste'),
 		'copy',
 		'delete',
 	])
 	new Property(Keyframe, 'number', 'time')
 	new Property(Keyframe, 'number', 'color', {default: -1})
 	new Property(Keyframe, 'boolean', 'uniform', {condition: keyframe => keyframe.channel == 'scale', default: settings.uniform_keyframe.value})
-	new Property(Keyframe, 'string', 'interpolation', {default: 'linear'})
+	new Property(Keyframe, 'enum', 'interpolation', {default: 'linear'})
 	new Property(Keyframe, 'boolean', 'bezier_linked', {default: true})
 	new Property(Keyframe, 'vector', 'bezier_left_time', {default: [-0.1, -0.1, -0.1]});
 	new Property(Keyframe, 'vector', 'bezier_left_value');
@@ -575,6 +575,15 @@ function updateKeyframeSelection() {
 	Timeline.keyframes.forEach(kf => {
 		if (kf.selected && !Timeline.selected.includes(kf)) {
 			kf.selected = false;
+		}
+		let has_expressions = false;
+		if (kf.transform) {
+			has_expressions = !!kf.data_points.find(point => {
+				return !isStringNumber(point.x) || !isStringNumber(point.y) ||! isStringNumber(point.z);
+			})
+		}
+		if (has_expressions != kf.has_expressions) {
+			kf.has_expressions = has_expressions;
 		}
 	})
 	if (Timeline.selected.length) {
@@ -1366,7 +1375,29 @@ Interface.definePanels(function() {
 							delete effect.config.preview_texture;
 							Undo.finishEdit('Change keyframe particle file');
 
-							if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+							if (!isApp) {
+								Blockbench.showMessageBox({
+									title: 'message.import_particle_texture.import',
+									message: 'message.import_particle_texture.message',
+									buttons: ['dialog.cancel'],
+									commands: {
+										import: 'message.import_particle_texture.import'
+									}
+								}, result => {
+									if (result != 'import') return;
+
+									Blockbench.import({
+										extensions: ['png'],
+										type: 'Particle Texture',
+										readtype: 'image',
+										startpath: effect.config.preview_texture || path
+									}, function(files) {
+										effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+										effect.config.updateTexture();
+									})
+								})
+
+							} else if (effect.config.texture.image.src.startsWith('data:')) {
 								Blockbench.import({
 									extensions: ['png'],
 									type: 'Particle Texture',
@@ -1374,7 +1405,7 @@ Interface.definePanels(function() {
 									startpath: effect.config.preview_texture || path
 								}, function(files) {
 									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-									if (isApp) effect.config.updateTexture();
+									effect.config.updateTexture();
 								})
 							}
 						})

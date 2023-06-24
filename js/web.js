@@ -113,8 +113,14 @@ async function loadInfoFromURL() {
 	}
 
 	if (Blockbench.queries.m) {
-		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model) => {
+		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model, b) => {
 			Codecs.project.load(model, {path: ''});
+		}).fail(() => {
+			Blockbench.showMessageBox({
+				title: 'message.invalid_link',
+				message: tl('message.invalid_link.message', ['`'+Blockbench.queries.m+'`']),
+				icon: 'running_with_errors'
+			})
 		})
 	}
 }

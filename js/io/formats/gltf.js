@@ -1,7 +1,6 @@
 (function() {
 
-function buildAnimationTracks(do_quaternions = true) {
-	let export_scale = Settings.get('model_export_scale');
+function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
 
@@ -164,20 +163,147 @@ function buildAnimationTracks(do_quaternions = true) {
 	return anims;
 }
 
+function buildSkinnedMesh(root_group, scale) {
+	let skinIndices = [];
+	let skinWeights = [];
+	let position_array = [];
+	let normal_array = [];
+	let uv_array = [];
+	let indices = [];
+	let geometry = new THREE.BufferGeometry();
+	let bones = [];
+	let material;
+
+	let root_counter_matrix = new THREE.Matrix4().copy(root_group.mesh.matrix).invert();
+
+	let vertex = Reusable.vec1;
+	let normal = Reusable.vec2;
+
+	function addGroup(group, parent_bone) {
+
+		for (child of group.children) {
+			if (!child.mesh.geometry) continue;
+			let {geometry} = child.mesh;
+			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
+			matrix.premultiply(root_counter_matrix);
+			
+			let index_offset = position_array.length / 3;
+			for (let i = 0; i < geometry.attributes.position.count; i++) {
+				vertex.fromBufferAttribute(geometry.attributes.position, i);
+				normal.fromBufferAttribute(geometry.attributes.normal, i);
+				vertex.applyMatrix4(matrix);
+				normal.transformDirection(matrix);
+
+				position_array.push(vertex.x, vertex.y, vertex.z);
+				normal_array.push(normal.x, normal.y, normal.z);
+
+				skinIndices.push( 0, bones.length, 0, 0 );
+				skinWeights.push( 0, 1, 0, 0 );
+			}
+
+			uv_array.push(...geometry.attributes.uv.array);
+
+			indices.push(...geometry.index.array.map(v => index_offset + v));
+
+			
+			material = child.mesh.material;
+
+		}
+		// Bone
+		let bone = new THREE.Bone();
+		bone.name = group.name;
+		bone.uuid = group.mesh.uuid;
+		let parent_offset = THREE.fastWorldPosition(group.mesh.parent, Reusable.vec3);
+		THREE.fastWorldPosition(group.mesh, bone.position).sub(parent_offset);
+		if (group == root_group) {
+			bone.position.set(0, 0, 0);
+		}
+		bone.position.multiplyScalar(1 / scale);
+		bones.push(bone);
+		if (parent_bone) {
+			parent_bone.add(bone);
+		}
+		// Children
+		for (child of group.children) {
+			if (child instanceof Group) {
+				addGroup(child, bone);
+			}
+		}
+	}
+	addGroup(root_group);
+
+	geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+	geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+	geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv_array), 2)), 
+	geometry.setIndex(indices);
+	
+	geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
+	geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
+
+
+
+	let skinned_mesh = new THREE.SkinnedMesh(geometry, material);
+	skinned_mesh.name = root_group.name;
+	let skeleton = new THREE.Skeleton(bones)
+	skeleton.name = root_group.name;
+
+	skinned_mesh.add(skeleton.bones[0]);
+	skinned_mesh.bind(skeleton);
+
+	skinned_mesh.position.copy(root_group.mesh.position);
+	skinned_mesh.rotation.copy(root_group.mesh.rotation);
+
+	bones.forEach(bone => {
+		bone.position.multiplyScalar(scale);
+	})
+
+	return skinned_mesh;
+}
+
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
 	export_options: {
-		encoding: {type: 'select', label: 'Encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
-		animations: {label: 'codec.fbx.export_animations', type: 'checkbox', value: true}
+		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
+		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
+		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
+		armature: {type: 'checkbox', label: tl('codec.common.armature') + ' (Experimental)', value: false},
+		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
-	async compile(options = this.getExportOptions()) {
+	async compile(options) {
+		options = Object.assign(this.getExportOptions(), options);
 		let scope = this;
 		let exporter = new THREE.GLTFExporter();
 		let animations = [];
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
-		gl_scene.add(Project.model_3d);
+
+		let resetMeshBorrowing;
+
+		if (options.armature) {
+			Outliner.root.forEach(node => {
+				if (node instanceof Group) {
+					let armature = buildSkinnedMesh(node, options.scale);
+					console.log(armature)
+					gl_scene.add(armature);
+				} else {
+					gl_scene.add(node.mesh);
+				}
+			})
+			resetMeshBorrowing = function() {
+				Outliner.root.forEach(node => {
+					if (node instanceof Group == false) {
+						gl_scene.add(node.mesh);
+					}
+				})
+			}
+
+		} else {
+			gl_scene.add(Project.model_3d);
+			resetMeshBorrowing = function() {
+				scene.add(Project.model_3d);
+			}
+		}
 		
 		try {
 			if (!Modes.edit) {
@@ -188,7 +314,7 @@ var codec = new Codec('gltf', {
 				BarItems.view_mode.onChange();
 			}
 			if (options.animations !== false) {
-				animations = buildAnimationTracks();
+				animations = buildAnimationTracks(options.scale);
 			}
 			let result = await new Promise((resolve, reject) => {
 				exporter.parse(gl_scene, resolve, {
@@ -198,11 +324,12 @@ var codec = new Codec('gltf', {
 					binary: options.encoding == 'binary',
 					truncateDrawRange: false,
 					forcePowerOfTwoTextures: true,
-					scale_factor: 1/Settings.get('model_export_scale'),
+					scale_factor: 1/options.scale,
+					embedImages: options.embed_textures != false,
 					exportFaceColors: false,
 				});
 			})
-			scene.add(Project.model_3d);
+			resetMeshBorrowing();
 			
 			scope.dispatchEvent('compile', {model: result, options});
 			if (options.encoding == 'binary') {
@@ -212,7 +339,7 @@ var codec = new Codec('gltf', {
 			}
 
 		} catch (err) {
-			scene.add(Project.model_3d);
+			resetMeshBorrowing();
 			throw err;
 		}
 	},
@@ -220,7 +347,6 @@ var codec = new Codec('gltf', {
 		await this.promptExportOptions();
 		let content = await this.compile();
 		await new Promise(r => setTimeout(r, 20));
-		console.log(content)
 		Blockbench.export({
 			resource_id: 'gltf',
 			type: this.name,

@@ -61,7 +61,8 @@ Interface.definePanels(() => {
 		}
 	}
 	StateMemory.init('color_picker_tab', 'string')
-	StateMemory.init('color_picker_rgb_mode', 'boolean')
+	StateMemory.init('color_picker_rgb', 'boolean')
+	StateMemory.init('color_palette_locked', 'boolean')
 
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
@@ -167,6 +168,15 @@ Interface.definePanels(() => {
 									this.updateSliders();
 								}}
 							]
+						},
+						{
+							id: 'lock_palette',
+							name: 'menu.palette.lock_palette',
+							icon: () => StateMemory.color_palette_locked,
+							click() {
+								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+								StateMemory.save('color_palette_locked');
+							}
 						}
 						// slider
 					]).open(event.target);
@@ -181,6 +191,7 @@ Interface.definePanels(() => {
 						BarItems.slider_color_s.update();
 						BarItems.slider_color_v.update();
 					}
+					BarItems.slider_palette_color.update();
 				},
 				onMouseWheel(event) {
 					if (!event.target) return;
@@ -188,6 +199,16 @@ Interface.definePanels(() => {
 						let sign = Math.sign(event.deltaY);
 						if (event.shiftKey) sign *= 4;
 						BarItems.slider_color_h.change(v => v+sign);
+					}
+				},
+				sortChoose() {
+					if (StateMemory.color_palette_locked) {
+						Blockbench.showQuickMessage('message.palette_locked');
+					}
+				},
+				sortMove() {
+					if (StateMemory.color_palette_locked) {
+						return false;
 					}
 				},
 				sort(event) {
@@ -273,7 +294,7 @@ Interface.definePanels(() => {
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
 						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 							<li
 								class="color" v-for="color in palette"
 								:title="color" :key="color"
@@ -301,9 +322,20 @@ Interface.definePanels(() => {
 			}
 		},
 		menu: new Menu([
+			new MenuSeparator('options'),
+			{
+				id: 'lock_palette',
+				name: 'menu.palette.lock_palette',
+				icon: () => StateMemory.color_palette_locked,
+				click() {
+					StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+					StateMemory.save('color_palette_locked');
+				}
+			},
+			new MenuSeparator('file'),
 			'sort_palette',
 			'save_palette',
-			'load_palette'
+			'load_palette',
 		])
 	})
 	ColorPanel.updateFromHsv = function() {
@@ -750,8 +782,11 @@ BARS.defineActions(function() {
 		icon: 'add',
 		category: 'color',
 		click: function () {
-			var color = ColorPanel.get();
-			if (!ColorPanel.palette.includes(color)) {
+			let color = ColorPanel.get();
+			if (StateMemory.color_palette_locked) {
+				Blockbench.showQuickMessage('message.palette_locked');
+
+			} else if (!ColorPanel.palette.includes(color)) {
 				ColorPanel.palette.push(color);
 				ColorPanel.saveLocalStorages();
 				Blockbench.showQuickMessage('message.add_to_palette');
@@ -856,6 +891,7 @@ BARS.defineActions(function() {
 	new Action('load_palette', {
 		icon: 'fa-tasks',
 		category: 'color',
+		condition: {modes: ['paint']},
 		click: function (e) {
 			new Menu(this.children()).open(e.target)
 		},
@@ -908,6 +944,7 @@ BARS.defineActions(function() {
 
 	new Action('save_palette', {
 		icon: 'playlist_add',
+		condition: {modes: ['paint']},
 		click(event) {	
 			let dialog = new Dialog({
 				id: 'save_palette',
@@ -936,6 +973,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_h', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 15,
 		settings: {
 			min: 0, max: 360, default: 0, show_bar: true
 		},
@@ -955,6 +993,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_s', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 0, show_bar: true
 		},
@@ -974,6 +1013,7 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_v', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
+		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 100, show_bar: true
 		},
@@ -1047,6 +1087,21 @@ BARS.defineActions(function() {
 	let slider_vector_rgb = [red, green, blue];
 	slider_vector_rgb.forEach(slider => slider.slider_vector = slider_vector_rgb);
 
+
+	new NumSlider('slider_palette_color', {
+		condition: {modes: ['paint']},
+		category: 'color',
+		invert_scroll_direction: true,
+		get() {
+			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
+		},
+		getInterval() {return 1},
+		change(modify) {
+			let value = Math.clamp(modify(this.get()), 1, ColorPanel.palette.length);
+			let color = ColorPanel.palette[value-1];
+			ColorPanel.set(color);
+		}
+	})
 
 	new Action('pick_screen_color', {
 		icon: 'colorize',

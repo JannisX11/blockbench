@@ -68,7 +68,7 @@ function getSelectionCenter(all = false) {
 			min[2] = Math.min(pos.z, min[2]);	max[2] = Math.max(pos.z, max[2]);
 		}
 	})
-	let center = max.V3_add(min).V3_divide(2);
+	let center = (min[0] == Infinity) ? [0, 0, 0] : max.V3_add(min).V3_divide(2);
 	
 	if (!Format.centered_grid) {
 		center.V3_add(8, 8, 8)
@@ -77,7 +77,7 @@ function getSelectionCenter(all = false) {
 }
 //Movement
 function moveElementsRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current || !Outliner.selected.length) {
+	if (!Preview.selected || !Outliner.selected.length) {
 		return;
 	}
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
@@ -87,8 +87,8 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	// < >
 	// PageUpDown
 	// ^ v
-	var facing = quad_previews.current.getFacingDirection()
-	var height = quad_previews.current.getFacingHeight()
+	var facing = Preview.selected.getFacingDirection()
+	var height = Preview.selected.getFacingHeight()
 	switch (facing) {
 		case 'north': axes = [0, 2, 1]; break;
 		case 'south': axes = [0, 2, 1]; break;
@@ -111,6 +111,12 @@ function moveElementsRelative(difference, index, event) { //Multiple
 
 	if (event) {
 		difference *= canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+	}
+
+	if (BarItems.proportional_editing.value) {
+		Mesh.selected.forEach(mesh => {
+			ProportionalEdit.calculateWeights(mesh);
+		})
 	}
 
 	moveElementsInSpace(difference, axes[index]);
@@ -427,7 +433,7 @@ const Vertexsnap = {
 							obj.from[i] = obj.from[i] + cube_pos.getComponent(i);
 						}
 					}
-					if (Format.cube_size_limiter) {
+					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 						Format.cube_size_limiter.clamp(obj)
 					}
 					if (obj.box_uv && obj.visibility) {
@@ -572,6 +578,12 @@ function moveElementsInSpace(difference, axis) {
 				m.applyEuler(selection_rotation);
 				difference_vec.V3_set(m.x, m.y, m.z);
 
+			} else if (space instanceof Group) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(new THREE.Quaternion().copy(el.mesh.quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+
 			} else {
 				let m = vector.set(0, 0, 0);
 				m[getAxisLetter(axis)] = difference;
@@ -582,8 +594,7 @@ function moveElementsInSpace(difference, axis) {
 			selected_vertices.forEach(key => {
 				el.vertices[key].V3_add(difference_vec);
 			})
-			proportionallyEditMeshVertices(el, (vkey, blend) => {
-				console.log(vkey, blend)
+			ProportionalEdit.editVertices(el, (vkey, blend) => {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
@@ -742,7 +753,7 @@ function rotateOnAxis(modify, axis, slider) {
 	}
 	*/
 	//Warning
-	if (Format.rotation_limit && settings.dialog_rotation_limit.value) {
+	if (Format.rotation_limit && settings.dialog_rotation_limit.value && !Dialog.open) {
 		var i = 0;
 		while (i < Cube.selected.length) {
 			if (Cube.selected[i].rotation[(axis+1)%3] ||
@@ -754,11 +765,12 @@ function rotateOnAxis(modify, axis, slider) {
 					title: tl('message.rotation_limit.title'),
 					icon: 'rotate_right',
 					message: tl('message.rotation_limit.message'),
-					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')]
-				}, function(r) {
-					if (r === 1) {
-						settings.dialog_rotation_limit.value = false
-						Settings.save()
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					}
+				}, (button, {dont_show_again}) => {
+					if (dont_show_again) {
+						settings.dialog_rotation_limit.set(false);
 					}
 				})
 				return;
@@ -896,7 +908,7 @@ function rotateOnAxis(modify, axis, slider) {
 	})
 }
 function afterRotateOnAxis() {
-	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected) {
+	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected && !settings.deactivate_size_limit.value) {
 		Cube.all.forEach(cube => {
 			Format.cube_size_limiter.move(cube);
 			Format.cube_size_limiter.clamp(cube);
@@ -1172,13 +1184,13 @@ BARS.defineActions(function() {
 
 						obj.inflate = v;
 					} else {
-						if (Format.cube_size_limiter.test(obj, {inflate: v})) {
+						if (Format.cube_size_limiter.test(obj, {inflate: v}) == false) {
 							obj.inflate = v;
 						} else {
 							let step = Math.sign(v - v_before) * 0.1;
 							let steps = (v - v_before) / step;
 							for (let i = 0; i < steps; i++) {
-								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)})) {
+								if (Format.cube_size_limiter.test(obj, {inflate: v_before + i * (steps+1)}) == false) {
 									obj.inflate = v_before + i * steps;
 									break;
 								}
@@ -1198,6 +1210,109 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Inflate elements')
 		}
 	})
+
+	//Stretch
+	new NumSlider('slider_stretch_x', {
+		name: tl('action.slider_stretch', ['X']),
+		description: tl('action.slider_stretch.desc', ['X']),
+		color: 'x',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[0]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[0];
+				var v = modify(obj.stretch[0]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[0] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_y', {
+		name: tl('action.slider_stretch', ['Y']),
+		description: tl('action.slider_stretch.desc', ['Y']),
+		color: 'y',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[1]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[1];
+				var v = modify(obj.stretch[1]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[1] = v;
+				}				
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_z', {
+		name: tl('action.slider_stretch', ['Z']),
+		description: tl('action.slider_stretch.desc', ['Z']),
+		color: 'z',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[2]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[2];
+				var v = modify(obj.stretch[2]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[2] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	let slider_vector_stretch = [BarItems.slider_stretch_x, BarItems.slider_stretch_y, BarItems.slider_stretch_z];
+	slider_vector_stretch.forEach(slider => slider.slider_vector = slider_vector_stretch);
 
 	//Rotation
 	new NumSlider('slider_rotation_x', {
@@ -1647,6 +1762,12 @@ BARS.defineActions(function() {
 				Undo.finishEdit('Update auto UV')
 			}
 		}
+	})
+	new Toggle('toggle_stretch_linked', {
+		icon: 'fas.fa-link',
+		category: 'transform',
+		linked_setting: 'stretch_linked',
+		condition: () => Format.stretch_cubes && Cube.selected.length && Modes.edit
 	})
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',

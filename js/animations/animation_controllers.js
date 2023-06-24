@@ -104,7 +104,7 @@ class AnimationControllerState {
 		// From Bedrock
 		if (data.particle_effects instanceof Array) {
 			this.particles.empty();
-			data.particles.forEach(effect => {
+			data.particle_effects.forEach(effect => {
 				let particle = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -118,7 +118,7 @@ class AnimationControllerState {
 		}
 		if (data.sound_effects instanceof Array) {
 			this.sounds.empty();
-			data.sounds.forEach(effect => {
+			data.sound_effects.forEach(effect => {
 				let sound = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -183,6 +183,7 @@ class AnimationControllerState {
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
@@ -411,7 +412,7 @@ AnimationControllerState.prototype.menu = new Menu([
 			Undo.finishEdit('Change animation controller initial state');
 		}
 	},
-	'_',
+	new MenuSeparator('manage'),
 	'duplicate',
 	'rename',
 	'delete',
@@ -510,6 +511,8 @@ class AnimationController extends AnimationItem {
 		this.states.forEach(state => {
 			object.states[state.name] = state.compileForBedrock();
 		})
+
+		Blockbench.dispatchEvent('compile_bedrock_animation_controller', {animation_controller: this, json: object});
 
 		return object;
 	}
@@ -830,10 +833,11 @@ class AnimationController extends AnimationItem {
 	})
 	AnimationController.selected = null;
 	AnimationController.prototype.menu = new Menu([
+		new MenuSeparator('copypaste'),
 		'copy',
 		'paste',
 		'duplicate',
-		'_',
+		new MenuSeparator('manage'),
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -865,7 +869,7 @@ class AnimationController extends AnimationItem {
 			}
 		},
 		'delete',
-		'_',
+		new MenuSeparator('properties'),
 		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
 			animation.propertiesDialog();
 		}}
@@ -971,7 +975,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		grow: true,
+		growable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -1061,7 +1065,8 @@ Interface.definePanels(() => {
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
-				openParticleMenu(state, particle) {
+				openParticleMenu(state, particle, event) {
+					if (getFocusedTextInput()) return;
 					new Menu('controller_state_particle', [
 						{
 							name: 'generic.remove',
@@ -1072,9 +1077,11 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove particle from controller state');
 							}
 						}
-					])
+					]).open(event);
+					event.stopPropagation();
 				},
-				openSoundMenu(state, sound) {
+				openSoundMenu(state, sound, event) {
+					if (getFocusedTextInput()) return;
 					new Menu('controller_state_sound', [
 						{
 							name: 'generic.remove',
@@ -1085,7 +1092,8 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove sound from controller state');
 							}
 						}
-					])
+					]).open(event);
+					event.stopPropagation();
 				},
 				addAnimationButton(state, event) {
 					state.select();
@@ -1311,7 +1319,29 @@ Interface.definePanels(() => {
 						delete effect.config.preview_texture;
 						Undo.finishEdit('Change animation controller particle file');
 
-						if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
+						if (!isApp) {
+							Blockbench.showMessageBox({
+								title: 'message.import_particle_texture.import',
+								message: 'message.import_particle_texture.message',
+								buttons: ['dialog.cancel'],
+								commands: {
+									import: 'message.import_particle_texture.import'
+								}
+							}, result => {
+								if (result != 'import') return;
+
+								Blockbench.import({
+									extensions: ['png'],
+									type: 'Particle Texture',
+									readtype: 'image',
+									startpath: effect.config.preview_texture || path
+								}, function(files) {
+									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
+									effect.config.updateTexture();
+								})
+							})
+
+						} else if (effect.config.texture.image.src.startsWith('data:')) {
 							Blockbench.import({
 								extensions: ['png'],
 								type: 'Particle Texture',
@@ -1319,7 +1349,7 @@ Interface.definePanels(() => {
 								startpath: effect.config.preview_texture || path
 							}, (files) => {
 								effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-								if (isApp) effect.config.updateTexture();
+								effect.config.updateTexture();
 							})
 						}
 					})
@@ -1463,7 +1493,7 @@ Interface.definePanels(() => {
 					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
 				>
 
-					<div style="position: relative;" id="animation_controllers_pickwhip_anchor" style="height: 0px;">
+					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
 						<div id="animation_controllers_pickwhip"
 							v-if="connecting"
 							:style="{left: pickwhip.start_x + 'px', top: pickwhip.start_y + 'px', width: pickwhip.length + 'px', rotate: pickwhip.angle + 'deg'}"
@@ -1543,7 +1573,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle)">
+									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle, $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
@@ -1587,7 +1617,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound)">
+									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound, $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
@@ -1656,11 +1686,11 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<input type="number" class="dark_bordered" style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05">
+										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05" />
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
-										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.shortest_path">
+										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.blend_via_shortest_path">
 									</div>
 								</template>
 
@@ -1755,7 +1785,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers']},
 		click() {
 			let controller = new AnimationController({
-				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
+				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new',
+				saved: false
 			}).add(true).propertiesDialog();
 			Blockbench.dispatchEvent('add_animation_controller', {animation_controller: controller})
 		}

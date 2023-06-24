@@ -85,12 +85,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -173,12 +173,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
-								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
-								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
+								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -542,8 +542,8 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model="opacity" @input="change()">
-								<input lang="en" type="number" class="tool" style="width: 64px;" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -611,6 +611,65 @@ BARS.defineActions(function() {
 				}, {no_undo: true});
 			})
 			Undo.finishEdit('Limit texture to palette')
+		}
+	})
+	new Action('clear_unused_texture_space', {
+		icon: 'cleaning_services',
+		category: 'textures',
+		condition: {modes: ['paint'], features: ['edit_mode'], method: () => Texture.all.length},
+		click() {
+			let textures = getTextures();
+			Undo.initEdit({textures, bitmap: true});
+			textures.forEach(texture => {
+				if (texture.frameCount > 1) {
+					Blockbench.showQuickMessage('This feature does not work on animated textures at the moment');
+					return;
+				}
+				texture.edit((canvas) => {
+					// todo: flipbook animation support
+					let ctx = canvas.getContext('2d');
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.beginPath();
+
+					Outliner.elements.forEach(el => {
+						if (el instanceof Mesh) {
+							for (var fkey in el.faces) {
+								var face = el.faces[fkey];
+								if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+								
+								let matrix = face.getOccupationMatrix(true, [0, 0]);
+								for (let x in matrix) {
+									for (let y in matrix[x]) {
+										if (!matrix[x][y]) continue;
+										x = parseInt(x); y = parseInt(y);
+										ctx.rect(x, y, 1, 1);
+									}
+								}
+							}
+						} else if (el instanceof Cube) {
+							let factor_x = texture.width  / Project.texture_width;
+							let factor_y = texture.height / Project.texture_height;
+							for (var fkey in el.faces) {
+								var face = el.faces[fkey];
+								if (face.getTexture() !== texture) continue;
+								
+								let rect = face.getBoundingRect();
+								let canvasRect = [
+									Math.floor(rect.ax * factor_x),
+									Math.floor(rect.ay * factor_y),
+									Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+									Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+								]
+								ctx.rect(...canvasRect);
+							}
+						}
+					})
+
+					ctx.clip();
+					ctx.drawImage(texture.img, 0, 0);
+				}, {no_undo: true});
+			})
+			Undo.finishEdit('Clear unused texture space')
 		}
 	})
 

@@ -35,11 +35,11 @@ const TextureGenerator = {
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
-			width: 480,
+			width: 610,
 			form: {
 				name: 		{label: 'generic.name', value: 'texture'},
 				folder: 	{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
-				type:	{label: 'dialog.create_texture.type', type: 'select', options: type_options},
+				type:	{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
 				section2:    "_",
 
 				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
@@ -47,14 +47,14 @@ const TextureGenerator = {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv)},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && Project.box_uv && form.rearrange_uv)},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
-				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && Project.box_uv && form.rearrange_uv)},
+				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: Project.box_uv && ((form) => (form.type == 'template' && form.rearrange_uv))},
 				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
 				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 36, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
+				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
 
 			},
 			onFormChange(form) {
@@ -83,7 +83,7 @@ const TextureGenerator = {
 			width: 480,
 			form: {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (!Project.box_uv)},
+				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (!Project.box_uv && Cube.all.length)},
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: Math.isPowerOfTwo(texture.width)},
 				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
@@ -266,8 +266,8 @@ const TextureGenerator = {
 				var fill_map = {};
 
 				if (makeTexture instanceof Texture) {
-					extend_x = makeTexture.width;
-					extend_y = makeTexture.height;
+					extend_x = makeTexture.width / res_multiple;
+					extend_y = makeTexture.height / res_multiple;
 					Cube.all.forEach(element => {
 						for (let fkey in element.faces) {
 							let face = element.faces[fkey];
@@ -855,6 +855,7 @@ const TextureGenerator = {
 							let perimeter = {};
 							for (let fkey in faces) {
 								let face = faces[fkey];
+								let face_connection_count = 0;
 								processed_faces.push(face);
 								[2, 0, 3, 1].forEach(i => {
 									if (!face.vertices[i]) return;
@@ -872,7 +873,7 @@ const TextureGenerator = {
 											let angle_total = face_group.faces[0].getAngleTo(other_face);
 											if (angle_total > (options.max_island_angle||45)) return;
 											let edge_length = getEdgeLength(other_face_match.edge);
-											if (edge_length < 2.2) return;
+											if (edge_length < 2.2 && face_connection_count >= 2) return;
 										}
 										let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
 										if (!projection_success) return;
@@ -881,6 +882,7 @@ const TextureGenerator = {
 										face_group.keys.push(other_face_match.key);
 										face_groups.remove(other_face_group);
 										perimeter[other_face_match.key] = other_face;
+										face_connection_count++;
 									}
 								})
 							}
@@ -1003,11 +1005,29 @@ const TextureGenerator = {
 							max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
 						}
 					}
-					// Align right if face points to right side of model
-					if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
+					// Center island if it faces front of back
+					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x) - max_x;
+								vertex_uvs[fkey][vkey][0] += offset_x;
+							}
+						}
+					}
+					// ... or on the side
+					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
+						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += offset_x;
+							}
+						}
+					}
+					// Or align right if face points to right side of model
+					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
 							}
 						}
 					}
@@ -1015,7 +1035,7 @@ const TextureGenerator = {
 					if (face_group.normal[1] < 0) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z) - max_z;
+								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
 							}
 						}
 					}
@@ -1562,6 +1582,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
+		setTimeout(Canvas.updatePaintingGrid, 1);
 		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
 			textures: [texture],
 			bitmap: true,
@@ -1680,6 +1701,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
+		setTimeout(Canvas.updatePaintingGrid, 1);
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,

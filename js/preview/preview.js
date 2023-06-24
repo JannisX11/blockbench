@@ -2,11 +2,9 @@ var scene,
 	main_preview, MediaPreview,
 	Sun, lights,
 	Transformer,
-	canvas_scenes,
 	display_area, display_base;
 var framespersecond = 0;
 var display_mode = false;
-var quad_previews = {};
 const three_grid = new THREE.Object3D();
 const rot_origin = new THREE.Object3D();
 var gizmo_colors = {
@@ -148,15 +146,13 @@ class Preview {
 		let menu = $(`
 			<div class="preview_menu">
 				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
-				<div class="tool preview_background_menu" hidden><img src="" width="36px"></div>
 				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
 				<div class="shading_placeholder"></div>
 				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
-			menu.querySelector('.preview_background_menu').onclick = (event) => {
-			let M = new Menu(this.menu.structure.find(s => s.id == 'background').children(this));
-			M.open(menu, this);
-		}
+		/*menu.querySelector('.preview_reference_menu').onclick = (event) => {
+			BarItems.edit_reference_images.trigger();
+		}*/
 		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
 		}
@@ -174,10 +170,10 @@ class Preview {
 			name: tl('action.view_mode'),
 			node: menu.querySelector('.preview_view_mode_menu')
 		})
-		BarItem.prototype.addLabel(false, {
-			name: tl('menu.preview.background'),
-			node: menu.querySelector('.preview_background_menu')
-		})
+		/*BarItem.prototype.addLabel(false, {
+			name: tl('action.edit_reference_images'),
+			node: menu.querySelector('.preview_reference_menu')
+		})*/
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
 			node: menu.querySelector('.preview_main_menu')
@@ -294,8 +290,6 @@ class Preview {
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
 
-		this.loadBackground()
-
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
@@ -314,22 +308,10 @@ class Preview {
 		}, false)
 		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event)}, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
-		Blockbench.addDragHandler('preview_'+this.id, {
-			extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-			element: this.canvas,
-			readtype: 'image',
-		}, function(files) {
-			if (isApp) {
-				scope.background.image = files[0].path
-			} else {
-				scope.background.image = files[0].content
-			}
-			scope.loadBackground()
-		})
 		Preview.all.push(this);
 	}
 	//Render
@@ -358,7 +340,6 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			this.updateBackground()
 			if (Transformer) {
 				Transformer.update()
 			}
@@ -550,7 +531,6 @@ class Preview {
 				this.camOrtho.backgroundHandle = [{n: false, a: 'z'}, {n: true, a: 'y'}]
 				break;
 			}
-			this.loadBackground();
 
 			var layer = getAxisNumber(this.camOrtho.axis)+1;
 			this.camOrtho.layers.set(0);
@@ -580,11 +560,10 @@ class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
-			this.loadBackground()
 		}
 
 		Transformer.update();
-		this.loadBackground()
+		ReferenceImage.updateAll();
 		return this;
 	}
 	setDefaultAnglePreset(preset) {
@@ -649,7 +628,7 @@ class Preview {
 					orthographic: 'dialog.save_angle.projection.orthographic'
 				}},
 				divider1: '_',
-				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+				rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'inline_select', value: rotation_mode, options: {
 					target: 'dialog.save_angle.target',
 					rotation: 'dialog.save_angle.rotation'
 				}},
@@ -758,6 +737,9 @@ class Preview {
 			}
 
 			let select_mode = BarItems.selection_mode.value
+			if (!Condition(BarItems.selection_mode.condition)) {
+				select_mode = 'object';
+			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
 				if (Toolbox.selected.selectFace && data.face) {
@@ -1018,7 +1000,7 @@ class Preview {
 			Toolbox.selected.onCanvasClick({event})
 		}
 
-		if ((Keybinds.extra.preview_area_select.keybind.isTriggered(event)) || this.movingBackground) {
+		if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
 			this.startSelRect(event)
 		} else {
 			return false;
@@ -1052,21 +1034,6 @@ class Preview {
 		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
 		return scope.raycaster.ray.origin
 	}
-	occupyTransformer(event) {
-		if (this.offscreen || Transformer.dragging) return this;
-
-		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
-		Transformer.orbit_controls = this.controls
-		Transformer.setCanvas(this.canvas)
-		main_preview.controls.updateSceneScale()
-		if (quad_previews) {
-			quad_previews.hovered = this;
-		}
-		if (event && event.type == 'touchstart') {
-			Transformer.simulateMouseDown(event);
-		}
-		return this;
-	}
 	showContextMenu(event) {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
@@ -1086,6 +1053,18 @@ class Preview {
 		delete this.rclick_cooldown;
 		return this;
 	}
+	occupyTransformer(event) {
+		if (this.offscreen || Transformer.dragging) return this;
+
+		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
+		Transformer.orbit_controls = this.controls
+		Transformer.setCanvas(this.canvas)
+		main_preview.controls.updateSceneScale()
+		if (event && event.type == 'touchstart') {
+			Transformer.simulateMouseDown(event);
+		}
+		return this;
+	}
 	calculateControlScale(position) {
 		if (this.isOrtho) {
 			return 0.35 / this.camera.zoom;
@@ -1100,7 +1079,7 @@ class Preview {
 	startSelRect(event) {
 		if (this.sr_move_f) return;
 		var scope = this;
-		if (Modes.edit || this.movingBackground) {
+		if (Modes.edit) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
 			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f)
@@ -1112,14 +1091,6 @@ class Preview {
 		this.selection.client_x = event.clientX+0
 		this.selection.client_y = event.clientY+0
 
-		if (this.movingBackground) {
-			this.background.before = {
-				x: this.background.x,
-				y: this.background.y,
-				size: this.background.size
-			}
-			return;
-		};
 		if (Modes.edit && event.type !== 'touchstart') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
@@ -1133,26 +1104,6 @@ class Preview {
 	moveSelRect(event) {
 		var scope = this;
 		convertTouchEvent(event);
-
-		if (this.movingBackground) {
-			if (event.shiftKey || Pressing.overrides.shift) {
-				let diff = event.clientY - this.selection.client_y;
-				this.background.size = Math.clamp( this.background.before.size + (diff * (0.6 + this.background.size/1200)), 40, 10e3)
-
-			} else {
-				if (event.touches && event.touches.length >= 2) {
-					
-					if (!this.second_touch) this.second_touch = event.touches[1];
-					let diff = Math.sqrt(Math.pow(event.touches[0].clientX - event.touches[1].clientX, 2) + Math.pow(event.touches[0].clientY - event.touches[1].clientY, 2))
-							 / Math.sqrt(Math.pow(event.touches[0].clientX - this.second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - this.second_touch.clientY, 2));
-					this.background.size = Math.clamp( this.background.before.size * diff, 40, 10e3)
-				}
-				this.background.x = this.background.before.x + (event.clientX - this.selection.client_x);
-				this.background.y = this.background.before.y + (event.clientY - this.selection.client_y);
-			}
-			this.updateBackground()
-			return;
-		}
 
 		//Overlay
 		var c = getRectangle(
@@ -1291,15 +1242,19 @@ class Preview {
 						}
 
 					} else if (element instanceof Cube && (selection_mode == 'object' || !Format.meshes || !scope.selection.old_selected.find(el => el instanceof Mesh))) {
+						var adjustedFrom = element.from.slice();
+						var adjustedTo = element.to.slice();
+						adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
+
 						let vertices = [
-							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
-							[element.from[0]	- element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
-							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
-							[element.from[0]	- element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
-							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.from[2]	- element.inflate],
-							[element.to[0]		+ element.inflate, element.from[1]	- element.inflate, element.to[2]	+ element.inflate],
-							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.to[2]	+ element.inflate],
-							[element.to[0]		+ element.inflate, element.to[1]	+ element.inflate, element.from[2]	- element.inflate],
+							[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
+							[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
+							[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
+							[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
+							[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
+							[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
+							[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
+							[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
 						].map(coords => {
 							coords.V3_subtract(element.origin);
 							vector.fromArray(coords);
@@ -1345,152 +1300,27 @@ class Preview {
 		removeEventListeners(document, 'mouseup touchend',	this.sr_stop_f);
 		delete this.sr_move_f;
 		delete this.sr_stop_f;
-		if (this.movingBackground) {
-			delete this.background.before;
-			delete this.second_touch;
-			return
-		};
 		this.selection.box.detach()
 		this.selection.activated = false;
 	}
-
-	//Backgrounds
-	getBackground() {
-		if (display_mode) {
-			var id = displayReferenceObjects.active.id
-			if (id == 'monitor' ||id == 'bow') {
-				return this.background = canvas_scenes.monitor
-			} else if (['inventory_nine', 'inventory_full', 'hud'].includes(id)) {
-				return this.background = canvas_scenes[id]
-			}
-		}
-		if (this.angle === null) {
-			return this.background = Project && Project.backgrounds.normal;
-		} else {
-			return this.background = Project && Project.backgrounds['ortho_'+this.angle];
-		}
-	}
+	// Background
 	loadBackground() {
-		this.getBackground()
-		if (this.background && this.background.image) {
-			let background_image = `url("${this.background.image.replace(/\\/g, '/').replace(/#/g, '%23')}")`;
-			this.canvas.style.setProperty('background-image', background_image)
-			this.node.querySelector('.preview_background_menu').style.setProperty('background-image', background_image);
-			this.node.querySelector('.preview_background_menu').style.display = 'block';
-		} else {
-			this.canvas.style.setProperty('background-image', 'none')
-			this.node.querySelector('.preview_background_menu').style.display = 'none';
-		}
-		this.updateBackground()
-		return this;
+		console.warn('Preview.loadBackground() is no longer supported')
 	}
 	updateBackground() {
-		if (!this.background) return;
-		var bg = this.background
-		var zoom = (this.angle !== null && bg.lock === true) ? this.camOrtho.zoom : 1
-		var pos_x = 0;
-		var pos_y = 0;
-		if (this.angle !== null && bg.lock !== false) {
-			pos_x = this.camOrtho.backgroundHandle[0].n === true ? 1 : -1
-			pos_x *= this.controls.target[this.camOrtho.backgroundHandle[0].a] * zoom * 40
-			pos_y = this.camOrtho.backgroundHandle[1].n === true ? 1 : -1
-			pos_y *= this.controls.target[this.camOrtho.backgroundHandle[1].a] * zoom * 40
-		}
-		pos_x += (bg.x * zoom) + this.width/2 - ( bg.size * zoom) / 2
-		pos_y += (bg.y * zoom) + this.height/2 -((bg.size / bg.ratio||1) * zoom) / 2
-
-		this.canvas.style.setProperty('background-position-x', pos_x + 'px')
-		this.canvas.style.setProperty('background-position-y', pos_y + 'px')
-		this.canvas.style.setProperty('background-size',  bg.size * zoom +'px')
-		return this;
-	}
-	clearBackground() {
-		this.loadBackground()
-		this.background.image = false
-		this.background.size = limitNumber(this.background.size, 40, 2400)
-		this.background.x = limitNumber(this.background.x, 0, this.width-30)
-		this.background.y = limitNumber(this.background.y, 0, this.height-30)
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}
-	restoreBackground() {
-		this.loadBackground()
-		if (this.background && this.background.defaults) {
-			this.background.image = this.background.defaults.image || false;
-			this.background.size = this.background.defaults.size || 1000
-			this.background.x = this.background.defaults.x || 0
-			this.background.y = this.background.defaults.y || 0
-		}
-		this.loadBackground()
-		Settings.saveLocalStorages()
-		return this;
-	}
-	startMovingBackground() {
-		if (this.movingBackground) {
-			this.stopMovingBackground()
-		}
-		this.movingBackground = true;
-		this.controls.enabled_before = this.controls.enabled
-		this.controls.enabled = false
-
-		this.position_toast = Blockbench.showToastNotification({
-			text: 'message.drag_background',
-			icon: 'open_with',
-			click: () => {
-				this.stopMovingBackground();
-				return true;
-			}
-		})
-		Interface.addSuggestedModifierKey('shift', 'modifier_actions.resize_background');
-	}
-	stopMovingBackground() {
-		this.movingBackground = false;
-		this.controls.enabled = this.controls.enabled_before
-		delete this.controls.enabled_before
-		if (this.position_toast) {
-			this.position_toast.delete();
-			delete this.position_toast;
-		}
-		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.resize_background');
-		Settings.saveLocalStorages()
-		return this;
-	}
-	backgroundPositionDialog() {
-		var scope = this;
-		if (this.movingBackground) {
-			this.stopMovingBackground()
-		}
-		new Dialog({
-			id: 'background_position',
-			title: tl('message.set_background_position.title'),
-			form: {
-				position: {label: 'message.set_background_position.position', type: 'vector', dimensions: 2, value: [scope.background.x, scope.background.y]},
-				size: {label: 'message.set_background_position.size', type: 'number', value: scope.background.size, min: 20}
-			},
-			onConfirm(form) {
-				if (!scope.background) return;
-				
-				scope.background.x = form.position[0];
-				scope.background.y = form.position[1];
-				scope.background.size = form.size;
-
-				scope.updateBackground();
-				Settings.saveLocalStorages();
-			}
-		}).show();
+		console.warn('Preview.updateBackground() is no longer supported')
 	}
 	//Misc
 	screenshot(options, cb) {
 		return Screencam.screenshotPreview(this, options, cb);
 	}
 	fullscreen() {
-		if (quad_previews.current) {
-			quad_previews.current.controls.stopMovement()
+		if (Preview.selected) {
+			Preview.selected.controls.stopMovement()
 		}
 		Preview.selected = this;
-		quad_previews.enabled = false;
-		$('#preview > .quad_canvas_wrapper, #preview > .single_canvas_wrapper').remove()
+		Preview.split_screen.enabled = false;
+		$('#preview > .split_screen_wrapper, #preview > .single_canvas_wrapper').remove()
 
 		var wrapper = Interface.createElement('div', {class: 'single_canvas_wrapper'});
 		wrapper.append(this.node)
@@ -1514,14 +1344,15 @@ class Preview {
 		return this;
 	}
 	toggleFullscreen() {
-		if (quad_previews.enabled) {
+		if (Preview.split_screen.enabled) {
 			this.fullscreen()
 		} else {
-			openQuadView()
+			Preview.split_screen.setMode(Preview.split_screen.before);
 		}
 	}
 	delete() {
 		this.renderer.dispose();
+		this.renderer.forceContextLoss()
 		this.canvas.remove();
 		this.node.remove();
 		Blockbench.removeDragHandler('preview_'+this.id)
@@ -1533,81 +1364,27 @@ class Preview {
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',
-		{icon: 'icon-player', name: 'settings.display_skin', condition: () => (display_mode && displayReferenceObjects.active.id === 'player'), click: function() {
-			changeDisplaySkin()
-		}},
-		'preview_checkerboard',
-		{id: 'background', icon: 'wallpaper', name: 'menu.preview.background', condition: (preview) => preview.getBackground(), children(preview) {
-			var has_background = !!preview.background.image
-			function applyBackground(image) {
-				if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-					image = image + '?' + Math.floor(Math.random() * 1000);
-				}
-				preview.background.image = image;
-				preview.loadBackground();
-				Settings.saveLocalStorages();
-				preview.startMovingBackground();
+		{
+			icon: 'icon-player',
+			name: 'settings.display_skin',
+			condition: () => ((display_mode && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
+			click: function() {
+			
+				changeDisplaySkin()
 			}
-			return [
-				{icon: 'folder', name: 'menu.preview.background.load', click: function(preview) {
-					Blockbench.import({
-						resource_id: 'preview_background',
-						extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
-						type: 'Image',
-						readtype: 'image'
-					}, function(files) {
-						if (files) {
-							applyBackground(isApp ? files[0].path : files[0].content);
-						}
-					}, 'image', false)
-				}},
-				{icon: 'fa-clipboard', name: 'menu.preview.background.clipboard', click: function(preview) {
-					if (isApp) {
-						var image = clipboard.readImage().toDataURL();
-						if (image.length > 32) applyBackground(image);
-					} else {
-						navigator.clipboard.read().then(content => {
-							if (content && content[0] && content[0].types.includes('image/png')) {
-								content[0].getType('image/png').then(blob => {
-									let url = URL.createObjectURL(blob);
-									if (image.length > 32) applyBackground(url);
-								})
-							}
-						})
-					}
-				}},
-				{icon: 'refresh', name: 'menu.texture.refresh', condition: isApp && has_background && preview.background.image && preview.background.image.substring(0, 10) !== 'data:image', click: function(preview) {
-					preview.background.image = preview.background.image.replace(/\?\w+$/, '') + '?' + Math.floor(Math.random() * 1000);
-					preview.loadBackground();
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.position', condition: has_background, click: function(preview) {
-					preview.startMovingBackground()
-				}},
-				{icon: 'photo_size_select_large', name: 'menu.preview.background.set_position', condition: has_background, click: function(preview) {
-					preview.backgroundPositionDialog()
-				}},
-				{
-					name: 'menu.preview.background.lock',
-					condition: (has_background && preview.background.lock !== null && preview.angle !== null),
-					icon: preview.background.lock?'check_box':'check_box_outline_blank', 
-					click: function(preview) {
-					preview.background.lock = !preview.background.lock
-					preview.updateBackground()
-				}},
-				{icon: 'clear', name: 'generic.remove', condition: has_background, click: function(preview) {
-					preview.clearBackground()
-				}},
-				{icon: 'restore', name: 'generic.restore', condition: (preview) => (preview.background && preview.background.defaults.image), click: function(preview) {
-					preview.restoreBackground()
-				}}
-			]
-		}},
-		'_',
+		},
+		'preview_checkerboard',
+		new MenuSeparator('reference_images'),
+		'add_reference_image',
+		'reference_image_from_clipboard',
+		'toggle_all_reference_images',
+		'edit_reference_images',
+		new MenuSeparator('controls'),
 		'focus_on_selection',
-		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !preview.movingBackground && !Modes.display}, click(preview) {
+		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
 			preview.newAnglePreset()
 		}},
-		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !preview.movingBackground && !Modes.display}, children: function(preview) {
+		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
 			var children = [
 			]
 			let presets = localStorage.getItem('camera_presets')
@@ -1616,7 +1393,7 @@ class Preview {
 				DefaultCameraPresets[0], '_',
 				...DefaultCameraPresets.slice(1, 7), '_',
 				...DefaultCameraPresets.slice(7, 11), '_',
-				...DefaultCameraPresets.slice(11), '_',
+				...DefaultCameraPresets.slice(11).filter(preset => Condition(preset.condition)), '_',
 				...presets
 			];
 
@@ -1651,22 +1428,105 @@ class Preview {
 		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
 			preview.setProjectionMode(!preview.isOrtho, true);
 		}},
-		'_',
-		{icon: 'grid_view', name: 'menu.preview.quadview', condition: function(preview) {return !quad_previews.enabled && !preview.movingBackground && !Modes.display && !Animator.open}, click: function() {
-			openQuadView()
-		}},
-		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return quad_previews.enabled && !preview.movingBackground && !Modes.display}, click: function(preview) {
+		new MenuSeparator('interface'),
+		'split_screen',
+		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
 			preview.fullscreen();
-		}},
-		{icon: 'cancel', color: 'x', name: 'menu.preview.stop_drag', condition: function(preview) {return preview.movingBackground;}, click: function(preview) {
-			preview.stopMovingBackground()
 		}}
 	])
 
 Preview.all = [];
+Preview.split_screen = {
+	enabled: false,
+	mode: 'single',
+	before: null,
+
+	previews: [],
+	lazyLoadPreview(index, camera_preset) {
+		let preview = Preview.split_screen.previews[index];
+		if (!preview) {
+			if (index == 0) {
+				preview = main_preview;
+			} else {
+				preview = new Preview({id: `split_screen_${index}`});
+			}
+			if (camera_preset) {
+				preview.setDefaultAnglePreset(camera_preset);
+			}
+			Preview.split_screen.previews[index] = preview;
+		}
+		return preview;
+	},
+
+	/**
+	 * 
+	 * @param {'single'|'double_horizontal'|'double_vertical'|'quad'|'triple_left'|'triple_right'|'triple_top'|'triple_bottom'} mode 
+	 * @returns 
+	 */
+	setMode(mode = 'single') {
+		Preview.split_screen.mode = mode;
+		if (mode == 'single') {
+			Preview.split_screen.enabled = false;
+			Interface.preview.setAttribute('split_screen_mode', null);
+			Preview.selected.fullscreen();
+			updateInterface()
+			ReferenceImage.updateAll();
+			return;
+		}
+		Preview.split_screen.enabled = true;
+
+		$('#preview .single_canvas_wrapper').remove();
+		$('#preview .split_screen_wrapper').remove();
+
+		let previews;
+		if (mode.startsWith('double')) {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[5]),
+			];
+
+		} else if (mode.startsWith('triple')) {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[3]),
+				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[5]),
+			];
+
+		} else if (mode == 'quad') {
+			previews = [
+				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[1]),
+				Preview.split_screen.lazyLoadPreview(0),
+				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[3]),
+				Preview.split_screen.lazyLoadPreview(3, DefaultCameraPresets[5]),
+			];
+		}
+		previews.forEach((preview, i) => {
+			let wrapper = Interface.createElement('div', {class: `split_screen_wrapper split_screen_wrapper_${i}`}, preview.node);
+			wrapper.style.gridArea = `preview_${i}`
+			Interface.preview.append(wrapper);
+
+			preview.node.querySelectorAll('.quad_view_only').forEach(child => {
+				child.style.display = 'block';
+			})
+			if (preview !== main_preview) {
+				preview.node.querySelectorAll('.one_is_enough').forEach(child => {
+					child.style.display = 'none';
+				})
+			}
+		})
+		Interface.preview.setAttribute('split_screen_mode', mode);
+	
+		updateInterface()
+		ReferenceImage.updateAll();
+	},
+	updateSize() {
+		Interface.preview.style.setProperty('--split-x', Math.roundTo(Interface.data.quad_view_x, 2) + '%');
+		Interface.preview.style.setProperty('--split-y', Math.roundTo(Interface.data.quad_view_y, 2) + '%');
+	}
+}
 
 Blockbench.on('update_camera_position', e => {
-	let scale = Preview.selected.calculateControlScale(Transformer.position);
+	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.8;
@@ -1674,39 +1534,6 @@ Blockbench.on('update_camera_position', e => {
 		}
 	})
 })
-
-function openQuadView() {
-	if (quad_previews.setup) quad_previews.setup();
-
-	quad_previews.enabled = true;
-
-	$('#preview').empty()
-	
-	var wrapper1 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x qcw_y'}, quad_previews.one.node);
-	Interface.preview.append(wrapper1)
-	
-	var wrapper2 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_y'}, quad_previews.two.node);
-	Interface.preview.append(wrapper2)
-	
-	var wrapper3 = Interface.createElement('div', {class: 'quad_canvas_wrapper qcw_x'}, quad_previews.three.node);
-	Interface.preview.append(wrapper3)
-	
-	var wrapper4 = Interface.createElement('div', {class: 'quad_canvas_wrapper'}, quad_previews.four.node);
-	Interface.preview.append(wrapper4)
-
-	Preview.all.forEach(preview => {
-		if (preview.offscreen) return;
-		preview.node.querySelectorAll('.quad_view_only').forEach(child => {
-			child.style.display = 'block';
-		})
-		if (preview !== main_preview) {
-			preview.node.querySelectorAll('.one_is_enough').forEach(child => {
-				child.style.display = 'none';
-			})
-		}
-	})
-	updateInterface()
-}
 
 function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
@@ -1723,7 +1550,7 @@ function editCameraPreset(preset, presets) {
 				orthographic: 'dialog.save_angle.projection.orthographic'
 			}},
 			divider1: '_',
-			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'select', value: rotation_mode, options: {
+			rotation_mode: {label: 'dialog.save_angle.rotation_mode', type: 'inline_select', value: rotation_mode, options: {
 				target: 'dialog.save_angle.target',
 				rotation: 'dialog.save_angle.rotation'
 			}},
@@ -1935,49 +1762,6 @@ window.addEventListener("gamepadconnected", function(event) {
 	}
 });
 
-class PreviewBackground {
-	constructor(data = {}) {
-		this.name = data.name ? tl(data.name) : ''
-		this._image = data.image||false
-		this.size = data.size||1000
-		this.x = data.x||0
-		this.y = data.y||0
-		this.lock = data.lock||false
-		this.defaults = Object.assign({}, this);
-		this.defaults.image = this.image;
-		this.imgtag = new Image();
-	}
-	get image() {
-		return this._image;
-	}
-	set image(path) {
-		this._image = path;
-		if (typeof this._image == 'string') {
-			this.imgtag.src = this._image.replace(/#/g, '%23');
-		}
-	}
-	getSaveCopy() {
-		let dataUrl;
-
-		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
-			let canvas = document.createElement('canvas');
-			canvas.width = this.imgtag.naturalWidth;
-			canvas.height = this.imgtag.naturalHeight;
-			let ctx = canvas.getContext('2d');
-			ctx.drawImage(this.imgtag, 0, 0);
-			dataUrl = canvas.toDataURL('image/png');
-		}
-
-		return {
-			name: this.name,
-			image: dataUrl || this.image,
-			size: this.size,
-			x: this.x,
-			y: this.y,
-			lock: this.lock
-		}
-	}
-}
 
 //Init/Update
 function initCanvas() {
@@ -1999,32 +1783,40 @@ function initCanvas() {
 	Canvas.gizmos.push(Canvas.outlines)
 
 	canvas_scenes = {
-		monitor: 			new PreviewBackground({name: 'display.reference.monitor' }),
-		inventory_nine: 	new PreviewBackground({name: 'display.reference.inventory_nine', image: './assets/inventory_nine.png', x: 0, y: -525, size: 1051, lock: true}),
-		inventory_full: 	new PreviewBackground({name: 'display.reference.inventory_full', image: './assets/inventory_full.png', x: 0, y: -1740, size: 2781, lock: true}),
-		hud: 				new PreviewBackground({name: 'display.reference.hud', image: './assets/hud.png', x: -224, y: -447.5, size: 3391, lock: true}),
-	}
-	if (localStorage.getItem('canvas_scenes')) {
-		var stored_canvas_scenes = undefined;
-		try {
-			stored_canvas_scenes = JSON.parse(localStorage.getItem('canvas_scenes'))
-		} catch (err) {}
+		/*monitor: new ReferenceImage({
+			condition: () => Modes.display && display_slot == 'gui',
+			name: tl('display.reference.monitor')
+		}).addAsBuiltIn(),*/
 
-		if (stored_canvas_scenes) {
-			for (var key in canvas_scenes) {
-				if (stored_canvas_scenes.hasOwnProperty(key)) {
+		inventory_nine: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
+			name: tl('display.reference.inventory_nine'),
+			source: './assets/inventory_nine.png',
+			position: [0, 0],
+			size: [528, 528],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 
-					let store = stored_canvas_scenes[key]
-					let real = canvas_scenes[key]
+		inventory_full: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
+			name: tl('display.reference.inventory_full'),
+			source: './assets/inventory_full.png',
+			position: [0, -215.6],
+			size: [1390, 1310],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 
-					if (store.image	!== undefined) {real.image = store.image}
-					if (store.size	!== undefined) {real.size = store.size}
-					if (store.x		!== undefined) {real.x = store.x}
-					if (store.y		!== undefined) {real.y = store.y}
-					if (store.lock	!== undefined) {real.lock = store.lock}
-				}
-			}
-		}
+		hud: new ReferenceImage({
+			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
+			name: tl('display.reference.hud'),
+			source: './assets/hud.png',
+			position: [-112, -70],
+			size: [1695, 308],
+			attached_side: 'south',
+			layer: 'blueprint'
+		}).addAsBuiltIn(),
 	}
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
@@ -2039,24 +1831,6 @@ function initCanvas() {
 	Canvas.gizmos.push(Transformer);
 	main_preview.occupyTransformer()
 
-	quad_previews = {
-		get current() {return Preview.selected},
-		set current(p) {Preview.selected = p},
-
-		one: null,
-		two: main_preview,
-		three: null,
-		four: null,
-		setup() {
-			quad_previews.one = new Preview({id: 'one'}).setDefaultAnglePreset(DefaultCameraPresets[1]);
-			quad_previews.three = new Preview({id: 'three'}).setDefaultAnglePreset(DefaultCameraPresets[3]);
-			quad_previews.four = new Preview({id: 'four'}).setDefaultAnglePreset(DefaultCameraPresets[5]);
-			quad_previews.setup = null;
-		},
-		get current() {
-			return Preview.selected;
-		}
-	}
 
 	Canvas.setup();
 	CustomTheme.updateColors();
@@ -2074,8 +1848,8 @@ function animate() {
 			AnimationController.selected.updatePreview();
 		}
 	}
-	if (quad_previews.current) {
-		WinterskyScene.updateFacingRotation(quad_previews.current.camera);
+	if (Preview.selected) {
+		WinterskyScene.updateFacingRotation(Preview.selected.camera);
 	}
 	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
@@ -2192,13 +1966,29 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']}
 	})
 
-	new Action('toggle_quad_view', {
+	function getRotatedIcon(key, angle) {
+		let icon_node = Blockbench.getIconNode(key);
+		icon_node.style.transform = `rotate(${angle}deg)`;
+		return icon_node;
+	}
+	new BarSelect('split_screen', {
 		icon: 'grid_view',
 		category: 'view',
 		condition: () => !Modes.display && !Format.image_editor,
-		keybind: new Keybind({key: 9}),
-		click: function () {
-			main_preview.toggleFullscreen()
+		value: 'single',
+		icon_mode: true,
+		options: {
+			single: {name: true, icon: 'video_label'},
+			double_horizontal: {name: true, icon: 'splitscreen'},
+			double_vertical: {name: true, icon: getRotatedIcon('splitscreen', 90)},
+			quad: {name: true, icon: 'grid_view', condition: !Blockbench.isMobile},
+			triple_left: {name: true, icon: 'space_dashboard', condition: !Blockbench.isMobile},
+			triple_right: {name: true, icon: getRotatedIcon('space_dashboard', 180), condition: !Blockbench.isMobile},
+			triple_top: {name: true, icon: getRotatedIcon('space_dashboard', 90), condition: !Blockbench.isMobile},
+			triple_bottom: {name: true, icon: getRotatedIcon('space_dashboard', 270), condition: !Blockbench.isMobile},
+		},
+		onChange() {
+			Preview.split_screen.setMode(this.value);
 		}
 	})
 	new Action('focus_on_selection', {
@@ -2212,7 +2002,7 @@ BARS.defineActions(function() {
 				UVEditor.focusOnSelection()
 
 			} else {
-				let preview = quad_previews.current;
+				let preview = Preview.selected;
 				if (!preview.controls.enabled) return;
 				let center = new THREE.Vector3();
 				if (!Modes.display) {
@@ -2243,10 +2033,10 @@ BARS.defineActions(function() {
 	new Action('toggle_camera_projection', {
 		icon: 'switch_video',
 		category: 'view',
-		condition: _ => (!preview.movingBackground || !Modes.display),
+		condition: _ => (!ReferenceImageMode.active || !Modes.display),
 		keybind: new Keybind({key: 101}),
 		click: function () {
-			quad_previews.current.setProjectionMode(!quad_previews.current.isOrtho, true);
+			Preview.selected.setProjectionMode(!Preview.selected.isOrtho, true);
 		}
 	})
 	new Action('camera_initial', {
@@ -2258,7 +2048,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 97}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[0])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[0])
 		}
 	})
 	new Action('camera_top', {
@@ -2270,7 +2060,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 104}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[1])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[1])
 		}
 	})
 	new Action('camera_bottom', {
@@ -2282,7 +2072,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 98}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[2])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[2])
 		}
 	})
 	new Action('camera_south', {
@@ -2294,7 +2084,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 100}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[3])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[3])
 		}
 	})
 	new Action('camera_north', {
@@ -2306,7 +2096,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 102}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[4])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[4])
 		}
 	})
 	new Action('camera_east', {
@@ -2318,7 +2108,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 103}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[5])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[5])
 		}
 	})
 	new Action('camera_west', {
@@ -2330,7 +2120,7 @@ BARS.defineActions(function() {
 		condition: _ => !Modes.display,
 		keybind: new Keybind({key: 105}),
 		click: function () {
-			quad_previews.current.loadAnglePreset(DefaultCameraPresets[6])
+			Preview.selected.loadAnglePreset(DefaultCameraPresets[6])
 		}
 	})
 })

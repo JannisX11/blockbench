@@ -92,6 +92,8 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
+			...Outliner.control_menu_group,
+			new MenuSeparator('settings'),
 			{
 				id: 'ignore_inherited_scale',
 				name: 'menu.locator.ignore_inherited_scale',
@@ -106,14 +108,9 @@ class Locator extends OutlinerElement {
 					Undo.finishEdit('Change locator ignore inherit scale option');
 				}
 			},
-			'_',
-			...Outliner.control_menu_group,
-			'_',
-			'copy',
-			'paste',
-			'duplicate',
-			'_',
+			new MenuSeparator('manage'),
 			'rename',
+			'toggle_visibility',
 			'delete'
 		])
 	
@@ -158,7 +155,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('setup', {element});
 		},
 		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform(element);
+			NodePreviewController.prototype.updateTransform.call(this, element);
 			this.updateWindowSize(element);
 		},
 		updateSelection(element) {

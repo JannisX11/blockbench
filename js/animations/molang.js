@@ -1,14 +1,14 @@
-
+Animator.MolangParser.context = {};
 Animator.MolangParser.global_variables = {
 	'true': 1,
 	'false': 0,
 	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode + 1) / 1000;
+		let time = (Date.now() - Timeline.last_frame_timecode) / 1000;
 		if (time < 0) time += 1;
 		return Math.clamp(time, 0, 0.1);
 	},
 	get 'query.anim_time'() {
-		return Animation.selected ? Animation.selected.time : Timeline.time;
+		return Animator.MolangParser.context.animation ? Animator.MolangParser.context.animation.time : Timeline.time;
 	},
 	get 'query.life_time'() {
 		return Timeline.time;
@@ -66,11 +66,17 @@ Animator.MolangParser.global_variables = {
 		let distance = Preview.selected.camera.position.length() / 16;
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1);
 	},
+	get 'query.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
+	get 'context.is_first_person'() {
+		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0;
+	},
 	get 'time'() {
 		return Timeline.time;
 	}
 }
-Animator.MolangParser.variableHandler = function (variable) {
+Animator.MolangParser.variableHandler = function (variable, variables) {
 	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n');
 	var i = 0;
 	while (i < inputs.length) {
@@ -91,7 +97,7 @@ Animator.MolangParser.variableHandler = function (variable) {
 				return button ? parseFloat(button.value) : 0;
 				
 			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val);
+				return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables);
 			}
 		}
 		i++;
@@ -447,9 +453,9 @@ Animator.MolangParser.variableHandler = function (variable) {
 	}
 
 	function filterAndSortList(list, match, blacklist, labels) {
-		let result = list.filter(f => f.startsWith(match));
+		let result = list.filter(f => f.startsWith(match) && f.length != match.length);
 		list.forEach(f => {
-			if (!result.includes(f) && f.includes(match)) result.push(f);
+			if (!result.includes(f) && f.includes(match) && f.length != match.length) result.push(f);
 		})
 		if (blacklist) blacklist.forEach(black => result.remove(black));
 		return result.map(text => {return {text, label: labels && labels[text], overlap: match.length}})

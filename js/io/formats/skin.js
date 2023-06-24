@@ -121,6 +121,9 @@ const codec = new Codec('skin_model', {
 				group.addTo(parent_group)
 			})
 		}
+		if (!Cube.all.find(cube => cube.box_uv)) {
+			Project.box_uv = false;
+		}
 		if (texture_path) {
 			var texture = new Texture().fromPath(texture_path).add(false);
 		} else if (resolution) {
@@ -264,7 +267,7 @@ const skin_dialog = new Dialog({
 			}
 		},
 		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-			16: '16x',
+			16: 'generic.default',
 			32: '32x',
 			64: '64x',
 			128: '128x',
@@ -1198,6 +1201,85 @@ skin_presets.bat = {
 				"mirror": true,
 				"cubes": [
 					{"name": "leftWingTip", "origin": [12, 10, 1.5], "size": [8, 12, 1], "uv": [24, 16]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.bed = {
+	display_name: 'Bed',
+	model_bedrock: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, -16, -9], "size": [16, 32, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -3], "size": [3, 3, 3], "uv": [0, 44]},
+					{"origin": [5, 13, -3], "size": [3, 3, 3], "uv": [12, 38]},
+					{"origin": [-8, 13, -3], "size": [3, 3, 3], "uv": [0, 38]},
+					{"origin": [5, -16, -3], "size": [3, 3, 3], "uv": [12, 44]}
+				]
+			},
+			{
+				"name": "Layer",
+				"parent": "bed",
+				"cubes": [
+					{"origin": [-5, 15, -3], "size": [10, 1, 3], "uv": [38, 2], "layer": true},
+					{"origin": [-5, -16, -3], "size": [10, 1, 3], "uv": [38, 38], "layer": true},
+					{"origin": [7, -13, -3], "size": [1, 26, 3], "uv": [52, 6], "layer": true},
+					{"origin": [-8, -13, -3], "size": [1, 26, 3], "uv": [44, 6], "layer": true}
+				]
+			}
+		]
+	}`,
+	model_java: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0, -9], "size": [16, 16, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -9], "size": [16, 16, 6], "uv": [0, 22]}
+				]
+			},
+			{
+				"name": "leg0",
+				"pivot": [-6.5, 1.5, -14.5],
+				"cubes": [
+					{"origin": [-8, 0, -16], "size": [3, 3, 3], "uv": [50, 0]}
+				]
+			},
+			{
+				"name": "leg1",
+				"pivot": [-6.5, 1.5, 14.5],
+				"rotation": [0, 90, 0],
+				"cubes": [
+					{"origin": [-8, 0, 13], "size": [3, 3, 3], "uv": [50, 6]}
+				]
+			},
+			{
+				"name": "leg2",
+				"pivot": [6.5, 1.5, -14.5],
+				"rotation": [0, -90, 0],
+				"cubes": [
+					{"origin": [5, 0, -16], "size": [3, 3, 3], "uv": [50, 12]}
+				]
+			},
+			{
+				"name": "leg3",
+				"pivot": [6.5, 1.5, 14.5],
+				"rotation": [0, 180, 0],
+				"cubes": [
+					{"origin": [5, 0, 13], "size": [3, 3, 3], "uv": [50, 18]}
 				]
 			}
 		]

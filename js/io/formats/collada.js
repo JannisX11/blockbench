@@ -168,14 +168,18 @@ var codec = new Codec('collada', {
 				);
 			}
 
-			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
-			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
+			var adjustedFrom = cube.from.slice();
+			var adjustedTo = cube.to.slice();
+			adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
+
+			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedTo[2]  );
+			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedFrom[2]);
+			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedTo[2]  );
+			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedTo[2]  );
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedTo[2]  );
 
 			for (let fkey in cube.faces) {
 				let face = cube.faces[fkey];
@@ -589,7 +593,7 @@ var codec = new Codec('collada', {
 		})
 
 		
-		let compiled_animations = Codecs.gltf.buildAnimationTracks(false);
+		let compiled_animations = Codecs.gltf.buildAnimationTracks(export_scale, false);
 		if (compiled_animations.length) {
 			let animations_tag = {
 				type: 'library_animations',

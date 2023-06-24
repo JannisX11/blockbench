@@ -1,11 +1,11 @@
 name: Suggestion
 description: Use this form to suggest features or improvements for Blockbench
-title: "[Suggestion] Suggestion summary"
+title: "Suggestion Summary"
 body:
 - type: markdown
   attributes:
     value: |
-      **Before submissing a suggestion, please check if it has already been suggested.**
+      **Before submitting a suggestion, please check if it has already been suggested.**
 - type: textarea
   id: details
   attributes:

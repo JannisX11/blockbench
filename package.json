@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.7.0-beta.0",
+	"version": "4.7.4",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -105,8 +105,8 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
-		"blockbench-types": "^4.6.0",
-		"electron": "^22.3.1",
+		"blockbench-types": "^4.6.1",
+		"electron": "^24.1.1",
 		"electron-builder": "^23.6.0",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.74.0",
@@ -116,6 +116,7 @@
 	"dependencies": {
 		"@electron/remote": "^2.0.1",
 		"electron-color-picker": "^0.2.0",
-		"electron-updater": "^5.2.1"
+		"electron-updater": "^6.0.4",
+		"gifenc": "^1.0.3"
 	}
 }

@@ -202,7 +202,7 @@ const Blockbench = {
 					text: {full_width: true, placeholder, value}
 				},
 				onConfirm({text}) {
-					callback(text);
+					if (callback) callback(text);
 					resolve(text);
 				},
 				onOpen() {
@@ -284,22 +284,19 @@ const Blockbench = {
 		}
 		return results;
 	},
-	addListener(event_names, cb) {
-		event_names.split(' ').forEach(event_name => {
-			if (!this.events[event_name]) {
-				this.events[event_name] = [];
-			}
-			this.events[event_name].safePush(cb);
-		})
-		return Blockbench;
-	},
 	on(event_name, cb) {
-		return Blockbench.addListener(event_name, cb) 
+		return EventSystem.prototype.on.call(this, event_name, cb);
+	},
+	once(event_name, cb) {
+		return EventSystem.prototype.once.call(this, event_name, cb);
+	},
+	addListener(event_name, cb) {
+		return EventSystem.prototype.addListener.call(this, event_name, cb);
 	},
 	removeListener(event_name, cb) {
-		if (!this.events[event_name]) return;
-		this.events[event_name].remove(cb);
+		return EventSystem.prototype.removeListener.call(this, event_name, cb);
 	},
+	// Update
 	onUpdateTo(version, callback) {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
@@ -331,6 +328,11 @@ if (isApp) {
 
 
 const StateMemory = {
+	/**
+	 * Initialize a memorized property
+	 * @param {string} key 
+	 * @param {'string'|'number'|'boolean'|'object'|'array'} type 
+	 */
 	init(key, type) {
 		let saved = localStorage.getItem(`StateMemory.${key}`)
 		if (typeof saved == 'string') {

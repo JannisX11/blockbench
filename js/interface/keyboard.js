@@ -540,12 +540,21 @@ onVueSetup(function() {
 								var missmatch = false;
 								for (var word of keywords) {
 									if (
+										!missmatch &&
 										!action.name.toLowerCase().includes(word) &&
 										!action.id.toLowerCase().includes(word) &&
-										!action.keybind.label.toLowerCase().includes(word)
+										!action.keybind.label.toLowerCase().includes(word) 
 									) {
 										missmatch = true;
 									}
+									if (missmatch && action.sub_keybinds) {
+										for (let key in action.sub_keybinds) {
+											if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
+												missmatch = false;
+											}
+										}
+									}
+									if (missmatch) break;
 								}
 								if (!missmatch) {
 									actions.push(action)
@@ -670,7 +679,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog) {
+		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
@@ -799,6 +808,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			open_interface.hide(e)
 			used = true
+		}
+	} else if (ReferenceImageMode.active) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			ReferenceImageMode.deactivate();
+			used = true;
 		}
 	}
 	if (ActionControl.open) {

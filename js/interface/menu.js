@@ -1,5 +1,15 @@
 var open_menu = null;
-
+class MenuSeparator {
+	constructor(id, label) {
+		this.id = id || '';
+		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
+		if (label) {
+			label = tl(label);
+			this.menu_node.append(Interface.createElement('label', {}, label));
+			this.menu_node.classList.add('has_label');
+		}
+	}
+}
 function handleMenuOverflow(node) {
 	node = node.get(0);
 	if (!node) return;
@@ -159,6 +169,7 @@ class Menu {
 		if (position && position.changedTouches) {
 			convertTouchEvent(position);
 		}
+		let last_context = context;
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
@@ -185,8 +196,13 @@ class Menu {
 						node.addClass('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
 						node.append(more_button);
-						$(more_button).mouseenter(e => {
+						more_button.addEventListener('mouseenter', e => {
 							scope.hover(node.get(0), e, true);
+						})
+						more_button.addEventListener('mouseleave', e => {
+							if (node.is(':hover') && !childlist.is(':hover')) {
+								scope.hover(node, e);
+							}
 						})
 					}
 				} else {
@@ -250,17 +266,31 @@ class Menu {
 					getEntry(object, menu_node);
 				})
 			}
-			var last = menu_node.children().last();
-			if (last.length && last.hasClass('menu_separator')) {
-				last.remove()
+			let nodes = menu_node.children();
+			if (nodes.length && nodes.last().hasClass('menu_separator')) {
+				nodes.last().remove();
+			}
+
+			if (!nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'))) {
+				menu_node.addClass('scrollable');
 			}
 		}
 
 		function getEntry(s, parent) {
 
+			if (s.context) {
+				last_context = context;
+				context = s.context;
+			}
+			let scope_context = context;
 			var entry;
 			if (s === '_') {
-				entry = new MenuSeparator().menu_node
+				s = new MenuSeparator();
+			} else if (typeof s == 'string' && s.startsWith('#')) {
+				s = new MenuSeparator(s.substring(1));
+			}
+			if (s instanceof MenuSeparator) {
+				entry = s.menu_node;
 				var last = parent.children().last()
 				if (last.length && !last.hasClass('menu_separator')) {
 					parent.append(entry)
@@ -270,7 +300,7 @@ class Menu {
 			if (typeof s == 'string' && BarItems[s]) {
 				s = BarItems[s];
 			}
-			if (!Condition(s.condition, context)) return;
+			if (!Condition(s.condition, scope_context)) return;
 
 			if (s instanceof Action) {
 
@@ -293,7 +323,7 @@ class Menu {
 						s.trigger(e)
 					});
 					if (s.side_menu instanceof Menu) {
-						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
+						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
 
 					} else if (s.side_menu instanceof Dialog) {
@@ -314,7 +344,7 @@ class Menu {
 			} else if (s instanceof BarSelect) {
 				
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -390,7 +420,7 @@ class Menu {
 				
 				let child_count;
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
@@ -405,7 +435,7 @@ class Menu {
 				if (typeof s.click === 'function') {
 					entry.on('click', e => {
 						if (e.target == entry.get(0)) {
-							s.click(context, e)
+							s.click(scope_context, e)
 						}
 					})
 				}
@@ -428,6 +458,7 @@ class Menu {
 					obj = obj.parent().parent();
 				}
 			}
+			if (s.context && last_context != context) context = last_context;
 			return entry;
 		}
 
@@ -465,12 +496,16 @@ class Menu {
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 			if (offset_left < 0) offset_left = 0;
 		}
-		if (!this.options.searchable) {
-			if (offset_top  > window_height - el_height ) {
+		if (offset_top > window_height - el_height ) {
+			if (el_height < offset_top - 50) {
+				// Snap to element top
 				offset_top -= el_height;
 				if (position instanceof HTMLElement) {
 					offset_top -= position.clientHeight;
 				}
+			} else {
+				// Move up
+				offset_top = window_height - el_height;
 			}
 		}
 		offset_top = Math.max(offset_top, 26);
@@ -505,8 +540,8 @@ class Menu {
 		open_menu = scope;
 		return scope;
 	}
-	show(position) {
-		return this.open(position);
+	show(...args) {
+		return this.open(...args);
 	}
 	hide() {
 		if (this.onClose) this.onClose();
@@ -522,21 +557,38 @@ class Menu {
 		if (this.structure instanceof Array == false) return;
 		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
-		var track = path.split('.')
+		let track = path.split('.')
 
 		function traverse(arr, layer) {
-			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer]))) {
-				var index = arr.length;
+			if (track.length === layer || !track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
+				let index = arr.length;
 				if (track[layer] !== '' && track.length !== layer) {
-					index = parseInt(track[layer])
+					if (track[layer].startsWith('#')) {
+						// Group Anchor
+						let group = track[layer].substring(1);
+						let group_match = false;
+						index = 0;
+						for (let item of arr) {
+							if (item instanceof MenuSeparator) {
+								if (item.id == group) {
+									group_match = true;
+								} else if (group_match && item.id != group) {
+									break;
+								}
+							}
+							index++;
+						}
+					} else {
+						index = parseInt(track[layer])
+					}
 				}
 				arr.splice(index, 0, action)
 			} else {
-				for (var i = 0; i < arr.length; i++) {
-					var item = arr[i]
-					if (item.children && item.children.length > 0 && item.id === track[layer] && layer < 20) {
-						traverse(item.children, layer+1)
-						i = 1000
+				for (let i = 0; i < arr.length; i++) {
+					let item = arr[i]
+					if (item.children instanceof Array && item.id === track[layer] && layer < 20) {
+						traverse(item.children, layer+1);
+						break;
 					}
 				}
 			}

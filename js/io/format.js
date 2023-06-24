@@ -84,6 +84,7 @@ class ModelFormat {
 		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
+		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
 		Modes.vue.$forceUpdate()
 		updateInterfacePanels()
 		Canvas.updateShading();
@@ -240,6 +241,7 @@ new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
+new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');

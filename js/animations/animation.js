@@ -250,12 +250,12 @@ class Animation extends AnimationItem {
 					if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
 						bone_tag[channel] = bone_tag[channel][timecodes[0]]
 						if (channel == 'scale' &&
-							bone_tag[channel][timecodes[0]] instanceof Array &&
-							bone_tag[channel][timecodes[0]].allEqual(bone_tag[channel][timecodes[0]][0])
+							bone_tag[channel] instanceof Array &&
+							bone_tag[channel].allEqual(bone_tag[channel][0])
 						) {
-							bone_tag[channel] = bone_tag[channel][timecodes[0]][0];
+							bone_tag[channel] = bone_tag[channel][0];
 						}
-					}
+					} 
 				}
 			}
 		}
@@ -277,6 +277,7 @@ class Animation extends AnimationItem {
 		if (Object.keys(ani_tag.bones).length == 0) {
 			delete ani_tag.bones;
 		}
+		Blockbench.dispatchEvent('compile_bedrock_animation', {animation: this, json: ani_tag});
 		return ani_tag;
 	}
 	sampleIK(sample_rate = settings.animation_sample_rate.value) {
@@ -476,7 +477,13 @@ class Animation extends AnimationItem {
 		}
 	}
 	get time() {
-		return (this.length && this.loop === 'loop') ? ((Timeline.time - 0.001) % this.length) + 0.001 : Timeline.time;
+		if (!this.length || this.loop == 'once') {
+			return Timeline.time;
+		} else if (this.loop === 'loop') {
+			return ((Timeline.time - 0.001) % this.length) + 0.001;
+		} else if (this.loop === 'hold') {
+			return Math.min(Timeline.time, this.length);
+		}
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -675,7 +682,7 @@ class Animation extends AnimationItem {
 				},
 				loop: {
 					label: 'menu.animation.loop',
-					type: 'select',
+					type: 'inline_select',
 					value: this.loop,
 					options: {
 						once: 'menu.animation.loop.once',
@@ -778,13 +785,13 @@ class Animation extends AnimationItem {
 		'copy',
 		'paste',
 		'duplicate',
-		'_',
+		new MenuSeparator('settings'),
 		{name: 'menu.animation.loop', icon: 'loop', children: [
 			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
 			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
 			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
 		]},
-		'_',
+		new MenuSeparator('manage'),
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -816,13 +823,13 @@ class Animation extends AnimationItem {
 			}
 		},
 		'delete',
-		'_',
+		new MenuSeparator('properties'),
 		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
 	Animation.prototype.file_menu = new Menu([
-		{name: 'menu.animation_file.unload', icon: 'clear_all', click(id) {
+		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
 			let animations_to_remove = [];
 			let controllers_to_remove = [];
 			AnimationItem.all.forEach(animation => {
@@ -873,11 +880,11 @@ Blockbench.on('finish_edit', event => {
 
 
 const WinterskyScene = new Wintersky.Scene({
-	fetchTexture: isApp && function(config) {
+	fetchTexture: function(config) {
 		if (config.preview_texture) {
 			return config.preview_texture;
 		}
-		if (config.file_path && config.particle_texture_path) {
+		if (isApp && config.file_path && config.particle_texture_path) {
 			let path_arr = config.file_path.split(PathModule.sep);
 			let particle_index = path_arr.indexOf('particles')
 			path_arr.splice(particle_index)
@@ -952,8 +959,8 @@ const Animator = {
 			Canvas.outlines.children.empty()
 			Canvas.updateAllPositions()
 		}
-		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
-			Animation.all[0].select();
+		if (AnimationItem.all.length && !AnimationItem.all.includes(Animation.selected)) {
+			AnimationItem.all[0].select();
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
@@ -1115,6 +1122,9 @@ const Animator = {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			animations.forEach(animation => {
+				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
+					return;
+				}
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
 				animation.getBoneAnimator(node).displayFrame(multiplier);
@@ -1142,7 +1152,7 @@ const Animator = {
 			let controller = AnimationController.selected;
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
-			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
 
 			// Active State
 			Timeline.time = state_time;
@@ -1195,6 +1205,14 @@ const Animator = {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];
 			if (texture) texture.select();
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture_frame\s*=/mi)) {
+			let frame = Animator.MolangParser.variableHandler('preview.texture_frame');
+
+			Texture.all.forEach(tex => {
+				tex.currentFrame = (frame % tex.frameCount) || 0;
+			})
+			TextureAnimator.update(Texture.all.filter(tex => tex.frameCount > 1));
 		}
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
@@ -1777,7 +1795,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			new Animation({
-				name: 'animation.' + (Project.geometry_name||'model') + '.new'
+				name: 'animation.' + (Project.geometry_name||'model') + '.new',
+				saved: false
 			}).add(true).propertiesDialog()
 
 		}
@@ -1934,11 +1953,13 @@ BARS.defineActions(function() {
 				offset(node);
 			});
 
-			Modes.options.edit.select()
+			Modes.options.edit.select();
+			Canvas.updateAllBones();
 			Undo.finishEdit('Bake animation into model')
 		}
 	})
 })
+
 
 Interface.definePanels(function() {
 
@@ -2013,12 +2034,14 @@ Interface.definePanels(function() {
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path
+							path,
+							saved: false
 						}).add(true).propertiesDialog()
 					} else {
 						new AnimationController({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path
+							path,
+							saved: false
 						}).add(true);
 					}
 				},
@@ -2468,7 +2491,7 @@ Interface.definePanels(function() {
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}" @click="button.type == 'impulse' && changeButtonValue(button, $event)" :buttontype="button.type">
 							<i v-if="button.type == 'impulse'" class="material-icons">play_arrow</i>
 							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<input v-if="button.type == 'slider'" type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
+							<numeric-input v-if="button.type == 'slider'" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)" />
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>

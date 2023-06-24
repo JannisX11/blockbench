@@ -77,8 +77,7 @@ class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
 			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
 				Undo.initEdit({elements: TextureMesh.all}),
@@ -88,6 +87,8 @@ class TextureMesh extends OutlinerElement {
 				Undo.finishEdit('Change texture mesh texture name')
 			})
 		}},
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -313,7 +314,7 @@ new NodePreviewController(TextureMesh, {
 	},
 	updateTransform(element) {
 		let {mesh} = element;
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 		mesh.scale.set(1, 1, 1);
 
 		this.dispatchEvent('update_transform', {element});

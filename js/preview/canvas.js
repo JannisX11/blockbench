@@ -1000,8 +1000,8 @@ const Canvas = {
 				if (Group.selected.visibility) {
 					Group.selected.mesh.add(Canvas.pivot_marker)
 				}
-			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
-				let selected_elements = [...Cube.selected, ...Mesh.selected];
+			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
+				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];
 				if (selected_elements.length === 1) {
 					let mesh = selected_elements[0].mesh
 					if (mesh) {
@@ -1236,14 +1236,16 @@ const Canvas = {
 			arr[2][1] += offset
 			arr[3][1] += offset
 		}
-		var rot = (face.rotation+0)
-		while (rot > 0) {
-			let a = arr[0];
-			arr[0] = arr[2];
-			arr[2] = arr[3];
-			arr[3] = arr[1];
-			arr[1] = a;
-			rot = rot-90;
+		if (Format.uv_rotation) {
+			var rot = (face.rotation+0)
+			while (rot > 0) {
+				let a = arr[0];
+				arr[0] = arr[2];
+				arr[2] = arr[3];
+				arr[3] = arr[1];
+				arr[1] = a;
+				rot = rot-90;
+			}
 		}
 		vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
 		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1

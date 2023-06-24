@@ -8,6 +8,19 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'reference_image',
+		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		function(files, event) {
+			files.map(file => {
+				return new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference(true);
+			}).last().select();
+			ReferenceImageMode.activate();
+		}
+	)
+	Blockbench.addDragHandler(
 		'model',
 		{extensions: Codec.getAllExtensions},
 		function(files) {
@@ -102,7 +115,7 @@ async function loadImages(files, event) {
 		if (Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		options.background = 'menu.view.background';
+		options.reference_image = 'data.reference_image';
 	}
 	options.edit = 'message.load_images.edit_image';
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
@@ -114,24 +127,27 @@ async function loadImages(files, event) {
 
 	function doLoadImages(method) {
 		if (method == 'texture') {
+			let new_textures = [];
+			Undo.initEdit({textures: new_textures});
 			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
+				let tex = new Texture().fromFile(f).add().fillParticle();
+				new_textures.push(tex);
+			});
+			Undo.finishEdit('Add texture');
 
 		} else if (method == 'replace_texture') {
 			replace_texture.fromFile(files[0])
 			updateSelection();
 			
-		} else if (method == 'background') {
-			let preview = Preview.selected;
-			let image = isApp ? files[0].path : files[0].content;
-			if (isApp && preview.background.image && preview.background.image.replace(/\?\w+$/, '') == image) {
-				image = image + '?' + Math.floor(Math.random() * 1000);
-			}
-			preview.background.image = image;
-			preview.loadBackground();
-			Settings.saveLocalStorages();
-			preview.startMovingBackground();
+		} else if (method == 'reference_image') {
+			
+			files.map(file => {
+				return new ReferenceImage({
+					source: file.content,
+					name: file.name || 'Reference'
+				}).addAsReference(true);
+			}).last().select();
+			ReferenceImageMode.activate();
 			
 		} else if (method == 'edit') {
 			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
@@ -410,13 +426,20 @@ const Extruder = {
 	}
 }
 //Json
-function compileJSON(object, options) {
-	if (typeof options !== 'object') options = {}
+function compileJSON(object, options = {}) {
+	let indentation = options.indentation;
+	if (typeof indentation !== 'string') {
+		switch (settings.json_indentation.value) {
+			case 'spaces_4': indentation = '    '; break;
+			case 'spaces_2': indentation = '  '; break;
+			case 'tabs': default: indentation = '\t'; break;
+		}
+	}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
 		var s = '\n'
 		for (var i = 0; i < tabs; i++) {
-			s += '\t'
+			s += indentation;
 		}
 		return s;
 	}
@@ -500,6 +523,7 @@ function autoParseJSON(data, feedback) {
 			data = JSON.parse(data)
 		} catch (err) {
 			if (feedback === false) return;
+			let error_part = '';
 			function logErrantPart(whole, start, length) {
 				var line = whole.substr(0, start).match(/\n/gm)
 				line = line ? line.length+1 : 1
@@ -508,23 +532,24 @@ function autoParseJSON(data, feedback) {
 				lines.forEach((s, i) => {
 					result += `#${line+i} ${s}\n`
 				})
-				console.log(result.substr(0, result.length-1) + ' <-- HERE')
+				error_part = result.substr(0, result.length-1) + ' <-- HERE';
+				console.log(error_part);
 			}
 			console.error(err)
 			var length = err.toString().split('at position ')[1]
 			if (length) {
 				length = parseInt(length)
-				var start = limitNumber(length-20, 0, Infinity)
+				var start = limitNumber(length-32, 0, Infinity)
 
 				logErrantPart(data, start, 1+length-start)
 			} else if (err.toString().includes('Unexpected end of JSON input')) {
 
-				logErrantPart(data, data.length-10, 10)
+				logErrantPart(data, data.length-16, 10)
 			}
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
-				message: tl('message.invalid_file.message', [err])
+				message: tl('message.invalid_file.message', [err]) + (error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : '')
 			})
 			return;
 		}
@@ -607,7 +632,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
 		condition: () => Project,
-		click: async function() {
+		click: async function(event) {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
@@ -652,16 +677,18 @@ BARS.defineActions(function() {
 					} else if (!Project.save_path) {
 						if (Format.edit_mode) {
 							Codecs.project.export();
-						} else {
-							Project.saved = false;
 						}
 					}
 				}
-				if (Format.animation_mode && Format.animation_files && Animation.all.length) {
+				if (Format.animation_mode && Format.animation_files && AnimationItem.all.length) {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {
 				saveTextures()
+				if (Format.codec && Format.codec.export) {
+					Format.codec.export()
+				}
+				/*
 				if (Format.codec && Format.codec.export) {
 
 					let codec = await new Promise(resolve => Blockbench.showMessageBox({
@@ -688,8 +715,9 @@ BARS.defineActions(function() {
 
 				} else {
 					Project.saved = false;
-				}
+				}*/
 			}
+			Blockbench.dispatchEvent('quick_save_model', {});
 		}
 	})
 	if (!isApp) {

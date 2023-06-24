@@ -14,7 +14,7 @@ function buildForm(dialog) {
 			if (data.label) {
 				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
 				bar.append(label);
-				if (!data.full_width) {
+				if (!data.full_width && data.condition !== false) {
 					dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
 				}
 			}
@@ -73,7 +73,7 @@ function buildForm(dialog) {
 						let text = data.value.toString();
 						let is_url = text.startsWith('https://');
 
-						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('content_paste'));
+						let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
 						copy_button.addEventListener('click', e => {
 							if (isApp || navigator.clipboard) {
 								Clipbench.setText(text);
@@ -91,14 +91,14 @@ function buildForm(dialog) {
 						bar.append(copy_button);
 
 						if (is_url) {
-							let open_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('open_in_browser'));
+							let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
 							open_button.addEventListener('click', e => {
 								Blockbench.openLink(text);
 							});
 							bar.append(open_button);
 						}
 						if (navigator.share) {
-							let share_button = Interface.createElement('div', {class: 'form_input_tool tool'}, Blockbench.getIconNode('share'));
+							let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
 							share_button.addEventListener('click', e => {
 								navigator.share({
 									label: data.label ? tl(data.label) : 'Share',
@@ -134,6 +134,29 @@ function buildForm(dialog) {
 					});
 					data.select_input = select_input;
 					bar.append(select_input.node)
+					break;
+
+
+				case 'inline_select':
+					let options = [];
+					let val = data.value || data.default;
+					let i = 0;
+					let wrapper;
+					for (let key in data.options) {
+						let is_selected = val ? key == val : i == 0;
+						let text = data.options[key].name || data.options[key];
+						let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
+						node.onclick = event => {
+							options.forEach(li => {
+								li.classList.toggle('selected', li == node);
+							})
+							dialog.updateFormValues();
+						}
+						options.push(node);
+						i++;
+					}
+					wrapper = Interface.createElement('ul', {class: 'form_inline_select'}, options);
+					bar.append(wrapper)
 					break;
 
 
@@ -179,7 +202,7 @@ function buildForm(dialog) {
 				case 'number':
 					let numeric_input = new Interface.CustomElements.NumericInput(form_id, {
 						value: data.value,
-						min: data.min, max: data.max,
+						min: data.min, max: data.max, step: data.step,
 						onChange() {
 							dialog.updateFormValues()
 						}
@@ -230,8 +253,8 @@ function buildForm(dialog) {
 					bar.append(group)
 					for (let i = 0; i < (data.dimensions || 3); i++) {
 						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
-							value: data.value[i],
-							min: data.min, max: data.max,
+							value: data.value ? data.value[i] : 0,
+							min: data.min, max: data.max, step: data.step,
 							onChange() {
 								dialog.updateFormValues()
 							}
@@ -553,6 +576,11 @@ window.Dialog = class Dialog {
 					case 'select':
 						data.select_input.set(value);
 						break;
+					case 'inline_select':
+						data.bar.find('li').each((i, el) => {
+							el.classList.toggle('selected', el.getAttribute('key') == value);
+						})
+						break;
 					case 'radio':
 						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
 						break;
@@ -600,6 +628,9 @@ window.Dialog = class Dialog {
 							break;
 						case 'select':
 							result[form_id] = data.bar.find('bb-select#'+form_id).attr('value');
+							break;
+						case 'inline_select':
+							result[form_id] = data.bar.find('li.selected')[0]?.getAttribute('key') || '';
 							break;
 						case 'radio':
 							result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')
@@ -720,14 +751,14 @@ window.Dialog = class Dialog {
 
 			let buttons = []
 			this.buttons.forEach((b, i) => {
-				let btn = $('<button type="button">'+tl(b)+'</button> ')
-				buttons.push(btn)
-				btn.on('click', (event) => {
+				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				buttons.push(btn);
+				btn.addEventListener('click', (event) => {
 					this.close(i, event);
 				})
 			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
@@ -937,7 +968,7 @@ window.MessageBox = class MessageBox extends Dialog {
 				let text = tl(typeof command == 'string' ? command : command.text);
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
 				entry.addEventListener('click', e => {
-					this.close(id, results);
+					this.close(id, results, e);
 				})
 				list.append(entry);
 			}
@@ -970,14 +1001,14 @@ window.MessageBox = class MessageBox extends Dialog {
 
 			let buttons = []
 			this.buttons.forEach((b, i) => {
-				let btn = $('<button type="button">'+tl(b)+'</button> ')
-				buttons.push(btn)
-				btn.on('click', (event) => {
+				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				buttons.push(btn);
+				btn.addEventListener('click', (event) => {
 					this.close(i, results, event);
 				})
 			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].addClass('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].addClass('cancel_btn')
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {

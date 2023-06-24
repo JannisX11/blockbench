@@ -4,6 +4,7 @@
 		margin: 0;
 		padding: 0;
 		user-select: none;
+		-webkit-user-select: none;
 		outline: none;
 		outline-color: rgba(0, 0, 0, 0);
 	}
@@ -430,6 +431,7 @@
 		font-size: 1em;
 		font-family: inherit;
 		outline: none;
+		-webkit-user-select: initial;
 	}
 	button {
 		border: none;
@@ -492,6 +494,7 @@
 	}
 	select option {
 		-webkit-appearance: none;
+		appearance: none;
 		background-color: var(--color-back);
 		outline: none;
 		border: none;
@@ -506,6 +509,12 @@
 		cursor: default;
 		resize: none;
 		outline: none;
+		user-select: initial;
+		-webkit-user-select: initial;
+	}
+	div[contenteditable="true"] {
+		user-select: initial;
+		-webkit-user-select: initial;
 	}
 	bb-select {
 		display: block;
@@ -663,7 +672,7 @@
 	}
 	.numeric_input > div.tool {
 		position: absolute;
-		width: 25px;
+		width: 22px;
 		right: 1px;
 		top: 0;
 		color: var(--color-subtle_text);
@@ -671,7 +680,7 @@
 	}
 	.numeric_input > div.tool > i {
 		font-size: 20px;
-		margin-top: 4px;
+		margin-top: 5px;
 	}
 
 	div.nslide {

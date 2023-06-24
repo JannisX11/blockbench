@@ -37,7 +37,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		this.root_path = path.slice().join(osfs);
 
 		if (BedrockEntityManager.CurrentContext?.entity_file_path) {
-			var content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
+			let content = this.checkEntityFile(BedrockEntityManager.CurrentContext?.entity_file_path);
 			if (content) {
 				return content;
 			}
@@ -45,39 +45,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 		path.push('entity');
 		path = path.join(osfs);
-		var entity_path = findExistingFile([
-			path+osfs+name+'.entity.json',
-			path+osfs+name+'.json',
-		])
-		if (entity_path) {
-			var content = this.checkEntityFile(entity_path);
-			if (content) {
-				return content;
-			}
-		} else {
-			let searchFolder = (path) => {
-				try {
-					var files = fs.readdirSync(path);	
-					for (var name of files) {
-						var new_path = path + osfs + name;
-						if (name.match(/\.json$/)) {
-							var result = this.checkEntityFile(new_path);
-							if (result) return result;
-						} else if (!name.includes('.')) {
-							var result = searchFolder(new_path);
-							if (result) return result;
-						}
-					}
-				} catch (err) {}
-			}
-			if (Group.all.find(group => group.bedrock_binding)) {
-				// Primarily an attachable
-				return searchFolder(path.replace(/entity$/, 'attachables')) || searchFolder(path);
-			} else {
-				// Entity
-				return searchFolder(path) || searchFolder(path.replace(/entity$/, 'attachables'));
-			}
+
+		let base_directories = [path, path.replace(/entity$/, 'attachables')];
+		if (Group.all.find(group => group.bedrock_binding)) {
+			// probably an attachable
+			base_directories.reverse();
 		}
+		return Blockbench.findFileFromContent(base_directories, {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), read_file: false}, (path) => {
+			return this.checkEntityFile(path);
+		});
 	}
 	initEntity() {
 		this.client_entity = this.getEntityFile();
@@ -211,8 +187,13 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
+		if (this.client_entity && this.client_entity.type == 'attachable') {
+			Project.bedrock_animation_mode = 'attachable_first';
+			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
+		}
 	}
 	initAnimations() {
+		this.initialized_animations = true;
 		let anim_list = this.client_entity && this.client_entity.description && this.client_entity.description.animations;
 		if (anim_list instanceof Object) {
 			let animation_names = [];
@@ -252,7 +233,6 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				} catch (err) {}
 			})
 		}
-		this.initialized_animations = true;
 	}
 	findEntityTexture(mob, return_path) {
 		if (!mob) return;
@@ -416,22 +396,9 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				return content;
 			}
 		} else {
-			let searchFolder = (path) => {
-				try {
-					var files = fs.readdirSync(path);	
-					for (var name of files) {
-						var new_path = path + osfs + name;
-						if (name.match(/\.json$/)) {
-							var result = this.checkBlockFile(new_path);
-							if (result) return result;
-						} else if (!name.includes('.')) {
-							var result = searchFolder(new_path);
-							if (result) return result;
-						}
-					}
-				} catch (err) {}
-			}
-			return searchFolder(path);
+			return Blockbench.findFileFromContent([path], {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), read_file: false}, (path) => {
+				return this.checkBlockFile(path);
+			});
 		}
 	}
 	initBlock() {
@@ -630,12 +597,13 @@ function calculateVisibleBox() {
 		}
 		if (b.locators) {
 			for (var key in b.locators) {
-				var coords, rotation;
+				var coords, rotation, ignore_inherited_scale;
 				if (b.locators[key] instanceof Array) {
 					coords = b.locators[key];
 				} else {
 					coords = b.locators[key].offset;
 					rotation = b.locators[key].rotation;
+					ignore_inherited_scale = b.locators[key].ignore_inherited_scale;
 				}
 				coords[0] *= -1;
 				if (rotation instanceof Array) {
@@ -645,7 +613,7 @@ function calculateVisibleBox() {
 				if (key.substr(0, 6) == '_null_' && b.locators[key] instanceof Array) {
 					new NullObject({from: coords, name: key.substr(6)}).addTo(group).init();
 				} else {
-					new Locator({position: coords, name: key, rotation}).addTo(group).init();
+					new Locator({position: coords, name: key, rotation, ignore_inherited_scale}).addTo(group).init();
 				}
 			}
 		}
@@ -939,7 +907,33 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 		let root_index = path.indexOf(is_attachable ? 'attachables' : 'entity');
 		path.splice(root_index);
 
-		let entity_path = findExistingFile([
+		let [matched_geo_path, matched_geo_content] = Blockbench.findFileFromContent([
+			[...path, 'models', 'entity'].join(osfs),
+			[...path, 'models', 'blocks'].join(osfs),
+		], {filter_regex: /\.json$/i, priority_regex: new RegExp(name, 'i'), json: true}, (path, content) => {
+
+			if (content['minecraft:geometry'] instanceof Array) {
+				let geo = content['minecraft:geometry'].find(geo => {
+					return geo.description?.identifier == models[0];
+				})
+				if (geo) return [path, content];
+			} else if (content[models[0]]) {
+				return [path, content];
+			}
+		}) || [];
+
+		if (matched_geo_path) {
+			BedrockEntityManager.CurrentContext = {
+				geometry: models[0],
+				entity_file_path: file.path,
+				type: 'entity'
+			};
+			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
+			codec.load(matched_geo_content, {path: matched_geo_path}, false);
+			delete BedrockEntityManager.CurrentContext;
+		}
+
+		/*let entity_path = findExistingFile([
 			[...path, 'models', 'entity', name+'.geo.json'].join(osfs),
 			[...path, 'models', 'entity', name+'.json'].join(osfs),
 			[...path, 'models', 'block', name+'.geo.json'].join(osfs),
@@ -1004,7 +998,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 			let codec = matched_geo_content['minecraft:geometry'] ? Codecs.bedrock : Codecs.bedrock_old;
 			codec.load(matched_geo_content, {path: matched_geo_path}, false);
 			delete BedrockEntityManager.CurrentContext;
-		}
+		}*/
 	},
 })
 
@@ -1041,7 +1035,7 @@ var codec = new Codec('bedrock', {
 				loadDataFromModelMemory();
 				if (!Format.single_texture && no_textures_before && Texture.all.length) {
 					Cube.all.forEach(cube => {
-						cube.applyTexture(Texture.all[0]);
+						cube.applyTexture(Texture.all[0], true);
 					})
 				}
 			}
@@ -1381,6 +1375,7 @@ var block_format = new ModelFormat({
 			});
 			return vertices;
 		},
+		// Test if it overlaps
 		test(cube, values = 0) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
@@ -1389,11 +1384,12 @@ var block_format = new ModelFormat({
 			let vertices = block_format.cube_size_limiter.getCubeVertexCoordinates(cube, {from, to, inflate});
 			let center = block_format.cube_size_limiter.getModelCenter([cube]);
 
-			return undefined !== vertices.find((v, i) => {
+			let vertex_outside_bounds = vertices.find((v, i) => {
 				return (v[0] > center[3]+15 || v[0] < center[0]-15)
 					|| (v[1] > center[4]+15 || v[1] < center[1]-15)
 					|| (v[2] > center[5]+15 || v[2] < center[2]-15);
 			})
+			return vertex_outside_bounds !== undefined;
 		},
 		move(cube, values = 0) {
 			let from = values.from || cube.from;
@@ -1473,6 +1469,33 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
+})
+
+new ValidatorCheck('bedrock_binding', {
+	condition: isApp && {formats: ['bedrock']},
+	update_triggers: ['update_selection'],
+	run() {
+		if (Project.BedrockEntityManager?.client_entity?.type == 'attachable') {
+			if (Group.all.length && !Group.all.find(g => g.bedrock_binding)) {
+				this.warn({
+					message: `The project is an attachable, but no bone is bound to the player. Define a binding on one of the root bones.`,
+					buttons: [
+						{
+							name: 'Bind root bone to player hand',
+							icon: 'fa-paperclip',
+							click() {
+								let root = Outliner.root.find(n => n instanceof Group);
+								Undo.initEdit({group: root});
+								root.bedrock_binding = 'q.item_slot_to_bone_name(c.item_slot)';
+								Undo.finishEdit('Set binding');
+								Validator.validate();
+							}
+						}
+					]
+				})
+			}
+		}
+	}
 })
 
 })()

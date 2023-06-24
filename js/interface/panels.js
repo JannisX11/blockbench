@@ -1,5 +1,6 @@
-class Panel {
+class Panel extends EventSystem {
 	constructor(id, data) {
+		super();
 		if (!data) data = id;
 		let scope = this;
 		this.type = 'panel';
@@ -20,7 +21,7 @@ class Panel {
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
 		this.position_data = Interface.data.panels[this.id];
-		let defaultp = data.default_position || 0;
+		let defaultp = this.default_position = data.default_position || 0;
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
@@ -134,6 +135,7 @@ class Panel {
 
 
 			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
+				if (e1.which == 2 || e1.which == 3) return;
 				convertTouchEvent(e1);
 				let started = false;
 				let position_before = this.slot == 'float'
@@ -330,6 +332,21 @@ class Panel {
 	}
 	set folded(state) {
 		this.position_data.folded = !!state;
+	}
+	resetCustomLayout() {
+		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
+		this.position_data = Interface.data.panels[this.id];
+		
+		let defaultp = this.default_position || 0;
+		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || 'left_bar';
+		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
+		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
+		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
+		if (this.position_data.folded == undefined) this.position_data.folded 	= defaultp.folded || false;
+
+		this.moveTo(this.slot);
+		this.fold(this.folded);
+		return this;
 	}
 	addToolbar(toolbar, position = this.toolbars.length) {
 		let nodes = [];
@@ -568,27 +585,6 @@ class Panel {
 		localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 		return this;
 	}
-	//Events
-	dispatchEvent(event_name, data) {
-		var list = this.events[event_name]
-		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			if (typeof list[i] === 'function') {
-				list[i](data)
-			}
-		}
-	}
-	on(event_name, cb) {
-		if (!this.events[event_name]) {
-			this.events[event_name] = []
-		}
-		this.events[event_name].safePush(cb)
-	}
-	removeListener(event_name, cb) {
-		if (this.events[event_name]) {
-			this.events[event_name].remove(cb);
-		}
-	}
 	//Delete
 	delete() {
 		delete Panels[this.id];
@@ -633,11 +629,14 @@ function updateInterfacePanels() {
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
-	if (quad_previews.enabled) {
-		$('.quad_canvas_wrapper.qcw_x').css('width', Interface.data.quad_view_x+'%')
-		$('.quad_canvas_wrapper.qcw_y').css('height', Interface.data.quad_view_y+'%')
-		$('.quad_canvas_wrapper:not(.qcw_x)').css('width', (100-Interface.data.quad_view_x)+'%')
-		$('.quad_canvas_wrapper:not(.qcw_y)').css('height', (100-Interface.data.quad_view_y)+'%')
+
+	let height = document.getElementById('center').clientHeight;
+	height -= Interface.getBottomPanel()?.height || 0;
+	height -= Interface.getTopPanel()?.height || 0;
+	Interface.preview.style.height = height > 0 ? (height + 'px') : '';
+
+	if (Preview.split_screen.enabled) {
+		Preview.split_screen.updateSize()
 	}
 	for (var key in Interface.Resizers) {
 		var resizer = Interface.Resizers[key]

@@ -15,9 +15,7 @@ class BarMenu extends Menu {
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
 			if (open_menu === scope) {
-				if (event instanceof PointerEvent == false) {
-					scope.hide()
-				}
+				scope.hide()
 			} else {
 				scope.open()
 			}
@@ -50,8 +48,9 @@ const MenuBar = {
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
+			new MenuSeparator('file_options'),
 			'project_window',
-			'_',
+			new MenuSeparator('open'),
 			{name: 'menu.file.new', id: 'new', icon: 'insert_drive_file',
 				children: function() {
 					let arr = [];
@@ -69,7 +68,7 @@ const MenuBar = {
 							}
 						})
 					}
-					arr.push('_');
+					arr.push(new MenuSeparator('loaders'));
 					for (let key in ModelLoader.loaders) {
 						let loader = ModelLoader.loaders[key];
 						arr.push({
@@ -132,12 +131,12 @@ const MenuBar = {
 			'open_model',
 			'open_from_link',
 			'new_window',
-			'_',
+			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
 			'convert_project',
 			'close_project',
-			'_',
+			new MenuSeparator('import_export'),
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', condition: () => Format && !Format.pose_mode, children: [
 				{
 					id: 'import_open_project',
@@ -187,7 +186,7 @@ const MenuBar = {
 			]},
 			'export_over',
 			'export_asset_archive',
-			'_',
+			new MenuSeparator('options'),
 			{name: 'menu.file.preferences', id: 'preferences', icon: 'tune', children: [
 				'settings_window',
 				'keybindings_window',
@@ -227,10 +226,11 @@ const MenuBar = {
 			'edit_session'
 		])
 		new BarMenu('edit', [
+			new MenuSeparator('undo'),
 			'undo',
 			'redo',
 			'edit_history',
-			'_',
+			new MenuSeparator('add_element'),
 			'add_cube',
 			'add_mesh',
 			'add_group',
@@ -238,27 +238,28 @@ const MenuBar = {
 			'add_locator',
 			'add_null_object',
 			'add_texture_mesh',
-			'_',
+			new MenuSeparator('modify_elements'),
 			'duplicate',
 			'rename',
 			'find_replace',
 			'unlock_everything',
 			'delete',
-			'_',
+			new MenuSeparator('mesh_specific'),
 			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
 				'extrude_mesh_selection',
 				'inset_mesh_selection',
 				'loop_cut',
 				'create_face',
 				'invert_face',
+				'switch_face_crease',
 				'merge_vertices',
 				'dissolve_edges',
 				'split_mesh',
 				'merge_meshes',
-				'_',
+				new MenuSeparator('editing_mode'),
 				'proportional_editing',
 			]},
-			'_',
+			new MenuSeparator('selection'),
 			'select_window',
 			'select_all',
 			'unselect_all',
@@ -306,14 +307,16 @@ const MenuBar = {
 		})
 
 		new BarMenu('texture', [
+			new MenuSeparator('adjustment'),
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',
 			'adjust_opacity',
 			'invert_colors',
 			'adjust_curves',
-			'_',
+			new MenuSeparator('filters'),
 			'limit_to_palette',
-			'_',
+			'clear_unused_texture_space',
+			new MenuSeparator('transform'),
 			'flip_texture_x',
 			'flip_texture_y',
 			'rotate_texture_cw',
@@ -324,14 +327,15 @@ const MenuBar = {
 		})
 
 		new BarMenu('animation', [
+			new MenuSeparator('edit_options'),
 			'looped_animation_playback',
 			'lock_motion_trail',
-			'_',
+			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
 			'bake_animation_into_model',
-			'_',
+			new MenuSeparator('file'),
 			'load_animation_file',
 			'save_all_animations',
 			'export_animation_file'
@@ -340,9 +344,10 @@ const MenuBar = {
 		})
 
 		new BarMenu('keyframe', [
+			new MenuSeparator('copypaste'),
 			'copy',
 			'paste',
-			'_',
+			new MenuSeparator('edit'),
 			'add_keyframe',
 			'keyframe_column_create',
 			'select_all',
@@ -361,10 +366,19 @@ const MenuBar = {
 			condition: {modes: ['animate']}
 		})
 
+		new BarMenu('timeline', Timeline.menu.structure, {
+			name: 'panel.timeline',
+			condition: {modes: ['animate'], method: () => !AnimationController.selected},
+			onOpen() {
+				setActivePanel('timeline');
+			}
+		})
+
 		new BarMenu('display', [
+			new MenuSeparator('copypaste'),
 			'copy',
 			'paste',
-			'_',
+			new MenuSeparator('presets'),
 			'add_display_preset',
 			'apply_display_preset'
 		], {
@@ -372,6 +386,7 @@ const MenuBar = {
 		})
 		
 		new BarMenu('tools', [
+			new MenuSeparator('overview'),
 			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
 				let tools = Toolbox.children.filter(tool => tool instanceof Tool && tool.condition !== false);
 				tools.forEach(tool => {
@@ -395,7 +410,7 @@ const MenuBar = {
 			}},
 			'swap_tools',
 			'action_control',
-			'_',
+			new MenuSeparator('tools'),
 			'predicate_overrides',
 			'convert_to_mesh',
 			'auto_set_cullfaces',
@@ -405,29 +420,33 @@ const MenuBar = {
 
 		new BarMenu('view', [
 			'fullscreen',
-			'_',
+			new MenuSeparator('viewport'),
 			'view_mode',
-			'preview_scene',
 			'toggle_shading',
 			'toggle_motion_trails',
 			'toggle_ground_plane',
 			'preview_checkerboard',
 			'painting_grid',
-			'_',
+			new MenuSeparator('references'),
+			'preview_scene',
+			'edit_reference_images',
+			new MenuSeparator('interface'),
 			'toggle_sidebars',
-			'toggle_quad_view',
+			'split_screen',
+			new MenuSeparator('model'),
 			'hide_everything_except_selection',
 			'focus_on_selection',
-			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: [
-				'screenshot_model',
-				'screenshot_app',
-				'record_model_gif',
-				'timelapse',
-			]},
+			{name: 'menu.view.screenshot', id: 'screenshot', icon: 'camera_alt', children: []},
+			new MenuSeparator('media'),
+			'screenshot_model',
+			'screenshot_app',
+			'record_model_gif',
+			'timelapse',
 		])
 		new BarMenu('help', [
+			new MenuSeparator('search'),
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
-			'_',
+			new MenuSeparator('links'),
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
@@ -440,13 +459,13 @@ const MenuBar = {
 			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
 				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
 			}},
-			'_',
-			'open_backup_folder',
-			'_',
+			new MenuSeparator('backups'),
+			'view_backups',
+			new MenuSeparator('about'),
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://www.blockbench.net/wiki/api/index');
+					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
 				}},
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
@@ -460,6 +479,7 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
+				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
 						localStorage.clear()

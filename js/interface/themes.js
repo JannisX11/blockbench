@@ -513,21 +513,6 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	//Only interface
-	new Action('reset_layout', {
-		icon: 'replay',
-		category: 'blockbench',
-		click: function () {
-			Interface.data = $.extend(true, {}, Interface.default_data)
-			Interface.data.left_bar.forEach((id) => {
-				$('#left_bar').append(Interface.Panels[id].node)
-			})
-			Interface.data.right_bar.forEach((id) => {
-				$('#right_bar').append(Interface.Panels[id].node)
-			})
-			updateInterface()
-		}
-	})
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
 })

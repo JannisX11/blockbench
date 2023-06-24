@@ -117,7 +117,7 @@ function parseGeometry(data) {
 	loadTextureDraggable()
 	Canvas.updateAllBones()
 	setProjectTitle()
-	if (isApp && Project.geometry_name) {
+	if (isApp && Project.geometry_name && Project.BedrockEntityManager) {
 		Project.BedrockEntityManager.initEntity()
 	}
 	Validator.validate()

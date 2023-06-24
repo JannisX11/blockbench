@@ -129,6 +129,8 @@ function addStartScreenSection(id, data) {
 onVueSetup(function() {
 	StateMemory.init('start_screen_list_type', 'string')
 
+	let slideshow_timer = 0;
+
 	StartScreen.vue = new Vue({
 		el: '#start_screen',
 		components: {},
@@ -136,6 +138,7 @@ onVueSetup(function() {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
+			viewed_format: null,
 			recent: isApp ? recent_projects : [],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
@@ -144,7 +147,34 @@ onVueSetup(function() {
 			isApp,
 			mobile_layout: Blockbench.isMobile,
 			thumbnails: {},
-			getIconNode: Blockbench.getIconNode
+			getIconNode: Blockbench.getIconNode,
+
+			slideshow: [
+				{
+					source: "./assets/splash_art/1.png",
+					description: "Splash Art 1st Place by [NeptuneCoffee](https://twitter.com/Neptune_Coffee) & [Dankbarkeit](https://twitter.com/Dxnkbarkeit)",
+				},
+				{
+					source: "./assets/splash_art/2.png",
+					description: "Splash Art 2nd Place by [MorganFreeguy](https://www.artstation.com/morganfreeguy) & [WOLLAND](https://wolland-services.com/)",
+				},
+				{
+					source: "./assets/splash_art/3.png",
+					description: "Splash Art 3rd Place by [RETENEIZER](https://twitter.com/RETENEIZER)",
+				},
+				{
+					source: "./assets/splash_art/4.png",
+					description: "Splash Art 4th Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
+				},
+				{
+					source: "./assets/splash_art/5.png",
+					description: "Splash Art 5th Place by [Azagwen](https://twitter.com/azagwen) & [shroomy](https://twitter.com/ShroomyArts)",
+				}
+			],
+			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
+			slideshow_selected: Blockbench.hasFlag('after_update') ? 0 : Math.floor(Math.random()*5),
+			slideshow_last: null,
+			slideshow_autoplay: true
 		},
 		methods: {
 			getDate(p) {
@@ -266,6 +296,17 @@ onVueSetup(function() {
 				if (format_entry.onStart) format_entry.onStart();
 				if (typeof format_entry.new == 'function') format_entry.new();
 			},
+
+			getBackground(url) {
+				return `url("${url}")`
+			},
+			setSlide(index) {
+				this.slideshow_last = this.slideshow_selected;
+				this.slideshow_selected = index;
+				setTimeout(() => this.slideshow_last = null, 500);
+				slideshow_timer = 0;
+			},
+
 			openLink(link) {
 				Blockbench.openLink(link);
 			},
@@ -286,10 +327,36 @@ onVueSetup(function() {
 		},
 		mounted() {
 			this.updateThumbnails();
+
+			setInterval(() => {
+				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.checkVisibility()) {
+					slideshow_timer += 1;
+
+					if (slideshow_timer == 24) {
+						this.setSlide((this.slideshow_selected+1) % this.slideshow.length);
+					}
+				}
+			}, 1000);
+
+			if (settings.always_show_splash_art.value && !Blockbench.hasFlag('after_update') && !Blockbench.isMobile) {
+				document.getElementById('start_screen').scrollTop = 100;
+			}
 		},
 		template: `
 			<div id="start_screen">
 				<content>
+					<section id="splash_screen" v-if="show_splash_screen">
+						<div class="splash_art_slideshow_image" :style="{backgroundImage: getBackground(slideshow[slideshow_selected].source)}">
+							<p v-if="slideshow[slideshow_selected].description" class="start_screen_graphic_description" v-html="pureMarked(slideshow[slideshow_selected].description)"></p>
+						</div>
+						<div class="splash_art_slideshow_image slideshow_previous" v-if="typeof slideshow_last == 'number'" :style="{backgroundImage: getBackground(slideshow[slideshow_last].source)}">
+						</div>
+						<ul class="splash_art_slideshow_points">
+							<li v-for="(image, index) in slideshow" :key="index" :class="{selected: index == slideshow_selected}" @click="setSlide(index)"></li>
+						</ul>
+						<i class="material-icons start_screen_close_button" @click="show_splash_screen = false">clear</i>
+					</section>
+
 					<section id="start_files">
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
@@ -300,7 +367,7 @@ onVueSetup(function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
@@ -389,7 +456,7 @@ onVueSetup(function() {
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
@@ -408,7 +475,7 @@ onVueSetup(function() {
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 								</li>
 							</ul>
@@ -431,20 +498,6 @@ onVueSetup(function() {
 	if (settings.streamer_mode.value) {
 		updateStreamerModeNotification()
 	}
-	addStartScreenSection('splash_screen', {
-		"text_color": '#000000',
-		"graphic": {
-			"type": "image",
-			"source": "./assets/splash_art.png?46",
-			"width": 1000,
-			"aspect_ratio": "64/27",
-			"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
-			"text_color": '#cfcfcf'
-		}
-	})
-	if (!Blockbench.hasFlag('after_update')) {
-		document.getElementById('start_screen').scrollTop = 100;
-	}
 	
 	//Backup Model
 	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
@@ -453,7 +506,7 @@ onVueSetup(function() {
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'fa-archive'},
-			insert_after: 'splash_screen',
+			insert_before: 'start_files',
 			text: [
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},

@@ -48,7 +48,10 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		if (action.type == 'recent_project') {
+		if (action instanceof BarSelect) {
+			action.open({target: ActionControl.vue.$el.childNodes[2]});
+
+		} else if (action.type == 'recent_project') {
 			Blockbench.read([action.description], {}, files => {
 				loadModelFile(files[0]);
 			})
@@ -190,14 +193,13 @@ BARS.defineActions(function() {
 					}
 				}
 				if (!type) {
-					for (var i = 0; i < Keybinds.actions.length; i++) {
-						var item = Keybinds.actions[i];
+					for (let item of Keybinds.actions) {
 						if (
 							search_input.length == 0 ||
 							item.name.toLowerCase().includes(search_input) ||
 							item.id.toLowerCase().includes(search_input)
 						) {
-							if (item instanceof Action && Condition(item.condition) && !item.linked_setting) {
+							if ((item instanceof Action || item instanceof BarSelect) && Condition(item.condition) && !item.linked_setting) {
 								list.safePush(item)
 								if (list.length > ActionControl.max_length) break;
 							}

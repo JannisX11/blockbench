@@ -15,26 +15,27 @@ class ResizeLine {
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
-		$(this.node).draggable({
-			axis: this.horizontal ? 'y' : 'x',
-			containment: '#work_screen',
-			revert: true,
-			revertDuration: 0,
-			start(e, u) {
-				scope.before = data.get()
-			},
-			drag(e, u) {
-				if (scope.horizontal) {
-					data.set(scope.before, u.position.top - u.originalPosition.top)
-				} else {
-					data.set(scope.before, (u.position.left - u.originalPosition.left))
-				}
-				updateInterface()
-			},
-			stop(e, u) {
-				updateInterface()
-				scope.update();
+
+		this.node.addEventListener('pointerdown', event => {
+			this.before = data.get();
+			this.node.classList.add('dragging');
+			let move = (e2) => {
+				let difference = scope.horizontal
+					? e2.clientY - event.clientY
+					: e2.clientX - event.clientX;
+				data.set(scope.before, difference);
+				updateInterface();
+				this.update();
 			}
+			let stop = (e2) => {
+				document.removeEventListener('pointermove', move, false);
+				document.removeEventListener('pointerup', stop, false);
+				updateInterface()
+				this.update();
+				this.node.classList.remove('dragging');
+			}
+			document.addEventListener('pointermove', move, false);
+			document.addEventListener('pointerup', stop, false);
 		})
 	}
 	update() {
@@ -204,30 +205,43 @@ const Interface = {
 			}
 		}),
 		quad_view_x: new ResizeLine('quad_view_x', {
-			condition() {return quad_previews.enabled},
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
 			get() {return Interface.data.quad_view_x},
-			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/$('#preview').width()*100, 5, 95)},
+			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
 			position() {
-				var p = document.getElementById('preview')
-				this.setPosition({
-					top: 32,
-					bottom: p ? window.innerHeight - (p.clientHeight + $(p).offset().top) : 0,
-					left: Interface.left_bar_width + document.getElementById('preview').clientWidth*Interface.data.quad_view_x/100
+				let p = Interface.preview;
+				if (!p) return;
+				let top = 32;
+				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
+				let left = Interface.left_bar_width + p.clientWidth*Interface.data.quad_view_x/100;
+				if (Preview.split_screen.mode == 'triple_top') {
+					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
+				} else if (Preview.split_screen.mode == 'triple_bottom') {
+					bottom = bottom + p.clientHeight * (1 - Interface.data.quad_view_y/100);
 				}
-			)}
+				this.setPosition({top, bottom, left});
+			}
 		}),
 		quad_view_y: new ResizeLine('quad_view_y', {
 			horizontal: true,
-			condition() {return quad_previews.enabled},
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_vertical'},
 			get() {return Interface.data.quad_view_y},
 			set(o, diff) {
-				Interface.data.quad_view_y = limitNumber(o + diff/document.getElementById('preview').clientHeight*100, 5, 95)
+				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
 			},
-			position() {this.setPosition({
-				left: Interface.left_bar_width+2,
-				right: Interface.right_bar_width+2,
-				top: Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100
-			})}
+			position() {
+				let p = Interface.preview;
+				if (!p) return;
+				let left = Interface.left_bar_width+2;
+				let right = Interface.right_bar_width+2;
+				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
+				if (Preview.split_screen.mode == 'triple_left') {
+					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
+				} else if (Preview.split_screen.mode == 'triple_right') {
+					right = right + p.clientWidth * (1 - Interface.data.quad_view_x/100);
+				}
+				this.setPosition({left, right, top});
+			}
 		}),
 		top: new ResizeLine('top', {
 			horizontal: true,
@@ -291,6 +305,31 @@ const Interface = {
 	CustomElements: {},
 	status_bar: {},
 	Panels: {},
+	/**
+	 * 
+	 * @param {string} tag Tag name
+	 * @param {object} [attributes] Attributes
+	 * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
+	 * @returns {HTMLElement} Element
+	 */
+	createElement(tag, attributes = {}, content) {
+		let el = document.createElement(tag);
+		for (let key in attributes) {
+			let value = attributes[key];
+			if (value === undefined) continue;
+			if (key.startsWith('@')) {
+				el.addEventListener(key.substring(1), value);
+			} else {
+				el.setAttribute(key, attributes[key]);
+			}
+		}
+		if (typeof content == 'string') el.textContent = content;
+		if (content instanceof Array) {
+			content.forEach(node => el.append(node));
+		}
+		if (content instanceof HTMLElement) el.append(content);
+		return el;
+	},
 	toggleSidebar(side, status) {
 		if (status == undefined) status = !Prop[`show_${side}_bar`];
 		Prop[`show_${side}_bar`] = !!status;
@@ -356,6 +395,14 @@ function unselectInterface(event) {
 	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
 		stopRenameOutliner()
 	}
+	if (ReferenceImageMode.active &&
+		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n?.classList?.contains('reference_image')) &&
+		!ReferenceImageMode.toolbar.node.contains(event.target) &&
+		!Dialog.open &&
+		!open_menu
+	) {
+		ReferenceImageMode.deactivate();
+	}
 }
 function setupInterface() {
 
@@ -375,7 +422,7 @@ function setupInterface() {
 	Interface.status_bar.menu = new Menu([
 		'project_window',
 		'open_model_folder',
-		'open_backup_folder',
+		'view_backups',
 		'save',
 		'timelapse',
 		'cancel_gif',
@@ -425,16 +472,24 @@ function setupInterface() {
 
 
 
-	//Clickbinds
-	$('#preview').click(function() { setActivePanel('preview' )})
+	// Click binds
+	Interface.preview.addEventListener('click', e => setActivePanel('preview'));
+	
+	Interface.work_screen.addEventListener('dblclick', event => {
+		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
+		if (!reference) return;
+		if (document.querySelector('.preview:hover')) {
+			if (Preview.selected.raycast(event)) return;
+		}
+		reference.select();
+	});
 
-	$('#texture_list').click(function(){
-		unselectTextures()
-	})
+	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
+
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
-	$(document).on('mousedown touchstart', unselectInterface)
+	addEventListeners(document, 'mousedown touchstart', unselectInterface);
 
 	window.addEventListener('resize', resizeWindow);
 	window.addEventListener('orientationchange', () => {
@@ -521,6 +576,7 @@ function resizeWindow(event) {
 			}
 		}
 	})
+	ReferenceImage.active.forEach(ref => ref.updateTransform());
 	Outliner.elements.forEach(element => {
 		if (element.preview_controller.updateWindowSize) {
 			element.preview_controller.updateWindowSize(element);
@@ -572,6 +628,10 @@ function setZoomLevel(mode) {
 			case 'reset': zoom = 1; break;
 		}
 		UVEditor.setZoom(zoom);
+		if (mode == 'reset') {
+			Project.uv_viewport.offset.V2_set(0, 0);
+			UVEditor.loadViewportOffset();
+		}
 
 	} else if (Prop.active_panel == 'timeline') {
 		
@@ -620,27 +680,6 @@ $(document).keyup(function(event) {
 		$('.tooltip_shift').hide()
 	}
 })
-/**
- * 
- * @param {string} tag Tag name
- * @param {object} [attributes] Attributes
- * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
- * @returns {HTMLElement} Element
- */
-Interface.createElement = (tag, attributes = {}, content) => {
-	let el = document.createElement(tag);
-	for (let key in attributes) {
-		if (attributes[key] !== undefined) {
-			el.setAttribute(key, attributes[key]);
-		}
-	}
-	if (typeof content == 'string') el.textContent = content;
-	if (content instanceof Array) {
-		content.forEach(node => el.append(node));
-	}
-	if (content instanceof HTMLElement) el.append(content);
-	return el;
-}
 
 
 // Custom Elements
@@ -897,4 +936,26 @@ onVueSetup(function() {
 	Interface.removeSuggestedModifierKey = (key, text) => {
 		Interface.status_bar.vue.modifier_keys[key].remove(text);
 	};
+})
+
+
+BARS.defineActions(function() {
+	
+	new Action('reset_layout', {
+		icon: 'replay',
+		category: 'blockbench',
+		click: function () {
+			Interface.data = $.extend(true, {}, Interface.default_data);
+
+			for (let id in Panels) {
+				let panel = Panels[id];
+				panel.resetCustomLayout();
+			}
+
+			Blockbench.dispatchEvent('reset_layout', {});
+
+			updateInterface();
+			updateSidebarOrder();
+		}
+	})
 })

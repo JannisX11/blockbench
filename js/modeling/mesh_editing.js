@@ -2,83 +2,99 @@ function sameMeshEdge(edge_a, edge_b) {
 	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
 }
 
-function proportionallyEditMeshVertices(mesh, callback) {
-	if (!BarItems.proportional_editing.value) return;
-
-	let selected_vertices = mesh.getSelectedVertices();
-	let {range, shape, selection} = StateMemory.proportional_editing_options;
-	let linear_distance = selection == 'linear';
+const ProportionalEdit = {
+	vertex_weights: {},
+	calculateWeights(mesh) {
+		if (!BarItems.proportional_editing.value) return;
 	
-	let all_mesh_connections;
-	if (!linear_distance) {
-		all_mesh_connections = {};
-		for (let fkey in mesh.faces) {
-			let face = mesh.faces[fkey];
-			face.getEdges().forEach(edge => {
-				if (!all_mesh_connections[edge[0]]) {
-					all_mesh_connections[edge[0]] = [edge[1]];
-				} else {
-					all_mesh_connections[edge[0]].safePush(edge[1]);
-				}
-				if (!all_mesh_connections[edge[1]]) {
-					all_mesh_connections[edge[1]] = [edge[0]];
-				} else {
-					all_mesh_connections[edge[1]].safePush(edge[0]);
-				}
-			})
-		}
-	}
-
-	for (let vkey in mesh.vertices) {
-		if (selected_vertices.includes(vkey)) continue;
-
-		let distance = Infinity;
-		if (linear_distance) {
-			// Linear Distance
-			selected_vertices.forEach(vkey2 => {
-				let pos1 = mesh.vertices[vkey];
-				let pos2 = mesh.vertices[vkey2];
-				let distance_square = Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2) + Math.pow(pos1[2] - pos2[2], 2);
-				if (distance_square < distance) {
-					distance = distance_square;
-				}
-			})
-			distance = Math.sqrt(distance);
-		} else {
-			// Connection Distance
-			let found_match_depth = 0;
-			let scanned = [];
-			let frontier = [vkey];
-
-			depth_crawler:
-			for (let depth = 1; depth <= range; depth++) {
-				let new_frontier = [];
-				for (let vkey1 of frontier) {
-					let connections = all_mesh_connections[vkey1]?.filter(vkey2 => !scanned.includes(vkey2));
-					if (!connections || connections.length == 0) continue;
-					scanned.push(...connections);
-					new_frontier.push(...connections);
-				}
-				for (let vkey2 of new_frontier) {
-					if (selected_vertices.includes(vkey2)) {
-						found_match_depth = depth;
-						break depth_crawler;
+		let selected_vertices = mesh.getSelectedVertices();
+		let {range, falloff, selection} = StateMemory.proportional_editing_options;
+		let linear_distance = selection == 'linear';
+		
+		let all_mesh_connections;
+		if (!linear_distance) {
+			all_mesh_connections = {};
+			for (let fkey in mesh.faces) {
+				let face = mesh.faces[fkey];
+				face.getEdges().forEach(edge => {
+					if (!all_mesh_connections[edge[0]]) {
+						all_mesh_connections[edge[0]] = [edge[1]];
+					} else {
+						all_mesh_connections[edge[0]].safePush(edge[1]);
 					}
-				}
-				frontier = new_frontier;
-			}
-			if (found_match_depth) {
-				distance = found_match_depth;
+					if (!all_mesh_connections[edge[1]]) {
+						all_mesh_connections[edge[1]] = [edge[0]];
+					} else {
+						all_mesh_connections[edge[1]].safePush(edge[0]);
+					}
+				})
 			}
 		}
-		if (distance > range) continue;
 
-		let blend = 1 - (distance / (linear_distance ? range : range+1));
-		switch (shape) {
-			case 'hermite_spline': blend = Math.hermiteBlend(blend); break;
-			case 'constant': blend = 1; break;
+		ProportionalEdit.vertex_weights[mesh.uuid] = {};
+	
+		for (let vkey in mesh.vertices) {
+			if (selected_vertices.includes(vkey)) continue;
+	
+			let distance = Infinity;
+			if (linear_distance) {
+				// Linear Distance
+				selected_vertices.forEach(vkey2 => {
+					let pos1 = mesh.vertices[vkey];
+					let pos2 = mesh.vertices[vkey2];
+					let distance_square = Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2) + Math.pow(pos1[2] - pos2[2], 2);
+					if (distance_square < distance) {
+						distance = distance_square;
+					}
+				})
+				distance = Math.sqrt(distance);
+			} else {
+				// Connection Distance
+				let found_match_depth = 0;
+				let scanned = [];
+				let frontier = [vkey];
+	
+				depth_crawler:
+				for (let depth = 1; depth <= range; depth++) {
+					let new_frontier = [];
+					for (let vkey1 of frontier) {
+						let connections = all_mesh_connections[vkey1]?.filter(vkey2 => !scanned.includes(vkey2));
+						if (!connections || connections.length == 0) continue;
+						scanned.push(...connections);
+						new_frontier.push(...connections);
+					}
+					for (let vkey2 of new_frontier) {
+						if (selected_vertices.includes(vkey2)) {
+							found_match_depth = depth;
+							break depth_crawler;
+						}
+					}
+					frontier = new_frontier;
+				}
+				if (found_match_depth) {
+					distance = found_match_depth;
+				}
+			}
+			if (distance > range) continue;
+	
+			let blend = 1 - (distance / (linear_distance ? range : range+1));
+			switch (falloff) {
+				case 'hermite_spline': blend = Math.hermiteBlend(blend); break;
+				case 'constant': blend = 1; break;
+			}
+			ProportionalEdit.vertex_weights[mesh.uuid][vkey] = blend;
 		}
-		callback(vkey, blend);
+	},
+	editVertices(mesh, per_vertex) {
+		if (!BarItems.proportional_editing.value) return;
+
+		let selected_vertices = mesh.getSelectedVertices();
+		for (let vkey in mesh.vertices) {
+			if (selected_vertices.includes(vkey)) continue;
+	
+			let blend = ProportionalEdit.vertex_weights[mesh.uuid][vkey];
+			per_vertex(vkey, blend);
+		}
 	}
 }
 
@@ -88,7 +104,7 @@ BARS.defineActions(function() {
 		title: 'action.add_mesh',
 		form: {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
-				cube: 'dialog.add_primitive.shape.cube',
+				cuboid: 'dialog.add_primitive.shape.cube',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
 				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
@@ -99,8 +115,8 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cube', 'pyramid', 'plane'].includes(shape)},
-			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(shape)},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'pyramid', 'plane'].includes(shape)},
+			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
@@ -305,7 +321,7 @@ BARS.defineActions(function() {
 						}
 					}
 				}
-				if (result.shape == 'cube') {
+				if (result.shape == 'cuboid') {
 					let r = result.diameter/2;
 					let h = result.height;
 					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
@@ -375,7 +391,7 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cube', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
@@ -404,7 +420,7 @@ BARS.defineActions(function() {
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
@@ -500,7 +516,7 @@ BARS.defineActions(function() {
 		category: 'tools',
 		selectElements: true,
 		modes: ['edit'],
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onCanvasClick(data) {
 			if (!seam_timeout) {
 				seam_timeout = setTimeout(() => {
@@ -529,21 +545,15 @@ BARS.defineActions(function() {
 			divide: true,
 			join: true,
 		},
-		condition: () => Modes.edit && Mesh.all.length,
+		condition: () => Modes.edit && Mesh.hasAny(),
 		onChange({value}) {
 			if (value == 'auto') value = null;
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				let selected_vertices = mesh.getSelectedVertices();
-				mesh.forAllFaces((face) => {
-					let vertices = face.getSortedVertices();
-					vertices.forEach((vkey_a, i) => {
-						let vkey_b = vertices[i+1] || vertices[0];
-						if (selected_vertices.includes(vkey_a) && selected_vertices.includes(vkey_b)) {
-							mesh.setSeam([vkey_a, vkey_b], value);
-						}
-					})
-				});
+				let selected_edges = mesh.getSelectedEdges();
+				selected_edges.forEach(edge => {
+					mesh.setSeam(edge, value);
+				})
 				Mesh.preview_controller.updateSelection(mesh);
 			})
 			Undo.finishEdit('Set mesh seam');
@@ -580,6 +590,7 @@ BARS.defineActions(function() {
 					}
 					// Split face
 					if (
+						reference_face &&
 						(selected_vertices.length == 2 || selected_vertices.length == 3) &&
 						reference_face.vertices.length == 4 &&
 						reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == selected_vertices.length
@@ -615,7 +626,7 @@ BARS.defineActions(function() {
 						
 						let new_face = new MeshFace(mesh, {
 							vertices: selected_vertices,
-							texture: reference_face.texture,
+							texture: reference_face?.texture,
 						} );
 						let [face_key] = mesh.addFaces(new_face);
 						UVEditor.selected_faces.push(face_key);
@@ -719,7 +730,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.selected.length)},
 		click() {
-			Undo.initEdit({elements: Cube.selected});
+			Undo.initEdit({elements: Cube.selected, outliner: true});
 
 			let new_meshes = [];
 			Cube.selected.forEach(cube => {
@@ -729,19 +740,26 @@ BARS.defineActions(function() {
 					color: cube.color,
 					origin: cube.origin,
 					rotation: cube.rotation,
-					vertices: [
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.to[0] + cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.to[1] + cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.to[2] + cube.inflate - cube.origin[2]],
-						[cube.from[0] - cube.inflate - cube.origin[0],	cube.from[1] - cube.inflate - cube.origin[1], 	cube.from[2] - cube.inflate - cube.origin[2]],
-					],
+					vertices: []
 				})
+				var adjustedFrom = cube.from.slice();
+				var adjustedTo = cube.to.slice();
+				adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
+				for (let i = 0; i < adjustedFrom.length; i++) {
+					adjustedFrom[i] - cube.origin[i];
+					adjustedTo[i] - cube.origin[i]
+				}
+				let vertex_keys = [
+					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedFrom[1], 	adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedTo[0],	adjustedFrom[1], 	adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedTo[1], 		adjustedFrom[2] ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedFrom[1], 	adjustedTo[2]   ])[0],
+					mesh.addVertices([adjustedFrom[0],	adjustedFrom[1], 	adjustedFrom[2] ])[0],
+				];
 
-				let vertex_keys = Object.keys(mesh.vertices);
 				let unused_vkeys = vertex_keys.slice();
 				function addFace(direction, vertices) {
 					let cube_face = cube.faces[direction];
@@ -778,7 +796,7 @@ BARS.defineActions(function() {
 				cube.remove();
 			})
 			updateSelection();
-			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes});
+			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
 		}
 	})
 	new Action('invert_face', {
@@ -799,6 +817,26 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
 		}
 	})
+	new Action('switch_face_crease', {
+		icon: 'signal_cellular_off',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().find(fkey => Mesh.selected[0].faces[fkey].vertices.length == 4))},
+		click() {
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key];
+					if (face.vertices.length == 4 && face.isSelected()) {
+						let new_vertices = face.getSortedVertices().slice();
+						new_vertices.push(new_vertices.shift());
+						face.vertices.replace(new_vertices);
+					}
+				}
+			})
+			Undo.finishEdit('Switch mesh face crease');
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}});
+		}
+	})
 	new Action('extrude_mesh_selection', {
 		icon: 'upload',
 		category: 'edit',
@@ -810,7 +848,7 @@ BARS.defineActions(function() {
 
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices().slice();
-					let selected_edges = mesh.getSelectedEdges();
+					let selected_edges = mesh.getSelectedEdges(true);
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
@@ -890,6 +928,19 @@ BARS.defineActions(function() {
 								direction = combined_direction;
 
 							} else if (match) {
+								let difference = new THREE.Vector3();
+								let signs_done = [];
+								match.vertices.forEach(vkey => {
+									let sign = original_vertices.includes(vkey) ? 1 : -1;
+									difference.x += mesh.vertices[vkey][0] * sign;
+									difference.y += mesh.vertices[vkey][1] * sign;
+									difference.z += mesh.vertices[vkey][2] * sign;
+									signs_done.push(sign);
+								})
+								direction = difference.normalize().toArray();
+
+							} else if (match) {
+								// perpendicular edge, currently unused
 								direction = match.getNormal(true);
 							}
 						}
@@ -981,6 +1032,13 @@ BARS.defineActions(function() {
 						}
 					})
 
+					// Update edge selection
+					selected_edges.forEach(edge => {
+						edge.forEach((vkey, i) => {
+							edge[i] = new_vertices[original_vertices.indexOf(vkey)];
+						});
+					})
+
 					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
 				Undo.finishEdit('Extrude mesh selection');
@@ -1008,15 +1066,9 @@ BARS.defineActions(function() {
 					if (original_vertices.length < 3) return;
 					original_vertices = original_vertices.slice();
 					let new_vertices;
-					let selected_faces = [];
-					let selected_face_keys = [];
-					for (let key in mesh.faces) {
-						let face = mesh.faces[key]; 
-						if (face.isSelected()) {
-							selected_faces.push(face);
-							selected_face_keys.push(key);
-						}
-					}
+					let selected_face_keys = mesh.getSelectedFaces();
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
+					let modified_face_keys = selected_face_keys.slice();
 	
 					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
 						let vector = mesh.vertices[vkey].slice();
@@ -1073,15 +1125,24 @@ BARS.defineActions(function() {
 							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
 							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
 
+							let new_face_vertices = [
+								b,
+								a,
+								original_vertices[new_vertices.indexOf(a)],
+								original_vertices[new_vertices.indexOf(b)],
+							];
+							let new_face_uv = {
+								[a]: face.uv[a],
+								[b]: face.uv[b],
+								[new_face_vertices[2]]: face.uv[a],
+								[new_face_vertices[3]]: face.uv[b],
+							};
 							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
-								vertices: [
-									b,
-									a,
-									original_vertices[new_vertices.indexOf(a)],
-									original_vertices[new_vertices.indexOf(b)],
-								]
+								vertices: new_face_vertices,
+								uv: new_face_uv
 							});
-							mesh.addFaces(new_face);
+							let [fkey] = mesh.addFaces(new_face);
+							modified_face_keys.push(fkey);
 							remaining_vertices.remove(a);
 							remaining_vertices.remove(b);
 						})
@@ -1101,6 +1162,7 @@ BARS.defineActions(function() {
 						}
 						delete mesh.vertices[b];
 					})
+					UVEditor.setAutoSize(null, true, modified_face_keys);
 
 				})
 				Undo.finishEdit('Extrude mesh selection')
@@ -1161,16 +1223,17 @@ BARS.defineActions(function() {
 					}
 					if (!start_face) return;
 					let processed_faces = [start_face];
-					let center_vertices = {};
+					let center_vertices_map = {};
 
 					function getCenterVertex(vertices) {
-						let existing_key = center_vertices[vertices[0]] || center_vertices[vertices[1]];
+						let edge_key = vertices.slice().sort().join('.');
+						let existing_key = center_vertices_map[edge_key];
 						if (existing_key) return existing_key;
 
 						let ratio = offset/length;
 						let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], ratio))
 						let [vkey] = mesh.addVertices(vector);
-						center_vertices[vertices[0]] = center_vertices[vertices[1]] = vkey;
+						center_vertices_map[edge_key] = vkey;
 						return vkey;
 					}
 
@@ -1250,8 +1313,117 @@ BARS.defineActions(function() {
 								}
 							}
 
-						} else {
-							let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+						} else if (face.vertices.length == 3) {
+							if (direction > 2) {
+								// Split tri from edge to edge
+
+								let opposed_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+								let opposite_vertices = [opposed_vertex, side_vertices[direction % side_vertices.length]];
+
+								let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
+								if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
+
+								let center_vertices = [
+									getCenterVertex(side_vertices),
+									getCenterVertex(opposite_vertices)
+								]
+
+								let c1_uv_coords = [
+									Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
+								];
+								let c2_uv_coords = [
+									Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], offset/length),
+								];
+
+								let other_quad_vertex = side_vertices.find(vkey => !opposite_vertices.includes(vkey));
+								let other_tri_vertex = side_vertices.find(vkey => opposite_vertices.includes(vkey));
+								let new_face = new MeshFace(mesh, face).extend({
+									vertices: [other_tri_vertex, center_vertices[0], center_vertices[1]],
+									uv: {
+										[other_tri_vertex]: face.uv[other_tri_vertex],
+										[center_vertices[0]]: c1_uv_coords,
+										[center_vertices[1]]: c2_uv_coords,
+									}
+								})
+								if (new_face.getAngleTo(face) > 90) {
+									new_face.invert();
+								}
+								face.extend({
+									vertices: [opposed_vertex, center_vertices[0], center_vertices[1], other_quad_vertex],
+									uv: {
+										[opposed_vertex]: face.uv[opposed_vertex],
+										[center_vertices[0]]: c1_uv_coords,
+										[center_vertices[1]]: c2_uv_coords,
+										[other_quad_vertex]: face.uv[other_quad_vertex],
+									}
+								})
+								if (face.getAngleTo(new_face) > 90) {
+									face.invert();
+								}
+								mesh.addFaces(new_face);
+
+								// Find next (and previous) face
+								for (let fkey in mesh.faces) {
+									let ref_face = mesh.faces[fkey];
+									if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+									let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
+									if (vertices.length >= 2) {
+										splitFace(ref_face, opposite_vertices, ref_face.vertices.length == 4);
+										break;
+									}
+								}
+
+								if (double_side) {
+									for (let fkey in mesh.faces) {
+										let ref_face = mesh.faces[fkey];
+										if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
+										let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
+										if (vertices.length >= 2) {
+											let ref_sorted_vertices = ref_face.getSortedVertices();
+											let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+											
+											if (ref_opposite_vertices.length == 2) {
+												splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4);
+												break;
+											}
+										}
+									}
+								}
+							} else {
+								let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
+
+								let center_vertex = getCenterVertex(side_vertices);
+
+								let c1_uv_coords = [
+									Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], offset/length),
+									Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], offset/length),
+								];
+
+								let new_face = new MeshFace(mesh, face).extend({
+									vertices: [side_vertices[1], center_vertex, opposite_vertex],
+									uv: {
+										[side_vertices[1]]: face.uv[side_vertices[1]],
+										[center_vertex]: c1_uv_coords,
+										[opposite_vertex]: face.uv[opposite_vertex],
+									}
+								})
+								face.extend({
+									vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+									uv: {
+										[opposite_vertex]: face.uv[opposite_vertex],
+										[center_vertex]: c1_uv_coords,
+										[side_vertices[0]]: face.uv[side_vertices[0]],
+									}
+								})
+								if (direction % 3 == 2) {
+									new_face.invert();
+									face.invert();
+								}
+								mesh.addFaces(new_face);
+							}
+						} else if (face.vertices.length == 2) {
 
 							let center_vertex = getCenterVertex(side_vertices);
 
@@ -1261,17 +1433,15 @@ BARS.defineActions(function() {
 							];
 
 							let new_face = new MeshFace(mesh, face).extend({
-								vertices: [side_vertices[1], center_vertex, opposite_vertex],
+								vertices: [side_vertices[1], center_vertex],
 								uv: {
 									[side_vertices[1]]: face.uv[side_vertices[1]],
 									[center_vertex]: c1_uv_coords,
-									[opposite_vertex]: face.uv[opposite_vertex],
 								}
 							})
 							face.extend({
-								vertices: [opposite_vertex, center_vertex, side_vertices[0]],
+								vertices: [center_vertex, side_vertices[0]],
 								uv: {
-									[opposite_vertex]: face.uv[opposite_vertex],
 									[center_vertex]: c1_uv_coords,
 									[side_vertices[0]]: face.uv[side_vertices[0]],
 								}
@@ -1284,11 +1454,11 @@ BARS.defineActions(function() {
 					let start_edge = [start_vertices[direction % start_vertices.length], start_vertices[(direction+1) % start_vertices.length]];
 					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
 
-					splitFace(start_face, start_edge, start_face.vertices.length == 4);
+					splitFace(start_face, start_edge, start_face.vertices.length == 4 || direction > 2);
 
 					selected_vertices.empty();
-					for (let key in center_vertices) {
-						selected_vertices.safePush(center_vertices[key]);
+					for (let key in center_vertices_map) {
+						selected_vertices.safePush(center_vertices_map[key]);
 					}
 				})
 				Undo.finishEdit('Create loop cut')
@@ -1312,12 +1482,8 @@ BARS.defineActions(function() {
 					form_options.offset.slider.update();
 					saved_direction = direction;
 				}
-
-				if (form_options.direction) {
-					form_options.direction.slider.value = direction % selected_face.vertices.length;
-				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction ? form_options.direction.slider.value : 0);
+				runEdit(true, form_options.offset.slider.value, form_options.direction ? direction : 0);
 			})
 		}
 	})
@@ -1365,6 +1531,10 @@ BARS.defineActions(function() {
 								delete face_b.uv[edge_vkey];
 							}
 						})
+						// Make sure orientation stays the same
+						if (face_b.getAngleTo(face_a) > 90) {
+							face_b.invert();
+						}
 					}
 					
 					// Remove all other faces and lines
@@ -1797,8 +1967,8 @@ BARS.defineActions(function() {
 	if (!StateMemory.proportional_editing_options.range) {
 		StateMemory.proportional_editing_options.range = 8;
 	}
-	if (!StateMemory.proportional_editing_options.shape) {
-		StateMemory.proportional_editing_options.shape = 'linear';
+	if (!StateMemory.proportional_editing_options.falloff) {
+		StateMemory.proportional_editing_options.falloff = 'linear';
 	}
 	if (!StateMemory.proportional_editing_options.selection) {
 		StateMemory.proportional_editing_options.selection = 'linear';
@@ -1826,15 +1996,15 @@ BARS.defineActions(function() {
 			singleButton: true,
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
-				range: {type: 'number', label: 'Range', value: StateMemory.proportional_editing_options.range},
-				shape: {type: 'select', label: 'Falloff', value: StateMemory.proportional_editing_options.shape, options: {
-					linear: 'Linear',
-					hermite_spline: 'Smooth',
-					constant: 'Constant',
+				range: {type: 'number', label: 'dialog.proportional_editing.range', value: StateMemory.proportional_editing_options.range},
+				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: StateMemory.proportional_editing_options.falloff, options: {
+					linear: 'dialog.proportional_editing.falloff.linear',
+					hermite_spline: 'dialog.proportional_editing.falloff.hermite_spline',
+					constant: 'dialog.proportional_editing.falloff.constant',
 				}},
-				selection: {type: 'select', label: 'Selection', value: StateMemory.proportional_editing_options.selection, options: {
-					linear: 'Linear Distance',
-					connections: 'Connections',
+				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: StateMemory.proportional_editing_options.selection, options: {
+					linear: 'dialog.proportional_editing.selection.linear',
+					connections: 'dialog.proportional_editing.selection.connections',
 					//path: 'Connection Path',
 				}},
 			},
@@ -1846,9 +2016,10 @@ BARS.defineActions(function() {
 					BarItems.proportional_editing.trigger();
 				}
 				StateMemory.proportional_editing_options.range = formResult.range;
-				StateMemory.proportional_editing_options.shape = formResult.shape;
+				StateMemory.proportional_editing_options.falloff = formResult.falloff;
 				StateMemory.proportional_editing_options.selection = formResult.selection;
 				StateMemory.save('proportional_editing_options');
+				BarItems.proportional_editing_range.update();
 			}
 		})
 	})

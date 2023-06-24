@@ -384,6 +384,7 @@ const Settings = {
 		new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 			Interface.status_bar.vue.show_modifier_keys = value;
 		}});
+		new Setting('always_show_splash_art',{category: 'interface', value: true});
 		new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 		new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
@@ -407,7 +408,9 @@ const Settings = {
 		}});
 		
 		//Preview 
-		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400});
+		new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400, onChange() {
+			Canvas.updateShading();
+		}});
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			Canvas.updateShading()
 		}});
@@ -455,6 +458,7 @@ const Settings = {
 			'face': tl('menu.paste.face'),
 			'mesh_selection': tl('menu.paste.mesh_selection'),
 		}});
+		new Setting('stretch_linked',{category: 'edit', value: true});
 		
 		//Grid
 		new Setting('base_grid',		{category: 'grid', value: true,});
@@ -485,15 +489,16 @@ const Settings = {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
 		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
-		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'pressure', type: 'select', options: {
+		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
 		}});
-		new Setting('brush_size_modifier', {category: 'paint', value: 'tilt', type: 'select', options: {
+		new Setting('brush_size_modifier', {category: 'paint', value: 'none', type: 'select', options: {
 			'pressure': tl('settings.brush_modifier.pressure'),
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
@@ -525,6 +530,11 @@ const Settings = {
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
+		new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {
+			tabs: tl('settings.json_indentation.tabs'),
+			spaces_4: tl('settings.json_indentation.spaces_4'),
+			spaces_2: tl('settings.json_indentation.spaces_2'),
+		}});
 		new Setting('minifiedout', 			{category: 'export', value: false});
 		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
@@ -539,6 +549,11 @@ const Settings = {
 		new Setting('model_export_scale',	{category: 'export', value: 16, type: 'number', min: 0.0001, max: 4096});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 		new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
+
+		Blockbench.onUpdateTo('4.7.1', () => {
+			settings.brush_opacity_modifier.set('none');
+			settings.brush_size_modifier.set('none');
+		})
 	},
 	setupProfiles() {
 		if (localStorage.getItem('settings_profiles') != null) {
@@ -593,9 +608,6 @@ const Settings = {
 		localStorage.setItem('settings', JSON.stringify(settings_copy) )
 		localStorage.setItem('settings_profiles', JSON.stringify(SettingsProfile.all));
 
-		if (window.canvas_scenes) {
-			localStorage.setItem('canvas_scenes', JSON.stringify(canvas_scenes))
-		}
 		if (window.ColorPanel) {
 			ColorPanel.saveLocalStorages()
 		}
@@ -621,9 +633,7 @@ const Settings = {
 			Canvas.buildGrid()
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-		if (hasSettingChanged('brightness')) {
-			Canvas.updateShading()
-		}
+
 		for (var id in settings) {
 			var setting = settings[id];
 			if (!Condition(setting.condition)) continue;
@@ -951,7 +961,7 @@ onVueSetup(function() {
 							</div>
 
 							<template v-if="setting.type === 'number'">
-								<div class="setting_element"><input type="number" v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()"></div>
+								<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
 							</template>
 							<template v-else-if="setting.type === 'click'">
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
