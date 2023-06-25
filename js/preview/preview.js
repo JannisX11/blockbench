@@ -308,7 +308,7 @@ class Preview {
 		}, false)
 		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				event => { Toolbox.toggleTransforms(event); }, false)
+		addEventListeners(this.canvas, 'dblclick', 				event => { if (settings.double_click_switch_tools.value) Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
 
