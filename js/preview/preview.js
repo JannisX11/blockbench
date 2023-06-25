@@ -1053,12 +1053,16 @@ class Preview {
 				Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
 
 				// rotation
-				Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), world_normal);
+				Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
+
 				Canvas.brush_outline.rotation.z = 0;
 				let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
 				brush_coord_difference.applyQuaternion(inverse);
 				let rotation = Math.atan2(brush_coord_difference.x, -brush_coord_difference.y);
 				Canvas.brush_outline.rotation.z = rotation;
+
+				
+				Canvas.brush_outline.quaternion.premultiply(world_quaternion);
 			}
 		}
 	}

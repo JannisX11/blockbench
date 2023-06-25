@@ -49,6 +49,45 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
+	UVToLocal(point) {
+		let {from, to} = this.cube;
+		let vector = new THREE.Vector3().fromArray(from);
+
+		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
+		let lerp_y = Math.getLerp(this.uv[1], this.uv[3], point[1]);
+
+		if (this.direction == 'east') {
+			vector.x = to[0];
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.z = Math.lerp(to[2], from[2], lerp_x);
+		}
+		if (this.direction == 'west') {
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.z = Math.lerp(from[2], to[2], lerp_x);
+		}
+		if (this.direction == 'up') {
+			vector.y = to[1];
+			vector.z = Math.lerp(from[2], to[2], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'down') {
+			vector.z = Math.lerp(to[2], from[2], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'south') {
+			vector.z = to[2];
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'north') {
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.x = Math.lerp(to[0], from[0], lerp_x);
+		}
+		vector.x -= this.cube.origin[0];
+		vector.y -= this.cube.origin[1];
+		vector.z -= this.cube.origin[2];
+		return vector;
+	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
