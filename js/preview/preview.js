@@ -1007,9 +1007,59 @@ class Preview {
 		}
 	}
 	mousemove(event) {
-		if (Settings.get('highlight_cubes')) {
+		if (Settings.get('highlight_cubes') || Toolbox.selected.brush?.size) {
 			var data = this.raycast(event);
 			updateCubeHighlights(data && data.element);
+
+			if (Toolbox.selected.brush?.size) {
+				if (!data) {
+					scene.remove(Canvas.brush_outline);
+					return;
+				}
+				let face = data.element.faces[data.face];
+				let texture = face.getTexture();
+				if (!texture) {
+					scene.remove(Canvas.brush_outline);
+					return;
+				}
+				scene.add(Canvas.brush_outline);
+
+				let intersect = data.intersects[0];
+				let world_quaternion = intersect.object.getWorldQuaternion(Reusable.quat1)
+				let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
+
+				// UV
+				let offset = 0;
+				let x = intersect.uv.x * texture.width;
+				let y = (1-intersect.uv.y) * texture.height;
+				if (Condition(Toolbox.selected.brush.floor_coordinates)) {
+					offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
+					x = Math.round(x + offset) - offset;
+					y = Math.round(y + offset) - offset;
+				}
+				// Position
+				let brush_coord = face.UVToLocal([x, y]);
+				let brush_coord_difference = face.UVToLocal([x, y+1]);
+				brush_coord_difference.sub(brush_coord);
+				intersect.object.localToWorld(brush_coord);
+				Canvas.brush_outline.position.copy(brush_coord);
+
+				//size
+				let radius = BarItems.slider_brush_size.get() * 1.03 * brush_coord_difference.length();
+				Canvas.brush_outline.scale.set(radius, radius, radius);
+
+				// z fighting
+				let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
+				Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
+
+				// rotation
+				Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), world_normal);
+				Canvas.brush_outline.rotation.z = 0;
+				let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
+				brush_coord_difference.applyQuaternion(inverse);
+				let rotation = Math.atan2(brush_coord_difference.x, -brush_coord_difference.y);
+				Canvas.brush_outline.rotation.z = rotation;
+			}
 		}
 	}
 	mouseup(event) {

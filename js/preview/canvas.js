@@ -639,6 +639,23 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 
+		let brush_img = new Image();
+		brush_img.src = 'assets/brush_outline.png';
+		brush_img.tex = new THREE.Texture(brush_img);
+		brush_img.tex.magFilter = THREE.NearestFilter;
+		brush_img.tex.minFilter = THREE.NearestFilter;
+		brush_img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		let brush_outline_material = new THREE.MeshBasicMaterial({
+			map: brush_img.tex,
+			transparent: true,
+			side: THREE.DoubleSide,
+			alphaTest: 0.2
+		})
+		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
+		scene.add(Canvas.brush_outline);
+
 		/*
 		// Vertex gizmos
 		var vertex_img = new Image();
