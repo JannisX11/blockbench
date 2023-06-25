@@ -1889,6 +1889,7 @@
 
 	"edit.loop_cut.direction": "Direction",
 	"edit.loop_cut.offset": "Offset",
+	"edit.loop_cut.cuts": "Cuts",
 	"edit.extrude_mesh_selection.extend": "Extend",
 
 	"web.download_app": "Download App",
