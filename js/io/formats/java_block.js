@@ -525,13 +525,7 @@ var format = new ModelFormat({
 			}
 		]
 	},
-	render_sides() {
-		if (Modes.display && ['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
-			return 'double';
-		} else {
-			return 'front';
-		}
-	},
+	render_sides: 'front',
 	model_identifier: false,
 	parent_model_id: true,
 	vertex_color_ambient_occlusion: true,
