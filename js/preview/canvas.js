@@ -654,7 +654,6 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
-		scene.add(Canvas.brush_outline);
 
 		/*
 		// Vertex gizmos

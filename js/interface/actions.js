@@ -161,7 +161,7 @@ class BarItem {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
-				scope.toolbars[i].remove(scope)
+				scope.toolbars[i].remove(scope, false);
 			}
 		}
 		if (idx !== undefined) {
@@ -425,6 +425,9 @@ class Tool extends Action {
 			Toolbox.selected.menu_node.classList.remove('enabled')
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
+			}
+			if (Toolbox.selected.brush?.size && !this.brush?.size) {
+				scene.remove(Canvas.brush_outline);
 			}
 			if (Transformer.dragging) {
 				Transformer.cancelMovement({}, true);
@@ -1444,9 +1447,6 @@ class Toolbar {
 
 				if (item) {
 					item.pushToolbar(this);
-					/*if (BARS.condition(item.condition)) {
-						content.append(item.getNode())
-					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
 					var postloadAction = [items[itemPosition], itemPosition];
@@ -1497,14 +1497,14 @@ class Toolbar {
 		this.update().save();
 		return this;
 	}
-	remove(action) {
+	remove(action, update = true) {
 		var i = this.children.length-1;
 		while (i >= 0) {
 			var item = this.children[i]
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update(true).save();
+				if (update != false) this.update(true).save();
 				return this;
 			}
 			i--;
