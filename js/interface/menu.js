@@ -261,9 +261,8 @@ class Menu {
 				nodes.last().remove();
 			}
 
-			if (!nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'))) {
-				menu_node.addClass('scrollable');
-			}
+			let is_scrollable = !nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'));
+			menu_node.toggleClass('scrollable', is_scrollable);
 		}
 
 		function getEntry(s, parent) {
