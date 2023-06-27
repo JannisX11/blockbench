@@ -438,7 +438,7 @@ BARS.defineActions(function() {
 					}
 				})
 			}
-			if (value == 'face' && ['edge', 'vertex'].includes(previous_selection_mode)) {
+			if ((value == 'face' || value == 'cluster') && ['edge', 'vertex'].includes(previous_selection_mode)) {
 				Mesh.selected.forEach(mesh => {
 					let vertices = mesh.getSelectedVertices();
 					let faces = mesh.getSelectedFaces(true);

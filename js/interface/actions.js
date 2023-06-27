@@ -1463,6 +1463,7 @@ class Toolbar {
 		if (data.default_place) {
 			this.toPlace(this.id)
 		}
+		this.condition_cache.empty();
 		return this;
 	}
 	contextmenu(event) {
@@ -1549,7 +1550,6 @@ class Toolbar {
 			}
 		}
 
-		//scope.condition_cache.empty();
 		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 

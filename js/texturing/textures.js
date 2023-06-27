@@ -1450,19 +1450,19 @@ class Texture {
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition() {return !Project.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition() {return !Project.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
 				name: 'menu.texture.elements',
-				condition() {return !Project.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply(true)}
 			},
 			{
