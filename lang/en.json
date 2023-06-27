@@ -386,7 +386,9 @@
 	"dialog.project.shadow_size": "Shadow Size",
 
 	"dialog.convert_project.title": "Convert Project",
-	"dialog.convert_project.text": "Are you sure you want to convert this project? You cannot undo this step.",
+	"dialog.convert_project.text1": "Convert the project into a different format.",
+	"dialog.convert_project.text2": "Use conversion at your own risk. Formats have different features and restrictions, so converting will in some cases break parts of your project.",
+	"dialog.convert_project.text3": "You cannot undo converting, that is why by default a copy will be created.",
 	"dialog.convert_project.current_format": "Current Format",
 	"dialog.convert_project.create_copy": "Create Copy",
 

@@ -1086,9 +1086,11 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text:    {type: 'info', text: 'dialog.convert_project.text'},
-					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
-					format:  {
+					text1:		{type: 'info', text: 'dialog.convert_project.text1'},
+					text2:		{type: 'info', text: 'dialog.convert_project.text2'},
+					text3:		{type: 'info', text: 'dialog.convert_project.text3'},
+					current: 	{type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  	{
 						label: 'data.format',
 						type: 'select',
 						options,
