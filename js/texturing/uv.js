@@ -3252,7 +3252,7 @@ Interface.definePanels(function() {
 					</div>
 
 
-					<div id="uv_face_properties" v-if="mode === 'face_properties' && mappable_elements[0] && mappable_elements[0].type == 'cube'">
+					<div id="uv_face_properties" v-if="mode === 'face_properties'">
 						<div class="bar" id="face_properties_header_bar">
 							<li></li>
 							<li @click="mode = 'uv'" class="tool face_properties_toggle">
@@ -3287,7 +3287,7 @@ Interface.definePanels(function() {
 						</div>
 
 
-						<ul>
+						<ul v-if="mappable_elements[0] && mappable_elements[0].type == 'cube'">
 							<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 								class="uv_face_properties_line"
 								:class="{selected: selected_faces.includes(key), disabled: mappable_elements[0].faces[key].texture === null}"
