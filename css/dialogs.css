@@ -1165,6 +1165,9 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		width: 100%;
 		margin-top: 10px;
 	}
+	#plugin_browser_sidebar > .pagination_numbers {
+		padding: 8px;
+	}
 	#plugin_list {
 		overflow-y: scroll;
 	}

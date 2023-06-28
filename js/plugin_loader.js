@@ -345,7 +345,7 @@ class Plugin {
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
 	hasImageIcon() {
-		return this.icon.endsWith('.png');
+		return this.icon.endsWith('.png') || this.icon.endsWith('.svg');
 	}
 	getIcon() {
 		if (this.hasImageIcon()) {
@@ -424,7 +424,6 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 			data.animation_sliders.about = '';
 			data.animation_sliders.min_version = '4.8.0';
 			data.animation_sliders.creation_date = '2023-06-23';
-			console.log()
 				
 			resolve();
 			Plugins.loading_promise.resolved = true;
@@ -533,13 +532,15 @@ BARS.defineActions(function() {
 		id: 'plugins',
 		title: 'dialog.plugins.title',
 		buttons: [],
-		width: 1180,
+		width: 1200,
 		component: {
 			data: {
 				tab: 'installed',
 				search_term: '',
 				items: Plugins.all,
 				selected_plugin: null,
+				page: 0,
+				per_page: 25,
 				isMobile: Blockbench.isMobile,
 			},
 			computed: {
@@ -568,16 +569,46 @@ BARS.defineActions(function() {
 						tags.safePush(...plugin.tags)
 					})
 					let rows = tags.map(tag => {
-						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated'));
+						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
 						return {
 							title: tag,
 							plugins,
 						}
-					}).filter(row => row.plugins.length > 1);
-					return rows.sort((a, b) => a.plugins.length - b.plugins.length).slice(0, 3);
+					}).filter(row => row.plugins.length > 2);
+					//rows.sort((a, b) => a.plugins.length - b.plugins.length);
+					rows.sort(() => Math.random() - 0.5);
+
+					let cutoff = Date.now() - (3_600_000 * 24 * 28);
+					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'))
+					new_plugins.sort((a, b) => a.creation_date - b.creation_date);
+					let new_row = {
+						title: 'New',
+						plugins: new_plugins.slice(0, 12)
+					}
+					rows.splice(0, 0, new_row);
+
+					return rows.slice(0, 3);
+				},
+				viewed_plugins() {
+					return this.plugin_search.slice(this.page * this.per_page, (this.page+1) * this.per_page);
+				},
+				pages() {
+					let pages = [];
+					let length = this.plugin_search.length;
+					for (let i = 0; i * this.per_page < length; i++) {
+						pages.push(i);
+					}
+					return pages;
 				}
 			},
 			methods: {
+				setTab(tab) {
+					this.tab = tab;
+					this.setPage(0);
+				},
+				setPage(number) {
+					this.page = number;
+				},
 				selectPlugin(plugin) {
 					plugin.fetchAbout();
 					this.selected_plugin = plugin;
@@ -605,14 +636,14 @@ BARS.defineActions(function() {
 					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
 						<div class="bar flex" id="plugins_list_main_bar">
 							<div class="tool" v-if="!isMobile" @click="selected_plugin = null"><i class="material-icons icon">home</i></div>
-							<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
+							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
 						<div class="tab_bar">
-							<div :class="{open: tab == 'installed'}" @click="tab = 'installed'">${tl('dialog.plugins.installed')}</div>
-							<div :class="{open: tab == 'available'}" @click="tab = 'available'">${tl('dialog.plugins.available')}</div>
+							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
+							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" id="plugin_list">
-							<li v-for="plugin in plugin_search" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -631,6 +662,9 @@ BARS.defineActions(function() {
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
 						</ul>
+						<ol class="pagination_numbers" v-if="pages.length > 1">
+							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
+						</ol>
 					</div>
 					
 					<div id="plugin_browser_page" v-if="selected_plugin">
