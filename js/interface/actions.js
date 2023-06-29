@@ -270,6 +270,17 @@ class Action extends BarItem {
 			Interface.createElement('span', {}, this.name),
 			Interface.createElement('label', {class: 'keybinding_label'}, this.keybind || '')
 		]);
+		addEventListeners(this.menu_node, 'mouseenter mousedown', event => {
+			if (event.target == this.menu_node) {
+				Menu.open.hover(this.menu_node, event);
+			}
+		});
+		if (!this.children) {
+			this.menu_node.addEventListener('click', event => {
+				if (!(event.target == this.menu_node || event.target.parentElement == this.menu_node)) return;
+				this.trigger(event);
+			});
+		}
 
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()

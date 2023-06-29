@@ -404,6 +404,9 @@
 		font-family: var(--font-headline);
 	}
 	h2 {
+		letter-spacing: -0.03em;
+	}
+	h2 {
 		font-weight: lighter;
 		margin: 0;
 	}

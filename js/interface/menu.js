@@ -66,13 +66,13 @@ class Menu {
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
 		var obj = $(node)
-		obj.addClass('focused')
+		node.classList.add('focused')
 		obj.parents('li.parent, li.hybrid_parent').addClass('opened')
 
 		if (obj.hasClass('parent') || (expand && obj.hasClass('hybrid_parent'))) {
 			var childlist = obj.find('> ul.contextMenu.sub')
 
-			if (expand) obj.addClass('opened');
+			if (expand) node.classList.add('opened');
 
 			var p_width = obj.outerWidth()
 			childlist.css('left', p_width + 'px')
@@ -152,7 +152,7 @@ class Menu {
 			}
 			used = true;
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-			obj.find('li.focused').click()
+			obj.find('li.focused').trigger('click');
 			if (scope && !this.options.keep_open) {
 				//scope.hide()
 			}
@@ -175,7 +175,7 @@ class Menu {
 		if (open_menu) {
 			open_menu.hide()
 		}
-		$('body').append(ctxmenu)
+		document.body.append(this.node);
 
 		ctxmenu.children().detach()
 
@@ -185,9 +185,10 @@ class Menu {
 			} else if (!list) {
 				list = object.children
 			}
+			node = $(node);
 			node.find('ul.contextMenu.sub').detach();
 			if (list.length) {
-				var childlist = $('<ul class="contextMenu sub"></ul>')
+				var childlist = $(Interface.createElement('ul', {class: 'contextMenu sub'}));
 
 				populateList(list, childlist, object.searchable);
 
@@ -224,11 +225,11 @@ class Menu {
 				
 				let object_list = [];
 				list.forEach(function(s2, i) {
-					let jq_node = getEntry(s2, menu_node);
-					if (!jq_node) return;
+					let node = getEntry(s2, menu_node);
+					if (!node) return;
 					object_list.push({
 						object: s2,
-						node: jq_node[0] || jq_node,
+						node: node,
 						id: s2.id,
 						name: s2.name,
 						description: s2.description,
@@ -303,24 +304,14 @@ class Menu {
 
 			if (s instanceof Action) {
 
-				entry = $(s.menu_node)
+				entry = s.menu_node
 
-				entry.removeClass('focused')
-				entry.off('click')
-				entry.off('mouseenter mousedown')
-				entry.on('mouseenter mousedown', function(e) {
-					if (this == e.target) {
-						scope.hover(this, e)
-					}
-				})
+				entry.classList.remove('focused');
+
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
 					createChildList(s, entry)
 				} else {
-					entry.on('click', (e) => {
-						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
-						s.trigger(e)
-					});
 					if (s.side_menu instanceof Menu) {
 						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
@@ -347,7 +338,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon)
 
 				//Submenu
@@ -379,8 +370,8 @@ class Menu {
 				if (child_count !== 0 || typeof s.click === 'function') {
 					parent.append(entry)
 				}
-				entry.mouseenter(function(e) {
-					scope.hover(this, e)
+				entry.addEventListener('mouseenter', function(e) {
+					scope.hover(entry, e);
 				})
 
 			/*} else if (s instanceof NumSlider) {
@@ -423,7 +414,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
 				if (s.keybind) {
 					let label = document.createElement('label');
@@ -432,8 +423,8 @@ class Menu {
 					entry.append(label);
 				}
 				if (typeof s.click === 'function') {
-					entry.on('click', e => {
-						if (e.target == entry.get(0)) {
+					entry.addEventListener('click', e => {
+						if (e.target == entry) {
 							s.click(scope_context, e)
 						}
 					})
@@ -445,16 +436,16 @@ class Menu {
 				if (child_count !== 0 || typeof s.click === 'function') {
 					parent.append(entry)
 				}
-				entry.mouseenter(function(e) {
-					scope.hover(this, e)
+				entry.addEventListener('mouseenter', (e) => {
+					scope.hover(entry, e);
 				})
 			}
 			//Highlight
 			if (scope.highlight_action == s && entry) {
 				let obj = entry;
-				while (obj[0] && obj[0].nodeName == 'LI') {
-					obj.addClass('highlighted');
-					obj = obj.parent().parent();
+				while (obj && obj.nodeName == 'LI') {
+					obj.classList.add('highlighted');
+					obj = obj.parentElement.parentElement;
 				}
 			}
 			if (s.context && last_context != context) context = last_context;
@@ -534,9 +525,10 @@ class Menu {
 
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope
-			$(scope.label).addClass('opened')
+			scope.label.classList.add('opened');
 		}
 		open_menu = scope;
+		Menu.open = this;
 		return scope;
 	}
 	show(...args) {
@@ -545,8 +537,9 @@ class Menu {
 	hide() {
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
-		$(this.node).detach()
+		this.node.remove()
 		open_menu = null;
+		Menu.open = null;
 		return this;
 	}
 	conditionMet() {
