@@ -471,7 +471,8 @@
 	}
 	button > i {
 		pointer-events: none;
-		vertical-align: middle;
+		vertical-align: sub;
+		margin-right: 4px;
 	}
 	select {
 		-webkit-appearance: none;

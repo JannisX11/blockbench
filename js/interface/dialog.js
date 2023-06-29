@@ -399,10 +399,17 @@ function buildLines(dialog) {
 	})
 }
 function buildComponent(dialog) {
-	let dialog_content = $(dialog.object).find('.dialog_content')
-	let mount = $(`<div />`).appendTo(dialog_content)
+	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
+	let mount;
+	// mount_directly, if enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
+	if (dialog.component.mount_directly) {
+		mount = dialog_content;
+	} else {
+		mount = Interface.createElement('div');
+		dialog_content.append(mount);
+	}
 	dialog.component.name = 'dialog-content'
-	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
+	dialog.content_vue = new Vue(dialog.component).$mount(mount);
 }
 function getStringWidth(string, size) {
 	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
