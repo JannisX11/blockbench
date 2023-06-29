@@ -1269,14 +1269,17 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		max-height: 148px;
 		margin-right: 12px;
 	}
-	.plugin_installed_tag {
+	.plugin_installed_tag,
+	.plugin_disabled_tag {
 		display: inline-block;
 		background-color: var(--color-back);
-		color: var(--color-confirm);
 		height: 25px;
 		padding: 1px 6px;
 		border-radius: 5px;
 		margin-left: 8px;
+	}
+	.plugin_installed_tag {
+		color: var(--color-confirm);
 	}
 	dialog#plugins .version {
 		display: inline-block;
@@ -1341,13 +1344,13 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		float: right;
 	}
 	#plugin_browser_page .button_bar button {
-		min-width: 36px;
 		height: 70px;
 		background-color: transparent;
 		margin: 0;
-		width: 72px;
+		min-width: 72px;
+		width: auto;
 		margin-right: 0;
-		padding: 0;
+		padding: 0 2px;
 		text-decoration: none;
 	}
 	#plugin_browser_page .button_bar button:hover {
@@ -1360,6 +1363,9 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		max-width: unset;
 		font-size: 35px;
 		text-decoration: none;
+	}
+	.disabled_plugin {
+		color: var(--color-subtle_text);
 	}
 	.plugin_browser_page_header {
 		display: flex;

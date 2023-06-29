@@ -51,6 +51,7 @@ class Plugin {
 		this.creation_date = 0;
 		this.await_loading = false;
 		this.about_fetched = false;
+		this.disabled = false;
 
 		this.extend(data)
 
@@ -68,6 +69,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
+		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
@@ -190,7 +192,6 @@ class Plugin {
 
 		this.id = pathToName(file.path);
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path);
 		Plugins.all.safePush(this);
 		this.source = 'file';
 		this.tags.safePush('Local');
@@ -245,7 +246,6 @@ class Plugin {
 
 		this.id = pathToName(url)
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
 		this.tags.safePush('Remote');
 
@@ -291,6 +291,7 @@ class Plugin {
 		entry.version = this.version;
 		entry.path = path;
 		entry.source = this.source;
+		entry.disabled = this.disabled ? true : undefined;
 
 		if (!already_exists) Plugins.installed.push(entry);
 
@@ -351,8 +352,20 @@ class Plugin {
 		}
 		return this;
 	}
+	toggleDisabled() {
+		if (!this.disabled) {
+			this.disabled = true;
+			this.unload()
+		} else {
+			if (this.onload) {
+				this.onload()
+			}
+			this.disabled = false;
+		}
+		this.remember();
+	}
 	isReloadable() {
-		return (this.source == 'file' && isApp) || (this.source == 'url')
+		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
 	}
 	isInstallable() {
 		var scope = this;
@@ -436,7 +449,7 @@ Plugin.register = function(id, data) {
 		})
 	};
 	plugin.extend(data)
-	if (plugin.isInstallable() == true) {
+	if (plugin.isInstallable() == true && plugin.disabled == false) {
 		if (plugin.onload instanceof Function) {
 			plugin.onload()
 		}
@@ -539,7 +552,7 @@ async function loadInstalledPlugins() {
 			if (plugin.source == 'file') {
 				//Dev Plugins
 				if (isApp && fs.existsSync(plugin.path)) {
-					var instance = new Plugin(plugin.id);
+					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
 					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
@@ -548,7 +561,7 @@ async function loadInstalledPlugins() {
 				}
 
 			} else if (plugin.source == 'url') {
-				var instance = new Plugin(plugin.id);
+				var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
 				install_promises.push(instance.loadFromURL(plugin.path, false));
 				load_counter++;
 				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
@@ -690,7 +703,7 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" id="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -716,7 +729,7 @@ BARS.defineActions(function() {
 					
 					<div id="plugin_browser_page" v-if="selected_plugin">
 						<div v-if="isMobile" @click="selected_plugin = null;">Back to Overview todo</div>
-						<div class="plugin_browser_page_header">
+						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}">
 							<div class="plugin_icon_area">
 								<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
 								<dynamic-icon v-else :icon="selected_plugin.icon" />
@@ -728,12 +741,17 @@ BARS.defineActions(function() {
 								</h1>
 								<div class="author">
 									{{ tl('dialog.plugins.author', [selected_plugin.author]) }}
-									<div v-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
+									<div v-if="selected_plugin.disabled" class="plugin_disabled_tag">🌙 ${tl('dialog.plugins.is_disabled')}</div>
+									<div v-else-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
 								</div>
 							</div>
 						</div>
 
 						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+							<button type="button" v-if="selected_plugin.installed && selected_plugin.source != 'store'" @click="selected_plugin.toggleDisabled()">
+								<i class="material-icons icon">bedtime</i>
+								<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
+							</button>
 							<button type="button" @click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()">
 								<i class="material-icons icon">refresh</i>
 								<span>${tl('dialog.plugins.reload')}</span>
@@ -752,7 +770,7 @@ BARS.defineActions(function() {
 							<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
 						</ul>
 
-						<div class="description">{{ selected_plugin.description }}</div>
+						<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
 
 						<div class="button_bar tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
 							<i class="material-icons icon">error</i>

@@ -524,6 +524,9 @@
 	"dialog.plugins.app_only": "Only for the desktop app",
 	"dialog.plugins.author": "by %0",
 	"dialog.plugins.is_installed": "Installed",
+	"dialog.plugins.is_disabled": "Disabled",
+	"dialog.plugins.disable": "Disable",
+	"dialog.plugins.enable": "Enable",
 
 	"dialog.load_plugins_from_query.title": "Load Plugins",
 	"dialog.load_plugins_from_query.text": "You used a link that requires plugins to be installed. Would you like to install them?",
