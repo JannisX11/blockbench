@@ -71,6 +71,8 @@ class Plugin {
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 
+		this.new_repo_format = this.min_version != '' && !compareVersions('4.8.0', this.min_version);
+
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
 		Merge.function(this, data, 'oninstall')
@@ -136,18 +138,43 @@ class Plugin {
 			if (first) register();
 			return await scope.load(first)
 		}
-		return await new Promise((resolve, reject) => {
-			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+this.id+'.js', function(response) {
+
+		// Download files
+		async function copyFileToDrive(origin_filename, target_filename, callback) {
+			var file = originalFs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+origin_filename, function(response) {
 				response.pipe(file);
-				response.on('end', function() {
+				if (callback) response.on('end', callback);
+			});
+		}
+		return await new Promise(async (resolve, reject) => {
+			// New system
+			if (this.new_repo_format) {
+				copyFileToDrive(`${this.id}/${this.id}.js`, `${this.id}.js`, () => {
+					if (first) register();
 					setTimeout(async function() {
 						await scope.load(first);
 						resolve()
 					}, 20)
+				});
+				if (this.hasImageIcon()) {
+					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
+				}
+				await this.fetchAbout();
+				if (this.about) {
+					fs.writeFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), this.about, 'utf-8');
+				}
+
+			} else {
+				// Legacy system
+				copyFileToDrive(`${this.id}.js`, `${this.id}.js`, () => {
 					if (first) register();
-				})
-			});
+					setTimeout(async function() {
+						await scope.load(first);
+						resolve()
+					}, 20)
+				});
+			}
 		});
 	}
 	async loadFromFile(file, first) {
@@ -289,14 +316,16 @@ class Plugin {
 			Plugins.all.remove(this)
 		}
 		if (isApp && this.source != 'file') {
-			var filepath = Plugins.path + this.id + '.js'
-			if (fs.existsSync(filepath)) {
-				fs.unlink(filepath, (err) => {
-					if (err) {
-						console.log(err);
-					}
-				});
+			function removeCachedFile(filepath) {
+				if (fs.existsSync(filepath)) {
+					fs.unlink(filepath, (err) => {
+						if (err) console.log(err);
+					});
+				}
 			}
+			removeCachedFile(Plugins.path + this.id + '.js');
+			removeCachedFile(Plugins.path + this.id + '.' + this.icon);
+			removeCachedFile(Plugins.path + this.id + '.about.md');
 		}
 		StateMemory.save('installed_plugins')
 		return this;
@@ -349,14 +378,29 @@ class Plugin {
 	}
 	getIcon() {
 		if (this.hasImageIcon()) {
-			// todo: offline support
-			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`
+			if (isApp) {
+				if (this.installed && this.source == 'store') {
+					return Plugins.path + this.id + '.' + this.icon;
+				}
+				if (this.source != 'store')
+					return this.path.replace(/\w+\.js$/, this.icon);
+				}
+			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`;
 		}
 		return this.icon;
 	}
 	async fetchAbout() {
-		if (!this.about_fetched && !this.about && !compareVersions('4.8.0', this.min_version)) {
-			// todo: offline support
+		if (!this.about_fetched && !this.about && this.new_repo_format) {
+			if (isApp && this.installed) {
+				try {
+					let content = fs.readFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), {encoding: 'utf-8'});
+					this.about = content;
+					this.about_fetched = true;
+					return;
+				} catch (err) {
+					console.error('failed to get about for plugin ' + this.id);
+				}
+			}
 			let url = `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/about.md`;
 			let result = await fetch(url).catch(() => {
 				console.error('about.md missing for plugin ' + this.id);
@@ -458,7 +502,10 @@ async function loadInstalledPlugins() {
 				return p && p.id == id && p.source == 'store'
 			});
 			if (installed_match) {
-				if (isApp && installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) {
+				if (isApp && (
+					(installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) ||
+					Blockbench.isOlderThan(plugin.min_version)
+				)) {
 					// Get from file
 					let promise = plugin.load(false);
 					install_promises.push(promise);
@@ -474,11 +521,11 @@ async function loadInstalledPlugins() {
 		Plugins.sort();
 	} else if (Plugins.installed.length > 0 && isApp) {
 		//Offline
-		Plugins.installed.forEach(function(plugin) {
+		Plugins.installed.forEach(function(plugin_data) {
 
-			if (plugin.source == 'store') {
-				let plugin = new Plugin(plugin.id); 
-				let promise = plugin.load(false, function() {
+			if (plugin_data.source == 'store') {
+				let instance = new Plugin(plugin_data.id); 
+				let promise = instance.load(false, function() {
 					Plugins.sort();
 				})
 				install_promises.push(promise);
@@ -687,9 +734,18 @@ BARS.defineActions(function() {
 						</div>
 
 						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
-							<button type="button" class="" v-on:click="selected_plugin.uninstall()" v-if="selected_plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
-							<button type="button" class="" v-on:click="selected_plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
-							<button type="button" v-on:click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
+							<button type="button" @click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()">
+								<i class="material-icons icon">refresh</i>
+								<span>${tl('dialog.plugins.reload')}</span>
+							</button>
+							<button type="button" class="" @click="selected_plugin.uninstall()" v-if="selected_plugin.installed">
+								<i class="material-icons icon">delete</i>
+								<span>${tl('dialog.plugins.uninstall')}</span>
+							</button>
+							<button type="button" class="" @click="selected_plugin.install()" v-else>
+								<i class="material-icons icon">add</i>
+								<span>${tl('dialog.plugins.install')}</span>
+							</button>
 						</div>
 
 						<ul class="plugin_tag_list">
@@ -705,7 +761,7 @@ BARS.defineActions(function() {
 
 						<h2 v-if="selected_plugin.about" style="margin-top: 36px;">About</h2>
 						<dynamic-icon v-else-if="!selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
-						<div class="about markdown" v-html="formatAbout(selected_plugin.about)"><button>a</button></div>
+						<div class="about markdown" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)"></div>
 					</div>
 					
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
