@@ -402,8 +402,9 @@
 	}
 	h1, h2, h3, h4, h5, h6 {
 		font-family: var(--font-headline);
+		margin: 12px 0 8px 0;
 	}
-	h2 {
+	h1 {
 		letter-spacing: -0.03em;
 	}
 	h2 {
@@ -411,13 +412,11 @@
 		margin: 0;
 	}
 	h3 {
-		display: inline-block;
 		font-size: 1.28em;
 		padding-bottom: 4px;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
-		height: 32px;
 	}
 	h4 {
 		font-size: 1.2em;

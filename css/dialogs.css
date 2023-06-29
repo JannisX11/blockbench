@@ -218,9 +218,6 @@
 		color: var(--color-light);
 	}
 
-	.dialog p {
-		margin: 4px 0;
-	}
 	.dialog h3 {
 		margin-left: 0;
 	}
@@ -1288,6 +1285,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		font-size: 15px;
 		padding: 1px 6px;
 		border-radius: 5px;
+		letter-spacing: normal;
 	}
 	#plugin_list .about {
 		overflow-y: auto;

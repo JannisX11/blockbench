@@ -683,7 +683,6 @@ BARS.defineActions(function() {
 					}
 				},
 				formatAbout(about) {
-					about = about.replace(/\n/g, '\n\n').replace(/\n#/, '\n##');
 					return pureMarked(about);
 				},
 				getIconNode: Blockbench.getIconNode,
