@@ -1347,6 +1347,7 @@ const UVEditor = {
 		'uv_maximize',
 		'uv_auto',
 		'uv_rel_auto',
+		'uv_project_from_view',
 		'connect_uv_faces',
 		'merge_uv_vertices',
 		'snap_uv_to_pixels',
@@ -1521,6 +1522,69 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
+			Undo.finishEdit('Auto UV')
+		}
+	})
+	new Action('uv_project_from_view', {
+		icon: 'view_in_ar',
+		category: 'uv',
+		condition: () => (UVEditor.isFaceUV() && Mesh.selected.length),
+		click(event) {
+			Undo.initEdit({elements: Mesh.selected, uv_only: true})
+
+			let preview = Preview.selected;
+			let vector = new THREE.Vector3();
+
+			function projectPoint(vector) {
+				let widthHalf = 0.5 * preview.canvas.width / window.devicePixelRatio;
+				let heightHalf = 0.5 * preview.canvas.height / window.devicePixelRatio;
+				vector.project(preview.camera);
+				return [
+					 ( vector.x * widthHalf ) + widthHalf,
+					-( vector.y * heightHalf ) + heightHalf
+				]
+			}
+			Mesh.selected.forEach(mesh => {
+				let scale = preview.calculateControlScale(mesh.getWorldCenter()) / 14;
+				let vertices = {};
+				let min = [Infinity, Infinity];
+				let max = [-Infinity, -Infinity];
+				let previous_origin = [0, 0];
+				let face_count = 0;
+				
+				for (let fkey in mesh.faces) {
+					if (!UVEditor.selected_faces.includes(fkey)) continue;
+					mesh.faces[fkey].vertices.forEach(vkey => {
+						if (vertices[vkey]) return;
+
+						vertices[vkey] = projectPoint( mesh.mesh.localToWorld(vector.fromArray(mesh.vertices[vkey])) );
+						for (let i of [0, 1]) {
+							vertices[vkey][i] *= scale;
+							min[i] = Math.min(min[i], vertices[vkey][i]);
+							max[i] = Math.max(max[i], vertices[vkey][i]);
+							previous_origin[i] += mesh.faces[fkey].uv[vkey][i];
+						}
+						face_count++;
+					})
+				}
+
+				previous_origin.V2_divide(face_count);
+				let offset = previous_origin.map((previous, i) => {
+					let difference = previous - Math.lerp(min[i], max[i], 0.5);
+					return Math.clamp(difference, -min[1], max[1]);
+				})
+
+				for (let fkey in mesh.faces) {
+					if (!UVEditor.selected_faces.includes(fkey)) continue;
+					mesh.faces[fkey].vertices.forEach(vkey => {
+						mesh.faces[fkey].uv[vkey][0] = vertices[vkey][0] + offset[0];
+						mesh.faces[fkey].uv[vkey][1] = vertices[vkey][1] + offset[1];
+					})
+				}
+				mesh.preview_controller.updateUV(mesh);
+			})
+
+			UVEditor.loadData();
 			Undo.finishEdit('Auto UV')
 		}
 	})
@@ -1917,6 +1981,7 @@ Interface.definePanels(function() {
 					'uv_apply_all',
 					'uv_maximize',
 					'uv_auto',
+					'uv_project_from_view',
 					'uv_transparent',
 					'uv_mirror_x',
 					'uv_mirror_y',

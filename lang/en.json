@@ -1543,6 +1543,8 @@
 	"action.uv_auto.desc": "Sets the UV size of this face to the real size of the face",
 	"action.uv_rel_auto": "Relative Auto UV",
 	"action.uv_rel_auto.desc": "Sets the UV of this face to the position and size of the actual face",
+	"action.uv_project_from_view": "UV Project from View",
+	"action.uv_project_from_view.desc": "Automatically generate UVs for the selected faces from the perspective of the 3D view",
 	"action.uv_mirror_x": "UV Mirror X",
 	"action.uv_mirror_x.desc": "Mirrors the UV of this face on the X axis",
 	"action.uv_mirror_y": "UV Mirror Y",
