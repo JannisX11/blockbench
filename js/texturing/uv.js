@@ -2041,13 +2041,6 @@ Interface.definePanels(function() {
 				}
 			},
 			watch: {
-				project_resolution: {
-					deep: true,
-					handler() {
-						let min_zoom = Math.min(1, this.inner_width/this.inner_height);
-						if (this.zoom < min_zoom) UVEditor.setZoom(1);
-					}
-				},
 				mode() {
 					Vue.nextTick(() => {
 						this.updateSize();
