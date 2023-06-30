@@ -202,7 +202,7 @@ class Menu {
 						})
 						more_button.addEventListener('mouseleave', e => {
 							if (node.is(':hover') && !childlist.is(':hover')) {
-								scope.hover(node, e);
+								scope.hover(node.get(0), e);
 							}
 						})
 					}

@@ -1861,7 +1861,7 @@ const BARS = {
 					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
 						let meshes = Mesh.selected.slice();
-						Undo.initEdit({elements: meshes})
+						Undo.initEdit({elements: meshes, outliner: true})
 
 						Mesh.selected.forEach(mesh => {
 							let selected_vertices = mesh.getSelectedVertices();
