@@ -43,6 +43,7 @@ class Plugin {
 		this.about = '';
 		this.icon = '';
 		this.tags = [];
+		this.dependencies = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
@@ -72,6 +73,7 @@ class Plugin {
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
+		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		this.new_repo_format = this.min_version != '' && !compareVersions('4.8.0', this.min_version);
 
@@ -85,6 +87,40 @@ class Plugin {
 		return this.title;
 	}
 	async install() {
+		let required_dependencies = this.dependencies
+			.map(id => (Plugins.all.find(p => p.id == id) || id))
+			.filter(p => (p instanceof Plugin == false || p.installed == false));
+		if (required_dependencies.length) {
+			let failed_dependency = required_dependencies.find(p => (!p.isInstallable || p.isInstallable() != true));
+			if (failed_dependency) {
+				let error_message = failed_dependency;
+				if (failed_dependency instanceof Plugin) {
+					error_message = `**${failed_dependency.title}**: ${failed_dependency.isInstallable()}`;
+				}
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
+				});
+				return;
+			}
+
+			let list = required_dependencies.map(p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`);
+			let response = await new Promise(resolve => {
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.message1')} \n\n* ${ list.join('\n* ') }\n\n${tl('message.plugin_dependencies.message2')}`,
+					buttons: ['dialog.continue', 'dialog.cancel'],
+					width: 512,
+				}, button => {
+					resolve(button == 0);
+				})
+			})
+			if (!response) return;
+
+			for (let dependency of required_dependencies) {
+				await dependency.install();
+			}
+		}
 		return await this.download(true);
 	}
 	async load(first, cb) {
@@ -342,6 +378,7 @@ class Plugin {
 
 		this.unload()
 		this.tags.empty();
+		this.dependencies.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
@@ -475,12 +512,6 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
-			
-			// testing (todo: remove)
-			data.animation_sliders.icon = 'icon.png';
-			data.animation_sliders.about = '';
-			data.animation_sliders.min_version = '4.8.0';
-			data.animation_sliders.creation_date = '2023-06-23';
 				
 			resolve();
 			Plugins.loading_promise.resolved = true;
@@ -673,6 +704,20 @@ BARS.defineActions(function() {
 					plugin.fetchAbout();
 					this.selected_plugin = plugin;
 				},
+				showDependency(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					if (plugin) {
+						this.selectPlugin(plugin);
+					}
+				},
+				getDependencyName(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					return plugin ? (plugin.title + (plugin.installed ? ' ✓' : '')) : (dependency + ' ⚠');
+				},
+				isDependencyInstalled(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					return plugin && plugin.installed;
+				},
 				getTagClass(tag) {
 					if (tag.match(/^(local|remote)$/i)) {
 						return 'plugin_tag_source'
@@ -771,7 +816,12 @@ BARS.defineActions(function() {
 
 						<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
 
-						<div class="button_bar tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
+						<div class="plugin_dependencies" v-if="selected_plugin.dependencies.length">
+							${tl('dialog.plugins.dependencies')}
+							<a v-for="dep in selected_plugin.dependencies" @click="showDependency(dep)" :class="{installed: isDependencyInstalled(dep)}">{{ getDependencyName(dep) }}</a>
+						</div>
+
+						<div class="tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
 							<i class="material-icons icon">error</i>
 							{{ selected_plugin.isInstallable() }}
 						</div>

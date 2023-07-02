@@ -249,6 +249,10 @@
 	"message.add_reference_image.message": "Select where to load the reference image",
 	"message.add_reference_image.project": "Add to this project",
 	"message.add_reference_image.app": "Add to all projects",
+	"message.plugin_dependencies.title": "Plugin Dependencies",
+	"message.plugin_dependencies.message1": "The plugin requires these dependencies:",
+	"message.plugin_dependencies.message2": "Do you want to install them to continue?",
+	"message.plugin_dependencies.invalid": "Unfortunately the plugin cannot be installed, it has an invalid dependency:",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",
@@ -529,6 +533,7 @@
 	"dialog.plugins.is_disabled": "Disabled",
 	"dialog.plugins.disable": "Disable",
 	"dialog.plugins.enable": "Enable",
+	"dialog.plugins.dependencies": "Depends on:",
 
 	"dialog.load_plugins_from_query.title": "Load Plugins",
 	"dialog.load_plugins_from_query.text": "You used a link that requires plugins to be installed. Would you like to install them?",

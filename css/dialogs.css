@@ -1287,13 +1287,6 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		border-radius: 5px;
 		letter-spacing: normal;
 	}
-	#plugin_list .about {
-		overflow-y: auto;
-		max-height: 480px;
-		margin: 6px 0;
-		padding: 6px 12px;
-		background: var(--color-button);
-	}
 	dialog#plugins .author {
 		color: var(--color-subtle_text);
 		margin-top: -6px;
@@ -1362,6 +1355,21 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		font-size: 35px;
 		text-decoration: none;
 	}
+	.plugin_dependencies {
+		color: var(--color-subtle_text);
+		margin: 10px 0;
+	}
+	.plugin_dependencies > a {
+		background-color: var(--color-back);
+		color: var(--color-text);
+		cursor: pointer;
+		padding: 1px 4px;
+		border-radius: 5px;
+		margin-left: 4px;
+	}
+	.plugin_dependencies > a:hover {
+		color: var(--color-light);
+	}
 	.disabled_plugin {
 		color: var(--color-subtle_text);
 	}
@@ -1375,6 +1383,9 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	.plugin_browser_page_header h1 {
 		margin: 0;
+	}
+	#plugin_browser_page .about, #plugin_browser_page .description {
+		user-select: text;
 	}
 	#plugin_page_background_decoration {
 		pointer-events: none;

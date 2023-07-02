@@ -3,10 +3,16 @@
 	* {
 		margin: 0;
 		padding: 0;
-		user-select: none;
-		-webkit-user-select: none;
 		outline: none;
 		outline-color: rgba(0, 0, 0, 0);
+	}
+	body {
+		user-select: none;
+		-webkit-user-select: none;
+	}
+	body.is_mobile * {
+		user-select: none;
+		-webkit-user-select: none;
 	}
 	/*Webkit*/
 	a[href] {
