@@ -75,37 +75,60 @@ const MirrorModeling = {
 		let edit_side = Math.sign(Transformer.position.x) || 1;
 		let deleted_vertices = [];
 		let deleted_vertex_positions = {};
+		let selected_vertices = mesh.getSelectedVertices(true);
+		//let selected_vertices = mesh.getSelectedEdges(true);
+		let selected_faces = mesh.getSelectedFaces(true);
+		let deleted_vertices_by_position = {};
+		function positionKey(position) {
+			return position.map(p => Math.roundTo(p, 2)).join(',');
+		}
 		for (let vkey in mesh.vertices) {
 			if (mesh.vertices[vkey][0] && mesh.vertices[vkey][0] * edit_side < 0) {
 				deleted_vertex_positions[vkey] = mesh.vertices[vkey];
 				delete mesh.vertices[vkey];
 				deleted_vertices.push(vkey);
+				deleted_vertices_by_position[positionKey(deleted_vertex_positions[vkey])] = vkey;
 			}
 		}
 		let added_vertices = [];
 		let vertex_counterpart = {};
+		let replaced_vertices = {};
 		for (let vkey in mesh.vertices) {
 			let vertex = mesh.vertices[vkey];
 			if (mesh.vertices[vkey][0] == 0) {
 				// On Edge
 				vertex_counterpart[vkey] = vkey;
 			} else {
-				let vkey2 = mesh.addVertices([-vertex[0], vertex[1], vertex[2]])[0];
-				added_vertices.push(vkey2);
-				vertex_counterpart[vkey] = vkey2;
+				let position = [-vertex[0], vertex[1], vertex[2]];
+				let vkey_new = deleted_vertices_by_position[positionKey(position)];
+				if (vkey_new) {
+					mesh.vertices[vkey_new] = position;
+				} else {
+					vkey_new = mesh.addVertices(position)[0];
+				}
+				added_vertices.push(vkey_new);
+				vertex_counterpart[vkey] = vkey_new;
+				//deleted_vertices.remove(vkey_new);
+			}
+		}
+
+		let deleted_faces = {};
+		for (let fkey in mesh.faces) {
+			let face = mesh.faces[fkey];
+			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices.includes(vkey));
+			if (deleted_face_vertices.length == face.vertices.length) {
+				deleted_faces[fkey] = mesh.faces[fkey];
+				delete mesh.faces[fkey];
 			}
 		}
 
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
 			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices.includes(vkey));
-			if (deleted_face_vertices.length == face.vertices.length) {
-				delete mesh.faces[fkey];
-
-			} else if (deleted_face_vertices.length) {
+			if (deleted_face_vertices.length) {
 				// face across zero line
 				//let kept_face_keys = face.vertices.filter(vkey => mesh.vertices[vkey] != 0 && !deleted_face_vertices.includes(vkey));
-				let new_counterparts = face.vertices.filter(vkey => !deleted_vertices.includes(vkey)).map(vkey => vertex_counterpart[vkey]);
+				let new_counterparts = face.vertices.filter(vkey => !deleted_face_vertices.includes(vkey)).map(vkey => vertex_counterpart[vkey]);
 				face.vertices.forEach((vkey, i) => {
 					if (deleted_face_vertices.includes(vkey)) {
 						// Across
@@ -116,24 +139,39 @@ const MirrorModeling = {
 							return b_distance - a_distance;
 						})
 
-
 						let counterpart = new_counterparts.pop();
-						face.vertices.splice(i, 1, counterpart);
-						face.uv[counterpart] = face.uv[vkey];
-						delete face.uv[vkey];
+						if (vkey != counterpart) {
+							face.vertices.splice(i, 1, counterpart);
+							face.uv[counterpart] = face.uv[vkey];
+							delete face.uv[vkey];
+						}
 					}
 				})
 
 			} else if (deleted_face_vertices.length == 0) {
 				// Recreate face as mirrored
+				let new_face_key;
+				for (let key in deleted_faces) {
+					let deleted_face = deleted_faces[key];
+					if (face.vertices.allAre(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey]))) {
+						new_face_key = key;
+						break;
+					}
+				}
+
 				let new_face = new MeshFace(mesh, face);
 				face.vertices.forEach((vkey, i) => {
-					new_face.vertices.splice(i, 1, vertex_counterpart[vkey]);
+					let new_vkey = vertex_counterpart[vkey];
+					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
-					new_face.uv[vertex_counterpart[vkey]] = face.uv[vkey];
+					new_face.uv[new_vkey] = face.uv[vkey];
 				})
 				new_face.invert();
-				let [face_key] = mesh.addFaces(new_face);
+				if (new_face_key) {
+					mesh.faces[new_face_key] = new_face;
+				} else {
+					[new_face_key] = mesh.addFaces(new_face);
+				}
 			}
 
 		}
