@@ -75,34 +75,56 @@ const MirrorModeling = {
 		let edit_side = Math.sign(Transformer.position.x) || 1;
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
+		let selected_vertices = mesh.getSelectedVertices(true);
+		//let selected_vertices = mesh.getSelectedEdges(true);
+		let selected_faces = mesh.getSelectedFaces(true);
+		let deleted_vertices_by_position = {};
+		function positionKey(position) {
+			return position.map(p => Math.roundTo(p, 2)).join(',');
+		}
 		for (let vkey in mesh.vertices) {
 			if (mesh.vertices[vkey][0] && mesh.vertices[vkey][0] * edit_side < 0) {
 				deleted_vertices[vkey] = mesh.vertices[vkey];
 				delete mesh.vertices[vkey];
+				deleted_vertices_by_position[positionKey(deleted_vertices[vkey])] = vkey;
 			}
 		}
 		// Copy existing vertices back to the non-edit side
 		let added_vertices = [];
 		let vertex_counterpart = {};
+		let replaced_vertices = {};
 		for (let vkey in mesh.vertices) {
 			let vertex = mesh.vertices[vkey];
 			if (mesh.vertices[vkey][0] == 0) {
 				// On Edge
 				vertex_counterpart[vkey] = vkey;
 			} else {
-				let vkey2 = mesh.addVertices([-vertex[0], vertex[1], vertex[2]])[0];
-				added_vertices.push(vkey2);
-				vertex_counterpart[vkey] = vkey2;
+				let position = [-vertex[0], vertex[1], vertex[2]];
+				let vkey_new = deleted_vertices_by_position[positionKey(position)];
+				if (vkey_new) {
+					mesh.vertices[vkey_new] = position;
+				} else {
+					vkey_new = mesh.addVertices(position)[0];
+				}
+				added_vertices.push(vkey_new);
+				vertex_counterpart[vkey] = vkey_new;
+			}
+		}
+
+		let deleted_faces = {};
+		for (let fkey in mesh.faces) {
+			let face = mesh.faces[fkey];
+			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
+			if (deleted_face_vertices.length == face.vertices.length) {
+				deleted_faces[fkey] = mesh.faces[fkey];
+				delete mesh.faces[fkey];
 			}
 		}
 
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
 			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
-			if (deleted_face_vertices.length == face.vertices.length) {
-				delete mesh.faces[fkey];
-
-			} else if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2) {
+			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2) {
 				// cannot flip. restore vertices instead?
 				deleted_face_vertices.forEach(vkey => {
 					mesh.vertices[vkey] = deleted_vertices[vkey];
@@ -123,24 +145,39 @@ const MirrorModeling = {
 							return b_distance - a_distance;
 						})
 
-
 						let counterpart = new_counterparts.pop();
-						face.vertices.splice(i, 1, counterpart);
-						face.uv[counterpart] = face.uv[vkey];
-						delete face.uv[vkey];
+						if (vkey != counterpart && counterpart) {
+							face.vertices.splice(i, 1, counterpart);
+							face.uv[counterpart] = face.uv[vkey];
+							delete face.uv[vkey];
+						}
 					}
 				})
 
 			} else if (deleted_face_vertices.length == 0) {
 				// Recreate face as mirrored
+				let new_face_key;
+				for (let key in deleted_faces) {
+					let deleted_face = deleted_faces[key];
+					if (face.vertices.allAre(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey]))) {
+						new_face_key = key;
+						break;
+					}
+				}
+
 				let new_face = new MeshFace(mesh, face);
 				face.vertices.forEach((vkey, i) => {
-					new_face.vertices.splice(i, 1, vertex_counterpart[vkey]);
+					let new_vkey = vertex_counterpart[vkey];
+					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
-					new_face.uv[vertex_counterpart[vkey]] = face.uv[vkey];
+					new_face.uv[new_vkey] = face.uv[vkey];
 				})
 				new_face.invert();
-				let [face_key] = mesh.addFaces(new_face);
+				if (new_face_key) {
+					mesh.faces[new_face_key] = new_face;
+				} else {
+					[new_face_key] = mesh.addFaces(new_face);
+				}
 			}
 
 		}
