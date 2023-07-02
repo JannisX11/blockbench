@@ -20,7 +20,7 @@ const MirrorModeling = {
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
 		let element_before_snapshot;
 
-		if (mirror_element) {
+		if (mirror_element && mirror_element !== original) {
 			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
 			mirror_element.extend(original);
 
