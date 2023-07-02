@@ -296,7 +296,7 @@ function buildForm(dialog) {
 					if (data.type == 'folder' && !isApp) break;
 
 					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
-					input[0].value = data.value || '';
+					input[0].value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value || '';
 					let input_wrapper = $('<div class="input_wrapper"></div>');
 					input_wrapper.append(input);
 					bar.append(input_wrapper);
@@ -319,7 +319,7 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							data.content = files[0].content;
-							input.val(data.value);
+							input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 							dialog.updateFormValues()
 						}
 						switch (data.type) {
@@ -611,7 +611,7 @@ window.Dialog = class Dialog {
 						} else {
 							data.content = value;
 						}
-						data.bar.find('input').val(value);
+						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : value);
 						break;
 				}
 			}
