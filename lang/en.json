@@ -1149,7 +1149,7 @@
 	"action.export_bedrock": "Export Bedrock Geometry",
 	"action.export_bedrock.desc": "Export the model as a bedrock edition geometry file.",
 	"action.export_entity": "Export Bedrock Entity",
-	"action.export_entity.desc": "Add the current model as an entity to a mobs.json file",
+	"action.export_entity.desc": "Export the model as an entity model for Minecraft Bedrock Edition",
 	"action.export_class_entity": "Export Java Entity",
 	"action.export_class_entity.desc": "Export the entity model as a Java class",
 	"action.import_optifine_part": "Import OptiFine Part",

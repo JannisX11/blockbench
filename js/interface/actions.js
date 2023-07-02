@@ -590,7 +590,7 @@ class NumSlider extends Widget {
 		if (typeof data.change === 'function') {
 			this.change = (modify, ...args) => {
 				data.change(modify, ...args)
-				this.dispatchEvent('changed', {number: num, modify});
+				this.dispatchEvent('changed', {modify});
 			};
 		}
 		if (data.settings) {
