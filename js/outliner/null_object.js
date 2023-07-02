@@ -190,7 +190,7 @@ class NullObject extends OutlinerElement {
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 17 / Preview.selected.height;
+			let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
 			element.mesh.scale.set(size, size, size);
 		}
 	})

@@ -168,7 +168,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 18 / Preview.selected.height;
+			let size = 0.4 * Preview.selected.camera.fov / Preview.selected.height;
 			element.mesh.sprite.scale.set(size, size, size);
 		}
 	})
