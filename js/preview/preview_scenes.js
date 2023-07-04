@@ -911,29 +911,58 @@ new PreviewScene('minecraft_overworld', {
 	preview_models: ['minecraft_overworld'],
 	fog: {color: '#bbe9fc', density: 0.002},
 	cubemap: [
-		'assets/preview_scenes/overworld_panorama/panorama_1.png',
-		'assets/preview_scenes/overworld_panorama/panorama_3.png',
-		'assets/preview_scenes/overworld_panorama/panorama_4.png',
-		'assets/preview_scenes/overworld_panorama/panorama_5.png',
-		'assets/preview_scenes/overworld_panorama/panorama_0.png',
-		'assets/preview_scenes/overworld_panorama/panorama_2.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_0b.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_1b.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_2b.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_3b.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_4b.png',
+		'./../blockbench-scenes/minecraft/underwater/skybox_5b.png',
 	]
+});
+new PreviewScene('minecraft_plains', {
+	category: 'minecraft',
+	web_config: 'minecraft/plains/plains.json',
+	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_snowy_tundra', {
 	category: 'minecraft',
 	web_config: 'minecraft/snowy_tundra/snowy_tundra.json',
 	require_minecraft_eula: true,
 });
+new PreviewScene('minecraft_sunset', {
+	category: 'minecraft',
+	web_config: 'minecraft/sunset/sunset.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_night', {
+	category: 'minecraft',
+	web_config: 'minecraft/night/night.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_desert', {
+	category: 'minecraft',
+	web_config: 'minecraft/desert/desert.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_underwater', {
+	category: 'minecraft',
+	web_config: 'minecraft/underwater/underwater.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_lush_cave', {
+	category: 'minecraft',
+	web_config: 'minecraft/lush_cave/lush_cave.json',
+	require_minecraft_eula: true,
+});
 new PreviewScene('minecraft_nether', {
 	category: 'minecraft',
-	light_color: {r: 0.68, g: 0.61, b: 0.49},
-	light_side: 1,
-	preview_models: ['minecraft_nether']
+	web_config: 'minecraft/nether/nether.json',
+	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_end', {
 	category: 'minecraft',
-	light_color: {r: 0.45, g: 0.52, b: 0.48},
-	preview_models: ['minecraft_end']
+	web_config: 'minecraft/end/end.json',
+	require_minecraft_eula: true,
 });
 
 

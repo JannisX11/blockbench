@@ -2091,7 +2091,14 @@
 	"display.preset.armor_stand": "Ground (Armor Stand)",
 
 	"preview_scene.studio": "Studio",
-	"preview_scene.minecraft_overworld": "Minecraft Overworld",
-	"preview_scene.minecraft_nether": "Minecraft Nether",
-	"preview_scene.minecraft_end": "Minecraft End"
+	"preview_scene.minecraft_overworld": "Overworld",
+	"preview_scene.minecraft_nether": "Nether",
+	"preview_scene.minecraft_end": "End",
+	"minecraft_plains": "Plains",
+	"minecraft_snowy_tundra": "Snowy Tundra",
+	"minecraft_sunset": "Sunset",
+	"minecraft_night": "Night",
+	"minecraft_desert": "Desert",
+	"minecraft_underwater": "Underwater",
+	"minecraft_lush_cave": "Lush Cave"
 }
