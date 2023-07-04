@@ -27,6 +27,7 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
 	{name: 'menu.cube.color', icon: 'color_lens', children() {
 		return [
 			...markerColors.map((color, i) => {return {
@@ -53,7 +54,7 @@ TimelineMarker.prototype.menu = new Menu([
 			}).show();
 		}
 	},
-	'_',
+	new MenuSeparator('manage'),
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
 	}}
@@ -585,8 +586,9 @@ const Timeline = {
 		Timeline.menu.open(event, event);
 	},
 	menu: new Menu([
+		new MenuSeparator('copypaste'),
 		'paste',
-		'_',
+		new MenuSeparator('view'),
 		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 			'zoom_in',
 			'zoom_out',
@@ -594,12 +596,12 @@ const Timeline = {
 		]},
 		'select_all',
 		'fold_all_animations',
-		'_',
-		'timeline_setups',
-		'save_timeline_setup',
 		'bring_up_all_animations',
 		'clear_timeline',
-		'_',
+		new MenuSeparator('timeline_setups'),
+		'timeline_setups',
+		'save_timeline_setup',
+		new MenuSeparator('graph_editor'),
 		'graph_editor_other_graphs',
 		'graph_editor_include_other_graphs',
 		'graph_editor_zero_line',

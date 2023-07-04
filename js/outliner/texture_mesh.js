@@ -77,9 +77,8 @@ class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
-		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
+		new MenuSeparator('settings'),
+		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Format.single_texture, click(context) {
 			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
 				Undo.initEdit({elements: TextureMesh.all}),
 				TextureMesh.all.forEach(element => {
@@ -88,6 +87,8 @@ class TextureMesh extends OutlinerElement {
 				Undo.finishEdit('Change texture mesh texture name')
 			})
 		}},
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);

@@ -197,6 +197,7 @@ BARS.defineActions(function() {
 							new Dialog({
 								id: 'share_model_link',
 								title: 'dialog.share_model.title',
+								singleButton: true,
 								form: {
 									link: {type: 'text', value: link, readonly: true, share_text: true}
 								}

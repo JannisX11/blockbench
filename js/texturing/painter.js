@@ -2086,6 +2086,11 @@ BARS.defineActions(function() {
 		onChange() {
 			BARS.updateConditions();
 			UVEditor.vue.brush_type = this.value;
+			let img = Canvas.brush_outline.material.map.image;
+			switch (this.value) {
+				case 'square': img.src = 'assets/brush_outline.png'; break;
+				case 'circle': img.src = 'assets/brush_outline_circle.png'; break;
+			}
 		},
 		icon_mode: true,
 		options: {
@@ -2222,6 +2227,7 @@ BARS.defineActions(function() {
 			highlightMirrorPaintingAxes();
 		},
 		side_menu: new Menu('mirror_painting', [
+			new MenuSeparator('options'),
 			// Enabled
 			{
 				name: 'menu.mirror_painting.enabled',
@@ -2239,7 +2245,7 @@ BARS.defineActions(function() {
 					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
 				]
 			},
-			'_',
+			new MenuSeparator('space'),
 			// Global
 			{
 				name: 'menu.mirror_painting.global',
@@ -2254,7 +2260,7 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.local,
 				click() {toggleMirrorPaintingSpace('local')}
 			},
-			'_',
+			new MenuSeparator('texture'),
 			// Texture
 			{
 				name: 'menu.mirror_painting.texture',
@@ -2298,7 +2304,7 @@ BARS.defineActions(function() {
 					}
 				}
 			},
-			'_',
+			new MenuSeparator('animated_texture'),
 			// Animated Texture Frames
 			{
 				name: 'menu.mirror_painting.texture_frames',

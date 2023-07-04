@@ -112,13 +112,13 @@ class Keyframe {
 	}
 	offset(axis, amount, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
-		var value = this.get(axis)
+		var value = this.get(axis, data_point);
 		if (!value || value === '0') {
-			this.set(axis, amount, data_point)
+			this.set(axis, amount, data_point);
 			return amount;
 		}
 		if (typeof value === 'number') {
-			this.set(axis, value+amount, data_point)
+			this.set(axis, value+amount, data_point);
 			return value+amount
 		}
 		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
@@ -520,8 +520,7 @@ class Keyframe {
 	}
 }
 	Keyframe.prototype.menu = new Menu([
-		'change_keyframe_file',
-		'_',
+		new MenuSeparator('settings'),
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
@@ -540,7 +539,7 @@ class Keyframe {
 				}})
 			];
 		}},
-		'_',
+		new MenuSeparator('copypaste'),
 		'copy',
 		'delete',
 	])
@@ -1297,7 +1296,7 @@ Interface.definePanels(function() {
 						Timeline.vue.graph_editor_axis = axis;
 					}
 				},
-				slideValue(axis, e1) {
+				slideValue(axis, e1, data_point) {
 					convertTouchEvent(e1);
 					let last_event = e1;
 					let started = false;
@@ -1333,7 +1332,7 @@ Interface.definePanels(function() {
 								}
 							
 								Keyframe.selected.forEach(kf => {
-									kf.offset(axis, difference);
+									kf.offset(axis, difference, data_point);
 								})
 
 								last_val = val;
@@ -1507,7 +1506,7 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event)" @touchstart="slideValue(key, $event)">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input keyframe_input tab_target"

@@ -625,6 +625,7 @@ class ReferenceImage {
 	}
 }
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
 		name: 'reference_image.visibility',
@@ -707,7 +708,7 @@ ReferenceImage.prototype.menu = new Menu([
 			return children;
 		}
 	},
-	'_',
+	new MenuSeparator('manage'),
 	{
 		name: 'menu.texture.refresh',
 		icon: 'refresh',
@@ -718,7 +719,7 @@ ReferenceImage.prototype.menu = new Menu([
 		}
 	},
 	'delete',
-	'_',
+	new MenuSeparator('properties'),
 	{
 		name: 'menu.texture.properties',
 		icon: 'list',
@@ -962,7 +963,7 @@ BARS.defineActions(function() {
 							if (reference.selected) BarItems.delete.trigger();
 						}
 					},
-					'_',
+					new MenuSeparator('properties'),
 					/** Todo: add options
 					 * Center
 					 */

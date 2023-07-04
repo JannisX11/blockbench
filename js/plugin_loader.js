@@ -37,19 +37,22 @@ class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
 		this.installed = false;
-		this.expanded = false;
 		this.title = '';
 		this.author = '';
 		this.description = '';
 		this.about = '';
 		this.icon = '';
 		this.tags = [];
+		this.dependencies = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
-		this.source = 'store'
+		this.source = 'store';
+		this.creation_date = 0;
 		this.await_loading = false;
+		this.about_fetched = false;
+		this.disabled = false;
 
 		this.extend(data)
 
@@ -58,7 +61,6 @@ class Plugin {
 	extend(data) {
 		if (!(data instanceof Object)) return this;
 		Merge.boolean(this, data, 'installed')
-		Merge.boolean(this, data, 'expanded')
 		Merge.string(this, data, 'title')
 		Merge.string(this, data, 'author')
 		Merge.string(this, data, 'description')
@@ -68,7 +70,12 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.boolean(this, data, 'await_loading');
+		Merge.boolean(this, data, 'disabled');
+		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
+		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
+
+		this.new_repo_format = this.min_version != '' && !compareVersions('4.8.0', this.min_version);
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -80,6 +87,40 @@ class Plugin {
 		return this.title;
 	}
 	async install() {
+		let required_dependencies = this.dependencies
+			.map(id => (Plugins.all.find(p => p.id == id) || id))
+			.filter(p => (p instanceof Plugin == false || p.installed == false));
+		if (required_dependencies.length) {
+			let failed_dependency = required_dependencies.find(p => (!p.isInstallable || p.isInstallable() != true));
+			if (failed_dependency) {
+				let error_message = failed_dependency;
+				if (failed_dependency instanceof Plugin) {
+					error_message = `**${failed_dependency.title}**: ${failed_dependency.isInstallable()}`;
+				}
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
+				});
+				return;
+			}
+
+			let list = required_dependencies.map(p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`);
+			let response = await new Promise(resolve => {
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.message1')} \n\n* ${ list.join('\n* ') }\n\n${tl('message.plugin_dependencies.message2')}`,
+					buttons: ['dialog.continue', 'dialog.cancel'],
+					width: 512,
+				}, button => {
+					resolve(button == 0);
+				})
+			})
+			if (!response) return;
+
+			for (let dependency of required_dependencies) {
+				await dependency.install();
+			}
+		}
 		return await this.download(true);
 	}
 	async load(first, cb) {
@@ -135,18 +176,43 @@ class Plugin {
 			if (first) register();
 			return await scope.load(first)
 		}
-		return await new Promise((resolve, reject) => {
-			var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
-			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+this.id+'.js', function(response) {
+
+		// Download files
+		async function copyFileToDrive(origin_filename, target_filename, callback) {
+			var file = originalFs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+origin_filename, function(response) {
 				response.pipe(file);
-				response.on('end', function() {
+				if (callback) response.on('end', callback);
+			});
+		}
+		return await new Promise(async (resolve, reject) => {
+			// New system
+			if (this.new_repo_format) {
+				copyFileToDrive(`${this.id}/${this.id}.js`, `${this.id}.js`, () => {
+					if (first) register();
 					setTimeout(async function() {
 						await scope.load(first);
 						resolve()
 					}, 20)
+				});
+				if (this.hasImageIcon()) {
+					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
+				}
+				await this.fetchAbout();
+				if (this.about) {
+					fs.writeFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), this.about, 'utf-8');
+				}
+
+			} else {
+				// Legacy system
+				copyFileToDrive(`${this.id}.js`, `${this.id}.js`, () => {
 					if (first) register();
-				})
-			});
+					setTimeout(async function() {
+						await scope.load(first);
+						resolve()
+					}, 20)
+				});
+			}
 		});
 	}
 	async loadFromFile(file, first) {
@@ -162,7 +228,6 @@ class Plugin {
 
 		this.id = pathToName(file.path);
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', file.path);
 		Plugins.all.safePush(this);
 		this.source = 'file';
 		this.tags.safePush('Local');
@@ -217,7 +282,6 @@ class Plugin {
 
 		this.id = pathToName(url)
 		Plugins.registered[this.id] = this;
-		localStorage.setItem('plugin_dev_path', url)
 		Plugins.all.safePush(this)
 		this.tags.safePush('Remote');
 
@@ -263,6 +327,7 @@ class Plugin {
 		entry.version = this.version;
 		entry.path = path;
 		entry.source = this.source;
+		entry.disabled = this.disabled ? true : undefined;
 
 		if (!already_exists) Plugins.installed.push(entry);
 
@@ -288,14 +353,16 @@ class Plugin {
 			Plugins.all.remove(this)
 		}
 		if (isApp && this.source != 'file') {
-			var filepath = Plugins.path + this.id + '.js'
-			if (fs.existsSync(filepath)) {
-				fs.unlink(filepath, (err) => {
-					if (err) {
-						console.log(err);
-					}
-				});
+			function removeCachedFile(filepath) {
+				if (fs.existsSync(filepath)) {
+					fs.unlink(filepath, (err) => {
+						if (err) console.log(err);
+					});
+				}
 			}
+			removeCachedFile(Plugins.path + this.id + '.js');
+			removeCachedFile(Plugins.path + this.id + '.' + this.icon);
+			removeCachedFile(Plugins.path + this.id + '.about.md');
 		}
 		StateMemory.save('installed_plugins')
 		return this;
@@ -311,6 +378,7 @@ class Plugin {
 
 		this.unload()
 		this.tags.empty();
+		this.dependencies.empty();
 		Plugins.all.remove(this)
 
 		if (this.source == 'file') {
@@ -321,8 +389,20 @@ class Plugin {
 		}
 		return this;
 	}
+	toggleDisabled() {
+		if (!this.disabled) {
+			this.disabled = true;
+			this.unload()
+		} else {
+			if (this.onload) {
+				this.onload()
+			}
+			this.disabled = false;
+		}
+		this.remember();
+	}
 	isReloadable() {
-		return (this.source == 'file' && isApp) || (this.source == 'url')
+		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
 	}
 	isInstallable() {
 		var scope = this;
@@ -343,20 +423,43 @@ class Plugin {
 		}
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}
-	toggleInfo(force) {
-		if (!this.about) return;
-		var scope = this;
-		Plugins.all.forEach(function(p) {
-			if (p !== scope && p.expanded) p.expanded = false;
-		})
-		if (force !== undefined) {
-			this.expanded = force === true
-		} else {
-			this.expanded = this.expanded !== true
-		}
+	hasImageIcon() {
+		return this.icon.endsWith('.png') || this.icon.endsWith('.svg');
 	}
-	get expandicon() {
-		return this.expanded ? 'expand_less' : 'expand_more'
+	getIcon() {
+		if (this.hasImageIcon()) {
+			if (isApp) {
+				if (this.installed && this.source == 'store') {
+					return Plugins.path + this.id + '.' + this.icon;
+				}
+				if (this.source != 'store')
+					return this.path.replace(/\w+\.js$/, this.icon);
+				}
+			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`;
+		}
+		return this.icon;
+	}
+	async fetchAbout() {
+		if (!this.about_fetched && !this.about && this.new_repo_format) {
+			if (isApp && this.installed) {
+				try {
+					let content = fs.readFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), {encoding: 'utf-8'});
+					this.about = content;
+					this.about_fetched = true;
+					return;
+				} catch (err) {
+					console.error('failed to get about for plugin ' + this.id);
+				}
+			}
+			let url = `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/about.md`;
+			let result = await fetch(url).catch(() => {
+				console.error('about.md missing for plugin ' + this.id);
+			});
+			if (result.ok) {
+				this.about = await result.text();
+			}
+			this.about_fetched = true;
+		}
 	}
 }
 // Alias for typescript
@@ -383,8 +486,7 @@ Plugin.register = function(id, data) {
 		})
 	};
 	plugin.extend(data)
-	if (data.icon) plugin.icon = Blockbench.getIconNode(data.icon)
-	if (plugin.isInstallable() == true) {
+	if (plugin.isInstallable() == true && plugin.disabled == false) {
 		if (plugin.onload instanceof Function) {
 			plugin.onload()
 		}
@@ -404,13 +506,13 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
-
 	$.ajax({
 		cache: false,
 		url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json',
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
+				
 			resolve();
 			Plugins.loading_promise.resolved = true;
 		},
@@ -444,7 +546,10 @@ async function loadInstalledPlugins() {
 				return p && p.id == id && p.source == 'store'
 			});
 			if (installed_match) {
-				if (isApp && installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) {
+				if (isApp && (
+					(installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) ||
+					Blockbench.isOlderThan(plugin.min_version)
+				)) {
 					// Get from file
 					let promise = plugin.load(false);
 					install_promises.push(promise);
@@ -460,11 +565,11 @@ async function loadInstalledPlugins() {
 		Plugins.sort();
 	} else if (Plugins.installed.length > 0 && isApp) {
 		//Offline
-		Plugins.installed.forEach(function(plugin) {
+		Plugins.installed.forEach(function(plugin_data) {
 
-			if (plugin.source == 'store') {
-				let plugin = new Plugin(plugin.id); 
-				let promise = plugin.load(false, function() {
+			if (plugin_data.source == 'store') {
+				let instance = new Plugin(plugin_data.id); 
+				let promise = instance.load(false, function() {
 					Plugins.sort();
 				})
 				install_promises.push(promise);
@@ -478,7 +583,7 @@ async function loadInstalledPlugins() {
 			if (plugin.source == 'file') {
 				//Dev Plugins
 				if (isApp && fs.existsSync(plugin.path)) {
-					var instance = new Plugin(plugin.id);
+					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
 					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
@@ -487,7 +592,7 @@ async function loadInstalledPlugins() {
 				}
 
 			} else if (plugin.source == 'url') {
-				var instance = new Plugin(plugin.id);
+				var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
 				install_promises.push(instance.loadFromURL(plugin.path, false));
 				load_counter++;
 				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
@@ -517,13 +622,17 @@ BARS.defineActions(function() {
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
 		title: 'dialog.plugins.title',
-		singleButton: true,
-		width: 760,
+		buttons: [],
+		width: 1200,
 		component: {
 			data: {
 				tab: 'installed',
 				search_term: '',
-				items: Plugins.all
+				items: Plugins.all,
+				selected_plugin: null,
+				page: 0,
+				per_page: 25,
+				isMobile: Blockbench.isMobile,
 			},
 			computed: {
 				plugin_search() {
@@ -543,9 +652,72 @@ BARS.defineActions(function() {
 						}
 						return false;
 					})
+				},
+				suggested_rows() {
+					let tags = ["Animation"];
+					this.items.forEach(plugin => {
+						if (!plugin.installed) return;
+						tags.safePush(...plugin.tags)
+					})
+					let rows = tags.map(tag => {
+						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
+						return {
+							title: tag,
+							plugins,
+						}
+					}).filter(row => row.plugins.length > 2);
+					//rows.sort((a, b) => a.plugins.length - b.plugins.length);
+					rows.sort(() => Math.random() - 0.5);
+
+					let cutoff = Date.now() - (3_600_000 * 24 * 28);
+					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'))
+					new_plugins.sort((a, b) => a.creation_date - b.creation_date);
+					let new_row = {
+						title: 'New',
+						plugins: new_plugins.slice(0, 12)
+					}
+					rows.splice(0, 0, new_row);
+
+					return rows.slice(0, 3);
+				},
+				viewed_plugins() {
+					return this.plugin_search.slice(this.page * this.per_page, (this.page+1) * this.per_page);
+				},
+				pages() {
+					let pages = [];
+					let length = this.plugin_search.length;
+					for (let i = 0; i * this.per_page < length; i++) {
+						pages.push(i);
+					}
+					return pages;
 				}
 			},
 			methods: {
+				setTab(tab) {
+					this.tab = tab;
+					this.setPage(0);
+				},
+				setPage(number) {
+					this.page = number;
+				},
+				selectPlugin(plugin) {
+					plugin.fetchAbout();
+					this.selected_plugin = plugin;
+				},
+				showDependency(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					if (plugin) {
+						this.selectPlugin(plugin);
+					}
+				},
+				getDependencyName(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					return plugin ? (plugin.title + (plugin.installed ? ' ✓' : '')) : (dependency + ' ⚠');
+				},
+				isDependencyInstalled(dependency) {
+					let plugin = Plugins.all.find(p => p.id == dependency);
+					return plugin && plugin.installed;
+				},
 				getTagClass(tag) {
 					if (tag.match(/^(local|remote)$/i)) {
 						return 'plugin_tag_source'
@@ -555,52 +727,137 @@ BARS.defineActions(function() {
 						return 'plugin_tag_deprecated'
 					}
 				},
+				formatAbout(about) {
+					return pureMarked(about);
+				},
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				tl
 			},
+			mount_directly: true,
 			template: `
-				<div style="margin-top: 10px;">
-					<div class="bar">
-						<div class="tab_bar">
-							<div :class="{open: tab == 'installed'}" @click="tab = 'installed'">${tl('dialog.plugins.installed')}</div>
-							<div :class="{open: tab == 'available'}" @click="tab = 'available'">${tl('dialog.plugins.available')}</div>
+				<content style="display: flex;" class="dialog_content">
+					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
+						<div class="bar flex" id="plugins_list_main_bar">
+							<div class="tool" v-if="!isMobile" @click="selected_plugin = null"><i class="material-icons icon">home</i></div>
+							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
-						<search-bar id="plugin_search_bar" v-model="search_term"></search-bar>
+						<div class="tab_bar">
+							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
+							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
+						</div>
+						<ul class="list" id="plugin_list">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
+								<div>
+									<div class="plugin_icon_area">
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<dynamic-icon v-else :icon="plugin.icon" />
+									</div>
+									<div>
+										<div class="title">{{ plugin.title || plugin.id }}</div>
+										<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
+									</div>
+								</div>
+								<div class="description">{{ plugin.description }}</div>
+								<ul class="plugin_tag_list">
+									<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+								</ul>
+							</li>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
+						</ul>
+						<ol class="pagination_numbers" v-if="pages.length > 1">
+							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
+						</ol>
 					</div>
-					<ul class="list" id="plugin_list">
-						<li v-for="plugin in plugin_search" v-bind:plugin="plugin.id" v-bind:class="{plugin: true, testing: plugin.fromFile, expanded: plugin.expanded, has_about_text: !!plugin.about}">
-							<div class="title" v-on:click="plugin.toggleInfo()">
-								<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(plugin.icon || 'error_outline', plugin.icon ? plugin.color : 'var(--color-close)').outerHTML"></div>
-
-								<i v-if="plugin.expanded" class="material-icons plugin_expand_icon">expand_less</i>
-								<i v-else class="material-icons plugin_expand_icon">expand_more</i>
-								{{ plugin.title || plugin.id }}
+					
+					<div id="plugin_browser_page" v-if="selected_plugin">
+						<div v-if="isMobile" @click="selected_plugin = null;">Back to Overview todo</div>
+						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}">
+							<div class="plugin_icon_area">
+								<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
+								<dynamic-icon v-else :icon="selected_plugin.icon" />
 							</div>
-							<div class="plugin_version">{{ plugin.version }}</div>
-							<div class="button_bar" v-if="plugin.installed || plugin.isInstallable() == true">
-								<button type="button" class="" v-on:click="plugin.uninstall()" v-if="plugin.installed"><i class="material-icons">delete</i><span>${tl('dialog.plugins.uninstall')}</span></button>
-								<button type="button" class="" v-on:click="plugin.install()" v-else><i class="material-icons">add</i><span>${tl('dialog.plugins.install')}</span></button>
-								<button type="button" v-on:click="plugin.reload()" v-if="plugin.installed && plugin.isReloadable()"><i class="material-icons">refresh</i><span>${tl('dialog.plugins.reload')}</span></button>
+							<div>
+								<h1>
+									{{ selected_plugin.title || selected_plugin.id }}
+									<div class="version">v{{ selected_plugin.version }}</div>
+								</h1>
+								<div class="author">
+									{{ tl('dialog.plugins.author', [selected_plugin.author]) }}
+									<div v-if="selected_plugin.disabled" class="plugin_disabled_tag">🌙 ${tl('dialog.plugins.is_disabled')}</div>
+									<div v-else-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
+								</div>
 							</div>
-							<div class="button_bar tiny" v-if="plugin.isInstallable() != true">{{ plugin.isInstallable() }}</div>
+						</div>
 
-							<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
-							<div class="description">{{ plugin.description }}</div>
-							<div v-if="plugin.expanded" class="about markdown" v-html="pureMarked(plugin.about.replace(/\\n/g, '\\n\\n'))"><button>a</button></div>
-							<div v-if="plugin.expanded" v-on:click="plugin.toggleInfo()" style="text-decoration: underline;">${tl('dialog.plugins.show_less')}</div>
-							<ul class="plugin_tag_list">
-								<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+							<button type="button" v-if="selected_plugin.installed && selected_plugin.source != 'store'" @click="selected_plugin.toggleDisabled()">
+								<i class="material-icons icon">bedtime</i>
+								<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
+							</button>
+							<button type="button" @click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()">
+								<i class="material-icons icon">refresh</i>
+								<span>${tl('dialog.plugins.reload')}</span>
+							</button>
+							<button type="button" class="" @click="selected_plugin.uninstall()" v-if="selected_plugin.installed">
+								<i class="material-icons icon">delete</i>
+								<span>${tl('dialog.plugins.uninstall')}</span>
+							</button>
+							<button type="button" class="" @click="selected_plugin.install()" v-else>
+								<i class="material-icons icon">add</i>
+								<span>${tl('dialog.plugins.install')}</span>
+							</button>
+						</div>
+
+						<ul class="plugin_tag_list">
+							<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+						</ul>
+
+						<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
+
+						<div class="plugin_dependencies" v-if="selected_plugin.dependencies.length">
+							${tl('dialog.plugins.dependencies')}
+							<a v-for="dep in selected_plugin.dependencies" @click="showDependency(dep)" :class="{installed: isDependencyInstalled(dep)}">{{ getDependencyName(dep) }}</a>
+						</div>
+
+						<div class="tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
+							<i class="material-icons icon">error</i>
+							{{ selected_plugin.isInstallable() }}
+						</div>
+
+						<h2 v-if="selected_plugin.about" style="margin-top: 36px;">About</h2>
+						<dynamic-icon v-else-if="!selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
+						<div class="about markdown" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)"></div>
+					</div>
+					
+					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
+						<h1>Blockbench Plugins</h1>
+						<img src="./assets/plugins.png" />
+						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a list of 100 community created plugins.</p>
+						<p>Want to write your own plugin? Check out the <a href="https://www.blockbench.net/wiki/docs/plugin" target="_blank">Plugin Documentation</a>.</p>
+						
+						<div v-for="row in suggested_rows" class="plugins_suggested_row">
+							<h3>{{row.title}}</h3>
+							<ul>
+								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)">
+									<div class="plugin_icon_area">
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<dynamic-icon v-else :icon="plugin.icon" />
+									</div>
+									<div class="title"><span>{{ plugin.title || plugin.id }}</span></div>
+									<div class="author">{{ plugin.author }}</div>
+								</li>
 							</ul>
-						</li>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-						<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
-					</ul>
-				</div>
+						</div>
+					</div>
+					
+				</content>
 			`
 		}
 	})
 
+	let actions_setup = false;
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
@@ -612,13 +869,11 @@ BARS.defineActions(function() {
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
-			if (!Plugins.dialog.button_bar) {
-				Plugins.dialog.button_bar = Interface.createElement('div', {class: 'bar next_to_title', id: 'plugins_header_bar'});
-				Plugins.dialog.object.firstElementChild.after(Plugins.dialog.button_bar);
-				BarItems.load_plugin.toElement('#plugins_header_bar');
-				BarItems.load_plugin_from_url.toElement('#plugins_header_bar');
+			if (!actions_setup) {
+				BarItems.load_plugin.toElement('#plugins_list_main_bar');
+				BarItems.load_plugin_from_url.toElement('#plugins_list_main_bar');
+				actions_setup = true;
 			}
-			$('#plugin_list').css('max-height', limitNumber(window.innerHeight-226, 80, 800)+'px');
 			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})

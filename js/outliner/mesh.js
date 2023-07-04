@@ -602,7 +602,25 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flip(axis, center) {
-		let object_mode = BarItems.selection_mode.value == 'object';
+		for (let vkey in this.vertices) {
+			this.vertices[vkey][axis] *= -1;
+		}
+		for (let key in this.faces) {
+			this.faces[key].invert();
+		}
+
+		this.origin[axis] *= -1;
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
+		this.preview_controller.updateTransform(this);
+
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateUV(this);
+		return this;
+	}
+	flipSelection(axis, center) {
+		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.selected;
 		let selected_vertices = this.getSelectedVertices();
 		for (let vkey in this.vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
@@ -700,6 +718,7 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
+		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
 		'inset_mesh_selection',
 		'loop_cut',
@@ -708,12 +727,12 @@ class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'_',
+		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
+		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -726,7 +745,7 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
@@ -747,6 +766,8 @@ class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -849,9 +870,12 @@ new NodePreviewController(Mesh, {
 
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
-				face.vertices.forEach((key, i) => {
-					position_array.push(...element.vertices[key])
-					face_indices[key] = index_offset + i;
+				face.vertices.forEach((vkey, i) => {
+					if (!element.vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					position_array.push(...element.vertices[vkey])
+					face_indices[vkey] = index_offset + i;
 				})
 
 				let normal = face.getNormal(true);

@@ -136,3 +136,13 @@ Vue.component('numeric-input', {
 		</div>
 	`
 })
+Vue.component('dynamic-icon', {
+	props: {
+		icon: String,
+		color: String,
+	},
+	render(h) {
+		let node = Blockbench.getIconNode(this.icon, this.color);
+		return h(node.tagName, {class: node.className, src: node.attributes.src?.value}, node.textContent);
+	}
+})

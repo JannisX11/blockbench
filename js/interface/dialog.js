@@ -296,7 +296,7 @@ function buildForm(dialog) {
 					if (data.type == 'folder' && !isApp) break;
 
 					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
-					input[0].value = data.value || '';
+					input[0].value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value || '';
 					let input_wrapper = $('<div class="input_wrapper"></div>');
 					input_wrapper.append(input);
 					bar.append(input_wrapper);
@@ -319,7 +319,7 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							data.content = files[0].content;
-							input.val(data.value);
+							input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 							dialog.updateFormValues()
 						}
 						switch (data.type) {
@@ -399,10 +399,17 @@ function buildLines(dialog) {
 	})
 }
 function buildComponent(dialog) {
-	let dialog_content = $(dialog.object).find('.dialog_content')
-	let mount = $(`<div />`).appendTo(dialog_content)
+	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
+	let mount;
+	// mount_directly, if enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
+	if (dialog.component.mount_directly) {
+		mount = dialog_content;
+	} else {
+		mount = Interface.createElement('div');
+		dialog_content.append(mount);
+	}
 	dialog.component.name = 'dialog-content'
-	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
+	dialog.content_vue = new Vue(dialog.component).$mount(mount);
 }
 function getStringWidth(string, size) {
 	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
@@ -604,7 +611,7 @@ window.Dialog = class Dialog {
 						} else {
 							data.content = value;
 						}
-						data.bar.find('input').val(value);
+						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : value);
 						break;
 				}
 			}
