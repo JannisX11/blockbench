@@ -1039,14 +1039,17 @@ class Preview {
 				}
 				// Position
 				let brush_coord = face.UVToLocal([x, y]);
-				let brush_coord_difference = face.UVToLocal([x, y+1]);
-				brush_coord_difference.sub(brush_coord);
+				let brush_coord_difference_x = face.UVToLocal([x+1, y]);
+				let brush_coord_difference_y = face.UVToLocal([x, y+1]);
+				brush_coord_difference_x.sub(brush_coord);
+				brush_coord_difference_y.sub(brush_coord);
 				intersect.object.localToWorld(brush_coord);
 				Canvas.brush_outline.position.copy(brush_coord);
 
 				//size
-				let radius = BarItems.slider_brush_size.get() * 1.03 * brush_coord_difference.length();
-				Canvas.brush_outline.scale.set(radius, radius, radius);
+				let radius_x = BarItems.slider_brush_size.get() * 1.03 * brush_coord_difference_x.length();
+				let radius_y = BarItems.slider_brush_size.get() * 1.03 * brush_coord_difference_y.length();
+				Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
 
 				// z fighting
 				let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
@@ -1057,10 +1060,9 @@ class Preview {
 
 				Canvas.brush_outline.rotation.z = 0;
 				let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
-				brush_coord_difference.applyQuaternion(inverse);
-				let rotation = Math.atan2(brush_coord_difference.x, -brush_coord_difference.y);
+				brush_coord_difference_y.applyQuaternion(inverse);
+				let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
 				Canvas.brush_outline.rotation.z = rotation;
-
 				
 				Canvas.brush_outline.quaternion.premultiply(world_quaternion);
 			}
