@@ -1029,6 +1029,8 @@ class Preview {
 				let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
 
 				// UV
+				let uv_factor_x = Project.texture_width / texture.width;
+				let uv_factor_y = Project.texture_height / texture.display_height;
 				let offset = 0;
 				let x = intersect.uv.x * texture.width;
 				let y = (1-intersect.uv.y) * texture.height;
@@ -1038,9 +1040,9 @@ class Preview {
 					y = Math.round(y + offset) - offset;
 				}
 				// Position
-				let brush_coord = face.UVToLocal([x, y]);
-				let brush_coord_difference_x = face.UVToLocal([x+1, y]);
-				let brush_coord_difference_y = face.UVToLocal([x, y+1]);
+				let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
+				let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
+				let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
 				brush_coord_difference_x.sub(brush_coord);
 				brush_coord_difference_y.sub(brush_coord);
 				intersect.object.localToWorld(brush_coord);
