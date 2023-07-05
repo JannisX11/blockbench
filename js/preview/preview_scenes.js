@@ -69,7 +69,7 @@ class PreviewScene {
 	}
 	async lazyLoadFromWeb() {
 		let repo = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
-		repo = './../blockbench-scenes'
+		// repo = './../blockbench-scenes'
 		this.loaded = true;
 		let response = await fetch(`${repo}/${this.web_config_path}`);
 		if (!response.ok) {
