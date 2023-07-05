@@ -256,7 +256,7 @@ const skin_dialog = new Dialog({
 		},
 		variant: {
 			label: 'dialog.skin.variant',
-			type: 'select',
+			type: 'inline_select',
 			default: 'java_edition',
 			options: {
 				java_edition: 'Java Edition',
@@ -498,7 +498,7 @@ Interface.definePanels(function() {
 })
 
 skin_presets.steve = {
-	display_name: 'Steve',
+	display_name: 'Player - Default',
 	pose: true,
 	model: `{
 		"name": "steve",
@@ -572,7 +572,7 @@ skin_presets.steve = {
 	}`
 };
 skin_presets.alex = {
-	display_name: 'Alex',
+	display_name: 'Player - Slim',
 	pose: true,
 	model_java: `{
 		"name": "alex",
