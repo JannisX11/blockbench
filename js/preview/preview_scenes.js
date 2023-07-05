@@ -11,6 +11,7 @@ class PreviewScene {
 		this.light_color = {r: 1, g: 1, b: 1};
 		this.light_side = 0;
 		this.condition;
+		this.fov = null;
 
 		this.preview_models = [];
 
@@ -53,6 +54,9 @@ class PreviewScene {
 			}
 		}
 
+		this.fov = null;
+		if (data.fov) this.fov = data.fov;
+
 		if (data.preview_models) {
 			this.preview_models = data.preview_models.map(model => {
 				if (typeof model == 'string') return PreviewModel.models[model];
@@ -64,15 +68,17 @@ class PreviewScene {
 		}
 	}
 	async lazyLoadFromWeb() {
+		let repo = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+		repo = './../blockbench-scenes'
 		this.loaded = true;
-		let response = await fetch(`https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes/${this.web_config_path}`);
+		let response = await fetch(`${repo}/${this.web_config_path}`);
 		if (!response.ok) {
 			console.error(response);
 			Blockbench.showQuickMessage('message.preview_scene_load_failed', 2000);
 		}
 		let json = await response.json();
 		function convertURL(url) {
-			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes/${url}`;
+			return `${repo}/${url}`;
 		}
 		if (json.preview_models) {
 			json.preview_models.forEach(model => {
@@ -103,6 +109,9 @@ class PreviewScene {
 		Canvas.global_light_side = this.light_side;
 		scene.background = this.cubemap;
 		scene.fog = this.fog;
+		if (this.fov) {
+			Preview.selected.setFOV(this.fov);
+		}
 		PreviewScene.active = this;
 		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
 		Canvas.updateShading();
@@ -116,6 +125,9 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
+		if (this.fov) {
+			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
+		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
 		PreviewScene.active = null;
@@ -193,9 +205,13 @@ class PreviewModel {
 			side: this.render_side,
 			alphaTest: 0.05
 		});
+		if (typeof this.color == 'object') {
+			this.material.color.copy(this.color);
+		}
 
 		this.build_data.cubes.forEach(cube => {
 			if (cube.prefab) {
+				if (!this.build_data.prefabs[cube.prefab]) console.error(`Invalid prefab "${cube.prefab}"`)
 				cube = Object.assign(cube, this.build_data.prefabs[cube.prefab]);
 				if (cube.offset) {
 					if (cube.offset_space == 'block') cube.offset.V3_multiply(16);
@@ -279,569 +295,6 @@ PreviewModel.getActiveModels = function() {
 	return [];
 }
 
-
-new PreviewModel('minecraft_overworld', {
-	texture: './assets/preview_scenes/mc_overworld.png',
-	texture_size: [32, 32],
-	prefabs: {
-		grass_block: {
-			position: [-8, 0, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		}
-	},
-	cubes: [
-		{
-			position: [-24, 0, 0],
-			size: [16, 16, 0],
-			origin: [-16, 0, 0],
-			rotation: [0, 45, 0],
-			faces: {
-				north: {uv: [16, 0, 32, 16]}
-			}
-		},
-		{
-			position: [-24, 0, 0],
-			size: [16, 16, 0],
-			origin: [-16, 0, 0],
-			rotation: [0, -45, 0],
-			faces: {
-				north: {uv: [16, 0, 32, 16]}
-			}
-		},
-		{
-			prefab: 'grass_block',
-			offset: [-1, -1, 0],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [0, -1, 0],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [1, -1, 1],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [1, -1, 0],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [0, -1, 1],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [-1, -1, -1],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [0, -1, -1],
-			offset_space: 'block'
-		},
-		{
-			prefab: 'grass_block',
-			offset: [-1, -2, 1],
-			offset_space: 'block'
-		},
-		{
-			position: [8, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [8, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-8, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-24, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [8, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-8, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-24, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-40, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-40, -32, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [-40, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [24, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [24, -32, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-		{
-			position: [24, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [16, 16, 32, 32]},
-			}
-		},
-	]
-})
-new PreviewModel('minecraft_nether', {
-	texture: './assets/preview_scenes/mc_nether.png',
-	texture_size: [32, 32],
-	color: '#ad9c7d',
-	cubes: [
-		{
-			position: [-24, 0, 0],
-			size: [16, 16, 0],
-			origin: [-16, 0, 0],
-			rotation: [0, 45, 0],
-			faces: {
-				north: {uv: [16, 0, 32, 16]}
-			}
-		},
-		{
-			position: [-24, 0, 0],
-			size: [16, 16, 0],
-			origin: [-16, 0, 0],
-			rotation: [0, -45, 0],
-			faces: {
-				north: {uv: [16, 0, 32, 16]}
-			}
-		},
-		{
-			position: [-24, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-8, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [8, -16, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [8, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-8, -16, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-24, -16, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-24, -16, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-8, -16, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-24, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [8, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [8, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 16, 16, 32]},
-				down: {uv: [0, 16, 16, 32]},
-			}
-		},
-		{
-			position: [-8, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-24, -32, -40],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [8, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-8, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-24, -32, 24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 16, 16, 32]},
-				south: {uv: [0, 16, 16, 32]},
-				east: {uv: [0, 16, 16, 32]},
-				west: {uv: [0, 16, 16, 32]},
-				up: {uv: [0, 16, 16, 32]},
-				down: {uv: [0, 16, 16, 32]},
-			}
-		},
-		{
-			position: [-40, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-40, -32, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [-40, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [24, -32, -24],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [24, -32, -8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-		{
-			position: [24, -32, 8],
-			size: [16, 16, 16],
-			faces: {
-				north: {uv: [0, 0, 16, 16]},
-				south: {uv: [0, 0, 16, 16]},
-				east: {uv: [0, 0, 16, 16]},
-				west: {uv: [0, 0, 16, 16]},
-				up: {uv: [0, 0, 16, 16]},
-				down: {uv: [0, 0, 16, 16]},
-			}
-		},
-	]
-})
-let solid_uv = {
-	north: {uv: [0, 0, 16, 16]},
-	south: {uv: [0, 0, 16, 16]},
-	east: {uv: [0, 0, 16, 16]},
-	west: {uv: [0, 0, 16, 16]},
-	up: {uv: [0, 0, 16, 16]},
-	down: {uv: [0, 0, 16, 16]},
-}
-new PreviewModel('minecraft_end', {
-	texture: './assets/preview_scenes/mc_end.png',
-	texture_size: [16, 16],
-	color: '#6f8377',
-	cubes: [
-		{position: [-8, -16, -8], size: [16, 16, 16], faces: solid_uv},
-		{position: [8, -16, 8], size: [16, 16, 16], faces: solid_uv},
-		{position: [8, -16, -8], size: [16, 16, 16], faces: solid_uv},
-		{position: [-8, -16, 8], size: [16, 16, 16], faces: solid_uv},
-		{position: [-24, -16, -24], size: [16, 16, 16], faces: solid_uv},
-		{position: [-24, -16, -8], size: [16, 16, 16], faces: solid_uv},
-		{position: [-8, -16, -24], size: [16, 16, 16], faces: solid_uv},
-
-		{position: [-24, -32, 8], size: [16, 16, 16], faces: solid_uv},
-		{position: [8, -32, -24], size: [16, 16, 16], faces: solid_uv},
-
-		{position: [8, -32, -40], size: [16, 16, 16], faces: solid_uv},
-		{position: [-8, -32, -40], size: [16, 16, 16], faces: solid_uv},
-		{position: [-24, -32, -40], size: [16, 16, 16], faces: solid_uv},
-		{position: [8, -32, 24], size: [16, 16, 16], faces: solid_uv},
-		{position: [-8, -32, 24], size: [16, 16, 16], faces: solid_uv},
-		{position: [-24, -32, 24], size: [16, 16, 16], faces: solid_uv},
-
-		{position: [-40, -32, -24], size: [16, 16, 16], faces: solid_uv},
-		{position: [-40, -32, -8], size: [16, 16, 16], faces: solid_uv},
-		{position: [-40, -32, 8], size: [16, 16, 16], faces: solid_uv},
-		{position: [24, -32, -24], size: [16, 16, 16], faces: solid_uv},
-		{position: [24, -32, -8], size: [16, 16, 16], faces: solid_uv},
-		{position: [24, -32, 8], size: [16, 16, 16], faces: solid_uv},
-	]
-})
 new PreviewModel('studio', {
 	texture: './assets/preview_scenes/studio.png',
 	texture_size: [64, 64],
@@ -902,23 +355,6 @@ new PreviewScene('studio', {
 	light_side: 1,
 	preview_models: ['studio']
 });
-new PreviewScene('landscape', {
-	category: 'generic',
-	light_color: {r: 1, g: 1, b: 1}
-});
-new PreviewScene('minecraft_overworld', {
-	category: 'minecraft',
-	preview_models: ['minecraft_overworld'],
-	fog: {color: '#bbe9fc', density: 0.002},
-	cubemap: [
-		'./../blockbench-scenes/minecraft/underwater/skybox_0b.png',
-		'./../blockbench-scenes/minecraft/underwater/skybox_1b.png',
-		'./../blockbench-scenes/minecraft/underwater/skybox_2b.png',
-		'./../blockbench-scenes/minecraft/underwater/skybox_3b.png',
-		'./../blockbench-scenes/minecraft/underwater/skybox_4b.png',
-		'./../blockbench-scenes/minecraft/underwater/skybox_5b.png',
-	]
-});
 new PreviewScene('minecraft_plains', {
 	category: 'minecraft',
 	web_config: 'minecraft/plains/plains.json',
@@ -927,6 +363,11 @@ new PreviewScene('minecraft_plains', {
 new PreviewScene('minecraft_snowy_tundra', {
 	category: 'minecraft',
 	web_config: 'minecraft/snowy_tundra/snowy_tundra.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_cherry_grove', {
+	category: 'minecraft',
+	web_config: 'minecraft/cherry_grove/cherry_grove.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_sunset', {
@@ -949,9 +390,19 @@ new PreviewScene('minecraft_underwater', {
 	web_config: 'minecraft/underwater/underwater.json',
 	require_minecraft_eula: true,
 });
+new PreviewScene('minecraft_coral_reef', {
+	category: 'minecraft',
+	web_config: 'minecraft/coral_reef/coral_reef.json',
+	require_minecraft_eula: true,
+});
 new PreviewScene('minecraft_lush_cave', {
 	category: 'minecraft',
 	web_config: 'minecraft/lush_cave/lush_cave.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_deep_dark', {
+	category: 'minecraft',
+	web_config: 'minecraft/deep_dark/deep_dark.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_nether', {
@@ -1010,7 +461,7 @@ BARS.defineActions(function() {
 			for (let category in PreviewScene.menu_categories) {
 				let options = PreviewScene.menu_categories[category];
 				if (options._label) {
-					list.push('_') // Menu Sub Title
+					list.push(new MenuSeparator('options', options._label));
 				}
 				for (let key in options) {
 					if (key.startsWith('_')) continue;

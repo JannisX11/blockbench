@@ -2114,11 +2114,14 @@
 	"preview_scene.minecraft_overworld": "Overworld",
 	"preview_scene.minecraft_nether": "Nether",
 	"preview_scene.minecraft_end": "End",
-	"minecraft_plains": "Plains",
-	"minecraft_snowy_tundra": "Snowy Tundra",
-	"minecraft_sunset": "Sunset",
-	"minecraft_night": "Night",
-	"minecraft_desert": "Desert",
-	"minecraft_underwater": "Underwater",
-	"minecraft_lush_cave": "Lush Cave"
+	"preview_scene.minecraft_plains": "Plains",
+	"preview_scene.minecraft_cherry_grove": "Cherry Grove",
+	"preview_scene.minecraft_snowy_tundra": "Snowy Tundra",
+	"preview_scene.minecraft_sunset": "Sunset",
+	"preview_scene.minecraft_night": "Night",
+	"preview_scene.minecraft_desert": "Desert",
+	"preview_scene.minecraft_underwater": "Underwater",
+	"preview_scene.minecraft_coral_reef": "Coral Reef",
+	"preview_scene.minecraft_lush_cave": "Lush Cave",
+	"preview_scene.minecraft_deep_dark": "Deep Dark"
 }

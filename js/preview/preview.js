@@ -1433,6 +1433,7 @@ class Preview {
 		'reference_image_from_clipboard',
 		'toggle_all_reference_images',
 		'edit_reference_images',
+		'preview_scene',
 		new MenuSeparator('controls'),
 		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
