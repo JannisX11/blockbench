@@ -213,13 +213,15 @@ const TextureGenerator = {
 			uv_mode: true
 		})
 
-		var i = cubes.length-1
-		while (i >= 0) {
-			let obj = cubes[i]
+		for (var i = cubes.length-1; i >= 0; i--) {
+			let obj = cubes[i];
 			if (obj.visibility === true) {
-				var template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				if (options.double_use && Project.box_uv && Texture.all.length) {
-					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
+				let template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
+				let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[obj.uuid] && MirrorModeling.cached_elements[obj.uuid].is_original == false;
+				if (mirror_modeling_duplicate) continue;
+
+				if ((options.double_use && Project.box_uv && Texture.all.length) || mirror_modeling_duplicate) {
+					let double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
 					if (doubles[double_key]) {
 						// improve chances that original is not mirrored
 						if (doubles[double_key][0].obj.mirror_uv && !obj.mirror_uv) {
@@ -238,7 +240,6 @@ const TextureGenerator = {
 				templates.push(template)
 				avg_size += templates[templates.length-1].template_size
 			}
-			i--;
 		}
 		//Cancel if no cubes
 		if (templates.length == 0) {
@@ -691,6 +692,8 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			if (mirror_modeling_duplicate) return;
 			if (element instanceof Cube) {
 				for (var face_key in element.faces) {
 					var face = element.faces[face_key];
@@ -1612,6 +1615,8 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			if (mirror_modeling_duplicate) return;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (element instanceof Mesh && face.vertices.length <= 2) continue;

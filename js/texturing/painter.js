@@ -162,7 +162,7 @@ const Painter = {
 	movePaintToolCanvas(event, data) {
 		convertTouchEvent(event);
 		if (!data) data = Canvas.raycast(event)
-		if (data && data.element && !data.element.locked) {
+		if (data && data.element && !data.element.locked && data.face) {
 			var texture = data.element.faces[data.face].getTexture();
 			if (!texture) return;
 
@@ -1263,7 +1263,8 @@ const Painter = {
 						off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) == undefined &&
 						off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) == undefined &&
 						symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) == undefined &&
-						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined
+						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.rotation[axis], element2.rotation[axis], e)) == undefined
 					) {
 						return element2;
 					}

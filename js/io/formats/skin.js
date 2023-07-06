@@ -498,7 +498,7 @@ Interface.definePanels(function() {
 })
 
 skin_presets.steve = {
-	display_name: 'Player - Default',
+	display_name: 'Player - Wide',
 	pose: true,
 	model: `{
 		"name": "steve",

@@ -70,9 +70,12 @@ const MirrorModeling = {
 		preview_controller.updateFaces(mirror_element);
 		preview_controller.updateUV(mirror_element);
 	},
+	getEditSide() {
+		return Math.sign(Transformer.position.x) || 1;
+	},
 	createLocalSymmetry(mesh) {
 		// Create or update clone
-		let edit_side = Math.sign(Transformer.position.x) || 1;
+		let edit_side = MirrorModeling.getEditSide();
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
 		let selected_vertices = mesh.getSelectedVertices(true);
@@ -92,7 +95,6 @@ const MirrorModeling = {
 		// Copy existing vertices back to the non-edit side
 		let added_vertices = [];
 		let vertex_counterpart = {};
-		let replaced_vertices = {};
 		for (let vkey in mesh.vertices) {
 			let vertex = mesh.vertices[vkey];
 			if (mesh.vertices[vkey][0] == 0) {
@@ -207,14 +209,17 @@ Blockbench.on('init_edit', ({aspects}) => {
 
 	MirrorModeling.cached_elements = {};
 	MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
+	let edit_side = MirrorModeling.getEditSide();
 
 	aspects.elements.forEach((element) => {
 		if (element.allow_mirror_modeling) {
 			let is_centered = MirrorModeling.isCentered(element);
 
-			MirrorModeling.cached_elements[element.uuid] = {is_centered};
+			let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
 			if (!is_centered) {
-				MirrorModeling.cached_elements[element.uuid].counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
+				data.is_original = Math.sign(element.getWorldCenter().x) != edit_side;
+				data.counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
+				if (!data.counterpart) data.is_original = true;
 			}
 		}
 	})
