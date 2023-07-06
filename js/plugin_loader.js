@@ -53,6 +53,7 @@ class Plugin {
 		this.await_loading = false;
 		this.about_fetched = false;
 		this.disabled = false;
+		this.new_repository_format = false;
 
 		this.extend(data)
 
@@ -69,13 +70,17 @@ class Plugin {
 		Merge.string(this, data, 'version')
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
+		Merge.string(this, data, 'max_version')
 		Merge.boolean(this, data, 'await_loading');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
-		this.new_repo_format = this.min_version != '' && !compareVersions('4.8.0', this.min_version);
+		if (data.new_repository_format) this.new_repository_format = true;
+		if (this.min_version != '' && !compareVersions('4.8.0', this.min_version)) {
+			this.new_repository_format = true;
+		}
 
 		Merge.function(this, data, 'onload')
 		Merge.function(this, data, 'onunload')
@@ -187,7 +192,7 @@ class Plugin {
 		}
 		return await new Promise(async (resolve, reject) => {
 			// New system
-			if (this.new_repo_format) {
+			if (this.new_repository_format) {
 				copyFileToDrive(`${this.id}/${this.id}.js`, `${this.id}.js`, () => {
 					if (first) register();
 					setTimeout(async function() {
@@ -440,7 +445,7 @@ class Plugin {
 		return this.icon;
 	}
 	async fetchAbout() {
-		if (!this.about_fetched && !this.about && this.new_repo_format) {
+		if (!this.about_fetched && !this.about && this.new_repository_format) {
 			if (isApp && this.installed) {
 				try {
 					let content = fs.readFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), {encoding: 'utf-8'});
@@ -670,13 +675,15 @@ BARS.defineActions(function() {
 					rows.sort(() => Math.random() - 0.5);
 
 					let cutoff = Date.now() - (3_600_000 * 24 * 28);
-					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'))
-					new_plugins.sort((a, b) => a.creation_date - b.creation_date);
-					let new_row = {
-						title: 'New',
-						plugins: new_plugins.slice(0, 12)
+					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
+					if (new_plugins.length) {
+						new_plugins.sort((a, b) => a.creation_date - b.creation_date);
+						let new_row = {
+							title: 'New',
+							plugins: new_plugins.slice(0, 12)
+						}
+						rows.splice(0, 0, new_row);
 					}
-					rows.splice(0, 0, new_row);
 
 					return rows.slice(0, 3);
 				},
