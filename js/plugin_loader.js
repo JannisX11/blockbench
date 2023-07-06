@@ -406,6 +406,10 @@ class Plugin {
 		}
 		this.remember();
 	}
+	showContextMenu(event) {
+		if (!this.installed) return;
+		this.menu.open(event, this);
+	}
 	isReloadable() {
 		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
 	}
@@ -467,6 +471,60 @@ class Plugin {
 		}
 	}
 }
+Plugin.prototype.menu = new Menu([
+	new MenuSeparator('installation'),
+	{
+		name: 'dialog.plugins.install',
+		icon: 'add',
+		condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
+		click(plugin) {
+			plugin.install();
+		}
+	},
+	{
+		name: 'dialog.plugins.uninstall',
+		icon: 'delete',
+		condition: plugin => (plugin.installed),
+		click(plugin) {
+			plugin.uninstall();
+		}
+	},
+	{
+		name: 'dialog.plugins.disable',
+		icon: 'bedtime',
+		condition: plugin => (plugin.installed && plugin.source != 'store' && !plugin.disabled),
+		click(plugin) {
+			plugin.toggleDisabled();
+		}
+	},
+	{
+		name: 'dialog.plugins.enable',
+		icon: 'bedtime',
+		condition: plugin => (plugin.installed && plugin.source != 'store' && plugin.disabled),
+		click(plugin) {
+			plugin.toggleDisabled();
+		}
+	},
+	new MenuSeparator('developer'),
+	{
+		name: 'dialog.plugins.reload',
+		icon: 'refresh',
+		condition: plugin => (plugin.installed && plugin.isReloadable()),
+		click(plugin) {
+			plugin.reload();
+		}
+	},
+	{
+		name: 'menu.animation.open_location',
+		icon: 'folder',
+		condition: plugin => (isApp && plugin.source == 'file'),
+		click(plugin) {
+			shell.showItemInFolder(plugin.path);
+		}
+	},
+]);
+
+
 // Alias for typescript
 const BBPlugin = Plugin;
 
@@ -754,7 +812,7 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" id="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
