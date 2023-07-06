@@ -615,7 +615,7 @@ window.onbeforeunload = function (event) {
 		})
 
 		dialog = new Dialog('close', {
-			title: 'Unsaved Projects',
+			title: 'dialog.unsaved_work.title',
 			lines: [
 				Interface.createElement('p', {}, tl('dialog.unsaved_work.text')),
 				ul
