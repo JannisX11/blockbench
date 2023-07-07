@@ -50,7 +50,10 @@ class CubeFace extends Face {
 		}
 	}
 	UVToLocal(point) {
-		let {from, to} = this.cube;
+		let from = this.cube.from.slice()
+		let to = this.cube.to.slice()
+		adjustFromAndToForInflateAndStretch(from, to, this.cube);
+
 		let vector = new THREE.Vector3().fromArray(from);
 
 		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
@@ -86,6 +89,11 @@ class CubeFace extends Face {
 		vector.x -= this.cube.origin[0];
 		vector.y -= this.cube.origin[1];
 		vector.z -= this.cube.origin[2];
+		if (!Format.centered_grid) {
+			vector.x += 8;
+			vector.y += 8;
+			vector.z += 8;
+		}
 		return vector;
 	}
 }

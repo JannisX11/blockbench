@@ -586,6 +586,11 @@ const Timeline = {
 		Timeline.menu.open(event, event);
 	},
 	menu: new Menu([
+		new MenuSeparator('preview'),
+		'play_animation',
+		'looped_animation_playback',
+		'jump_to_timeline_start',
+		'jump_to_timeline_end',
 		new MenuSeparator('copypaste'),
 		'paste',
 		new MenuSeparator('view'),

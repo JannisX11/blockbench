@@ -328,7 +328,6 @@ const MenuBar = {
 
 		new BarMenu('animation', [
 			new MenuSeparator('edit_options'),
-			'looped_animation_playback',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
