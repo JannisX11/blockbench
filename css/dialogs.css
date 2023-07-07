@@ -1140,8 +1140,14 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	#plugin_browser_start_page {
 		width: 61.8%;
 		flex-grow: 1;
-		padding: 16px 24px;
+	}
+	#plugin_browser_start_page {
 		overflow-y: auto;
+		padding: 16px 24px;
+	}
+	#plugin_browser_page {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.bar.next_to_title {
@@ -1374,15 +1380,23 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		color: var(--color-subtle_text);
 	}
 	.plugin_browser_page_header {
+		padding: 16px 24px;
+	}
+	.plugin_browser_page_titlebar {
 		display: flex;
 		margin-bottom: 12px;
 	}
-	.plugin_browser_page_header .plugin_icon_area {
+	.plugin_browser_page_titlebar .plugin_icon_area {
 		flex-basis: 64px;
 		margin-top: 14px;
 	}
-	.plugin_browser_page_header h1 {
+	.plugin_browser_page_titlebar h1 {
 		margin: 0;
+	}
+	#plugin_browser_page > .about {
+		overflow-y: auto;
+		padding: 16px 24px;
+		padding-top: 0;
 	}
 	#plugin_browser_page .about, #plugin_browser_page .description {
 		user-select: text;

@@ -793,7 +793,7 @@ BARS.defineActions(function() {
 					}
 				},
 				formatAbout(about) {
-					return pureMarked(about);
+					return pureMarked('## About\n\n' + about);
 				},
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
@@ -839,60 +839,61 @@ BARS.defineActions(function() {
 					<div id="plugin_browser_page" v-if="selected_plugin">
 						<div v-if="isMobile" @click="selected_plugin = null;">Back to Overview todo</div>
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}">
-							<div class="plugin_icon_area">
-								<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
-								<dynamic-icon v-else :icon="selected_plugin.icon" />
-							</div>
-							<div>
-								<h1>
-									{{ selected_plugin.title || selected_plugin.id }}
-									<div class="version">v{{ selected_plugin.version }}</div>
-								</h1>
-								<div class="author">
-									{{ tl('dialog.plugins.author', [selected_plugin.author]) }}
-									<div v-if="selected_plugin.disabled" class="plugin_disabled_tag">🌙 ${tl('dialog.plugins.is_disabled')}</div>
-									<div v-else-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
+							<div class="plugin_browser_page_titlebar" :class="{disabled_plugin: selected_plugin.disabled}">
+								<div class="plugin_icon_area">
+									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
+									<dynamic-icon v-else :icon="selected_plugin.icon" />
+								</div>
+								<div>
+									<h1>
+										{{ selected_plugin.title || selected_plugin.id }}
+										<div class="version">v{{ selected_plugin.version }}</div>
+									</h1>
+									<div class="author">
+										{{ tl('dialog.plugins.author', [selected_plugin.author]) }}
+										<div v-if="selected_plugin.disabled" class="plugin_disabled_tag">🌙 ${tl('dialog.plugins.is_disabled')}</div>
+										<div v-else-if="selected_plugin.installed" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
+									</div>
 								</div>
 							</div>
+
+							<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+								<button type="button" v-if="selected_plugin.installed && selected_plugin.source != 'store'" @click="selected_plugin.toggleDisabled()">
+									<i class="material-icons icon">bedtime</i>
+									<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
+								</button>
+								<button type="button" @click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()">
+									<i class="material-icons icon">refresh</i>
+									<span>${tl('dialog.plugins.reload')}</span>
+								</button>
+								<button type="button" class="" @click="selected_plugin.uninstall()" v-if="selected_plugin.installed">
+									<i class="material-icons icon">delete</i>
+									<span>${tl('dialog.plugins.uninstall')}</span>
+								</button>
+								<button type="button" class="" @click="selected_plugin.install()" v-else>
+									<i class="material-icons icon">add</i>
+									<span>${tl('dialog.plugins.install')}</span>
+								</button>
+							</div>
+
+							<ul class="plugin_tag_list">
+								<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+							</ul>
+
+							<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
+
+							<div class="plugin_dependencies" v-if="selected_plugin.dependencies.length">
+								${tl('dialog.plugins.dependencies')}
+								<a v-for="dep in selected_plugin.dependencies" @click="showDependency(dep)" :class="{installed: isDependencyInstalled(dep)}">{{ getDependencyName(dep) }}</a>
+							</div>
+
+							<div class="tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
+								<i class="material-icons icon">error</i>
+								{{ selected_plugin.isInstallable() }}
+							</div>
 						</div>
 
-						<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
-							<button type="button" v-if="selected_plugin.installed && selected_plugin.source != 'store'" @click="selected_plugin.toggleDisabled()">
-								<i class="material-icons icon">bedtime</i>
-								<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
-							</button>
-							<button type="button" @click="selected_plugin.reload()" v-if="selected_plugin.installed && selected_plugin.isReloadable()">
-								<i class="material-icons icon">refresh</i>
-								<span>${tl('dialog.plugins.reload')}</span>
-							</button>
-							<button type="button" class="" @click="selected_plugin.uninstall()" v-if="selected_plugin.installed">
-								<i class="material-icons icon">delete</i>
-								<span>${tl('dialog.plugins.uninstall')}</span>
-							</button>
-							<button type="button" class="" @click="selected_plugin.install()" v-else>
-								<i class="material-icons icon">add</i>
-								<span>${tl('dialog.plugins.install')}</span>
-							</button>
-						</div>
-
-						<ul class="plugin_tag_list">
-							<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
-						</ul>
-
-						<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
-
-						<div class="plugin_dependencies" v-if="selected_plugin.dependencies.length">
-							${tl('dialog.plugins.dependencies')}
-							<a v-for="dep in selected_plugin.dependencies" @click="showDependency(dep)" :class="{installed: isDependencyInstalled(dep)}">{{ getDependencyName(dep) }}</a>
-						</div>
-
-						<div class="tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
-							<i class="material-icons icon">error</i>
-							{{ selected_plugin.isInstallable() }}
-						</div>
-
-						<h2 v-if="selected_plugin.about" style="margin-top: 36px;">About</h2>
-						<dynamic-icon v-else-if="!selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
+						<dynamic-icon v-if="!selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
 						<div class="about markdown" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)"></div>
 					</div>
 					
