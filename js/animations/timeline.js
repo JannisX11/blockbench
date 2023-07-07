@@ -1294,6 +1294,28 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
+				clickGraphEditor(event) {
+					if (!this.show_other_graphs || !this.graph_editor_animator) return;
+					let time = event.offsetX / this.size;
+					let value = (this.graph_offset - event.offsetY) / this.graph_size;
+
+					let original_time = Timeline.time;
+					Timeline.time = time;
+
+					let distances = ['x', 'y', 'z'].map(axis => {
+						let axis_value = this.graph_editor_animator.interpolate(this.graph_editor_channel, false, axis);
+						let diff = Math.abs(axis_value - value) * this.graph_size;
+						if (diff < 12.5) {
+							return {axis, diff};
+						}
+					}).filter(a => a);
+
+					if (distances.length) {
+						distances.sort((a, b) => a.diff - b.diff);
+						this.graph_editor_axis = distances[0].axis;
+					}
+					Timeline.time = original_time;
+				},
 				getBezierHandleStyle(keyframe, side) {
 					let axis_number = getAxisNumber(this.graph_editor_axis);
 					let x_offset = -keyframe[`bezier_${side}_time`][axis_number] * this.size;
@@ -1460,7 +1482,7 @@ Interface.definePanels(() => {
 							<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 							</div>
 							<div id="timeline_selector" class="selection_rectangle"></div>
-							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
+							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}" @click="clickGraphEditor($event)">
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
