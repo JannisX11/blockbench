@@ -327,14 +327,12 @@ class OutlinerNode {
 			return true;
 		}
 	}
-	matchesFilter(search_term) {
-		if (!this.children) {
-			return this.name.includes(search_term);
-		} else {
-			if (this.name.includes(search_term)) return true;
-			let match = false;
-			return this.children.find(child => child.matchesFilter(search_term));
+	matchesFilter(search_term_lowercase) {
+		if (this.name.toLowerCase().includes(search_term_lowercase)) return true;
+		if (this.children) {
+			return this.children.find(child => child.matchesFilter(search_term_lowercase));
 		}
+		return false;
 	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
@@ -1387,7 +1385,8 @@ Interface.definePanels(function() {
 			visible_children() {
 				let filtered = this.node.children;
 				if (this.options.search_term) {
-					filtered = this.node.children.filter(child => child.matchesFilter(this.options.search_term))
+					let search_term_lowercase = this.options.search_term.toLowerCase();
+					filtered = this.node.children.filter(child => child.matchesFilter(search_term_lowercase));
 				}
 				if (!this.options.hidden_types.length) {
 					return filtered;
@@ -1717,7 +1716,8 @@ Interface.definePanels(function() {
 					if (!this.options.search_term) {
 						return this.root;
 					} else {
-						return this.root.filter(node => node.matchesFilter(this.options.search_term))
+						let search_term_lowercase = this.options.search_term.toLowerCase();
+						return this.root.filter(node => node.matchesFilter(search_term_lowercase))
 					}
 				}
 			},
