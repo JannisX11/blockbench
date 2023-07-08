@@ -260,6 +260,9 @@ class Cube extends OutlinerElement {
 			]
 		}
 	}
+	getSize(axis, selection_only) {
+		return this.size(axis);
+	}
 	rotationAxis() {
 		for (var axis = 0; axis < 3; axis++) {
 			if (this.rotation[axis] !== 0) {

@@ -1074,7 +1074,7 @@ BARS.defineActions(function() {
 	function resizeOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
 			if (obj.resizable) {
-				obj.resize(modify, axis, false, true)
+				obj.resize(modify, axis, false, true, obj instanceof Mesh)
 			} else if (obj.scalable) {
 				obj.scale[axis] = modify(obj.scale[axis]);
 				obj.preview_controller.updateTransform(obj);
@@ -1087,20 +1087,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[0]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[0] - Outliner.selected[0].from[0]
+				return Outliner.selected[0].getSize(0, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1111,20 +1111,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[1]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[1] - Outliner.selected[0].from[1]
+				return Outliner.selected[0].getSize(1, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1135,20 +1135,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable)&& Outliner.selected[0] instanceof Mesh == false  && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[2]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[2] - Outliner.selected[0].from[2]
+				return Outliner.selected[0].getSize(2, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')

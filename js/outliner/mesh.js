@@ -533,6 +533,27 @@ class Mesh extends OutlinerElement {
 			return center;
 		}
 	}
+	getSize(axis, selection_only) {
+		if (selection_only) {
+			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+			let range = [Infinity, -Infinity];
+			let {vec1, vec2} = Reusable;
+			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+			selected_vertices.forEach(key => {
+				vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+				range[0] = Math.min(range[0], vec1.getComponent(axis));
+				range[1] = Math.max(range[1], vec1.getComponent(axis));
+			})
+			return range[1] - range[0];
+		} else {
+			let range = [Infinity, -Infinity];
+			for (let vkey in this.vertices) {
+				range[0] = Math.min(range[0], this.vertices[vkey][axis]);
+				range[1] = Math.max(range[1], this.vertices[vkey][axis]);
+			}
+			return range[1] - range[0];
+		}
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);
@@ -673,24 +694,29 @@ class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
+		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
 		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
 		selected_vertices.forEach(key => {
-			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
 			range[0] = Math.min(range[0], vec1.getComponent(axis));
 			range[1] = Math.max(range[1], vec1.getComponent(axis));
 		})
 		
 		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
 		let size = Math.abs(range[1] - range[0]);
+		if (typeof val !== 'number') {
+			val = val(size) - size;
+			if (bidirectional) val /= 2;
+		}
 		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
 		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
 		if (scale < 0 && !allow_negative) scale = 0;
 		
 		selected_vertices.forEach(key => {
-			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
 			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
 			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
 			vec2.applyEuler(Transformer.rotation_selection);
