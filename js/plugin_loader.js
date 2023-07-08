@@ -92,40 +92,6 @@ class Plugin {
 		return this.title;
 	}
 	async install() {
-		let required_dependencies = this.dependencies
-			.map(id => (Plugins.all.find(p => p.id == id) || id))
-			.filter(p => (p instanceof Plugin == false || p.installed == false));
-		if (required_dependencies.length) {
-			let failed_dependency = required_dependencies.find(p => (!p.isInstallable || p.isInstallable() != true));
-			if (failed_dependency) {
-				let error_message = failed_dependency;
-				if (failed_dependency instanceof Plugin) {
-					error_message = `**${failed_dependency.title}**: ${failed_dependency.isInstallable()}`;
-				}
-				Blockbench.showMessageBox({
-					title: 'message.plugin_dependencies.title',
-					message: `${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
-				});
-				return;
-			}
-
-			let list = required_dependencies.map(p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`);
-			let response = await new Promise(resolve => {
-				Blockbench.showMessageBox({
-					title: 'message.plugin_dependencies.title',
-					message: `${tl('message.plugin_dependencies.message1')} \n\n* ${ list.join('\n* ') }\n\n${tl('message.plugin_dependencies.message2')}`,
-					buttons: ['dialog.continue', 'dialog.cancel'],
-					width: 512,
-				}, button => {
-					resolve(button == 0);
-				})
-			})
-			if (!response) return;
-
-			for (let dependency of required_dependencies) {
-				await dependency.install();
-			}
-		}
 		return await this.download(true);
 	}
 	async load(first, cb) {
@@ -152,6 +118,43 @@ class Plugin {
 			scope.installed = true;
 		})
 	}
+	async installDependencies(first) {
+		let required_dependencies = this.dependencies
+			.map(id => (Plugins.all.find(p => p.id == id) || id))
+			.filter(p => (p instanceof Plugin == false || p.installed == false));
+		if (required_dependencies.length) {
+			let failed_dependency = required_dependencies.find(p => (!p.isInstallable || p.isInstallable() != true));
+			if (failed_dependency) {
+				let error_message = failed_dependency;
+				if (failed_dependency instanceof Plugin) {
+					error_message = `**${failed_dependency.title}**: ${failed_dependency.isInstallable()}`;
+				}
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
+				});
+				return false;
+			}
+
+			let list = required_dependencies.map(p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`);
+			let response = await new Promise(resolve => {
+				Blockbench.showMessageBox({
+					title: 'message.plugin_dependencies.title',
+					message: `${tl('message.plugin_dependencies.' + (first ? 'message1' : 'message1_update'), [this.title])} \n\n* ${ list.join('\n* ') }\n\n${tl('message.plugin_dependencies.message2')}`,
+					buttons: ['dialog.continue', first ? 'dialog.cancel' : 'dialog.plugins.uninstall'],
+					width: 512,
+				}, button => {
+					resolve(button == 0);
+				})
+			})
+			if (!response) return false;
+
+			for (let dependency of required_dependencies) {
+				await dependency.install();
+			}
+		}
+		return true;
+	}
 	bindGlobalData() {
 		var scope = this;
 		if (onUninstall) {
@@ -167,6 +170,9 @@ class Plugin {
 		return this;
 	}
 	async download(first) {
+		let response = await this.installDependencies(first);
+		if (response == false) return;
+
 		var scope = this;
 		function register() {
 			jQuery.ajax({
@@ -452,7 +458,13 @@ class Plugin {
 		if (!this.about_fetched && !this.about && this.new_repository_format) {
 			if (isApp && this.installed) {
 				try {
-					let content = fs.readFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), {encoding: 'utf-8'});
+					let about_path;
+					if (this.source == 'store') {
+						about_path = PathModule.join(Plugins.path, this.id + '.about.md');
+					} else {
+						about_path = this.path.replace(/\w+\.js$/, 'about.md');
+					}
+					let content = fs.readFileSync(about_path, {encoding: 'utf-8'});
 					this.about = content;
 					this.about_fetched = true;
 					return;
@@ -547,6 +559,7 @@ Plugin.register = function(id, data) {
 			translateKey: 'load_plugin_failed',
 			message: tl('message.load_plugin_failed.message', [id])
 		})
+		return;
 	};
 	plugin.extend(data)
 	if (plugin.isInstallable() == true && plugin.disabled == false) {

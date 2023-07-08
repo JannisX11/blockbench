@@ -251,6 +251,7 @@
 	"message.add_reference_image.app": "Add to all projects",
 	"message.plugin_dependencies.title": "Plugin Dependencies",
 	"message.plugin_dependencies.message1": "The plugin requires these dependencies:",
+	"message.plugin_dependencies.message1_update": "The plugin %0 has been updated and now requires these dependencies:",
 	"message.plugin_dependencies.message2": "Do you want to install them to continue?",
 	"message.plugin_dependencies.invalid": "Unfortunately the plugin cannot be installed, it has an invalid dependency:",
 
