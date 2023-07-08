@@ -119,11 +119,23 @@ class Plugin {
 		})
 	}
 	async installDependencies(first) {
-		let required_dependencies = this.dependencies
-			.map(id => (Plugins.all.find(p => p.id == id) || id))
-			.filter(p => (p instanceof Plugin == false || p.installed == false));
+		let required_dependencies = [];
+		for (let id of this.dependencies) {
+			let saved_install = !first && Plugins.installed.find(p => p.id == id);
+			if (saved_install) {
+				continue;
+			}
+			let plugin = Plugins.all.find(p => p.id == id);
+			if (plugin) {
+				if (plugin.installed == false) required_dependencies.push(plugin);
+				continue;
+			}
+			required_dependencies.push(id);
+		}
 		if (required_dependencies.length) {
-			let failed_dependency = required_dependencies.find(p => (!p.isInstallable || p.isInstallable() != true));
+			let failed_dependency = required_dependencies.find(p => {
+				return !p.isInstallable || p.isInstallable() != true
+			});
 			if (failed_dependency) {
 				let error_message = failed_dependency;
 				if (failed_dependency instanceof Plugin) {
@@ -131,7 +143,7 @@ class Plugin {
 				}
 				Blockbench.showMessageBox({
 					title: 'message.plugin_dependencies.title',
-					message: `${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
+					message: `Updating **${this.title||this.id}**:\n\n${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
 				});
 				return false;
 			}
@@ -147,7 +159,10 @@ class Plugin {
 					resolve(button == 0);
 				})
 			})
-			if (!response) return false;
+			if (!response) {
+				if (this.installed) this.uninstall();
+				return false;
+			}
 
 			for (let dependency of required_dependencies) {
 				await dependency.install();
@@ -616,12 +631,20 @@ async function loadInstalledPlugins() {
 
 	if (Plugins.json instanceof Object && navigator.onLine) {
 		//From Store
-		for (var id in Plugins.json) {
-			var plugin = new Plugin(id, Plugins.json[id]);
+		let to_install = [];
+		for (let id in Plugins.json) {
+			let plugin = new Plugin(id, Plugins.json[id]);
+			to_install.push(plugin);
+		}
+		Plugins.sort();
+
+		for (let plugin of to_install) {
 			let installed_match = Plugins.installed.find(p => {
-				return p && p.id == id && p.source == 'store'
+				return p && p.id == plugin.id && p.source == 'store'
 			});
 			if (installed_match) {
+				plugin.installed = true;
+
 				if (isApp && (
 					(installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) ||
 					Blockbench.isOlderThan(plugin.min_version)
@@ -638,7 +661,6 @@ async function loadInstalledPlugins() {
 				}
 			}
 		}
-		Plugins.sort();
 	} else if (Plugins.installed.length > 0 && isApp) {
 		//Offline
 		Plugins.installed.forEach(function(plugin_data) {
