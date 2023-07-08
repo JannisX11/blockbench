@@ -236,13 +236,24 @@ class MeshFace extends Face {
 		}
 	}
 	UVToLocal(uv, vertices = this.vertices) {
-		let p0 = this.uv[vertices[0]];
-		let p1 = this.uv[vertices[1]];
-		let p2 = this.uv[vertices[2]];
+		let vert_a = vertices[0];
+		let vert_b = vertices[1];
+		let vert_c = vertices[2];
+		if (vertices[3]) {
+			let dist_1 = Math.abs(Math.pow(uv[0] - this.uv[vertices[1]][0], 2) + Math.pow(uv[1] - this.uv[vertices[1]][1], 2));
+			let dist_2 = Math.abs(Math.pow(uv[0] - this.uv[vertices[3]][0], 2) + Math.pow(uv[1] - this.uv[vertices[3]][1], 2));
+			if (dist_1 > dist_2) {
+				vert_b = vertices[2];
+				vert_c = vertices[3];
+			}
+		}
+		let p0 = this.uv[vert_a];
+		let p1 = this.uv[vert_b];
+		let p2 = this.uv[vert_c];
 
-		let vertexa = this.mesh.vertices[vertices[0]];
-		let vertexb = this.mesh.vertices[vertices[1]];
-		let vertexc = this.mesh.vertices[vertices[2]];
+		let vertexa = this.mesh.vertices[vert_a];
+		let vertexb = this.mesh.vertices[vert_b];
+		let vertexc = this.mesh.vertices[vert_c];
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
 		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
