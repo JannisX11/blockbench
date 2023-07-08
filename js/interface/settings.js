@@ -462,7 +462,8 @@ const Settings = {
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		
 		//Grid
-		new Setting('base_grid',			{category: 'grid', value: true,});
+		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
+		new Setting('base_grid',			{category: 'grid', value: true});
 		new Setting('large_grid', 			{category: 'grid', value: true});
 		new Setting('full_grid',			{category: 'grid', value: false});
 		new Setting('large_box',			{category: 'grid', value: false});

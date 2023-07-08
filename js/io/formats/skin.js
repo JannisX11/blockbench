@@ -1620,9 +1620,9 @@ skin_presets.camel = {
 				"parent": "body",
 				"pivot": [0.5, 20, 9.5],
 				"cubes": [
-					{"origin": [-4.5, 32, -6], "size": [9, 5, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [74, 64]},
-					{"origin": [-3.5, 37, -6], "size": [7, 3, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [92, 114]},
-					{"origin": [-7.5, 20, -14], "size": [15, 12, 27], "inflate": 0.1, "layer": true, "visibility": false, "uv": [0, 89]}
+					{"name": "saddle layer", "origin": [-4.5, 32, -6], "size": [9, 5, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [74, 64]},
+					{"name": "saddle layer", "origin": [-3.5, 37, -6], "size": [7, 3, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [92, 114]},
+					{"name": "saddle layer", "origin": [-7.5, 20, -14], "size": [15, 12, 27], "inflate": 0.1, "layer": true, "visibility": false, "uv": [0, 89]}
 				]
 			},
 			{
@@ -1648,9 +1648,9 @@ skin_presets.camel = {
 				"parent": "head",
 				"pivot": [0.5, 25, -10],
 				"cubes": [
-					{"origin": [-3.5, 22, -25], "size": [7, 8, 19], "inflate": 0.1, "uv": [60, 87], "layer": true, "visibility": false},
-					{"origin": [-3.5, 30, -25], "size": [7, 14, 7], "inflate": 0.1, "uv": [21, 64], "layer": true, "visibility": false},
-					{"origin": [-2.5, 39, -31.1], "size": [5, 5, 6], "inflate": 0.1, "uv": [50, 64], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-3.5, 22, -25], "size": [7, 8, 19], "inflate": 0.1, "uv": [60, 87], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-3.5, 30, -25], "size": [7, 14, 7], "inflate": 0.1, "uv": [21, 64], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-2.5, 39, -31.1], "size": [5, 5, 6], "inflate": 0.1, "uv": [50, 64], "layer": true, "visibility": false},
 					{"origin": [2.5, 40, -28], "size": [1, 2, 2], "uv": [74, 70]},
 					{"origin": [-3.5, 40, -28], "size": [1, 2, 2], "uv": [74, 70], "mirror": true}
 				]
@@ -1676,9 +1676,9 @@ skin_presets.camel = {
 				"parent": "head",
 				"pivot": [3.7, 41, -27],
 				"cubes": [
-					{"origin": [3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false},
-					{"origin": [-3.7, 34, -12], "size": [7.4, 7, 0], "uv": [84, 57], "layer": true, "visibility": false},
-					{"origin": [-3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false}
+					{"name": "reins layer", "origin": [3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false},
+					{"name": "reins layer", "origin": [-3.7, 34, -12], "size": [7.4, 7, 0], "uv": [84, 57], "layer": true, "visibility": false},
+					{"name": "reins layer", "origin": [-3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false}
 				]
 			},
 			{

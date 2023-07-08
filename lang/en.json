@@ -851,6 +851,8 @@
 	"settings.stretch_linked": "Link Stretching",
 	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
 
+	"settings.grids": "Show Grids",
+	"settings.grids.desc": "Show or hide all 3D grids",
 	"settings.base_grid": "Small Grid",
 	"settings.base_grid.desc": "Show small grid and axes",
 	"settings.large_grid": "Block Grid",

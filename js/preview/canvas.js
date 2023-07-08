@@ -416,11 +416,12 @@ const Canvas = {
 
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
-		three_grid.children.length = 0;
+		three_grid.children.empty();
 		if (Canvas.side_grids) {
-			Canvas.side_grids.x.children.length = 0;
-			Canvas.side_grids.z.children.length = 0;
+			Canvas.side_grids.x.children.empty();
+			Canvas.side_grids.z.children.empty();
 		}
+		if (!settings.grids.value) return;
 		if (Modes.display) return;
 
 		three_grid.name = 'grid_group'
@@ -588,7 +589,7 @@ const Canvas = {
 		lights.top.position.set(0, 100, 0)
 		lights.add(lights.top);
 		
-		lights.top.intensity = 0.41
+		lights.top.intensity = 0.46
 		
 		lights.bottom = new THREE.DirectionalLight();
 		lights.bottom.name = 'light_bottom'
@@ -724,8 +725,8 @@ const Canvas = {
 				edit(object);
 			})
 			edit(three_grid)
-			edit(Canvas.side_grids.x)
-			edit(Canvas.side_grids.z)
+			if (Canvas.side_grids) edit(Canvas.side_grids.x)
+			if (Canvas.side_grids) edit(Canvas.side_grids.z)
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);

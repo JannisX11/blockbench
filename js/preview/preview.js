@@ -2008,6 +2008,13 @@ BARS.defineActions(function() {
 		node.classList.add('one_is_enough')
 		preview.node.querySelector('.preview_menu .shading_placeholder').replaceWith(node);
 	})
+	new Toggle('toggle_all_grids', {
+		name: tl('settings.grids'),
+		description: tl('settings.grids.desc'),
+		icon: 'grid',
+		category: 'view',
+		linked_setting: 'grids'
+	})
 	new Toggle('toggle_ground_plane', {
 		name: tl('settings.ground_plane'),
 		description: tl('settings.ground_plane.desc'),
