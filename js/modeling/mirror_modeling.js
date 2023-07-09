@@ -78,9 +78,6 @@ const MirrorModeling = {
 		let edit_side = MirrorModeling.getEditSide();
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
-		let selected_vertices = mesh.getSelectedVertices(true);
-		//let selected_vertices = mesh.getSelectedEdges(true);
-		let selected_faces = mesh.getSelectedFaces(true);
 		let deleted_vertices_by_position = {};
 		function positionKey(position) {
 			return position.map(p => Math.roundTo(p, 2)).join(',');
