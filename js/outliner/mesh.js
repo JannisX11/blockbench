@@ -536,6 +536,7 @@ class Mesh extends OutlinerElement {
 	getSize(axis, selection_only) {
 		if (selection_only) {
 			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+			if (!selected_vertices.length) return 0;
 			let range = [Infinity, -Infinity];
 			let {vec1, vec2} = Reusable;
 			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
