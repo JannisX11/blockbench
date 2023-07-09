@@ -646,3 +646,10 @@ class Menu {
 		rm_item.menus.remove(scope)
 	}
 }
+
+function preventContextMenu() {
+	Blockbench.addFlag('no_context_menu');
+	setTimeout(() => {
+		Blockbench.removeFlag('no_context_menu');
+	}, 20);
+}
