@@ -80,7 +80,7 @@ async function loadInfoFromURL() {
 	if (Blockbench.queries.plugins) {
 		let plugin_ids = Blockbench.queries.plugins.split(/,/);
 		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
-								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable());
+								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
 		if (plugins.length) {
 			await new Promise(resolve => {
 				let form = {

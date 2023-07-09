@@ -329,7 +329,7 @@ onVueSetup(function() {
 			this.updateThumbnails();
 
 			setInterval(() => {
-				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.checkVisibility()) {
+				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.offsetParent) {
 					slideshow_timer += 1;
 
 					if (slideshow_timer == 24) {
