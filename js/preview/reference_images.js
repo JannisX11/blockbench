@@ -100,7 +100,7 @@ class ReferenceImage {
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -108,7 +108,7 @@ class ReferenceImage {
 	}
 	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'global';
 		this.update();
 		if (save) this.save();
@@ -256,7 +256,7 @@ class ReferenceImage {
 			pos_x += preview.width/2;
 			pos_y += preview.height/2;
 
-			if (quad_previews.enabled) {
+			if (Preview.split_screen.enabled) {
 				pos_x += preview.node.parentElement.offsetLeft;
 				pos_y += preview.node.parentElement.offsetTop;
 			}
