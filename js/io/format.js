@@ -145,6 +145,20 @@ class ModelFormat {
 				group.createUniqueName();
 			})
 		}
+		if (Format.centered_grid != old_format.centered_grid) {
+			let offset = Format.centered_grid ? -8 : 8;
+			Cube.all.forEach(cube => {
+				for (let axis of [0, 2]) {
+					cube.from[axis] += offset;
+					cube.to[axis] += offset;
+					cube.origin[axis] += offset;
+				}
+			})
+			Group.all.forEach(group => {
+				group.origin[0] += offset;
+				group.origin[2] += offset;
+			})
+		}
 
 		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
 			let texture = Texture.getDefault();
@@ -195,7 +209,7 @@ class ModelFormat {
 		if (Format.rotation_limit && !old_format.rotation_limit && Format.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
-					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
+					var axis = (getAxisNumber(cube.rotationAxis())) || 0;
 					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
 					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0)

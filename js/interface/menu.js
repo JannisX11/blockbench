@@ -545,14 +545,13 @@ class Menu {
 	conditionMet() {
 		return Condition(this.condition);
 	}
-	addAction(action, path) {
+	addAction(action, path = '') {
 		if (this.structure instanceof Array == false) return;
-		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
 		let track = path.split('.')
 
 		function traverse(arr, layer) {
-			if (track.length === layer || !track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
+			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
 				let index = arr.length;
 				if (track[layer] !== '' && track.length !== layer) {
 					if (track[layer].startsWith('#')) {
