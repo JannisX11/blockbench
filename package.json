@@ -74,6 +74,7 @@
 			]
 		},
 		"win": {
+			"certificateSubjectName": "Jannis Tobias Petersen",
 			"target": "nsis"
 		},
 		"linux": {
