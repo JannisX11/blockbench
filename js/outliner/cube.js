@@ -59,6 +59,10 @@ class CubeFace extends Face {
 		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
 		let lerp_y = Math.getLerp(this.uv[1], this.uv[3], point[1]);
 
+		for (let i = 0; i < this.rotation; i += 90) {
+			[lerp_x, lerp_y] = [1-lerp_y, lerp_x];
+		}
+
 		if (this.direction == 'east') {
 			vector.x = to[0];
 			vector.y = Math.lerp(to[1], from[1], lerp_y);
