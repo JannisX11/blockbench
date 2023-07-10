@@ -245,8 +245,8 @@ const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		$('#timeline_body').on('mousedown', e => {
-			if (e.which === 2) {
+		document.getElementById('timeline_body').addEventListener('mousedown', e => {
+			if (e.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(e)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
 				function move(e2) {
@@ -259,6 +259,9 @@ const Timeline = {
 				function stop(e2) {
 					document.removeEventListener('mousemove', move);
 					document.removeEventListener('mouseup', stop);
+					if (e.which == 3 && Math.pow(e.clientX - pos[0], 2) + Math.pow(e.clientY - pos[1], 2) > 40) {
+						preventContextMenu();
+					}
 				}
 				document.addEventListener('mousemove', move);
 				document.addEventListener('mouseup', stop);
@@ -583,6 +586,7 @@ const Timeline = {
 	},
 	showMenu(event) {
 		if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
+		if (Blockbench.hasFlag('no_context_menu')) return;
 		Timeline.menu.open(event, event);
 	},
 	menu: new Menu([

@@ -235,14 +235,16 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	UVToLocal(uv, vertices = this.vertices) {
+	UVToLocal(uv, vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
+
 		if (vertices[3]) {
-			let dist_1 = Math.abs(Math.pow(uv[0] - this.uv[vertices[1]][0], 2) + Math.pow(uv[1] - this.uv[vertices[1]][1], 2));
-			let dist_2 = Math.abs(Math.pow(uv[0] - this.uv[vertices[3]][0], 2) + Math.pow(uv[1] - this.uv[vertices[3]][1], 2));
-			if (dist_1 > dist_2) {
+			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
+
+			if (!is_in_tri) {
+				vert_a = vertices[0];
 				vert_b = vertices[2];
 				vert_c = vertices[3];
 			}
@@ -536,6 +538,7 @@ class Mesh extends OutlinerElement {
 	getSize(axis, selection_only) {
 		if (selection_only) {
 			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+			if (!selected_vertices.length) return 0;
 			let range = [Infinity, -Infinity];
 			let {vec1, vec2} = Reusable;
 			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();

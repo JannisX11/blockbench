@@ -16,7 +16,7 @@ const MirrorModeling = {
 	},
 	createClone(original, undo_aspects) {
 		// Create or update clone
-		var center = Format.centered_grid ? 0 : 8;
+		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
 		let element_before_snapshot;
 
@@ -78,9 +78,6 @@ const MirrorModeling = {
 		let edit_side = MirrorModeling.getEditSide();
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
-		let selected_vertices = mesh.getSelectedVertices(true);
-		//let selected_vertices = mesh.getSelectedEdges(true);
-		let selected_faces = mesh.getSelectedFaces(true);
 		let deleted_vertices_by_position = {};
 		function positionKey(position) {
 			return position.map(p => Math.roundTo(p, 2)).join(',');
@@ -205,47 +202,54 @@ const MirrorModeling = {
 
 Blockbench.on('init_edit', ({aspects}) => {
 	if (!BarItems.mirror_modeling.value) return;
-	if (!aspects.elements) return;
 
-	MirrorModeling.cached_elements = {};
-	MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
-	let edit_side = MirrorModeling.getEditSide();
+	if (aspects.elements) {
+		MirrorModeling.cached_elements = {};
+		MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
+		let edit_side = MirrorModeling.getEditSide();
 
-	aspects.elements.forEach((element) => {
-		if (element.allow_mirror_modeling) {
-			let is_centered = MirrorModeling.isCentered(element);
+		aspects.elements.forEach((element) => {
+			if (element.allow_mirror_modeling) {
+				let is_centered = MirrorModeling.isCentered(element);
 
-			let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
-			if (!is_centered) {
-				data.is_original = Math.sign(element.getWorldCenter().x) != edit_side;
-				data.counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
-				if (!data.counterpart) data.is_original = true;
+				let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
+				if (!is_centered) {
+					data.is_original = Math.sign(element.getWorldCenter().x) != edit_side;
+					data.counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
+					if (!data.counterpart) data.is_original = true;
+				}
 			}
-		}
-	})
-
-	setTimeout(() => {MirrorModeling.cached_elements = {}}, 10_000);
+		})
+	}
 })
 Blockbench.on('finish_edit', ({aspects}) => {
 	if (!BarItems.mirror_modeling.value) return;
-	if (!aspects.elements) return;
 
-	aspects.elements = aspects.elements.slice();
-	let static_elements_copy = aspects.elements.slice();
-	static_elements_copy.forEach((element) => {
-		if (element.allow_mirror_modeling) {
-			let is_centered = MirrorModeling.isCentered(element);
+	if (aspects.elements) {
+		aspects.elements = aspects.elements.slice();
+		let static_elements_copy = aspects.elements.slice();
+		static_elements_copy.forEach((element) => {
+			if (element.allow_mirror_modeling) {
+				let is_centered = MirrorModeling.isCentered(element);
 
-			if (is_centered && element instanceof Mesh) {
-				// Complete other side of mesh
-				MirrorModeling.createLocalSymmetry(element);
+				if (is_centered && element instanceof Mesh) {
+					// Complete other side of mesh
+					MirrorModeling.createLocalSymmetry(element);
+				}
+				if (is_centered) {
+					let mirror_element = MirrorModeling.cached_elements[element.uuid]?.counterpart;
+					if (mirror_element) {
+						MirrorModeling.insertElementIntoUndo(mirror_element, Undo.current_save.aspects, mirror_element.getUndoCopy());
+						mirror_element.remove();
+						aspects.elements.remove(mirror_element);
+					}
+				} else {
+					// Construct clone at other side of model
+					MirrorModeling.createClone(element, aspects);
+				}
 			}
-			if (!is_centered) {
-				// Construct clone at other side of model
-				MirrorModeling.createClone(element, aspects);
-			}
-		}
-	})
+		})
+	}
 })
 
 // Element property on cube and mesh
@@ -259,6 +263,7 @@ BARS.defineActions(() => {
 		category: 'edit',
 		condition: {modes: ['edit']},
 		onChange() {
+			MirrorModeling.cached_elements = {};
 			updateSelection();
 		}
 	})

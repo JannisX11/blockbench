@@ -515,6 +515,19 @@ function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_end[0], rect_start[1]])
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
 }
+function pointInTriangle(pt, v1, v2, v3) {
+	function sign(p1, p2, p3) {
+		return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
+	}
+	let d1 = sign(pt, v1, v2);
+	let d2 = sign(pt, v2, v3);
+	let d3 = sign(pt, v3, v1);
+
+	let has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+	let has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+	return !(has_neg && has_pos);
+}
 
 function cameraTargetToRotation(position, target) {
 	let spherical = new THREE.Spherical();

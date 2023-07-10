@@ -304,6 +304,7 @@ class ModelProject {
 		Animator.MolangParser.context = {};
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
+		MirrorModeling.cached_elements = {};
 		Format = 0;
 		Project = 0;
 		Undo = 0;

@@ -2275,7 +2275,7 @@ Interface.definePanels(function() {
 					let original_margin = scope.getFrameMargin();
 					let offset = $(scope.$refs.viewport).offset();
 					UVEditor.total_zoom_offset = [6, 6];
-					if (event.which === 2 || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
+					if (event.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(event) || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
 						// Drag
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
@@ -2285,8 +2285,8 @@ Interface.definePanels(function() {
 						let margin = this.getFrameMargin();
 						let margin_center = [this.width/2, this.height/2];
 						let original = [
-							viewport.scrollLeft,
-							viewport.scrollTop
+							viewport.scrollLeft - 5,
+							viewport.scrollTop - 5
 						];
 						function dragMouseWheel(e2) {
 							if (e2.touches) {
@@ -2323,6 +2323,9 @@ Interface.definePanels(function() {
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 							removeEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
+							if (e.which == 3 && Math.pow(viewport.scrollLeft - original[0], 2) + Math.pow(viewport.scrollTop - original[1], 2) > 50) {
+								preventContextMenu();
+							}
 						}
 						addEventListeners(document, 'mousemove touchmove', dragMouseWheel);
 						addEventListeners(document, 'mouseup touchend', dragMouseWheelStop);
@@ -2458,6 +2461,7 @@ Interface.definePanels(function() {
 				},
 				contextMenu(event) {
 					setActivePanel('uv');
+					if (Blockbench.hasFlag('no_context_menu')) return;
 					UVEditor.menu.open(event);
 				},
 				selectTextureMenu(event) {
