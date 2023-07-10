@@ -2013,7 +2013,8 @@ BARS.defineActions(function() {
 		description: tl('settings.grids.desc'),
 		icon: 'grid',
 		category: 'view',
-		linked_setting: 'grids'
+		linked_setting: 'grids',
+		condition: () => !Modes.paint
 	})
 	new Toggle('toggle_ground_plane', {
 		name: tl('settings.ground_plane'),
