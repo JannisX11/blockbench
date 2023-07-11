@@ -94,6 +94,7 @@
 		--color-outline: var(--color-accent);
 		--color-gizmohover: var(--color-outline);
 		--color-ground: var(--color-back);
+		--color-brush-outline: #ffffff;
 		--color-axis-x: #fd3043;
 		--color-axis-y: #26ec45;
 		--color-axis-z: #2d5ee8;
