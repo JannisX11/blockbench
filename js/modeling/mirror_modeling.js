@@ -24,6 +24,18 @@ const MirrorModeling = {
 			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
 			mirror_element.extend(original);
 
+			// Update hierarchy up
+			function updateParent(child, child_b) {
+				let parent = child.parent;
+				let parent_b = child_b.parent;
+				if (parent instanceof Group == false || parent == parent_b) return;
+
+				MirrorModeling.updateGroupCounterpart(parent_b, parent);
+
+				updateParent(parent, parent_b);
+			}
+			updateParent(original, mirror_element);
+
 		} else {
 			function getParentMirror(child) {
 				let parent = child.parent;
@@ -69,6 +81,15 @@ const MirrorModeling = {
 		preview_controller.updateGeometry(mirror_element);
 		preview_controller.updateFaces(mirror_element);
 		preview_controller.updateUV(mirror_element);
+	},
+	updateGroupCounterpart(group, original) {
+		group.extend(original);
+		group.isOpen = original.isOpen;
+
+		flipNameOnAxis(group, 0, name => true, original.name);
+		group.origin[0] *= -1;
+		group.rotation[1] *= -1;
+		group.rotation[2] *= -1;
 	},
 	getEditSide() {
 		return Math.sign(Transformer.position.x) || 1;
@@ -220,6 +241,35 @@ Blockbench.on('init_edit', ({aspects}) => {
 				}
 			}
 		})
+	} else if (aspects.group || aspects.outliner) {
+		MirrorModeling.cached_elements = {};
+		let edit_side = MirrorModeling.getEditSide();
+		let selected_groups = aspects.outliner ? Group.all.filter(g => g.selected) : [aspects.group];
+
+		// update undo
+		if (!Undo.current_save.outliner) Undo.current_save.outliner = compileGroups(true);
+		aspects.outliner = true;
+
+		selected_groups.forEach(group => {
+			if (group.origin[0] == (Format.centered_grid ? 0 : 8)) return;
+
+			let mirror_group = Group.all.find(g => {
+				if (
+					Math.epsilon(group.origin[0], -g.origin[0]) &&
+					Math.epsilon(group.origin[1], g.origin[1]) &&
+					Math.epsilon(group.origin[2], g.origin[2]) &&
+					group.getDepth() == g.getDepth()
+				) {
+					return true;
+				}
+			})
+
+			if (mirror_group) {
+				MirrorModeling.cached_elements[group.uuid] = {
+					counterpart: mirror_group
+				}
+			}
+		})
 	}
 })
 Blockbench.on('finish_edit', ({aspects}) => {
@@ -249,6 +299,21 @@ Blockbench.on('finish_edit', ({aspects}) => {
 				}
 			}
 		})
+		if (aspects.group || aspects.outliner) {
+			Canvas.updateAllBones();
+		}
+	} else if (aspects.group || aspects.outliner) {
+		let selected_groups = aspects.outliner ? Group.all.filter(g => g.selected) : [aspects.group];
+
+		selected_groups.forEach(group => {
+			let mirror_group = MirrorModeling.cached_elements[group.uuid]?.counterpart;
+			if (mirror_group) {
+				MirrorModeling.updateGroupCounterpart(mirror_group, group);
+			}
+		})
+
+		aspects.outliner = true;
+		Canvas.updateAllBones();
 	}
 })
 
@@ -261,8 +326,9 @@ BARS.defineActions(() => {
 	new Toggle('mirror_modeling', {
 		icon: 'align_horizontal_center',
 		category: 'edit',
-		condition: {modes: ['edit']},
+		condition: {modes: ['edit'], features: ['centered_grid']},
 		onChange() {
+			Project.mirror_modeling_enabled = this.value;
 			MirrorModeling.cached_elements = {};
 			updateSelection();
 		}

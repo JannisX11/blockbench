@@ -27,6 +27,7 @@ class ModelProject {
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
+		this.mirror_modeling_enabled = false;
 		this.previews = {};
 		this.uv_viewport = {
 			zoom: 1,
@@ -219,8 +220,9 @@ class ModelProject {
 			BarItems[this.tool].select();
 		}
 
-		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
-		BarItems.lock_motion_trail.updateEnabledState();
+		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
+
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 		
 		Preview.all.forEach(preview => {
 			let data = this.previews[preview.id];
