@@ -810,8 +810,18 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		iterate(target)
 		if (is_parent) return;
 	}
-	if (item instanceof OutlinerElement && selected.includes( item )) {
-		var items = selected.slice();
+	if (item instanceof OutlinerElement && Outliner.selected.includes( item )) {
+		var items = [];
+		// ensure elements are in displayed order
+		Outliner.root.forEach(node => {
+			if (node instanceof Group) {
+				node.forEachChild(child => {
+					if (child.selected && child instanceof Group == false) items.push(child);
+				})
+			} else if (node.selected) {
+				items.push(node);
+			}
+		})
 	} else {
 		var items = [item];
 	}
