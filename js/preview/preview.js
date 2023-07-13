@@ -380,14 +380,16 @@ class Preview {
 			})
 		}
 		var intersects = this.raycaster.intersectObjects( objects );
-		if (intersects.length > 0) {
-			let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
-			let intersect = mesh_gizmo || intersects[0];
-			let intersect_object = intersect.object
+		if (intersects.length == 0) return false;
 
-			if (intersect_object.isElement) {
-				var element = OutlinerNode.uuids[intersect_object.name]
-				let face;
+		let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
+		let intersect = mesh_gizmo || intersects[0];
+		let intersect_object = intersect.object;
+
+		if (intersect_object.isElement) {
+			let element, face;
+			while (true) {
+				element = OutlinerNode.uuids[intersect_object.name];
 				if (element instanceof Cube) {
 					face = intersect_object.geometry.faces[Math.floor(intersect.faceIndex / 2)];
 				} else if (element instanceof Mesh) {
@@ -405,50 +407,68 @@ class Preview {
 					}
 				}
 
-				return {
-					type: 'element',
-					event,
-					intersects,
-					face,
-					element
+				if (Modes.paint && Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+					let texture = element.faces[face].getTexture();
+					if (texture) {
+						let [x, y] = Painter.getCanvasToolPixelCoords(intersects[0].uv, texture);
+						let ctx = Painter.getCanvas(texture).getContext('2d');
+						let color = Painter.getPixelColor(ctx, x, y);
+						if (color.getAlpha() < 0.004) {
+							intersects.shift();
+							while (intersects.length && !intersects[0].object.isElement) {
+								intersects.shift();
+							}
+							if (!intersects[0]) return false;
+							intersect_object = intersects[0].object;
+
+							continue;
+						}
+					}
 				}
-			} else if (intersect_object.isKeyframe) {
-				let uuid = intersect_object.keyframeUUIDs[intersect.index];
-				let keyframe = Timeline.keyframes.find(kf => kf.uuid == uuid);
-				return {
-					event,
-					type: 'keyframe',
-					intersects,
-					keyframe: keyframe
-				}
-			} else if (intersect_object.type == 'Points') {
-				var element = OutlinerNode.uuids[intersect_object.element_uuid];
-				let vertex = element instanceof Mesh
-					? Object.keys(element.vertices)[intersect.index]
-					: intersect_object.vertices[intersect.index];
-				return {
-					event,
-					type: 'vertex',
-					element,
-					intersects,
-					intersect,
-					vertex,
-					vertex_index: intersect.index,
-				}
-			} else if (intersect_object.type == 'LineSegments') {
-				var element = OutlinerNode.uuids[intersect_object.parent.name];
-				let vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
-				return {
-					event,
-					type: 'line',
-					element,
-					intersects,
-					intersect,
-					vertices
-				}
+				break;
 			}
-		} else {
-			return false;
+
+			return {
+				type: 'element',
+				event,
+				intersects,
+				face,
+				element
+			}
+		} else if (intersect_object.isKeyframe) {
+			let uuid = intersect_object.keyframeUUIDs[intersect.index];
+			let keyframe = Timeline.keyframes.find(kf => kf.uuid == uuid);
+			return {
+				event,
+				type: 'keyframe',
+				intersects,
+				keyframe: keyframe
+			}
+		} else if (intersect_object.type == 'Points') {
+			var element = OutlinerNode.uuids[intersect_object.element_uuid];
+			let vertex = element instanceof Mesh
+				? Object.keys(element.vertices)[intersect.index]
+				: intersect_object.vertices[intersect.index];
+			return {
+				event,
+				type: 'vertex',
+				element,
+				intersects,
+				intersect,
+				vertex,
+				vertex_index: intersect.index,
+			}
+		} else if (intersect_object.type == 'LineSegments') {
+			var element = OutlinerNode.uuids[intersect_object.parent.name];
+			let vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
+			return {
+				event,
+				type: 'line',
+				element,
+				intersects,
+				intersect,
+				vertices
+			}
 		}
 	}
 	render() {
