@@ -559,6 +559,7 @@ const Painter = {
 			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
 			let offset_pixel_brush = Condition(Toolbox.selected.brush?.floor_coordinates) ? 1 : 0;
 			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius && Condition(Toolbox.selected.brush?.floor_coordinates);
+			if (Toolbox.selected.id == 'gradient_tool') even_brush_size = true;
 			if (mirror_element instanceof Cube) {
 	
 				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
