@@ -224,13 +224,14 @@ const Timeline = {
 		}
 	},
 	setTimecode(time) {
-		let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+		let second_fractions = 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
 		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		Timeline.vue.timestamp = `${m}:${s}:${f}`;
+		Timeline.vue.framenumber = Math.round(time/Timeline.getStep());
 	},
 	snapTime(time, animation) {
 		//return time;
@@ -395,11 +396,31 @@ const Timeline = {
 			while (times.length < 3) {
 				times.push(0)
 			}
-			let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+			let second_fractions = 100;
 			let seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
 				+ limitNumber(times[2]/second_fractions, 0, second_fractions-1)
+			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
+				Timeline.setTime(seconds, true)
+				Animator.preview()
+			}
+		})
+		//Enter Frame
+		$('#timeline_framenumber').click(e => {
+			if ($('#timeline_framenumber').attr('contenteditable') == 'true') return;
+
+			$('#timeline_framenumber').attr('contenteditable', true).trigger('focus');
+			document.execCommand('selectAll');
+		})
+		.on('focusout keydown', e => {
+			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				$('#timeline_framenumber').attr('contenteditable', false)
+			}
+		})
+		.on('keyup', e => {
+			let frame = parseInt($('#timeline_framenumber').text())
+			let seconds = frame * Timeline.getStep();
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				Animator.preview()
@@ -666,6 +687,7 @@ Interface.definePanels(() => {
 				focus_channel: null,
 				playhead: Timeline.time,
 				timestamp: '0',
+				framenumber: '0',
 
 				graph_editor_open: false,
 				graph_editor_channel: 'rotation',
@@ -839,7 +861,6 @@ Interface.definePanels(() => {
 				updateTimecodes() {
 					if (!this._isMounted) return;
 					this.timecodes.empty();
-					let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
 					let timeline_container_width = Panels.timeline.node.clientWidth - this.head_width;
 					this.length = Timeline.getMaxLength();
 
@@ -871,7 +892,7 @@ Interface.definePanels(() => {
 					var i = Math.floor(this.scroll_left / this.size / step) * step;
 					while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
 						if (settings.timecode_frame_number.value) {
-							var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
+							var text = Math.round(i / Timeline.getStep());
 						} else {
 							var text = Math.round(i*100)/100;
 						}
@@ -1360,6 +1381,8 @@ Interface.definePanels(() => {
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>
+							<span id="">/</span>
+							<div id="timeline_framenumber">{{ framenumber }}</div>
 							<div class="channel_axis_selector" v-if="graph_editor_open">
 								<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
 								<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>

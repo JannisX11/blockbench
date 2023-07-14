@@ -1172,6 +1172,21 @@
 		padding-left: 8px;
 		overflow: hidden;
 	}
+	#timeline_corner > span {
+		color: var(--color-subtle_text);
+		font-family: var(--font-code);
+		text-align: center;
+		padding: 2px;
+		width: 24px;
+		flex-shrink: 100;
+	}
+	#timeline_framenumber {
+		color: var(--color-subtle_text);
+		font-family: var(--font-code);
+		margin-right: auto;
+		padding: 2px;
+		white-space: nowrap;
+	}
 	#timeline_corner > .tool {
 		height: 26px;
 	}
