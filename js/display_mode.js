@@ -1612,6 +1612,11 @@ function updateDisplaySkin(feedback) {
 			material.map.image.src = skin;
 			material.map.needsUpdate = true;
 		}
+		if (PreviewModel.models.minecraft_player) {
+			let {material} = PreviewModel.models.minecraft_player;
+			material.map.image.src = skin;
+			material.map.needsUpdate = true;
+		}
 	}
 	if (!val || typeof val !== 'string') {
 		setPSkin('assets/player_skin.png')
