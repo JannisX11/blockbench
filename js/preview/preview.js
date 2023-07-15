@@ -407,7 +407,7 @@ class Preview {
 					}
 				}
 
-				if (Modes.paint && Painter.lock_alpha && Settings.get('paint_through_transparency')) {
+				if (Modes.paint && (Toolbox.selected.id == 'color_picker' || (Painter.lock_alpha && Settings.get('paint_through_transparency')))) {
 					let texture = element.faces[face].getTexture();
 					if (texture) {
 						let [x, y] = Painter.getCanvasToolPixelCoords(intersects[0].uv, texture);
