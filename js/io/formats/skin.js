@@ -60,7 +60,7 @@ const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
-	parse(data, resolution, texture_path, pose = true, layer_template) {
+	parse(data, resolution, texture_file, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
@@ -124,8 +124,8 @@ const codec = new Codec('skin_model', {
 		if (!Cube.all.find(cube => cube.box_uv)) {
 			Project.box_uv = false;
 		}
-		if (texture_path) {
-			var texture = new Texture().fromPath(texture_path).add(false);
+		if (texture_file) {
+			var texture = new Texture().fromFile(texture_file).add(false);
 		} else if (resolution) {
 			var texture = generateTemplate(
 				Project.texture_width*resolution,
@@ -282,6 +282,7 @@ const skin_dialog = new Dialog({
 			extensions: ['png'],
 			readtype: 'image',
 			filetype: 'PNG',
+			return_as: 'file'
 		},
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true, condition: form => (!!skin_presets[form.model].pose)},
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
@@ -290,7 +291,7 @@ const skin_dialog = new Dialog({
 	onConfirm(result) {
 		if (result.model == 'flat_texture') {
 			if (result.texture) {
-				Codecs.image.load(dataUrl);
+				Codecs.image.load(result.texture);
 			} else {
 				Formats.image.new();
 			}

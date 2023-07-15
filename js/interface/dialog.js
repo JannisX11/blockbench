@@ -319,6 +319,7 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							data.content = files[0].content;
+							data.file = files[0];
 							input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 							dialog.updateFormValues()
 						}
@@ -345,7 +346,11 @@ function buildForm(dialog) {
 									type: data.filetype,
 									startpath: data.value,
 									custom_writer: () => {},
-								}, fileCB);
+								}, path => {
+									data.value = path;
+									input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
+									dialog.updateFormValues()
+								});
 								break;
 						}
 					})
@@ -662,7 +667,11 @@ window.Dialog = class Dialog {
 							result[form_id] = data.bar.find('input#'+form_id).is(':checked')
 							break;
 						case 'file':
-							result[form_id] = isApp ? data.value : data.content;
+							if (data.return_as == 'file') {
+								result[form_id] = data.file;
+							} else {
+								result[form_id] = isApp ? data.value : data.content;
+							}
 							break;
 					}
 				}

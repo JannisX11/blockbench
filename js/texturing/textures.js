@@ -316,7 +316,7 @@ class Texture {
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
-		if (this.mode === 'bitmap') {
+		if (this.mode === 'bitmap' || !isApp) {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
 			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
