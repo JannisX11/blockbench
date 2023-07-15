@@ -734,22 +734,15 @@ BARS.defineActions(function() {
 			},
 			computed: {
 				plugin_search() {
-					var name = this.search_term.toUpperCase()
-					return this.items.filter(item => {
-						if ((this.tab == 'installed') == item.installed) {
-							if (name.length > 0) {
-								return (
-									item.id.toUpperCase().includes(name) ||
-									item.title.toUpperCase().includes(name) ||
-									item.description.toUpperCase().includes(name) ||
-									item.author.toUpperCase().includes(name) ||
-									item.tags.find(tag => tag.toUpperCase().includes(name))
-								)
-							}
-							return true;
-						}
-						return false;
+					let filtered_items = this.items.filter(item => (this.tab == 'installed') == item.installed);
+					if (!this.search_term) return filtered_items;
+					let fuse = new Fuse(filtered_items, {
+						keys: ['id', 'title', 'description', 'author', 'tags'],
+						threshold: 0.5,
+						ignoreLocation: true
 					})
+					let result =  fuse.search(this.search_term);
+					return result.map(match => match.item);
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
