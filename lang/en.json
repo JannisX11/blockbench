@@ -64,6 +64,8 @@
 	"generic.delete_all": "Delete All",
 	"generic.left": "Left",
 	"generic.right": "Right",
+	"generic.navigate_forward": "Forward",
+	"generic.navigate_back": "Back",
 	"generic.error": "Error",
 
 	"dates.today": "Today",
