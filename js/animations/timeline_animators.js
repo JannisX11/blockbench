@@ -37,6 +37,7 @@ class GeneralAnimator {
 			if (!this[channel]) this[channel] = [];
 		}
 		if (!this.expanded) this.expanded = true;
+		TickUpdates.keyframe_selection = true;
 		return this;
 	}
 	addKeyframe(data, uuid) {

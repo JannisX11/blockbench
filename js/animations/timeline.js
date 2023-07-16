@@ -1321,21 +1321,27 @@ Interface.definePanels(() => {
 				},
 				clickGraphEditor(event) {
 					if (!this.show_other_graphs || !this.graph_editor_animator) return;
-					let time = event.offsetX / this.size;
 					let value = (this.graph_offset - event.offsetY) / this.graph_size;
-
 					let original_time = Timeline.time;
-					Timeline.time = time;
 
-					let distances = ['x', 'y', 'z'].map(axis => {
-						let axis_value = this.graph_editor_animator.interpolate(this.graph_editor_channel, false, axis);
-						let diff = Math.abs(axis_value - value) * this.graph_size;
-						if (diff < 12.5) {
-							return {axis, diff};
-						}
-					}).filter(a => a);
+					let tryAt = (x_coord) => {
+						let time = (x_coord) / this.size;
+						Timeline.time = time;
 
-					if (distances.length) {
+						let distances = ['x', 'y', 'z'].map(axis => {
+							let axis_value = this.graph_editor_animator.interpolate(this.graph_editor_channel, false, axis);
+							let diff = Math.abs(axis_value - value) * this.graph_size;
+							if (diff < 12.5) {
+								return {axis, diff};
+							}
+						}).filter(a => a);
+						if (distances.length) return distances;
+					}
+					
+					let real_x_coord = event.offsetX-8;
+					let distances = tryAt(real_x_coord) || tryAt(real_x_coord + 4) || tryAt(real_x_coord - 4);
+
+					if (distances) {
 						distances.sort((a, b) => a.diff - b.diff);
 						this.graph_editor_axis = distances[0].axis;
 					}
