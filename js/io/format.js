@@ -63,16 +63,13 @@ class ModelFormat {
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
-			PreviewModel.getActiveModels().forEach(model => {
-				model.model_3d.position.x = model.model_3d.position.z = 0;
-			})
 		} else {
 			scene.position.set(-8, -8, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
-			PreviewModel.getActiveModels().forEach(model => {
-				model.model_3d.position.x = model.model_3d.position.z = 8;
-			})
 		}
+		PreviewModel.getActiveModels().forEach(model => {
+			model.update();
+		})
 		Settings.updateSettingsInProfiles();
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
