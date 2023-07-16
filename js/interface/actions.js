@@ -1449,7 +1449,13 @@ class Toolbar {
 			node: toolbar_menu
 		})
 		if (data) {
-			this.build(data)
+			try {
+				this.build(data);
+			} catch (err) {
+				console.error(`Error building toolbar "${this.id}":`, err);
+				delete BARS.stored[this.id];
+				this.build(data);
+			}
 		}
 	}
 	build(data, force) {
