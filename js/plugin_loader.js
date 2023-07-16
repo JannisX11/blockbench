@@ -374,6 +374,7 @@ class Plugin {
 		Plugins.installed.remove(in_installed);
 		StateMemory.save('installed_plugins')
 		this.installed = false;
+		this.disabled = false;
 
 		if (isApp && this.source !== 'store') {
 			Plugins.all.remove(this)
@@ -519,7 +520,7 @@ Plugin.prototype.menu = new Menu([
 	{
 		name: 'dialog.plugins.disable',
 		icon: 'bedtime',
-		condition: plugin => (plugin.installed && plugin.source != 'store' && !plugin.disabled),
+		condition: plugin => (plugin.installed && !plugin.disabled),
 		click(plugin) {
 			plugin.toggleDisabled();
 		}
@@ -527,7 +528,7 @@ Plugin.prototype.menu = new Menu([
 	{
 		name: 'dialog.plugins.enable',
 		icon: 'bedtime',
-		condition: plugin => (plugin.installed && plugin.source != 'store' && plugin.disabled),
+		condition: plugin => (plugin.installed && plugin.disabled),
 		click(plugin) {
 			plugin.toggleDisabled();
 		}
@@ -644,6 +645,7 @@ async function loadInstalledPlugins() {
 			});
 			if (installed_match) {
 				plugin.installed = true;
+				if (installed_match.disabled) plugin.disabled = true;
 
 				if (isApp && (
 					(installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) ||
@@ -893,7 +895,7 @@ BARS.defineActions(function() {
 							</div>
 
 							<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
-								<button type="button" v-if="selected_plugin.installed && selected_plugin.source != 'store'" @click="selected_plugin.toggleDisabled()">
+								<button type="button" v-if="selected_plugin.installed" @click="selected_plugin.toggleDisabled()">
 									<i class="material-icons icon">bedtime</i>
 									<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
 								</button>
