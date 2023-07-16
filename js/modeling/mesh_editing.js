@@ -1577,7 +1577,7 @@ BARS.defineActions(function() {
 				for (let edge of edges) {
 					vertices_used.safePush(...edge);
 				}
-				for (let vkey in vertices_used) {
+				for (let vkey of vertices_used) {
 					let used = false;
 					for (let fkey in mesh.faces) {
 						if (mesh.faces[fkey].vertices.includes(vkey)) {
