@@ -1,12 +1,13 @@
 const MirrorModeling = {
 	isCentered(element) {
-		if (element.origin[0] != 0) return false;
+		let center = Format.centered_grid ? 0 : 8;
+		if (!element.to && element.origin[0] != center) return false;
 		if (element.rotation[1] || element.rotation[2]) return false;
-		if (element instanceof Cube && !Math.epsilon(element.to[0], -element.from[0], 0.01)) return false;
+		if (element instanceof Cube && !Math.epsilon(element.to[0], MirrorModeling.flipCoord(element.from[0]), 0.01)) return false;
 
 		let checkParent = (parent) => {
 			if (parent instanceof Group) {
-				if (parent.origin[0] != 0) return true;
+				if (parent.origin[0] != center) return true;
 				if (parent.rotation[1] || parent.rotation[2]) return true;
 				return checkParent(parent.parent);
 			}
@@ -48,7 +49,7 @@ const MirrorModeling = {
 					let mirror_group = new Group(parent);
 
 					flipNameOnAxis(mirror_group, 0, name => true, parent.name);
-					mirror_group.origin[0] *= -1;
+					mirror_group.origin[0] = MirrorModeling.flipCoord(mirror_group.origin[0]);
 					mirror_group.rotation[1] *= -1;
 					mirror_group.rotation[2] *= -1;
 					mirror_group.isOpen = parent.isOpen;
@@ -81,18 +82,26 @@ const MirrorModeling = {
 		preview_controller.updateGeometry(mirror_element);
 		preview_controller.updateFaces(mirror_element);
 		preview_controller.updateUV(mirror_element);
+		return mirror_element;
 	},
 	updateGroupCounterpart(group, original) {
 		group.extend(original);
 		group.isOpen = original.isOpen;
 
 		flipNameOnAxis(group, 0, name => true, original.name);
-		group.origin[0] *= -1;
+		group.origin[0] = MirrorModeling.flipCoord(mirror_group.origin[0]);
 		group.rotation[1] *= -1;
 		group.rotation[2] *= -1;
 	},
 	getEditSide() {
 		return Math.sign(Transformer.position.x) || 1;
+	},
+	flipCoord(input) {
+		if (Format.centered_grid) {
+			return -input;
+		} else {
+			return 16 - input;
+		}
 	},
 	createLocalSymmetry(mesh) {
 		// Create or update clone
@@ -119,7 +128,7 @@ const MirrorModeling = {
 				// On Edge
 				vertex_counterpart[vkey] = vkey;
 			} else {
-				let position = [-vertex[0], vertex[1], vertex[2]];
+				let position = [MirrorModeling.flipCoord(vertex[0]), vertex[1], vertex[2]];
 				let vkey_new = deleted_vertices_by_position[positionKey(position)];
 				if (vkey_new) {
 					mesh.vertices[vkey_new] = position;
@@ -255,7 +264,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 
 			let mirror_group = Group.all.find(g => {
 				if (
-					Math.epsilon(group.origin[0], -g.origin[0]) &&
+					Math.epsilon(group.origin[0], MirrorModeling.flipCoord(g.origin[0])) &&
 					Math.epsilon(group.origin[1], g.origin[1]) &&
 					Math.epsilon(group.origin[2], g.origin[2]) &&
 					group.getDepth() == g.getDepth()
@@ -326,7 +335,7 @@ BARS.defineActions(() => {
 	new Toggle('mirror_modeling', {
 		icon: 'align_horizontal_center',
 		category: 'edit',
-		condition: {modes: ['edit'], features: ['centered_grid']},
+		condition: {modes: ['edit']},
 		onChange() {
 			Project.mirror_modeling_enabled = this.value;
 			MirrorModeling.cached_elements = {};
