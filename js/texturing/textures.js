@@ -428,8 +428,8 @@ class Texture {
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
-				}, (button, {dont_show_again}) => {
-					if (dont_show_again) {
+				}, (button, checkboxes = {}) => {
+					if (checkboxes.dont_show_again) {
 						settings.dialog_invalid_characters.set(false);
 					}
 				})
@@ -743,11 +743,11 @@ class Texture {
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
-				}, (result, {dont_show_again}) => {
+				}, (result, checkboxes = {}) => {
 					if (result === 1) {
 						this.reopen()
 					}
-					if (dont_show_again) {
+					if (checkboxes.dont_show_again) {
 						settings.dialog_loose_texture.set(false);
 					}
 				})

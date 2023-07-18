@@ -660,7 +660,7 @@ BARS.defineActions(function() {
 									dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 								},
 								buttons: ['dialog.cancel']
-							}, (codec, {dont_show_again}) => {
+							}, (codec, checkboxes = {}) => {
 								if (codec == 'both') {
 									Codecs.project.export();
 									export_codec.export();
@@ -668,7 +668,7 @@ BARS.defineActions(function() {
 								} else if (codec) {
 									Codecs[codec].export();
 								}
-								if (dont_show_again) {
+								if (checkboxes.dont_show_again) {
 									settings.dialog_save_codec.set(false);
 								}
 								resolve();

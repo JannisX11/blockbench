@@ -771,8 +771,8 @@ function rotateOnAxis(modify, axis, slider) {
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
-				}, (button, {dont_show_again}) => {
-					if (dont_show_again) {
+				}, (button, checkboxes = {}) => {
+					if (checkboxes.dont_show_again) {
 						settings.dialog_rotation_limit.set(false);
 					}
 				})
