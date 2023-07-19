@@ -1303,6 +1303,10 @@
 	"action.unfold_groups.desc": "Unfold all groups in the outliner",
 	"action.edit_bedrock_binding": "Edit Binding...",
 	"action.edit_bedrock_binding.desc": "Change which bone the geometry is bound to",
+	"action.element_render_order": "Transparency Render Order",
+	"action.element_render_order.default": "Auto",
+	"action.element_render_order.behind": "Behind",
+	"action.element_render_order.in_front": "In Front",
 
 	"action.slider_color_h": "Hue",
 	"action.slider_color_s": "Saturation",

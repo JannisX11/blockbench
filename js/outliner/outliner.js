@@ -644,6 +644,13 @@ class NodePreviewController extends EventSystem {
 
 		this.dispatchEvent('update_selection', {element});
 	}
+	updateRenderOrder(element) {
+		switch (element.render_order) {
+			case 'behind': element.mesh.renderOrder = -1; break;	
+			case 'in_front': element.mesh.renderOrder = 1; break;	
+			default: element.mesh.renderOrder = 0; break;	
+		}
+	}
 }
 /**
 Standardied outliner node context menu group order

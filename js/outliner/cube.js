@@ -916,6 +916,7 @@ class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
+		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -934,6 +935,7 @@ new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Cube, 'cube');
 
@@ -982,6 +984,7 @@ new NodePreviewController(Cube, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
+		this.updateRenderOrder(element);
 
 		this.dispatchEvent('setup', {element});
 	},
@@ -1463,6 +1466,33 @@ BARS.defineActions(function() {
 	Blockbench.on('update_selection', () => {
 		if (Condition(BarItems.cube_uv_mode)) {
 			BarItems.cube_uv_mode.set(Cube.selected[0].box_uv ? 'box_uv' : 'face_uv');
+		}
+	})
+
+	new BarSelect('element_render_order', {
+		name: 'action.element_render_order',
+		category: 'edit',
+		condition: () => Outliner.selected.find(e => e.render_order) && Texture.all.length,
+		options: {
+			default: 'action.element_render_order.default',
+			behind: 'action.element_render_order.behind',
+			in_front: 'action.element_render_order.in_front',
+		},
+		onChange() {
+			let elements = Outliner.selected.filter(e => e.render_order);
+			Undo.initEdit({elements});
+			elements.forEach(element => {
+				element.render_order = this.value;
+				element.preview_controller.updateRenderOrder(element);
+			})
+			Undo.finishEdit('Change render order')
+			updateSelection();
+		}
+	})
+	Blockbench.on('update_selection', () => {
+		let element = Outliner.selected.find(e => e.render_order);
+		if (element) {
+			BarItems.element_render_order.set(element.render_order);
 		}
 	})
 })

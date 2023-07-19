@@ -806,6 +806,7 @@ class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
+		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -823,6 +824,7 @@ new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
+new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
@@ -860,6 +862,7 @@ new NodePreviewController(Mesh, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
+		this.updateRenderOrder(element);
 		mesh.visible = element.visibility;
 
 		this.dispatchEvent('setup', {element});
