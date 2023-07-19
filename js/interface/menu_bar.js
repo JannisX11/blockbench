@@ -418,6 +418,7 @@ const MenuBar = {
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('view', [
+			new MenuSeparator('viewport'),
 			'fullscreen',
 			new MenuSeparator('viewport'),
 			'view_mode',

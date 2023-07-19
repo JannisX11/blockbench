@@ -697,7 +697,9 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			list.push(BarItems.toggle_all_grids);
+			if (!BarItems.toggle_all_grids.menu_node.isConnected) {
+				list.push(BarItems.toggle_all_grids);
+			}
 			return list;
 
 		}
