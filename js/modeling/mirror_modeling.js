@@ -110,7 +110,7 @@ const MirrorModeling = {
 		let deleted_vertices = {};
 		let deleted_vertices_by_position = {};
 		function positionKey(position) {
-			return position.map(p => Math.roundTo(p, 2)).join(',');
+			return position.map(p => Math.round(p*25)/25).join(',');
 		}
 		for (let vkey in mesh.vertices) {
 			if (mesh.vertices[vkey][0] && mesh.vertices[vkey][0] * edit_side < 0) {
@@ -124,7 +124,7 @@ const MirrorModeling = {
 		let vertex_counterpart = {};
 		for (let vkey in mesh.vertices) {
 			let vertex = mesh.vertices[vkey];
-			if (mesh.vertices[vkey][0] == 0) {
+			if (Math.abs(mesh.vertices[vkey][0]) < 0.02) {
 				// On Edge
 				vertex_counterpart[vkey] = vkey;
 			} else {
