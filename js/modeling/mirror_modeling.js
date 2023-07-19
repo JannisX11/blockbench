@@ -89,7 +89,7 @@ const MirrorModeling = {
 		group.isOpen = original.isOpen;
 
 		flipNameOnAxis(group, 0, name => true, original.name);
-		group.origin[0] = MirrorModeling.flipCoord(mirror_group.origin[0]);
+		group.origin[0] = MirrorModeling.flipCoord(group.origin[0]);
 		group.rotation[1] *= -1;
 		group.rotation[2] *= -1;
 	},
