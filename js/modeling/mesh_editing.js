@@ -432,7 +432,7 @@ BARS.defineActions(function() {
 				Mesh.selected.forEach(mesh => {
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
-						if (face.isSelected()) {
+						if (face.isSelected(fkey)) {
 							UVEditor.vue.selected_faces.safePush(fkey);
 						}
 					}
@@ -584,7 +584,7 @@ BARS.defineActions(function() {
 							reference_face = face;
 							reference_face_strength = match_strength;
 						}
-						if (face.isSelected()) {
+						if (face.isSelected(key)) {
 							delete mesh.faces[key];
 						}
 					}
@@ -806,9 +806,9 @@ BARS.defineActions(function() {
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				for (let key in mesh.faces) {
-					let face = mesh.faces[key];
-					if (face.isSelected()) {
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					if (face.isSelected(fkey)) {
 						face.invert();
 					}
 				}
@@ -824,9 +824,9 @@ BARS.defineActions(function() {
 		click() {
 			Undo.initEdit({elements: Mesh.selected});
 			Mesh.selected.forEach(mesh => {
-				for (let key in mesh.faces) {
-					let face = mesh.faces[key];
-					if (face.vertices.length == 4 && face.isSelected()) {
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					if (face.vertices.length == 4 && face.isSelected(fkey)) {
 						let new_vertices = face.getSortedVertices().slice();
 						new_vertices.push(new_vertices.shift());
 						face.vertices.replace(new_vertices);
@@ -1841,7 +1841,7 @@ BARS.defineActions(function() {
 
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
-					if (face.isSelected()) {
+					if (face.isSelected(fkey)) {
 						delete mesh.faces[fkey];
 					} else {
 						delete copy.faces[fkey];

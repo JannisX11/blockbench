@@ -160,8 +160,8 @@ class MeshFace extends Face {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
 	}
-	isSelected() {
-		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(this.getFaceKey());
+	isSelected(fkey) {
+		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(fkey || this.getFaceKey());
 	}
 	getSortedVertices() {
 		if (this.vertices.length < 4) return this.vertices;
@@ -663,7 +663,7 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		for (let key in this.faces) {
-			if (object_mode || this.faces[key].isSelected()) {
+			if (object_mode || this.faces[key].isSelected(key)) {
 				this.faces[key].invert();
 			}
 		}

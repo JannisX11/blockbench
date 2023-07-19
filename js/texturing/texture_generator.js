@@ -718,7 +718,7 @@ const TextureGenerator = {
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
 					if (face.vertices.length < 3) continue;
-					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected()) continue;
+					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected(fkey)) continue;
 					face_groups.push({
 						type: 'face_group',
 						mesh,

@@ -240,7 +240,7 @@ const Clipbench = {
 		})
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			if (face.isSelected()) {
+			if (face.isSelected(fkey)) {
 				this.faces[fkey] = new MeshFace(null, face);
 			}
 		}

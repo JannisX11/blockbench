@@ -817,7 +817,7 @@ class Preview {
 							}
 
 							let face_test = start_face.getAdjacentFace(1);
-							let index = (face_test && face_test.face.isSelected()) ? 2 : 1;
+							let index = (face_test && face_test.face.isSelected(face_test.key)) ? 2 : 1;
 							selectFace(start_face, index);
 							if (start_face.vertices.length == 4) {
 								processed_faces.remove(start_face);
