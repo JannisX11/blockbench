@@ -113,7 +113,7 @@ const UVEditor = {
 	},
 	// Copy Paste Tool
 	startSelection(x, y, event) {
-		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame') {
+		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame' && !event.altKey) {
 			if (open_interface) {
 				open_interface.confirm()
 			} else {
@@ -263,13 +263,14 @@ const UVEditor = {
 			if (event.button == 1) return;
 			if (!Painter.selection.overlay) {
 				removeEventListeners(document, 'mousedown touchstart', clickElsewhere)
-			} else if (Painter.selection.overlay.has(event.target).length == 0 && $(scope.vue.$refs.copy_paste_tool_control).has(event.target).length == 0) {
+			} else if (Painter.selection.overlay.has(event.target).length == 0 && $(scope.vue.$refs.copy_paste_tool_control).has(event.target).length == 0 && !(event.altKey && event.target.id == 'uv_frame')) {
 				open_interface.confirm()
 			}
 		}
 		addEventListeners(document, 'mousedown touchstart', clickElsewhere)
 	},
 	removePastingOverlay() {
+		console.trace('RM')
 		Painter.selection.overlay.detach();
 		UVEditor.vue.copy_overlay.state = 'off';
 		delete Painter.selection.overlay;
