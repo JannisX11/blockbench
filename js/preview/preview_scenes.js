@@ -94,7 +94,7 @@ class PreviewScene {
 	}
 	async select() {
 		if (this.require_minecraft_eula) {
-			let accepted = await MinecraftEULA.promptUser();
+			let accepted = await MinecraftEULA.promptUser('preview_scenes');
 			if (accepted != true) return false;
 		}
 		if (!this.loaded) {
@@ -623,13 +623,13 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 })
 
 
-StateMemory.init('minecraft_eula_accepted', 'boolean');
+StateMemory.init('minecraft_eula_accepted', 'object');
 const MinecraftEULA = {
-	isAccepted() {
-		return StateMemory.minecraft_eula_accepted;
+	isAccepted(key) {
+		return StateMemory.minecraft_eula_accepted[key];
 	},
-	async promptUser() {
-		if (MinecraftEULA.isAccepted()) {
+	async promptUser(key) {
+		if (MinecraftEULA.isAccepted(key)) {
 			return true;
 		}
 		return await new Promise((resolve) => {
@@ -644,7 +644,8 @@ const MinecraftEULA = {
 				buttons: ['dialog.ok', 'dialog.cancel']
 			}, (button, result) => {
 				if (button == 0 && result.accepted) {
-					StateMemory.set('minecraft_eula_accepted', true);
+					StateMemory.minecraft_eula_accepted[key] = true;
+					StateMemory.save('minecraft_eula_accepted');
 				} else if (button == 0) {
 					return false;
 				}
