@@ -270,7 +270,6 @@ const UVEditor = {
 		addEventListeners(document, 'mousedown touchstart', clickElsewhere)
 	},
 	removePastingOverlay() {
-		console.trace('RM')
 		Painter.selection.overlay.detach();
 		UVEditor.vue.copy_overlay.state = 'off';
 		delete Painter.selection.overlay;
