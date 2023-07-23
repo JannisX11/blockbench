@@ -152,19 +152,19 @@ onVueSetup(function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [NeptuneCoffee](https://twitter.com/Neptune_Coffee) & [Dankbarkeit](https://twitter.com/Dxnkbarkeit)",
+					description: "Splash Art 1st Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
 				},
 				{
 					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [MorganFreeguy](https://www.artstation.com/morganfreeguy) & [WOLLAND](https://wolland-services.com/)",
+					description: "Splash Art 2nd Place by [PICASSO](https://twitter.com/Picasso114514) & [AnzSama](https://twitter.com/AnzSamaEr)",
 				},
 				{
 					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [RETENEIZER](https://twitter.com/RETENEIZER)",
+					description: "Splash Art 3rd Place by [Wanwin](https://wan-win.com/#3darts)",
 				},
 				{
 					source: "./assets/splash_art/4.png",
-					description: "Splash Art 4th Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
+					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999)",
 				},
 				{
 					source: "./assets/splash_art/5.png",
@@ -172,7 +172,7 @@ onVueSetup(function() {
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
-			slideshow_selected: Blockbench.hasFlag('after_update') ? 0 : Math.floor(Math.random()*5),
+			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
 		},
