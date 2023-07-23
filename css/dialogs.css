@@ -1379,6 +1379,13 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	.disabled_plugin {
 		color: var(--color-subtle_text);
 	}
+	.plugin_browser_back_button {
+		padding: 5px 16px;
+		margin-top: 5px;
+	}
+	.plugin_browser_back_button > i {
+		vertical-align: text-bottom;
+	}
 	.plugin_browser_page_header {
 		padding: 16px 24px;
 	}
@@ -1392,6 +1399,8 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	.plugin_browser_page_titlebar h1 {
 		margin: 0;
+		margin-top: 4px;
+		line-height: normal;
 	}
 	#plugin_browser_page > .about {
 		overflow-y: auto;

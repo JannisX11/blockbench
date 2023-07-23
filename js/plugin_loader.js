@@ -874,7 +874,9 @@ BARS.defineActions(function() {
 					</div>
 					
 					<div id="plugin_browser_page" v-if="selected_plugin">
-						<div v-if="isMobile" @click="selected_plugin = null;">${tl('generic.navigate_back')}</div>
+						<div v-if="isMobile" @click="selected_plugin = null;" class="plugin_browser_back_button">
+							<i class="material-icons icon">arrow_back_ios</i>
+							${tl('generic.navigate_back')}</div>
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}">
 							<div class="plugin_browser_page_titlebar" :class="{disabled_plugin: selected_plugin.disabled}">
 								<div class="plugin_icon_area">
