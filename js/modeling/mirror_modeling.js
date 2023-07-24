@@ -1,4 +1,5 @@
 const MirrorModeling = {
+	initial_transformer_position: 0,
 	isCentered(element) {
 		let center = Format.centered_grid ? 0 : 8;
 		if (!element.to && element.origin[0] != center) return false;
@@ -94,7 +95,7 @@ const MirrorModeling = {
 		group.rotation[2] *= -1;
 	},
 	getEditSide() {
-		return Math.sign(Transformer.position.x) || 1;
+		return Math.sign(Transformer.position.x || MirrorModeling.initial_transformer_position) || 1;
 	},
 	flipCoord(input) {
 		if (Format.centered_grid) {
@@ -122,11 +123,13 @@ const MirrorModeling = {
 		// Copy existing vertices back to the non-edit side
 		let added_vertices = [];
 		let vertex_counterpart = {};
+		let center_vertices = [];
 		for (let vkey in mesh.vertices) {
 			let vertex = mesh.vertices[vkey];
 			if (Math.abs(mesh.vertices[vkey][0]) < 0.02) {
 				// On Edge
 				vertex_counterpart[vkey] = vkey;
+				center_vertices.push(vkey);
 			} else {
 				let position = [MirrorModeling.flipCoord(vertex[0]), vertex[1], vertex[2]];
 				let vkey_new = deleted_vertices_by_position[positionKey(position)];
@@ -143,14 +146,15 @@ const MirrorModeling = {
 		let deleted_faces = {};
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
-			if (deleted_face_vertices.length == face.vertices.length) {
+			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey] || center_vertices.includes(vkey));
+			if (deleted_face_vertices.length == face.vertices.length && !face.vertices.allAre(vkey => center_vertices.includes(vkey))) {
 				deleted_faces[fkey] = mesh.faces[fkey];
 				delete mesh.faces[fkey];
 			}
 		}
 
-		for (let fkey in mesh.faces) {
+		let original_fkeys = Object.keys(mesh.faces);
+		for (let fkey of original_fkeys) {
 			let face = mesh.faces[fkey];
 			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
 			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2) {
@@ -232,6 +236,8 @@ const MirrorModeling = {
 
 Blockbench.on('init_edit', ({aspects}) => {
 	if (!BarItems.mirror_modeling.value) return;
+
+	MirrorModeling.initial_transformer_position = Transformer.position.x;
 
 	if (aspects.elements) {
 		MirrorModeling.cached_elements = {};

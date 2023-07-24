@@ -594,9 +594,22 @@ function moveElementsInSpace(difference, axis) {
 				difference_vec.V3_set(m.x, m.y, m.z);
 			}
 
-			selected_vertices.forEach(key => {
-				el.vertices[key].V3_add(difference_vec);
+			selected_vertices.forEach(vkey => {
+				el.vertices[vkey].V3_add(difference_vec);
 			})
+			// mirror modeling: Snap to middle to connect
+			if (
+				BarItems.mirror_modeling.value &&
+				difference_vec[0] &&
+				selected_vertices.allAre(vkey => Math.epsilon(el.vertices[vkey][0], el.vertices[selected_vertices[0]][0], 0.02)) && // All vertices same X
+				Math.sign(el.vertices[selected_vertices[0]][0]) != Math.sign(el.vertices[selected_vertices[0]][0] - difference_vec[0]) && // movement crossed center
+				el.vertices[selected_vertices[0]][0] && (el.vertices[selected_vertices[0]][0] - difference_vec[0])
+			) {
+				selected_vertices.forEach(vkey => {
+					el.vertices[vkey][0] = 0;
+				})
+			}
+
 			ProportionalEdit.editVertices(el, (vkey, blend) => {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
