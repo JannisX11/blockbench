@@ -676,9 +676,11 @@ class NumSlider extends Widget {
 			
 			let drag_event = await new Promise((resolve, reject) => {
 				function move(e2) {
-					removeEventListeners(document, 'mousemove touchmove', move);
-					removeEventListeners(document, 'mouseup touchend', stop);
-					resolve(e2);
+					if (Math.abs(e2.clientX-event.clientX) > 2) {
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						resolve(e2);
+					}
 				}
 				function stop(e2) {
 					removeEventListeners(document, 'mousemove touchmove', move);
