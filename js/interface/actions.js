@@ -2286,6 +2286,8 @@ const BARS = {
 				'loop_cut',
 				'create_face',
 				'invert_face',
+				'_',
+				'mirror_modeling',
 			]
 		})
 
