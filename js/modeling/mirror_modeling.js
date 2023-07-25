@@ -114,7 +114,7 @@ const MirrorModeling = {
 			return position.map(p => Math.round(p*25)/25).join(',');
 		}
 		for (let vkey in mesh.vertices) {
-			if (mesh.vertices[vkey][0] && mesh.vertices[vkey][0] * edit_side < 0) {
+			if (mesh.vertices[vkey][0] && Math.round(mesh.vertices[vkey][0] * edit_side * 50) < 0) {
 				deleted_vertices[vkey] = mesh.vertices[vkey];
 				delete mesh.vertices[vkey];
 				deleted_vertices_by_position[positionKey(deleted_vertices[vkey])] = vkey;
@@ -181,7 +181,7 @@ const MirrorModeling = {
 						let counterpart = new_counterparts.pop();
 						if (vkey != counterpart && counterpart) {
 							face.vertices.splice(i, 1, counterpart);
-							face.uv[counterpart] = face.uv[vkey];
+							face.uv[counterpart] = face.uv[vkey].slice();
 							delete face.uv[vkey];
 						}
 					}
@@ -203,7 +203,7 @@ const MirrorModeling = {
 					let new_vkey = vertex_counterpart[vkey];
 					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
-					new_face.uv[new_vkey] = face.uv[vkey];
+					new_face.uv[new_vkey] = face.uv[vkey].slice();
 				})
 				new_face.invert();
 				if (new_face_key) {
