@@ -429,7 +429,7 @@ class Plugin {
 		this.remember();
 	}
 	showContextMenu(event) {
-		if (!this.installed) return;
+		//if (!this.installed) return;
 		this.menu.open(event, this);
 	}
 	isReloadable() {
@@ -501,6 +501,22 @@ class Plugin {
 }
 Plugin.prototype.menu = new Menu([
 	new MenuSeparator('installation'),
+	{
+		name: 'generic.share',
+		icon: 'share',
+		condition: plugin => Plugins.json[plugin.id],
+		click(plugin) {
+			let url = `https://www.blockbench.net/plugins/${plugin.id}`;
+			new Dialog('share_plugin', {
+				title: tl('generic.share') + ': ' + plugin.title,
+				icon: 'extension',
+				form: {
+					link: {type: 'text', value: url, readonly: true, share_text: true}
+				}
+			}).show();
+		}
+	},
+	'_',
 	{
 		name: 'dialog.plugins.install',
 		icon: 'add',
@@ -877,7 +893,7 @@ BARS.defineActions(function() {
 						<div v-if="isMobile" @click="selected_plugin = null;" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>
-						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}">
+						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}" @contextmenu="selected_plugin.showContextMenu($event)">
 							<div class="plugin_browser_page_titlebar" :class="{disabled_plugin: selected_plugin.disabled}">
 								<div class="plugin_icon_area">
 									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
