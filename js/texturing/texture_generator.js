@@ -860,6 +860,7 @@ const TextureGenerator = {
 								let face = faces[fkey];
 								let face_connection_count = 0;
 								processed_faces.push(face);
+								let face_normal = face.getNormal(true);
 								[2, 0, 3, 1].forEach(i => {
 									if (!face.vertices[i]) return;
 									let other_face_match = face.getAdjacentFace(i);
@@ -871,12 +872,22 @@ const TextureGenerator = {
 										let seam = mesh.getSeam(other_face_match.edge);
 										if (seam === 'divide') return;
 										if (seam !== 'join') {
+
 											let angle = face.getAngleTo(other_face);
 											if (angle > (options.max_edge_angle||36)) return;
+
 											let angle_total = face_group.faces[0].getAngleTo(other_face);
 											if (angle_total > (options.max_island_angle||45)) return;
+
 											let edge_length = getEdgeLength(other_face_match.edge);
 											if (edge_length < 2.2 && face_connection_count >= 2) return;
+
+											let other_face_normal = other_face.getNormal(true);
+											if (Math.abs(other_face_normal[0]) > 0.04 &&
+												Math.epsilon(face_normal[0], -other_face_normal[0], 0.04) &&
+												Math.epsilon(face_normal[1], other_face_normal[1], 0.04) &&
+												Math.epsilon(face_normal[2], other_face_normal[2], 0.04)
+											) return;
 										}
 										let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
 										if (!projection_success) return;
