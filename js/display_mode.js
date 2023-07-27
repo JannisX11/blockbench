@@ -2143,11 +2143,11 @@ BARS.defineActions(function() {
 	let player_skin_setup = false;
 	function updateBase(mode) {
 		if (mode == 'attachable_first') {
-			Project.model_3d.position.set(-23, 21, 0);
+			Project.model_3d.position.set(-20, 21, 0);
 			Project.model_3d.rotation.set(
-				Math.degToRad(-86.6),
-				Math.degToRad(42),
-				Math.degToRad(124),
+				Math.degToRad(-95),
+				Math.degToRad(44),
+				Math.degToRad(115),
 				'ZYX'
 			);
 			Interface.preview.append(center_first_person_button);
