@@ -48,7 +48,10 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		if (action.type == 'recent_project') {
+		if (action instanceof BarSelect) {
+			action.open({target: ActionControl.vue.$el.childNodes[2]});
+
+		} else if (action.type == 'recent_project') {
 			Blockbench.read([action.description], {}, files => {
 				loadModelFile(files[0]);
 			})
@@ -190,14 +193,13 @@ BARS.defineActions(function() {
 					}
 				}
 				if (!type) {
-					for (var i = 0; i < Keybinds.actions.length; i++) {
-						var item = Keybinds.actions[i];
+					for (let item of Keybinds.actions) {
 						if (
 							search_input.length == 0 ||
 							item.name.toLowerCase().includes(search_input) ||
 							item.id.toLowerCase().includes(search_input)
 						) {
-							if (item instanceof Action && Condition(item.condition) && !item.linked_setting) {
+							if ((item instanceof Action || item instanceof BarSelect) && Condition(item.condition) && !item.linked_setting) {
 								list.safePush(item)
 								if (list.length > ActionControl.max_length) break;
 							}
@@ -392,7 +394,7 @@ BARS.defineActions(function() {
 		template: `
 			<dialog id="action_selector" v-if="open">
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
-					<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
+					<dynamic-icon :icon="search_types[search_type] ? search_types[search_type].icon : 'fullscreen'" />
 				</div>
 				<input type="text" v-model="search_input" inputmode="search" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 				<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
@@ -405,7 +407,7 @@ BARS.defineActions(function() {
 							@click="click(item, $event)"
 							@mouseenter="index = i"
 						>
-							<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>
 							<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
 						</li>

@@ -308,7 +308,7 @@ var codec = new Codec('java_block', {
 					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
 						link = texture_arr[link.substring(1)];
 					}
-					let texture = new Texture({id: key}).fromJavaLink(texture_arr[key], path_arr.slice()).add();
+					let texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice()).add();
 					texture_paths[texture_arr[key].replace(/^minecraft:/, '')] = texture_ids[key] = texture;
 					new_textures.push(texture);
 				}
@@ -450,13 +450,6 @@ var codec = new Codec('java_block', {
 				}
 			}, (result) => {
 				if (result) {
-					let textures;
-					if (result == 'open_with_textures') {
-						textures = {};
-						Texture.all.forEach(tex => {
-							textures[tex.id] = tex;
-						})
-					}
 					let parent = model.parent.replace(/\w+:/, '');
 					let path_arr = path.split(osfs);
 					let index = path_arr.length - path_arr.indexOf('models');
@@ -468,9 +461,9 @@ var codec = new Codec('java_block', {
 						loadModelFile(files[0]);
 
 						if (result == 'open_with_textures') {
-							Texture.all.forEach(tex => {
+							Texture.all.forEachReverse(tex => {
 								if (tex.error == 3 && tex.name.startsWith('#')) {
-									let loaded_tex = textures[tex.name.replace(/#/, '')];
+									let loaded_tex = texture_ids[tex.name.replace(/#/, '')];
 									if (loaded_tex) {
 										tex.fromPath(loaded_tex.path);
 										tex.namespace = loaded_tex.namespace;
@@ -525,13 +518,7 @@ var format = new ModelFormat({
 			}
 		]
 	},
-	render_sides() {
-		if (Modes.display && ['thirdperson_righthand', 'thirdperson_lefthand', 'head'].includes(display_slot)) {
-			return 'double';
-		} else {
-			return 'front';
-		}
-	},
+	render_sides: 'front',
 	model_identifier: false,
 	parent_model_id: true,
 	vertex_color_ambient_occlusion: true,

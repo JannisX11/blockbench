@@ -21,6 +21,7 @@ class UndoSystem {
 		}
 		this.startChange(amended);
 		this.current_save = new UndoSystem.save(aspects)
+		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
 	finishEdit(action, aspects) {
@@ -98,6 +99,8 @@ class UndoSystem {
 				if (input) {
 					if (input.type == 'number') {
 						form_values[key] = input.slider.get();
+					} else if (input.type == 'checkbox') {
+						form_values[key] = !!input.node.checked;
 					}
 				}
 			}
@@ -137,6 +140,14 @@ class UndoSystem {
 				input_elements[key] = slider;
 				this.amend_edit_menu.form[key].slider = slider
 				slider.update();
+
+			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
+				
+				let toggle = Interface.createElement('input', {type: 'checkbox', checked: !!form_line.value});
+				toggle.addEventListener('input', updateValue);
+				line.append(toggle);
+				input_elements[key] = toggle;
+				this.amend_edit_menu.form[key].node = toggle;
 			}
 
 			let label = document.createElement('label');

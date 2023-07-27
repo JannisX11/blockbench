@@ -1300,7 +1300,7 @@
 								}
 							})
 							displayDistance(move_value * (scope.direction ? 1 : -1));
-							scope.updateSelection()
+							updateSelection()
 							previousValue = move_value
 							scope.hasChanged = true
 						}

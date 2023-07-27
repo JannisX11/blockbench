@@ -369,6 +369,9 @@
 
 
 /*Outliner*/
+	#outliner_search_bar {
+		width: 100%;
+	}
 	#cubes_list {
 		padding-top: 1px;
 		overflow-y: scroll;
@@ -1092,6 +1095,17 @@
 		margin-left: -2px;
 		transform: rotate(-90deg);
 	}
+	#panel_timeline .keyframe.has_expressions::after {
+		content: "M";
+		position: absolute;
+		width: 100%;
+		text-align: center;
+		font-size: 10px;
+		color: var(--color-back);
+		top: 3px;
+		left: 0;
+		font-weight: 600;
+	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 		pointer-events: none;
@@ -1157,6 +1171,21 @@
 		padding: 2px;
 		padding-left: 8px;
 		overflow: hidden;
+	}
+	#timeline_corner > span {
+		color: var(--color-subtle_text);
+		font-family: var(--font-code);
+		text-align: center;
+		padding: 2px;
+		width: 24px;
+		flex-shrink: 100;
+	}
+	#timeline_framenumber {
+		color: var(--color-subtle_text);
+		font-family: var(--font-code);
+		margin-right: auto;
+		padding: 2px;
+		white-space: nowrap;
 	}
 	#timeline_corner > .tool {
 		height: 26px;
@@ -1357,6 +1386,17 @@
 		stroke: #f72858;
 		stroke-width: 2px;
 		fill: none;
+	}
+	#timeline_graph_editor svg text {
+		stroke: var(--color-subtle_text);
+		font-weight: 200;
+		opacity: 0.8;
+	}
+	#timeline_graph_editor svg .main_graph:not(.selected) {
+		opacity: 0.35;
+	}
+	#timeline_graph_editor svg .loop_graph:not(.selected) {
+		opacity: 0.25;
 	}
 	#timeline_graph_editor .keyframe {
 		height: 16px;

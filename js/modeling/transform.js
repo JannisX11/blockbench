@@ -77,7 +77,7 @@ function getSelectionCenter(all = false) {
 }
 //Movement
 function moveElementsRelative(difference, index, event) { //Multiple
-	if (!quad_previews.current || !Outliner.selected.length) {
+	if (!Preview.selected || !Outliner.selected.length) {
 		return;
 	}
 	var _has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
@@ -87,8 +87,8 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	// < >
 	// PageUpDown
 	// ^ v
-	var facing = quad_previews.current.getFacingDirection()
-	var height = quad_previews.current.getFacingHeight()
+	var facing = Preview.selected.getFacingDirection()
+	var height = Preview.selected.getFacingHeight()
 	switch (facing) {
 		case 'north': axes = [0, 2, 1]; break;
 		case 'south': axes = [0, 2, 1]; break;
@@ -145,6 +145,43 @@ function rotateSelected(axis, steps) {
 	Undo.finishEdit('Rotate elements')
 }
 //Mirror
+function flipNameOnAxis(node, axis, check, original_name) {
+	const flip_pairs = {
+		0: {
+			right: 'left',
+			Right: 'Left',
+			RIGHT: 'LEFT',
+		},
+		1: {
+			top: 'bottom',
+			Top: 'Bottom',
+			TOP: 'BOTTOM',
+		},
+		2: {
+			back: 'front',
+			rear: 'front',
+			Back: 'Front',
+			Rear: 'Front',
+			BACK: 'FRONT',
+			REAR: 'FRONT',
+		}
+	};
+	function matchAndReplace(a, b) {
+		if (node.name.includes(a)) {
+			let name = original_name
+						? original_name.replace(a, b)
+						: node.name.replace(a, b).replace(/2/, '');
+			if (check(name)) node.name = name;
+			return true;
+		}
+	}
+	let pairs = flip_pairs[axis];
+	for (let a in pairs) {
+		let b = pairs[a];
+		if (matchAndReplace(a, b)) break;
+		if (matchAndReplace(b, a)) break;
+	}
+}
 function mirrorSelected(axis) {
 	if (Modes.animate && Timeline.selected.length) {
 
@@ -160,26 +197,6 @@ function mirrorSelected(axis) {
 		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.selected, selection: true})
 		var center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
-			let flip_pairs = {
-				0: {
-					right: 'left',
-					Right: 'Left',
-					RIGHT: 'LEFT',
-				},
-				1: {
-					top: 'bottom',
-					Top: 'Bottom',
-					TOP: 'BOTTOM',
-				},
-				2: {
-					back: 'front',
-					rear: 'front',
-					Back: 'Front',
-					Rear: 'Front',
-					BACK: 'FRONT',
-					REAR: 'FRONT',
-				}
-			}
 			if (Group.selected && Group.selected.matchesSelection()) {
 				function flipGroup(group) {
 					for (var i = 0; i < 3; i++) {
@@ -189,21 +206,7 @@ function mirrorSelected(axis) {
 							group.rotation[i] *= -1
 						}
 					}
-					function matchAndReplace(a, b) {
-						if (group.name.includes(a)) {
-							let name = group._original_name
-										? group._original_name.replace(a, b)
-										: group.name.replace(a, b).replace(/2/, '');
-							if (!Group.all.find(g => g.name == name)) group.name = name;
-							return true;
-						}
-					}
-					let pairs = flip_pairs[axis];
-					for (let a in pairs) {
-						let b = pairs[a];
-						if (matchAndReplace(a, b)) break;
-						if (matchAndReplace(b, a)) break;
-					}
+					flipNameOnAxis(group, axis, name => (!Group.all.find(g => g.name == name)), group._original_name);
 					Canvas.updateAllBones([group]);
 				}
 				flipGroup(Group.selected)
@@ -211,10 +214,10 @@ function mirrorSelected(axis) {
 			}
 		}
 		selected.forEach(function(obj) {
-			obj.flip(axis, center, false)
-			if (obj instanceof Cube && obj.box_uv && axis === 0) {
-				obj.mirror_uv = !obj.mirror_uv
-				Canvas.updateUV(obj)
+			if (obj instanceof Mesh) {
+				obj.flipSelection(axis, center, false);
+			} else {
+				obj.flip(axis, center, false);
 			}
 		})
 		updateSelection()
@@ -591,9 +594,22 @@ function moveElementsInSpace(difference, axis) {
 				difference_vec.V3_set(m.x, m.y, m.z);
 			}
 
-			selected_vertices.forEach(key => {
-				el.vertices[key].V3_add(difference_vec);
+			selected_vertices.forEach(vkey => {
+				el.vertices[vkey].V3_add(difference_vec);
 			})
+			// mirror modeling: Snap to middle to connect
+			if (
+				BarItems.mirror_modeling.value &&
+				difference_vec[0] &&
+				selected_vertices.allAre(vkey => Math.epsilon(el.vertices[vkey][0], el.vertices[selected_vertices[0]][0], 0.02)) && // All vertices same X
+				Math.sign(el.vertices[selected_vertices[0]][0]) != Math.sign(el.vertices[selected_vertices[0]][0] - difference_vec[0]) && // movement crossed center
+				el.vertices[selected_vertices[0]][0] && (el.vertices[selected_vertices[0]][0] - difference_vec[0])
+			) {
+				selected_vertices.forEach(vkey => {
+					el.vertices[vkey][0] = 0;
+				})
+			}
+
 			ProportionalEdit.editVertices(el, (vkey, blend) => {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
@@ -768,8 +784,8 @@ function rotateOnAxis(modify, axis, slider) {
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
-				}, (button, {dont_show_again}) => {
-					if (dont_show_again) {
+				}, (button, checkboxes = {}) => {
+					if (checkboxes.dont_show_again) {
 						settings.dialog_rotation_limit.set(false);
 					}
 				})
@@ -1071,7 +1087,7 @@ BARS.defineActions(function() {
 	function resizeOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
 			if (obj.resizable) {
-				obj.resize(modify, axis, false, true)
+				obj.resize(modify, axis, false, true, obj instanceof Mesh)
 			} else if (obj.scalable) {
 				obj.scale[axis] = modify(obj.scale[axis]);
 				obj.preview_controller.updateTransform(obj);
@@ -1084,20 +1100,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[0]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[0] - Outliner.selected[0].from[0]
+				return Outliner.selected[0].getSize(0, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1108,20 +1124,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Outliner.selected[0] instanceof Mesh == false && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[1]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[1] - Outliner.selected[0].from[1]
+				return Outliner.selected[0].getSize(1, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1132,20 +1148,20 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable)&& Outliner.selected[0] instanceof Mesh == false  && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].scalable) {
 				return Outliner.selected[0].scale[2]
 			} else if (Outliner.selected[0].resizable) {
-				return Outliner.selected[0].to[2] - Outliner.selected[0].from[2]
+				return Outliner.selected[0].getSize(2, true);
 			}
 		},
 		change: function(modify) {
 			resizeOnAxis(modify, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Cube.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1204,6 +1220,109 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Inflate elements')
 		}
 	})
+
+	//Stretch
+	new NumSlider('slider_stretch_x', {
+		name: tl('action.slider_stretch', ['X']),
+		description: tl('action.slider_stretch.desc', ['X']),
+		color: 'x',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[0]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[0];
+				var v = modify(obj.stretch[0]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[0] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_y', {
+		name: tl('action.slider_stretch', ['Y']),
+		description: tl('action.slider_stretch.desc', ['Y']),
+		color: 'y',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[1]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[1];
+				var v = modify(obj.stretch[1]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[1] = v;
+				}				
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	new NumSlider('slider_stretch_z', {
+		name: tl('action.slider_stretch', ['Z']),
+		description: tl('action.slider_stretch.desc', ['Z']),
+		color: 'z',
+		category: 'transform',
+		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return Cube.selected[0].stretch[2]
+		},
+		change: function(modify) {
+			Cube.selected.forEach(function(obj, i) {
+				let v_before = obj.stretch[2];
+				var v = modify(obj.stretch[2]);
+
+				if (settings.stretch_linked.value === true) {
+					obj.stretch.forEach(function (stretch, axis) {
+						obj.stretch[axis] = v;
+					});
+				} else {
+					obj.stretch[2] = v;
+				}
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: Cube.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Stretch elements')
+		}
+	})
+
+	let slider_vector_stretch = [BarItems.slider_stretch_x, BarItems.slider_stretch_y, BarItems.slider_stretch_z];
+	slider_vector_stretch.forEach(slider => slider.slider_vector = slider_vector_stretch);
 
 	//Rotation
 	new NumSlider('slider_rotation_x', {
@@ -1653,6 +1772,12 @@ BARS.defineActions(function() {
 				Undo.finishEdit('Update auto UV')
 			}
 		}
+	})
+	new Toggle('toggle_stretch_linked', {
+		icon: 'fas.fa-link',
+		category: 'transform',
+		linked_setting: 'stretch_linked',
+		condition: () => Format.stretch_cubes && Cube.selected.length && Modes.edit
 	})
 	new Action('origin_to_geometry', {
 		icon: 'filter_center_focus',

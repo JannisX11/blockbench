@@ -785,13 +785,13 @@ class Animation extends AnimationItem {
 		'copy',
 		'paste',
 		'duplicate',
-		'_',
+		new MenuSeparator('settings'),
 		{name: 'menu.animation.loop', icon: 'loop', children: [
 			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
 			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
 			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
 		]},
-		'_',
+		new MenuSeparator('manage'),
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -823,7 +823,7 @@ class Animation extends AnimationItem {
 			}
 		},
 		'delete',
-		'_',
+		new MenuSeparator('properties'),
 		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}

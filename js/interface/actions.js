@@ -1,12 +1,8 @@
 var Toolbars, BarItems, Toolbox;
 //Bars
-class MenuSeparator {
-	constructor() {
-		this.menu_node = Interface.createElement('li', {class: 'menu_separator'});
-	}
-}
-class BarItem {
+class BarItem extends EventSystem {
 	constructor(id, data) {
+		super();
 		this.id = id;
 		if (!data.private) {
 			if (this.id && !BarItems[this.id]) {
@@ -166,7 +162,7 @@ class BarItem {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
-				scope.toolbars[i].remove(scope)
+				scope.toolbars[i].remove(scope, false);
 			}
 		}
 		if (idx !== undefined) {
@@ -194,6 +190,7 @@ class BarItem {
 		this.sub_keybinds[id].keybind.setAction(this.id, id);
 	}
 	delete() {
+		this.dispatchEvent('delete');
 		var scope = this;
 		this.toolbars.forEach(bar => {
 			bar.remove(scope);
@@ -261,7 +258,14 @@ class Action extends BarItem {
 		this.searchable = data.searchable;
 
 		//Node
-		if (!this.click) this.click = data.click
+		if (!this.click && data.click) {
+			this.onClick = data.click;
+			this.click = (...args) => {
+				this.dispatchEvent('use');
+				this.onClick(...args);
+				this.dispatchEvent('used');
+			};
+		}
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.icon_states = data.icon_states;
 		this.node = document.createElement('div');
@@ -275,6 +279,17 @@ class Action extends BarItem {
 			Interface.createElement('span', {}, this.name),
 			Interface.createElement('label', {class: 'keybinding_label'}, this.keybind || '')
 		]);
+		addEventListeners(this.menu_node, 'mouseenter mousedown', event => {
+			if (event.target == this.menu_node) {
+				Menu.open.hover(this.menu_node, event);
+			}
+		});
+		if (!this.children) {
+			this.menu_node.addEventListener('click', event => {
+				if (!(event.target == this.menu_node || event.target.parentElement == this.menu_node)) return;
+				this.trigger(event);
+			});
+		}
 
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
@@ -302,7 +317,9 @@ class Action extends BarItem {
 	}
 	trigger(event) {
 		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		let condition_met = BARS.condition(scope.condition, this);
+		this.dispatchEvent('trigger', {condition_met});
+		if (condition_met) {
 			if (event && event.type === 'click' && event.altKey && scope.keybind) {
 				var record = function() {
 					document.removeEventListener('keyup', record)
@@ -352,6 +369,7 @@ class Action extends BarItem {
 				}
 			}
 		}
+		this.dispatchEvent('get_node', {node: clone});
 		return clone;
 	}
 	setIcon(icon) {
@@ -423,6 +441,7 @@ class Tool extends Action {
 	}
 	select() {
 		if (this === Toolbox.selected) return;
+		let previous_tool = Toolbox.selected;
 		if (Toolbox.selected) {
 			Toolbox.selected.nodes.forEach(node => {
 				node.classList.remove('enabled')
@@ -430,6 +449,9 @@ class Tool extends Action {
 			Toolbox.selected.menu_node.classList.remove('enabled')
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
+			}
+			if (Toolbox.selected.brush?.size && !this.brush?.size) {
+				scene.remove(Canvas.brush_outline);
 			}
 			if (Transformer.dragging) {
 				Transformer.cancelMovement({}, true);
@@ -458,6 +480,7 @@ class Tool extends Action {
 		if (typeof this.onSelect == 'function') {
 			this.onSelect()
 		}
+		this.dispatchEvent('select', {previous_tool});
 		Interface.preview.style.cursor = this.cursor ? this.cursor : 'default';
 		this.nodes.forEach(node => {
 			node.classList.add('enabled')
@@ -507,8 +530,14 @@ class Toggle extends Action {
 			Settings.saveLocalStorages();
 		}
 		if (this.onChange) this.onChange(this.value);
+		this.dispatchEvent('change', {state: this.value});
 
 		this.updateEnabledState();
+	}
+	set(value) {
+		if (value == this.value) return this;
+		this.click();
+		return this;
 	}
 	setIcon(icon) {
 		if (icon) {
@@ -524,6 +553,7 @@ class Toggle extends Action {
 			node.classList.toggle('enabled', this.value);
 		})
 		this.menu_icon_node.innerText = this.value ? 'check_box' : 'check_box_outline_blank';
+		return this;
 	}
 }
 class Widget extends BarItem {
@@ -557,7 +587,12 @@ class NumSlider extends Widget {
 		this.onBefore = data.onBefore;
 		this.onChange = data.onChange;
 		this.onAfter = data.onAfter;
-		if (typeof data.change === 'function') this.change = data.change;
+		if (typeof data.change === 'function') {
+			this.change = (modify, ...args) => {
+				data.change(modify, ...args)
+				this.dispatchEvent('changed', {modify});
+			};
+		}
 		if (data.settings) {
 			this.settings = data.settings;
 			if (this.settings.default) {
@@ -641,9 +676,11 @@ class NumSlider extends Widget {
 			
 			let drag_event = await new Promise((resolve, reject) => {
 				function move(e2) {
-					removeEventListeners(document, 'mousemove touchmove', move);
-					removeEventListeners(document, 'mouseup touchend', stop);
-					resolve(e2);
+					if (Math.abs(e2.clientX-event.clientX) > 2) {
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						resolve(e2);
+					}
 				}
 				function stop(e2) {
 					removeEventListeners(document, 'mousemove touchmove', move);
@@ -723,6 +760,7 @@ class NumSlider extends Widget {
 		})
 		.on('contextmenu', event => {
 			new Menu([
+				new MenuSeparator('copypaste'),
 				{
 					id: 'copy',
 					name: 'action.copy',
@@ -754,7 +792,7 @@ class NumSlider extends Widget {
 						}, 20);
 					}
 				},
-				'_',
+				new MenuSeparator('edit'),
 				{
 					id: 'round',
 					name: 'menu.slider.round_value',
@@ -961,6 +999,7 @@ class NumSlider extends Widget {
 		if (typeof this.onChange === 'function') {
 			this.onChange(num);
 		}
+		this.dispatchEvent('change', {number: num});
 	}
 	get() {
 		//Solo Sliders only
@@ -979,6 +1018,7 @@ class NumSlider extends Widget {
 		if (isNaN(number) && !this.jq_inner.hasClass('editing') && this.jq_inner[0].textContent) {
 			this.jq_inner.text('')
 		}
+		this.dispatchEvent('update');
 	}
 }
 NumSlider.MolangParser = new Molang()
@@ -1033,6 +1073,7 @@ class BarSlider extends Widget {
 		if (this.onChange) {
 			this.onChange(this, event)
 		}
+		this.dispatchEvent('change', {value: this.value});
 	}
 	set(value) {
 		this.value = value
@@ -1181,13 +1222,16 @@ class BarSelect extends Widget {
 			}
 		}
 		let menu = new Menu(this.id, items);
+		this.dispatchEvent('open', {menu, items});
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
 	}
 	trigger(event) {
 		if (!event) event = 0;
 		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		let condition_met = BARS.condition(this.condition, this);
+		this.dispatchEvent('trigger', {condition_met});
+		if (condition_met) {
 			if (event && event.type === 'click' && event.altKey && scope.keybind) {
 				var record = function() {
 					document.removeEventListener('keyup', record)
@@ -1227,6 +1271,7 @@ class BarSelect extends Widget {
 		if (this.onChange) {
 			this.onChange(this, event);
 		}
+		this.dispatchEvent('change', {value, event});
 		return this;
 	}
 	getNameFor(key) {
@@ -1293,10 +1338,12 @@ class BarText extends Widget {
 		if (typeof this.onUpdate === 'function') {
 			this.onUpdate()
 		}
+		this.dispatchEvent('update');
 		return this;
 	}
 	trigger(event) {
 		if (!Condition(this.condition)) return false;
+		this.dispatchEvent('trigger');
 		Blockbench.showQuickMessage(this.text)
 		return true;
 	}
@@ -1346,6 +1393,7 @@ class ColorPicker extends Widget {
 		if (this.onChange) {
 			this.onChange()
 		}
+		this.dispatchEvent('change', {color});
 	}
 	hide() {
 		this.jq.spectrum('cancel');
@@ -1403,7 +1451,13 @@ class Toolbar {
 			node: toolbar_menu
 		})
 		if (data) {
-			this.build(data)
+			try {
+				this.build(data);
+			} catch (err) {
+				console.error(`Error building toolbar "${this.id}":`, err);
+				delete BARS.stored[this.id];
+				this.build(data);
+			}
 		}
 	}
 	build(data, force) {
@@ -1429,25 +1483,22 @@ class Toolbar {
 			var content = $(scope.node).find('div.content')
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
-				var itemId = items[itemPosition];
-				if (typeof itemId === 'string' && itemId.match(/^[_+#]/)) {
-					let char = itemId.substr(0, 1);
+				let item = items[itemPosition];
+				if (typeof item === 'string' && item.match(/^[_+#]/)) {
+					let char = item.substring(0, 1);
 					content.append(`<div class="toolbar_separator ${char == '_' ? 'border' : (char == '+' ? 'spacer' : 'linebreak')}"></div>`);
-					this.children.push(char + guid().substr(0,8));
+					this.children.push(char + guid().substring(0,8));
 					this.positionLookup[itemPosition] = char;
 
 					continue;
 				}
+				if (typeof item == 'string') item = BarItems[item]
 
-				var item = BarItems[itemId];
 				if (item) {
 					item.pushToolbar(this);
-					/*if (BARS.condition(item.condition)) {
-						content.append(item.getNode())
-					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
-					var postloadAction = [itemId, itemPosition];
+					var postloadAction = [items[itemPosition], itemPosition];
 					if (this.postload) {
 						this.postload.push(postloadAction);
 					} else {
@@ -1461,6 +1512,7 @@ class Toolbar {
 		if (data.default_place) {
 			this.toPlace(this.id)
 		}
+		this.condition_cache.empty();
 		return this;
 	}
 	contextmenu(event) {
@@ -1495,14 +1547,14 @@ class Toolbar {
 		this.update().save();
 		return this;
 	}
-	remove(action) {
+	remove(action, update = true) {
 		var i = this.children.length-1;
 		while (i >= 0) {
 			var item = this.children[i]
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update(true).save();
+				if (update != false) this.update(true).save();
 				return this;
 			}
 			i--;
@@ -1547,7 +1599,6 @@ class Toolbar {
 			}
 		}
 
-		//scope.condition_cache.empty();
 		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 
@@ -1798,14 +1849,6 @@ const BARS = {
 					shell.showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
-			new Action('open_backup_folder', {
-				icon: 'fa-archive',
-				category: 'file',
-				condition: () => isApp,
-				click: function (e) {
-					shell.openPath(app.getPath('userData')+osfs+'backups')
-				}
-			})
 			new Action('reload', {
 				icon: 'refresh',
 				category: 'file',
@@ -1856,7 +1899,7 @@ const BARS = {
 					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
 
 						let meshes = Mesh.selected.slice();
-						Undo.initEdit({elements: meshes})
+						Undo.initEdit({elements: meshes, outliner: true})
 
 						Mesh.selected.forEach(mesh => {
 							let selected_vertices = mesh.getSelectedVertices();
@@ -1981,9 +2024,13 @@ const BARS = {
 			new Action('duplicate', {
 				icon: 'content_copy',
 				category: 'edit',
-				condition: () => (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel)) || (Modes.edit && (selected.length || Group.selected)),
+				condition: () => {
+					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
+						|| (Prop.active_panel == 'textures' && Texture.selected)
+						|| (Modes.edit && (selected.length || Group.selected));
+				},
 				keybind: new Keybind({key: 'd', ctrl: true}),
-				click: function () {
+				click() {
 					if (Modes.animate) {
 						if (Animation.selected && Prop.active_panel == 'animations') {
 							var copy = Animation.selected.getUndoCopy();
@@ -2012,6 +2059,14 @@ const BARS = {
 							Undo.finishEdit('Duplicate animation controller state');
 
 						}
+					} else if (Prop.active_panel == 'textures' && Texture.selected) {
+						let copy = Texture.selected.getUndoCopy();
+						delete copy.path;
+						copy.mode = 'bitmap';
+						copy.saved = false;
+						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
+						new Texture(copy).fillParticle().load().add(true);
+
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;
 						Undo.initEdit({outliner: true, elements: [], selection: true});
@@ -2231,6 +2286,8 @@ const BARS = {
 				'loop_cut',
 				'create_face',
 				'invert_face',
+				'_',
+				'mirror_modeling',
 			]
 		})
 
@@ -2254,6 +2311,18 @@ const BARS = {
 				'slider_size_y',
 				'slider_size_z',
 				'slider_inflate'
+			]
+		})
+		Toolbars.element_stretch = new Toolbar({
+			id: 'element_stretch',
+			name: 'panel.element.stretch',
+			label: true,
+			condition: () => Format.stretch_cubes,
+			children: [
+				'slider_stretch_x',
+				'slider_stretch_y',
+				'slider_stretch_z',
+				'toggle_stretch_linked'
 			]
 		})
 		Toolbars.element_origin = new Toolbar({
@@ -2281,6 +2350,7 @@ const BARS = {
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
+				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
 			].forEach(toolbar => {
@@ -2491,7 +2561,7 @@ const BARS = {
 			
 						<ul class="list" id="bar_item_list">
 							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
-								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+								<dynamic-icon :icon="item.icon" :color="item.color" />
 								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
 								{{ item.name }}
 							</li>

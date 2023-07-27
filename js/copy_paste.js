@@ -240,7 +240,7 @@ const Clipbench = {
 		})
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			if (face.isSelected()) {
+			if (face.isSelected(fkey)) {
 				this.faces[fkey] = new MeshFace(null, face);
 			}
 		}
@@ -253,6 +253,8 @@ const Clipbench = {
 			new_mesh = new Mesh({name: 'pasted', vertices: []});
 			elements.push(new_mesh);
 		}
+		let selection_mode_before = BarItems.selection_mode.value;
+		BarItems.selection_mode.change('vertex');
 		elements.forEach(mesh => {
 			let old_vertices = Object.keys(this.vertices);
 			let vertices_positions = old_vertices.map(vkey => this.vertices[vkey]);
@@ -276,6 +278,9 @@ const Clipbench = {
 		if (new_mesh) {
 			new_mesh.init().select();
 		}
+		// Update vertex selection to appropriate selection mode
+		BarItems.selection_mode.change(selection_mode_before);
+
 		Undo.finishEdit('Paste mesh selection');
 		Canvas.updateView({elements: Mesh.selected, selection: true})
 	},

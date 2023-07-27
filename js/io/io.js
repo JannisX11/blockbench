@@ -127,9 +127,13 @@ async function loadImages(files, event) {
 
 	function doLoadImages(method) {
 		if (method == 'texture') {
+			let new_textures = [];
+			Undo.initEdit({textures: new_textures});
 			files.forEach(function(f) {
-				new Texture().fromFile(f).add().fillParticle()
-			})
+				let tex = new Texture().fromFile(f).add().fillParticle();
+				new_textures.push(tex);
+			});
+			Undo.finishEdit('Add texture');
 
 		} else if (method == 'replace_texture') {
 			replace_texture.fromFile(files[0])
@@ -422,13 +426,20 @@ const Extruder = {
 	}
 }
 //Json
-function compileJSON(object, options) {
-	if (typeof options !== 'object') options = {}
+function compileJSON(object, options = {}) {
+	let indentation = options.indentation;
+	if (typeof indentation !== 'string') {
+		switch (settings.json_indentation.value) {
+			case 'spaces_4': indentation = '    '; break;
+			case 'spaces_2': indentation = '  '; break;
+			case 'tabs': default: indentation = '\t'; break;
+		}
+	}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
 		var s = '\n'
 		for (var i = 0; i < tabs; i++) {
-			s += '\t'
+			s += indentation;
 		}
 		return s;
 	}
@@ -621,7 +632,7 @@ BARS.defineActions(function() {
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true}),
 		condition: () => Project,
-		click: async function() {
+		click: async function(event) {
 			if (isApp) {
 				saveTextures()
 				if (Format) {
@@ -649,7 +660,7 @@ BARS.defineActions(function() {
 									dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 								},
 								buttons: ['dialog.cancel']
-							}, (codec, {dont_show_again}) => {
+							}, (codec, checkboxes = {}) => {
 								if (codec == 'both') {
 									Codecs.project.export();
 									export_codec.export();
@@ -657,7 +668,7 @@ BARS.defineActions(function() {
 								} else if (codec) {
 									Codecs[codec].export();
 								}
-								if (dont_show_again) {
+								if (checkboxes.dont_show_again) {
 									settings.dialog_save_codec.set(false);
 								}
 								resolve();
@@ -666,8 +677,6 @@ BARS.defineActions(function() {
 					} else if (!Project.save_path) {
 						if (Format.edit_mode) {
 							Codecs.project.export();
-						} else {
-							Project.saved = false;
 						}
 					}
 				}

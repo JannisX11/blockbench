@@ -213,7 +213,7 @@ var codec = new Codec('project', {
 			}
 		}
 
-		if (!options.backup) {
+		if (!options.backup && options.reference_images != false) {
 			// Reference Images
 			const reference_images = [];
 

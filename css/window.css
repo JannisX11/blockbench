@@ -94,6 +94,7 @@
 		--color-outline: var(--color-accent);
 		--color-gizmohover: var(--color-outline);
 		--color-ground: var(--color-back);
+		--color-brush-outline: #ffffff;
 		--color-axis-x: #fd3043;
 		--color-axis-y: #26ec45;
 		--color-axis-z: #2d5ee8;
@@ -108,32 +109,96 @@
 	.single_canvas_wrapper {
 		height: 100%;
 		width: 100%;
-		/*overflow: hidden;*/
 		position: absolute;
 		cursor: inherit;
 		z-index: 1;
 	}
-	.quad_canvas_wrapper {
-		height: 50%;
-		width: 50%;
-		position: absolute;
+	.split_screen_wrapper {
 		cursor: inherit;
 	}
-	.quad_canvas_wrapper.qcw_x {
-		border-right: 2px solid var(--color-grid);
-	}
-	.quad_canvas_wrapper.qcw_y {
-		border-bottom: 2px solid var(--color-grid);
-	}
-	.quad_canvas_wrapper:not(.qcw_x) {
-		right: 0;
-	}
-	.quad_canvas_wrapper:not(.qcw_y) {
-		bottom: 0;
-	}
 	#preview.image_mode > .single_canvas_wrapper,
-	#preview.image_mode > .quad_canvas_wrapper {
+	#preview.image_mode > .split_screen_wrapper {
 		display: none !important;
+	}
+	#preview[split_screen_mode]  {
+		display: grid;
+	}
+	#preview[split_screen_mode=double_horizontal]  {
+		grid-template:
+			"preview_0"
+			"preview_1";
+			grid-template-columns: 100%;
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+	#preview[split_screen_mode=double_vertical]  {
+		grid-template:
+			"preview_1 preview_0";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: 100%;
+	}
+	#preview[split_screen_mode=quad]  {
+		grid-template:
+			"preview_0 preview_1"
+			"preview_2 preview_3";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+	#preview[split_screen_mode=triple_left]  {
+		grid-template:
+			"preview_0 preview_1"
+			"preview_0 preview_2";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+	#preview[split_screen_mode=triple_right]  {
+		grid-template:
+			"preview_1 preview_0"
+			"preview_2 preview_0";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+	#preview[split_screen_mode=triple_top]  {
+		grid-template:
+			"preview_0 preview_0"
+			"preview_1 preview_2";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+	#preview[split_screen_mode=triple_bottom]  {
+		grid-template:
+			"preview_1 preview_2"
+			"preview_0 preview_0";
+			grid-template-columns: var(--split-x) calc(100% - var(--split-x));
+			grid-template-rows: var(--split-y) calc(100% - var(--split-y));
+	}
+
+
+	.split_screen_wrapper {
+		border-width: 0;
+		border-style: solid;
+		border-color: var(--color-grid);
+	}
+	#preview[split_screen_mode=double_horizontal] > .split_screen_wrapper_0,
+	#preview[split_screen_mode=triple_right] > .split_screen_wrapper_1,
+	#preview[split_screen_mode=triple_left] > .split_screen_wrapper_1,
+	#preview[split_screen_mode=triple_top] > .split_screen_wrapper_0,
+	#preview[split_screen_mode=triple_bottom] > .split_screen_wrapper_1,
+	#preview[split_screen_mode=triple_bottom] > .split_screen_wrapper_2,
+	#preview[split_screen_mode=quad] > .split_screen_wrapper_0,
+	#preview[split_screen_mode=quad] > .split_screen_wrapper_1
+	{
+		border-bottom-width: 2px;
+	}
+	#preview[split_screen_mode=double_vertical] > .split_screen_wrapper_0,
+	#preview[split_screen_mode=triple_right] > .split_screen_wrapper_0,
+	#preview[split_screen_mode=triple_left] > .split_screen_wrapper_1,
+	#preview[split_screen_mode=triple_left] > .split_screen_wrapper_2,
+	#preview[split_screen_mode=quad] > .split_screen_wrapper_1,
+	#preview[split_screen_mode=quad] > .split_screen_wrapper_3,
+	#preview[split_screen_mode=triple_top] > .split_screen_wrapper_2,
+	#preview[split_screen_mode=triple_bottom] > .split_screen_wrapper_2
+	{
+		border-left-width: 2px;
 	}
 
 	.resizer {
@@ -917,7 +982,7 @@
 		pointer-events: initial;
 	}
 	#work_screen.reference_image_mode .single_canvas_wrapper,
-	#work_screen.reference_image_mode .quad_canvas_wrapper {
+	#work_screen.reference_image_mode .split_screen_wrapper {
 		pointer-events: none;
 	}
 	#work_screen.reference_image_mode .reference_image.invisible:not(.selected):not(:hover) {
@@ -1113,6 +1178,9 @@
 	}
 	#amend_edit_menu > div.amend_edit_line .nslide_tool {
 		float: none;
+	}
+	#amend_edit_menu > div.amend_edit_line > input {
+		width: 73px;
 	}
 	#amend_edit_menu > div.amend_edit_line > label {
 		padding: 4px 6px;

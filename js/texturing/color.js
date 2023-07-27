@@ -322,6 +322,7 @@ Interface.definePanels(() => {
 			}
 		},
 		menu: new Menu([
+			new MenuSeparator('options'),
 			{
 				id: 'lock_palette',
 				name: 'menu.palette.lock_palette',
@@ -331,7 +332,7 @@ Interface.definePanels(() => {
 					StateMemory.save('color_palette_locked');
 				}
 			},
-			'_',
+			new MenuSeparator('file'),
 			'sort_palette',
 			'save_palette',
 			'load_palette',

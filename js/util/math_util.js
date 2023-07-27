@@ -104,6 +104,22 @@ function trimFloatNumber(val, max_digits = 4) {
 	if (string == -0) return 0;
 	return string;
 }
+function separateThousands(number) {
+	let str = number.toString();
+	let length = str.indexOf('.');
+	if (length == -1) length = str.length;
+	if (length < 4) return str;
+
+	let modified;
+	for (let i = length; i > 0; i -= 3) {
+		if (i == length) {
+			modified = str.substring(i-3);
+		} else {
+			modified = str.substring(Math.max(0, i-3), i) + ',' + modified;
+		}
+	}
+	return modified;
+}
 function getAxisLetter(number) {
 	switch (number) {
 		case 0: return 'x'; break;
@@ -117,4 +133,8 @@ function getAxisNumber(letter) {
 		case 'y': return 1; break;
 		case 'z': return 2; break;
 	}
+}
+let string_num_regex = /^-?\d+(\.\d+f?)?$/;
+function isStringNumber(string) {
+	return string_num_regex.test(string);
 }

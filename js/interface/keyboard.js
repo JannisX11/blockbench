@@ -787,6 +787,18 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	if (open_menu) {
 		used = open_menu.keyNavigate(e)||used
 		
+	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+		switch (e.which) {
+			case 37: Painter.selection.x -= 1; break;//<
+			case 38: Painter.selection.y -= 1; break;//UP
+			case 39: Painter.selection.x += 1; break;//>
+			case 40: Painter.selection.y += 1; break;//DOWN
+		}
+		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
+		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
+		UVEditor.updatePastingOverlay();
+		e.preventDefault();
+
 	// Dialog
 	} else if (Dialog.open) {
 		if ($('textarea:focus').length === 0) {
