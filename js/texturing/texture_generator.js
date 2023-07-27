@@ -213,13 +213,15 @@ const TextureGenerator = {
 			uv_mode: true
 		})
 
-		var i = cubes.length-1
-		while (i >= 0) {
-			let obj = cubes[i]
+		for (var i = cubes.length-1; i >= 0; i--) {
+			let obj = cubes[i];
 			if (obj.visibility === true) {
-				var template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				if (options.double_use && Project.box_uv && Texture.all.length) {
-					var double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
+				let template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
+				let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[obj.uuid] && MirrorModeling.cached_elements[obj.uuid].is_original == false;
+				if (mirror_modeling_duplicate) continue;
+
+				if ((options.double_use && Project.box_uv && Texture.all.length) || mirror_modeling_duplicate) {
+					let double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
 					if (doubles[double_key]) {
 						// improve chances that original is not mirrored
 						if (doubles[double_key][0].obj.mirror_uv && !obj.mirror_uv) {
@@ -238,7 +240,6 @@ const TextureGenerator = {
 				templates.push(template)
 				avg_size += templates[templates.length-1].template_size
 			}
-			i--;
 		}
 		//Cancel if no cubes
 		if (templates.length == 0) {
@@ -691,6 +692,8 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			if (mirror_modeling_duplicate) return;
 			if (element instanceof Cube) {
 				for (var face_key in element.faces) {
 					var face = element.faces[face_key];
@@ -715,7 +718,7 @@ const TextureGenerator = {
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
 					if (face.vertices.length < 3) continue;
-					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected()) continue;
+					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected(fkey)) continue;
 					face_groups.push({
 						type: 'face_group',
 						mesh,
@@ -857,6 +860,7 @@ const TextureGenerator = {
 								let face = faces[fkey];
 								let face_connection_count = 0;
 								processed_faces.push(face);
+								let face_normal = face.getNormal(true);
 								[2, 0, 3, 1].forEach(i => {
 									if (!face.vertices[i]) return;
 									let other_face_match = face.getAdjacentFace(i);
@@ -868,12 +872,22 @@ const TextureGenerator = {
 										let seam = mesh.getSeam(other_face_match.edge);
 										if (seam === 'divide') return;
 										if (seam !== 'join') {
+
 											let angle = face.getAngleTo(other_face);
 											if (angle > (options.max_edge_angle||36)) return;
+
 											let angle_total = face_group.faces[0].getAngleTo(other_face);
 											if (angle_total > (options.max_island_angle||45)) return;
+
 											let edge_length = getEdgeLength(other_face_match.edge);
 											if (edge_length < 2.2 && face_connection_count >= 2) return;
+
+											let other_face_normal = other_face.getNormal(true);
+											if (Math.abs(other_face_normal[0]) > 0.04 &&
+												Math.epsilon(face_normal[0], -other_face_normal[0], 0.04) &&
+												Math.epsilon(face_normal[1], other_face_normal[1], 0.04) &&
+												Math.epsilon(face_normal[2], other_face_normal[2], 0.04)
+											) return;
 										}
 										let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
 										if (!projection_success) return;
@@ -1612,6 +1626,8 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			if (mirror_modeling_duplicate) return;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (element instanceof Mesh && face.vertices.length <= 2) continue;

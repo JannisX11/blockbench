@@ -78,18 +78,14 @@ class ReferenceImage {
 		}
 	}
 	getSaveCopy() {
-		/*let dataUrl;
-		if (isApp && this.image && this.image.substr(0, 5) != 'data:') {
-			let canvas = document.createElement('canvas');
-			canvas.width = this.imgtag.naturalWidth;
-			canvas.height = this.imgtag.naturalHeight;
-			let ctx = canvas.getContext('2d');
-			ctx.drawImage(this.imgtag, 0, 0);
-			dataUrl = canvas.toDataURL('image/png');
-		}*/
 		let copy = {};
 		for (let key in ReferenceImage.properties) {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
+		}
+		if (isApp && copy.source && !copy.source.startsWith('data:') && copy.source.match(/\.(png|jpg|jpeg)$/i)) {
+			let frame = new CanvasFrame(this.img);
+			copy.source = frame.canvas.toDataURL('image/png');
+
 		}
 		if (this.modes.length) copy.modes = this.modes.slice();
 		return copy;
@@ -104,7 +100,7 @@ class ReferenceImage {
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -112,7 +108,7 @@ class ReferenceImage {
 	}
 	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'global';
 		this.update();
 		if (save) this.save();
@@ -260,7 +256,7 @@ class ReferenceImage {
 			pos_x += preview.width/2;
 			pos_y += preview.height/2;
 
-			if (quad_previews.enabled) {
+			if (Preview.split_screen.enabled) {
 				pos_x += preview.node.parentElement.offsetLeft;
 				pos_y += preview.node.parentElement.offsetTop;
 			}
@@ -629,6 +625,7 @@ class ReferenceImage {
 	}
 }
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
 		name: 'reference_image.visibility',
@@ -711,7 +708,7 @@ ReferenceImage.prototype.menu = new Menu([
 			return children;
 		}
 	},
-	'_',
+	new MenuSeparator('manage'),
 	{
 		name: 'menu.texture.refresh',
 		icon: 'refresh',
@@ -722,7 +719,7 @@ ReferenceImage.prototype.menu = new Menu([
 		}
 	},
 	'delete',
-	'_',
+	new MenuSeparator('properties'),
 	{
 		name: 'menu.texture.properties',
 		icon: 'list',
@@ -966,7 +963,7 @@ BARS.defineActions(function() {
 							if (reference.selected) BarItems.delete.trigger();
 						}
 					},
-					'_',
+					new MenuSeparator('properties'),
 					/** Todo: add options
 					 * Center
 					 */

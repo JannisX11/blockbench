@@ -49,6 +49,57 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
+	UVToLocal(point) {
+		let from = this.cube.from.slice()
+		let to = this.cube.to.slice()
+		adjustFromAndToForInflateAndStretch(from, to, this.cube);
+
+		let vector = new THREE.Vector3().fromArray(from);
+
+		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
+		let lerp_y = Math.getLerp(this.uv[1], this.uv[3], point[1]);
+
+		for (let i = 0; i < this.rotation; i += 90) {
+			[lerp_x, lerp_y] = [1-lerp_y, lerp_x];
+		}
+
+		if (this.direction == 'east') {
+			vector.x = to[0];
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.z = Math.lerp(to[2], from[2], lerp_x);
+		}
+		if (this.direction == 'west') {
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.z = Math.lerp(from[2], to[2], lerp_x);
+		}
+		if (this.direction == 'up') {
+			vector.y = to[1];
+			vector.z = Math.lerp(from[2], to[2], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'down') {
+			vector.z = Math.lerp(to[2], from[2], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'south') {
+			vector.z = to[2];
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.x = Math.lerp(from[0], to[0], lerp_x);
+		}
+		if (this.direction == 'north') {
+			vector.y = Math.lerp(to[1], from[1], lerp_y);
+			vector.x = Math.lerp(to[0], from[0], lerp_x);
+		}
+		vector.x -= this.cube.origin[0];
+		vector.y -= this.cube.origin[1];
+		vector.z -= this.cube.origin[2];
+		if (!Format.centered_grid) {
+			vector.x += 8;
+			vector.y += 8;
+			vector.z += 8;
+		}
+		return vector;
+	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
@@ -76,6 +127,7 @@ class Cube extends OutlinerElement {
 		this.color = Math.floor(Math.random()*markerColors.length)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
+		this.stretch = [1, 1, 1];
 		this.rotation = [0, 0, 0];
 		this.origin = [0, 0, 0];
 		this.visibility = true;
@@ -129,6 +181,11 @@ class Cube extends OutlinerElement {
 		if (object.uv_offset) {
 			Merge.number(this.uv_offset, object.uv_offset, 0)
 			Merge.number(this.uv_offset, object.uv_offset, 1)
+		}
+		if (object.stretch) {
+			Merge.number(this.stretch, object.stretch, 0)
+			Merge.number(this.stretch, object.stretch, 1)
+			Merge.number(this.stretch, object.stretch, 2)
 		}
 		if (typeof object.rotation === 'object' && object.rotation.constructor.name === 'Object') {
 			if (object.rotation.angle && object.rotation.axis) {
@@ -207,6 +264,9 @@ class Cube extends OutlinerElement {
 			]
 		}
 	}
+	getSize(axis, selection_only) {
+		return this.size(axis);
+	}
 	rotationAxis() {
 		for (var axis = 0; axis < 3; axis++) {
 			if (this.rotation[axis] !== 0) {
@@ -258,6 +318,7 @@ class Cube extends OutlinerElement {
 		if (!this.shade) el.shade = false;
 		if (this.mirror_uv) el.mirror_uv = true;
 		if (this.inflate) el.inflate = this.inflate;
+		if (this.isStretched()) el.stretch = this.stretch;
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
@@ -407,6 +468,9 @@ class Cube extends OutlinerElement {
 
 		if (!skipUV) {
 
+			if (this.box_uv && axis === 0) {
+				this.mirror_uv = !this.mirror_uv;
+			}
 			function mirrorUVX(face, skip_rot) {
 				var f = scope.faces[face]
 				if (skip_rot) {}
@@ -499,15 +563,19 @@ class Cube extends OutlinerElement {
 		return pos;
 	}
 	getGlobalVertexPositions() {
+		var adjustedFrom = this.from.slice();
+		var adjustedTo = this.to.slice();
+		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, this);
+		
 		let vertices = [
-			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
-			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
-			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
-			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
-			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
-			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
+			[adjustedTo[0]	,  adjustedTo[1]  ,  adjustedTo[2]	],
+			[adjustedTo[0]  ,  adjustedTo[1]  ,  adjustedFrom[2]],
+			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedTo[2]	],
+			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedTo[2]	],
+			[adjustedFrom[0],  adjustedFrom[1],  adjustedFrom[2]],
+			[adjustedFrom[0],  adjustedFrom[1],  adjustedTo[2]	],
 		];
 		let vec = new THREE.Vector3();
 		return vertices.map(coords => {
@@ -796,6 +864,9 @@ class Cube extends OutlinerElement {
 		TickUpdates.selection = true;
 		return this;
 	}
+	isStretched() {
+		return !this.stretch.allEqual(1);
+	}
 }
 	Cube.prototype.title = tl('data.cube');
 	Cube.prototype.type = 'cube';
@@ -806,11 +877,11 @@ class Cube extends OutlinerElement {
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
 		'convert_to_mesh',
 		'update_autouv',
 		'cube_uv_mode',
+		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -845,6 +916,9 @@ class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
+		'element_render_order',
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -861,9 +935,26 @@ new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Cube, 'cube');
 
+function adjustFromAndToForInflateAndStretch(from, to, element) {
+	var halfSize = element.size().slice();
+	halfSize.forEach((v, i) => {
+		halfSize[i] /= 2;
+	});
+	var center = [
+		element.from[0] + halfSize[0],
+		element.from[1] + halfSize[1],
+		element.from[2] + halfSize[2]
+	];
+
+	for (let i = 0; i < from.length; i++) {
+		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
+		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
+	}
+}
 
 new NodePreviewController(Cube, {
 	setup(element) {
@@ -893,6 +984,7 @@ new NodePreviewController(Cube, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
+		this.updateRenderOrder(element);
 
 		this.dispatchEvent('setup', {element});
 	},
@@ -914,13 +1006,14 @@ new NodePreviewController(Cube, {
 		if (element.resizable) {
 			let mesh = element.mesh;
 			var from = element.from.slice()
+			var to = element.to.slice()
+
+			adjustFromAndToForInflateAndStretch(from, to, element);
+
 			from.forEach((v, i) => {
-				from[i] -= element.inflate;
 				from[i] -= element.origin[i];
 			})
-			var to = element.to.slice()
 			to.forEach((v, i) => {
-				to[i] += element.inflate
 				to[i] -= element.origin[i];
 				if (from[i] === to[i]) {
 					to[i] += 0.001
@@ -1142,9 +1235,8 @@ new NodePreviewController(Cube, {
 
 		var from = cube.from.slice();
 		var to = cube.to.slice();
-		if (cube.inflate) {
-			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
-			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
+		if (cube.inflate || cube.isStretched()) {
+			adjustFromAndToForInflateAndStretch(from, to, cube);
 		}
 
 		var vertices = [];
@@ -1374,6 +1466,33 @@ BARS.defineActions(function() {
 	Blockbench.on('update_selection', () => {
 		if (Condition(BarItems.cube_uv_mode)) {
 			BarItems.cube_uv_mode.set(Cube.selected[0].box_uv ? 'box_uv' : 'face_uv');
+		}
+	})
+
+	new BarSelect('element_render_order', {
+		name: 'action.element_render_order',
+		category: 'edit',
+		condition: () => Outliner.selected.find(e => e.render_order) && Texture.all.length,
+		options: {
+			default: 'action.element_render_order.default',
+			behind: 'action.element_render_order.behind',
+			in_front: 'action.element_render_order.in_front',
+		},
+		onChange() {
+			let elements = Outliner.selected.filter(e => e.render_order);
+			Undo.initEdit({elements});
+			elements.forEach(element => {
+				element.render_order = this.value;
+				element.preview_controller.updateRenderOrder(element);
+			})
+			Undo.finishEdit('Change render order')
+			updateSelection();
+		}
+	})
+	Blockbench.on('update_selection', () => {
+		let element = Outliner.selected.find(e => e.render_order);
+		if (element) {
+			BarItems.element_render_order.set(element.render_order);
 		}
 	})
 })

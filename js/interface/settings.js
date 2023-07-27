@@ -424,7 +424,7 @@ const Settings = {
 				preview.camPers.updateProjectionMatrix();
 			});
 		}});
-		new Setting('render_sides', 	{category: 'preview', value: 'auto', type: 'select', options: {
+		new Setting('render_sides', 			{category: 'preview', value: 'auto', type: 'select', options: {
 			'auto': tl('settings.render_sides.auto'),
 			'front': tl('settings.render_sides.front'),
 			'double': tl('settings.render_sides.double'),
@@ -432,45 +432,48 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
-		new Setting('texture_fps',   	{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
+		new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
 			TextureAnimator.updateSpeed()
 		}});
-		new Setting('particle_tick_rate',{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
+		new Setting('particle_tick_rate',		{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
-		new Setting('volume',  	  		{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
-		new Setting('display_skin',  	{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
+		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
-		new Setting('undo_limit',			{category: 'edit', value: 256, type: 'number', min: 1});
-		new Setting('canvas_unselect',  	{category: 'edit', value: false});
-		new Setting('highlight_cubes',  	{category: 'edit', value: true, onChange() {
+		new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
+		new Setting('canvas_unselect',  		{category: 'edit', value: false});
+		new Setting('double_click_switch_tools',{category: 'edit', value: true});
+		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
 		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
-		new Setting('deactivate_size_limit',{category: 'edit', value: false});
-		new Setting('vertex_merge_distance',{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
-		new Setting('preview_paste_behavior',{category: 'edit', value: 'always_ask', type: 'select', options: {
+		new Setting('deactivate_size_limit',	{category: 'edit', value: false});
+		new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
+		new Setting('preview_paste_behavior',	{category: 'edit', value: 'always_ask', type: 'select', options: {
 			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
 			'outliner': tl('menu.paste.outliner'),
 			'face': tl('menu.paste.face'),
 			'mesh_selection': tl('menu.paste.mesh_selection'),
 		}});
+		new Setting('stretch_linked',		{category: 'edit', value: true});
 		
 		//Grid
-		new Setting('base_grid',		{category: 'grid', value: true,});
-		new Setting('large_grid', 		{category: 'grid', value: true});
-		new Setting('full_grid',		{category: 'grid', value: false});
-		new Setting('large_box',		{category: 'grid', value: false});
-		new Setting('large_grid_size',	{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
+		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
+		new Setting('base_grid',			{category: 'grid', value: true});
+		new Setting('large_grid', 			{category: 'grid', value: true});
+		new Setting('full_grid',			{category: 'grid', value: false});
+		new Setting('large_box',			{category: 'grid', value: false});
+		new Setting('large_grid_size',		{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
 		//new Setting('display_grid',		{category: 'grid', value: false});
-		new Setting('painting_grid',	{category: 'grid', value: true, onChange(value) {
+		new Setting('painting_grid',		{category: 'grid', value: true, onChange(value) {
 			Canvas.updatePaintingGrid();
 			UVEditor.vue.pixel_grid = value;
 		}});
-		new Setting('ground_plane',		{category: 'grid', value: false, onChange() {
+		new Setting('ground_plane',			{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;
 		}});
 		
@@ -488,6 +491,7 @@ const Settings = {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
 		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
@@ -528,6 +532,11 @@ const Settings = {
 		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
 		
 		//Export
+		new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {
+			tabs: tl('settings.json_indentation.tabs'),
+			spaces_4: tl('settings.json_indentation.spaces_4'),
+			spaces_2: tl('settings.json_indentation.spaces_2'),
+		}});
 		new Setting('minifiedout', 			{category: 'export', value: false});
 		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});

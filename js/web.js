@@ -80,7 +80,7 @@ async function loadInfoFromURL() {
 	if (Blockbench.queries.plugins) {
 		let plugin_ids = Blockbench.queries.plugins.split(/,/);
 		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
-								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable());
+								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
 		if (plugins.length) {
 			await new Promise(resolve => {
 				let form = {
@@ -113,8 +113,14 @@ async function loadInfoFromURL() {
 	}
 
 	if (Blockbench.queries.m) {
-		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model) => {
+		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model, b) => {
 			Codecs.project.load(model, {path: ''});
+		}).fail(() => {
+			Blockbench.showMessageBox({
+				title: 'message.invalid_link',
+				message: tl('message.invalid_link.message', ['`'+Blockbench.queries.m+'`']),
+				icon: 'running_with_errors'
+			})
 		})
 	}
 }

@@ -416,11 +416,12 @@ const Canvas = {
 
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
-		three_grid.children.length = 0;
+		three_grid.children.empty();
 		if (Canvas.side_grids) {
-			Canvas.side_grids.x.children.length = 0;
-			Canvas.side_grids.z.children.length = 0;
+			Canvas.side_grids.x.children.empty();
+			Canvas.side_grids.z.children.empty();
 		}
+		if (!settings.grids.value) return;
 		if (Modes.display) return;
 
 		three_grid.name = 'grid_group'
@@ -588,7 +589,7 @@ const Canvas = {
 		lights.top.position.set(0, 100, 0)
 		lights.add(lights.top);
 		
-		lights.top.intensity = 0.41
+		lights.top.intensity = 0.46
 		
 		lights.bottom = new THREE.DirectionalLight();
 		lights.bottom.name = 'light_bottom'
@@ -638,6 +639,22 @@ const Canvas = {
 			side: THREE.DoubleSide,
 			alphaTest: 0.2
 		})
+
+		let brush_img = new Image();
+		brush_img.src = 'assets/brush_outline.png';
+		brush_img.tex = new THREE.Texture(brush_img);
+		brush_img.tex.magFilter = THREE.NearestFilter;
+		brush_img.tex.minFilter = THREE.NearestFilter;
+		brush_img.onload = function() {
+			this.tex.needsUpdate = true;
+		}
+		let brush_outline_material = new THREE.MeshBasicMaterial({
+			map: brush_img.tex,
+			transparent: true,
+			side: THREE.DoubleSide,
+			alphaTest: 0.2
+		})
+		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 
 		/*
 		// Vertex gizmos
@@ -708,8 +725,8 @@ const Canvas = {
 				edit(object);
 			})
 			edit(three_grid)
-			edit(Canvas.side_grids.x)
-			edit(Canvas.side_grids.z)
+			if (Canvas.side_grids) edit(Canvas.side_grids.x)
+			if (Canvas.side_grids) edit(Canvas.side_grids.z)
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
@@ -1000,8 +1017,8 @@ const Canvas = {
 				if (Group.selected.visibility) {
 					Group.selected.mesh.add(Canvas.pivot_marker)
 				}
-			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
-				let selected_elements = [...Cube.selected, ...Mesh.selected];
+			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
+				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];
 				if (selected_elements.length === 1) {
 					let mesh = selected_elements[0].mesh
 					if (mesh) {

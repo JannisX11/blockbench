@@ -58,6 +58,9 @@ let codec = new Codec('image', {
 					Project.texture_height = last.display_height;
 					Project.texture_width = last.width;
 				}
+				let pixel_size_limit = Math.min(32 / UVEditor.getPixelSize(), 1);
+				if (pixel_size_limit < 1) UVEditor.setZoom(pixel_size_limit)
+
 				if (isApp) updateRecentProjectThumbnail();
 			}
 		}

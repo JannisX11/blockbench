@@ -27,6 +27,7 @@ class TimelineMarker {
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
 	{name: 'menu.cube.color', icon: 'color_lens', children() {
 		return [
 			...markerColors.map((color, i) => {return {
@@ -53,7 +54,7 @@ TimelineMarker.prototype.menu = new Menu([
 			}).show();
 		}
 	},
-	'_',
+	new MenuSeparator('manage'),
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
 	}}
@@ -223,13 +224,14 @@ const Timeline = {
 		}
 	},
 	setTimecode(time) {
-		let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+		let second_fractions = 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
 		let f = Math.floor((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		Timeline.vue.timestamp = `${m}:${s}:${f}`;
+		Timeline.vue.framenumber = Math.round(time/Timeline.getStep());
 	},
 	snapTime(time, animation) {
 		//return time;
@@ -244,8 +246,8 @@ const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		$('#timeline_body').on('mousedown', e => {
-			if (e.which === 2) {
+		document.getElementById('timeline_body').addEventListener('mousedown', e => {
+			if (e.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(e)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
 				function move(e2) {
@@ -258,6 +260,9 @@ const Timeline = {
 				function stop(e2) {
 					document.removeEventListener('mousemove', move);
 					document.removeEventListener('mouseup', stop);
+					if (e.which == 3 && Math.pow(e.clientX - pos[0], 2) + Math.pow(e.clientY - pos[1], 2) > 40) {
+						preventContextMenu();
+					}
 				}
 				document.addEventListener('mousemove', move);
 				document.addEventListener('mouseup', stop);
@@ -391,11 +396,31 @@ const Timeline = {
 			while (times.length < 3) {
 				times.push(0)
 			}
-			let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
+			let second_fractions = 100;
 			let seconds
 				= times[0]*60
 				+ limitNumber(times[1], 0, 59)
 				+ limitNumber(times[2]/second_fractions, 0, second_fractions-1)
+			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
+				Timeline.setTime(seconds, true)
+				Animator.preview()
+			}
+		})
+		//Enter Frame
+		$('#timeline_framenumber').click(e => {
+			if ($('#timeline_framenumber').attr('contenteditable') == 'true') return;
+
+			$('#timeline_framenumber').attr('contenteditable', true).trigger('focus');
+			document.execCommand('selectAll');
+		})
+		.on('focusout keydown', e => {
+			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
+				$('#timeline_framenumber').attr('contenteditable', false)
+			}
+		})
+		.on('keyup', e => {
+			let frame = parseInt($('#timeline_framenumber').text())
+			let seconds = frame * Timeline.getStep();
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
 				Timeline.setTime(seconds, true)
 				Animator.preview()
@@ -582,11 +607,18 @@ const Timeline = {
 	},
 	showMenu(event) {
 		if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
+		if (Blockbench.hasFlag('no_context_menu')) return;
 		Timeline.menu.open(event, event);
 	},
 	menu: new Menu([
+		new MenuSeparator('preview'),
+		'play_animation',
+		'looped_animation_playback',
+		'jump_to_timeline_start',
+		'jump_to_timeline_end',
+		new MenuSeparator('copypaste'),
 		'paste',
-		'_',
+		new MenuSeparator('view'),
 		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 			'zoom_in',
 			'zoom_out',
@@ -594,12 +626,14 @@ const Timeline = {
 		]},
 		'select_all',
 		'fold_all_animations',
-		'_',
-		'timeline_setups',
-		'save_timeline_setup',
 		'bring_up_all_animations',
 		'clear_timeline',
-		'_',
+		new MenuSeparator('timeline_setups'),
+		'timeline_setups',
+		'save_timeline_setup',
+		new MenuSeparator('graph_editor'),
+		'graph_editor_other_graphs',
+		'graph_editor_include_other_graphs',
 		'graph_editor_zero_line',
 	])
 }
@@ -653,15 +687,18 @@ Interface.definePanels(() => {
 				focus_channel: null,
 				playhead: Timeline.time,
 				timestamp: '0',
+				framenumber: '0',
 
 				graph_editor_open: false,
 				graph_editor_channel: 'rotation',
 				graph_editor_axis: 'x',
 				graph_offset: 200,
 				graph_size: 200,
+				show_other_graphs: true,
+				include_other_graphs: true,
 				show_zero_line: true,
 				show_all_handles: !Settings.get('only_selected_bezier_handles'),
-				loop_graph: '',
+				loop_graphs: [''],
 
 				channels: {
 					rotation: true,
@@ -682,11 +719,45 @@ Interface.definePanels(() => {
 					let height = this.graph_offset - this.graph_size;
 					return `M0 ${height} L10000 ${height}`
 				},
-				graph() {
+				rulers() {
+					let lines = [];
+					let values = [0];
+
+					let interval_options = [1, 2, 4, 8, 10, 20, 25, 50, 100, 200, 250, 400, 500];
+					let estimate = 100 / Timeline.vue.graph_size;
+					if (estimate > 500) return values;
+					let interval = Math.snapToValues(estimate, interval_options);
+					let box_height = Timeline.vue.$refs.timeline_body.clientHeight;
+
+					for (let i = 1; i < 20; i += 1) {
+						let value = i * interval;
+						let keep_going = false;
+						if (this.graph_offset - value * this.graph_size > 0) {
+							values.push(value);
+							keep_going = true;
+						}
+						if (this.graph_offset + value * this.graph_size < box_height) {
+							values.push(i * -interval);
+							keep_going = true;
+						}
+						if (!keep_going) break;
+					}
+
+					values.forEach(value => {
+						let height = this.graph_offset - this.graph_size * value;
+						lines.push({
+							position: height,
+							label: value,
+							path: `M0 ${height} L10000 ${height}`
+						});
+					})
+					return lines;
+				},
+				graphs() {
 					let ba = this.graph_editor_animator;
 					if (!ba || !ba[this.graph_editor_channel] || !ba[this.graph_editor_channel].length) {
-						this.loop_graph = '';
-						return '';
+						this.loop_graphs.empty();
+						return [];
 					}
 					let original_time = Timeline.time;
 					let step = 2;
@@ -695,6 +766,7 @@ Interface.definePanels(() => {
 					let keyframes = ba[this.graph_editor_channel];
 					let points = [];
 					let loop_points = [];
+
 					let min = this.show_zero_line ? -1 : 10000,
 						max = this.show_zero_line ? 1 : -10000;
 
@@ -706,16 +778,26 @@ Interface.definePanels(() => {
 							Timeline.time = snap_kf.time;
 						}
 						Animator.resetLastValues();
-						let value = ba.interpolate(this.graph_editor_channel, false, this.graph_editor_axis);
+						let values = [
+							(this.show_other_graphs || this.graph_editor_axis === 'x') ? ba.interpolate(this.graph_editor_channel, false, 'x') : 0,
+							(this.show_other_graphs || this.graph_editor_axis === 'y') ? ba.interpolate(this.graph_editor_channel, false, 'y') : 0,
+							(this.show_other_graphs || this.graph_editor_axis === 'z') ? ba.interpolate(this.graph_editor_channel, false, 'z') : 0
+						];
+						let value = values[this.graph_editor_axis_number];
 						if (snap_kf) snap_kf.display_value = value;
 						
 						if (Timeline.time > Animation.selected.length && Animation.selected.length && Animation.selected.loop === 'loop') {
 							if (points.length && !loop_points.length) loop_points.push(points.last())
-							loop_points.push(value);
+							loop_points.push(values);
 						} else {
-							points.push(value);
-							min = Math.min(min, value);
-							max = Math.max(max, value);
+							points.push(values);
+							if (this.show_other_graphs && this.include_other_graphs) {
+								min = Math.min(min, ...values);
+								max = Math.max(max, ...values);
+							} else {
+								min = Math.min(min, value);
+								max = Math.max(max, value);
+							}
 						}
 					}
 					keyframes.forEach(kf => {
@@ -736,20 +818,39 @@ Interface.definePanels(() => {
 					let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
 					this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );
 
-					let string = '';
-					points.forEach((value, i) => {
-						string += `${string.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+					let graphs = this.show_other_graphs ? ['', '', ''] : [''];
+					points.forEach((values, i) => {
+						let command = i == 0 ? 'M' : 'L';
+						if (this.show_other_graphs) {
+							values.forEach((value, axis) => {
+								graphs[axis] += `${command}${i*step} ${this.graph_offset - value * this.graph_size} `;
+							})
+						} else {
+							graphs[0] += `${command}${i*step} ${this.graph_offset - values[this.graph_editor_axis_number] * this.graph_size} `;
+						}
 					})
 
-					this.loop_graph = '';
+					this.loop_graphs.empty();
 					if (loop_points.length) {
-						loop_points.forEach((value, i) => {
+						if (this.show_other_graphs) {
+							this.loop_graphs.push('', '', '');
+						} else {
+							this.loop_graphs.push('');
+						}
+						loop_points.forEach((values, i) => {
+							let command = i == 0 ? 'M' : 'L';
 							i = i + points.length - 1;
-							this.loop_graph += `${this.loop_graph.length ? 'L' : 'M'}${i*step} ${this.graph_offset - value * this.graph_size} `
+							if (this.show_other_graphs) {
+								values.forEach((value, axis) => {
+									this.loop_graphs[axis] += `${command}${i*step} ${this.graph_offset - value * this.graph_size} `;
+								})
+							} else {
+								this.loop_graphs[0] += `${command}${i*step} ${this.graph_offset - values[this.graph_editor_axis_number] * this.graph_size} `;
+							}
 						})
 					}
 
-					return string;
+					return graphs;
 				},
 				graph_editor_axis_number() {
 					return getAxisNumber(this.graph_editor_axis)
@@ -760,7 +861,6 @@ Interface.definePanels(() => {
 				updateTimecodes() {
 					if (!this._isMounted) return;
 					this.timecodes.empty();
-					let second_fractions = settings.timecode_frame_number.value ? 1/Timeline.getStep() : 100;
 					let timeline_container_width = Panels.timeline.node.clientWidth - this.head_width;
 					this.length = Timeline.getMaxLength();
 
@@ -792,7 +892,7 @@ Interface.definePanels(() => {
 					var i = Math.floor(this.scroll_left / this.size / step) * step;
 					while (i < Math.ceil((this.scroll_left + timeline_container_width) / this.size / step) * step) {
 						if (settings.timecode_frame_number.value) {
-							var text = `${Math.floor(i)}:${Math.round((i % 1) * second_fractions)}`;
+							var text = Math.round(i / Timeline.getStep());
 						} else {
 							var text = Math.round(i*100)/100;
 						}
@@ -932,14 +1032,18 @@ Interface.definePanels(() => {
 						}
 						
 						// Time
-						var difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
-						let [min, max] = dragging_range;
-						
-						if (time_stretching) {
-							var time_factor = (clicked && clicked.time_before < (min + max) / 2)
-								? ((max-min-difference) / (max-min))
-								: ((max-min+difference) / (max-min));
-							time_factor = Math.roundTo(time_factor, 2);
+						let difference = 0;
+						let max, min;
+						if ((!e2.ctrlOrCmd && !e2.shiftKey) || time_stretching || !Timeline.vue.graph_editor_open) {
+							difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
+							[min, max] = dragging_range;
+							
+							if (time_stretching) {
+								var time_factor = (clicked && clicked.time_before < (min + max) / 2)
+									? ((max-min-difference) / (max-min))
+									: ((max-min+difference) / (max-min));
+								time_factor = Math.roundTo(time_factor, 2);
+							}
 						}
 
 						// Value
@@ -1215,6 +1319,34 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off);
 				},
+				clickGraphEditor(event) {
+					if (!this.show_other_graphs || !this.graph_editor_animator) return;
+					let value = (this.graph_offset - event.offsetY) / this.graph_size;
+					let original_time = Timeline.time;
+
+					let tryAt = (x_coord) => {
+						let time = (x_coord) / this.size;
+						Timeline.time = time;
+
+						let distances = ['x', 'y', 'z'].map(axis => {
+							let axis_value = this.graph_editor_animator.interpolate(this.graph_editor_channel, false, axis);
+							let diff = Math.abs(axis_value - value) * this.graph_size;
+							if (diff < 12.5) {
+								return {axis, diff};
+							}
+						}).filter(a => a);
+						if (distances.length) return distances;
+					}
+					
+					let real_x_coord = event.offsetX-8;
+					let distances = tryAt(real_x_coord) || tryAt(real_x_coord + 4) || tryAt(real_x_coord - 4);
+
+					if (distances) {
+						distances.sort((a, b) => a.diff - b.diff);
+						this.graph_editor_axis = distances[0].axis;
+					}
+					Timeline.time = original_time;
+				},
 				getBezierHandleStyle(keyframe, side) {
 					let axis_number = getAxisNumber(this.graph_editor_axis);
 					let x_offset = -keyframe[`bezier_${side}_time`][axis_number] * this.size;
@@ -1242,7 +1374,8 @@ Interface.definePanels(() => {
 					return range;
 				},
 				clamp: Math.clamp,
-				trimFloatNumber
+				trimFloatNumber,
+				getAxisLetter
 			},
 			watch: {
 				size() {this.updateTimecodes()},
@@ -1254,6 +1387,8 @@ Interface.definePanels(() => {
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>
+							<span id="">/</span>
+							<div id="timeline_framenumber">{{ framenumber }}</div>
 							<div class="channel_axis_selector" v-if="graph_editor_open">
 								<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
 								<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
@@ -1358,7 +1493,7 @@ Interface.definePanels(() => {
 											v-for="keyframe in animator[channel]"
 											v-bind:style="{left: (8 + keyframe.time * size) + 'px', color: getColor(keyframe.color)}"
 											class="keyframe"
-											v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
+											v-bind:class="{[keyframe.channel]: true, selected: keyframe.selected, has_expressions: keyframe.has_expressions}"
 											v-bind:id="keyframe.uuid"
 											v-on:click.stop="keyframe.select($event)"
 											v-on:dblclick="keyframe.callPlayhead()"
@@ -1380,12 +1515,36 @@ Interface.definePanels(() => {
 							<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 							</div>
 							<div id="timeline_selector" class="selection_rectangle"></div>
-							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
+							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}" @click="clickGraphEditor($event)">
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
-									<path :d="loop_graph" class="loop_graph" style="stroke: var(--color-grid);"></path>
-									<path :d="graph" :style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"></path>
+									<template v-for="ruler in rulers">
+										<path :d="ruler.path" style="stroke: var(--color-grid); stroke-width: 0.5px;"></path>
+										<text :y="ruler.position - 4">{{ ruler.label }}</text>
+									</template>
+
+									<path v-for="(loop_graph, i) in loop_graphs"
+										:d="loop_graph"
+										class="loop_graph"
+										:class="{selected: loop_graphs.length == 0 || i == graph_editor_axis_number}"
+										style="stroke: var(--color-grid);"
+									></path>
+									<path v-if="graphs.length == 3"
+										:d="graphs[(graph_editor_axis_number+1) % 3]"
+										class="main_graph"
+										:style="{stroke: 'var(--color-axis-' + getAxisLetter((graph_editor_axis_number+1) % 3) + ')'}"
+									></path>
+									<path v-if="graphs.length == 3"
+										:d="graphs[(graph_editor_axis_number+2) % 3]"
+										class="main_graph"
+										:style="{stroke: 'var(--color-axis-' + getAxisLetter((graph_editor_axis_number+2) % 3) + ')'}"
+									></path>
+									<path
+										:d="graphs[graphs.length == 3 ? graph_editor_axis_number : 0]"
+										class="main_graph selected"
+										:style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"
+									></path>
 								</svg>
 								<template v-if="graph_editor_animator">
 									<div
@@ -1450,6 +1609,24 @@ BARS.defineActions(function() {
 			) {
 				Timeline.vue.graph_editor_channel = Timeline.selected[0].channel;
 			}
+		}
+	})
+	new Toggle('graph_editor_other_graphs', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open},
+		default: true,
+		onChange(state) {
+			Timeline.vue.show_other_graphs = state;
+		}
+	})
+	new Toggle('graph_editor_include_other_graphs', {
+		icon: 'exposure_zero',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Timeline.vue.graph_editor_open && Timeline.vue.show_other_graphs},
+		default: true,
+		onChange(state) {
+			Timeline.vue.include_other_graphs = state;
 		}
 	})
 	new Toggle('graph_editor_zero_line', {

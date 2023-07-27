@@ -1221,8 +1221,8 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	if (!display_preview) {
 		display_preview = new Preview({id: 'display'})
 	}
-	if (quad_previews.enabled) {
-		quad_previews.enabled_before = true
+	if (Preview.split_screen.enabled) {
+		Preview.split_screen.before = Preview.split_screen.mode;
 	}
 	display_preview.fullscreen()
 	display_preview.loadAnglePreset(display_angle_preset)
@@ -1270,8 +1270,8 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	$('body').removeClass('display_mode')
 	resizeWindow()
 	ReferenceImage.updateAll()
-	if (quad_previews.enabled_before) {
-		openQuadView()
+	if (Preview.split_screen.before) {
+		Preview.split_screen.setMode(Preview.split_screen.before)
 	}
 	scene.add(Transformer)
 	Canvas.buildGrid()
@@ -1609,6 +1609,11 @@ function updateDisplaySkin(feedback) {
 		}
 		if (PreviewModel.models.attachable_reference_player) {
 			let {material} = PreviewModel.models.attachable_reference_player;
+			material.map.image.src = skin;
+			material.map.needsUpdate = true;
+		}
+		if (PreviewModel.models.minecraft_player) {
+			let {material} = PreviewModel.models.minecraft_player;
 			material.map.image.src = skin;
 			material.map.needsUpdate = true;
 		}
@@ -2138,11 +2143,11 @@ BARS.defineActions(function() {
 	let player_skin_setup = false;
 	function updateBase(mode) {
 		if (mode == 'attachable_first') {
-			Project.model_3d.position.set(-23, 21, 0);
+			Project.model_3d.position.set(-20, 21, 0);
 			Project.model_3d.rotation.set(
-				Math.degToRad(-86.6),
-				Math.degToRad(42),
-				Math.degToRad(124),
+				Math.degToRad(-95),
+				Math.degToRad(44),
+				Math.degToRad(115),
 				'ZYX'
 			);
 			Interface.preview.append(center_first_person_button);

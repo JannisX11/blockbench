@@ -138,6 +138,7 @@ onVueSetup(function() {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
+			viewed_format: null,
 			recent: isApp ? recent_projects : [],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
@@ -151,19 +152,19 @@ onVueSetup(function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [NeptuneCoffee](https://twitter.com/Neptune_Coffee) & [Dankbarkeit](https://twitter.com/Dxnkbarkeit)",
+					description: "Splash Art 1st Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
 				},
 				{
 					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [MorganFreeguy](https://www.artstation.com/morganfreeguy) & [WOLLAND](https://wolland-services.com/)",
+					description: "Splash Art 2nd Place by [PICASSO](https://twitter.com/Picasso114514) & [AnzSama](https://twitter.com/AnzSamaEr)",
 				},
 				{
 					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [RETENEIZER](https://twitter.com/RETENEIZER)",
+					description: "Splash Art 3rd Place by [Wanwin](https://wan-win.com/#3darts)",
 				},
 				{
 					source: "./assets/splash_art/4.png",
-					description: "Splash Art 4th Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
+					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999)",
 				},
 				{
 					source: "./assets/splash_art/5.png",
@@ -171,7 +172,7 @@ onVueSetup(function() {
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
-			slideshow_selected: Blockbench.hasFlag('after_update') ? 0 : Math.floor(Math.random()*5),
+			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
 		},
@@ -328,7 +329,7 @@ onVueSetup(function() {
 			this.updateThumbnails();
 
 			setInterval(() => {
-				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.checkVisibility()) {
+				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.offsetParent) {
 					slideshow_timer += 1;
 
 					if (slideshow_timer == 24) {
@@ -366,7 +367,7 @@ onVueSetup(function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
@@ -455,7 +456,7 @@ onVueSetup(function() {
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
@@ -474,7 +475,7 @@ onVueSetup(function() {
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
 									</div>
 								</li>
 							</ul>

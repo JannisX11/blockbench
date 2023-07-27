@@ -60,7 +60,7 @@ const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
-	parse(data, resolution, texture_path, pose = true, layer_template) {
+	parse(data, resolution, texture_file, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
@@ -124,8 +124,8 @@ const codec = new Codec('skin_model', {
 		if (!Cube.all.find(cube => cube.box_uv)) {
 			Project.box_uv = false;
 		}
-		if (texture_path) {
-			var texture = new Texture().fromPath(texture_path).add(false);
+		if (texture_file) {
+			var texture = new Texture().fromFile(texture_file).add(false);
 		} else if (resolution) {
 			var texture = generateTemplate(
 				Project.texture_width*resolution,
@@ -282,6 +282,7 @@ const skin_dialog = new Dialog({
 			extensions: ['png'],
 			readtype: 'image',
 			filetype: 'PNG',
+			return_as: 'file'
 		},
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true, condition: form => (!!skin_presets[form.model].pose)},
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
@@ -290,7 +291,7 @@ const skin_dialog = new Dialog({
 	onConfirm(result) {
 		if (result.model == 'flat_texture') {
 			if (result.texture) {
-				Codecs.image.load(dataUrl);
+				Codecs.image.load(result.texture);
 			} else {
 				Formats.image.new();
 			}
@@ -498,7 +499,7 @@ Interface.definePanels(function() {
 })
 
 skin_presets.steve = {
-	display_name: 'Player - Default',
+	display_name: 'Player - Wide',
 	pose: true,
 	model: `{
 		"name": "steve",
@@ -1243,6 +1244,85 @@ skin_presets.bat = {
 		]
 	}`
 };
+skin_presets.bed = {
+	display_name: 'Bed',
+	model_bedrock: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, -16, -9], "size": [16, 32, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -3], "size": [3, 3, 3], "uv": [0, 44]},
+					{"origin": [5, 13, -3], "size": [3, 3, 3], "uv": [12, 38]},
+					{"origin": [-8, 13, -3], "size": [3, 3, 3], "uv": [0, 38]},
+					{"origin": [5, -16, -3], "size": [3, 3, 3], "uv": [12, 44]}
+				]
+			},
+			{
+				"name": "Layer",
+				"parent": "bed",
+				"cubes": [
+					{"origin": [-5, 15, -3], "size": [10, 1, 3], "uv": [38, 2], "layer": true},
+					{"origin": [-5, -16, -3], "size": [10, 1, 3], "uv": [38, 38], "layer": true},
+					{"origin": [7, -13, -3], "size": [1, 26, 3], "uv": [52, 6], "layer": true},
+					{"origin": [-8, -13, -3], "size": [1, 26, 3], "uv": [44, 6], "layer": true}
+				]
+			}
+		]
+	}`,
+	model_java: `{
+		"name": "bed",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "bed",
+				"pivot": [0, 0, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0, -9], "size": [16, 16, 6], "uv": [0, 0]},
+					{"origin": [-8, -16, -9], "size": [16, 16, 6], "uv": [0, 22]}
+				]
+			},
+			{
+				"name": "leg0",
+				"pivot": [-6.5, 1.5, -14.5],
+				"cubes": [
+					{"origin": [-8, 0, -16], "size": [3, 3, 3], "uv": [50, 0]}
+				]
+			},
+			{
+				"name": "leg1",
+				"pivot": [-6.5, 1.5, 14.5],
+				"rotation": [0, 90, 0],
+				"cubes": [
+					{"origin": [-8, 0, 13], "size": [3, 3, 3], "uv": [50, 6]}
+				]
+			},
+			{
+				"name": "leg2",
+				"pivot": [6.5, 1.5, -14.5],
+				"rotation": [0, -90, 0],
+				"cubes": [
+					{"origin": [5, 0, -16], "size": [3, 3, 3], "uv": [50, 12]}
+				]
+			},
+			{
+				"name": "leg3",
+				"pivot": [6.5, 1.5, 14.5],
+				"rotation": [0, 180, 0],
+				"cubes": [
+					{"origin": [5, 0, 13], "size": [3, 3, 3], "uv": [50, 18]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.bee = {
 	display_name: 'Bee',
 	model: `{
@@ -1541,9 +1621,9 @@ skin_presets.camel = {
 				"parent": "body",
 				"pivot": [0.5, 20, 9.5],
 				"cubes": [
-					{"origin": [-4.5, 32, -6], "size": [9, 5, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [74, 64]},
-					{"origin": [-3.5, 37, -6], "size": [7, 3, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [92, 114]},
-					{"origin": [-7.5, 20, -14], "size": [15, 12, 27], "inflate": 0.1, "layer": true, "visibility": false, "uv": [0, 89]}
+					{"name": "saddle layer", "origin": [-4.5, 32, -6], "size": [9, 5, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [74, 64]},
+					{"name": "saddle layer", "origin": [-3.5, 37, -6], "size": [7, 3, 11], "inflate": 0.1, "layer": true, "visibility": false, "uv": [92, 114]},
+					{"name": "saddle layer", "origin": [-7.5, 20, -14], "size": [15, 12, 27], "inflate": 0.1, "layer": true, "visibility": false, "uv": [0, 89]}
 				]
 			},
 			{
@@ -1569,9 +1649,9 @@ skin_presets.camel = {
 				"parent": "head",
 				"pivot": [0.5, 25, -10],
 				"cubes": [
-					{"origin": [-3.5, 22, -25], "size": [7, 8, 19], "inflate": 0.1, "uv": [60, 87], "layer": true, "visibility": false},
-					{"origin": [-3.5, 30, -25], "size": [7, 14, 7], "inflate": 0.1, "uv": [21, 64], "layer": true, "visibility": false},
-					{"origin": [-2.5, 39, -31.1], "size": [5, 5, 6], "inflate": 0.1, "uv": [50, 64], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-3.5, 22, -25], "size": [7, 8, 19], "inflate": 0.1, "uv": [60, 87], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-3.5, 30, -25], "size": [7, 14, 7], "inflate": 0.1, "uv": [21, 64], "layer": true, "visibility": false},
+					{"name": "bridle layer", "origin": [-2.5, 39, -31.1], "size": [5, 5, 6], "inflate": 0.1, "uv": [50, 64], "layer": true, "visibility": false},
 					{"origin": [2.5, 40, -28], "size": [1, 2, 2], "uv": [74, 70]},
 					{"origin": [-3.5, 40, -28], "size": [1, 2, 2], "uv": [74, 70], "mirror": true}
 				]
@@ -1597,9 +1677,9 @@ skin_presets.camel = {
 				"parent": "head",
 				"pivot": [3.7, 41, -27],
 				"cubes": [
-					{"origin": [3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false},
-					{"origin": [-3.7, 34, -12], "size": [7.4, 7, 0], "uv": [84, 57], "layer": true, "visibility": false},
-					{"origin": [-3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false}
+					{"name": "reins layer", "origin": [3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false},
+					{"name": "reins layer", "origin": [-3.7, 34, -12], "size": [7.4, 7, 0], "uv": [84, 57], "layer": true, "visibility": false},
+					{"name": "reins layer", "origin": [-3.7, 34, -27], "size": [0, 7, 15], "uv": [98, 42], "layer": true, "visibility": false}
 				]
 			},
 			{

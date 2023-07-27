@@ -283,9 +283,19 @@
 	@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 	@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 /*Markdown*/
+	.markdown h1 {
+		margin: 8px 0 8px 0;
+	}
+	.markdown h2 {
+		margin: 14px 0 8px 0;
+	}
+	.markdown p {
+		margin: 12px 0;
+	}
 	.markdown li {
 		list-style: initial;
 		cursor: inherit;
+		margin: 8px 0;
 	}
 	.markdown ul {
 		padding-left: 24px;
@@ -312,6 +322,26 @@
 	.markdown pre code {
 		user-select: text;
 		-webkit-user-select: text;
+	}
+	blockquote {
+		border-left: 4px solid var(--color-accent);
+		padding: 4px;
+		padding-left: 16px;
+		background: var(--color-back);
+	}
+	.markdown table {
+		border: 1px solid var(--color-border);
+		background: var(--color-back);
+	}
+	.markdown th {
+		padding: 4px;
+	}
+	.markdown td {
+		padding: 3px 4px;
+		border-top: 1px solid var(--color-border);
+	}
+	.markdown img {
+		max-width: 100%;
 	}
 
 /*Actions*/
@@ -579,7 +609,7 @@
 		margin-top: -4px;
 	}
 	.contextMenu.scrollable {
-		max-height: min(500px, 100vh);
+		max-height: min(800px, 100vh);
 		overflow: auto;
 	}
 	.contextMenu li {
@@ -664,6 +694,18 @@
 		padding: 0;
 		background-color: var(--color-menu_separator);
 	}
+	li.menu_separator.has_label {
+		margin-top: 12px;
+		margin-bottom: 6px;
+	}
+	li.menu_separator.has_label > label {
+		background-color: var(--color-bright_ui);
+		color: color-mix(in srgb, var(--color-bright_ui_text) 70%, transparent);
+		margin-top: -12px;
+		margin-left: 12px;
+		padding: 0 5px;
+		height: 20px;
+	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
 	}
@@ -713,7 +755,8 @@
 	body.theme_borders .dialog_close_button,
 	body.theme_borders #start_screen > content,
 	body.theme_borders #quick_message_box,
-	body.theme_borders action_selector > #action_selector_list
+	body.theme_borders action_selector > #action_selector_list,
+	body.theme_borders .plugins_suggested_row > ul > li
 	{
 		border: 1px solid var(--color-border);
 	}

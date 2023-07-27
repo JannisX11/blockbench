@@ -15,14 +15,6 @@ jobs:
       script:
         - electron-builder --publish=always
 
-    - name: "Windows"
-      os: osx
-      osx_image: "xcode12.5"
-      script:
-        - electron-builder -w --x64 --ia32 --publish=onTagOrDraft
-        - node ./scripts/rename_portable.js
-        - electron-builder --windows portable --ia32 --publish=onTagOrDraft
-
     - name: "Linux"
       os: linux
       script:

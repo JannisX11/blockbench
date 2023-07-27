@@ -27,6 +27,7 @@ class ModelProject {
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
+		this.mirror_modeling_enabled = false;
 		this.previews = {};
 		this.uv_viewport = {
 			zoom: 1,
@@ -219,8 +220,9 @@ class ModelProject {
 			BarItems[this.tool].select();
 		}
 
-		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
-		BarItems.lock_motion_trail.updateEnabledState();
+		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
+
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 		
 		Preview.all.forEach(preview => {
 			let data = this.previews[preview.id];
@@ -304,6 +306,7 @@ class ModelProject {
 		Animator.MolangParser.context = {};
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
+		MirrorModeling.cached_elements = {};
 		Format = 0;
 		Project = 0;
 		Undo = 0;
@@ -318,6 +321,22 @@ class ModelProject {
 		}
 
 		Blockbench.dispatchEvent('unselect_project', {project: this});
+	}
+	closeOnQuit() {
+		try {
+			if (isApp) {
+				updateRecentProjectData();
+			}
+			Blockbench.dispatchEvent('close_project', {on_quit: true});
+
+		} catch (err) {
+			console.error(err);
+		}
+		delete AutoBackupModels[this.uuid];
+		localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
+		if (this.EditSession) {
+			this.EditSession.quit();
+		}
 	}
 	async close(force) {
 		if (this.locked) return false;
@@ -363,7 +382,6 @@ class ModelProject {
 				if (isApp) {
 					updateRecentProjectData();
 				}
-	
 				Blockbench.dispatchEvent('close_project');
 
 			} catch (err) {
@@ -1071,9 +1089,11 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text:    {type: 'info', text: 'dialog.convert_project.text'},
-					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
-					format:  {
+					text1:		{type: 'info', text: 'dialog.convert_project.text1'},
+					text2:		{type: 'info', text: 'dialog.convert_project.text2'},
+					text3:		{type: 'info', text: 'dialog.convert_project.text3'},
+					current: 	{type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  	{
 						label: 'data.format',
 						type: 'select',
 						options,

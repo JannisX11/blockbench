@@ -35,6 +35,7 @@ class Keyframe {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.channel == 'rotation'
 		this.selected = false;
+		this.has_expressions = false;
 		this.display_value = 0;
 		this.data_points = []
 
@@ -519,8 +520,7 @@ class Keyframe {
 	}
 }
 	Keyframe.prototype.menu = new Menu([
-		'change_keyframe_file',
-		'_',
+		new MenuSeparator('settings'),
 		'keyframe_uniform',
 		'keyframe_interpolation',
 		'keyframe_bezier_linked',
@@ -539,7 +539,7 @@ class Keyframe {
 				}})
 			];
 		}},
-		'_',
+		new MenuSeparator('copypaste'),
 		'copy',
 		'delete',
 	])
@@ -575,6 +575,15 @@ function updateKeyframeSelection() {
 	Timeline.keyframes.forEach(kf => {
 		if (kf.selected && !Timeline.selected.includes(kf)) {
 			kf.selected = false;
+		}
+		let has_expressions = false;
+		if (kf.transform) {
+			has_expressions = !!kf.data_points.find(point => {
+				return !isStringNumber(point.x) || !isStringNumber(point.y) ||! isStringNumber(point.z);
+			})
+		}
+		if (has_expressions != kf.has_expressions) {
+			kf.has_expressions = has_expressions;
 		}
 	})
 	if (Timeline.selected.length) {

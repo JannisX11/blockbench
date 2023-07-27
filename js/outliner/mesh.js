@@ -160,8 +160,8 @@ class MeshFace extends Face {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
 	}
-	isSelected() {
-		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(this.getFaceKey());
+	isSelected(fkey) {
+		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(fkey || this.getFaceKey());
 	}
 	getSortedVertices() {
 		if (this.vertices.length < 4) return this.vertices;
@@ -235,14 +235,27 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	UVToLocal(uv, vertices = this.vertices) {
-		let p0 = this.uv[vertices[0]];
-		let p1 = this.uv[vertices[1]];
-		let p2 = this.uv[vertices[2]];
+	UVToLocal(uv, vertices = this.getSortedVertices()) {
+		let vert_a = vertices[0];
+		let vert_b = vertices[1];
+		let vert_c = vertices[2];
 
-		let vertexa = this.mesh.vertices[vertices[0]];
-		let vertexb = this.mesh.vertices[vertices[1]];
-		let vertexc = this.mesh.vertices[vertices[2]];
+		if (vertices[3]) {
+			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
+
+			if (!is_in_tri) {
+				vert_a = vertices[0];
+				vert_b = vertices[2];
+				vert_c = vertices[3];
+			}
+		}
+		let p0 = this.uv[vert_a];
+		let p1 = this.uv[vert_b];
+		let p2 = this.uv[vert_c];
+
+		let vertexa = this.mesh.vertices[vert_a];
+		let vertexb = this.mesh.vertices[vert_b];
+		let vertexc = this.mesh.vertices[vert_c];
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
 		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
@@ -522,6 +535,28 @@ class Mesh extends OutlinerElement {
 			return center;
 		}
 	}
+	getSize(axis, selection_only) {
+		if (selection_only) {
+			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+			if (!selected_vertices.length) return 0;
+			let range = [Infinity, -Infinity];
+			let {vec1, vec2} = Reusable;
+			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+			selected_vertices.forEach(key => {
+				vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+				range[0] = Math.min(range[0], vec1.getComponent(axis));
+				range[1] = Math.max(range[1], vec1.getComponent(axis));
+			})
+			return range[1] - range[0];
+		} else {
+			let range = [Infinity, -Infinity];
+			for (let vkey in this.vertices) {
+				range[0] = Math.min(range[0], this.vertices[vkey][axis]);
+				range[1] = Math.max(range[1], this.vertices[vkey][axis]);
+			}
+			return range[1] - range[0];
+		}
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);
@@ -602,7 +637,25 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flip(axis, center) {
-		let object_mode = BarItems.selection_mode.value == 'object';
+		for (let vkey in this.vertices) {
+			this.vertices[vkey][axis] *= -1;
+		}
+		for (let key in this.faces) {
+			this.faces[key].invert();
+		}
+
+		this.origin[axis] *= -1;
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
+		this.preview_controller.updateTransform(this);
+
+		this.preview_controller.updateGeometry(this);
+		this.preview_controller.updateUV(this);
+		return this;
+	}
+	flipSelection(axis, center) {
+		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.selected;
 		let selected_vertices = this.getSelectedVertices();
 		for (let vkey in this.vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
@@ -610,7 +663,7 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		for (let key in this.faces) {
-			if (object_mode || this.faces[key].isSelected()) {
+			if (object_mode || this.faces[key].isSelected(key)) {
 				this.faces[key].invert();
 			}
 		}
@@ -644,24 +697,29 @@ class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
+		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
 		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
 		selected_vertices.forEach(key => {
-			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
 			range[0] = Math.min(range[0], vec1.getComponent(axis));
 			range[1] = Math.max(range[1], vec1.getComponent(axis));
 		})
 		
 		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
 		let size = Math.abs(range[1] - range[0]);
+		if (typeof val !== 'number') {
+			val = val(size) - size;
+			if (bidirectional) val /= 2;
+		}
 		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
 		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
 		if (scale < 0 && !allow_negative) scale = 0;
 		
 		selected_vertices.forEach(key => {
-			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
 			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
 			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
 			vec2.applyEuler(Transformer.rotation_selection);
@@ -700,19 +758,21 @@ class Mesh extends OutlinerElement {
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
+		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
 		'inset_mesh_selection',
 		'loop_cut',
 		'create_face',
 		'invert_face',
+		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'_',
+		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
-		'_',
-		'rename',
+		new MenuSeparator('settings'),
+		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -746,6 +806,9 @@ class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
+		'element_render_order',
+		new MenuSeparator('manage'),
+		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -761,6 +824,7 @@ new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
+new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
@@ -798,6 +862,7 @@ new NodePreviewController(Mesh, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
+		this.updateRenderOrder(element);
 		mesh.visible = element.visibility;
 
 		this.dispatchEvent('setup', {element});
@@ -848,9 +913,12 @@ new NodePreviewController(Mesh, {
 
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
-				face.vertices.forEach((key, i) => {
-					position_array.push(...element.vertices[key])
-					face_indices[key] = index_offset + i;
+				face.vertices.forEach((vkey, i) => {
+					if (!element.vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					position_array.push(...element.vertices[vkey])
+					face_indices[vkey] = index_offset + i;
 				})
 
 				let normal = face.getNormal(true);

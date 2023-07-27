@@ -108,49 +108,7 @@ const Painter = {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
 		}
-		var x = data.intersects[0].uv.x * texture.img.naturalWidth;
-		var y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
-		if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-			x = Math.floor(x + offset);
-			y = Math.floor(y + offset);
-		}
-
-		if (Painter.lock_alpha && Settings.get('paint_through_transparency')) {
-			let ctx = Painter.getCanvas(texture).getContext('2d');
-			let color = Painter.getPixelColor(ctx, x, y);
-			if (color.getAlpha() < 0.004) {
-
-				data.intersects.shift();
-				while (data.intersects.length && !data.intersects[0].object.isElement) {
-					data.intersects.shift();
-				}
-				if (!data.intersects[0]) return;
-				let intersect_object = data.intersects[0].object
-				let element = OutlinerNode.uuids[intersect_object.name]
-				let face;
-				if (element instanceof Cube) {
-					face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
-				} else if (element instanceof Mesh) {
-					let index = data.intersects[0].faceIndex;
-					for (let key in element.faces) {
-						let {vertices} = element.faces[key];
-						if (vertices.length < 3) continue;
-
-						if (index == 0 || (index == 1 && vertices.length == 4)) {
-							face = key;
-							break; 
-						}
-						if (vertices.length == 3) index -= 1;
-						if (vertices.length == 4) index -= 2;
-					}
-				}
-				data.element = element;
-				data.face = face;
-				Painter.startPaintToolCanvas(data, e);
-				return;
-			}
-		}
+		let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
 
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
@@ -162,59 +120,16 @@ const Painter = {
 	movePaintToolCanvas(event, data) {
 		convertTouchEvent(event);
 		if (!data) data = Canvas.raycast(event)
-		if (data && data.element && !data.element.locked) {
+		if (data && data.element && !data.element.locked && data.face) {
 			var texture = data.element.faces[data.face].getTexture();
 			if (!texture) return;
-
-			var x, y, new_face;
-			x = data.intersects[0].uv.x * texture.img.naturalWidth;
-			y = (1-data.intersects[0].uv.y) * texture.img.naturalHeight;
-
-			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-				let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-				x = Math.floor(x + offset);
-				y = Math.floor(y + offset);
-			}
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
+
+			let new_face;
+			let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
 
 			if (x === Painter.current.x && y === Painter.current.y) {
 				return
-			}
-
-			if (Painter.lock_alpha && Settings.get('paint_through_transparency') && !(Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool')) {
-				let ctx = Painter.current.ctx;
-				let color = Painter.getPixelColor(ctx, x, y);
-				if (color.getAlpha() < 0.004) {
-	
-					data.intersects.shift();
-					while (data.intersects.length && !data.intersects[0].object.isElement) {
-						data.intersects.shift();
-					}
-					if (!data.intersects[0]) return;
-					let intersect_object = data.intersects[0].object
-					let element = OutlinerNode.uuids[intersect_object.name]
-					let face;
-					if (element instanceof Cube) {
-						face = intersect_object.geometry.faces[Math.floor(data.intersects[0].faceIndex / 2)];
-					} else if (element instanceof Mesh) {
-						let index = data.intersects[0].faceIndex;
-						for (let key in element.faces) {
-							let {vertices} = element.faces[key];
-							if (vertices.length < 3) continue;
-	
-							if (index == 0 || (index == 1 && vertices.length == 4)) {
-								face = key;
-								break; 
-							}
-							if (vertices.length == 3) index -= 1;
-							if (vertices.length == 4) index -= 2;
-						}
-					}
-					data.element = element;
-					data.face = face;
-					Painter.movePaintToolCanvas(event, data);
-					return;
-				}
 			}
 
 			if (
@@ -644,6 +559,7 @@ const Painter = {
 			let mirror_element = local ? Painter.current.element : Painter.getMirrorElement(Painter.current.element, symmetry_axes);
 			let offset_pixel_brush = Condition(Toolbox.selected.brush?.floor_coordinates) ? 1 : 0;
 			let even_brush_size = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius && Condition(Toolbox.selected.brush?.floor_coordinates);
+			if (Toolbox.selected.id == 'gradient_tool') even_brush_size = true;
 			if (mirror_element instanceof Cube) {
 	
 				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
@@ -1263,7 +1179,8 @@ const Painter = {
 						off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) == undefined &&
 						off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) == undefined &&
 						symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) == undefined &&
-						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined
+						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.rotation[axis], element2.rotation[axis], e)) == undefined
 					) {
 						return element2;
 					}
@@ -1315,8 +1232,19 @@ const Painter = {
 			default: return 'source-over';
 		}
 	},
+	getCanvasToolPixelCoords(uv_point, texture) {
+		let x = uv_point.x * texture.img.naturalWidth;
+		let y = (1-uv_point.y) * texture.img.naturalHeight;
+		if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+			x = Math.floor(x + offset);
+			y = Math.floor(y + offset);
+		}
+		return [x, y];
+	},
 	getCanvas(texture) {
 		if (texture instanceof Texture) {
+			if (texture.display_canvas) return texture.canvas;
 			let canvas = texture.canvas;
 			let ctx = canvas.getContext('2d');
 			canvas.width = texture.width;
@@ -2090,6 +2018,11 @@ BARS.defineActions(function() {
 		onChange() {
 			BARS.updateConditions();
 			UVEditor.vue.brush_type = this.value;
+			let img = Canvas.brush_outline.material.map.image;
+			switch (this.value) {
+				case 'square': img.src = 'assets/brush_outline.png'; break;
+				case 'circle': img.src = 'assets/brush_outline_circle.png'; break;
+			}
 		},
 		icon_mode: true,
 		options: {
@@ -2226,6 +2159,7 @@ BARS.defineActions(function() {
 			highlightMirrorPaintingAxes();
 		},
 		side_menu: new Menu('mirror_painting', [
+			new MenuSeparator('options'),
 			// Enabled
 			{
 				name: 'menu.mirror_painting.enabled',
@@ -2243,7 +2177,7 @@ BARS.defineActions(function() {
 					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
 				]
 			},
-			'_',
+			new MenuSeparator('space'),
 			// Global
 			{
 				name: 'menu.mirror_painting.global',
@@ -2258,7 +2192,7 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.local,
 				click() {toggleMirrorPaintingSpace('local')}
 			},
-			'_',
+			new MenuSeparator('texture'),
 			// Texture
 			{
 				name: 'menu.mirror_painting.texture',
@@ -2302,7 +2236,7 @@ BARS.defineActions(function() {
 					}
 				}
 			},
-			'_',
+			new MenuSeparator('animated_texture'),
 			// Animated Texture Frames
 			{
 				name: 'menu.mirror_painting.texture_frames',
