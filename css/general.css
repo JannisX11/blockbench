@@ -297,6 +297,9 @@
 		cursor: inherit;
 		margin: 8px 0;
 	}
+	.markdown li > p {
+		margin: 0;
+	}
 	.markdown ul {
 		padding-left: 24px;
 	}

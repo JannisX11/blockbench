@@ -1681,7 +1681,7 @@
 	"action.graph_editor_zero_line": "Include Zero Line",
 	"action.graph_editor_zero_line.desc": "Whether the graph editor always includes the zero line in the view",
 	"action.graph_editor_other_graphs": "Display Other Graphs",
-	"action.graph_editor_other_graphs.desc": "Whether the graph graphs of the axes that are not selected are displayed",
+	"action.graph_editor_other_graphs.desc": "Whether the graphs of the axes that are not selected are displayed",
 	"action.graph_editor_include_other_graphs": "Include Other Graphs",
 	"action.graph_editor_include_other_graphs.desc": "Whether the graph editor includes the graphs that are not selected in the view",
 	"action.timeline_focus": "Filter Channels",
