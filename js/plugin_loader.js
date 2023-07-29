@@ -817,6 +817,7 @@ BARS.defineActions(function() {
 				},
 				setPage(number) {
 					this.page = number;
+					this.$refs.plugin_list.scrollTop = 0;
 				},
 				selectPlugin(plugin) {
 					plugin.fetchAbout();
@@ -864,7 +865,7 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
-						<ul class="list" id="plugin_list">
+						<ul class="list" id="plugin_list" ref="plugin_list">
 							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">

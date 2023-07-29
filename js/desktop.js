@@ -506,6 +506,7 @@ BARS.defineActions(() => {
 						},
 						setPage(number) {
 							this.page = number;
+							this.$refs.backups_list.scrollTop = 0;
 						}
 					},
 					computed: {
@@ -532,7 +533,7 @@ BARS.defineActions(() => {
 							<div class="bar">
 								<search-bar v-model="search_term" @input="setPage(0)"></search-bar>
 							</div>
-							<ul id="view_backups_list" class="list">
+							<ul id="view_backups_list" class="list" ref="backups_list">
 								<li v-for="backup in viewed_backups" :key="backup.id" :class="{selected: selected == backup}" @dblclick="open(backup)" @click="select(backup);">
 									<span :title="backup.id">{{ backup.name }}</span>
 									<div class="view_backups_info_field" :title="backup.date_long">{{ backup.date }}</div>
