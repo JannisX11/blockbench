@@ -391,9 +391,9 @@ class Preview {
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
 				if (element instanceof Cube) {
-					face = intersect_object.geometry.faces[Math.floor(intersect.faceIndex / 2)];
+					face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
 				} else if (element instanceof Mesh) {
-					let index = intersect.faceIndex;
+					let index = intersects[0].faceIndex;
 					for (let key in element.faces) {
 						let {vertices} = element.faces[key];
 						if (vertices.length < 3) continue;
