@@ -780,11 +780,12 @@ const Painter = {
 				})
 			}
 		}
+		targets = targets.filter(target => !!target);
 		targets.forEach(target => {
 			target.x = Math.roundTo(target.x, 8);
 			target.y = Math.roundTo(target.y, 8);
 		})
-		return targets.filter(target => !!target);
+		return targets;
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {
 		var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
