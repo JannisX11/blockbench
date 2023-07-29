@@ -1031,7 +1031,7 @@ class Preview {
 			var data = this.raycast(event);
 			updateCubeHighlights(data && data.element);
 
-			if (Toolbox.selected.brush?.size) {
+			if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
 				if (!data) {
 					scene.remove(Canvas.brush_outline);
 					return;

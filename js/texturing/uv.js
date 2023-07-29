@@ -3177,7 +3177,7 @@ Interface.definePanels(function() {
 					return [...min, ...max];
 				},
 				getBrushOutlineStyle() {
-					if (Toolbox.selected.brush) {
+					if (Toolbox.selected.brush && Settings.get('brush_cursor_2d')) {
 						var pixel_size = this.inner_width / (this.texture ? this.texture.width : Project.texture_width);
 						//pos
 						let offset = 0;
