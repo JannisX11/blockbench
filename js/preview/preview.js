@@ -1036,6 +1036,7 @@ class Preview {
 					scene.remove(Canvas.brush_outline);
 					return;
 				}
+				if (!data.element.faces) return;
 				let face = data.element.faces[data.face];
 				let texture = face.getTexture();
 				if (!texture) {

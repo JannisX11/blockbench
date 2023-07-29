@@ -87,6 +87,7 @@ const MirrorModeling = {
 	},
 	updateGroupCounterpart(group, original) {
 		group.extend(original);
+		group.createUniqueName();
 		group.isOpen = original.isOpen;
 
 		flipNameOnAxis(group, 0, name => true, original.name);
