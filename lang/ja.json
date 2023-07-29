@@ -1956,5 +1956,11 @@
     "action.element_render_order": "Transparency Render Order",
     "action.element_render_order.default": "Auto",
     "action.element_render_order.behind": "Behind",
-    "action.element_render_order.in_front": "In Front"
+    "action.element_render_order.in_front": "In Front",
+    "message.installing_update.title": "Update Available",
+    "message.installing_update.message": "A new version is ready to be installed. After closing the app, please allow for around %0 seconds before opening Blockbench again or turning off the computer, for the update to be installed.",
+    "settings.brush_cursor_2d": "2D Brush Cursor",
+    "settings.brush_cursor_2d.desc": "Display an outline around the brush in the 2D workspace",
+    "settings.brush_cursor_3d": "3D Brush Cursor",
+    "settings.brush_cursor_3d.desc": "Display an outline around the brush in the 3D workspace"
 }
