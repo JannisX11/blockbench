@@ -1956,5 +1956,11 @@
     "action.element_render_order": "Rendering-Reihenfolge",
     "action.element_render_order.default": "Auto",
     "action.element_render_order.behind": "Hinter",
-    "action.element_render_order.in_front": "Vor"
+    "action.element_render_order.in_front": "Vor",
+    "message.installing_update.title": "Update verfügbar",
+    "message.installing_update.message": "Eine neue Version ist zur Installation bereit. Nachdem du das Programm geschlossen hast, warte bitte etwa %0 Sekunden, bevor du Blockbench erneut öffnest oder den Computer ausschaltest, damit das Update installiert werden kann.",
+    "settings.brush_cursor_2d": "2D Pinselumriss",
+    "settings.brush_cursor_2d.desc": "Zeige den Umriss um den Pinselcursor im 2D Editor an",
+    "settings.brush_cursor_3d": "3D Pinselumriss",
+    "settings.brush_cursor_3d.desc": "Zeige den Umriss um den Pinselcursor in der 3D Vorschau a´n"
 }
