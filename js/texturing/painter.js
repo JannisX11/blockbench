@@ -1112,19 +1112,24 @@ const Painter = {
 		var mix = {};
 		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
 
+		let luminance;
+		if (blend_mode == 'color') {
+			luminance = (base.r * 0.2126 + base.g * 0.7152 + base.b * 0.0722) / 255;
+			mix.a = base.a;
+		}
+
 		['r', 'g', 'b'].forEach(ch => {
 			let normal_base = base[ch] / 255;
 			let normal_added = added[ch] / 255;
 			if (base.a == 0) normal_base = normal_added;
 
 			switch (blend_mode) {
-
 				case 'behind':
 				mix[ch] = (normal_base * base.a / mix.a)  +  (normal_added * added.a * (1 - base.a) / mix.a);
 				break;
 
 				case 'color':
-				mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
+				mix[ch] = (luminance * normal_added * added.a) + (normal_base * (1-added.a));
 				break;
 
 				case 'multiply':
