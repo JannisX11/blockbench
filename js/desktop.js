@@ -648,9 +648,19 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-function closeBlockbenchWindow() {
+async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
+	}
+	if (Blockbench.hasFlag('update_downloaded')) {
+		await new Promise(resolve => {
+			Blockbench.showMessageBox({
+				title: 'message.installing_update.title',
+				message: tl('message.installing_update.message', '60'),
+				icon: 'update',
+				width: 534
+			}, resolve);
+		})
 	}
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
@@ -694,6 +704,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 			console.error(err);
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
+			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
 			icon_node.textContent = 'done';
