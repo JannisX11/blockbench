@@ -614,12 +614,15 @@ window.Dialog = class Dialog {
 						break;
 					case 'file':
 						delete data.file;
-						if (isApp) {
+						if (data.return_as == 'file' && typeof value == 'object') {
+							data.file = value;
+							data.value = data.file.name;
+						} else if (isApp) {
 							data.value = value;
 						} else {
 							data.content = value;
 						}
-						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : value);
+						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 						break;
 				}
 			}
