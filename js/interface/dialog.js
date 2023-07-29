@@ -312,6 +312,8 @@ function buildForm(dialog) {
 					remove_button.on('click', e => {
 						e.stopPropagation();
 						data.value = '';
+						delete data.content;
+						delete data.file;
 						input.val('');
 					})
 
@@ -611,6 +613,7 @@ window.Dialog = class Dialog {
 						data.bar.find('input').prop('checked', value);
 						break;
 					case 'file':
+						delete data.file;
 						if (isApp) {
 							data.value = value;
 						} else {
