@@ -319,6 +319,8 @@ const Screencam = {
 						NoAAPreview.camera.right = preview.camera.right;
 						NoAAPreview.camera.left = preview.camera.left;
 						NoAAPreview.camOrtho.updateProjectionMatrix();
+					} else {
+						NoAAPreview.setFOV(preview.camPers.fov);
 					}
 
 					let [canvas, ctx] = createEmptyCanvas();
