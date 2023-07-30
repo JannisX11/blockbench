@@ -1619,17 +1619,16 @@ class Texture {
 	])
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
-			return Texture.selected;
+			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
+				return Texture.selected;
+			} else {
+				return Texture.all.findLast(tex => tex.visible);
+			}
 		} else if (Texture.selected) {
 			Texture.selected = undefined;
 		}
 		if (Texture.all.length > 1 && Texture.all.find(t => t.render_mode == 'layered')) {
-			var i = 0;
-			for (var i = Texture.all.length-1; i >= 0; i--) {
-				if (Texture.all[i].visible) {
-					return Texture.all[i]
-				}
-			}
+			return Texture.all.findLast(tex => tex.visible);
 		}
 		return Texture.all[0]
 	}

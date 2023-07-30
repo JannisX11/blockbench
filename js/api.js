@@ -191,7 +191,7 @@ const Blockbench = {
 		}
 	},
 	showMessageBox(options = 0, cb) {
-		new MessageBox(options, cb).show();
+		return new MessageBox(options, cb).show();
 	},
 	async textPrompt(title, value, callback, placeholder = null) {
 		let answer = await new Promise((resolve) => {

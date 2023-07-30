@@ -490,8 +490,12 @@ const Settings = {
 		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
-		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('brush_cursor_2d',			{category: 'paint', value: true});
+		new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
+			if (!value) scene.remove(Canvas.brush_outline);
+		}});
 		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
+		new Setting('pick_color_opacity',			{category: 'paint', value: false});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});

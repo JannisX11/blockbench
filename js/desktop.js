@@ -506,6 +506,7 @@ BARS.defineActions(() => {
 						},
 						setPage(number) {
 							this.page = number;
+							this.$refs.backups_list.scrollTop = 0;
 						}
 					},
 					computed: {
@@ -532,7 +533,7 @@ BARS.defineActions(() => {
 							<div class="bar">
 								<search-bar v-model="search_term" @input="setPage(0)"></search-bar>
 							</div>
-							<ul id="view_backups_list" class="list">
+							<ul id="view_backups_list" class="list" ref="backups_list">
 								<li v-for="backup in viewed_backups" :key="backup.id" :class="{selected: selected == backup}" @dblclick="open(backup)" @click="select(backup);">
 									<span :title="backup.id">{{ backup.name }}</span>
 									<div class="view_backups_info_field" :title="backup.date_long">{{ backup.date }}</div>
@@ -647,9 +648,19 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-function closeBlockbenchWindow() {
+async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
+	}
+	if (Blockbench.hasFlag('update_downloaded')) {
+		await new Promise(resolve => {
+			Blockbench.showMessageBox({
+				title: 'message.installing_update.title',
+				message: tl('message.installing_update.message', '60'),
+				icon: 'update',
+				width: 534
+			}, resolve);
+		})
 	}
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
@@ -693,6 +704,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 			console.error(err);
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
+			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
 			icon_node.textContent = 'done';

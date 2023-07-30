@@ -312,6 +312,8 @@ function buildForm(dialog) {
 					remove_button.on('click', e => {
 						e.stopPropagation();
 						data.value = '';
+						delete data.content;
+						delete data.file;
 						input.val('');
 					})
 
@@ -611,12 +613,16 @@ window.Dialog = class Dialog {
 						data.bar.find('input').prop('checked', value);
 						break;
 					case 'file':
-						if (isApp) {
+						delete data.file;
+						if (data.return_as == 'file' && typeof value == 'object') {
+							data.file = value;
+							data.value = data.file.name;
+						} else if (isApp) {
 							data.value = value;
 						} else {
 							data.content = value;
 						}
-						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : value);
+						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 						break;
 				}
 			}
