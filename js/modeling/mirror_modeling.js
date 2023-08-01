@@ -251,9 +251,11 @@ Blockbench.on('init_edit', ({aspects}) => {
 
 				let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
 				if (!is_centered) {
-					data.is_original = Math.sign(element.getWorldCenter().x) != edit_side;
+					data.is_copy = Math.sign(element.getWorldCenter().x) != edit_side;
 					data.counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
-					if (!data.counterpart) data.is_original = true;
+					if (!data.counterpart) data.is_copy = false;
+				} else {
+					data.is_copy = false;
 				}
 			}
 		})
