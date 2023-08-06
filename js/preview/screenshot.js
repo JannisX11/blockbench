@@ -310,8 +310,10 @@ const Screencam = {
 				frames++;
 				Canvas.withoutGizmos(function() {
 					// Update camera
+					NoAAPreview.controls.unlinked = preview.controls.unlinked;
 					NoAAPreview.controls.target.copy(preview.controls.target);
 					NoAAPreview.camera.position.copy(preview.camera.position);
+					NoAAPreview.camera.quaternion.copy(preview.camera.quaternion);
 					if (NoAAPreview.isOrtho) {
 						NoAAPreview.camera.zoom = preview.camera.zoom;
 						NoAAPreview.camera.top = preview.camera.top;
@@ -343,6 +345,7 @@ const Screencam = {
 					if (options.format == 'png_sequence' || options.format == 'gif' || options.format == 'apng') {
 						frame_canvases.push(canvas);
 					}
+					NoAAPreview.controls.unlinked = false;
 				})
 				Blockbench.setProgress(getProgress());
 				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
