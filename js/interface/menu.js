@@ -436,7 +436,7 @@ class Menu {
 				if (child_count !== 0 || typeof s.click === 'function') {
 					parent.append(entry)
 				}
-				entry.addEventListener('mouseenter', (e) => {
+				addEventListeners(entry, 'mouseenter mouseover', (e) => {
 					scope.hover(entry, e);
 				})
 			}
