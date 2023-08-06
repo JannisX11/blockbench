@@ -663,8 +663,9 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		for (let key in this.faces) {
-			if (object_mode || this.faces[key].isSelected(key)) {
-				this.faces[key].invert();
+			let face = this.faces[key];
+			if (object_mode || face.isSelected(key) || face.vertices.allAre(vkey => selected_vertices.includes(vkey))) {
+				face.invert();
 			}
 		}
 
