@@ -608,7 +608,7 @@ onVueSetup(function() {
 				</div>`
 		},
 		onButton() {
-			Settings.save();
+			Keybinds.save();
 		},
 		onOpen() {
 			updateKeybindConflicts();
