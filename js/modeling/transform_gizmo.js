@@ -1161,11 +1161,12 @@
 					var animator = Animation.selected.getBoneAnimator();
 					if (animator) {
 
-						var {before, result} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
+						var {before, result, new_keyframe} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
 
 						Undo.initEdit({keyframes: before ? [before] : []})
 						result.select();
 						scope.keyframes.push(result);
+						if (new_keyframe) scope.keyframes.push(new_keyframe)
 					}
 
 				} else if (Modes.id === 'display') {

@@ -460,6 +460,7 @@ const Settings = {
 			'mesh_selection': tl('menu.paste.mesh_selection'),
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
+		new Setting('auto_keyframe',		{category: 'edit', value: true});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});

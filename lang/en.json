@@ -855,6 +855,8 @@
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
 	"settings.stretch_linked": "Link Stretching",
 	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
+	"settings.auto_keyframe": "Auto Keyframe",
+	"settings.auto_keyframe.desc": "Automatically create a keyframe with default values at the timeline start when transforming the bone at a later point",
 
 	"settings.grids": "Show Grids",
 	"settings.grids.desc": "Show or hide all 3D grids",
