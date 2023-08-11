@@ -247,7 +247,7 @@ const Timeline = {
 	},
 	setup() {
 		document.getElementById('timeline_body').addEventListener('mousedown', e => {
-			if (e.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(e)) {
+			if (e.which === 2 || (Keybinds.extra.preview_drag.keybind.isTriggered(e) && e.which !== 1)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
 				function move(e2) {
