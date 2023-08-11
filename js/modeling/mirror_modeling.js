@@ -25,6 +25,12 @@ const MirrorModeling = {
 		if (mirror_element && mirror_element !== original) {
 			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
 			mirror_element.extend(original);
+			
+			mirror_element.flip(0, center);
+
+			mirror_element.extend({
+				name: element_before_snapshot.name
+			});
 
 			// Update hierarchy up
 			function updateParent(child, child_b) {
@@ -73,8 +79,8 @@ const MirrorModeling = {
 			}
 			let add_to = getParentMirror(original);
 			mirror_element = new original.constructor(original).addTo(add_to).init();
+			mirror_element.flip(0, center);
 		}
-		mirror_element.flip(0, center);
 
 		MirrorModeling.insertElementIntoUndo(mirror_element, undo_aspects, element_before_snapshot);
 
@@ -86,11 +92,13 @@ const MirrorModeling = {
 		return mirror_element;
 	},
 	updateGroupCounterpart(group, original) {
+		let keep_properties = {
+			name: group.name
+		};
 		group.extend(original);
-		group.createUniqueName();
-		group.isOpen = original.isOpen;
+		group.extend(keep_properties);
 
-		flipNameOnAxis(group, 0, name => true, original.name);
+		//flipNameOnAxis(group, 0, name => true, original.name);
 		group.origin[0] = MirrorModeling.flipCoord(group.origin[0]);
 		group.rotation[1] *= -1;
 		group.rotation[2] *= -1;

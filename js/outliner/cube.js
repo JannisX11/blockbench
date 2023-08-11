@@ -465,6 +465,8 @@ class Cube extends OutlinerElement {
 		this.from[axis] = center - (this.to[axis] - center)
 		this.to[axis] = center - (from - center)
 		this.origin[axis] = center - (this.origin[axis] - center)
+		
+		flipNameOnAxis(this, axis);
 
 		if (!skipUV) {
 

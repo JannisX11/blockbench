@@ -648,6 +648,9 @@ class Mesh extends OutlinerElement {
 		this.rotation.forEach((n, i) => {
 			if (i != axis) this.rotation[i] = -n;
 		})
+
+		flipNameOnAxis(this, axis);
+
 		this.preview_controller.updateTransform(this);
 
 		this.preview_controller.updateGeometry(this);
@@ -675,6 +678,8 @@ class Mesh extends OutlinerElement {
 				if (i != axis) this.rotation[i] = -n;
 			})
 			this.preview_controller.updateTransform(this);
+
+			flipNameOnAxis(this, axis);
 		}
 
 		this.preview_controller.updateGeometry(this);
