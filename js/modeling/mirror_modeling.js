@@ -22,7 +22,9 @@ const MirrorModeling = {
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
 		let element_before_snapshot;
 
-		if (mirror_element && mirror_element !== original) {
+		if (mirror_element == original) return;
+
+		if (mirror_element) {
 			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
 			mirror_element.extend(original);
 			
@@ -89,6 +91,7 @@ const MirrorModeling = {
 		preview_controller.updateGeometry(mirror_element);
 		preview_controller.updateFaces(mirror_element);
 		preview_controller.updateUV(mirror_element);
+		preview_controller.updateVisibility(mirror_element);
 		return mirror_element;
 	},
 	updateGroupCounterpart(group, original) {
