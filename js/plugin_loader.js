@@ -99,7 +99,11 @@ class Plugin {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
-			$.getScript(Plugins.path + scope.id + '.js', () => {
+			let path = Plugins.path + scope.id + '.js';
+			if (!isApp && this.new_repository_format)  {
+				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
+			}
+			$.getScript(path, () => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
