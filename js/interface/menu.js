@@ -217,6 +217,7 @@ class Menu {
 		function populateList(list, menu_node, searchable) {
 			
 			if (searchable) {
+				let display_limit = 256;
 				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search'), inputmode: 'search'});
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
@@ -246,7 +247,9 @@ class Menu {
 					object_list.forEach(item => {
 						$(item.node).detach();
 					})
-					object_list.forEach(item => {
+					let count = 0;
+					for (let item of object_list) {
+						if (count > display_limit) break;
 						if (
 							typeof item.object == 'string' ||
 							item.object.always_show ||
@@ -255,9 +258,11 @@ class Menu {
 							(item.description && item.description.toUpperCase().includes(search_term))
 						) {
 							menu_node.append(item.node);
+							count++;
 						}
-					})
+					}
 				}
+				input.oninput(0);
 				if (menu_node == ctxmenu) {
 					input.focus();
 				}
@@ -293,7 +298,7 @@ class Menu {
 				entry = s.menu_node;
 				var last = parent.children().last()
 				if (last.length && !last.hasClass('menu_separator')) {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
 				return entry;
 			}
@@ -329,7 +334,7 @@ class Menu {
 					}
 				}
 
-				parent.append(entry)
+				parent[0].append(entry)
 
 			} else if (s instanceof BarSelect) {
 				
@@ -368,7 +373,7 @@ class Menu {
 				let child_count = createChildList({children}, entry)
 
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
 				entry.addEventListener('mouseenter', function(e) {
 					scope.hover(entry, e);
@@ -397,14 +402,14 @@ class Menu {
 				]);
 				entry.prepend(icon);
 
-				parent.append(entry);
+				parent[0].append(entry);
 
 				$(entry).mouseenter(function(e) {
 					scope.hover(this, e)
 				})
 				*/
 			} else if (s instanceof HTMLElement) {
-				parent.append(s);
+				parent[0].append(s);
 
 			} else if (typeof s === 'object') {
 				
@@ -434,7 +439,7 @@ class Menu {
 					child_count = createChildList(s, entry);
 				}
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
 				addEventListeners(entry, 'mouseenter mouseover', (e) => {
 					scope.hover(entry, e);
