@@ -305,9 +305,15 @@ BARS.defineActions(function() {
 							plugin.name.toLowerCase().includes(search_input) ||
 							plugin.description.toLowerCase().includes(search_input))
 						) {
+							let icon = plugin.icon;
+							if (plugin.hasImageIcon()) {
+								icon = document.createElement('img');
+								icon.classList.add('icon');
+								icon.src = plugin.getIcon();
+							}
 							list.push({
 								name: plugin.name,
-								icon: plugin.icon,
+								icon,
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,

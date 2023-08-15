@@ -513,6 +513,7 @@ onVueSetup(function() {
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
 					let parsed_backup_models = JSON.parse(backup_models);
 					for (let uuid in parsed_backup_models) {
+						AutoBackupModels[uuid] = parsed_backup_models[uuid];
 						Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
 					}
 					section.delete();

@@ -1183,14 +1183,16 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'r', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 1)},
 		click() {
-			let selected_face;
+			let selected_face, selected_face_key;
 			let saved_direction = 0;
 			Mesh.selected.forEach(mesh => {
 				if (!selected_face) {
-					selected_face = mesh.faces[mesh.getSelectedFaces()[0]];
+					selected_face_key = mesh.getSelectedFaces()[0];
+					selected_face = mesh.faces[selected_face_key];
 				}
 			})
 			function getLength(direction = 0) {
+				selected_face = Mesh.selected.last().faces[selected_face_key];
 				if (selected_face) {
 					let vertices = selected_face.getSortedVertices();
 					let pos1 = Mesh.selected[0].vertices[vertices[(0 + direction) % selected_face.vertices.length]];

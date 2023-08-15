@@ -72,6 +72,10 @@ class Setting {
 			if (!this.icon) this.icon = 'settings';
 		}
 		this.keybind_label = tl('data.setting');
+
+		if (Blockbench.setup_successful) {
+			Settings.saveLocalStorages();
+		}
 	}
 	get value() {
 		let profile = SettingsProfile.all.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);

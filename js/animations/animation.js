@@ -2500,7 +2500,7 @@ Interface.definePanels(function() {
 
 					<vue-prism-editor
 						id="var_placeholder_area"
-						class="molang_input tab_target"
+						class="molang_input tab_target capture_tab_key"
 						v-model="text"
 						language="molang"
 						:autocomplete="autocomplete"

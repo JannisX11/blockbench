@@ -54,6 +54,7 @@ class Plugin {
 		this.about_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
+		this.cache_version = 0;
 
 		this.extend(data)
 
@@ -98,7 +99,11 @@ class Plugin {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
-			$.getScript(Plugins.path + scope.id + '.js', () => {
+			let path = Plugins.path + scope.id + '.js';
+			if (!isApp && this.new_repository_format)  {
+				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
+			}
+			$.getScript(path, () => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -403,6 +408,7 @@ class Plugin {
 	reload() {
 		if (!isApp && this.source == 'file') return this;
 
+		this.cache_version++;
 		this.unload()
 		this.tags.empty();
 		this.dependencies.empty();
@@ -414,6 +420,9 @@ class Plugin {
 		} else if (this.source == 'url') {
 			this.loadFromURL(this.path, false)
 		}
+
+		this.fetchAbout(true);
+
 		return this;
 	}
 	toggleDisabled() {
@@ -464,14 +473,14 @@ class Plugin {
 					return Plugins.path + this.id + '.' + this.icon;
 				}
 				if (this.source != 'store')
-					return this.path.replace(/\w+\.js$/, this.icon);
+					return this.path.replace(/\w+\.js$/, this.icon + (this.cache_version ? '?'+this.cache_version : ''));
 				}
 			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`;
 		}
 		return this.icon;
 	}
-	async fetchAbout() {
-		if (!this.about_fetched && !this.about && this.new_repository_format) {
+	async fetchAbout(force) {
+		if (((!this.about_fetched && !this.about) || force) && this.new_repository_format) {
 			if (isApp && this.installed) {
 				try {
 					let about_path;

@@ -93,11 +93,6 @@ class CubeFace extends Face {
 		vector.x -= this.cube.origin[0];
 		vector.y -= this.cube.origin[1];
 		vector.z -= this.cube.origin[2];
-		if (!Format.centered_grid) {
-			vector.x += 8;
-			vector.y += 8;
-			vector.z += 8;
-		}
 		return vector;
 	}
 }
@@ -465,6 +460,8 @@ class Cube extends OutlinerElement {
 		this.from[axis] = center - (this.to[axis] - center)
 		this.to[axis] = center - (from - center)
 		this.origin[axis] = center - (this.origin[axis] - center)
+		
+		flipNameOnAxis(this, axis);
 
 		if (!skipUV) {
 

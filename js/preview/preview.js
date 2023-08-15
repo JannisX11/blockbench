@@ -1067,6 +1067,11 @@ class Preview {
 				brush_coord_difference_x.sub(brush_coord);
 				brush_coord_difference_y.sub(brush_coord);
 				intersect.object.localToWorld(brush_coord);
+				if (!Format.centered_grid) {
+					brush_coord.x += 8;
+					brush_coord.y += 8;
+					brush_coord.z += 8;
+				}
 				Canvas.brush_outline.position.copy(brush_coord);
 
 				// z fighting
@@ -1981,6 +1986,7 @@ function updateShading() {
 	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
+	Blockbench.dispatchEvent('update_scene_shading');
 }
 function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {

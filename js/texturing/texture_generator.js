@@ -217,10 +217,10 @@ const TextureGenerator = {
 			let obj = cubes[i];
 			if (obj.visibility === true) {
 				let template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[obj.uuid] && MirrorModeling.cached_elements[obj.uuid].is_original == false;
+				let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[obj.uuid] && MirrorModeling.cached_elements[obj.uuid].is_copy;
 				if (mirror_modeling_duplicate) continue;
 
-				if ((options.double_use && Project.box_uv && Texture.all.length) || mirror_modeling_duplicate) {
+				if (options.double_use && Project.box_uv && Texture.all.length) {
 					let double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
 					if (doubles[double_key]) {
 						// improve chances that original is not mirrored
@@ -231,7 +231,6 @@ const TextureGenerator = {
 							doubles[double_key].push(template)
 						}
 						doubles[double_key][0].duplicates = doubles[double_key];
-						i--;
 						continue;
 					} else {
 						doubles[double_key] = [template]
@@ -692,7 +691,7 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
-			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
 			if (element instanceof Cube) {
 				for (var face_key in element.faces) {
@@ -1626,7 +1625,7 @@ const TextureGenerator = {
 		})
 
 		element_list.forEach(element => {
-			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_original == false;
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];

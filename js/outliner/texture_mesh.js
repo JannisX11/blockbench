@@ -288,7 +288,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 
-		this.dispatchEvent('update_geometry', {element});
+		this.dispatchEvent('update_geometry', {element, texture});
 	},
 	updateFaces(element) {
 		let {mesh} = element;
