@@ -145,7 +145,7 @@ const Painter = {
 				Painter.current.element = data.element
 				new_face = true
 				UVEditor.vue.texture = texture;
-				if (texture !== Painter.current.texture) {
+				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTexture(texture)
 				}
 			} else {
@@ -1772,7 +1772,7 @@ BARS.defineActions(function() {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 					let size = BarItems.slider_brush_size.get();
 					copy_source = {
-						data: texture.canvas.getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
+						data: Painter.getCanvas(texture).getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
 						width: texture.width,
 						height: texture.height,
 						size,
