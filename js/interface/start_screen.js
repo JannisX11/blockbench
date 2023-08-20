@@ -514,7 +514,10 @@ onVueSetup(function() {
 					let parsed_backup_models = JSON.parse(backup_models);
 					for (let uuid in parsed_backup_models) {
 						AutoBackupModels[uuid] = parsed_backup_models[uuid];
-						Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
+
+						let model = parsed_backup_models[uuid];
+						setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
+						Codecs.project.parse(model, file.path)
 					}
 					section.delete();
 				}},

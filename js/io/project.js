@@ -1,9 +1,9 @@
 class ModelProject {
-	constructor(options = {}) {
+	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
 		}
-		this.uuid = guid();
+		this.uuid = uuid || guid();
 		this.selected = false;
 		this.locked = false;
 		this.thumbnail = '';
@@ -523,9 +523,10 @@ let Project = 0;
 let ProjectData = {};
 
 // Setup ModelProject for loaded project
-function setupProject(format) {
+function setupProject(format, uuid) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
-	new ModelProject({format}).select();
+	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
+	new ModelProject({format}, uuid).select();
 
 	if (format.edit_mode) {
 		Modes.options.edit.select();
