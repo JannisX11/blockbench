@@ -169,7 +169,7 @@ var codec = new Codec('project', {
 		Texture.all.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
-			if (isApp && Project.save_path && tex.path) {
+			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}

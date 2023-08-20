@@ -491,7 +491,7 @@ class Texture {
 		}
 
 		let duplicate = Texture.all.find(tex => (tex !== this && tex.path === this.path && tex.saved));
-		if (duplicate && isApp) {
+		if (duplicate && isApp && this.path && PathModule.isAbsolute(this.path)) {
 			if (!Format.single_texture) {
 				let affected_elements = Outliner.elements.filter(el => {
 					if (typeof el.faces !== 'object') return false;
