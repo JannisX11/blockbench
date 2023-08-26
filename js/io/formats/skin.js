@@ -1162,6 +1162,33 @@ skin_presets.bamboo_raft = {
 		]
 	}`
 };
+skin_presets.banner = {
+	display_name: 'Banner',
+	model: `{
+		"name": "banner_base",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "stand",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-10, 42, 0], "size": [20, 2, 2], "uv": [0, 42]},
+					{"origin": [-1, 0, 0], "size": [2, 42, 2], "uv": [44, 0]}
+				]
+			},
+			{
+				"name": "banner",
+				"parent": "stand",
+				"pivot": [0, 44, 0],
+				"rotation": [-2, 0, 0],
+				"cubes": [
+					{"origin": [-10, 4, -1], "size": [20, 40, 1], "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.bat = {
 	display_name: 'Bat',
 	pose: true,
@@ -1804,6 +1831,45 @@ skin_presets.cat = {
 				"pivot": [-1.2, 10, -4],
 				"cubes": [
 					{"name": "frontLegR", "origin": [-2.2, 0.2, -5], "size": [2, 10, 2], "uv": [40, 0]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.cape_elytra = {
+	display_name: 'Cape + Elytra',
+	model: `{
+		"name": "cape and elytra",
+		"texturewidth": 64,
+		"textureheight": 32,
+		"bones": [
+			{
+				"name": "cape",
+				"pivot": [9, 24, 3],
+				"rotation": [0, 180, 0],
+				"cubes": [
+					{"origin": [4, 8, 3], "size": [10, 16, 1], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "elytra",
+				"pivot": [-14, 24, 1]
+			},
+			{
+				"name": "left_wing",
+				"parent": "elytra",
+				"pivot": [-14, 28, 1],
+				"cubes": [
+					{"origin": [-24, 4, 1], "size": [10, 20, 2], "uv": [22, 0]}
+				]
+			},
+			{
+				"name": "right_wing",
+				"parent": "elytra",
+				"pivot": [-14, 28, 1],
+				"mirror": true,
+				"cubes": [
+					{"origin": [-14, 4, 1], "size": [10, 20, 2], "uv": [22, 0], "mirror": true}
 				]
 			}
 		]
