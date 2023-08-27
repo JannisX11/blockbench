@@ -794,6 +794,8 @@
 	"settings.username.desc": "Username for edit sessions",
 	"settings.streamer_mode": "Streamer Mode",
 	"settings.streamer_mode.desc": "Hides sensitive information like recent models",
+	"settings.cdn_mirror": "Use CDN Mirror",
+	"settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work.",
 
 	"settings.interface_scale": "Interface Scale",
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",

@@ -364,6 +364,7 @@ const Settings = {
 			Interface.status_bar.vue.streamer_mode = settings.streamer_mode.value;
 			updateStreamerModeNotification();
 		}});
+		new Setting('cdn_mirror', {value: false});
 
 		//Interface
 		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
