@@ -1934,7 +1934,7 @@
     "action.uv_project_from_view": "UV Project from View",
     "action.uv_project_from_view.desc": "Automatically generate UVs for the selected faces from the perspective of the 3D view",
     "action.graph_editor_other_graphs": "Display Other Graphs",
-    "action.graph_editor_other_graphs.desc": "Whether the graph graphs of the axes that are not selected are displayed",
+    "action.graph_editor_other_graphs.desc": "Whether the graphs of the axes that are not selected are displayed",
     "action.graph_editor_include_other_graphs": "Include Other Graphs",
     "action.graph_editor_include_other_graphs.desc": "Whether the graph editor includes the graphs that are not selected in the view",
     "action.set_ik_source": "Set IK Root",
@@ -1962,5 +1962,7 @@
     "settings.brush_cursor_2d": "2D Brush Cursor",
     "settings.brush_cursor_2d.desc": "Display an outline around the brush in the 2D workspace",
     "settings.brush_cursor_3d": "3D Brush Cursor",
-    "settings.brush_cursor_3d.desc": "Display an outline around the brush in the 3D workspace"
+    "settings.brush_cursor_3d.desc": "Display an outline around the brush in the 3D workspace",
+    "settings.cdn_mirror": "Use CDN Mirror",
+    "settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work."
 }
