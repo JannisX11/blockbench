@@ -615,8 +615,8 @@ function setProjectTitle(title) {
 		Prop.file_name = Prop.file_name_alt = ''
 	}
 	if (Project && !Project.saved) window_title = '● ' + window_title;
-	$('title').text(window_title);
-	$('#header_free_bar').text(window_title);
+	document.title = window_title;
+	document.getElementById('header_free_bar').innerText = window_title;
 }
 //Zoom
 function setZoomLevel(mode) {
