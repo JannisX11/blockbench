@@ -517,7 +517,7 @@ onVueSetup(function() {
 
 						let model = parsed_backup_models[uuid];
 						setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
-						Codecs.project.parse(model, file.path)
+						Codecs.project.parse(model, 'backup.bbmodel')
 					}
 					section.delete();
 				}},

@@ -1786,7 +1786,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length >= 2)},
 		click() {
 			let elements = Mesh.selected.slice();
-			Undo.initEdit({elements});
+			Undo.initEdit({elements, outliner: true});
 			let original = Mesh.selected[0];
 			let vector = new THREE.Vector3();
 
