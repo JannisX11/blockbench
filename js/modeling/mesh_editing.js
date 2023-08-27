@@ -1315,9 +1315,11 @@ BARS.defineActions(function() {
 										let ref_sorted_vertices = ref_face.getSortedVertices();
 										let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
 										
-										if(ref_opposite_vertices.length == 2)
-										{
+										if (ref_opposite_vertices.length == 2) {
 											splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4, 0);
+											break;
+										} else if (ref_opposite_vertices.length == 1) {
+											splitFace(ref_face, side_vertices, false, 0);
 											break;
 										}
 									}
@@ -1786,7 +1788,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length >= 2)},
 		click() {
 			let elements = Mesh.selected.slice();
-			Undo.initEdit({elements});
+			Undo.initEdit({elements, outliner: true});
 			let original = Mesh.selected[0];
 			let vector = new THREE.Vector3();
 

@@ -104,6 +104,10 @@ class UndoSystem {
 					}
 				}
 			}
+			if (Undo.history.length != Undo.index) {
+				console.error('Detected error in amending edit. Skipping this edit.');
+				return;
+			}
 			Undo.undo(null, true);
 			callback(form_values, scope.amend_edit_menu.form);
 		}

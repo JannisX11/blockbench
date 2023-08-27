@@ -1962,5 +1962,7 @@
     "settings.brush_cursor_2d": "Con trỏ cọ vẽ 2D",
     "settings.brush_cursor_2d.desc": "Hiển thị đường viền xung quanh cọ vẽ trong môi trường 2D",
     "settings.brush_cursor_3d": "Con trỏ cọ vẽ 3D",
-    "settings.brush_cursor_3d.desc": "Hiển thị đường viền xung quanh cọ vẽ trong môi trường 3D"
+    "settings.brush_cursor_3d.desc": "Hiển thị đường viền xung quanh cọ vẽ trong môi trường 3D",
+    "settings.cdn_mirror": "Use CDN Mirror",
+    "settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work."
 }

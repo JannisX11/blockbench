@@ -75,7 +75,7 @@ function loadModelFile(file) {
 		}
 	}
 
-	// Text
+	// Image
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'image', file.content);
 		if (success) return;
@@ -577,6 +577,10 @@ BARS.defineActions(function() {
 				resource_id: 'model',
 				extensions: Codec.getAllExtensions(),
 				type: 'Model',
+				readtype: file => {
+					if (typeof file == 'string' && file.search(/\.png$/i) > 0) {
+						return 'image'
+					}},
 				startpath,
 				multiple: true
 			}, function(files) {

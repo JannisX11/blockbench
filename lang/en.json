@@ -794,6 +794,8 @@
 	"settings.username.desc": "Username for edit sessions",
 	"settings.streamer_mode": "Streamer Mode",
 	"settings.streamer_mode.desc": "Hides sensitive information like recent models",
+	"settings.cdn_mirror": "Use CDN Mirror",
+	"settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work.",
 
 	"settings.interface_scale": "Interface Scale",
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
@@ -880,7 +882,7 @@
 	"settings.local_move": "Move on Relative Axes",
 	"settings.local_move.desc": "Move rotated elements on their own axes if possible",
 	"settings.canvas_unselect": "Unselect when Clicking Background",
-	"settings.canvas_unselect.desc": "Unselects all elements when clicking on the background behind the model",
+	"settings.canvas_unselect.desc": "Unselects all elements when clicking on the background behind the model or in the timeline",
 	"settings.double_click_switch_tools": "Switch Tools on Double Click",
 	"settings.double_click_switch_tools.desc": "Double click the viewport to switch between tools",
 	"settings.highlight_cubes": "Highlight Elements",

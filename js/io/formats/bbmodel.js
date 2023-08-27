@@ -68,8 +68,7 @@ var codec = new Codec('project', {
 		type: 'json',
 		extensions: ['bbmodel']
 	},
-	load(model, file, add) {
-
+	load(model, file) {
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		if (file.path && isApp && !file.no_file ) {
@@ -170,7 +169,7 @@ var codec = new Codec('project', {
 		Texture.all.forEach(tex => {
 			var t = tex.getUndoCopy();
 			delete t.selected;
-			if (isApp && Project.save_path && tex.path) {
+			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
