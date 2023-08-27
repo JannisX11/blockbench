@@ -1962,5 +1962,7 @@
     "settings.brush_cursor_2d": "2D Pinselumriss",
     "settings.brush_cursor_2d.desc": "Zeige den Umriss um den Pinselcursor im 2D Editor an",
     "settings.brush_cursor_3d": "3D Pinselumriss",
-    "settings.brush_cursor_3d.desc": "Zeige den Umriss um den Pinselcursor in der 3D Vorschau a´n"
+    "settings.brush_cursor_3d.desc": "Zeige den Umriss um den Pinselcursor in der 3D Vorschau a´n",
+    "settings.cdn_mirror": "CDN Mirror verwenden",
+    "settings.cdn_mirror.desc": "Den CDN Mirror verwenden, um auf Plugins zuzugreifen. Der Mirror erhält Plugin Updates schneller und funktioniert in Regionen, in denen das CDN sonst nicht funktioniert."
 }
