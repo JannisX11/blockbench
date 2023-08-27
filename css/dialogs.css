@@ -1657,10 +1657,11 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	#action_selector ul > li div.icon_wrapper {
-		display: inline-block;
-		height: 26px;
-		vertical-align: text-top;
+	#action_selector ul > li .icon {
+		width: 26px;
+		max-width: 26px;
+		text-align: center;
+		flex-shrink: 0;
 	}
 	.action_selector_type_overlay {
 		position: absolute;

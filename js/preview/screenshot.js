@@ -240,6 +240,9 @@ const Screencam = {
 				background_image = null;
 			}
 		}
+		if (options.format == 'gif' || options.format == 'apng') {
+			interval = Math.max(Math.round(interval/10) * 10, 20);
+		}
 
 		function getProgress() {
 			switch (options.length_mode) {

@@ -171,11 +171,12 @@ function flipNameOnAxis(node, axis, check, original_name) {
 			let name = original_name
 						? original_name.replace(a, b)
 						: node.name.replace(a, b).replace(/2/, '');
-			if (check(name)) node.name = name;
+			if (!check || check(name)) node.name = name;
 			return true;
 		}
 	}
 	let pairs = flip_pairs[axis];
+	Blockbench.dispatchEvent('flip_node_name', {pairs, node, axis, original_name});
 	for (let a in pairs) {
 		let b = pairs[a];
 		if (matchAndReplace(a, b)) break;

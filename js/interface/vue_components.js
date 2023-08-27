@@ -143,6 +143,6 @@ Vue.component('dynamic-icon', {
 	},
 	render(h) {
 		let node = Blockbench.getIconNode(this.icon, this.color);
-		return h(node.tagName, {class: node.className, src: node.attributes.src?.value}, node.textContent);
+		return h(node.tagName, {class: node.className, attrs: {src: node.attributes.src?.value}}, node.textContent);
 	}
 })

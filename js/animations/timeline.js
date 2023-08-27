@@ -96,16 +96,21 @@ const Timeline = {
 				e.clientX - R.panel_offset[0],
 				e.clientY - R.panel_offset[1],
 			]
+			R.start_event = e;
 			if (e.shiftKey || Pressing.overrides.shift) {
 				Timeline.selector.selected_before = Timeline.selected.slice();
 			}
-			R.selecting = true;
-			$('#timeline_selector').show()
-			Timeline.selector.move(e)
 		},
 		move(e) {
 			var R = Timeline.selector;
-			if (!R.selecting) return;
+			if (!R.selecting) {
+				if (Math.pow(R.start_event.clientX - mouse_pos.x, 2) + Math.pow(R.start_event.clientY - mouse_pos.y, 2) > 20) {
+					R.selecting = true;
+					$('#timeline_selector').show();
+				} else {
+					return;
+				}
+			}
 			//CSS
 			var offset = $('#timeline_body_inner').offset();
 			R.panel_offset = [
@@ -186,19 +191,27 @@ const Timeline = {
 			updateKeyframeSelection()
 		},
 		end(e) {
-			if (!Timeline.selector.selecting) return false;
 			e.stopPropagation();
 			document.removeEventListener('mousemove', Timeline.selector.move);
 			clearInterval(Timeline.selector.interval);
 			document.removeEventListener('mouseup', Timeline.selector.end);
 
-			updateKeyframeSelection()
-			Timeline.selector.selected_before.empty();
-			Timeline.selector.selecting = false;
-			$('#timeline_selector')
-				.css('width', 0)
-				.css('height', 0)
-				.hide()
+			if (!Timeline.selector.selecting) {
+				if (settings.canvas_unselect.value) {
+					Timeline.selected.empty();
+					updateKeyframeSelection();
+				}
+				Timeline.vue.clickGraphEditor(e);
+				return false;
+			} else {
+				updateKeyframeSelection()
+				Timeline.selector.selected_before.empty();
+				Timeline.selector.selecting = false;
+				$('#timeline_selector')
+					.css('width', 0)
+					.css('height', 0)
+					.hide();
+			}
 		},
 	},
 	setTime(seconds, editing) {
@@ -247,7 +260,7 @@ const Timeline = {
 	},
 	setup() {
 		document.getElementById('timeline_body').addEventListener('mousedown', e => {
-			if (e.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(e)) {
+			if (e.which === 2 || (Keybinds.extra.preview_drag.keybind.isTriggered(e) && e.which !== 1)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
 				function move(e2) {
@@ -1515,7 +1528,7 @@ Interface.definePanels(() => {
 							<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
 							</div>
 							<div id="timeline_selector" class="selection_rectangle"></div>
-							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}" @click="clickGraphEditor($event)">
+							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
 								<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 									<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 									<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>

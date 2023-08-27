@@ -2275,7 +2275,10 @@ Interface.definePanels(function() {
 					let original_margin = scope.getFrameMargin();
 					let offset = $(scope.$refs.viewport).offset();
 					UVEditor.total_zoom_offset = [6, 6];
-					if (event.which === 2 || Keybinds.extra.preview_drag.keybind.isTriggered(event) || (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')) {
+					if (event.which === 2 ||
+						(Keybinds.extra.preview_drag.keybind.isTriggered(event) && !event.which == 1) ||
+						(event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame')
+					) {
 						// Drag
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;

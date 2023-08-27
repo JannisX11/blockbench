@@ -6,6 +6,7 @@ const Plugins = {
 	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
+	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	devReload() {
 		var reloads = 0;
 		for (var i = Plugins.all.length-1; i >= 0; i--) {
@@ -54,6 +55,7 @@ class Plugin {
 		this.about_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
+		this.cache_version = 0;
 
 		this.extend(data)
 
@@ -98,7 +100,11 @@ class Plugin {
 		var scope = this;
 		Plugins.registered[this.id] = this;
 		return await new Promise((resolve, reject) => {
-			$.getScript(Plugins.path + scope.id + '.js', () => {
+			let path = Plugins.path + scope.id + '.js';
+			if (!isApp && this.new_repository_format)  {
+				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
+			}
+			$.getScript(path, () => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -206,7 +212,7 @@ class Plugin {
 		// Download files
 		async function copyFileToDrive(origin_filename, target_filename, callback) {
 			var file = originalFs.createWriteStream(PathModule.join(Plugins.path, target_filename));
-			https.get('https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/'+origin_filename, function(response) {
+			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
 				response.pipe(file);
 				if (callback) response.on('end', callback);
 			});
@@ -403,6 +409,7 @@ class Plugin {
 	reload() {
 		if (!isApp && this.source == 'file') return this;
 
+		this.cache_version++;
 		this.unload()
 		this.tags.empty();
 		this.dependencies.empty();
@@ -414,6 +421,9 @@ class Plugin {
 		} else if (this.source == 'url') {
 			this.loadFromURL(this.path, false)
 		}
+
+		this.fetchAbout(true);
+
 		return this;
 	}
 	toggleDisabled() {
@@ -464,14 +474,14 @@ class Plugin {
 					return Plugins.path + this.id + '.' + this.icon;
 				}
 				if (this.source != 'store')
-					return this.path.replace(/\w+\.js$/, this.icon);
+					return this.path.replace(/\w+\.js$/, this.icon + (this.cache_version ? '?'+this.cache_version : ''));
 				}
-			return `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/${this.icon}`;
+			return `${Plugins.api_path}/${this.id}/${this.icon}`;
 		}
 		return this.icon;
 	}
-	async fetchAbout() {
-		if (!this.about_fetched && !this.about && this.new_repository_format) {
+	async fetchAbout(force) {
+		if (((!this.about_fetched && !this.about) || force) && this.new_repository_format) {
 			if (isApp && this.installed) {
 				try {
 					let about_path;
@@ -488,7 +498,7 @@ class Plugin {
 					console.error('failed to get about for plugin ' + this.id);
 				}
 			}
-			let url = `https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/${this.id}/about.md`;
+			let url = `${Plugins.api_path}/${this.id}/about.md`;
 			let result = await fetch(url).catch(() => {
 				console.error('about.md missing for plugin ' + this.id);
 			});
@@ -610,13 +620,13 @@ if (isApp) {
 		}
 	})
 } else {
-	Plugins.path = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins/';
+	Plugins.path = Plugins.api_path+'/';
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
 	$.ajax({
 		cache: false,
-		url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins.json',
+		url: Plugins.api_path+'.json',
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
@@ -629,6 +639,11 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 			$('#plugin_available_empty').text('Could not connect to plugin server')
 			resolve();
 			Plugins.loading_promise.resolved = true;
+
+			if (settings.cdn_mirror.value == false && navigator.onLine) {
+				settings.cdn_mirror.set(true);
+				console.log('Switching to plugin CDN mirror. Restart to apply.');
+			}
 		}
 	});
 })
