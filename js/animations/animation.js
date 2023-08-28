@@ -793,6 +793,52 @@ class Animation extends AnimationItem {
 		]},
 		new MenuSeparator('manage'),
 		{
+			name: 'menu.animation.export_java',
+			id: 'save',
+			icon: 'save',
+			condition: () => Format.animation_files,
+			click(animation) {
+				
+				let form = {};
+				let keys = [];
+				let animations = Animation.all.slice()
+				if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode())
+				animations.forEach(animation => {
+					let key = animation.name;
+					keys.push(key)
+					form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
+				})
+				let dialog = new Dialog({
+					id: 'animation_export',
+					title: 'dialog.animation_export.title',
+					form,
+					onConfirm(form_result) {
+						dialog.hide();
+						keys = keys.filter(key => form_result[key.hashCode()]);
+						let animations = keys.map(k => Animation.all.find(anim => anim.name == k));
+						let content = Codecs.modded_entity.compileAnimations(animations);
+						Blockbench.export({
+							resource_id: 'modded_animation',
+							type: 'Modded Entity Animation',
+							extensions: ['java'],
+							name: (Project.geometry_name||'model'),
+							content,
+						})
+					}
+				})
+				form.select_all_none = {
+					type: 'buttons',
+					buttons: ['generic.select_all', 'generic.select_none'],
+					click(index) {
+						let values = {};
+						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						dialog.setFormValues(values);
+					}
+				}
+				dialog.show();
+			}
+		},
+		{
 			name: 'menu.animation.save',
 			id: 'save',
 			icon: 'save',

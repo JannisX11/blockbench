@@ -294,6 +294,20 @@ const Templates = {
 		return new RegExp(`%\\(${name}\\)`, 'g');
 	}
 }
+const AnimationTemplates = {
+
+	get(key, version = Project.modded_entity_version) {
+		let temp = Templates[version][key];
+		if (typeof temp === 'string') temp = temp.replace(/\t\t\t/g, '');
+		return temp;
+	},
+	keepLine(line) {
+		return line.replace(/\?\(\w+\)/, '');
+	},
+	getVariableRegex(name) {
+		return new RegExp(`%\\(${name}\\)`, 'g');
+	}
+};
 
 function getIdentifier() {
 	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || Project.name || 'custom_model';
@@ -863,11 +877,22 @@ var codec = new Codec('modded_entity', {
 	}
 })
 codec.templates = Templates;
+codec.animation_templates = AnimationTemplates;
 Object.defineProperty(codec, 'remember', {
 	get() {
 		return !!Codecs.modded_entity.templates[Project.modded_entity_version].remember
 	}
 })
+
+codec.compileAnimations = function(animations) {
+	let file = AnimationTemplates.get('file');
+	
+	model = model.replace(R('bb_version'), Blockbench.version);
+	model = model.replace(R('identifier'), identifier);
+	model = model.replace(R('identifier_rl'), identifier.toLowerCase().replace(' ', '_'));
+	model = model.replace(R('texture_width'), Project.texture_width);
+	model = model.replace(R('texture_height'), Project.texture_height);
+}
 
 var format = new ModelFormat({
 	id: 'modded_entity',
@@ -889,7 +914,8 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	rotate_cubes: true,
-	integer_size: true
+	integer_size: true,
+	animation_mode: true,
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')});
 codec.format = format;
