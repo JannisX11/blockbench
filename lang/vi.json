@@ -14,7 +14,7 @@
     "data.preview": "Xem trước",
     "data.toolbar": "Thanh công cụ",
     "data.image": "Hình ảnh",
-    "keys.ctrl": "Control",
+    "keys.ctrl": "Ctrl",
     "keys.shift": "Shift",
     "keys.alt": "Alt",
     "keys.meta": "Cmd",
@@ -1963,6 +1963,6 @@
     "settings.brush_cursor_2d.desc": "Hiển thị đường viền xung quanh cọ vẽ trong môi trường 2D",
     "settings.brush_cursor_3d": "Con trỏ cọ vẽ 3D",
     "settings.brush_cursor_3d.desc": "Hiển thị đường viền xung quanh cọ vẽ trong môi trường 3D",
-    "settings.cdn_mirror": "Use CDN Mirror",
-    "settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work."
+    "settings.cdn_mirror": "Dùng bản sao CDN",
+    "settings.cdn_mirror.desc": "Dùng bản sao CDN để tải xuống các plugin. Máy bản sao nhận cập nhật nhanh hơn và hoạt động ở một số vùng mà mặc định không hoạt động."
 }
