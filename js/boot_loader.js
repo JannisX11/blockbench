@@ -98,6 +98,17 @@ if (Blockbench.startup_count == 1) {
 		console.error(err);
 	}
 }
+if (Blockbench.startup_count == 3) {
+	try {
+		jQuery.ajax({
+			url: 'https://blckbn.ch/api/event/recurring_user',
+			type: 'POST',
+			data: {}
+		})
+	} catch (err) {
+		console.error(err);
+	}
+}
 
 Blockbench.on('before_closing', (event) => {
 	if (!Blockbench.hasFlag('no_localstorage_saving')) {

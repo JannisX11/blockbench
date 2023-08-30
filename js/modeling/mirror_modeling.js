@@ -231,6 +231,70 @@ const MirrorModeling = {
 		preview_controller.updateFaces(mesh);
 		preview_controller.updateUV(mesh);
 	},
+	getMirrorElement(element) {
+		let center = Format.centered_grid ? 0 : 8;
+		let e = 0.01;
+		let symmetry_axes = [0];
+		let off_axes = [ 1, 2];
+		function getElementParents(el) {
+			let list = [];
+			let subject = el;
+			while (subject.parent instanceof Group) {
+				subject = subject.parent;
+				list.push(subject)
+			}
+			return list;
+		}
+		if (element instanceof Cube) {
+			if (
+				symmetry_axes.find((axis) => !Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) == undefined &&
+				off_axes.find(axis => element.rotation[axis]) == undefined &&
+				getElementParents(element).allAre(group => off_axes.find(axis => group.rotation[axis]) == undefined)
+			) {
+				return element;
+			} else {
+				for (var element2 of Cube.all) {
+					if (
+						element2 != element &&
+						Math.epsilon(element.inflate, element2.inflate, e) &&
+						off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(element.rotation[axis], element2.rotation[axis], e)) == undefined
+					) {
+						return element2;
+					}
+				}
+			}
+			return false;
+		} else if (element instanceof Mesh) {
+			let ep = 0.5;
+			let this_center = element.getCenter(true);
+			if (
+				symmetry_axes.find((axis) => !Math.epsilon(element.origin[axis], center, e)) == undefined &&
+				symmetry_axes.find((axis) => !Math.epsilon(this_center[axis], center, ep)) == undefined &&
+				off_axes.find(axis => element.rotation[axis]) == undefined
+			) {
+				return element;
+			} else {
+				for (var element2 of Mesh.all) {
+					let other_center = element2.getCenter(true);
+					if (Object.keys(element.vertices).length !== Object.keys(element2.vertices).length) continue;
+					if (
+						element2 != element &&
+						symmetry_axes.find(axis => !Math.epsilon(element.origin[axis]-center, center-element2.origin[axis], e)) == undefined &&
+						symmetry_axes.find(axis => !Math.epsilon(this_center[axis]-center, center-other_center[axis], ep)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined &&
+						off_axes.find(axis => !Math.epsilon(this_center[axis], other_center[axis], ep)) == undefined
+					) {
+						return element2;
+					}
+				}
+			}
+			return element;
+		}
+	},
 	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
 		// pre
 		if (element_before_snapshot) {
@@ -263,7 +327,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 				let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
 				if (!is_centered) {
 					data.is_copy = Math.sign(element.getWorldCenter().x) != edit_side;
-					data.counterpart = Painter.getMirrorElement(element, [1, 0, 0]);
+					data.counterpart = MirrorModeling.getMirrorElement(element);
 					if (!data.counterpart) data.is_copy = false;
 				} else {
 					data.is_copy = false;
