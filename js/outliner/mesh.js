@@ -773,6 +773,7 @@ class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
+		'apply_mesh_rotation',
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',

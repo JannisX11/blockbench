@@ -253,6 +253,7 @@ const MenuBar = {
 				'switch_face_crease',
 				'merge_vertices',
 				'dissolve_edges',
+				'apply_mesh_rotation',
 				'split_mesh',
 				'merge_meshes',
 			]},

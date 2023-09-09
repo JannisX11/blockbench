@@ -799,6 +799,26 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
 		}
 	})
+	new Action('apply_mesh_rotation', {
+		icon: 'published_with_changes',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length)},
+		click() {
+			let vec = new THREE.Vector3();
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let rotation = mesh.mesh.rotation;
+				for (let vkey in mesh.vertices) {
+					vec.fromArray(mesh.vertices[vkey]);
+					vec.applyEuler(rotation);
+					mesh.vertices[vkey].V3_set(vec.x, vec.y, vec.z);
+				}
+				mesh.rotation.V3_set(0, 0, 0);
+			})
+			Undo.finishEdit('Apply mesh rotation')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, transform: true}, selection: true})
+		}
+	})
 	new Action('invert_face', {
 		icon: 'flip_to_back',
 		category: 'edit',
