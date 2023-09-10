@@ -329,6 +329,7 @@ const MenuBar = {
 
 		new BarMenu('animation', [
 			new MenuSeparator('edit_options'),
+			'animation_onion_skin',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',

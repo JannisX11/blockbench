@@ -298,6 +298,10 @@ const Timeline = {
 					Blockbench.showQuickMessage('message.no_animation_selected');
 				}
 
+			} else if (e.target.id == 'timeline_onion_skin_point') {
+
+				Timeline.dragging_onion_skin_point = true;
+
 			} else {
 
 				convertTouchEvent(e);
@@ -349,6 +353,17 @@ const Timeline = {
 				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
 
+			} else if (Timeline.dragging_onion_skin_point) {
+
+				convertTouchEvent(e);
+				let offset = e.clientX - $('#timeline_time').offset().left;
+				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
+				
+				if (Timeline.vue.onion_skin_time != time) {
+					Timeline.vue.onion_skin_time = time;
+					Timeline.revealTime(time);
+					Animator.updateOnionSkin();
+				}
 			}
 		})
 		.on('mouseup touchend', e => {
@@ -358,9 +373,11 @@ const Timeline = {
 				Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
-
 				Undo.finishEdit('Change Animation Length')
 				delete Timeline.dragging_endbracket
+
+			} else if (Timeline.dragging_onion_skin_point) {
+				delete Timeline.dragging_onion_skin_point
 			}
 		})
 		
@@ -712,6 +729,9 @@ Interface.definePanels(() => {
 				show_zero_line: true,
 				show_all_handles: !Settings.get('only_selected_bezier_handles'),
 				loop_graphs: [''],
+
+				onion_skin_mode: BarItems.animation_onion_skin.value,
+				onion_skin_time: 0,
 
 				channels: {
 					rotation: true,
@@ -1418,10 +1438,14 @@ Interface.definePanels(() => {
 								</div>
 								<div id="timeline_playhead"
 									v-bind:style="{left: (playhead * size) + 'px'}"
-								></div>
+								/>
+								<div id="timeline_onion_skin_point"
+									v-if="onion_skin_mode == 'select'"
+									v-bind:style="{left: (onion_skin_time * size) + 'px'}"
+								/>
 								<div id="timeline_endbracket"
 									v-bind:style="{left: (animation_length * size) + 'px'}"
-								></div>
+								/>
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"

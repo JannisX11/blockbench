@@ -1047,6 +1047,21 @@
 		margin-top: -2px;
 		height: 5000px;
 	}
+	#timeline_onion_skin_point {
+		position: absolute;
+		z-index: 2;
+		cursor: ew-resize;
+
+		height: 26px;
+		width: 18px;
+		top: 0;
+		margin-left: -8px;
+
+		border-right: 9px solid transparent;
+		border-left: 9px solid transparent;
+		border-top: 12px solid var(--color-text);
+		border-radius: 2px;
+	}
 	#timeline_endbracket {
 		position: absolute;
 		z-index: 2;

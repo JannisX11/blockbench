@@ -914,6 +914,7 @@ const Animator = {
 	get selected() {return Animation.selected},
 	MolangParser: new Molang(),
 	motion_trail: new THREE.Object3D(),
+	onion_skin_object: new THREE.Object3D(),
 	motion_trail_lock: false,
 	_last_values: {},
 	resetLastValues() {
@@ -976,6 +977,7 @@ const Animator = {
 
 		scene.remove(WinterskyScene.space);
 		scene.remove(Animator.motion_trail);
+		scene.remove(Animator.onion_skin_object);
 		Animator.resetParticles(true);
 
 		three_grid.position.z = three_grid.position.x;
@@ -1117,6 +1119,63 @@ const Animator = {
 		keyframe_points.keyframeUUIDs = keyframeUUIDs;
 		Animator.motion_trail.add(keyframe_points);
 	},
+	updateOnionSkin() {
+		let mode = BarItems.animation_onion_skin.value;
+		if (mode == 'off') {
+			Animator.onion_skin_object.children.empty();
+			return;
+		}
+		let times = [];
+		if (mode == 'previous') {
+			times = [Timeline.time - Timeline.getStep()];
+		} else if (mode == 'next') {
+			times = [Timeline.time + Timeline.getStep()];
+		} else if (mode == 'previous_next') {
+			times = [
+				Timeline.time - Timeline.getStep(),
+				Timeline.time + Timeline.getStep()
+			];
+		} else if (mode == 'select') {
+			times = [Timeline.vue.onion_skin_time];
+		}
+
+		let elements = Outliner.elements;
+		let last_time = Timeline.time;
+		
+		Animator.onion_skin_object.children.empty();
+
+		let i = -1;
+		for (let time of times) {
+			i++;
+			Timeline.time = time;
+			Animator.showDefaultPose(true);
+			Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
+
+			elements.forEach(obj => {
+				if (!obj.visibility) return;
+				let mesh = obj.mesh;
+				if (!mesh || !mesh.geometry || !mesh.outline) return;
+
+				let copy = mesh.outline.clone();
+				copy.geometry = mesh.outline.geometry.clone();
+				copy.material = Canvas.gridMaterial;
+				copy.visible = true;
+
+				THREE.fastWorldPosition(mesh, copy.position);
+				copy.position.sub(scene.position);
+				copy.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+				mesh.getWorldScale(copy.scale);
+
+				copy.name = obj.uuid+'_onion_skin_outline';
+				Animator.onion_skin_object.add(copy);
+			})
+		}
+		Timeline.time = last_time;
+		Animator.showDefaultPose(true);
+		Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
+
+		scene.add(Animator.onion_skin_object);
+	},
 	stackAnimations(animations, in_loop, controller_blend_values = 0) {
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
@@ -1200,6 +1259,8 @@ const Animator = {
 			three_grid.position.z = three_grid.position.x;
 			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
 		}
+
+		Animator.updateOnionSkin();
 
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
@@ -1691,7 +1752,7 @@ const Animator = {
 		}
 	}
 }
-Canvas.gizmos.push(Animator.motion_trail);
+Canvas.gizmos.push(Animator.motion_trail, Animator.onion_skin_object);
 Blockbench.on('reset_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];
@@ -1905,6 +1966,23 @@ BARS.defineActions(function() {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
 			}
+		}
+	})
+
+	// Onion Skin
+	new BarSelect('animation_onion_skin', {
+		category: 'view',
+		condition: {modes: ['animate']},
+		value: 'off',
+		options: {
+			off: true,
+			select: true,
+			previous: true,
+			next: true,
+			previous_next: true
+		},
+		onChange() {
+			Timeline.vue.onion_skin_mode = this.value;
 		}
 	})
 
