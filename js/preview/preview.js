@@ -1014,6 +1014,11 @@ class Preview {
 				Toolbox.selected.onCanvasClick(data)
 				Blockbench.dispatchEvent('canvas_click', data)
 			}
+
+			if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
+				this.startSelRect(event)
+			}
+			
 			return true;
 		}
 		if (is_canvas_click && typeof Toolbox.selected.onCanvasClick === 'function') {
