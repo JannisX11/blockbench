@@ -324,7 +324,14 @@ class UndoSystem {
 					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]).updateSource()
+						tex.extend(save.textures[uuid]);
+						if (tex.source_overwritten && save.textures[uuid].image_data) {
+							// If the source file was overwritten by more recent changes, make sure to display the original data
+							tex.mode = 'bitmap';
+							tex.source = save.textures[uuid].image_data;
+							tex.saved = false;
+						}
+						tex.updateSource();
 						tex.keep_size = true;
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()

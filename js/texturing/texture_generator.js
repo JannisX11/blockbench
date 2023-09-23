@@ -411,7 +411,7 @@ const TextureGenerator = {
 		ctx.imageSmoothingEnabled = false;
 		if (makeTexture instanceof Texture) {
 			if (makeTexture.mode === 'link') {
-				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
+				makeTexture.source = makeTexture.getDataURL();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
 			}
@@ -1223,7 +1223,7 @@ const TextureGenerator = {
 		ctx.imageSmoothingEnabled = false;
 		if (makeTexture instanceof Texture) {
 			if (makeTexture.mode === 'link') {
-				makeTexture.source = 'data:image/png;base64,' + makeTexture.getBase64();
+				makeTexture.source = makeTexture.getDataURL();
 				makeTexture.mode = 'bitmap';
 				makeTexture.saved = false;
 			}

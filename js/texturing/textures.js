@@ -14,6 +14,7 @@ class Texture {
 		this.error = 0;
 		this.visible = true;
 		this.display_canvas = false;
+		this.source_overwritten = false;
 		//Data
 		this.img = 0;
 		this.width = 0;
@@ -289,7 +290,7 @@ class Texture {
 		}
 	}
 	getUndoCopy(bitmap) {
-		var copy = {}
+		var copy = {};
 		if (this.display_canvas && bitmap) {
 			this.updateSource(this.canvas.toDataURL());
 		}
@@ -305,6 +306,9 @@ class Texture {
 		copy.old_height = this.old_height;
 		if (bitmap || this.mode === 'bitmap') {
 			copy.source = this.source
+			if (this.mode !== 'bitmap') {
+				copy.image_data = this.getDataURL();
+			}
 		}
 		return copy
 	}
@@ -1292,9 +1296,10 @@ class Texture {
 			if (!as && this.path && fs.existsSync(this.path)) {
 				fs.writeFileSync(this.path, image);
 				postSave(this.path);
-				this.mode = 'link'
+				this.mode = 'link';
 				this.saved = true;
-				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version
+				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+				this.source_overwritten = true;
 
 			} else {
 				var find_path;
@@ -1417,7 +1422,7 @@ class Texture {
 			}
 		}).show();
 	}
-	getBase64() {
+	getDataURL() {
 		var scope = this;
 		if (isApp && scope.mode === 'link') {
 			var canvas = document.createElement('canvas')
@@ -1429,7 +1434,10 @@ class Texture {
 		} else {
 			var dataUrl = scope.source
 		}
-		return dataUrl.replace('data:image/png;base64,', '')
+		return dataUrl;
+	}
+	getBase64() {
+		return this.getDataURL().replace('data:image/png;base64,', '');
 	}
 	edit(cb, options) {
 		var scope = this;
@@ -1439,7 +1447,7 @@ class Texture {
 			Painter.edit(scope, cb, options);
 
 		} else if (scope.mode === 'link') {
-			scope.source = 'data:image/png;base64,' + scope.getBase64();
+			scope.source = scope.getDataURL();
 			scope.mode = 'bitmap';
 		}
 		scope.saved = false;
@@ -1804,7 +1812,7 @@ Clipbench.setTexture = function(texture) {
 	delete Clipbench.texture.path;
 	Clipbench.texture.mode = 'bitmap';
 	Clipbench.texture.saved = false;
-	Clipbench.texture.source = 'data:image/png;base64,'+texture.getBase64();
+	Clipbench.texture.source = texture.getDataURL();
 
 	if (isApp) {
 		if (texture.mode === 'bitmap') {

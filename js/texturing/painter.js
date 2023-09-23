@@ -12,7 +12,7 @@ const Painter = {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (texture.mode === 'link') {
-			texture.source = 'data:image/png;base64,' + texture.getBase64()
+			texture.source = texture.getDataURL()
 			texture.mode = 'bitmap'
 			texture.saved = false
 		}

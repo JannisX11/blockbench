@@ -2064,7 +2064,7 @@ const BARS = {
 						delete copy.path;
 						copy.mode = 'bitmap';
 						copy.saved = false;
-						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
+						copy.source = Texture.selected.getDataURL();
 						new Texture(copy).fillParticle().load().add(true);
 
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
