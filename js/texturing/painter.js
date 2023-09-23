@@ -281,8 +281,8 @@ const Painter = {
 	// Tools
 	setupRectFromFace(uvTag, texture) {
 		let rect;
-		let uvFactorX = texture.width / Project.texture_width;
-		let uvFactorY = texture.display_height / Project.texture_height;
+		let uvFactorX = texture.width / texture.getUVWidth();
+		let uvFactorY = texture.display_height / texture.getUVHeight();
 		if (uvTag) {
 			let anim_offset = texture.display_height * texture.currentFrame;
 			if (uvTag instanceof Array) {
@@ -300,7 +300,7 @@ const Painter = {
 					rect[t+2] = Math.ceil(Math.roundTo(rect[t+2], 2))
 				}
 			} else {
-				let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+				let min_x = texture.getUVWidth(), min_y = texture.getUVHeight(), max_x = 0, max_y = 0;
 
 				for (let vkey in uvTag) {
 					min_x = Math.min(min_x, uvTag[vkey][0]); max_x = Math.max(max_x, uvTag[vkey][0]);
@@ -335,8 +335,8 @@ const Painter = {
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
 		Painter.currentPixel = [x, y]
 		Painter.brushChanges = true;
-		let uvFactorX = texture.width / Project.texture_width;
-		let uvFactorY = texture.display_height / Project.texture_height;
+		let uvFactorX = texture.width / texture.getUVWidth();
+		let uvFactorY = texture.display_height / texture.getUVHeight();
 
 		if (Painter.mirror_painting && !is_opposite) {
 			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
@@ -562,8 +562,8 @@ const Painter = {
 			if (Toolbox.selected.id == 'gradient_tool') even_brush_size = true;
 			if (mirror_element instanceof Cube) {
 	
-				let uvFactorX = 1 / Project.texture_width * texture.img.naturalWidth;
-				let uvFactorY = 1 / Project.texture_height * texture.img.naturalHeight;
+				let uvFactorX = 1 / texture.getUVWidth() * texture.img.naturalWidth;
+				let uvFactorY = 1 / texture.getUVHeight() * texture.img.naturalHeight;
 	
 				let fkey = Painter.current.face;
 				let side_face = (symmetry_axes[0] && (fkey === 'west' || fkey === 'east'))
@@ -640,8 +640,8 @@ const Painter = {
 				if (!face) return;
 				
 				let source_uv = [
-					(even_brush_size ? x : x + 0.5) * (Project.texture_width / texture.width),
-					(even_brush_size ? y : y + 0.5) * (Project.texture_height / texture.height)
+					(even_brush_size ? x : x + 0.5) * (texture.getUVWidth() / texture.width),
+					(even_brush_size ? y : y + 0.5) * (texture.getUVHeight() / texture.height)
 				];
 
 				let point_on_uv;
@@ -674,8 +674,8 @@ const Painter = {
 					point_on_uv = face.localToUV(world_coord);
 				}
 
-				point_on_uv[0] /= Project.texture_width / texture.width;
-				point_on_uv[1] /= Project.texture_height / texture.height;
+				point_on_uv[0] /= texture.getUVWidth() / texture.width;
+				point_on_uv[1] /= texture.getUVHeight() / texture.height;
 				
 				if (Condition(Toolbox.selected.brush?.floor_coordinates)) {
 					if (even_brush_size) {
