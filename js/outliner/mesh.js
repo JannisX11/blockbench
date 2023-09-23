@@ -49,7 +49,11 @@ class MeshFace extends Face {
 		}
 	}
 	getBoundingRect() {
-		let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+		let texture = Format.per_texture_uv_size && this.getTexture();
+		let min_x = texture ? texture.getUVWidth() : Project.texture_width,
+			min_y = texture ? texture.getUVHeight() : Project.texture_height,
+			max_x = 0,
+			max_y = 0;
 		this.vertices.forEach(vkey => {
 			min_x = Math.min(min_x, this.uv[vkey][0]); max_x = Math.max(max_x, this.uv[vkey][0]);
 			min_y = Math.min(min_y, this.uv[vkey][1]); max_y = Math.max(max_y, this.uv[vkey][1]);
@@ -61,8 +65,8 @@ class MeshFace extends Face {
 		let rect = this.getBoundingRect();
 		let texture = texture_space && this.getTexture();
 		let sorted_vertices = this.getSortedVertices();
-		let factor_x = texture ? (texture.width  / Project.texture_width) : 1;
-		let factor_y = texture ? (texture.height / Project.texture_height) : 1;
+		let factor_x = texture ? (texture.width  / texture.getUVWidth()) : 1;
+		let factor_y = texture ? (texture.height / texture.getUVHeight()) : 1;
 
 		if (texture_space && texture) {
 			rect.ax *= factor_x;
@@ -983,11 +987,15 @@ new NodePreviewController(Mesh, {
 		for (let key in element.faces) {
 			let face = element.faces[key];
 			if (face.vertices.length <= 2) continue;
+			let texture = Format.per_texture_uv_size && face.getTexture();
+			let uv_size = texture
+				? [texture.getUVWidth(), texture.getUVHeight()]
+				: [Project.texture_width, Project.texture_height];
 
 			face.vertices.forEach((key, i) => {
 				uv_array.push(
-					  ((face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width),
-					1-((face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height)
+					  ((face.uv[key] ? face.uv[key][0] : 0) / uv_size[0]),
+					1-((face.uv[key] ? face.uv[key][1] : 0) / uv_size[1])
 				)
 			})
 		}
@@ -1112,8 +1120,8 @@ new NodePreviewController(Mesh, {
 			let x_memory = {};
 			let y_memory = {};
 			let texture = face.getTexture();
-			var psize_x = texture ? Project.texture_width / texture.width : 1;
-			var psize_y = texture ? Project.texture_height / texture.height : 1;
+			var psize_x = texture ? texture.getUVWidth() / texture.width : 1;
+			var psize_y = texture ? texture.getUVHeight() / texture.height : 1;
 			let vertices = face.getSortedVertices();
 			vertices.forEach((vkey1, i) => {
 				let vkey2 = vertices[i+1] || vertices[0];

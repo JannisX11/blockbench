@@ -21,7 +21,7 @@ const TextureGenerator = {
 			}
 		}
 		type_options.blank = 'dialog.create_texture.type.blank';
-		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Project.texture_width)*16 : 16;
+		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Texture.getDefault().getUVWidth())*16 : 16;
 
 		TextureGenerator.background_color.set('#00000000')
 		let resolution_presets = {
@@ -100,7 +100,7 @@ const TextureGenerator = {
 			onConfirm(options) {
 				dialog.hide()
 				options.rearrange_uv = true;
-				options.resolution = 16 * texture.width / Project.texture_width;
+				options.resolution = 16 * texture.width / texture.getUVWidth();
 				if (Format.single_texture) {
 					options.texture = Texture.getDefault()
 				}
@@ -509,7 +509,7 @@ const TextureGenerator = {
 			border_color = background_color
 			color = undefined
 		}
-		var res_multiple = canvas.width/Project.texture_width;
+		var res_multiple = canvas.width / (texture ? texture.getUVWidth() : Project.texture_width);
 		var ctx = canvas.getContext('2d');
 		ctx.fillStyle = border_color;
 		ctx.fillRect(
@@ -545,7 +545,7 @@ const TextureGenerator = {
 		if (!texture || !texture.img) return false;
 
 		var ctx = canvas.getContext('2d');
-		var res_multiple = canvas.width/Project.texture_width;
+		var res_multiple = canvas.width/texture.getUVWidth();
 		ctx.save()
 		var uv = face.uv.slice();
 
@@ -1167,7 +1167,9 @@ const TextureGenerator = {
 			}
 			new_resolution = [max_size, max_size];
 		} else {
-			new_resolution = [Project.texture_width, Project.texture_height];
+			new_resolution = makeTexture instanceof Texture
+				? [makeTexture.getUVWidth(), makeTexture.getUVHeight()]
+				: [Project.texture_width, Project.texture_height];
 			face_list.forEach(face_group => {
 				if (!face_group.mesh) return;
 				let face_uvs = face_group.faces.map((face, i) => {
@@ -1359,10 +1361,10 @@ const TextureGenerator = {
 			ctx.imageSmoothingEnabled = false;
 			ctx.drawImage(
 				texture.img,
-				src.ax/Project.texture_width * texture.img.naturalWidth,
-				src.ay/Project.texture_height * texture.img.naturalHeight,
-				src.x /Project.texture_width * texture.img.naturalWidth,
-				src.y /Project.texture_height * texture.img.naturalHeight,
+				src.ax/texture.getUVWidth() * texture.img.naturalWidth,
+				src.ay/texture.getUVHeight() * texture.img.naturalHeight,
+				src.x /texture.getUVWidth() * texture.img.naturalWidth,
+				src.y /texture.getUVHeight() * texture.img.naturalHeight,
 				coords.x*res_multiple*flip[0],
 				coords.y*res_multiple*flip[1],
 				coords.w*res_multiple*flip[0],
@@ -1455,10 +1457,10 @@ const TextureGenerator = {
 						target_pos[1] = target_pos[1] - target_size[1]/2 + target_size[0]/2;
 						ctx.drawImage(
 							texture.img,
-							min[0] / Project.texture_width * texture.img.naturalWidth,
-							min[1] / Project.texture_height * texture.img.naturalHeight,
-							Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
-							Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
+							min[0] / texture.getUVWidth() * texture.img.naturalWidth,
+							min[1] / texture.getUVHeight() * texture.img.naturalHeight,
+							Math.ceil((max[0] - min[0]) / texture.getUVWidth() * texture.img.naturalWidth),
+							Math.ceil((max[1] - min[1]) / texture.getUVHeight() * texture.img.naturalHeight),
 							...target_pos,
 							...target_size
 						)
@@ -1466,10 +1468,10 @@ const TextureGenerator = {
 				} else {
 					ctx.drawImage(
 						texture.img,
-						min[0] / Project.texture_width * texture.img.naturalWidth,
-						min[1] / Project.texture_height * texture.img.naturalHeight,
-						Math.ceil((max[0] - min[0]) / Project.texture_width * texture.img.naturalWidth),
-						Math.ceil((max[1] - min[1]) / Project.texture_height * texture.img.naturalHeight),
+						min[0] / texture.getUVWidth() * texture.img.naturalWidth,
+						min[1] / texture.getUVHeight() * texture.img.naturalHeight,
+						Math.ceil((max[0] - min[0]) / texture.getUVWidth() * texture.img.naturalWidth),
+						Math.ceil((max[1] - min[1]) / texture.getUVHeight() * texture.img.naturalHeight),
 						coords.x*R + target_min[0] * R,
 						coords.y*R + target_min[1] * R,
 						Math.ceil((target_max[0] - target_min[0]) * R),
@@ -1642,8 +1644,8 @@ const TextureGenerator = {
 				}
 				let color = Painter.getPixelColor(
 					texture_ctxs[texture.uuid],
-					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[0] / Project.texture_width * texture.width),
-					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[1] / Project.texture_height * texture.height),
+					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[0] / texture.getUVWidth() * texture.width),
+					Math.floor((face instanceof CubeFace ? face.uv : face.uv[face.vertices[0]])[1] / texture.getUVHeight() * texture.height),
 				);
 				ctx.fillStyle = color ? color.toHexString() : 'white';
 			} else {

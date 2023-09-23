@@ -1866,7 +1866,7 @@ Interface.definePanels(function() {
 				},
 				copy_overlay,
 
-				project_resolution: [16, 16],
+				uv_resolution: [16, 16],
 				elements: [],
 				all_elements: [],
 				selected_faces: [],
@@ -1892,15 +1892,15 @@ Interface.definePanels(function() {
 			}},
 			computed: {
 				inner_width() {
-					let axis = this.project_resolution[0] / this.project_resolution[1] < this.width / this.height;
+					let axis = this.uv_resolution[0] / this.uv_resolution[1] < this.width / this.height;
 					if (axis) {
-						return this.height * this.zoom * (this.project_resolution[0] / this.project_resolution[1]);
+						return this.height * this.zoom * (this.uv_resolution[0] / this.uv_resolution[1]);
 					} else {
 						return this.width * this.zoom;
 					}
 				},
 				inner_height() {
-					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.project_resolution[0] / this.project_resolution[1]));
+					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.uv_resolution[0] / this.uv_resolution[1]));
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
@@ -1942,7 +1942,7 @@ Interface.definePanels(function() {
 				}
 			},
 			watch: {
-				project_resolution: {
+				uv_resolution: {
 					deep: true,
 					handler() {
 						let min_zoom = Math.min(1, this.inner_width/this.inner_height);
@@ -1950,8 +1950,22 @@ Interface.definePanels(function() {
 					}
 				},
 				texture() {
-					this.project_resolution[0] = UVEditor.getUVWidth();
-					this.project_resolution[1] = UVEditor.getUVHeight();
+					this.uv_resolution = [
+						UVEditor.getUVWidth(),
+						UVEditor.getUVHeight()
+					];
+				},
+				'texture.uv_width'(value) {
+					this.uv_resolution = [
+						UVEditor.getUVWidth(),
+						UVEditor.getUVHeight()
+					];
+				},
+				'texture.uv_height'(value) {
+					this.uv_resolution = [
+						UVEditor.getUVWidth(),
+						UVEditor.getUVHeight()
+					];
 				},
 				mode() {
 					Vue.nextTick(() => {
@@ -1961,7 +1975,11 @@ Interface.definePanels(function() {
 			},
 			methods: {
 				projectResolution() {
-					BarItems.project_window.trigger()
+					if (Format.per_texture_uv_size && UVEditor.texture) {
+						UVEditor.texture.openMenu();
+					} else {
+						BarItems.project_window.trigger();
+					}
 				},
 				updateSize() {
 					if (!this.$refs.viewport) return;
@@ -1974,7 +1992,7 @@ Interface.definePanels(function() {
 						this.height = Interface.center_screen.clientHeight - 38;
 
 					} else if (Panels.uv.slot.includes('_bar')) {
-						this.height = size * Math.clamp(this.project_resolution[1] / this.project_resolution[0], 0.5, 1);
+						this.height = size * Math.clamp(this.uv_resolution[1] / this.uv_resolution[0], 0.5, 1);
 
 					} else {
 						this.height = Math.clamp(
@@ -2045,7 +2063,7 @@ Interface.definePanels(function() {
 				},
 				updateMouseCoords(event) {					
 					convertTouchEvent(event);
-					var pixel_size = this.inner_width / (this.texture ? this.texture.width : this.project_resolution[0]);
+					var pixel_size = this.inner_width / (this.texture ? this.texture.width : this.uv_resolution[0]);
 
 					if (Toolbox.selected.id === 'copy_paste_tool') {
 						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
@@ -2204,10 +2222,10 @@ Interface.definePanels(function() {
 						function drag(e1) {
 							selection_rect.active = true;
 							let rect = getRectangle(
-								event.offsetX / scope.inner_width * scope.project_resolution[0],
-								event.offsetY / scope.inner_height * scope.project_resolution[1],
-								(event.offsetX - event.clientX + e1.clientX) / scope.inner_width * scope.project_resolution[0],
-								(event.offsetY - event.clientY + e1.clientY) / scope.inner_height * scope.project_resolution[1],
+								event.offsetX / scope.inner_width * scope.uv_resolution[0],
+								event.offsetY / scope.inner_height * scope.uv_resolution[1],
+								(event.offsetX - event.clientX + e1.clientX) / scope.inner_width * scope.uv_resolution[0],
+								(event.offsetY - event.clientY + e1.clientY) / scope.inner_height * scope.uv_resolution[1],
 							)
 							selection_rect.pos_x = rect.ax;
 							selection_rect.pos_y = rect.ay;
@@ -2911,7 +2929,7 @@ Interface.definePanels(function() {
 				},
 
 				toPixels(uv_coord, offset = 0) {
-					return (uv_coord / this.project_resolution[0] * this.inner_width + offset) + 'px'
+					return (uv_coord / this.uv_resolution[0] * this.inner_width + offset) + 'px'
 				},
 				getDisplayedUVElements() {
 					if (this.mode == 'uv' || this.uv_overlay) {
@@ -2931,8 +2949,8 @@ Interface.definePanels(function() {
 					face.getSortedVertices().forEach(key => {
 						let UV = face.uv[key];
 						coords.push(
-							Math.roundTo((UV[0] + uv_offset[0]) / this.project_resolution[0] * this.inner_width + 1, 4) + ',' +
-							Math.roundTo((UV[1] + uv_offset[1]) / this.project_resolution[0] * this.inner_width + 1, 4)
+							Math.roundTo((UV[0] + uv_offset[0]) / this.uv_resolution[0] * this.inner_width + 1, 4) + ',' +
+							Math.roundTo((UV[1] + uv_offset[1]) / this.uv_resolution[0] * this.inner_width + 1, 4)
 						)
 					})
 					return coords.join(' ');
@@ -3132,8 +3150,8 @@ Interface.definePanels(function() {
 				<div class="UVEditor" ref="main" :class="{checkerboard_trigger: checkerboard}" id="UVEditor">
 
 					<div class="bar next_to_title" id="uv_title_bar">
-						<div id="project_resolution_status" @click="projectResolution()">
-							{{ project_resolution[0] + ' ⨉ ' + project_resolution[1] }}
+						<div id="uv_resolution_status" @click="projectResolution()">
+							{{ uv_resolution[0] + ' ⨉ ' + uv_resolution[1] }}
 						</div>
 					</div>
 

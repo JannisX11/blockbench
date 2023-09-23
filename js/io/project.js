@@ -625,7 +625,7 @@ function setProjectResolution(width, height, modify_uv) {
 }
 function updateProjectResolution() {
 	if (Interface.Panels.uv) {
-		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
+		UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
 		UVEditor.vue.updateSize()
 	}
 	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
