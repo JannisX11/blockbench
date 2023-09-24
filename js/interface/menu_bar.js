@@ -181,6 +181,7 @@ const MenuBar = {
 				'export_obj',
 				'export_fbx',
 				'export_collada',
+				'export_modded_animations',
 				'upload_sketchfab',
 				'share_model',
 			]},

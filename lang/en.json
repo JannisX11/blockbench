@@ -1174,6 +1174,8 @@
 	"action.export_entity.desc": "Export the model as an entity model for Minecraft Bedrock Edition",
 	"action.export_class_entity": "Export Java Entity",
 	"action.export_class_entity.desc": "Export the entity model as a Java class",
+	"action.export_modded_animations": "Export Modded Entity Animations",
+	"action.export_modded_animations.desc": "Export animations for a Minecraft Java Edition modded entity model",
 	"action.import_optifine_part": "Import OptiFine Part",
 	"action.import_optifine_part.desc": "Import an entity part model for OptiFine",
 	"action.export_optifine_full": "Export OptiFine JEM",

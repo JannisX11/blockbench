@@ -588,7 +588,7 @@ class Animation extends AnimationItem {
 		if (undo) {
 			Undo.finishEdit('Remove animation', {animations: []})
 
-			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
+			if (isApp && Format.animation_files && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -792,52 +792,6 @@ class Animation extends AnimationItem {
 			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
 		]},
 		new MenuSeparator('manage'),
-		{
-			name: 'menu.animation.export_java',
-			id: 'save',
-			icon: 'save',
-			condition: () => Format.animation_files,
-			click(animation) {
-				
-				let form = {};
-				let keys = [];
-				let animations = Animation.all.slice()
-				if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode())
-				animations.forEach(animation => {
-					let key = animation.name;
-					keys.push(key)
-					form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
-				})
-				let dialog = new Dialog({
-					id: 'animation_export',
-					title: 'dialog.animation_export.title',
-					form,
-					onConfirm(form_result) {
-						dialog.hide();
-						keys = keys.filter(key => form_result[key.hashCode()]);
-						let animations = keys.map(k => Animation.all.find(anim => anim.name == k));
-						let content = Codecs.modded_entity.compileAnimations(animations);
-						Blockbench.export({
-							resource_id: 'modded_animation',
-							type: 'Modded Entity Animation',
-							extensions: ['java'],
-							name: (Project.geometry_name||'model'),
-							content,
-						})
-					}
-				})
-				form.select_all_none = {
-					type: 'buttons',
-					buttons: ['generic.select_all', 'generic.select_none'],
-					click(index) {
-						let values = {};
-						keys.forEach(key => values[key.hashCode()] = (index == 0));
-						dialog.setFormValues(values);
-					}
-				}
-				dialog.show();
-			}
-		},
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -2049,6 +2003,7 @@ Interface.definePanels(function() {
 					'add_animation_controller',
 					'load_animation_file',
 					'slider_animation_length',
+					'export_modded_animations',
 				]
 			})
 		],
