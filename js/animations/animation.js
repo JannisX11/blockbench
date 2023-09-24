@@ -588,7 +588,7 @@ class Animation extends AnimationItem {
 		if (undo) {
 			Undo.finishEdit('Remove animation', {animations: []})
 
-			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
+			if (isApp && Format.animation_files && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -2081,6 +2081,7 @@ Interface.definePanels(function() {
 					'add_animation_controller',
 					'load_animation_file',
 					'slider_animation_length',
+					'export_modded_animations',
 				]
 			})
 		],
