@@ -648,6 +648,7 @@ const Timeline = {
 		'jump_to_timeline_end',
 		new MenuSeparator('copypaste'),
 		'paste',
+		'apply_animation_preset',
 		new MenuSeparator('view'),
 		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 			'zoom_in',

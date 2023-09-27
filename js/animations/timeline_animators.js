@@ -459,6 +459,37 @@ class BoneAnimator extends GeneralAnimator {
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
 	}
+	applyAnimationPreset(preset) {
+		let keyframes = [];
+		Undo.initEdit({keyframes});
+		let current_time = Timeline.snapTime(Timeline.time);
+		for (let channel in this.channels) {
+			let timeline = preset[channel];
+			for (let timecode in timeline) {
+				let data = {};
+				let value = timeline[timecode];
+				if (value instanceof Array) {
+					data = {x: value[0], y: value[1], z: value[2]};
+				} else if (value.pre) {
+					data = {data_points: [
+						{x: value.pre[0], y: value.pre[1], z: value.pre[2]},
+						{x: value.post[0], y: value.post[1], z: value.post[2]},
+					]}
+				} else {
+					data = {
+						x: value.post[0], y: value.post[1], z: value.post[2],
+						interpolation: value.lerp_mode
+					};
+				}
+				let kf = this.createKeyframe(data, current_time + parseFloat(timecode), channel, false, false);
+				keyframes.push(kf);
+			}
+		}
+		keyframes[0].select();
+		Undo.finishEdit('Apply animation preset');
+		Animator.preview();
+		return this;
+	}
 }
 	BoneAnimator.prototype.type = 'bone';
 	BoneAnimator.prototype.channels = {
@@ -468,6 +499,7 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	Group.animator = BoneAnimator;
 	BoneAnimator.prototype.menu = new Menu('bone_animator', [
+		new MenuSeparator('settings'),
 		{
 			id: 'rotation_global',
 			name: 'menu.animator.rotation_global',
@@ -479,7 +511,9 @@ class BoneAnimator extends GeneralAnimator {
 				Undo.finishEdit('Toggle rotation in global space');
 				Animator.preview();
 			}
-		}
+		},
+		new MenuSeparator('presets'),
+		'apply_animation_preset'
 	])
 
 class NullObjectAnimator extends BoneAnimator {
@@ -812,3 +846,29 @@ class EffectAnimator extends GeneralAnimator {
 		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
 		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
 	}
+
+BARS.defineActions(() => {
+	new Action('apply_animation_preset', {
+		condition: () => Modes.animate && Timeline.selected_animator && Timeline.selected_animator.applyAnimationPreset,
+		icon: 'library_books',
+		click: function (e) {
+			new Menu('apply_animation_preset', this.children(), {searchable: true}).open(e.target);
+		},
+		children() {
+			let animator = Timeline.selected_animator;
+			let entries = [];
+			for (let id in Animator.animation_presets) {
+				let preset = Animator.animation_presets[id];
+				let entry = {
+					name: preset.name,
+					icon: 'fast_forward',
+					click: () => {
+						animator.applyAnimationPreset(preset);
+					}
+				}
+				entries.push(entry);
+			}
+			return entries;
+		}
+	})
+})

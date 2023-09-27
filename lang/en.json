@@ -1717,6 +1717,8 @@
 	"action.animation_onion_skin.previous_next": "Previous + Next",
 	"action.looped_animation_playback": "Looped Playback",
 	"action.looped_animation_playback.desc": "Preview animations in an infinite loop",
+	"action.apply_animation_preset": "Apply Animation Preset",
+	"action.apply_animation_preset.desc": "Select from a list of animation presets and apply it to the selected bone",
 	"action.bedrock_animation_mode": "Bedrock Animation Mode",
 	"action.bedrock_animation_mode.desc": "Select the mode to edit animations for Minecraft: Bedrock Edition in",
 	"action.bedrock_animation_mode.entity": "Entity",

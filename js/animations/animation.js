@@ -1818,6 +1818,247 @@ Blockbench.addDragHandler('animation', {
 	}
 })
 
+Animator.animation_presets = {
+	float: {
+		name: 'Float',
+		rotation: {
+			"0.0": [
+				"math.sin(query.anim_time * 120) * 6",
+				"0",
+				"math.cos(query.anim_time * 100) * 4",
+			]
+		},
+		position: {
+			"0.0": [
+				"0",
+				"math.sin(query.anim_time * 90) * 1",
+				"0",
+			]
+		}
+	},
+	flap: {
+		name: 'Flap',
+		rotation: {
+			"0.0": [
+				"0",
+				"0",
+				"math.sin(query.anim_time * 1200) * 6",
+			]
+		},
+	},
+	swing: {
+		name: 'Swing',
+		rotation: {
+			"0.0": [
+				"math.sin(query.anim_time * 360) * 25",
+				"0",
+				"0",
+			]
+		},
+	},
+	strike: {
+		name: 'Strike',
+		"rotation": {
+			"0.0": [-120, 0, 0],
+			"0.0417": [-115, 0, 0],
+			"0.0833": [-100, 0, 0],
+			"0.125": [-37, 0, 0],
+			"0.1667": [-16, 0, 0],
+			"0.2083": [-8, 0, 0],
+			"0.3333": [0, 0, 0]
+		}
+	},
+	scale_in: {
+		name: 'Scale in',
+		"scale": {
+			"0.0": [0, 0, 0],
+			"0.0417": [0.06, 0.06, 0.06],
+			"0.0833": [0.2, 0.2, 0.2],
+			"0.1667": [0.8, 0.8, 0.8],
+			"0.2083": [0.94, 0.94, 0.94],
+			"0.25": [1, 1, 1]
+		}
+	},
+	scale_out: {
+		name: 'Scale out',
+		"scale": {
+			"0.0": [1, 1, 1],
+			"0.0417": [0.94, 0.94, 0.94],
+			"0.0833": [0.8, 0.8, 0.8],
+			"0.1667": [0.2, 0.2, 0.2],
+			"0.2083": [0.06, 0.06, 0.06],
+			"0.25": [0, 0, 0]
+		}
+	},
+	drop_down: {
+		name: 'Drop down',
+		"rotation": {
+			"0.125": [0, 0, -2],
+			"0.1667": [0, 0, -0.5],
+			"0.2083": [0, 0, 1.25],
+			"0.2917": [0, 0, 2.5],
+			"0.3333": [0, 0, 2],
+			"0.4167": [0, 0, -0.43],
+			"0.4583": [0, 0, -0.8],
+			"0.5417": [0, 0, -0.3],
+			"0.5833": [0, 0, 0]
+		},
+		"position": {
+			"0.0": [0, 12, 0],
+			"0.1667": [0, 0, 0],
+			"0.25": [0, 2.6, 0],
+			"0.2917": [0, 2.5, 0],
+			"0.375": [0, 0, 0],
+			"0.4583": [0, 0.9, 0],
+			"0.5": [0, 0.85, 0],
+			"0.5833": [0, 0, 0]
+		}
+	},
+	impact: {
+		name: 'Impact',
+		"rotation": {
+			"0.0": {
+				"post": [0, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.125": {
+				"post": [-15, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.2917": {
+				"post": [10, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.4167": {
+				"post": [-2.5, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.5417": {
+				"post": [0, 0, 0],
+				"lerp_mode": "catmullrom"
+			}
+		},
+		"position": {
+			"0.0": [0, 0, 0],
+			"0.0417": [0, -1, 0],
+			"0.125": [0, 0, 0]
+		}
+	},
+	shiver: {
+		name: 'Shiver',
+		rotation: {
+			"0.0": [
+				"0",
+				"0",
+				"math.sin(query.anim_time * 3000) * 3",
+			]
+		}
+	},
+	sway: {
+		name: 'Sway',
+		"rotation": {
+			"0.0": ["math.sin(query.anim_time * 60) * 3", 0, "math.sin(query.anim_time * 120) * 5"]
+		}
+	},
+	jump: {
+		name: 'Jump',
+		"rotation": {
+			"0.0": {
+				"post": [0, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.3333": {
+				"post": [2.5, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.5": {
+				"post": [7.5, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.7917": {
+				"post": [-9.6, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.875": {
+				"post": [-4, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"1.0833": {
+				"post": [0, 0, 0],
+				"lerp_mode": "catmullrom"
+			}
+		},
+		"position": {
+			"0.0": {
+				"post": [0, 0, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.3333": {
+				"post": [0, -3, 0],
+				"lerp_mode": "catmullrom"
+			},
+			"0.4167": {
+				"post": [0, 3.07, -3.25],
+				"lerp_mode": "catmullrom"
+			},
+			"0.5417": {
+				"post": [0, 7, -13],
+				"lerp_mode": "catmullrom"
+			},
+			"0.6667": {
+				"post": [0, 4.77, -22.85],
+				"lerp_mode": "catmullrom"
+			},
+			"0.7917": {
+				"post": [0, -2, -29.5],
+				"lerp_mode": "catmullrom"
+			},
+			"1.0833": {
+				"post": [0, 0, -30],
+				"lerp_mode": "catmullrom"
+			}
+		},
+	},
+	circle: {
+		name: 'Circle',
+		"position": {
+			"0.0": [
+				"math.cos(query.anim_time * 45) * 64",
+				0,
+				"-math.sin(query.anim_time * 45) * 64"
+			]
+		},
+		"rotation": {
+			"0.0": [
+				0,
+				"query.anim_time * 45",
+				0,
+			]
+		}
+	},
+	flicker: {
+		name: 'Flicker',
+		"scale": {
+			"0.0417": {"pre": [1, 1, 1], "post": [0, 0, 0]},
+			"0.1667": {"pre": [0, 0, 0], "post": [1, 1, 1]},
+			"0.2917": {"pre": [1, 1, 1], "post": [0, 0, 0]},
+			"0.4167": {"pre": [0, 0, 0], "post": [1, 1, 1]},
+			"0.5": {"pre": [1, 1, 1], "post": [0, 0, 0]},
+			"0.625": {"pre": [0, 0, 0], "post": [1, 1, 1]},
+			"0.75": {"pre": [1, 1, 1], "post": [0, 0, 0]},
+			"0.7917": {"pre": [0, 0, 0], "post": [1, 1, 1]},
+			"0.875": {"pre": [1, 1, 1], "post": [0, 0, 0]},
+			"1.0": {"pre": [0, 0, 0], "post": [1, 1, 1]}
+		}
+	},
+	hide: {
+		name: 'Invisible',
+		scale: {
+			"0.0": [0, 0, 0]
+		},
+	},
+}
+
 BARS.defineActions(function() {
 	new NumSlider('slider_animation_length', {
 		category: 'animation',
@@ -1856,7 +2097,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			new Animation({
-				name: 'animation.' + (Project.geometry_name||'model') + '.new',
+				name: Format.animation_files ? 'animation.' + (Project.geometry_name||'model') + '.new' : 'animation',
 				saved: false
 			}).add(true).propertiesDialog()
 
