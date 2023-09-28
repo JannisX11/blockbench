@@ -935,14 +935,25 @@ codec.compileAnimations = function(animations = Animation.all) {
 			for (let channel_id in channel_types) {
 				if (!(animator[channel_id] && animator[channel_id].length)) continue;
 				let keyframes = animator[channel_id].slice().sort((a, b) => a.time - b.time);
-				let keyframe_strings = keyframes.map(kf => {
+				let keyframe_strings = [];
+				function addKeyframe(time, x, y, z, interpolation) {
 					let kf_string = AnimationTemplates.get('keyframe_'+channel_id);
-					kf_string = kf_string.replace(R('time'), F(kf.time));
-					kf_string = kf_string.replace(R('x'), F(kf.calc('x')));
-					kf_string = kf_string.replace(R('y'), F(kf.calc('y')));
-					kf_string = kf_string.replace(R('z'), F(kf.calc('z')));
-					kf_string = kf_string.replace(R('interpolation'), interpolations[kf.interpolation] || interpolations.catmullrom);
-					return kf_string;
+					kf_string = kf_string.replace(R('time'), F(time));
+					kf_string = kf_string.replace(R('x'), F(x));
+					kf_string = kf_string.replace(R('y'), F(y));
+					kf_string = kf_string.replace(R('z'), F(z));
+					kf_string = kf_string.replace(R('interpolation'), interpolations[interpolation] || interpolations.linear);
+					keyframe_strings.push(kf_string);
+				}
+				
+				keyframes.forEach((kf, i) => {
+					addKeyframe(kf.time, kf.calc('x'), kf.calc('y'), kf.calc('z'), kf.interpolation);
+					if (kf.data_points[1]) {
+						addKeyframe(kf.time+0.001, kf.calc('x', 1), kf.calc('y', 1), kf.calc('z', 1), kf.interpolation);
+					} else if (kf.interpolation == 'step' && keyframes[i+1]) {
+						let next = keyframes[i+1];
+						addKeyframe(next.time-0.001, kf.calc('x'), kf.calc('y'), kf.calc('z'), 'linear');
+					}
 				})
 
 				let channel_string = AnimationTemplates.get('channel');
