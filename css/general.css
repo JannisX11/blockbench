@@ -691,6 +691,9 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
+	.contextMenu .menu_more_button > * {
+		pointer-events: none;
+	}
 	li.menu_separator {
 		height: 2px;
 		width: 100%;

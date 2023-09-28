@@ -1296,10 +1296,11 @@ class Texture {
 
 		if (isApp) {
 			//overwrite path
+			let image;
 			if (scope.mode === 'link') {
-				var image = nativeImage.createFromPath(scope.source.replace(/\?\d+$/, '')).toPNG()
+				image = nativeImage.createFromPath(scope.path).toPNG()
 			} else {
-				var image = nativeImage.createFromDataURL(scope.source).toPNG()
+				image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
 

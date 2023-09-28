@@ -616,54 +616,53 @@ BARS.defineActions(function() {
 	new Action('clear_unused_texture_space', {
 		icon: 'cleaning_services',
 		category: 'textures',
-		condition: {modes: ['paint'], features: ['edit_mode'], method: () => Texture.all.length},
+		condition: {modes: ['paint', 'edit'], features: ['edit_mode'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
-				if (texture.frameCount > 1) {
-					Blockbench.showQuickMessage('This feature does not work on animated textures at the moment');
-					return;
-				}
 				texture.edit((canvas) => {
-					// todo: flipbook animation support
+					let frame_count = texture.frameCount || 1;
 					let ctx = canvas.getContext('2d');
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.beginPath();
 
-					Outliner.elements.forEach(el => {
-						if (el instanceof Mesh) {
-							for (var fkey in el.faces) {
-								var face = el.faces[fkey];
-								if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-								
-								let matrix = face.getOccupationMatrix(true, [0, 0]);
-								for (let x in matrix) {
-									for (let y in matrix[x]) {
-										if (!matrix[x][y]) continue;
-										x = parseInt(x); y = parseInt(y);
-										ctx.rect(x, y, 1, 1);
+					for (let frame = 0; frame < frame_count; frame++) {
+						let y_offset = (frame * texture.display_height) || 0;
+						Outliner.elements.forEach(el => {
+							if (el instanceof Mesh) {
+								for (var fkey in el.faces) {
+									var face = el.faces[fkey];
+									if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+									
+									let matrix = face.getOccupationMatrix(true, [0, 0]);
+									for (let x in matrix) {
+										for (let y in matrix[x]) {
+											if (!matrix[x][y]) continue;
+											x = parseInt(x); y = parseInt(y);
+											ctx.rect(x, y + y_offset, 1, 1);
+										}
 									}
 								}
+							} else if (el instanceof Cube) {
+								let factor_x = texture.width  / Project.texture_width;
+								let factor_y = texture.display_height / Project.texture_height;
+								for (var fkey in el.faces) {
+									var face = el.faces[fkey];
+									if (face.getTexture() !== texture) continue;
+									
+									let rect = face.getBoundingRect();
+									let canvasRect = [
+										Math.floor(rect.ax * factor_x),
+										Math.floor(rect.ay * factor_y) + y_offset,
+										Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+										Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+									]
+									ctx.rect(...canvasRect);
+								}
 							}
-						} else if (el instanceof Cube) {
-							let factor_x = texture.width  / Project.texture_width;
-							let factor_y = texture.height / Project.texture_height;
-							for (var fkey in el.faces) {
-								var face = el.faces[fkey];
-								if (face.getTexture() !== texture) continue;
-								
-								let rect = face.getBoundingRect();
-								let canvasRect = [
-									Math.floor(rect.ax * factor_x),
-									Math.floor(rect.ay * factor_y),
-									Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
-									Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
-								]
-								ctx.rect(...canvasRect);
-							}
-						}
-					})
+						})
+					}
 
 					ctx.clip();
 					ctx.drawImage(texture.img, 0, 0);

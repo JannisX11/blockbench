@@ -781,7 +781,7 @@ Interface.definePanels(() => {
 						let height = this.graph_offset - this.graph_size * value;
 						lines.push({
 							position: height,
-							label: value,
+							label: Math.round(value),
 							path: `M0 ${height} L10000 ${height}`
 						});
 					})

@@ -1172,26 +1172,15 @@ const Painter = {
 		let e = 0.01;
 		symmetry_axes = symmetry_axes.map((v, i) => v ? i : false).filter(v => v !== false);
 		let off_axes = [0, 1, 2].filter(i => !symmetry_axes.includes(i));
-		function getElementParents(el) {
-			let list = [];
-			let subject = el;
-			while (subject.parent instanceof Group) {
-				subject = subject.parent;
-				list.push(subject)
-			}
-			return list;
-		}
 		if (element instanceof Cube) {
 			if (
 				symmetry_axes.find((axis) => !Math.epsilon(element.from[axis]-center, center-element.to[axis], e)) == undefined &&
-				off_axes.find(axis => element.rotation[axis]) == undefined &&
-				getElementParents(element).allEqual(group => off_axes.find(axis => group.rotation[axis]) == undefined)
+				off_axes.find(axis => element.rotation[axis]) == undefined
 			) {
 				return element;
 			} else {
 				for (var element2 of Cube.all) {
 					if (
-						element2 != element &&
 						Math.epsilon(element.inflate, element2.inflate, e) &&
 						off_axes.find(axis => !Math.epsilon(element.from[axis], element2.from[axis], e)) == undefined &&
 						off_axes.find(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) == undefined &&
@@ -1218,7 +1207,6 @@ const Painter = {
 					let other_center = element2.getCenter(true);
 					if (Object.keys(element.vertices).length !== Object.keys(element2.vertices).length) continue;
 					if (
-						element2 != element &&
 						symmetry_axes.find(axis => !Math.epsilon(element.origin[axis]-center, center-element2.origin[axis], e)) == undefined &&
 						symmetry_axes.find(axis => !Math.epsilon(this_center[axis]-center, center-other_center[axis], ep)) == undefined &&
 						off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined &&
