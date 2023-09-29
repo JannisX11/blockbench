@@ -2036,6 +2036,26 @@ Animator.animation_presets = {
 			]
 		}
 	},
+	look_at_target: {
+		name: 'Look At Target',
+		"rotation": {
+			"0.0": [
+				"query.target_x_rotation",
+				"query.target_y_rotation",
+				0
+			]
+		}
+	},
+	rotate_to_camera: {
+		name: 'Rotate To Camera',
+		"rotation": {
+			"0.0": [
+				"query.rotation_to_camera(0)",
+				"query.rotation_to_camera(1) - query.body_y_rotation",
+				0
+			]
+		}
+	},
 	flicker: {
 		name: 'Flicker',
 		"scale": {
