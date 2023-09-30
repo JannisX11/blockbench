@@ -892,6 +892,8 @@
 	"settings.highlight_cubes.desc": "Highlight elements when you hover over them or select them",
 	"settings.deactivate_size_limit": "Deactivate Size Limit",
 	"settings.deactivate_size_limit.desc": "Deactivate the size limit for specific model formats. WARNING: This can cause invalid models.",
+	"settings.modded_entity_integer_size": "Modded Entity Integer Size",
+	"settings.modded_entity_integer_size.desc": "Limit cube sizes in the Modded Entity format to integers. While floats are technically supported in some versions, integers are much easier to UV-map.",
 	"settings.allow_display_slot_mirror": "Allow Display Slot Mirroring",
 	"settings.allow_display_slot_mirror.desc": "Allow Display slots for Java item models to be mirrored. WARNING: This only works in Minecraft 1.14 or earlier or in special cases.",
 	"settings.vertex_merge_distance": "Vertex Merge Distance",

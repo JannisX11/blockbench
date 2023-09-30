@@ -996,7 +996,7 @@ var format = new ModelFormat({
 	integer_size: true,
 	animation_mode: true,
 })
-Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')});
+Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size') || settings.modded_entity_integer_size.value});
 codec.format = format;
 
 

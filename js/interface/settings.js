@@ -457,6 +457,7 @@ const Settings = {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
 		new Setting('deactivate_size_limit',	{category: 'edit', value: false});
+		new Setting('modded_entity_integer_size',{category:'edit', value: true});
 		new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
 		new Setting('preview_paste_behavior',	{category: 'edit', value: 'always_ask', type: 'select', options: {
 			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
