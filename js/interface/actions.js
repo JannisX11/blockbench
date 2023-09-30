@@ -31,6 +31,7 @@ class BarItem extends EventSystem {
 		this.condition = data.condition;
 		this.nodes = []
 		this.toolbars = []
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 		//Key
 		this.category = data.category ? data.category : 'misc'
 		if (!data.private && this.condition !== false/*Rule out app/web only actions*/) {

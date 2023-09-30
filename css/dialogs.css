@@ -1401,6 +1401,27 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin: 0;
 		margin-top: 4px;
 	}
+	#plugin_browser_page_tab_bar {
+		display: flex;
+		height: 32px;
+		width: 100%;
+		float: right;
+		padding: 0 20px;
+	}
+	#plugin_browser_page_tab_bar > li {
+		height: 100%;
+		margin: 0 5px;
+		padding: 2px 4px;
+		font-size: 1.2em;
+		overflow: hidden;
+		cursor: pointer;
+	}
+	#plugin_browser_page_tab_bar > li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	#plugin_browser_page_tab_bar > li:hover {
+		color: var(--color-light);
+	}
 	#plugin_browser_page > .about {
 		overflow-y: auto;
 		padding: 16px 24px;
@@ -1421,6 +1442,16 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		right: 0;
 		overflow: hidden;
 		max-width: unset;
+	}
+	#plugin_browser_info {
+		padding: 8px 24px;
+	}
+	#plugin_browser_info tr:nth-child(even) {
+		background-color: var(--color-back);
+	}
+	#plugin_browser_info td {
+		padding: 5px 2px;
+		line-height: 20px;
 	}
 
 	

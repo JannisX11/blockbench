@@ -6,6 +6,7 @@ const Plugins = {
 	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
+	currently_loading: '',
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	devReload() {
 		var reloads = 0;
@@ -49,9 +50,11 @@ class Plugin {
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
+		this.website = '';
 		this.source = 'store';
 		this.creation_date = 0;
 		this.await_loading = false;
+		this.info = null;
 		this.about_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
@@ -73,6 +76,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.string(this, data, 'max_version')
+		Merge.string(this, data, 'website')
 		Merge.boolean(this, data, 'await_loading');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
@@ -508,6 +512,66 @@ class Plugin {
 			this.about_fetched = true;
 		}
 	}
+	getPluginInfo() {
+		if (this.info) return this.info;
+		this.info = {
+			version: this.version,
+			last_modified: 'N/A',
+			creation_date: 'N/A',
+			last_modified_full: '',
+			creation_date_full: '',
+			min_version: this.min_version || '-',
+			max_version: this.max_version || '',
+			website: this.website || '',
+			author: this.author,
+			variant: this.variant == 'both' ? 'Desktop & Web' : this.variant,
+			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
+		};
+
+		let trackDate = (input_date, key) => {
+			let date = new Date(input_date);
+			var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+			let label;
+			if (diff <= 0) {
+				label = tl('dates.today');
+			} else if (diff == 1) {
+				label = tl('dates.yesterday');
+			} else if (diff <= 7) {
+				label = tl('dates.this_week');
+			} else if (diff <= 60) {
+				label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
+			} else {
+				label = date.toLocaleDateString();
+			}
+			console.log(label), 
+			this.info[key] = label;
+			this.info[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+		}
+		if (this.source == 'store') {
+			this.info.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			this.info.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+
+			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
+			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
+			fetch(commit_url).catch((err) => {
+				console.error('Cannot access commit info for ' + this.id, err);
+			}).then(async response => {
+				let commits = await response.json().catch(err => console.error(err));
+				console.log(response, commits)
+				if (!commits || !commits.length) return;
+				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
+
+				if (!this.creation_date) {
+					trackDate(Date.parse(commits.last().commit.committer.date), 'creation_date');
+				}
+			});
+
+		}
+		if (this.creation_date) {
+			trackDate(this.creation_date, 'creation_date');
+		}
+		return this.info;
+	}
 }
 Plugin.prototype.menu = new Menu([
 	new MenuSeparator('installation'),
@@ -606,7 +670,9 @@ Plugin.register = function(id, data) {
 	plugin.extend(data)
 	if (plugin.isInstallable() == true && plugin.disabled == false) {
 		if (plugin.onload instanceof Function) {
-			plugin.onload()
+			Plugins.currently_loading = id;
+			plugin.onload();
+			Plugins.currently_loading = '';
 		}
 	}
 	return plugin;
@@ -758,6 +824,7 @@ BARS.defineActions(function() {
 		component: {
 			data: {
 				tab: 'installed',
+				page_tab: 'about',
 				search_term: '',
 				items: Plugins.all,
 				selected_plugin: null,
@@ -835,8 +902,15 @@ BARS.defineActions(function() {
 					this.$refs.plugin_list.scrollTop = 0;
 				},
 				selectPlugin(plugin) {
+					if (!plugin) {
+						this.selected_plugin = Plugin.selected = null;
+						return;
+					}
 					plugin.fetchAbout();
-					this.selected_plugin = plugin;
+					this.selected_plugin = Plugin.selected = plugin;
+					if (!this.selected_plugin.installed && this.page_tab == 'settings') {
+						this.page_tab == 'about';
+					}
 				},
 				showDependency(dependency) {
 					let plugin = Plugins.all.find(p => p.id == dependency);
@@ -862,7 +936,10 @@ BARS.defineActions(function() {
 					}
 				},
 				formatAbout(about) {
-					return pureMarked('## About\n\n' + about);
+					return pureMarked(about);
+				},
+				reduceLink(url) {
+					return url.replace('https://', '').substring(0, 50)+'...';
 				},
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
@@ -873,7 +950,7 @@ BARS.defineActions(function() {
 				<content style="display: flex;" class="dialog_content">
 					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
 						<div class="bar flex" id="plugins_list_main_bar">
-							<div class="tool" v-if="!isMobile" @click="selected_plugin = null"><i class="material-icons icon">home</i></div>
+							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
 						<div class="tab_bar">
@@ -906,7 +983,7 @@ BARS.defineActions(function() {
 					</div>
 					
 					<div id="plugin_browser_page" v-if="selected_plugin">
-						<div v-if="isMobile" @click="selected_plugin = null;" class="plugin_browser_back_button">
+						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}" @contextmenu="selected_plugin.showContextMenu($event)">
@@ -964,8 +1041,78 @@ BARS.defineActions(function() {
 							</div>
 						</div>
 
-						<dynamic-icon v-if="!selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
-						<div class="about markdown" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)"></div>
+						<ul id="plugin_browser_page_tab_bar">
+							<li :class="{selected: page_tab == 'about'}" @click="page_tab = 'about'">About</li>
+							<li :class="{selected: page_tab == 'info'}" @click="page_tab = 'info'">Info</li>
+							<li :class="{selected: page_tab == 'settings'}" @click="page_tab = 'settings'" v-if="selected_plugin.installed">Settings</li>
+							<li :class="{selected: page_tab == 'features'}" @click="page_tab = 'features'" v-if="selected_plugin.installed">Features</li>
+						</ul>
+
+						<dynamic-icon v-if="page_tab == 'about' && !selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
+
+						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
+						</div>
+
+						<table v-if="page_tab == 'info'" id="plugin_browser_info">
+							<tbody>
+								<tr>
+									<td>Version</td>
+									<td>{{ selected_plugin.getPluginInfo().version }}</td>
+								</tr>
+								<tr>
+									<td>Last Updated</td>
+									<td :title="selected_plugin.info.last_modified_full">{{ selected_plugin.info.last_modified }}</td>
+								</tr>
+								<tr>
+									<td>Published</td>
+									<td :title="selected_plugin.info.creation_date_full">{{ selected_plugin.info.creation_date }}</td>
+								</tr>
+								<tr>
+									<td>Minimum required Blockbench version</td>
+									<td>{{ selected_plugin.info.min_version }}</td>
+								</tr>
+								<tr v-if="selected_plugin.info.max_version">
+									<td>Maximum allowed Blockbench version</td>
+									<td>{{ selected_plugin.info.max_version }}</td>
+								</tr>
+								<tr v-if="selected_plugin.info.website">
+									<td>Website</td>
+									<td>{{ selected_plugin.info.website }}</td>
+								</tr>
+								<tr>
+									<td>Author</td>
+									<td>{{ selected_plugin.info.author }}</td>
+								</tr>
+								<tr>
+									<td>Supported Variants</td>
+									<td>{{ capitalizeFirstLetter(selected_plugin.info.variant || '') }}</td>
+								</tr>
+								<tr>
+									<td>Installations per Week</td>
+									<td>{{ selected_plugin.info.weekly_installations }}</td>
+								</tr>
+								<tr v-if="selected_plugin.info.source">
+									<td>Plugin Source</td>
+									<td><a :href="selected_plugin.info.source" :title="selected_plugin.info.source">{{ reduceLink(selected_plugin.info.source) }}</a></td>
+								</tr>
+								<tr v-if="selected_plugin.info.issue_url">
+									<td>Report issue</td>
+									<td><a :href="selected_plugin.info.issue_url" :title="selected_plugin.info.issue_url">{{ reduceLink(selected_plugin.info.issue_url) }}</a></td>
+								</tr>
+							</tbody>
+						</table>
+						<div v-if="page_tab == 'features'">
+							Tools
+							Actions
+							Formats
+							Codecs
+							Panels
+							Modes
+							Settings
+							Validator Checks
+							Element Types
+						</div>
+						
 					</div>
 					
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">

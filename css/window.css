@@ -593,7 +593,6 @@
 	}
 
 	#mode_selector {
-		font-size: 1.1em;
 		height: 30px;
 		margin-left: auto;
 		margin-right: 0;
@@ -604,8 +603,9 @@
 		height: 30px;
 		margin: 0 5px;
 		overflow: hidden;
-    	padding-top: 2px;
-    	font-size: 18px;
+		padding-top: 1px;
+		font-size: 1.2em;
+		cursor: pointer;
 	}
 	#mode_selector li:hover {
 		color: var(--color-light);
