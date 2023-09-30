@@ -520,11 +520,11 @@ class Plugin {
 			creation_date: 'N/A',
 			last_modified_full: '',
 			creation_date_full: '',
-			min_version: this.min_version || '-',
+			min_version: this.min_version ? (this.min_version+'+') : '-',
 			max_version: this.max_version || '',
 			website: this.website || '',
 			author: this.author,
-			variant: this.variant == 'both' ? 'Desktop & Web' : this.variant,
+			variant: this.variant == 'both' ? 'All' : this.variant,
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
 		};
 
@@ -1056,8 +1056,12 @@ BARS.defineActions(function() {
 						<table v-if="page_tab == 'info'" id="plugin_browser_info">
 							<tbody>
 								<tr>
+									<td>Author</td>
+									<td>{{ selected_plugin.getPluginInfo().author }}</td>
+								</tr>
+								<tr>
 									<td>Version</td>
-									<td>{{ selected_plugin.getPluginInfo().version }}</td>
+									<td>{{ selected_plugin.info.version }}</td>
 								</tr>
 								<tr>
 									<td>Last Updated</td>
@@ -1068,20 +1072,12 @@ BARS.defineActions(function() {
 									<td :title="selected_plugin.info.creation_date_full">{{ selected_plugin.info.creation_date }}</td>
 								</tr>
 								<tr>
-									<td>Minimum required Blockbench version</td>
+									<td>Required Blockbench version</td>
 									<td>{{ selected_plugin.info.min_version }}</td>
 								</tr>
 								<tr v-if="selected_plugin.info.max_version">
 									<td>Maximum allowed Blockbench version</td>
 									<td>{{ selected_plugin.info.max_version }}</td>
-								</tr>
-								<tr v-if="selected_plugin.info.website">
-									<td>Website</td>
-									<td>{{ selected_plugin.info.website }}</td>
-								</tr>
-								<tr>
-									<td>Author</td>
-									<td>{{ selected_plugin.info.author }}</td>
 								</tr>
 								<tr>
 									<td>Supported Variants</td>
@@ -1090,6 +1086,10 @@ BARS.defineActions(function() {
 								<tr>
 									<td>Installations per Week</td>
 									<td>{{ selected_plugin.info.weekly_installations }}</td>
+								</tr>
+								<tr v-if="selected_plugin.info.website">
+									<td>Website</td>
+									<td>{{ selected_plugin.info.website }}</td>
 								</tr>
 								<tr v-if="selected_plugin.info.source">
 									<td>Plugin Source</td>
