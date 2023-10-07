@@ -69,6 +69,7 @@ const Timeline = {
 	get second() {return Timeline.time},
 	get animation_length() {return Animation.selected ? Animation.selected.length : 0;},
 	playing: false,
+	graph_editor_limit: 10_000,
 	selector: {
 		start: [0, 0],
 		selecting: false,
@@ -801,8 +802,8 @@ Interface.definePanels(() => {
 					let points = [];
 					let loop_points = [];
 
-					let min = this.show_zero_line ? -1 : 10000,
-						max = this.show_zero_line ? 1 : -10000;
+					let min = this.show_zero_line ? -1 : Timeline.graph_editor_limit,
+						max = this.show_zero_line ? 1 : -Timeline.graph_editor_limit;
 
 					for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 						Timeline.time = time / this.size;

@@ -1158,7 +1158,7 @@ const Animator = {
 
 				let copy = mesh.outline.clone();
 				copy.geometry = mesh.outline.geometry.clone();
-				copy.material = Canvas.gridMaterial;
+				copy.material = time < last_time ? Canvas.onionSkinEarlierMaterial : Canvas.onionSkinLaterMaterial;
 				copy.visible = true;
 
 				THREE.fastWorldPosition(mesh, copy.position);
@@ -2244,6 +2244,7 @@ BARS.defineActions(function() {
 		},
 		onChange() {
 			Timeline.vue.onion_skin_mode = this.value;
+			Animator.updateOnionSkin();
 		}
 	})
 

@@ -414,6 +414,8 @@ const Canvas = {
 	global_light_color: new THREE.Color(0xffffff),
 	global_light_side: 0,
 
+	onionSkinEarlierMaterial: new THREE.LineBasicMaterial({color: 0xa3363d}),
+	onionSkinLaterMaterial: new THREE.LineBasicMaterial({color: 0x3995bf}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
 		three_grid.children.empty();
