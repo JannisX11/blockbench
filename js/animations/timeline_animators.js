@@ -485,6 +485,9 @@ class BoneAnimator extends GeneralAnimator {
 				keyframes.push(kf);
 			}
 		}
+		if (preset.length) {
+			this.animation.setLength(current_time + preset.length);
+		}
 		keyframes[0].select();
 		Undo.finishEdit('Apply animation preset');
 		Animator.preview();

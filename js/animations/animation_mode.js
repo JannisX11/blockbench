@@ -986,6 +986,7 @@ Animator.animation_presets = {
 	},
 	impact: {
 		name: 'Impact',
+		length: 0.5417,
 		"rotation": {
 			"0.0": {
 				"post": [0, 0, 0],
@@ -1030,8 +1031,18 @@ Animator.animation_presets = {
 			"0.0": ["math.sin(query.anim_time * 60) * 3", 0, "math.sin(query.anim_time * 120) * 5"]
 		}
 	},
+	shake: {
+		name: 'Shake',
+		rotation: {
+			"0.0": [0, 0, 0],
+			"0.125": [0, 0, "math.sin(query.anim_time * 2160) * 20"],
+			"0.375": [0, 0, "math.sin(query.anim_time * 2160) * 20"],
+			"0.5": [0, 0, 0],
+		}
+	},
 	jump: {
 		name: 'Jump',
+		length: 1.0833,
 		"rotation": {
 			"0.0": {
 				"post": [0, 0, 0],
@@ -1093,17 +1104,45 @@ Animator.animation_presets = {
 		name: 'Circle',
 		"position": {
 			"0.0": [
-				"math.cos(query.anim_time * 45) * 64",
+				"math.cos(query.anim_time * 90) * 32",
 				0,
-				"-math.sin(query.anim_time * 45) * 64"
+				"-math.sin(query.anim_time * 90) * 32"
 			]
 		},
 		"rotation": {
 			"0.0": [
 				0,
-				"query.anim_time * 45",
+				"query.anim_time * 90",
 				0,
 			]
+		}
+	},
+	open_door: {
+		name: 'Open  Door',
+		"rotation": {
+			"0.0": [0, 0, 0],
+			"0.0417": [0, -7.24, 0],
+			"0.0833": [0, -21.895, 0],
+			"0.1667": [0, -95.76, 0],
+			"0.2083": [0, -104.125, 0],
+			"0.25": [0, -106.38, 0],
+			"0.2917": [0, -104.445, 0],
+			"0.3333": [0, -99.36, 0],
+			"0.375": [0, -96.485, 0],
+			"0.4167": [0, -96, 0]
+		}
+	},
+	close_door: {
+		name: 'Close  Door',
+		"rotation": {
+			"0.0": [0, -96, 0],
+			"0.0417": [0, -90.365, 0],
+			"0.0833": [0, -77.345, 0],
+			"0.125": [0, -53.2, 0],
+			"0.1667": [0, -28.13, 0],
+			"0.2083": [0, 0.6, 0],
+			"0.2917": [0, -5.525, 0],
+			"0.375": [0, 0, 0]
 		}
 	},
 	look_at_target: {
