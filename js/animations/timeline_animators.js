@@ -850,6 +850,8 @@ class EffectAnimator extends GeneralAnimator {
 		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
 	}
 
+StateMemory.init('animation_presets', 'array');
+
 BARS.defineActions(() => {
 	new Action('apply_animation_preset', {
 		condition: () => Modes.animate && Timeline.selected_animator && Timeline.selected_animator.applyAnimationPreset,
@@ -871,7 +873,66 @@ BARS.defineActions(() => {
 				}
 				entries.push(entry);
 			}
+			if (StateMemory.animation_presets.length) entries.push('_');
+			for (let preset of StateMemory.animation_presets) {
+				let entry = {
+					name: preset.name,
+					icon: 'fast_forward',
+					click: () => {
+						animator.applyAnimationPreset(preset);
+					},
+					children: [
+						{icon: 'delete', name: 'generic.delete', click: () => {
+							Blockbench.showMessageBox({
+								title: 'generic.delete',
+								message: 'generic.confirm_delete',
+								buttons: ['dialog.confirm', 'dialog.cancel'],
+							}, result => {
+								if (result == 1) return;
+								StateMemory.animation_presets.remove(preset);
+								StateMemory.save('animation_presets');
+							})
+						}}
+					]
+				}
+				entries.push(entry);
+			}
 			return entries;
+		}
+	})
+	new Action('save_animation_preset', {
+		icon: 'playlist_add',
+		condition: () => Modes.animate && Keyframe.selected.length && Keyframe.selected.allAre(kf => kf.animator == Keyframe.selected[0].animator),
+		click(event) {	
+			let dialog = new Dialog({
+				id: 'save_animation_preset',
+				title: 'action.save_animation_preset',
+				width: 540,
+				form: {
+					name: {label: 'generic.name'},
+				},
+				onConfirm: function(formResult) {
+					if (!formResult.name) return;
+	
+					let preset = {
+						uuid: guid(),
+						name: formResult.name,
+					}
+					let keyframes = Keyframe.selected.slice().sort((a, b) => a.time - b.time);
+					let start_time = keyframes[0].time;
+					for (let kf of keyframes) {
+						if (!kf.transform) continue;
+						if (!preset[kf.channel]) preset[kf.channel] = {};
+						let data = kf.compileBedrockKeyframe();
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time - start_time)).toString();
+						preset[kf.channel][timecode] = data;
+					}
+
+					StateMemory.animation_presets.push(preset);
+					StateMemory.save('animation_presets');
+				}
+			})
+			dialog.show()
 		}
 	})
 })

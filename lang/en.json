@@ -67,6 +67,7 @@
 	"generic.navigate_forward": "Forward",
 	"generic.navigate_back": "Back",
 	"generic.error": "Error",
+	"generic.confirm_delete": "Are you sure you want to delete this?",
 
 	"dates.today": "Today",
 	"dates.yesterday": "Yesterday",
@@ -1667,6 +1668,8 @@
 	"action.flip_animation.desc": "Flips part of an animation by copying selected keyframes to the other side of the model",
 	"action.delete_keyframes": "Delete Keyframes",
 	"action.delete_keyframes.desc": "Delete all selected keyframes",
+	"action.save_animation_preset": "Save Animation Preset...",
+	"action.save_animation_preset.desc": "Save the selected keyframes as an animation preset",
 	"action.slider_animation_speed": "Playback Speed",
 	"action.slider_animation_speed.desc": "Playback speed of the timeline in percent",
 	"action.add_keyframe": "Add Keyframe",

@@ -429,7 +429,6 @@ const Animator = {
 		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
-		console.trace('Loading', file)
 		var json = file.json || autoParseJSON(file.content);
 		let path = file.path;
 		let new_animations = [];

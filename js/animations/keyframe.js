@@ -538,9 +538,10 @@ class Keyframe {
 					}
 				}})
 			];
-		}},
+		}},,
 		new MenuSeparator('copypaste'),
 		'copy',
+		'save_animation_preset',
 		'delete',
 	])
 	new Property(Keyframe, 'number', 'time')
