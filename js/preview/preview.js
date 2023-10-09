@@ -1355,7 +1355,7 @@ class Preview {
 									}
 								}
 								if (selection_mode == 'object') {
-									if (face_intersects && !isForeground(element, element)) {
+									if (face_intersects && isForeground(element, element)) {
 										isSelected = true;
 										break;
 									}
