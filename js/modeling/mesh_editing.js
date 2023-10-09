@@ -1761,6 +1761,16 @@ BARS.defineActions(function() {
 				}
 			}
 		})
+		// Clean leftover faces
+		Mesh.selected.forEach(mesh => {
+			for (let fkey in mesh.faces) {
+				face = mesh.faces[fkey];
+				if(face.vertices.length <= 2){
+					delete mesh.faces[fkey];
+				}
+			}
+		});
+		// ---
 		Undo.finishEdit('Merge vertices')
 		Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		if (by_distance) {
