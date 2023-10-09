@@ -1242,6 +1242,35 @@ class Preview {
 			]
 		}
 
+		const isForeground_raycaster = new THREE.Raycaster();
+		isForeground_raycaster.near = Number.EPSILON; // to avoid self-intersecting 
+		function isForeground(parentElement, selectionTarget){
+			if(Project.view_mode === 'wireframe'){
+				// if View Mode is set to wireframe, all elements are visible.
+				// So it makes sense to make them all selectable!
+				// Also mirrors what happens in Blender. 
+				return true;
+			}
+			let center = null;
+			let position = null;
+			let origin = parentElement.origin;
+			if(selectionTarget.mesh){
+				// selectionTarget is a Mesh or a MeshFace
+				center = selectionTarget.getCenter(true);
+			} else {
+				// selectionTarget is a vertex position
+				center = selectionTarget;
+			}
+			position = [center[0]+origin[0], center[1]+origin[1], center[2]+origin[2]];
+			let rc_origin = new THREE.Vector3(position[0], position[1], position[2]);
+			let rc_direction = new THREE.Vector3(Preview.selected.camera.position.x, Preview.selected.camera.position.y, Preview.selected.camera.position.z);
+			rc_direction = rc_direction.sub(rc_origin);
+			rc_direction.normalize();
+			isForeground_raycaster.set(rc_origin, rc_direction);
+			let intersects = isForeground_raycaster.intersectObjects(Outliner.elements.map( el => el.mesh));
+			return (intersects.length == 0);
+		}
+
 		unselectAll()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
@@ -1283,7 +1312,7 @@ class Preview {
 						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
-								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end) && isForeground(element, element.vertices[vkey])) {
 									mesh_selection.vertices.push(vkey);
 								}
 							}
@@ -1300,7 +1329,7 @@ class Preview {
 									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
 										mesh_selection.vertices.safePush(vkey, vkey2);
 										let edge = [vkey, vkey2];
-										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2)) && (isForeground(element, element.vertices[vkey]) && isForeground(element, element.vertices[vkey2]))) {
 											mesh_selection.edges.push(edge);
 										}
 									}
@@ -1310,6 +1339,9 @@ class Preview {
 						} else {
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
+								if(!isForeground(element, face)){
+									continue;
+								}
 								let vertices = face.getSortedVertices();
 								let face_intersects;
 								for (let i = 0; i < vertices.length; i++) {
@@ -1323,7 +1355,7 @@ class Preview {
 									}
 								}
 								if (selection_mode == 'object') {
-									if (face_intersects) {
+									if (face_intersects && !isForeground(element, element)) {
 										isSelected = true;
 										break;
 									}
