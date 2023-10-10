@@ -3396,7 +3396,7 @@ Interface.definePanels(function() {
 						@contextmenu="contextMenu($event)"
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
-						@mousewheel="onMouseWheel($event)"
+						@wheel="onMouseWheel($event)"
 						class="checkerboard_target"
 						ref="viewport"
 						v-if="!hidden && mode !== 'face_properties'"

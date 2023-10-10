@@ -285,7 +285,7 @@ Interface.definePanels(() => {
 						</div>
 
 					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'" @mousewheel="onMouseWheel($event)">
+					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
 							<input id="main_colorpicker">
 						</div>
@@ -389,7 +389,7 @@ Interface.definePanels(() => {
 		}))
 	}
 
-	$('#color_history').on('mousewheel', function(e) {
+	$('#color_history').on('wheel', function(e) {
 		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
 		this.scrollLeft += delta;
 	})

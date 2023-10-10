@@ -527,7 +527,7 @@ function setupInterface() {
 	}
 
 	//Scrolling
-	$('input[type="range"]').on('mousewheel', function () {
+	$('input[type="range"]').on('wheel', function () {
 		var obj = $(event.target)
 		var factor = event.deltaY > 0 ? -1 : 1
 		var val = parseFloat(obj.val()) + parseFloat(obj.attr('step')) * factor
