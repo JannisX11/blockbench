@@ -296,6 +296,7 @@ class Preview {
 		}
 
 		this.raycaster = new THREE.Raycaster();
+		this.isForeground_raycaster = new THREE.Raycaster(); // specialized in selection foreground objects
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	event => {
@@ -1242,8 +1243,6 @@ class Preview {
 			]
 		}
 
-		const isForeground_raycaster = new THREE.Raycaster();
-		isForeground_raycaster.near = Number.EPSILON; // to avoid self-intersecting 
 		function isForeground(parentElement, selectionTarget){
 			if(Project.view_mode === 'wireframe'){
 				// if View Mode is set to wireframe, all elements are visible.
@@ -1262,13 +1261,28 @@ class Preview {
 				center = selectionTarget;
 			}
 			position = [center[0]+origin[0], center[1]+origin[1], center[2]+origin[2]];
-			let rc_origin = new THREE.Vector3(position[0], position[1], position[2]);
-			let rc_direction = new THREE.Vector3(Preview.selected.camera.position.x, Preview.selected.camera.position.y, Preview.selected.camera.position.z);
-			rc_direction = rc_direction.sub(rc_origin);
+			let rc_origin = Preview.selected.camera.position;
+			let rc_target = new THREE.Vector3(position[0], position[1], position[2]);
+			let rc_direction = new THREE.Vector3().copy(rc_target);
+			rc_direction.sub(rc_origin);
+			let far_distance = rc_direction.length();
 			rc_direction.normalize();
-			isForeground_raycaster.set(rc_origin, rc_direction);
-			let intersects = isForeground_raycaster.intersectObjects(Outliner.elements.map( el => el.mesh));
-			return (intersects.length == 0);
+			Preview.selected.isForeground_raycaster.camera = Preview.selected.camera;
+			Preview.selected.isForeground_raycaster.near = 0.0;
+			Preview.selected.isForeground_raycaster.far = far_distance;
+			Preview.selected.isForeground_raycaster.set(rc_origin, rc_direction);
+			let intersects = Preview.selected.isForeground_raycaster.intersectObjects(Outliner.elements.map(el => el.mesh), false);
+			let actualIntersects = [];
+			intersects.forEach(intersect => {
+				// remove face-level self-intersection
+				let faceCheck = !(Math.abs(intersect.distance-far_distance)<0.0001);
+				// if selectionTarget is a Mesh, remove object level self-intersection
+				let objectCheck = !((selectionTarget instanceof Mesh) && (intersect.object == selectionTarget.mesh));
+				if (faceCheck && objectCheck) {
+					actualIntersects.push(intersect);
+				}
+			})
+			return (actualIntersects.length == 0);
 		}
 
 		unselectAll()
