@@ -23,20 +23,6 @@ class MeshFace extends Face {
 		}
 		return this;
 	}
-	getCenter(global){
-		let center = [0, 0, 0];
-		let len = 0;
-		for (let vkey in this.vertices) {
-			center.V3_add(this.mesh.vertices[vkey]);
-			len++;
-		}
-		center.V3_divide(len);
-		if (global) {
-			return this.mesh.localToWorld(Reusable.vec1.set(...center)).toArray();
-		} else {
-			return center;
-		}
-	}
 	getNormal(normalize) {
 		let vertices = this.getSortedVertices();
 		if (vertices.length < 3) return [0, 0, 0];
