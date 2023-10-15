@@ -1250,39 +1250,43 @@ class Preview {
 				// Also mirrors what happens in Blender. 
 				return true;
 			}
-			let center = null;
-			let position = null;
-			let origin = parentElement.origin;
-			if(selectionTarget.mesh){
-				// selectionTarget is a Mesh or a MeshFace
-				center = selectionTarget.getCenter(true);
-			} else {
-				// selectionTarget is a vertex position
-				center = selectionTarget;
-			}
-			position = [center[0]+origin[0], center[1]+origin[1], center[2]+origin[2]];
+			// remove invisible objects and get their meshes
+			let collidingObjects = Outliner.elements.filter(object => object.visibility).map(el => el.mesh)
+			// get the center of the Blockbench Mesh/MeshFace object, or consider the target a simple vertex position
+			let center = selectionTarget.mesh ? selectionTarget.getCenter(true) : selectionTarget;
+			// add the origin of the parent Blockbench Mesh 
+			let position = [center[0]+parentElement.origin[0], center[1]+parentElement.origin[1], center[2]+parentElement.origin[2]];
 			let rc_origin = Preview.selected.camera.position;
-			let rc_target = new THREE.Vector3(position[0], position[1], position[2]);
-			let rc_direction = new THREE.Vector3().copy(rc_target);
+			let rc_direction = new THREE.Vector3(position[0], position[1], position[2]);
 			rc_direction.sub(rc_origin);
 			let far_distance = rc_direction.length();
 			rc_direction.normalize();
 			Preview.selected.isForeground_raycaster.camera = Preview.selected.camera;
 			Preview.selected.isForeground_raycaster.near = 0.0;
-			Preview.selected.isForeground_raycaster.far = far_distance;
+			Preview.selected.isForeground_raycaster.far = far_distance;  // check only until the target object
 			Preview.selected.isForeground_raycaster.set(rc_origin, rc_direction);
-			let intersects = Preview.selected.isForeground_raycaster.intersectObjects(Outliner.elements.map(el => el.mesh), false);
-			let actualIntersects = [];
-			intersects.forEach(intersect => {
-				// remove face-level self-intersection
-				let faceCheck = !(Math.abs(intersect.distance-far_distance)<0.0001);
-				// if selectionTarget is a Mesh, remove object level self-intersection
-				let objectCheck = !((selectionTarget instanceof Mesh) && (intersect.object == selectionTarget.mesh));
-				if (faceCheck && objectCheck) {
-					actualIntersects.push(intersect);
+			// Obtain and check the intersections
+			// if selectionTarget is a Mesh, remove object level self-intersection
+			const objectCheck = (intersect)=>{ return !((selectionTarget instanceof Mesh) && (intersect.object == selectionTarget.mesh))};
+			// remove face-level self-intersection
+			const faceCheck = (dist)=>{ return !(dist<0.001)};
+			// final check with faces - if near enough, compare normals: if they're aligned enough it's most likely the same object
+			let fN = selectionTarget.getNormal(true);
+			let fNV = new THREE.Vector3(fN[0], fN[1], fN[2]);
+			const finalCheck = (intersect, dist)=>{
+				// TODO why is this necessary?
+				if (!(selectionTarget instanceof MeshFace)){
+					return true;
 				}
+				let dot = fNV.dot(intersect.face.normal);
+				return !(dist<0.1 && dot>0.95);
+			}
+			let intersects = Preview.selected.isForeground_raycaster.intersectObjects(collidingObjects, false);
+			intersects = intersects.filter(intersect => {
+				let dist = Math.abs(intersect.distance-far_distance)
+				return (objectCheck(intersect) && faceCheck(dist) && finalCheck(intersect, dist))
 			})
-			return (actualIntersects.length == 0);
+			return (intersects.length == 0);
 		}
 
 		unselectAll()
@@ -1353,9 +1357,6 @@ class Preview {
 						} else {
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
-								if(!isForeground(element, face)){
-									continue;
-								}
 								let vertices = face.getSortedVertices();
 								let face_intersects;
 								for (let i = 0; i < vertices.length; i++) {
@@ -1368,8 +1369,11 @@ class Preview {
 										break;
 									}
 								}
+								if(face_intersects && !isForeground(element, face)){
+									continue;
+								}
 								if (selection_mode == 'object') {
-									if (face_intersects && isForeground(element, element)) {
+									if (face_intersects && isForeground(element, face)) {
 										isSelected = true;
 										break;
 									}
