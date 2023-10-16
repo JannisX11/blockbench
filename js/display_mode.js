@@ -2146,7 +2146,7 @@ BARS.defineActions(function() {
 			Project.model_3d.position.set(-20, 21, 0);
 			Project.model_3d.rotation.set(
 				Math.degToRad(-95),
-				Math.degToRad(44),
+				Math.degToRad(45),
 				Math.degToRad(115),
 				'ZYX'
 			);
