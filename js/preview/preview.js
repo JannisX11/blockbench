@@ -1271,8 +1271,12 @@ class Preview {
 			// remove face-level self-intersection
 			const faceCheck = (dist)=>{ return !(dist<0.001)};
 			// final check with faces - if near enough, compare normals: if they're aligned enough it's most likely the same object
-			let fN = selectionTarget.getNormal(true);
-			let fNV = new THREE.Vector3(fN[0], fN[1], fN[2]);
+			let fN = null;
+			let fNV = null;
+			if(selectionTarget instanceof MeshFace){
+				fN = selectionTarget.getNormal(true);
+				fNV = new THREE.Vector3(fN[0], fN[1], fN[2]);
+			}
 			const finalCheck = (intersect, dist)=>{
 				// TODO why is this necessary?
 				if (!(selectionTarget instanceof MeshFace)){
