@@ -81,7 +81,9 @@ class GeneralAnimator {
 		var deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
-		Undo.addKeyframeCasualties(deleted);
+		if (undo) {
+			Undo.addKeyframeCasualties(deleted);
+		}
 		Animation.selected.setLength();
 
 		if (undo) {

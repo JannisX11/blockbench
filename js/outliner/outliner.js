@@ -422,7 +422,10 @@ class OutlinerElement extends OutlinerNode {
 		return copy;
 	}
 	select(event, isOutlinerClick) {
-		if (Modes.animate && !this.constructor.animator) return false;
+		if (Modes.animate && !this.constructor.animator) {
+			Blockbench.showQuickMessage('message.group_required_to_animate');
+			return false;
+		}
 		//Shiftv
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
