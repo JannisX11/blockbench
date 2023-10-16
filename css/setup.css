@@ -681,15 +681,15 @@
 	}
 	.numeric_input > div.tool {
 		position: absolute;
-		width: 22px;
+		width: 18px;
 		right: 1px;
 		top: 0;
 		color: var(--color-subtle_text);
 		cursor: ew-resize;
 	}
 	.numeric_input > div.tool > i {
-		font-size: 20px;
-		margin-top: 5px;
+		font-size: 18px;
+		margin-top: 6px;
 	}
 
 	div.nslide {

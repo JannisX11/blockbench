@@ -486,54 +486,54 @@
 
 
 	/*Settings*/
-	#settingslist {
+	.settings_list {
 		width: 100%;
 		max-height: 600px;
 		overflow-y: scroll;
 		clear: both;
 	}
-	#settingslist li {
+	.settings_list li {
 		padding: 2px 1px;
 		margin: 4px 0;
 	}
-	#settingslist li.has_profile_override {
+	.settings_list li.has_profile_override {
 		border: 1px solid var(--color-profile);
 		padding: 1px 0;
 		position: relative;
 	}
-	#settingslist .setting_profile_clear_button {
+	.settings_list .setting_profile_clear_button {
 		position: absolute;
 		top: 4px;
 		right: 0;
 	}
-	#settingslist li:hover input[type=checkbox] {
+	.settings_list li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
-	#settingslist .setting_element {
+	.settings_list .setting_element {
 		width: 50px;
 		text-align: center;
 		float: left;
 		margin-top: 12px;
 	}
-	#settingslist input[type=checkbox] {
+	.settings_list input[type=checkbox] {
 		margin-top: -6px;
 	}
-	#settingslist input[type=checkbox]::before {
+	.settings_list input[type=checkbox]::before {
 		font-size: 18pt;
 	}
-	#settingslist li > .setting_icon {
+	.settings_list li > .setting_icon {
 		margin-top: 8px;
 	}
-	#settingslist li > .setting_label {
+	.settings_list li > .setting_label {
 		display: inline-block;
 		margin-left: 8px;
 		width: calc(100% - 60px);
 	}
-	#settingslist .setting_name {
+	.settings_list .setting_name {
 		font-size: 1.1em;
 		display: inline-block;
 	}
-	#settingslist .setting_description {
+	.settings_list .setting_description {
 		font-size: 0.94em;
 		color: var(--color-subtle_text);
 	}
@@ -553,7 +553,7 @@
 	.setting_profile_value_indicator:hover {
 		opacity: 1;
 	}
-	#settingslist input[type=number] {
+	.settings_list input[type=number] {
 		height: 28px;
 		width: 100%;
 		background-color: var(--color-back);
@@ -561,24 +561,24 @@
 		padding-left: 4px;
 		text-align: right;
 	}
-	#settingslist input[type=text], #settingslist input[type=password] {
+	.settings_list input[type=text], .settings_list input[type=password] {
 		padding: 10px;
 		margin-left: 5px;
 		vertical-align: bottom;
 	}
-	#settingslist div.bar_select {
+	.settings_list div.bar_select {
 		margin: 8px;
 		width: 96%;
 	}
-	#settingslist div.bar_select select {
+	.settings_list div.bar_select select {
 		width: 100%;
 	}
-	#settingslist li .setting_icon i {
+	.settings_list li .setting_icon i {
 		font-size: 26pt;
 		width: 34px;
 		margin-top: -6px;
 	}
-	#settingslist li:hover .setting_icon i {
+	.settings_list li:hover .setting_icon i {
 		color: var(--color-light);
 	}
 	.password_toggle {
@@ -1443,15 +1443,18 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		overflow: hidden;
 		max-width: unset;
 	}
-	#plugin_browser_info {
+	#plugin_browser_details {
 		padding: 8px 24px;
 	}
-	#plugin_browser_info tr:nth-child(even) {
+	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
 	}
-	#plugin_browser_info td {
+	#plugin_browser_details td {
 		padding: 5px 2px;
 		line-height: 20px;
+	}
+	#plugin_browser_page .settings_list {
+		padding: 4px 20px;
 	}
 
 	

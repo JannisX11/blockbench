@@ -54,7 +54,7 @@ class Plugin {
 		this.source = 'store';
 		this.creation_date = 0;
 		this.await_loading = false;
-		this.info = null;
+		this.details = null;
 		this.about_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
@@ -512,9 +512,9 @@ class Plugin {
 			this.about_fetched = true;
 		}
 	}
-	getPluginInfo() {
-		if (this.info) return this.info;
-		this.info = {
+	getPluginDetails() {
+		if (this.details) return this.details;
+		this.details = {
 			version: this.version,
 			last_modified: 'N/A',
 			creation_date: 'N/A',
@@ -543,13 +543,12 @@ class Plugin {
 			} else {
 				label = date.toLocaleDateString();
 			}
-			console.log(label), 
-			this.info[key] = label;
-			this.info[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+			this.details[key] = label;
+			this.details[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 		}
 		if (this.source == 'store') {
-			this.info.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
-			this.info.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			this.details.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			this.details.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
 
 			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
@@ -557,7 +556,6 @@ class Plugin {
 				console.error('Cannot access commit info for ' + this.id, err);
 			}).then(async response => {
 				let commits = await response.json().catch(err => console.error(err));
-				console.log(response, commits)
 				if (!commits || !commits.length) return;
 				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
 
@@ -570,7 +568,7 @@ class Plugin {
 		if (this.creation_date) {
 			trackDate(this.creation_date, 'creation_date');
 		}
-		return this.info;
+		return this.details;
 	}
 }
 Plugin.prototype.menu = new Menu([
@@ -830,6 +828,7 @@ BARS.defineActions(function() {
 				selected_plugin: null,
 				page: 0,
 				per_page: 25,
+				settings: settings,
 				isMobile: Blockbench.isMobile,
 			},
 			computed: {
@@ -890,6 +889,16 @@ BARS.defineActions(function() {
 						pages.push(i);
 					}
 					return pages;
+				},
+				selected_plugin_settings() {
+					if (!this.selected_plugin) return {};
+					let plugin_settings = {};
+					for (let id in this.settings) {
+						if (settings[id].plugin == this.selected_plugin.id) {
+							plugin_settings[id] = settings[id];
+						}
+					}
+					return plugin_settings;
 				}
 			},
 			methods: {
@@ -941,6 +950,29 @@ BARS.defineActions(function() {
 				reduceLink(url) {
 					return url.replace('https://', '').substring(0, 50)+'...';
 				},
+
+				// Settings
+				saveSettings() {
+					Settings.saveLocalStorages();
+				},
+				settingContextMenu(setting, event) {
+					new Menu([
+						{
+							name: 'dialog.settings.reset_to_default',
+							icon: 'replay',
+							click: () => {
+								setting.ui_value = setting.default_value;
+								this.saveSettings();
+							}
+						}
+					]).open(event);
+				},
+				getProfileValuesForSetting(key) {
+					return SettingsProfile.all.filter(profile => {
+						return profile.settings[key] !== undefined;
+					});
+				},
+
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				tl
@@ -1043,7 +1075,7 @@ BARS.defineActions(function() {
 
 						<ul id="plugin_browser_page_tab_bar">
 							<li :class="{selected: page_tab == 'about'}" @click="page_tab = 'about'">About</li>
-							<li :class="{selected: page_tab == 'info'}" @click="page_tab = 'info'">Info</li>
+							<li :class="{selected: page_tab == 'details'}" @click="page_tab = 'details'">Details</li>
 							<li :class="{selected: page_tab == 'settings'}" @click="page_tab = 'settings'" v-if="selected_plugin.installed">Settings</li>
 							<li :class="{selected: page_tab == 'features'}" @click="page_tab = 'features'" v-if="selected_plugin.installed">Features</li>
 						</ul>
@@ -1053,54 +1085,104 @@ BARS.defineActions(function() {
 						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
 						</div>
 
-						<table v-if="page_tab == 'info'" id="plugin_browser_info">
+						<table v-if="page_tab == 'details'" id="plugin_browser_details">
 							<tbody>
 								<tr>
 									<td>Author</td>
-									<td>{{ selected_plugin.getPluginInfo().author }}</td>
+									<td>{{ selected_plugin.getPluginDetails().author }}</td>
 								</tr>
 								<tr>
 									<td>Version</td>
-									<td>{{ selected_plugin.info.version }}</td>
+									<td>{{ selected_plugin.details.version }}</td>
 								</tr>
 								<tr>
 									<td>Last Updated</td>
-									<td :title="selected_plugin.info.last_modified_full">{{ selected_plugin.info.last_modified }}</td>
+									<td :title="selected_plugin.details.last_modified_full">{{ selected_plugin.details.last_modified }}</td>
 								</tr>
 								<tr>
 									<td>Published</td>
-									<td :title="selected_plugin.info.creation_date_full">{{ selected_plugin.info.creation_date }}</td>
+									<td :title="selected_plugin.details.creation_date_full">{{ selected_plugin.details.creation_date }}</td>
 								</tr>
 								<tr>
 									<td>Required Blockbench version</td>
-									<td>{{ selected_plugin.info.min_version }}</td>
+									<td>{{ selected_plugin.details.min_version }}</td>
 								</tr>
-								<tr v-if="selected_plugin.info.max_version">
+								<tr v-if="selected_plugin.details.max_version">
 									<td>Maximum allowed Blockbench version</td>
-									<td>{{ selected_plugin.info.max_version }}</td>
+									<td>{{ selected_plugin.details.max_version }}</td>
 								</tr>
 								<tr>
 									<td>Supported Variants</td>
-									<td>{{ capitalizeFirstLetter(selected_plugin.info.variant || '') }}</td>
+									<td>{{ capitalizeFirstLetter(selected_plugin.details.variant || '') }}</td>
 								</tr>
 								<tr>
 									<td>Installations per Week</td>
-									<td>{{ selected_plugin.info.weekly_installations }}</td>
+									<td>{{ selected_plugin.details.weekly_installations }}</td>
 								</tr>
-								<tr v-if="selected_plugin.info.website">
+								<tr v-if="selected_plugin.details.website">
 									<td>Website</td>
-									<td>{{ selected_plugin.info.website }}</td>
+									<td>{{ selected_plugin.details.website }}</td>
 								</tr>
-								<tr v-if="selected_plugin.info.source">
+								<tr v-if="selected_plugin.details.source">
 									<td>Plugin Source</td>
-									<td><a :href="selected_plugin.info.source" :title="selected_plugin.info.source">{{ reduceLink(selected_plugin.info.source) }}</a></td>
+									<td><a :href="selected_plugin.details.source" :title="selected_plugin.details.source">{{ reduceLink(selected_plugin.details.source) }}</a></td>
 								</tr>
-								<tr v-if="selected_plugin.info.issue_url">
+								<tr v-if="selected_plugin.details.issue_url">
 									<td>Report issue</td>
-									<td><a :href="selected_plugin.info.issue_url" :title="selected_plugin.info.issue_url">{{ reduceLink(selected_plugin.info.issue_url) }}</a></td>
+									<td><a :href="selected_plugin.details.issue_url" :title="selected_plugin.details.issue_url">{{ reduceLink(selected_plugin.details.issue_url) }}</a></td>
 								</tr>
 							</tbody>
 						</table>
+						
+						<div v-if="page_tab == 'settings'">
+							<ul class="settings_list">
+								<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
+									v-on="setting.click ? {click: setting.click} : {}"
+									@contextmenu="settingContextMenu(setting, $event)"
+								>
+									<template v-if="setting.type === 'number'">
+										<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
+									</template>
+									<template v-else-if="setting.type === 'click'">
+										<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+									</template>
+									<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+										<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+									</template>
+
+									<div class="setting_label">
+										<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+										<div class="setting_profile_value_indicator"
+											v-for="profile_here in getProfileValuesForSetting(key)"
+											:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+											:class="{active: profile_here.isActive()}"
+											:title="tl('Has override in profile ' + profile_here.name)"
+											@click.stop="profile = (profile == profile_here) ? null : profile_here"
+										/>
+										<div class="setting_description">{{ setting.description }}</div>
+									</div>
+
+									<template v-if="setting.type === 'text'">
+										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" v-on:input="saveSettings()">
+									</template>
+
+									<template v-if="setting.type === 'password'">
+										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" v-on:input="saveSettings()">
+										<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+											<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+											<i class="fas fa-eye" v-else></i>
+										</div>
+									</template>
+
+									<template v-else-if="setting.type === 'select'">
+										<div class="bar_select">
+											<select-input v-model="setting.ui_value" :options="setting.options" />
+										</div>
+									</template>
+								</li>
+							</ul>
+						</div>
+						
 						<div v-if="page_tab == 'features'">
 							Tools
 							Actions

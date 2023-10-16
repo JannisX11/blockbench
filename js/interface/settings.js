@@ -32,6 +32,7 @@ class Setting {
 		this.name = data.name || tl(`settings.${id}`);
 		this.description = data.description || tl(`settings.${id}.desc`);
 		this.launch_setting = data.launch_setting || false;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		if (this.type == 'number') {
 			this.min = data.min;
@@ -962,7 +963,7 @@ onVueSetup(function() {
 
 					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
 
-					<ul id="settingslist">
+					<ul class="settings_list" id="settingslist">
 
 						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
 							v-on="setting.click ? {click: setting.click} : {}"
