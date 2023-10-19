@@ -62,6 +62,7 @@ class Menu {
 		this.onClose = this.options.onClose;
 	}
 	hover(node, event, expand) {
+		if (node.classList.contains('focused')) return;
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')

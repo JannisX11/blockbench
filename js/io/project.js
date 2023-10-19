@@ -510,8 +510,7 @@ new Property(ModelProject, 'array', 'timeline_setups', {
 	condition: () => Format.animation_mode,
 });
 new Property(ModelProject, 'object', 'unhandled_root_fields', {
-	exposed: false,
-	default: {}
+	exposed: false
 });
 
 
