@@ -1092,11 +1092,15 @@ BARS.defineActions(function() {
 									<td>{{ selected_plugin.getPluginDetails().author }}</td>
 								</tr>
 								<tr>
+									<td>Identifier</td>
+									<td>{{ selected_plugin.id }}</td>
+								</tr>
+								<tr>
 									<td>Version</td>
 									<td>{{ selected_plugin.details.version }}</td>
 								</tr>
 								<tr>
-									<td>Last Updated</td>
+									<td>Last updated</td>
 									<td :title="selected_plugin.details.last_modified_full">{{ selected_plugin.details.last_modified }}</td>
 								</tr>
 								<tr>
@@ -1112,11 +1116,11 @@ BARS.defineActions(function() {
 									<td>{{ selected_plugin.details.max_version }}</td>
 								</tr>
 								<tr>
-									<td>Supported Variants</td>
+									<td>Supported variants</td>
 									<td>{{ capitalizeFirstLetter(selected_plugin.details.variant || '') }}</td>
 								</tr>
 								<tr>
-									<td>Installations per Week</td>
+									<td>Installations per week</td>
 									<td>{{ selected_plugin.details.weekly_installations }}</td>
 								</tr>
 								<tr v-if="selected_plugin.details.website">
@@ -1124,11 +1128,11 @@ BARS.defineActions(function() {
 									<td>{{ selected_plugin.details.website }}</td>
 								</tr>
 								<tr v-if="selected_plugin.details.source">
-									<td>Plugin Source</td>
+									<td>Plugin source</td>
 									<td><a :href="selected_plugin.details.source" :title="selected_plugin.details.source">{{ reduceLink(selected_plugin.details.source) }}</a></td>
 								</tr>
 								<tr v-if="selected_plugin.details.issue_url">
-									<td>Report issue</td>
+									<td>Report issues</td>
 									<td><a :href="selected_plugin.details.issue_url" :title="selected_plugin.details.issue_url">{{ reduceLink(selected_plugin.details.issue_url) }}</a></td>
 								</tr>
 							</tbody>
