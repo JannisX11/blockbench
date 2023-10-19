@@ -648,13 +648,14 @@ class AnimationController extends AnimationItem {
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
-			a.selected = a.playing = false;
+			a.selected = false;
+			if (a.playing == true) a.playing = false;
 		})
 
 		Panels.animation_controllers.inside_vue.controller = this;
 
 		this.selected = true;
-		this.playing = true;
+		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
 
 		if (Modes.animate) {

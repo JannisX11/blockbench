@@ -438,7 +438,8 @@ class Animation extends AnimationItem {
 		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
 		AnimationItem.all.forEach((a) => {
-			a.selected = a.playing = false;
+			a.selected = false;
+			if (a.playing == true) a.playing = false;
 		})
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
@@ -446,7 +447,7 @@ class Animation extends AnimationItem {
 		Timeline.setTime(Timeline.time % this.length);
 		Animator.MolangParser.resetVariables();
 		this.selected = true;
-		this.playing = true;
+		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
 		unselectAll();
 		BarItems.slider_animation_length.update();
@@ -526,8 +527,18 @@ class Animation extends AnimationItem {
 	}
 	togglePlayingState(state) {
 		if (!this.selected) {
-			this.playing = state !== undefined ? state : !this.playing;
+			if (state !== undefined) {
+				this.playing = state;
+			} else if (this.playing == false) {
+				this.playing = true;
+			} else if (this.playing == true) {
+				this.playing = 'locked';
+			} else {
+				this.playing = false;
+			}
 			Animator.preview();
+		} else if (this.playing == 'locked') {
+			this.playing = true;
 		} else {
 			Timeline.start();
 		}
@@ -1479,8 +1490,9 @@ Interface.definePanels(function() {
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
-								<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
-									<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
+								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()">
+									<i v-if="animation.playing == 'locked'" class="fa_big fas fa-lock"></i>
+									<i v-else-if="animation.playing" class="fa_big far fa-play-circle"></i>
 									<i v-else class="fa_big far fa-circle"></i>
 								</div>
 							</li>
