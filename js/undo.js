@@ -331,9 +331,10 @@ class UndoSystem {
 						tex.extend(save.textures[uuid]);
 						if (tex.source_overwritten && save.textures[uuid].image_data) {
 							// If the source file was overwritten by more recent changes, make sure to display the original data
-							tex.mode = 'bitmap';
-							tex.source = save.textures[uuid].image_data;
-							tex.saved = false;
+							tex.convertToInternal(save.textures[uuid].image_data);
+						}
+						if (tex.layers_enabled) {
+							tex.updateLayerChanges();
 						}
 						tex.updateSource();
 						tex.keep_size = true;

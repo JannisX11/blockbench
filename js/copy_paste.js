@@ -9,6 +9,7 @@ const Clipbench = {
 		face: 'face',
 		mesh_selection: 'mesh_selection',
 		texture: 'texture',
+		layer: 'layer',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
 		image: 'image',
@@ -51,6 +52,9 @@ const Clipbench = {
 		}
 		if (p == 'textures' && (Texture.selected || mode === 2)) {
 			return Clipbench.types.texture;
+		}
+		if (p == 'layers' && Texture.selected && Texture.selected.selected_layer) {
+			return Clipbench.types.layer;
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
@@ -114,6 +118,9 @@ const Clipbench = {
 		}
 		if (p == 'textures') {
 			return Clipbench.types.texture;
+		}
+		if (p == 'layers' && Texture.selected && Texture.selected.selected_layer) {
+			return Clipbench.types.layer;
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;

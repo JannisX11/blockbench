@@ -12,21 +12,20 @@ const Painter = {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (texture.mode === 'link') {
-			texture.source = texture.getDataURL()
-			texture.mode = 'bitmap'
-			texture.saved = false
+			texture.convertToInternal();
 		}
 		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
+		let layer = texture.layers_enabled && texture.getDefaultLayer();
 		let canvas;
 
 		if (options.use_cache &&
 			Painter.current.cached_canvases[texture.uuid]
 		) {
 			//IS CACHED
-			canvas = Painter.current.cached_canvases[texture.uuid];
-			Painter.current.ctx = canvas.getContext('2d');
+			canvas = layer ? layer.canvas : texture.canvas;
+			Painter.current.ctx = layer ? layer.ctx : texture.ctx;
 			callback(canvas);
 			if (options.no_update === true) {
 				return;
@@ -34,19 +33,20 @@ const Painter = {
 		} else {
 			//IS UNCACHED
 			Painter.current.texture = texture
-			canvas = Painter.current.cached_canvases[texture.uuid] = Painter.getCanvas(texture);
-			Painter.current.ctx = canvas.getContext('2d');
+			canvas = Painter.current.cached_canvases[texture.uuid] = layer ? layer.canvas : texture.canvas;
+			Painter.current.ctx = layer ? layer.ctx : texture.ctx;
 			callback(canvas);
 		}
 
 		if (options.no_undo && options.use_cache) {
+			texture.updateLayerChanges();
 			let map = texture.getMaterial().map;
-			map.image = canvas;
 			map.needsUpdate = true;
 			texture.display_canvas = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
-			texture.updateSource(canvas.toDataURL())
+			texture.updateLayerChanges(true);
+			texture.updateSource(canvas.toDataURL());
 			if (!options.no_undo && !options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
@@ -1250,13 +1250,7 @@ const Painter = {
 	},
 	getCanvas(texture) {
 		if (texture instanceof Texture) {
-			if (texture.display_canvas) return texture.canvas;
-			let canvas = texture.canvas;
-			let ctx = canvas.getContext('2d');
-			canvas.width = texture.width;
-			canvas.height = texture.height;
-			ctx.drawImage(texture.img, 0, 0)
-			return canvas;
+			return texture.canvas;
 		} else {
 			let img = texture;
 			let canvas = document.createElement('canvas');

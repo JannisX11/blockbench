@@ -707,6 +707,48 @@
 		top: -8px;
 		left: -1px;
 	}
+/* Layers */
+	#layers_list {
+		display: flex;
+		flex-direction: column-reverse;
+		justify-content: flex-start;
+		padding-bottom: 20px;
+	}
+	.texture_layer {
+		display: flex;
+		height: 48px;
+		white-space: nowrap;
+		position: relative;
+		vertical-align: middle;
+		padding-left: 8px;
+		padding-right: 8px;
+		box-sizing: border-box;
+	}
+	.texture_layer:first-child {
+		margin-bottom: auto;
+	}
+	.texture_layer:hover {
+		color: var(--color-light);
+	}
+	.texture_layer.selected {
+		background-color: var(--color-selected);
+	}
+	.texture_layer .layer_icon_wrapper {
+		height: 48px;
+		width: 48px;
+		flex-grow: 0;
+		flex-shrink: 0;
+		overflow: hidden;
+	}
+	.texture_layer canvas {
+		width: 48px;
+	}
+	.texture_layer > label {
+		flex-grow: 1;
+	}
+	.texture_layer i.toggle_disabled {
+		color: var(--color-subtle_text);
+	}
 
 /*Animations*/
 	#panel_animations #animations_list {

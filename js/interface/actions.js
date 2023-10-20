@@ -2063,9 +2063,7 @@ const BARS = {
 					} else if (Prop.active_panel == 'textures' && Texture.selected) {
 						let copy = Texture.selected.getUndoCopy();
 						delete copy.path;
-						copy.mode = 'bitmap';
-						copy.saved = false;
-						copy.source = Texture.selected.getDataURL();
+						copy.convertToInternal(Texture.selected.getDataURL());
 						new Texture(copy).fillParticle().load().add(true);
 
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {

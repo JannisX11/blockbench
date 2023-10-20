@@ -411,9 +411,7 @@ const TextureGenerator = {
 		ctx.imageSmoothingEnabled = false;
 		if (makeTexture instanceof Texture) {
 			if (makeTexture.mode === 'link') {
-				makeTexture.source = makeTexture.getDataURL();
-				makeTexture.mode = 'bitmap';
-				makeTexture.saved = false;
+				makeTexture.convertToInternal();
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
@@ -1225,9 +1223,7 @@ const TextureGenerator = {
 		ctx.imageSmoothingEnabled = false;
 		if (makeTexture instanceof Texture) {
 			if (makeTexture.mode === 'link') {
-				makeTexture.source = makeTexture.getDataURL();
-				makeTexture.mode = 'bitmap';
-				makeTexture.saved = false;
+				makeTexture.convertToInternal();
 			}
 			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
 			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);

@@ -23,8 +23,10 @@ class Texture {
 		this.uv_height = Project ? Project.texture_height : 16;
 		this.currentFrame = 0;
 		this.saved = true;
-
-		this.mode = isApp ? 'link' : 'bitmap';
+		this.layers = [];
+		this.layers_enabled = false;
+		this.selected_layer = null;
+		this.internal = !isApp;
 		this.uuid = uuid || guid()
 
 		if (typeof data === 'object') {
@@ -53,14 +55,15 @@ class Texture {
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
-		var img = this.img = new Image()
+		this.ctx = this.canvas.getContext('2d');
+		let img = this.img = new Image()
 		img.src = 'assets/missing.png'
 
-		var tex = new THREE.Texture(img)
+		var tex = new THREE.Texture(this.canvas);
+		tex.magFilter = THREE.NearestFilter
+		tex.minFilter = THREE.NearestFilter
+		tex.name = this.name;
 		img.tex = tex;
-		img.tex.magFilter = THREE.NearestFilter
-		img.tex.minFilter = THREE.NearestFilter
-		img.tex.name = this.name;
 
 		var vertShader = `
 			attribute float highlight;
@@ -200,6 +203,14 @@ class Texture {
 			}
 			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
 
+			if (img.update_from_canvas) {
+				delete img.update_from_canvas;
+			} else if (!scope.layers_enabled) {
+				scope.canvas.width = scope.width;
+				scope.canvas.height = scope.height;
+				scope.ctx.drawImage(img, 0, 0);
+			}
+
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
 			}
@@ -281,6 +292,13 @@ class Texture {
 	get ratio() {
 		return this.width / this.height;
 	}
+	// Legacy support
+	get mode() {
+		return this.internal ? 'bitmap' : 'link';
+	}
+	set mode(mode) {
+		this.internal = mode == 'bitmap';
+	}
 	getUVWidth() {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
 	}
@@ -307,16 +325,46 @@ class Texture {
 		}
 		copy.visible = this.visible;
 		copy.selected = this.selected;
-		copy.mode = this.mode;
+		copy.internal = this.internal;
 		copy.saved = this.saved;
 		copy.uuid = this.uuid;
 		copy.old_width = this.old_width;
 		copy.old_height = this.old_height;
-		if (bitmap || this.mode === 'bitmap') {
+
+		if (this.layers_enabled) {
+			copy.layers = this.layers.map(layer => {
+				return layer.getUndoCopy();
+			})
+		}
+		if (bitmap || this.internal) {
 			copy.source = this.source
-			if (this.mode !== 'bitmap') {
+			if (!this.internal) {
 				copy.image_data = this.getDataURL();
 			}
+		}
+		return copy
+	}
+	getSaveCopy(bitmap) {
+		var copy = {};
+		if (this.display_canvas && bitmap) {
+			this.updateSource(this.canvas.toDataURL());
+		}
+		for (var key in Texture.properties) {
+			Texture.properties[key].copy(this, copy)
+		}
+		copy.visible = this.visible;
+		copy.internal = this.internal;
+		copy.saved = this.saved;
+		copy.uuid = this.uuid;
+		delete copy.selected;
+
+		if (this.layers_enabled) {
+			copy.layers = this.layers.map(layer => {
+				return layer.getSaveCopy();
+			})
+		}
+		if (bitmap || this.internal) {
+			copy.source = this.source
 		}
 		return copy
 	}
@@ -328,6 +376,25 @@ class Texture {
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
+
+		if (data.layers instanceof Array) {
+			let old_layers = this.layers.slice();
+			this.layers.empty();
+			data.layers.forEach(layer_template => {
+				let layer = old_layers.find(l => l.uuid == layer_template.uuid);
+				if (layer)  {
+					layer.extend(layer_template);
+					old_layers.remove(layer);
+				} else {
+					layer = new TextureLayer(layer_template, this, layer_template.uuid);
+				}
+				this.layers.push(layer);
+			})
+			old_layers.forEach(layer => {
+				layer.remove();
+			})
+		}
+
 		if (this.mode === 'bitmap' || !isApp) {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
@@ -550,9 +617,9 @@ class Texture {
 	}
 	fromDataURL(data_url) {
 		this.source = data_url
-		this.mode = 'bitmap'
+		this.internal = true;
 		this.saved = false;
-		this.load()
+		this.load();
 		return this;
 	}
 	fromDefaultPack() {
@@ -619,7 +686,7 @@ class Texture {
 		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
 
 		// Map
-		mat.map.image = this.img;
+		//mat.map.image = this.canvas;
 		mat.map.name = this.name;
 		mat.map.image.src = this.source;
 		mat.map.needsUpdate = true;
@@ -791,6 +858,8 @@ class Texture {
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
+		Panels.layers.inside_vue.layers = this.layers;
+		updateInterfacePanels();
 		Blockbench.dispatchEvent('select_texture', {texture: this});
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
@@ -1233,6 +1302,11 @@ class Texture {
 			scrollTop: scroll_amount
 		}, 200);
 	}
+	getDefaultLayer() {
+		if (this.layers_enabled) {
+			return this.layers.find(layer => layer.selected) || this.layers[0];
+		}
+	}
 	//Export
 	javaTextureLink() {
 		var link = this.name.replace(/\.png$/, '')
@@ -1440,22 +1514,43 @@ class Texture {
 			}
 		}).show();
 	}
+	// Editing
 	getDataURL() {
 		var scope = this;
-		if (isApp && scope.mode === 'link') {
-			var canvas = document.createElement('canvas')
-			canvas.width = scope.img.naturalWidth;
-			canvas.height = scope.img.naturalHeight;
-			var ctx = canvas.getContext('2d');
-			ctx.drawImage(scope.img, 0, 0)
-			var dataUrl = canvas.toDataURL('image/png')
+		if (isApp && !scope.internal) {
+			var dataUrl = this.canvas.toDataURL('image/png');
 		} else {
-			var dataUrl = scope.source
+			var dataUrl = scope.source;
 		}
 		return dataUrl;
 	}
 	getBase64() {
 		return this.getDataURL().replace('data:image/png;base64,', '');
+	}
+	convertToInternal(data_url = this.getDataURL()) {
+		this.internal = true;
+		this.source = data_url;
+		this.saved = false;
+		this.load();
+	}
+	updateLayerChanges(update_data_url) {
+		if (!this.layers_enabled) return this;
+		this.canvas.width = this.width;
+		this.canvas.height = this.height;
+		for (let layer of this.layers) {
+			if (layer.visible == false || layer.opacity == 0) continue;
+			this.ctx.filter = `opacity(${layer.opacity / 100})`;
+			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1]);
+		}
+		this.ctx.filter = '';
+		if (update_data_url) {
+			this.source = this.canvas.toDataURL();
+			this.updateImageFromCanvas();
+		}
+	}
+	updateImageFromCanvas() {
+		this.img.update_from_canvas = true;
+		this.img.src = this.source;
 	}
 	edit(cb, options) {
 		var scope = this;
@@ -1465,8 +1560,7 @@ class Texture {
 			Painter.edit(scope, cb, options);
 
 		} else if (scope.mode === 'link') {
-			scope.source = scope.getDataURL();
-			scope.mode = 'bitmap';
+			this.convertToInternal();
 		}
 		scope.saved = false;
 	}
@@ -1599,6 +1693,7 @@ class Texture {
 					'rotate_texture_ccw'
 				]
 			},
+			'enable_texture_layers',
 			new MenuSeparator('file'),
 			{
 				icon: 'folder',
@@ -1666,6 +1761,7 @@ class Texture {
 	new Property(Texture, 'number', 'uv_width')
 	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
+	new Property(Texture, 'boolean', 'layers_enabled')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
 	
@@ -1817,6 +1913,8 @@ function unselectTextures() {
 	})
 	Texture.selected = undefined;
 	Canvas.updateLayeredTextures();
+	updateInterfacePanels();
+	Panels.layers.inside_vue.layers = [];
 	Blockbench.dispatchEvent('update_texture_selection');
 }
 function getTexturesById(id) {
@@ -1830,7 +1928,7 @@ Clipbench.setTexture = function(texture) {
 
 	Clipbench.texture = texture.getUndoCopy();
 	delete Clipbench.texture.path;
-	Clipbench.texture.mode = 'bitmap';
+	Clipbench.texture.internal = true;
 	Clipbench.texture.saved = false;
 	Clipbench.texture.source = texture.getDataURL();
 
