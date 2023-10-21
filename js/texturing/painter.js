@@ -17,7 +17,7 @@ const Painter = {
 		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
-		let layer = texture.layers_enabled && texture.getDefaultLayer();
+		let layer = texture.layers_enabled && texture.getActiveLayer();
 		let canvas;
 
 		if (options.use_cache &&
@@ -146,7 +146,7 @@ const Painter = {
 				new_face = true
 				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture && Undo.current_save) {
-					Undo.current_save.addTexture(texture)
+					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
 				Painter.current.face = data.face;
@@ -177,13 +177,22 @@ const Painter = {
 		}
 
 		if (Toolbox.selected.id === 'color_picker') {
-			Painter.colorPicker(texture, x, y)
+			Painter.colorPicker(texture, x, y);
+			return;
 
-		} else if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
-
-			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
-			Painter.brushChanges = false;
-			Painter.painting = true;
+		}
+		
+		let undo_aspects = {selected_texture: true, bitmap: true};
+		if (texture.layers_enabled && texture.layers[0]) {
+			undo_aspects.layers = [texture.getActiveLayer()];
+		} else {
+			undo_aspects.textures = [texture];
+		}
+		Undo.initEdit(undo_aspects);
+		Painter.brushChanges = false;
+		Painter.painting = true;
+		
+		if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 			Painter.current = {
 				element: data && data.element,
 				face: data && data.face,
@@ -197,9 +206,6 @@ const Painter = {
 			Painter.current.clear.getContext('2d').drawImage(texture.img, 0, 0);
 
 		} else {
-			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
-			Painter.brushChanges = false;
-			Painter.painting = true;
 			Painter.current.face_matrices = {};
 
 			let is_line

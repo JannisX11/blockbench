@@ -1889,6 +1889,11 @@ const BARS = {
 					} else if (Prop.active_panel == 'textures' && Texture.selected) {
 						Texture.selected.remove()
 
+					} else if (Prop.active_panel == 'layers' && Texture.selected?.selected_layer) {
+						if (Texture.selected.layers.length >= 2) {
+							Texture.selected?.selected_layer.remove(true);
+						}
+
 					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
 						if (StateMemory.color_palette_locked) {
 							Blockbench.showQuickMessage('message.palette_locked');
@@ -2028,6 +2033,7 @@ const BARS = {
 				condition: () => {
 					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
 						|| (Prop.active_panel == 'textures' && Texture.selected)
+						|| (Prop.active_panel == 'layers' && Texture.selected?.getActiveLayer())
 						|| (Modes.edit && (selected.length || Group.selected));
 				},
 				keybind: new Keybind({key: 'd', ctrl: true}),
@@ -2065,6 +2071,17 @@ const BARS = {
 						delete copy.path;
 						copy.convertToInternal(Texture.selected.getDataURL());
 						new Texture(copy).fillParticle().load().add(true);
+
+					} else if (Prop.active_panel == 'layers' && Texture.selected?.getActiveLayer()) {
+						let texture = Texture.selected;
+						let original = texture.getActiveLayer();
+						let copy = original.getUndoCopy(true);
+						copy.name += '-copy';
+						Undo.initEdit({textures: [texture]});
+						let layer = new TextureLayer(copy, texture);
+						texture.layers.push(layer);
+						layer.select();
+						Undo.finishEdit('Duplicate layer');
 
 					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
 						var cubes_before = elements.length;

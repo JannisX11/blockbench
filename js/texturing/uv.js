@@ -94,7 +94,7 @@ const UVEditor = {
 				Painter.current.face = UVEditor.selected_faces[0];
 				new_face = true;
 				if (texture !== Painter.current.texture && Undo.current_save) {
-					Undo.current_save.addTexture(texture)
+					Undo.current_save.addTextureOrLayer(texture)
 				}
 			}
 			if (Toolbox.selected.id !== 'copy_paste_tool') {

@@ -459,6 +459,7 @@
 	}
 	.drag_hover[order="-1"]::before {
 		margin-top: -1px;
+		top: 0;
 	}
 	.drag_hover[order="1"]::before {
 		bottom: -1px;
@@ -716,13 +717,14 @@
 	}
 	.texture_layer {
 		display: flex;
-		height: 48px;
+		height: 40px;
 		white-space: nowrap;
 		position: relative;
-		vertical-align: middle;
 		padding-left: 8px;
 		padding-right: 8px;
 		box-sizing: border-box;
+		align-items: center;
+		gap: 6px;
 	}
 	.texture_layer:first-child {
 		margin-bottom: auto;
@@ -734,20 +736,23 @@
 		background-color: var(--color-selected);
 	}
 	.texture_layer .layer_icon_wrapper {
-		height: 48px;
-		width: 48px;
+		height: 40px;
+		width: 40px;
 		flex-grow: 0;
 		flex-shrink: 0;
 		overflow: hidden;
 	}
 	.texture_layer canvas {
-		width: 48px;
+		width: 100%;
 	}
 	.texture_layer > label {
 		flex-grow: 1;
 	}
 	.texture_layer i.toggle_disabled {
 		color: var(--color-subtle_text);
+	}
+	.texture_layer.drag_hover[order]::before {
+		left: -6px;
 	}
 
 /*Animations*/
@@ -798,6 +803,7 @@
 	}
 	.in_list_button {
 		width: 22px;
+		height: 22px;
 		color: var(--color-text);
 	}
 	.in_list_button:hover {

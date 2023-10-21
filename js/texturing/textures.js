@@ -333,8 +333,9 @@ class Texture {
 
 		if (this.layers_enabled) {
 			copy.layers = this.layers.map(layer => {
-				return layer.getUndoCopy();
+				return layer.getUndoCopy(bitmap);
 			})
+			copy.selected_layer = this.selected_layer?.uuid;
 		}
 		if (bitmap || this.internal) {
 			copy.source = this.source
@@ -376,6 +377,7 @@ class Texture {
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
+		console.log('extend', data)
 
 		if (data.layers instanceof Array) {
 			let old_layers = this.layers.slice();
@@ -393,6 +395,15 @@ class Texture {
 			old_layers.forEach(layer => {
 				layer.remove();
 			})
+
+		} else if (!data.layers_enabled) {
+			this.layers.forEachReverse(layer => {
+				layer.remove();
+			})
+		}
+		if (data.selected_layer) {
+			let layer = this.layers.find(l => l.uuid == data.selected_layer);
+			if (layer) layer.select();
 		}
 
 		if (this.mode === 'bitmap' || !isApp) {
@@ -686,9 +697,6 @@ class Texture {
 		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
 
 		// Map
-		//mat.map.image = this.canvas;
-		mat.map.name = this.name;
-		mat.map.image.src = this.source;
 		mat.map.needsUpdate = true;
 		return this;
 	}
@@ -1302,9 +1310,9 @@ class Texture {
 			scrollTop: scroll_amount
 		}, 200);
 	}
-	getDefaultLayer() {
+	getActiveLayer() {
 		if (this.layers_enabled) {
-			return this.layers.find(layer => layer.selected) || this.layers[0];
+			return this.selected_layer || this.layers[0];
 		}
 	}
 	//Export
@@ -1543,6 +1551,8 @@ class Texture {
 			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1]);
 		}
 		this.ctx.filter = '';
+
+		this.getMaterial().map.needsUpdate = true;
 		if (update_data_url) {
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
