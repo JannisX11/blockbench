@@ -116,13 +116,12 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
+	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: local('Material Icons'),
-			local('MaterialIcons-Regular'),
-			url(../font/MaterialIcons-Regular.ttf) format('truetype');
+		src: url(../font/material-icons.woff2) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
