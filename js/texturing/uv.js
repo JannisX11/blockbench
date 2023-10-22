@@ -2008,7 +2008,8 @@ Interface.definePanels(function() {
 					pos_y: 0,
 					width: 0,
 					height: 0,
-					active: false
+					active: false,
+					ellipse: false
 				},
 				copy_overlay,
 
@@ -2154,6 +2155,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
 						this.centerView();
 					}
+					UVEditor.updateSelectionOutline(false);
 				},
 				centerView() {
 					this.$refs.viewport.scrollLeft = this.width/2;
@@ -2230,6 +2232,9 @@ Interface.definePanels(function() {
 					if (this.texture && this.texture.frameCount) {
 						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
 					}
+					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y);
+					console.log(Toolbox.selected.id == 'selection_tool', this.texture, this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y))
+					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
@@ -3316,7 +3321,6 @@ Interface.definePanels(function() {
 									}
 								}
 							}
-
 							UVEditor.updateSelectionOutline();
 							return;
 						}
@@ -3371,6 +3375,7 @@ Interface.definePanels(function() {
 							//UVEditor.vue.copy_overlay.height = calcrect.y;
 
 							selection_rect.active = true;
+							selection_rect.ellipse = selection_mode == 'ellipse';
 							selection_rect.pos_x = calcrect.ax;
 							selection_rect.pos_y = calcrect.ay;
 							selection_rect.width = calcrect.x;
@@ -3791,6 +3796,7 @@ Interface.definePanels(function() {
 									width: toPixels(texture_selection_rect.width),
 									height: toPixels(texture_selection_rect.height),
 								}">
+								<div class="ellipse" v-if="texture_selection_rect.ellipse" />
 							</div>
 
 							<svg id="uv_selection_outline">

@@ -1910,7 +1910,7 @@ span.controller_state_section_info {
 	}
 
 	body[mode=paint] #uv_frame {
-		cursor: crosshair !important;
+		cursor: crosshair;
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
@@ -2387,6 +2387,14 @@ span.controller_state_section_info {
 		margin: -1px;
 		mix-blend-mode: difference;
 		box-sizing: content-box;
+	}
+	#texture_selection_rect > .ellipse {
+		width: calc(100% - 2px);
+		height: calc(100% - 2px);
+		border: 1px dashed white;
+		mix-blend-mode: difference;
+		box-sizing: content-box;
+		border-radius: 50%;
 	}
 	#texture_pasting_overlay {
 		position: absolute;

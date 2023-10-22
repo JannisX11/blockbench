@@ -2138,11 +2138,11 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'm'}),
 		side_menu: new Menu('selection_tool', () => {
 			let modes = {
-				rectangle: {icon: 'select'},
-				ellipse: {icon: 'lasso_select'},
-				lasso: {icon: 'fa-draw-polygon'},
-				wand: {icon: 'fa-magic'},
-				color: {icon: 'format_paint'},
+				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
+				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
+				lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
+				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
 			};
 			let entries = [];
 			for (let id in modes) {

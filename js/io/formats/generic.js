@@ -2,7 +2,7 @@
 new ModelFormat({
 	id: 'free',
 	icon: 'icon-format_free',
-	category: 'low_poly',
+	category: 'general',
 	target: ['Blender', 'Unity', 'Unreal Engine', 'Sketchfab'],
 	format_page: {
 		content: [
