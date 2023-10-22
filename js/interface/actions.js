@@ -374,13 +374,13 @@ class Action extends BarItem {
 		return clone;
 	}
 	setIcon(icon) {
-		var scope = this;
 		this.icon = icon
 		this.icon_node = Blockbench.getIconNode(this.icon)
 		$(this.menu_node).find('.icon').replaceWith(this.icon_node)
 
-		this.nodes.forEach(function(n) {
-			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
+		this.nodes.forEach(n => {
+			let old_icon = n.querySelector('.icon:not(.action_more_options)');
+			old_icon.replaceWith(this.icon_node.cloneNode(true));
 		})
 	}
 	setName(name) {
@@ -2282,7 +2282,7 @@ const BARS = {
 				'color_picker',
 				'draw_shape_tool',
 				'gradient_tool',
-				'copy_paste_tool'
+				'selection_tool',
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
@@ -2385,6 +2385,7 @@ const BARS = {
 				'copy_brush_mode',
 				'draw_shape_type',
 				'copy_paste_tool_mode',
+				'selection_tool_operation_mode',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',

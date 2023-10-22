@@ -36,7 +36,7 @@ const UVEditor = {
 			];
 		}
 
-		if (Toolbox.selected.id === 'copy_paste_tool') {
+		if (Toolbox.selected.id === 'copy_paste_tool' || Toolbox.selected.id === 'selection_tool') {
 			if (settings.nearest_rectangle_select.value) {
 				result.x = Math.round(mouse_coords[0]/pixel_size*1);
 				result.y = Math.round(mouse_coords[1]/pixel_size*1);
@@ -65,13 +65,13 @@ const UVEditor = {
 		if (texture) {
 			var coords = this.getBrushCoordinates(event, texture)
 
-			if (Toolbox.selected.id !== 'copy_paste_tool') {
-				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event)
+			if (Toolbox.selected.id == 'selection_tool') {
+				this.vue.startTextureSelection(coords.x, coords.y, event);
 			} else {
-				this.startSelection(coords.x, coords.y, event)
+				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
 			}
 		}
-		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'copy_paste_tool' && texture) {
+		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'copy_paste_tool' && Toolbox.selected.id !== 'selection_tool' && texture) {
 			addEventListeners(this.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
@@ -111,121 +111,68 @@ const UVEditor = {
 			UVEditor.stopSelection()
 		}
 	},
-	// Copy Paste Tool
-	startSelection(x, y, event) {
-		if (Painter.selection.overlay && event.target && event.target.id === 'uv_frame' && !event.altKey) {
-			if (open_interface) {
-				open_interface.confirm()
-			} else {
-				this.removePastingOverlay()
+
+	selection_outline_lines: [],
+	updateSelectionOutline(recalculate_lines = true) {
+		let {texture} = this.vue;
+		if (!texture) {
+			this.vue.selection_outline = '';
+			return;
+		}
+		if (texture.texture_selection.override == false) {
+			this.vue.selection_outline = '';
+			return;
+		}
+		let size = UVEditor.getPixelSize();
+		let width = this.vue.texture.width;
+		let height = this.vue.texture.display_height;
+
+		if (texture.texture_selection.override == true) {
+			this.vue.selection_outline = `M1 1 L${width * size + 1} 1 L${width * size + 1} ${height * size + 1} L1 ${height * size + 1} L1 1`;
+			return;
+		}
+
+		let lines = UVEditor.selection_outline_lines;
+
+		if (recalculate_lines) {
+			lines.empty();
+			let matrix = texture.texture_selection;
+			// =
+			for (let y = 0; y <= height; y++) {
+				let pre = null;
+				for (let x = 0; x <= width; x++) {
+					let a = matrix.get(x, y-1);
+					let b = matrix.get(x, y);
+					let line = a != b;
+					if (pre !== line) {
+						if (pre !== null || line) {
+							lines.push([!!line, x, y]);
+						}
+						pre = line;
+					}
+				}
+			}
+			// ||
+			for (let x = 0; x <= width; x++) {
+				let pre = null;
+				for (let y = 0; y <= height; y++) {
+					let a = matrix.get(x-1, y);
+					let b = matrix.get(x, y);
+					let line = a != b;
+					if (pre !== line) {
+						if (pre !== null || line) {
+							lines.push([!!line, x, y]);
+						}
+						pre = line;
+					}
+				}
 			}
 		}
-		delete Painter.selection.calcrect;
-		let viewport = UVEditor.vue.$refs.viewport;
-		if (!Painter.selection.overlay) {
-			$(this.vue.$refs.frame).find('#texture_selection_rect').detach();
-			let rect = document.createElement('div');
-			rect.style.visibility = 'hidden';
-			rect.id = 'texture_selection_rect';
-			this.vue.$refs.frame.append(rect)
-			Painter.selection.rect = rect;
-			Painter.selection.start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
-			Painter.selection.start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
-			UVEditor.vue.copy_overlay.width = 0;
-			UVEditor.vue.copy_overlay.height = 0;
-		} else {
-			Painter.selection.start_x = Painter.selection.x;
-			Painter.selection.start_y = Painter.selection.y;
-			Painter.selection.start_scroll_x = viewport.scrollLeft;
-			Painter.selection.start_scroll_y = viewport.scrollTop;
-			Painter.selection.start_event = event;
+		let outline = '';
+		for (let line of lines) {
+			outline += `${outline ? '' : ' '}${line[0] ? 'M' : 'L'}${line[1] * size + 1} ${line[2] * size + 1}`;
 		}
-
-		function drag(e1) {
-			let texture = UVEditor.texture;
-			var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
-			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
-			UVEditor.dragSelection(x, y, e1);
-		}
-		function stop() {
-			removeEventListeners(document, 'pointermove', drag);
-			removeEventListeners(document, 'pointerup', stop);
-			UVEditor.stopSelection();
-		}
-		addEventListeners(document, 'pointermove', drag);
-		addEventListeners(document, 'pointerup', stop);
-	},
-	dragSelection(x, y, event) {
-		let m = UVEditor.inner_width / UVEditor.texture.width;
-
-		if (!Painter.selection.overlay) {
-			let {start_x, start_y} = Painter.selection;
-			if (!settings.nearest_rectangle_select.value) {
-				if (x >= Painter.selection.start_x) x++;
-				if (y >= Painter.selection.start_y) y++;
-				if (x < Painter.selection.start_x) start_x++;
-				if (y < Painter.selection.start_y) start_y++;
-			}
-			if (x === Painter.current.x && y === Painter.current.y) return;
-			Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
-			Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);
-			
-			let calcrect = getRectangle(start_x, start_y, x, y)
-			if (!calcrect.x && !calcrect.y) return;
-			UVEditor.vue.copy_overlay.state = 'select';
-			Painter.selection.calcrect = calcrect;
-			Painter.selection.x = calcrect.ax;
-			Painter.selection.y = calcrect.ay;
-			UVEditor.vue.copy_overlay.width = calcrect.x;
-			UVEditor.vue.copy_overlay.height = calcrect.y;
-			$(Painter.selection.rect)
-				.css('left', 	calcrect.ax*m + 'px')
-				.css('top', 	(calcrect.ay%UVEditor.texture.display_height)*m + 'px')
-				.css('width', 	calcrect.x *m + 'px')
-				.css('height', 	calcrect.y *m + 'px')
-				.css('visibility', 'visible')
-
-		} else if (UVEditor.texture && Painter.selection.canvas) {
-			let viewport = UVEditor.vue.$refs.viewport;
-			let move_offset_x = event.clientX - Painter.selection.start_event.clientX - Painter.selection.start_scroll_x + viewport.scrollLeft;
-			let move_offset_y = event.clientY - Painter.selection.start_event.clientY - Painter.selection.start_scroll_y + viewport.scrollTop;
-			Painter.selection.x = Painter.selection.start_x + Math.round((move_offset_x) / m);
-			Painter.selection.y = Painter.selection.start_y + Math.round((move_offset_y) / m);
-			Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
-			Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-			UVEditor.updatePastingOverlay()
-		}
-	},
-	stopSelection() {
-		if (Painter.selection.rect) {
-			Painter.selection.rect.remove()
-		}
-		if (Painter.selection.overlay || !Painter.selection.calcrect) return;
-		UVEditor.vue.copy_overlay.state = 'off';
-		if (Painter.selection.calcrect.x == 0 || Painter.selection.calcrect.y == 0) return;
-
-		let calcrect = Painter.selection.calcrect;
-		var canvas = document.createElement('canvas')
-		var ctx = canvas.getContext('2d');
-		canvas.width = calcrect.x;
-		canvas.height = calcrect.y;
-		ctx.drawImage(UVEditor.vue.texture.img, -calcrect.ax, -calcrect.ay)
-
-		if (isApp) {
-			let image = nativeImage.createFromDataURL(canvas.toDataURL())
-			clipboard.writeImage(image)
-		}
-		Painter.selection.canvas = canvas;
-
-		Painter.selection.move_mode = BarItems.copy_paste_tool_mode.value == 'move';
-		if (Painter.selection.move_mode) {
-			UVEditor.texture.edit((canvas) => {
-				var ctx = canvas.getContext('2d');
-				ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
-			}, {no_undo_finish: true});
-		}
-
-		UVEditor.addPastingOverlay();
+		this.vue.selection_outline = outline;
 	},
 	addPastingOverlay() {
 		if (Painter.selection.overlay) return;
@@ -424,6 +371,7 @@ const UVEditor = {
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
+			UVEditor.updateSelectionOutline(false);
 			if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 		})
 		return this;
@@ -2037,6 +1985,13 @@ Interface.definePanels(function() {
 					height: 0,
 					active: false
 				},
+				texture_selection_rect: {
+					pos_x: 0,
+					pos_y: 0,
+					width: 0,
+					height: 0,
+					active: false
+				},
 				copy_overlay,
 
 				uv_resolution: [16, 16],
@@ -2044,6 +1999,7 @@ Interface.definePanels(function() {
 				all_elements: [],
 				selected_faces: [],
 				display_uv: 'selected_elements',
+				selection_outline: '',
 
 				face_names: {
 					north: tl('face.north'),
@@ -2213,6 +2169,7 @@ Interface.definePanels(function() {
 						this.texture = 0;
 					}
 					// Display canvas while painting
+					UVEditor.updateSelectionOutline();
 					this.updateTextureCanvas();
 				},
 				updateTextureCanvas() {
@@ -3261,6 +3218,176 @@ Interface.definePanels(function() {
 					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				},
 
+				startTextureSelection(x, y, event) {
+					let texture = UVEditor.texture;
+					if (!texture) return;
+					if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
+					let clicked_val = texture.texture_selection.get(Math.floor(x), Math.floor(y));
+					let selection_mode = BarItems.selection_tool.mode;
+					let op_mode = BarItems.selection_tool_operation_mode.value;
+					let selection_rect = this.texture_selection_rect;
+					let start_x, start_y, calcrect;
+					let create_selection = !(op_mode == 'create' && clicked_val);
+
+					/*if (op_mode == 'create' && clicked_val) {
+						if (open_interface) {
+							open_interface.confirm()
+						} else {
+							UVEditor.removePastingOverlay()
+						}
+					}*/
+					let viewport = this.$refs.viewport;
+					if (create_selection) {
+						//$(this.$refs.frame).find('#texture_selection_rect').detach();
+						//let rect = document.createElement('div');
+						//rect.style.visibility = 'hidden';
+						//rect.id = 'texture_selection_rect';
+						//this.$refs.frame.append(rect)
+						start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
+						start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
+					} else {
+						//Painter.selection.start_x = Painter.selection.x;
+						//Painter.selection.start_y = Painter.selection.y;
+						//Painter.selection.start_scroll_x = viewport.scrollLeft;
+						//Painter.selection.start_scroll_y = viewport.scrollTop;
+						//Painter.selection.start_event = event;
+					}
+
+					let last_x, last_y;
+					function drag(e1) {
+
+						var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
+						if (last_x == x && last_y == y) return;
+						last_x = x, last_y = y;
+						
+						/*let rect = getRectangle(
+							event.offsetX / scope.inner_width * scope.uv_resolution[0],
+							event.offsetY / scope.inner_height * scope.uv_resolution[1],
+							(event.offsetX - event.clientX + e1.clientX) / scope.inner_width * scope.uv_resolution[0],
+							(event.offsetY - event.clientY + e1.clientY) / scope.inner_height * scope.uv_resolution[1],
+						)
+						selection_rect.pos_x = rect.ax;
+						selection_rect.pos_y = rect.ay;
+						selection_rect.width = rect.x;
+						selection_rect.height = rect.y;*/
+
+
+						if (create_selection) {
+							let start_x_here = start_x;
+							let start_y_here = start_y;
+							if (!settings.nearest_rectangle_select.value) {
+								if (x >= start_x) x++;
+								if (y >= start_y) y++;
+								if (x < start_x) start_x_here++;
+								if (y < start_y) start_y_here++;
+							}
+							if (x === Painter.current.x && y === Painter.current.y) return;
+							Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
+							Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);
+							
+							calcrect = getRectangle(start_x_here, start_y_here, x, y);
+							if (!calcrect.x && !calcrect.y) return;
+							//UVEditor.vue.copy_overlay.state = 'select';
+							//Painter.selection.calcrect = calcrect;
+							//Painter.selection.x = calcrect.ax;
+							//Painter.selection.y = calcrect.ay;
+							//UVEditor.vue.copy_overlay.width = calcrect.x;
+							//UVEditor.vue.copy_overlay.height = calcrect.y;
+
+							selection_rect.active = true;
+							selection_rect.pos_x = calcrect.ax;
+							selection_rect.pos_y = calcrect.ay;
+							selection_rect.width = calcrect.x;
+							selection_rect.height = calcrect.y;
+
+						} else {
+							//let viewport = UVEditor.vue.$refs.viewport;
+							//let move_offset_x = e1.clientX - Painter.selection.start_event.clientX - Painter.selection.start_scroll_x + viewport.scrollLeft;
+							//let move_offset_y = e1.clientY - Painter.selection.start_event.clientY - Painter.selection.start_scroll_y + viewport.scrollTop;
+							//Painter.selection.x = Painter.selection.start_x + Math.round((move_offset_x) / m);
+							//Painter.selection.y = Painter.selection.start_y + Math.round((move_offset_y) / m);
+							//Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
+							//Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
+							//UVEditor.updatePastingOverlay()
+						}
+					}
+					function stop() {
+						removeEventListeners(document, 'pointermove', drag);
+						removeEventListeners(document, 'pointerup', stop);
+						selection_rect.active = false;
+
+						if (create_selection) {
+							if (selection_rect.width == 0 || selection_rect.height == 0) return;
+
+							if (op_mode == 'create') {
+								texture.texture_selection.clear();
+							}
+							if (selection_mode == 'rectangle') {
+								for (let x = calcrect.ax; x < calcrect.bx; x++) {
+									for (let y = calcrect.ay; y < calcrect.by; y++) {
+										switch (op_mode) {
+											case 'create': case 'add': {
+												texture.texture_selection.set(x, y, 1);
+												break;
+											}
+											case 'subtract': {
+												texture.texture_selection.set(x, y, 0);
+												break;
+											}
+										}
+									}
+								}
+							}
+							if (selection_mode == 'ellipse') {
+								let center_x = calcrect.ax + calcrect.x/2;
+								let center_y = calcrect.ay + calcrect.y/2;
+								for (let x = calcrect.ax; x < calcrect.bx; x++) {
+									for (let y = calcrect.ay; y < calcrect.by; y++) {
+										let distance = Math.sqrt(Math.pow((center_x - x - 0.5) / calcrect.x, 2) + Math.pow((center_y - y - 0.5) / calcrect.y, 2));
+										if (distance > 0.5) continue;
+										switch (op_mode) {
+											case 'create': case 'add': {
+												texture.texture_selection.set(x, y, 1);
+												break;
+											}
+											case 'subtract': {
+												texture.texture_selection.set(x, y, 0);
+												break;
+											}
+										}
+									}
+								}
+							}
+							UVEditor.updateSelectionOutline();
+						}
+
+						/*let calcrect = Painter.selection.calcrect;
+						var canvas = document.createElement('canvas')
+						var ctx = canvas.getContext('2d');
+						canvas.width = calcrect.x;
+						canvas.height = calcrect.y;
+						ctx.drawImage(UVEditor.vue.texture.img, -calcrect.ax, -calcrect.ay)
+
+						/*if (isApp) {
+							let image = nativeImage.createFromDataURL(canvas.toDataURL())
+							clipboard.writeImage(image)
+						}*/
+						/*Painter.selection.canvas = canvas;
+
+						Painter.selection.move_mode = BarItems.copy_paste_tool_mode.value == 'move';
+						if (Painter.selection.move_mode) {
+							UVEditor.texture.edit((canvas) => {
+								var ctx = canvas.getContext('2d');
+								ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
+							}, {no_undo_finish: true});
+						}
+
+						//UVEditor.addPastingOverlay();*/
+					}
+					addEventListeners(document, 'pointermove', drag);
+					addEventListeners(document, 'pointerup', stop);
+				},
+
 				checkFormat(values) {
 					for (let key in values) {
 						if (Format[key] != values[key]) return false;
@@ -3559,6 +3686,7 @@ Interface.definePanels(function() {
 								}">
 							</div>
 
+
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
@@ -3573,9 +3701,25 @@ Interface.definePanels(function() {
 							>
 							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
+
 							<svg id="uv_texture_grid" v-if="pixel_grid && mode == 'paint' && texture && texture.width">
 								<path :d="textureGrid" />
 								<path :d="textureGridBold" class="bold_grid" />
+							</svg>
+
+							<div id="texture_selection_rect"
+								v-if="texture_selection_rect.active"
+								:style="{
+									left: toPixels(texture_selection_rect.pos_x),
+									top: toPixels(texture_selection_rect.pos_y),
+									width: toPixels(texture_selection_rect.width),
+									height: toPixels(texture_selection_rect.height),
+								}">
+							</div>
+
+							<svg id="uv_selection_outline">
+								<path :d="selection_outline" />
+								<path :d="selection_outline" class="dash_overlay" />
 							</svg>
 						</div>
 

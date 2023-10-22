@@ -2019,6 +2019,38 @@ span.controller_state_section_info {
 		font-size: 16px;
 		padding-top: 2px;
 	}
+	#uv_selection_outline {
+		--color-selection-outline-a: black;
+		--color-selection-outline-b: white;
+		position: absolute;
+		pointer-events: none;
+		width: calc(100% + 2px);
+		height: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#uv_selection_outline path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-selection-outline-a);
+	}
+	#uv_selection_outline path.dash_overlay {
+		stroke: var(--color-selection-outline-b);
+		stroke-dasharray: 6px 4px;
+		stroke-dashoffset: 0;
+		animation: selection-outline-shift 700ms linear infinite;
+		animation-timing-function: steps(3, end);
+	}
+	@keyframes selection-outline-shift {
+		0% {
+			stroke-dashoffset: 0;
+		}
+		100% {
+			stroke-dashoffset: -10px;
+		}
+	}
 
 	.face_properties_toggle {
 		width: 32px;

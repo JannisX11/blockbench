@@ -1636,6 +1636,91 @@ const Painter = {
 	]
 }
 
+class IntMatrix {
+	constructor(width = 16, height = 16) {
+		this.width = width;
+		this.height = height;
+		this.array = null;
+		this.override = false;
+	}
+	/**
+	 * The array does not exist by default to save memory, this activates it.
+	 */
+	activate() {
+		this.array = new Int8Array(this.width * this.height);
+	}
+	/**
+	 * Get the value at the specified pixel
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	get(x, y, simple_access) {
+		if (this.override !== null) {
+			return this.override
+		} else {
+			if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
+			return this.array[y * this.width + x] || 0;
+		}
+	}
+	/**
+	 * Set the value at a specified pixel
+	 * @param {number} x 
+	 * @param {number} y 
+	 * @param {number} value 
+	 */
+	set(x, y, value) {
+		if (this.override !== null) {
+			if (!this.array) this.activate();
+			if (this.override == true) {
+				this.array.fill(1);
+			}
+			this.override = null;
+		}
+		this.array[y * this.width + x] = value;
+	}
+	/**
+	 * If there was a selection, whether override or not, clear it
+	 */
+	clear() {
+		if (this.override == true) this.override = false;
+		if (this.array) this.array.fill(0);
+	}
+	/**
+	 * Change override mode
+	 * @param {true|false|null} value 
+	 * @returns 
+	 */
+	setOverride(value) {
+		if (value === this.override) return;
+		this.override = value;
+		if (value === null) {
+			if (!this.array) {
+				this.activate();
+			} else {
+				this.array.fill(0);
+			}
+		} else {
+			delete this.array;
+		}
+	}
+	/**
+	 * Change the size of the matrix. Unless using overrides, the selection gets lost.
+	 * @param {number} width 
+	 * @param {number} height 
+	 * @returns {boolean} Whether the size had to be changed
+	 */
+	changeSize(width, height)  {
+		if (width == this.width && height == this.height) return false;
+		this.width = width;
+		this.height = height;
+		if (this.array) {
+			this.array = new Int8Array(this.width * this.height);
+		}
+		return true;
+	}
+}
+
 BARS.defineActions(function() {
 
 	new Tool('pan_tool', {
@@ -1993,7 +2078,7 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
-	new Tool('copy_paste_tool', {
+	/*new Tool('copy_paste_tool', {
 		icon: 'fa-vector-square',
 		category: 'tools',
 		toolbar: 'brush',
@@ -2016,7 +2101,52 @@ BARS.defineActions(function() {
 				open_interface.confirm()
 			}
 		}
+	})*/
+	let selection_tool = new Tool('selection_tool', {
+		icon: 'select',
+		category: 'tools',
+		toolbar: 'brush',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		side_menu: new Menu('selection_tool', () => {
+			let modes = {
+				rectangle: {icon: 'select'},
+				ellipse: {icon: 'lasso_select'},
+				lasso: {icon: 'fa-draw-polygon'},
+				wand: {icon: 'fa-magic'},
+				same_color: {icon: 'format_paint'},
+			};
+			let entries = [];
+			for (let id in modes) {
+				let entry = {
+					id,
+					name: id,
+					icon: modes[id].icon,
+					click() {
+						selection_tool.setIcon(modes[id].icon);
+						selection_tool.mode = id;
+						selection_tool.select();
+					}
+				}
+				entries.push(entry);
+			}
+			return entries;
+		}),
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
+		},
+		onSelect() {
+
+		}
 	})
+	selection_tool.mode = 'rectangle';
 
 	new BarSelect('brush_shape', {
 		category: 'paint',
@@ -2094,6 +2224,28 @@ BARS.defineActions(function() {
 			move: true,
 		}
 	})
+	new BarSelect('selection_tool_operation_mode', {
+		category: 'paint',
+		condition: {tools: ['selection_tool']},
+		icon_mode: true,
+		options: {
+			create: {name: true, icon: 'shadow'},
+			add: {name: true, icon: 'shadow_add'},
+			subtract: {name: true, icon: 'shadow_minus'},
+			intersect: {name: true, icon: 'join_inner'},
+		}
+	})
+	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+		let tool = BarItems.selection_tool_operation_mode;
+		if (!Condition(tool.condition)) return;
+		if (now.shift) {
+			tool.set('add');
+		} else if (now.ctrl) {
+			tool.set('subtract');
+		} else if (before.ctrl || before.shift) {
+			tool.set('create');
+		}
+	});
 
 	StateMemory.init('mirror_painting_options', 'object');
 	Painter.mirror_painting_options = StateMemory.mirror_painting_options;

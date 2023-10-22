@@ -215,8 +215,11 @@ function updateSelection(options = {}) {
 function selectAll() {
 	if (Modes.animate) {
 		selectAllKeyframes()
-	} else if (Prop.active_panel == 'uv') {
+	} else if (Prop.active_panel == 'uv' && Modes.edit) {
 		UVEditor.selectAll()
+	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected) {
+		Texture.selected.texture_selection.setOverride(Texture.selected.texture_selection.override == true ? false : true);
+		UVEditor.updateSelectionOutline();
 
 	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
 		let selection_mode = BarItems.selection_mode.value;

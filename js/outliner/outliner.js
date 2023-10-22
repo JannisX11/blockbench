@@ -1299,9 +1299,13 @@ BARS.defineActions(function() {
 		click() {
 			if (Modes.animate) {
 				unselectAllKeyframes()
-			} else if (Prop.active_panel == 'uv') {
+			} else if (Prop.active_panel == 'uv' && Modes.edit) {
 				this.vue.selected_faces.empty();
 				UVEditor.displayTools();
+
+			} else if (Prop.active_panel == 'uv' && Modes.paint) {
+				Texture.selected.texture_selection.setOverride(false);
+				UVEditor.updateSelectionOutline();
 		
 			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
 				Mesh.selected.forEach(mesh => {
