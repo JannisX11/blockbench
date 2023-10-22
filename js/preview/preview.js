@@ -1120,7 +1120,7 @@ class Preview {
 			!Transformer.dragging &&
 			!this.selection.click_target
 		) {
-			unselectAll();
+			unselectAllElements();
 		}
 		delete this.selection.click_target;
 		return this;
@@ -1242,7 +1242,7 @@ class Preview {
 			]
 		}
 
-		unselectAll()
+		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
 			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {

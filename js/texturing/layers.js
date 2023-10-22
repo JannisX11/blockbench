@@ -160,6 +160,28 @@ Object.defineProperty(TextureLayer, 'selected', {
 	}
 })
 
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
+	run() {
+		if (Texture.selected.layers.length >= 2) {
+			Texture.selected?.selected_layer.remove(true);
+		}
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
+	run() {
+		let texture = Texture.selected;
+		let original = texture.getActiveLayer();
+		let copy = original.getUndoCopy(true);
+		copy.name += '-copy';
+		Undo.initEdit({textures: [texture]});
+		let layer = new TextureLayer(copy, texture);
+		texture.layers.push(layer);
+		layer.select();
+		Undo.finishEdit('Duplicate layer');
+	}
+})
 
 BARS.defineActions(() => {
 	new Action('create_empty_layer', {

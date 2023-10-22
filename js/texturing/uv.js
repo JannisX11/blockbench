@@ -1432,10 +1432,35 @@ const UVEditor = {
 	])
 }
 
+SharedActions.add('select_all', {
+	condition: () => Prop.active_panel == 'uv' && Modes.edit,
+	run() {
+		UVEditor.selectAll()
+	}
+})
+SharedActions.add('select_all', {
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.selected,
+	run() {
+		Texture.selected.texture_selection.setOverride(Texture.selected.texture_selection.override == true ? false : true);
+		UVEditor.updateSelectionOutline();
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Prop.active_panel == 'uv' && Modes.edit,
+	run() {
+		this.vue.selected_faces.empty();
+		UVEditor.displayTools();
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Prop.active_panel == 'uv' && Modes.paint,
+	run() {
+		Texture.selected.texture_selection.setOverride(false);
+		UVEditor.updateSelectionOutline();
+	}
+})
 
 BARS.defineActions(function() {
-
-
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
@@ -2233,7 +2258,6 @@ Interface.definePanels(function() {
 						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
 					}
 					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y);
-					console.log(Toolbox.selected.id == 'selection_tool', this.texture, this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y))
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {

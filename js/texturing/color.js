@@ -51,6 +51,19 @@ var palettes = {
 }
 
 
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab),
+	run() {
+		if (StateMemory.color_palette_locked) {
+			Blockbench.showQuickMessage('message.palette_locked');
+			return;
+		}
+		if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
+			ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
+		}
+	}
+})
+
 Interface.definePanels(() => {
 	var saved_colors = localStorage.getItem('colors');
 	if (saved_colors) {

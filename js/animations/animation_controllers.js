@@ -966,6 +966,42 @@ Blockbench.on('finish_edit', event => {
 	}
 })
 
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.rename();
+	}
+})
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.remove(true);
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animations' && AnimationController.selected,
+	run() {
+		let copy = AnimationController.selected.getUndoCopy();
+		let controller = new AnimationController(copy);
+		Property.resetUniqueValues(AnimationController, controller);
+		controller.createUniqueName();
+		AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
+		controller.saved = false;
+		controller.add(true).select();
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		Undo.initEdit({animation_controllers: [AnimationController.selected]});
+		let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+		let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+		AnimationController.selected.states.remove(state);
+		AnimationController.selected.states.splice(index+1, 0, state);
+		Undo.finishEdit('Duplicate animation controller state');
+	}
+})
+
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
 		icon: 'cable',

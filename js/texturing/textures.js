@@ -1928,6 +1928,22 @@ function getTexturesById(id) {
 	id = id.replace('#', '');
 	return $.grep(Texture.all, function(e) {return e.id == id});
 }
+
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'textures' && Texture.selected,
+	run() {
+		Texture.selected.remove();
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'textures' && Texture.selected,
+	run() {
+		let copy = Texture.selected.getUndoCopy();
+		delete copy.path;
+		copy.convertToInternal(Texture.selected.getDataURL());
+		new Texture(copy).fillParticle().load().add(true);
+	}
+})
 Clipbench.setTexture = function(texture) {
 	//Sets the raw image of the texture
 	if (!isApp) return;

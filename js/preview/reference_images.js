@@ -773,6 +773,13 @@ StateMemory.global_reference_images.forEach(template => {
 	new ReferenceImage(template).addAsGlobalReference();
 });
 
+SharedActions.add('delete', {
+	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
+	priority: 1,
+	run() {
+		ReferenceImage.selected.delete();
+	}
+})
 
 const ReferenceImageMode = {
 	active: false,

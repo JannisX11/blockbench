@@ -449,7 +449,7 @@ class Animation extends AnimationItem {
 		this.selected = true;
 		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
-		unselectAll();
+		unselectAllElements();
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
@@ -930,6 +930,30 @@ Clipbench.pasteAnimation = function() {
 	}
 }
 
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
+	run() {
+		AnimationItem.selected.rename();
+	}
+})
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
+	run() {
+		AnimationItem.selected.remove(true);
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animations' && Animation.selected,
+	run() {
+		let copy = Animation.selected.getUndoCopy();
+		let animation = new Animation(copy);
+		Property.resetUniqueValues(Animation, animation);
+		animation.createUniqueName();
+		Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
+		animation.saved = false;
+		animation.add(true).select();
+	}
+})
 
 Blockbench.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],

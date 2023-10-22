@@ -193,7 +193,7 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	select(group_is_selected) {
 		if (!this.getGroup()) {
-			unselectAll();
+			unselectAllElements();
 			return this;
 		}
 		if (this.group.locked) return;
@@ -546,7 +546,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	select(element_is_selected) {
 		if (!this.getElement()) {
-			unselectAll();
+			unselectAllElements();
 			return this;
 		}
 		if (this.getElement().locked) return;

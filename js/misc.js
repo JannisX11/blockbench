@@ -212,77 +212,7 @@ function updateSelection(options = {}) {
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function selectAll() {
-	if (Modes.animate) {
-		selectAllKeyframes()
-	} else if (Prop.active_panel == 'uv' && Modes.edit) {
-		UVEditor.selectAll()
-	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected) {
-		Texture.selected.texture_selection.setOverride(Texture.selected.texture_selection.override == true ? false : true);
-		UVEditor.updateSelectionOutline();
-
-	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
-		let selection_mode = BarItems.selection_mode.value;
-		if (selection_mode == 'vertex') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-				}
-			})
-		} else if (selection_mode == 'edge') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-					mesh.getSelectedEdges(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					let edges = mesh.getSelectedEdges(true);
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey];
-						let f_vertices = face.getSortedVertices();
-						f_vertices.forEach((vkey_a, i) => {
-							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
-							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
-							edges.push(edge);
-						})
-					}
-				}
-			})
-		} else {
-			let unselect = Mesh.selected[0].getSelectedFaces().length == Object.keys(Mesh.selected[0].faces).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					delete Project.mesh_selection[mesh.uuid];
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					mesh.getSelectedFaces(true).replace(Object.keys(mesh.faces));
-				}
-			})
-		}
-		updateSelection();
-
-	} else if (Modes.edit || Modes.paint) {
-		let selectable_elements = Outliner.elements.filter(element => !element.locked);
-		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
-			}
-		} else {
-			unselectAll()
-		}
-	}
-	Blockbench.dispatchEvent('select_all')
-}
-function unselectAll() {
+function unselectAllElements() {
 	Project.selected_elements.forEachReverse(obj => obj.unselect())
 	if (Group.selected) Group.selected.unselect()
 	Group.all.forEach(function(s) {
@@ -293,6 +223,14 @@ function unselectAll() {
 	}
 	TickUpdates.selection = true;
 }
+// Legacy functions
+function selectAll() {
+	SharedActions.run('select_all');
+}
+function unselectAll() {
+	SharedActions.run('unselect_all');
+}
+
 //Backup
 const AutoBackupModels = {};
 setInterval(function() {

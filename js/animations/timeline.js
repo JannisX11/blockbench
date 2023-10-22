@@ -1842,7 +1842,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			Timeline.vue._data.animators.purge();
-			unselectAll();
+			unselectAllElements();
 		}
 	})
 	new Action('select_effect_animator', {
@@ -1916,7 +1916,7 @@ BARS.defineActions(function() {
 					icon: 'star_outline',
 					click() {
 						Timeline.vue._data.animators.purge();
-						unselectAll();
+						unselectAllElements();
 						setup.animators.forEach(uuid => {
 							var ba = Animation.selected.animators[uuid]
 							if (ba) ba.addToTimeline();
