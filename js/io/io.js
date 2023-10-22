@@ -561,7 +561,7 @@ function autoParseJSON(data, feedback) {
 BARS.defineActions(function() {
 	//Import
 	new Action('open_model', {
-		icon: 'assessment',
+		icon: 'file_open',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
 		click: function () {

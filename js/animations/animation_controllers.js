@@ -404,7 +404,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	{
 		id: 'set_as_initial_state',
 		name: 'Initial State',
-		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
+		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'far.fa-dot-circle' : 'far.fa-circle'),
 		click(state) {
 			if (!AnimationController.selected) return;
 			Undo.initEdit({animation_controllers: [AnimationController.selected]});
@@ -871,7 +871,7 @@ class AnimationController extends AnimationItem {
 		},
 		'delete',
 		new MenuSeparator('properties'),
-		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
+		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
@@ -1004,7 +1004,7 @@ SharedActions.add('duplicate', {
 
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'cable',
+		icon: 'account_tree',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
@@ -1051,7 +1051,7 @@ Interface.definePanels(() => {
 					let list = [
 						{
 							name: 'generic.unset',
-							icon: animation.animation == '' ? 'radio_button_checked' : 'radio_button_unchecked',
+							icon: animation.animation == '' ? 'far.fa-dot-circle' : 'far.fa-circle',
 							click: () => {
 								animation.key = '';
 								animation.animation = '';
@@ -1064,7 +1064,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: animation.animation == anim.uuid ? 'radio_button_checked' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: animation.animation == anim.uuid ? 'far.fa-dot-circle' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => apply(anim)
 						})
 					})
@@ -1085,7 +1085,7 @@ Interface.definePanels(() => {
 						if (state2 == state) return;
 						list.push({
 							name: state2.name,
-							icon: transition.target == state2.uuid ? 'radio_button_checked' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: transition.target == state2.uuid ? 'far.fa-dot-circle' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => {
 								transition.target = state2.uuid;
 							}
@@ -1148,7 +1148,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: anim instanceof AnimationController ? 'cable' : 'movie',
+							icon: anim instanceof AnimationController ? 'account_tree' : 'movie',
 							click: () => {
 								state.addAnimation(anim);
 							}

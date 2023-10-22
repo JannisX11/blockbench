@@ -185,7 +185,7 @@ SharedActions.add('duplicate', {
 
 BARS.defineActions(() => {
 	new Action('create_empty_layer', {
-		icon: 'add',
+		icon: 'new_window',
 		category: 'layers',
 		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled,
 		click() {

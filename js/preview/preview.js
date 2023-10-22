@@ -1501,7 +1501,7 @@ class Preview {
 				if (typeof preset == 'string') {
 					children.push('_'); return;
 				}
-				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'far.fa-dot-circle' : 'far.fa-circle'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,

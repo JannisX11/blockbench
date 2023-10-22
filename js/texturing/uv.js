@@ -1290,7 +1290,7 @@ const UVEditor = {
 			return options.map(option => {return {
 				id: option,
 				name: `menu.uv.display_uv.${option}`,
-				icon: UVEditor.vue.display_uv == option ? 'radio_button_checked' : 'radio_button_unchecked',
+				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle',
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
@@ -1330,8 +1330,8 @@ const UVEditor = {
 		'uv_rotate_right',
 		{icon: 'rotate_90_degrees_ccw', condition: () => UVEditor.getReferenceFace() instanceof CubeFace && Format.uv_rotation, name: 'menu.uv.mapping.rotation', children() {
 			let reference_face = UVEditor.getReferenceFace();
-			let off = 'radio_button_unchecked'
-			let on = 'radio_button_checked'
+			let off = 'far.fa-circle';
+			let on = 'far.fa-dot-circle';
 			return [
 				{icon: (!reference_face.rotation ? on : off), name: '0°', click() {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
@@ -1379,8 +1379,8 @@ const UVEditor = {
 		new MenuSeparator('face_options'),
 		'face_tint',
 		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
-			let off = 'radio_button_unchecked';
-			let on = 'radio_button_checked';
+			let off = 'far.fa-circle';
+			let on = 'far.fa-dot-circle';
 			function setCullface(cullface) {
 				Undo.initEdit({elements: Cube.selected, uv_only: true})
 				UVEditor.forCubes(obj => {

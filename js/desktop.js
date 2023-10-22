@@ -294,7 +294,9 @@ function loadDataFromModelMemory() {
 
 //Window Controls
 function updateWindowState(e, type) {
-	$('#header_free_bar').toggleClass('resize_space', !currentwindow.isMaximized());
+	let maximized = currentwindow.isMaximized();
+	$('#header_free_bar').toggleClass('resize_space', !maximized);
+	document.body.classList.toggle('maximized', maximized);
 }
 currentwindow.on('maximize', e => updateWindowState(e, 'maximize'));
 currentwindow.on('unmaximize', e => updateWindowState(e, 'unmaximize'));

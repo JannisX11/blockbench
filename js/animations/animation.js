@@ -798,9 +798,9 @@ class Animation extends AnimationItem {
 		'duplicate',
 		new MenuSeparator('settings'),
 		{name: 'menu.animation.loop', icon: 'loop', children: [
-			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
-			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
-			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
+			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('once', true)}},
+			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('hold', true)}},
+			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('loop', true)}},
 		]},
 		new MenuSeparator('manage'),
 		{

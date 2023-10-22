@@ -99,6 +99,7 @@ BARS.defineActions(() => {
 							<ul class="multi_column_list">
 								<li><a class="open-in-browser" href="https://material.io/icons/">Material Icons</a></li>
 								<li><a class="open-in-browser" href="https://fontawesome.com/icons/">Font Awesome</a></li>
+								<li><a class="open-in-browser" href="https://github.com/microsoft/vscode-codicons">VSCode Codicons</a></li>
 								<li><a class="open-in-browser" href="https://electronjs.org">Electron</a></li>
 								<li><a class="open-in-browser" href="https://vuejs.org">Vue</a></li>
 								<li><a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a></li>

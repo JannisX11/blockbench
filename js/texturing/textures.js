@@ -1627,10 +1627,10 @@ class Texture {
 						Undo.finishEdit('Change texture view mode');
 					}
 					return [
-						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('default')}},
-						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
-						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('additive')}},
-						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
+						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('default')}},
+						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('emissive')}},
+						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('additive')}},
+						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
 				}
 			},
