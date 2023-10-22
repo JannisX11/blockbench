@@ -2257,7 +2257,7 @@ Interface.definePanels(function() {
 					if (this.texture && this.texture.frameCount) {
 						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
 					}
-					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y);
+					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create';
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {
@@ -3439,6 +3439,12 @@ Interface.definePanels(function() {
 												texture.texture_selection.set(x, y, 0);
 												break;
 											}
+											case 'intersect': {
+												if (texture.texture_selection.get(x, y)) {
+													texture.texture_selection.set(x, y, 2);
+												}
+												break;
+											}
 										}
 									}
 								}
@@ -3459,6 +3465,24 @@ Interface.definePanels(function() {
 												texture.texture_selection.set(x, y, 0);
 												break;
 											}
+											case 'intersect': {
+												if (texture.texture_selection.get(x, y)) {
+													texture.texture_selection.set(x, y, 2);
+												}
+												break;
+											}
+										}
+									}
+								}
+							}
+							if (op_mode == 'intersect') {
+								for (let x = 0; x < texture.width; x++) {
+									for (let y = 0; y < texture.height; y++) {
+										let val = texture.texture_selection.getDirect(x, y);
+										if (val == 2) {
+											texture.texture_selection.set(x, y, 1);
+										} else if (val == 1) {
+											texture.texture_selection.set(x, y, 0);
 										}
 									}
 								}
