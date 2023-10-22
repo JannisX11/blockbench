@@ -207,6 +207,10 @@ BARS.defineActions(() => {
 	new NumSlider('layer_opacity', {
 		category: 'layers',
 		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled && Texture.selected.getActiveLayer(),
+		settings: {
+			min: 0, max: 100, default: 100,
+			show_bar: true
+		},
 		getInterval(event) {
 			return 1;
 		},

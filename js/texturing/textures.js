@@ -379,7 +379,6 @@ class Texture {
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'keep_size')
-		console.log('extend', data)
 
 		if (data.layers instanceof Array) {
 			let old_layers = this.layers.slice();
@@ -679,14 +678,6 @@ class Texture {
 		this.img.src = dataUrl;
 		this.display_canvas = false;
 		this.updateMaterial();
-		if (open_dialog == 'UVEditor') {
-			for (var key in UVEditor.editors) {
-				var editor = UVEditor.editors[key];
-				if (this == editor.texture) {
-					editor.img.src = dataUrl;
-				}
-			}
-		}
 		return this;
 	}
 	updateMaterial() {
@@ -1541,7 +1532,6 @@ class Texture {
 		this.internal = true;
 		this.source = data_url;
 		this.saved = false;
-		this.load();
 	}
 	updateLayerChanges(update_data_url) {
 		if (!this.layers_enabled) return this;
@@ -1563,6 +1553,10 @@ class Texture {
 	updateImageFromCanvas() {
 		this.img.update_from_canvas = true;
 		this.img.src = this.source;
+	}
+	getActiveCanvas() {
+		let layer = this.layers_enabled && this.getActiveLayer();
+		return layer ? layer : this;
 	}
 	edit(cb, options) {
 		var scope = this;

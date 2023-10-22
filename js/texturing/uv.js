@@ -113,7 +113,7 @@ const UVEditor = {
 	},
 
 	selection_outline_lines: [],
-	updateSelectionOutline(recalculate_lines = true) {
+	async updateSelectionOutline(recalculate_lines = true) {
 		let {texture} = this.vue;
 		if (!texture) {
 			this.vue.selection_outline = '';
@@ -137,10 +137,25 @@ const UVEditor = {
 		if (recalculate_lines) {
 			lines.empty();
 			let matrix = texture.texture_selection;
+
+			// Bounds
+			let bounds = [width, height, 0, 0];
+			for (let y = 0; y < height; y++) {
+				for (let x = 0; x < width; x++) {
+					let val = matrix.getDirect(x, y);
+					if (val == 1) {
+						bounds[0] = Math.min(bounds[0], x);
+						bounds[1] = Math.min(bounds[1], y);
+						bounds[2] = Math.max(bounds[2], x+1);
+						bounds[3] = Math.max(bounds[3], y+1);
+					}
+				}
+			}
+			await new Promise(r => setTimeout(r, 0));
 			// =
-			for (let y = 0; y <= height; y++) {
+			for (let y = bounds[1]; y <= bounds[3]; y++) {
 				let pre = null;
-				for (let x = 0; x <= width; x++) {
+				for (let x = bounds[0]; x <= bounds[2]; x++) {
 					let a = matrix.get(x, y-1);
 					let b = matrix.get(x, y);
 					let line = a != b;
@@ -152,10 +167,11 @@ const UVEditor = {
 					}
 				}
 			}
+			await new Promise(r => setTimeout(r, 0));
 			// ||
-			for (let x = 0; x <= width; x++) {
+			for (let x = bounds[0]; x <= bounds[2]; x++) {
 				let pre = null;
-				for (let y = 0; y <= height; y++) {
+				for (let y = bounds[1]; y <= bounds[3]; y++) {
 					let a = matrix.get(x-1, y);
 					let b = matrix.get(x, y);
 					let line = a != b;
@@ -167,7 +183,9 @@ const UVEditor = {
 					}
 				}
 			}
+			await new Promise(r => setTimeout(r, 0));
 		}
+		size = UVEditor.getPixelSize();
 		let outline = '';
 		for (let line of lines) {
 			outline += `${outline ? '' : ' '}${line[0] ? 'M' : 'L'}${line[1] * size + 1} ${line[2] * size + 1}`;
@@ -2054,6 +2072,11 @@ Interface.definePanels(function() {
 					}
 					return lines.join(' ');
 				},
+				textureGridStroke() {
+					if (!this.texture) return '';
+					let size = UVEditor.getPixelSize();
+					return Math.clamp((size - 4) / 16, 0, 0.4) + 'px';
+				},
 				textureGridBold() {
 					if (!this.texture) return '';
 					let lines = [];
@@ -3236,7 +3259,6 @@ Interface.definePanels(function() {
 							UVEditor.removePastingOverlay()
 						}
 					}*/
-					let viewport = this.$refs.viewport;
 					if (create_selection) {
 						//$(this.$refs.frame).find('#texture_selection_rect').detach();
 						//let rect = document.createElement('div');
@@ -3245,6 +3267,60 @@ Interface.definePanels(function() {
 						//this.$refs.frame.append(rect)
 						start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
 						start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
+
+						if (op_mode == 'create') {
+							texture.texture_selection.clear();
+						}
+						
+						if (selection_mode == 'wand' || selection_mode == 'color') {
+							let {canvas, ctx} = texture.getActiveCanvas();
+							let image_data = ctx.getImageData(x, y, 1, 1);
+							let pxcol = [...image_data.data];
+							let map = {};
+							Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
+								if (pxcol.equals(px)) {
+									if (!map[x]) map[x] = {};
+									map[x][y] = true
+								}
+							})
+							var scan_value = true;
+							if (selection_mode == 'wand') {
+								function checkPx(x, y) {
+									if (map[x] && map[x][y]) {
+										map[x][y] = false;
+
+										checkPx(x+1, y)
+										checkPx(x-1, y)
+										checkPx(x, y+1)
+										checkPx(x, y-1)
+									}
+								}
+								checkPx(x, y)
+								scan_value = false;
+							}
+							for (let x in map) {
+								for (let y in map[x]) {
+									if (map[x][y] == scan_value) {
+										x = parseInt(x);
+										y = parseInt(y);
+										switch (op_mode) {
+											case 'create': case 'add': {
+												texture.texture_selection.set(x, y, 1);
+												break;
+											}
+											case 'subtract': {
+												texture.texture_selection.set(x, y, 0);
+												break;
+											}
+										}
+									}
+								}
+							}
+
+							UVEditor.updateSelectionOutline();
+							return;
+						}
+
 					} else {
 						//Painter.selection.start_x = Painter.selection.x;
 						//Painter.selection.start_y = Painter.selection.y;
@@ -3703,7 +3779,7 @@ Interface.definePanels(function() {
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
 
 							<svg id="uv_texture_grid" v-if="pixel_grid && mode == 'paint' && texture && texture.width">
-								<path :d="textureGrid" />
+								<path :d="textureGrid" :style="{strokeWidth: textureGridStroke}" />
 								<path :d="textureGridBold" class="bold_grid" />
 							</svg>
 

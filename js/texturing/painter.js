@@ -17,15 +17,13 @@ const Painter = {
 		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
-		let layer = texture.layers_enabled && texture.getActiveLayer();
-		let canvas;
+		let {canvas, ctx} = texture.getActiveCanvas();
+		Painter.current.ctx = ctx;
 
 		if (options.use_cache &&
 			Painter.current.cached_canvases[texture.uuid]
 		) {
 			//IS CACHED
-			canvas = layer ? layer.canvas : texture.canvas;
-			Painter.current.ctx = layer ? layer.ctx : texture.ctx;
 			callback(canvas);
 			if (options.no_update === true) {
 				return;
@@ -33,8 +31,7 @@ const Painter = {
 		} else {
 			//IS UNCACHED
 			Painter.current.texture = texture
-			canvas = Painter.current.cached_canvases[texture.uuid] = layer ? layer.canvas : texture.canvas;
-			Painter.current.ctx = layer ? layer.ctx : texture.ctx;
+			Painter.current.cached_canvases[texture.uuid] = canvas;
 			callback(canvas);
 		}
 
@@ -494,6 +491,7 @@ const Painter = {
 				for (let x in matrix) {
 					for (let y in matrix[x]) {
 						if (!matrix[x][y]) continue;
+						if (!texture.texture_selection.allow(x, y)) continue;
 						x = parseInt(x); y = parseInt(y);
 						ctx.rect(x, y, 1, 1);
 					}
@@ -1335,6 +1333,7 @@ const Painter = {
 			) {
 				return;
 			}
+			if (Painter.current.texture.texture_selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1390,6 +1389,7 @@ const Painter = {
 			) {
 				return;
 			}
+			if (Painter.current.texture.texture_selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1655,13 +1655,35 @@ class IntMatrix {
 	 * @param {*} y 
 	 * @returns 
 	 */
-	get(x, y, simple_access) {
+	get(x, y) {
 		if (this.override !== null) {
 			return this.override
 		} else {
 			if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
 			return this.array[y * this.width + x] || 0;
 		}
+	}
+	/**
+	 * Test whether painting is allowed at a specific pixel
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	allow(x, y) {
+		if (this.override !== null) {
+			return true;
+		} else {
+			return this.array[y * this.width + x];
+		}
+	}
+	/**
+	 * Get the value at the specified pixel directly without override and bounds check
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	getDirect(x, y) {
+		return this.array[y * this.width + x];
 	}
 	/**
 	 * Set the value at a specified pixel
@@ -2113,13 +2135,14 @@ BARS.defineActions(function() {
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
+		keybind: new Keybind({key: 'm'}),
 		side_menu: new Menu('selection_tool', () => {
 			let modes = {
 				rectangle: {icon: 'select'},
 				ellipse: {icon: 'lasso_select'},
 				lasso: {icon: 'fa-draw-polygon'},
 				wand: {icon: 'fa-magic'},
-				same_color: {icon: 'format_paint'},
+				color: {icon: 'format_paint'},
 			};
 			let entries = [];
 			for (let id in modes) {
