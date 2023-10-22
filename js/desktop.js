@@ -436,7 +436,7 @@ function createBackup(init) {
 			}
 		})
 	}
-	if (init || elements.length === 0) return;
+	if (init || !Project || (elements.length === 0 && Texture.all.length === 0)) return;
 
 	let model = Codecs.project.compile({compressed: true, backup: true});
 	let short_name = Project.name.replace(/[.]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 16);
