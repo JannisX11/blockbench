@@ -36,7 +36,7 @@ const UVEditor = {
 			];
 		}
 
-		if (Toolbox.selected.id === 'copy_paste_tool' || Toolbox.selected.id === 'selection_tool') {
+		if (Toolbox.selected.id === 'selection_tool') {
 			if (settings.nearest_rectangle_select.value) {
 				result.x = Math.round(mouse_coords[0]/pixel_size*1);
 				result.y = Math.round(mouse_coords[1]/pixel_size*1);
@@ -71,8 +71,8 @@ const UVEditor = {
 				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
 			}
 		}
-		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'copy_paste_tool' && Toolbox.selected.id !== 'selection_tool' && texture) {
-			addEventListeners(this.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
+		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'selection_tool' && texture) {
+			addEventListeners(this.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
 	},
@@ -97,7 +97,7 @@ const UVEditor = {
 					Undo.current_save.addTextureOrLayer(texture)
 				}
 			}
-			if (Toolbox.selected.id !== 'copy_paste_tool') {
+			if (Toolbox.selected.id !== 'selection_tool') {
 				Painter.movePaintTool(texture, x, y, event, new_face)
 			}
 		}
@@ -105,7 +105,7 @@ const UVEditor = {
 	stopBrush(event) {
 		removeEventListeners( UVEditor.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
 		removeEventListeners( document, 'mouseup touchend', UVEditor.stopBrush, false );
-		if (Toolbox.selected.id !== 'copy_paste_tool') {
+		if (Toolbox.selected.id !== 'selection_tool') {
 			Painter.stopPaintTool()
 		} else {
 			UVEditor.stopSelection()
@@ -119,7 +119,7 @@ const UVEditor = {
 			this.vue.selection_outline = '';
 			return;
 		}
-		if (texture.texture_selection.override == false) {
+		if (texture.selection.override == false) {
 			this.vue.selection_outline = '';
 			return;
 		}
@@ -127,7 +127,7 @@ const UVEditor = {
 		let width = this.vue.texture.width;
 		let height = this.vue.texture.display_height;
 
-		if (texture.texture_selection.override == true) {
+		if (texture.selection.override == true) {
 			this.vue.selection_outline = `M1 1 L${width * size + 1} 1 L${width * size + 1} ${height * size + 1} L1 ${height * size + 1} L1 1`;
 			return;
 		}
@@ -136,7 +136,7 @@ const UVEditor = {
 
 		if (recalculate_lines) {
 			lines.empty();
-			let matrix = texture.texture_selection;
+			let matrix = texture.selection;
 
 			// Bounds
 			let bounds = [width, height, 0, 0];
@@ -1441,7 +1441,7 @@ SharedActions.add('select_all', {
 SharedActions.add('select_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.selected,
 	run() {
-		Texture.selected.texture_selection.setOverride(Texture.selected.texture_selection.override == true ? false : true);
+		Texture.selected.selection.setOverride(Texture.selected.selection.override == true ? false : true);
 		UVEditor.updateSelectionOutline();
 	}
 })
@@ -1455,7 +1455,7 @@ SharedActions.add('unselect_all', {
 SharedActions.add('unselect_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint,
 	run() {
-		Texture.selected.texture_selection.setOverride(false);
+		Texture.selected.selection.setOverride(false);
 		UVEditor.updateSelectionOutline();
 	}
 })
@@ -2017,7 +2017,7 @@ Interface.definePanels(function() {
 				pixel_grid: settings.painting_grid.value,
 				uv_overlay: false,
 				texture: 0,
-				mouse_coords: {x: -1, y: -1},
+				mouse_coords: {x: -1, y: -1, active: false},
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
 				brush_type: BarItems.brush_shape.value,
@@ -2188,7 +2188,7 @@ Interface.definePanels(function() {
 					this.centered_view = true;
 				},
 				setMode(mode) {
-					this.mouse_coords.x = this.mouse_coords.y = -1;
+					this.mouse_coords.active = false;
 					this.mode = mode;
 					this.updateTexture();
 				},
@@ -2239,25 +2239,14 @@ Interface.definePanels(function() {
 				},
 				updateMouseCoords(event) {					
 					convertTouchEvent(event);
+					if (!this.texture) return;
 					var pixel_size = this.inner_width / (this.texture ? this.texture.width : this.uv_resolution[0]);
 
-					if (Toolbox.selected.id === 'copy_paste_tool') {
-						this.mouse_coords.x = Math.round(event.offsetX/pixel_size*1);
-						this.mouse_coords.y = Math.round(event.offsetY/pixel_size*1);
-					} else {
-						this.mouse_coords.x = Math.clamp(event.offsetX, 0, this.inner_width-0.1) / pixel_size*1;
-						this.mouse_coords.y = Math.clamp(event.offsetY, 0, this.inner_height-0.1) / pixel_size*1;
-
-						if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-							let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
-							this.mouse_coords.x = Math.floor(this.mouse_coords.x + offset);
-							this.mouse_coords.y = Math.floor(this.mouse_coords.y + offset);
-						}
-					}
-					if (this.texture && this.texture.frameCount) {
-						this.mouse_coords.y += (this.texture.height / this.texture.frameCount) * this.texture.currentFrame
-					}
-					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.texture_selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create';
+					var {x, y} = UVEditor.getBrushCoordinates(event, this.texture);
+					this.mouse_coords.active = true;
+					this.mouse_coords.x = x;
+					this.mouse_coords.y = y;
+					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create';
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {
@@ -2295,7 +2284,7 @@ Interface.definePanels(function() {
 							}
 							
 							if (this.mode == 'paint') {
-								this.mouse_coords.x = -1;
+								this.mouse_coords.active = false;
 							}
 						}
 						if (n > 0) {
@@ -2378,7 +2367,7 @@ Interface.definePanels(function() {
 
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
 						// Paint
-						if (event.target && event.target.id === 'uv_viewport') return;
+						//if (event.target && event.target.id === 'uv_viewport') return;
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;
@@ -2499,7 +2488,7 @@ Interface.definePanels(function() {
 				},
 				onMouseLeave(event) {
 					if (this.mode == 'paint') {
-						this.mouse_coords.x = -1;
+						this.mouse_coords.active = false;
 					}
 				},
 				contextMenu(event) {
@@ -3228,7 +3217,7 @@ Interface.definePanels(function() {
 							offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
 						}
 						let left = this.mouse_coords.x;
-						let top =  this.mouse_coords.y % (this.texture ? this.texture.display_height : Project.texture_height);
+						let top =  this.mouse_coords.y - (this.texture ? this.texture.currentFrame * this.texture.display_height : 0);
 						left = (left + offset) * pixel_size;
 						top =  (top + offset) * pixel_size;
 						//size
@@ -3274,7 +3263,7 @@ Interface.definePanels(function() {
 					let texture = UVEditor.texture;
 					if (!texture) return;
 					if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
-					let clicked_val = texture.texture_selection.get(Math.floor(x), Math.floor(y));
+					let clicked_val = texture.selection.get(Math.floor(x), Math.floor(y));
 					let selection_mode = BarItems.selection_tool.mode;
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
@@ -3298,7 +3287,7 @@ Interface.definePanels(function() {
 						start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
 
 						if (op_mode == 'create') {
-							texture.texture_selection.clear();
+							texture.selection.clear();
 						}
 						
 						if (selection_mode == 'wand' || selection_mode == 'color') {
@@ -3334,11 +3323,11 @@ Interface.definePanels(function() {
 										y = parseInt(y);
 										switch (op_mode) {
 											case 'create': case 'add': {
-												texture.texture_selection.set(x, y, 1);
+												texture.selection.set(x, y, 1);
 												break;
 											}
 											case 'subtract': {
-												texture.texture_selection.set(x, y, 0);
+												texture.selection.set(x, y, 0);
 												break;
 											}
 										}
@@ -3422,26 +3411,31 @@ Interface.definePanels(function() {
 						selection_rect.active = false;
 
 						if (create_selection) {
+							if (!calcrect) {
+								texture.selection.clear();
+								UVEditor.updateSelectionOutline();
+								return;
+							}
 							if (selection_rect.width == 0 || selection_rect.height == 0) return;
 
 							if (op_mode == 'create') {
-								texture.texture_selection.clear();
+								texture.selection.clear();
 							}
 							if (selection_mode == 'rectangle') {
 								for (let x = calcrect.ax; x < calcrect.bx; x++) {
 									for (let y = calcrect.ay; y < calcrect.by; y++) {
 										switch (op_mode) {
 											case 'create': case 'add': {
-												texture.texture_selection.set(x, y, 1);
+												texture.selection.set(x, y, 1);
 												break;
 											}
 											case 'subtract': {
-												texture.texture_selection.set(x, y, 0);
+												texture.selection.set(x, y, 0);
 												break;
 											}
 											case 'intersect': {
-												if (texture.texture_selection.get(x, y)) {
-													texture.texture_selection.set(x, y, 2);
+												if (texture.selection.get(x, y)) {
+													texture.selection.set(x, y, 2);
 												}
 												break;
 											}
@@ -3458,16 +3452,16 @@ Interface.definePanels(function() {
 										if (distance > 0.5) continue;
 										switch (op_mode) {
 											case 'create': case 'add': {
-												texture.texture_selection.set(x, y, 1);
+												texture.selection.set(x, y, 1);
 												break;
 											}
 											case 'subtract': {
-												texture.texture_selection.set(x, y, 0);
+												texture.selection.set(x, y, 0);
 												break;
 											}
 											case 'intersect': {
-												if (texture.texture_selection.get(x, y)) {
-													texture.texture_selection.set(x, y, 2);
+												if (texture.selection.get(x, y)) {
+													texture.selection.set(x, y, 2);
 												}
 												break;
 											}
@@ -3478,11 +3472,11 @@ Interface.definePanels(function() {
 							if (op_mode == 'intersect') {
 								for (let x = 0; x < texture.width; x++) {
 									for (let y = 0; y < texture.height; y++) {
-										let val = texture.texture_selection.getDirect(x, y);
+										let val = texture.selection.getDirect(x, y);
 										if (val == 2) {
-											texture.texture_selection.set(x, y, 1);
+											texture.selection.set(x, y, 1);
 										} else if (val == 1) {
-											texture.texture_selection.set(x, y, 0);
+											texture.selection.set(x, y, 0);
 										}
 									}
 								}
@@ -3684,6 +3678,8 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@mousewheel="onMouseWheel($event)"
+						@mousemove="updateMouseCoords($event)"
+						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
 						ref="viewport"
 						v-if="!hidden && mode !== 'face_properties'"
@@ -3693,8 +3689,6 @@ Interface.definePanels(function() {
 						<div id="uv_frame" ref="frame"
 							v-if="texture !== null"
 							@click.stop="reverseSelect($event)"
-							@mousemove="updateMouseCoords($event)"
-							@mouseleave="onMouseLeave($event)"
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
 						>
@@ -3819,7 +3813,7 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
-							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.x >= 0" :class="brush_type" :style="getBrushOutlineStyle()"></div>
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="brush_type" :style="getBrushOutlineStyle()"></div>
 
 							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
@@ -3869,7 +3863,7 @@ Interface.definePanels(function() {
 
 						<template v-else>
 							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
-							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.x < 0 ? '-' : (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) }}</span>
+							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.active ? (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) : '-' }}</span>
 							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>

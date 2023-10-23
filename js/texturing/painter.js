@@ -491,7 +491,7 @@ const Painter = {
 				for (let x in matrix) {
 					for (let y in matrix[x]) {
 						if (!matrix[x][y]) continue;
-						if (!texture.texture_selection.allow(x, y)) continue;
+						if (!texture.selection.allow(x, y)) continue;
 						x = parseInt(x); y = parseInt(y);
 						ctx.rect(x, y, 1, 1);
 					}
@@ -1333,7 +1333,7 @@ const Painter = {
 			) {
 				return;
 			}
-			if (Painter.current.texture.texture_selection.allow(px, py) == 0) return;
+			if (Painter.current.texture.selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1389,7 +1389,7 @@ const Painter = {
 			) {
 				return;
 			}
-			if (Painter.current.texture.texture_selection.allow(px, py) == 0) return;
+			if (Painter.current.texture.selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1741,7 +1741,33 @@ class IntMatrix {
 		}
 		return true;
 	}
+	forEachPixel(callback) {
+		let length = this.width * this.height;
+		for (let i = 0; i < length; i++) {
+			let x = i % this.width;
+			let y = Math.floor(i /  this.width);
+			callback(x, y, this.array[i], i);
+		}
+	}
 }
+
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run() {
+		let texture = Texture.getDefault();
+		if (texture.selection.override == false) return;
+
+		texture.edit(canvas => {
+			let ctx = canvas.getContext('2d');
+			let selection = texture.selection;
+			selection.forEachPixel((x, y, val) => {
+				if (val) {
+					ctx.clearRect(x, y, 1, 1);
+				}
+			})
+		}, {edit_name: 'Delete texture section'});
+	}
+})
 
 BARS.defineActions(function() {
 

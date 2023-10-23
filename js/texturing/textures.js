@@ -26,7 +26,7 @@ class Texture {
 		this.layers = [];
 		this.layers_enabled = false;
 		this.selected_layer = null;
-		this.texture_selection = new IntMatrix(0, 0);
+		this.selection = new IntMatrix(0, 0);
 		this.internal = !isApp;
 		this.uuid = uuid || guid()
 
@@ -199,7 +199,7 @@ class Texture {
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
-			scope.texture_selection.changeSize(scope.width, scope.height);
+			scope.selection.changeSize(scope.width, scope.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				scope.error = 2;
 			}
