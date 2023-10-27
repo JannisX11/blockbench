@@ -263,7 +263,7 @@ const Painter = {
 			delete Painter.paint_stroke_canceled;
 			return;
 		}
-		let texture = Texture.selected;
+		let texture = Painter.current.texture;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
 			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
@@ -1268,20 +1268,29 @@ const Painter = {
 		}
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
-		let arr = ctx.getImageData(x, y, w, h)
+		let local_x = x;
+		let local_y = y;
+		if (Painter.current.texture && Painter.current.texture.selected_layer) {
+			local_x -= Painter.current.texture.selected_layer.offset[0];
+			local_y -= Painter.current.texture.selected_layer.offset[1];
+		}
+		if (local_x < 0) { x -= local_x; local_x = 0; }
+		if (local_y < 0) { y -= local_y; local_y = 0; }
+		w = Math.min(w, ctx.canvas.width - local_x);
+		h = Math.min(h, ctx.canvas.height - local_y);
+		let arr = ctx.getImageData(local_x, local_y, w, h)
 		for (let i = 0; i < arr.data.length; i += 4) {
 			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]]
 
-			let px = x + (i/4) % w
-			let py = y + Math.floor((i/4) / w)
-			if (px >= ctx.canvas.width || px < 0 || py >= ctx.canvas.height || py < 0) continue;
+			let px = x + (i/4) % w;
+			let py = y + Math.floor((i/4) / w);
 			let result = cb(px, py, pixel) || pixel
 
 			result.forEach((p, pi) => {
 				if (p != arr.data[i+pi]) arr.data[i+pi] = p
 			})
 		}
-		ctx.putImageData(arr, x, y)
+		ctx.putImageData(arr, local_x, local_y)
 	},
 	getPixelColor(ctx, x, y) {
 		let {data} = ctx.getImageData(x, y, 1, 1)
@@ -2378,7 +2387,8 @@ BARS.defineActions(function() {
 			return false;
 		},
 		onSelect() {
-			if (Texture.selected && Texture.selected.selection.is_custom) {
+			let texture = Texture.selected;
+			if (texture && texture.selection.is_custom && (!texture.selected_layer || !texture.selected_layer.in_limbo)) {
 				Texture.selected.selectionToLayer();
 			}
 		}

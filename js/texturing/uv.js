@@ -75,7 +75,7 @@ const UVEditor = {
 		}
 		if (tool_result !== false && texture) {
 			Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
-			addEventListeners(this.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
+			addEventListeners(UVEditor.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
 	},
@@ -106,7 +106,7 @@ const UVEditor = {
 		}
 	},
 	stopBrush(event) {
-		removeEventListeners( UVEditor.vue.$refs.frame, 'mousemove touchmove', UVEditor.movePaintTool, false );
+		removeEventListeners( UVEditor.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 		removeEventListeners( document, 'mouseup touchend', UVEditor.stopBrush, false );
 		if (Toolbox.selected.id !== 'selection_tool') {
 			Painter.stopPaintTool()
@@ -3324,17 +3324,27 @@ Interface.definePanels(function() {
 							})
 							var scan_value = true;
 							if (selection_mode == 'wand') {
-								function checkPx(x, y) {
+								function checkPx(x, y, depth, dir) {
+									if (depth > 5_000) return;
 									if (map[x] && map[x][y]) {
 										map[x][y] = false;
+										
+										if (dir == 0) checkPx(x+1, y, depth+1, 0);
+										if (dir == 2) checkPx(x-1, y, depth+1, 2);
+										if (dir == 1) checkPx(x, y+1, depth+1, 1);
+										if (dir == 3) checkPx(x, y-1, depth+1, 3);
 
-										checkPx(x+1, y)
-										checkPx(x-1, y)
-										checkPx(x, y+1)
-										checkPx(x, y-1)
+										if (dir != 0 && dir != 2) {
+											checkPx(x+1, y, depth+1, 0);
+											checkPx(x-1, y, depth+1, 2);
+										}
+										if (dir != 1 && dir != 3) {
+											checkPx(x, y+1, depth+1, 1);
+											checkPx(x, y-1, depth+1, 3);
+										}
 									}
 								}
-								checkPx(x, y)
+								checkPx(x, y, 0, 0)
 								scan_value = false;
 							}
 							for (let x in map) {
@@ -3395,7 +3405,7 @@ Interface.definePanels(function() {
 							selection_rect.height = calcrect.y;
 
 						} else {
-							
+							UVEditor.vue.selection_outline = '';
 							if (!layer) {
 								texture.activateLayers();
 								layer = texture.selected_layer;

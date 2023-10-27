@@ -1335,6 +1335,12 @@ class Texture {
 		let layer = texture.selected_layer;
 		let offset = layer ? layer.offset.slice() : [0, 0];
 		let copy_canvas = canvas;
+
+		Undo.initEdit({textures: [texture], bitmap: true});
+
+		if (!texture.layers_enabled) {
+			texture.activateLayers(false);
+		}
 		
 		if (selection.is_custom)  {
 			let rect = selection.getBoundingRect();
@@ -1357,21 +1363,16 @@ class Texture {
 			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
 			offset.V2_add(rect.start_x, rect.start_y);
 		}
-		texture.edit(canvas => {
-			let ctx = canvas.getContext('2d');
-			let selection = texture.selection;
-			selection.forEachPixel((x, y, val) => {
-				if (val) {
-					ctx.clearRect(x, y, 1, 1);
-				}
-			})
-		}, {no_undo: true});
-
-
-		//Undo.initEdit({textures: [texture], bitmap: true});
-		if (!texture.layers_enabled) {
-			texture.activateLayers(false);
+		
+		if (texture.mode === 'link') {
+			texture.convertToInternal();
 		}
+		texture.selection.forEachPixel((x, y, val) => {
+			if (val) {
+				ctx.clearRect(x, y, 1, 1);
+			}
+		})
+
 		let new_layer = new TextureLayer({name: 'selection', offset}, texture);
 		new_layer.setSize(copy_canvas.width, copy_canvas.height);
 		new_layer.ctx.drawImage(copy_canvas, 0, 0);
@@ -1380,11 +1381,9 @@ class Texture {
 		new_layer.setLimbo();
 
 		texture.updateLayerChanges(true);
-		//Undo.finishEdit('Paste into texture');
+		Undo.finishEdit('Texture selection to layer');
 		updateInterfacePanels();
 		BARS.updateConditions();
-		
-
 	}
 	//Export
 	javaTextureLink() {
