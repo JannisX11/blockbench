@@ -1062,6 +1062,21 @@ SharedActions.add('unselect_all', {
 		unselectAllElements()
 	}
 })
+SharedActions.add('invert_selection', {
+	condition: () => Modes.edit || Modes.paint,
+	priority: -2,
+	run() {
+		Outliner.elements.forEach(element => {
+			if (element.selected) {
+				element.unselect()
+			} else {
+				element.selectLow()
+			}
+		})
+		if (Group.selected) Group.selected.unselect();
+		updateSelection();
+	}
+})
 
 BARS.defineActions(function() {
 	new Toggle('outliner_toggle', {
@@ -1288,84 +1303,6 @@ BARS.defineActions(function() {
 				}
 			}).show()
 			$('.dialog#selection_creator .form_bar_name > input').focus()
-		}
-	})
-	new Action('invert_selection', {
-		icon: 'swap_vert',
-		category: 'edit',
-		keybind: new Keybind({key: 'i', ctrl: true}),
-		condition: () => Modes.edit || Modes.paint || Modes.animate,
-		click: function () {
-			if (Modes.animate) {
-				if (!Animation.selected) return;
-				Timeline.keyframes.forEach((kf) => {
-					if (!kf.selected) {
-						Timeline.selected.push(kf)
-						kf.selected = true;
-					} else {
-						Timeline.selected.remove(kf);
-						kf.selected = false;
-					}
-				})
-				updateKeyframeSelection()
-
-			} else if (Modes.edit && BarItems.selection_mode.value !== 'object' && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length) {
-				let selection_mode = BarItems.selection_mode.value;
-				if (selection_mode == 'vertex') {
-					Mesh.selected.forEach(mesh => {
-						let selected = mesh.getSelectedVertices();
-						let now_selected = Object.keys(mesh.vertices).filter(vkey => !selected.includes(vkey));
-						mesh.getSelectedVertices(true).replace(now_selected);
-					})
-				} else if (selection_mode == 'edge') {
-					Mesh.selected.forEach(mesh => {
-						let old_vertices = mesh.getSelectedVertices().slice();
-						let old_edges = mesh.getSelectedEdges().slice();
-						let vertices = mesh.getSelectedVertices(true).empty();
-						let edges = mesh.getSelectedEdges(true).empty();
-						
-						for (let fkey in mesh.faces) {
-							let face = mesh.faces[fkey];
-							let f_vertices = face.getSortedVertices();
-							f_vertices.forEach((vkey_a, i) => {
-								let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
-								if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
-									edges.push(edge);
-									vertices.safePush(edge[0], edge[1]);
-								}
-							})
-						}
-					})
-				} else {
-					Mesh.selected.forEach(mesh => {
-						let old_vertices = mesh.getSelectedVertices().slice();
-						let old_faces = mesh.getSelectedFaces().slice();
-						let vertices = mesh.getSelectedVertices(true).empty();
-						let faces = mesh.getSelectedFaces(true).empty();
-						
-						for (let fkey in mesh.faces) {
-							if (!old_faces.includes(fkey)) {
-								let face = mesh.faces[fkey];
-								faces.push(fkey);
-								vertices.safePush(...face.vertices);
-							}
-						}
-					})
-				}
-				updateSelection();
-		
-			} else {
-				elements.forEach(function(s) {
-					if (s.selected) {
-						s.unselect()
-					} else {
-						s.selectLow()
-					}
-				})
-				if (Group.selected) Group.selected.unselect()
-			}
-			updateSelection()
-			Blockbench.dispatchEvent('invert_selection')
 		}
 	})
 

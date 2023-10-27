@@ -1462,6 +1462,20 @@ SharedActions.add('unselect_all', {
 		UVEditor.updateSelectionOutline();
 	}
 })
+SharedActions.add('invert_selection', {
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.selected,
+	run() {
+		let texture = Texture.selected;
+		if (texture.selection.is_custom) {
+			texture.selection.forEachPixel((x, y, val, index) => {
+				texture.selection.array[index] = val ? 0 : 1;
+			})
+		} else {
+			texture.selection.setOverride(!texture.selection.override);
+		}
+		UVEditor.updateSelectionOutline();
+	}
+})
 
 BARS.defineActions(function() {
 
@@ -3346,8 +3360,6 @@ Interface.definePanels(function() {
 						}
 
 					} else {
-						texture.display_canvas = true;
-						UVEditor.vue.updateTextureCanvas();
 					}
 
 					let last_x, last_y;
@@ -3387,6 +3399,8 @@ Interface.definePanels(function() {
 							if (!layer) {
 								texture.activateLayers();
 								layer = texture.selected_layer;
+								texture.display_canvas = true;
+								UVEditor.vue.updateTextureCanvas();
 							}
 							if (!layer.in_limbo && texture.selection.is_custom) {
 								texture.selectionToLayer();
@@ -3477,6 +3491,8 @@ Interface.definePanels(function() {
 							UVEditor.updateSelectionOutline();
 						} else {
 							texture.updateLayerChanges(true);
+							texture.selection.translate(last_x - start_x, last_y - start_y);
+							UVEditor.updateSelectionOutline();
 						}
 
 

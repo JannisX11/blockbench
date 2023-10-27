@@ -1775,6 +1775,17 @@ class IntMatrix {
 			callback(x, y, this.array[i], i);
 		}
 	}
+	translate(offset_x, offset_y) {
+		if (this.override !== null) return;
+		let new_array = new Int8Array(this.width * this.height);
+		this.forEachPixel((x, y, value, i) => {
+			x += offset_x;
+			y += offset_y;
+			if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+			new_array[y * this.width + x] = value;
+		})
+		this.array = new_array;
+	}
 }
 
 SharedActions.add('copy', {
@@ -2315,7 +2326,7 @@ BARS.defineActions(function() {
 			for (let id in modes) {
 				let entry = {
 					id,
-					name: id,
+					name: modes[id].name,
 					icon: modes[id].icon,
 					click() {
 						selection_tool.setIcon(modes[id].icon);

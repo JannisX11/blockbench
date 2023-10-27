@@ -676,7 +676,6 @@ class Texture {
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
 		this.img.src = dataUrl;
-		this.display_canvas = false;
 		this.updateMaterial();
 		return this;
 	}
@@ -1303,6 +1302,7 @@ class Texture {
 			scrollTop: scroll_amount
 		}, 200);
 	}
+	//Layers
 	getActiveLayer() {
 		if (this.layers_enabled) {
 			return this.selected_layer || this.layers[0];
@@ -1373,6 +1373,7 @@ class Texture {
 			texture.activateLayers(false);
 		}
 		let new_layer = new TextureLayer({name: 'selection', offset}, texture);
+		new_layer.setSize(copy_canvas.width, copy_canvas.height);
 		new_layer.ctx.drawImage(copy_canvas, 0, 0);
 		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
 		new_layer.select();

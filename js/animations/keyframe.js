@@ -654,17 +654,33 @@ SharedActions.add('delete', {
 	}
 })
 SharedActions.add('select_all', {
-	condition: () => Animator.open,
+	condition: () => Animator.open && Animation.selected,
 	priority: -2,
 	run() {
 		selectAllKeyframes()
 	}
 })
 SharedActions.add('unselect_all', {
-	condition: () => Animator.open,
+	condition: () => Animator.open && Animation.selected,
 	priority: -2,
 	run() {
 		unselectAllKeyframes()
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -1,
+	run() {
+		Timeline.keyframes.forEach((kf) => {
+			if (!kf.selected) {
+				Timeline.selected.push(kf)
+				kf.selected = true;
+			} else {
+				Timeline.selected.remove(kf);
+				kf.selected = false;
+			}
+		})
+		updateKeyframeSelection()
 	}
 })
 

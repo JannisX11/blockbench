@@ -868,6 +868,7 @@ window.Dialog = class Dialog {
 		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
 		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
 
+		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';
 		open_dialog = this.id;
 		open_interface = this;
@@ -881,7 +882,7 @@ window.Dialog = class Dialog {
 		open_interface = false;
 		Dialog.open = null;
 		Dialog.stack.remove(this);
-		Prop.active_panel = undefined;
+		Prop.active_panel = Prop._previous_active_panel;
 		$(this.object).detach();
 		
 		if (Dialog.stack.length) {

@@ -107,4 +107,13 @@ BARS.defineActions(() => {
 			Blockbench.dispatchEvent('unselect_all');
 		}
 	})
+	new Action('invert_selection', {
+		icon: 'swap_vert',
+		category: 'edit',
+		keybind: new Keybind({key: 'i', ctrl: true}),
+		click() {
+			SharedActions.run('invert_selection');
+			Blockbench.dispatchEvent('invert_selection');
+		}
+	})
 })

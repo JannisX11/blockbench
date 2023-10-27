@@ -251,6 +251,53 @@ SharedActions.add('unselect_all', {
 		updateSelection();
 	}
 })
+SharedActions.add('invert_selection', {
+	condition: () => Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		let selection_mode = BarItems.selection_mode.value;
+		if (selection_mode == 'vertex') {
+			Mesh.selected.forEach(mesh => {
+				let selected = mesh.getSelectedVertices();
+				let now_selected = Object.keys(mesh.vertices).filter(vkey => !selected.includes(vkey));
+				mesh.getSelectedVertices(true).replace(now_selected);
+			})
+		} else if (selection_mode == 'edge') {
+			Mesh.selected.forEach(mesh => {
+				let old_edges = mesh.getSelectedEdges().slice();
+				let vertices = mesh.getSelectedVertices(true).empty();
+				let edges = mesh.getSelectedEdges(true).empty();
+				
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					let f_vertices = face.getSortedVertices();
+					f_vertices.forEach((vkey_a, i) => {
+						let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+						if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
+							edges.push(edge);
+							vertices.safePush(edge[0], edge[1]);
+						}
+					})
+				}
+			})
+		} else {
+			Mesh.selected.forEach(mesh => {
+				let old_faces = mesh.getSelectedFaces().slice();
+				let vertices = mesh.getSelectedVertices(true).empty();
+				let faces = mesh.getSelectedFaces(true).empty();
+				
+				for (let fkey in mesh.faces) {
+					if (!old_faces.includes(fkey)) {
+						let face = mesh.faces[fkey];
+						faces.push(fkey);
+						vertices.safePush(...face.vertices);
+					}
+				}
+			})
+		}
+		updateSelection();
+	}
+})
 
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
