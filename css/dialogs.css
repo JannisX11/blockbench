@@ -147,11 +147,11 @@
 	.dialog_bar > label {
 		width: var(--max_label_width);
 	}
-	.dialog_bar::after {
+	/*.dialog_bar::after {
 		content: "";
 		clear: both;
 		display: block;
-	}
+	}*/
 	.dialog_bar.narrow {
 		min-height: 30px;
 	}
@@ -372,6 +372,10 @@
 		grid-area: buttons;
 		margin-top: 0px;
 		margin-bottom: 12px;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: right;
+		gap: 3px;
 	}
 	
 	.dialog_sidebar .dialog_sidebar_pages {
