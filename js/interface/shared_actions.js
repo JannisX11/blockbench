@@ -4,7 +4,10 @@ const SharedActions = {
 	 * @param {('delete'|'rename'|'duplicate'|'select_all'|'unselect_all')} action_id 
 	 * @param {Object} handler Case handler
 	 * @param {*} handler.condition Condition
-	 * @param {number} handler.priority Condition
+	 * @param {number} handler.priority Handler priority.
+	 * 		Unset or 0 is typically used for relatively specific handlers, like those that check for a specific active panel.
+	 * 		Higher priorities are used for even more specific conditions, like when multiple handlers work in a panel.
+	 * 		Lower priorities are used for more fallback-like handlers, like deleting elements in edit mode, regardless of active panel.
 	 * @param {function} handler.run 
 	 * @returns 
 	 */
@@ -27,6 +30,17 @@ const SharedActions = {
 		if (!list) return;
 		for (let handler of list) {
 			if (Condition(handler.condition)) {
+				handler.run(event, context);
+				return true;
+			}
+		}
+		return false;
+	},
+	runSpecific(action_id, subject, event, context) {
+		let list = this.actions[action_id];
+		if (!list) return;
+		for (let handler of list) {
+			if (handler.subject == subject && Condition(handler.condition)) {
 				handler.run(event, context);
 				return true;
 			}

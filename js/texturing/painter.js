@@ -263,12 +263,14 @@ const Painter = {
 			delete Painter.paint_stroke_canceled;
 			return;
 		}
+		let texture = Texture.selected;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
 			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {
+			texture.updateLayerChanges(true);
 			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
 		}
@@ -1643,6 +1645,9 @@ class IntMatrix {
 		this.array = null;
 		this.override = false;
 	}
+	get is_custom() {
+		return this.override === null;
+	}
 	/**
 	 * The array does not exist by default to save memory, this activates it.
 	 */
@@ -1684,6 +1689,27 @@ class IntMatrix {
 	 */
 	getDirect(x, y) {
 		return this.array[y * this.width + x];
+	}
+	getBoundingRect() {
+		let rect = new Rectangle();
+		if (this.override == true) {
+			rect.width = this.width;
+			rect.height = this.height;
+		} else if (this.override == null) {
+			let min_x = Infinity;
+			let min_y = Infinity;
+			let max_x = -Infinity;
+			let max_y = -Infinity;
+			this.forEachPixel((x, y, value) => {
+				if (!value) return;
+				min_x = Math.min(min_x, x);
+				min_y = Math.min(min_y, y);
+				max_x = Math.max(max_x, x+1);
+				max_y = Math.max(max_y, y+1);
+			})
+			rect.fromCoords(min_x, min_y, max_x, max_y);
+		}
+		return rect;
 	}
 	/**
 	 * Set the value at a specified pixel
@@ -1751,9 +1777,118 @@ class IntMatrix {
 	}
 }
 
-SharedActions.add('delete', {
+SharedActions.add('copy', {
+	subject: 'image_content',
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
-	run() {
+	run(event, cut) {
+		let texture = Texture.getDefault();
+		let selection = texture.selection;
+
+		let {canvas, ctx} = texture.getActiveCanvas();
+		let layer = texture.selected_layer;
+		let offset = layer ? layer.offset : [0, 0];
+		
+		if (selection.override != null) {
+			Clipbench.image = {
+				x: offset[0], y: offset[1],
+				data: canvas.toDataURL(),
+			}
+		} else {
+			let rect = selection.getBoundingRect();
+			let copy_canvas = document.createElement('canvas');
+			let copy_ctx = copy_canvas.getContext('2d');
+			copy_canvas.width = rect.width;
+			copy_canvas.height = rect.height;
+			
+			copy_ctx.beginPath()
+			selection.forEachPixel((x, y, val) => {
+				if (!val) return;
+				copy_ctx.rect(
+					x - rect.start_x - offset[0],
+					y - rect.start_y - offset[1],
+					1, 1
+				);
+			})
+			copy_ctx.closePath();
+			copy_ctx.clip();
+			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+
+			Clipbench.image = {
+				x: rect.start_x,
+				y: rect.start_y,
+				data: copy_canvas.toDataURL()
+			}
+			canvas = copy_canvas;
+		}
+
+
+		if (isApp) {
+			let img = nativeImage.createFromDataURL(Clipbench.image.data);
+			clipboard.writeImage(img);
+		} else {
+			canvas.toBlob(blob => {
+				navigator.clipboard.write([
+					new ClipboardItem({
+						[blob.type]: blob,
+					}),
+				]);
+			});
+		}
+
+		if (cut) {
+			SharedActions.runSpecific('delete', 'image_content', {message: 'Cut texture selection'});
+		}
+	}
+})
+SharedActions.add('paste', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event) {
+		let texture = Texture.getDefault();
+
+		async function loadFromDataUrl(data_url) {
+			let frame = new CanvasFrame();
+			await frame.loadFromURL(data_url);
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+			if (!texture.layers_enabled) {
+				texture.activateLayers(false);
+			}
+			let layer = new TextureLayer({name: 'pasted', offset: [0, 0]}, texture);
+			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
+			layer.setSize(frame.width, frame.height);
+			layer.ctx.putImageData(image_data, 0, 0);
+			texture.layers.push(layer);
+			layer.select();
+			layer.setLimbo();
+			texture.updateLayerChanges(true);
+
+			Undo.finishEdit('Paste into texture');
+			updateInterfacePanels();
+			BARS.updateConditions();
+		}
+		
+	
+		if (isApp) {
+			var image = clipboard.readImage().toDataURL();
+			loadFromDataUrl(image);
+		} else {
+			navigator.clipboard.read().then(content => {
+				if (content && content[0] && content[0].types.includes('image/png')) {
+					content[0].getType('image/png').then(blob => {
+						let url = URL.createObjectURL(blob);
+						loadFromDataUrl(url);
+					})
+				}
+			}).catch(() => {})
+		}
+		
+	}
+})
+SharedActions.add('delete', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event, context = 0) {
 		let texture = Texture.getDefault();
 		if (texture.selection.override == false) return;
 
@@ -1765,7 +1900,7 @@ SharedActions.add('delete', {
 					ctx.clearRect(x, y, 1, 1);
 				}
 			})
-		}, {edit_name: 'Delete texture section'});
+		}, {edit_name: context.message || 'Delete texture section'});
 	}
 })
 
@@ -2074,6 +2209,12 @@ BARS.defineActions(function() {
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				Painter.startPaintTool(texture, x, y, undefined, event);
+			}
+			return false;
+		},
 		onSelect: function() {
 			Painter.updateNslideValues()
 		}
@@ -2191,11 +2332,46 @@ BARS.defineActions(function() {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
 			}
 		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				UVEditor.vue.startTextureSelection(x, y, event);
+			}
+			return false;
+		},
 		onSelect() {
 
 		}
 	})
 	selection_tool.mode = 'rectangle';
+
+	new Tool('move_layer_tool', {
+		icon: 'drag_pan',
+		category: 'tools',
+		toolbar: 'brush',
+		cursor: 'move',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
+		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				UVEditor.vue.startTextureSelection(x, y, event);
+			}
+			return false;
+		},
+		onSelect() {
+			if (Texture.selected && Texture.selected.selection.is_custom) {
+				Texture.selected.selectionToLayer();
+			}
+		}
+	})
 
 	new BarSelect('brush_shape', {
 		category: 'paint',

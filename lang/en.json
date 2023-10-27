@@ -1145,6 +1145,8 @@
 	"action.selection_tool.lasso": "Lasso Select",
 	"action.selection_tool.wand": "Magic Wand",
 	"action.selection_tool.color": "Same Color",
+	"action.move_layer_tool": "Move Layer",
+	"action.move_layer_tool.desc": "Move the current layer or selection",
 	"action.toggle_skin_layer": "Toggle Skin Layer",
 	"action.toggle_skin_layer.desc": "Toggle the hat and clothing layer of the skin model",
 	"action.explode_skin_model": "Explode Skin Model",

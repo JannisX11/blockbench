@@ -1308,6 +1308,83 @@ class Texture {
 			return this.selected_layer || this.layers[0];
 		}
 	}
+	activateLayers(undo) {
+		if (undo) Undo.initEdit({textures: [this], bitmap: true});
+		this.layers_enabled = true;
+		if (!this.layers.length) {
+			let layer = new TextureLayer({
+			}, this);
+			let image_data = this.ctx.getImageData(0, 0, this.width, this.height);
+			layer.setSize(this.width, this.height);
+			layer.ctx.putImageData(image_data, 0, 0);
+			this.layers.push(layer);
+			layer.select();
+		}
+		if (undo) Undo.finishEdit('Enable layers on texture');
+		updateInterfacePanels();
+		BARS.updateConditions();
+	}
+	selectionToLayer() {
+
+
+
+		let texture = this;
+		let selection = texture.selection;
+
+		let {canvas, ctx} = texture.getActiveCanvas();
+		let layer = texture.selected_layer;
+		let offset = layer ? layer.offset.slice() : [0, 0];
+		let copy_canvas = canvas;
+		
+		if (selection.is_custom)  {
+			let rect = selection.getBoundingRect();
+			copy_canvas = document.createElement('canvas');
+			let copy_ctx = copy_canvas.getContext('2d');
+			copy_canvas.width = rect.width;
+			copy_canvas.height = rect.height;
+			
+			copy_ctx.beginPath()
+			selection.forEachPixel((x, y, val) => {
+				if (!val) return;
+				copy_ctx.rect(
+					x - rect.start_x - offset[0],
+					y - rect.start_y - offset[1],
+					1, 1
+				);
+			})
+			copy_ctx.closePath();
+			copy_ctx.clip();
+			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+			offset.V2_add(rect.start_x, rect.start_y);
+		}
+		texture.edit(canvas => {
+			let ctx = canvas.getContext('2d');
+			let selection = texture.selection;
+			selection.forEachPixel((x, y, val) => {
+				if (val) {
+					ctx.clearRect(x, y, 1, 1);
+				}
+			})
+		}, {no_undo: true});
+
+
+		//Undo.initEdit({textures: [texture], bitmap: true});
+		if (!texture.layers_enabled) {
+			texture.activateLayers(false);
+		}
+		let new_layer = new TextureLayer({name: 'selection', offset}, texture);
+		new_layer.ctx.drawImage(copy_canvas, 0, 0);
+		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
+		new_layer.select();
+		new_layer.setLimbo();
+
+		texture.updateLayerChanges(true);
+		//Undo.finishEdit('Paste into texture');
+		updateInterfacePanels();
+		BARS.updateConditions();
+		
+
+	}
 	//Export
 	javaTextureLink() {
 		var link = this.name.replace(/\.png$/, '')

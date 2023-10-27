@@ -4,6 +4,7 @@ class TextureLayer {
 		this.texture = texture;
 		this.canvas = document.createElement('canvas');
 		this.ctx = this.canvas.getContext('2d');
+		this.in_limbo = false;
 
 		this.img = new Image();
 		this.img.onload = () => {
@@ -86,6 +87,9 @@ class TextureLayer {
 		copy.height = this.height;
 		copy.data_url = this.canvas.toDataURL();
 		return copy;
+	}
+	setLimbo() {
+		this.in_limbo = true;
 	}
 	setSize(width, height) {
 		this.canvas.width = width;
@@ -210,20 +214,7 @@ BARS.defineActions(() => {
 				Modes.options.paint.select();
 			}
 			let texture = Texture.selected;
-			Undo.initEdit({textures: [texture], bitmap: true});
-			texture.layers_enabled = true;
-			if (!texture.layers.length) {
-				let layer = new TextureLayer({
-				}, texture);
-				let image_data = texture.ctx.getImageData(0, 0, texture.width, texture.height);
-				layer.setSize(texture.width, texture.height);
-				layer.ctx.putImageData(image_data, 0, 0);
-				texture.layers.push(layer);
-				layer.select();
-			}
-			Undo.finishEdit('Enable layers on texture');
-			updateInterfacePanels();
-			BARS.updateConditions();
+			texture.activateLayers(true);
 		}
 	})
 	new NumSlider('layer_opacity', {

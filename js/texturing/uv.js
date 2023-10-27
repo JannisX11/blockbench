@@ -23,7 +23,7 @@ const UVEditor = {
 	//Brush
 	getBrushCoordinates(event, tex) {
 		convertTouchEvent(event);
-		let pixel_size = this.inner_width / tex.width
+		let pixel_size = this.inner_width / (tex ? tex.width : Project.texture_width);
 		let result = {};
 		let mouse_coords;
 		if (event.target.id == 'uv_frame') {
@@ -44,6 +44,9 @@ const UVEditor = {
 				result.x = Math.floor(mouse_coords[0]/pixel_size*1);
 				result.y = Math.floor(mouse_coords[1]/pixel_size*1);
 			}
+		} else if (Toolbox.selected.id === 'move_layer_tool') {
+			result.x = Math.round(mouse_coords[0]/pixel_size*1);
+			result.y = Math.round(mouse_coords[1]/pixel_size*1);
 		} else {
 			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
 			result.x = mouse_coords[0]/pixel_size*1 + offset;
@@ -53,8 +56,10 @@ const UVEditor = {
 				result.y = Math.floor(result.y);
 			}
 		}
-		if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
-		if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
+		if (tex) {
+			if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
+			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
+		}
 		return result;
 	},
 	startPaintTool(event) {
@@ -62,16 +67,14 @@ const UVEditor = {
 		delete Painter.current.element;
 
 		var texture = this.getTexture()
-		if (texture) {
-			var coords = this.getBrushCoordinates(event, texture)
-
-			if (Toolbox.selected.id == 'selection_tool') {
-				this.vue.startTextureSelection(coords.x, coords.y, event);
-			} else {
-				Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
-			}
+		var coords = this.getBrushCoordinates(event, texture);
+		
+		let tool_result;
+		if (Toolbox.selected.onTextureEditorClick) {
+			tool_result = Toolbox.selected.onTextureEditorClick(texture, coords.x, coords.y, event);
 		}
-		if (Toolbox.selected.id !== 'color_picker' && Toolbox.selected.id !== 'selection_tool' && texture) {
+		if (tool_result !== false && texture) {
+			Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
 			addEventListeners(this.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
 		}
@@ -2246,7 +2249,8 @@ Interface.definePanels(function() {
 					this.mouse_coords.active = true;
 					this.mouse_coords.x = x;
 					this.mouse_coords.y = y;
-					let grab = Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create';
+					let grab = Toolbox.selected.id == 'move_layer_tool' ||
+							  (Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {
@@ -3268,7 +3272,9 @@ Interface.definePanels(function() {
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
 					let start_x, start_y, calcrect;
-					let create_selection = !(op_mode == 'create' && clicked_val);
+					let create_selection = !(op_mode == 'create' && clicked_val) && Toolbox.selected.id == 'selection_tool';
+					let layer = texture.selected_layer;
+					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
 					/*if (op_mode == 'create' && clicked_val) {
 						if (open_interface) {
@@ -3277,14 +3283,15 @@ Interface.definePanels(function() {
 							UVEditor.removePastingOverlay()
 						}
 					}*/
+					start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
+					start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
+
 					if (create_selection) {
 						//$(this.$refs.frame).find('#texture_selection_rect').detach();
 						//let rect = document.createElement('div');
 						//rect.style.visibility = 'hidden';
 						//rect.id = 'texture_selection_rect';
 						//this.$refs.frame.append(rect)
-						start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
-						start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
 
 						if (op_mode == 'create') {
 							texture.selection.clear();
@@ -3339,11 +3346,8 @@ Interface.definePanels(function() {
 						}
 
 					} else {
-						//Painter.selection.start_x = Painter.selection.x;
-						//Painter.selection.start_y = Painter.selection.y;
-						//Painter.selection.start_scroll_x = viewport.scrollLeft;
-						//Painter.selection.start_scroll_y = viewport.scrollTop;
-						//Painter.selection.start_event = event;
+						texture.display_canvas = true;
+						UVEditor.vue.updateTextureCanvas();
 					}
 
 					let last_x, last_y;
@@ -3352,18 +3356,6 @@ Interface.definePanels(function() {
 						var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
 						if (last_x == x && last_y == y) return;
 						last_x = x, last_y = y;
-						
-						/*let rect = getRectangle(
-							event.offsetX / scope.inner_width * scope.uv_resolution[0],
-							event.offsetY / scope.inner_height * scope.uv_resolution[1],
-							(event.offsetX - event.clientX + e1.clientX) / scope.inner_width * scope.uv_resolution[0],
-							(event.offsetY - event.clientY + e1.clientY) / scope.inner_height * scope.uv_resolution[1],
-						)
-						selection_rect.pos_x = rect.ax;
-						selection_rect.pos_y = rect.ay;
-						selection_rect.width = rect.x;
-						selection_rect.height = rect.y;*/
-
 
 						if (create_selection) {
 							let start_x_here = start_x;
@@ -3377,15 +3369,11 @@ Interface.definePanels(function() {
 							if (x === Painter.current.x && y === Painter.current.y) return;
 							Painter.current.x = x = Math.clamp(x, 0, UVEditor.texture.img.naturalWidth);
 							Painter.current.y = y = Math.clamp(y, 0, UVEditor.texture.img.naturalHeight);
-							
+							start_x_here = Math.clamp(start_x_here, 0, UVEditor.texture.img.naturalWidth);
+							start_y_here = Math.clamp(start_y_here, 0, UVEditor.texture.img.naturalHeight);
+						
 							calcrect = getRectangle(start_x_here, start_y_here, x, y);
 							if (!calcrect.x && !calcrect.y) return;
-							//UVEditor.vue.copy_overlay.state = 'select';
-							//Painter.selection.calcrect = calcrect;
-							//Painter.selection.x = calcrect.ax;
-							//Painter.selection.y = calcrect.ay;
-							//UVEditor.vue.copy_overlay.width = calcrect.x;
-							//UVEditor.vue.copy_overlay.height = calcrect.y;
 
 							selection_rect.active = true;
 							selection_rect.ellipse = selection_mode == 'ellipse';
@@ -3395,14 +3383,19 @@ Interface.definePanels(function() {
 							selection_rect.height = calcrect.y;
 
 						} else {
-							//let viewport = UVEditor.vue.$refs.viewport;
-							//let move_offset_x = e1.clientX - Painter.selection.start_event.clientX - Painter.selection.start_scroll_x + viewport.scrollLeft;
-							//let move_offset_y = e1.clientY - Painter.selection.start_event.clientY - Painter.selection.start_scroll_y + viewport.scrollTop;
-							//Painter.selection.x = Painter.selection.start_x + Math.round((move_offset_x) / m);
-							//Painter.selection.y = Painter.selection.start_y + Math.round((move_offset_y) / m);
-							//Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
-							//Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-							//UVEditor.updatePastingOverlay()
+							
+							if (!layer) {
+								texture.activateLayers();
+								layer = texture.selected_layer;
+							}
+							if (!layer.in_limbo && texture.selection.is_custom) {
+								texture.selectionToLayer();
+								layer = texture.selected_layer;
+								initial_offset = layer.offset.slice();
+							}
+							layer.offset[0] = initial_offset[0] + x - start_x;
+							layer.offset[1] = initial_offset[1] + y - start_y;
+							texture.updateLayerChanges();
 						}
 					}
 					function stop() {
@@ -3482,14 +3475,10 @@ Interface.definePanels(function() {
 								}
 							}
 							UVEditor.updateSelectionOutline();
+						} else {
+							texture.updateLayerChanges(true);
 						}
 
-						/*let calcrect = Painter.selection.calcrect;
-						var canvas = document.createElement('canvas')
-						var ctx = canvas.getContext('2d');
-						canvas.width = calcrect.x;
-						canvas.height = calcrect.y;
-						ctx.drawImage(UVEditor.vue.texture.img, -calcrect.ax, -calcrect.ay)
 
 						/*if (isApp) {
 							let image = nativeImage.createFromDataURL(canvas.toDataURL())

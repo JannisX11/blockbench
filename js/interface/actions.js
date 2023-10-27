@@ -434,6 +434,7 @@ class Tool extends Action {
 			}
 		}
 		this.onCanvasClick = data.onCanvasClick;
+		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
 		this.node.onclick = () => {
@@ -2044,6 +2045,7 @@ const BARS = {
 				'draw_shape_tool',
 				'gradient_tool',
 				'selection_tool',
+				'move_layer_tool',
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
