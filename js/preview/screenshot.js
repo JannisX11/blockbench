@@ -166,9 +166,9 @@ const Screencam = {
 		center.innerHTML = `<div>${img.naturalWidth} x ${img.naturalHeight}px, ${size_text}, ${is_gif ? 'GIF' : 'PNG'}</div>`;
 		center.appendChild(img);
 
-		let buttons = [tl('dialog.save'), tl('dialog.cancel')]
+		let buttons = ['dialog.save', 'dialog.cancel'];
 		if (!is_gif) {
-			buttons.splice(0, 0, tl('message.screenshot.clipboard'))
+			buttons = ['message.screenshot.clipboard', 'dialog.save', 'menu.texture.edit', 'dialog.cancel'];
 		}
 		let dialog = new Dialog({
 			title: 'message.screenshot.title', 
@@ -178,9 +178,10 @@ const Screencam = {
 				center
 			],
 			buttons,
-			onButton(result) {
+			onButton(result_index) {
+				let result = buttons[result_index];
 
-				if (result === 0 && buttons.length == 3) {
+				if (result === 'message.screenshot.clipboard') {
 					if (navigator.clipboard && navigator.clipboard.write) {
 						fetch(dataUrl).then(async data => {
 							const blob = await data.blob();
@@ -194,7 +195,7 @@ const Screencam = {
 						Blockbench.showQuickMessage('message.screenshot.right_click');
 						return false;
 					}
-				} else if (result === buttons.length-2) {
+				} else if (result === 'dialog.save') {
 					Blockbench.export({
 						resource_id: 'screenshot',
 						extensions: [is_gif ? 'gif' : 'png'],
@@ -203,6 +204,9 @@ const Screencam = {
 						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
 						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
+				} else if (result === 'menu.texture.edit') {
+					Codecs.image.load(dataUrl, '', [img.naturalWidth, img.naturalHeight]);
+					Texture.all[0].name = 'screenshot';
 				}
 			}
 		})
