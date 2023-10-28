@@ -117,6 +117,7 @@ const UVEditor = {
 
 	selection_outline_lines: [],
 	async updateSelectionOutline(recalculate_lines = true) {
+		if (!Modes.paint) return;
 		let {texture} = this.vue;
 		if (!texture) {
 			this.vue.selection_outline = '';
@@ -1442,9 +1443,9 @@ SharedActions.add('select_all', {
 	}
 })
 SharedActions.add('select_all', {
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.selected,
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
-		Texture.selected.selection.setOverride(Texture.selected.selection.override == true ? false : true);
+		UVEditor.texture.selection.setOverride(UVEditor.texture.selection.override == true ? false : true);
 		UVEditor.updateSelectionOutline();
 	}
 })
@@ -1456,16 +1457,16 @@ SharedActions.add('unselect_all', {
 	}
 })
 SharedActions.add('unselect_all', {
-	condition: () => Prop.active_panel == 'uv' && Modes.paint,
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
-		Texture.selected.selection.setOverride(false);
+		UVEditor.texture.selection.setOverride(false);
 		UVEditor.updateSelectionOutline();
 	}
 })
 SharedActions.add('invert_selection', {
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.selected,
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
-		let texture = Texture.selected;
+		let texture = UVEditor.texture;
 		if (texture.selection.is_custom) {
 			texture.selection.forEachPixel((x, y, val, index) => {
 				texture.selection.array[index] = val ? 0 : 1;
@@ -3856,7 +3857,7 @@ Interface.definePanels(function() {
 								<div class="ellipse" v-if="texture_selection_rect.ellipse" />
 							</div>
 
-							<svg id="uv_selection_outline">
+							<svg id="uv_selection_outline" v-if="mode == 'paint'">
 								<path :d="selection_outline" />
 								<path :d="selection_outline" class="dash_overlay" />
 							</svg>

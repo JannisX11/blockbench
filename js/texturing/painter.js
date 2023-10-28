@@ -198,9 +198,10 @@ const Painter = {
 				face_matrices: {}
 			}
 			Painter.startPixel = [x, y];
-			Painter.current.clear.width = texture.width;
-			Painter.current.clear.height = texture.height;
-			Painter.current.clear.getContext('2d').drawImage(texture.img, 0, 0);
+			let {canvas} = texture.getActiveCanvas();
+			Painter.current.clear.width = canvas.width;
+			Painter.current.clear.height = canvas.height;
+			Painter.current.clear.getContext('2d').drawImage(canvas, 0, 0);
 
 		} else {
 			Painter.current.face_matrices = {};
@@ -843,9 +844,6 @@ const Painter = {
 
 			function drawShape(start_x, start_y, x, y, uvTag) {
 
-				var rect = Painter.setupRectFromFace(uvTag, texture);
-				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-
 				let diff_x = x - start_x;
 				let diff_y = y - start_y;
 
@@ -864,7 +862,16 @@ const Painter = {
 					ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 				}
 
+
 				if (shape === 'rectangle') {
+					if (uvTag) {
+						let rect = Painter.setupRectFromFace(uvTag, texture);
+						let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+						ctx.beginPath();
+						ctx.rect(rect[0], rect[1], w, h);
+					} else {
+						texture.selection.maskCanvas(ctx);
+					}
 					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 					ctx.lineWidth = width;
 					ctx.beginPath();
@@ -878,6 +885,8 @@ const Painter = {
 						ctx.fill();
 					}
 				} else if (shape === 'ellipse') {
+					let rect = Painter.setupRectFromFace(uvTag, texture);
+					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 					Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
@@ -1006,8 +1015,6 @@ const Painter = {
 			}
 
 			function drawGradient(start_x, start_y, x, y, uvTag) {
-				let rect = Painter.setupRectFromFace(uvTag, texture);
-				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 				let diff_x = x - start_x;
 				let diff_y = y - start_y;
 
@@ -1044,10 +1051,20 @@ const Painter = {
 				gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
 				gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
 
-				ctx.beginPath();
+				if (uvTag) {
+					let rect = Painter.setupRectFromFace(uvTag, texture);
+					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+					ctx.beginPath();
+					ctx.rect(rect[0], rect[1], w, h);
+				} else {
+					texture.selection.maskCanvas(ctx);
+					let rect = texture.selection.getBoundingRect(true);
+					ctx.rect(rect.start_x, rect.start_y, rect.width, rect.height);
+					console.log(rect)
+				}
 				ctx.fillStyle = gradient;
-				ctx.rect(rect[0], rect[1], w, h);
 				ctx.fill();
+				ctx.restore();
 
 				return [diff_x, diff_y];
 			}
@@ -1301,11 +1318,12 @@ const Painter = {
 			a: data[3]/256
 		})
 	},
-	modifyCanvasSection(ctx, x, y, w, h, cb) {
+	modifyCanvasSection(ctx, x, y, w, h, cb, texture) {
 		var arr = ctx.getImageData(x, y, w, h)
 		var processed = [];
 
 		cb((px, py, editPx) => {
+			if (UVEditor.texture && !UVEditor.texture.selection.allow(px, py)) {;return;}
 			//changePixel
 			px = Math.floor(px)-x;
 			py = Math.floor(py)-y;
@@ -1699,16 +1717,16 @@ class IntMatrix {
 	getDirect(x, y) {
 		return this.array[y * this.width + x];
 	}
-	getBoundingRect() {
+	getBoundingRect(respect_empty) {
 		let rect = new Rectangle();
-		if (this.override == true) {
+		if (this.override == true || (respect_empty && this.override == false)) {
 			rect.width = this.width;
 			rect.height = this.height;
 		} else if (this.override == null) {
-			let min_x = Infinity;
-			let min_y = Infinity;
-			let max_x = -Infinity;
-			let max_y = -Infinity;
+			let min_x = this.width;
+			let min_y = this.height;
+			let max_x = 0;
+			let max_y = 0;
 			this.forEachPixel((x, y, value) => {
 				if (!value) return;
 				min_x = Math.min(min_x, x);
@@ -1716,7 +1734,13 @@ class IntMatrix {
 				max_x = Math.max(max_x, x+1);
 				max_y = Math.max(max_y, y+1);
 			})
-			rect.fromCoords(min_x, min_y, max_x, max_y);
+			if (min_x == this.width) {
+				// No pixel selected
+				rect.width = this.width;
+				rect.height = this.height;
+			} else {
+				rect.fromCoords(min_x, min_y, max_x, max_y);
+			}
 		}
 		return rect;
 	}
@@ -1794,6 +1818,17 @@ class IntMatrix {
 			new_array[y * this.width + x] = value;
 		})
 		this.array = new_array;
+	}
+	maskCanvas(ctx) {
+		if (!this.is_custom) return;
+		ctx.save();
+		ctx.beginPath();
+		this.forEachPixel((x, y, value) => {
+			if (!value) return;
+			ctx.rect(x, y, 1, 1);
+		});
+		ctx.closePath();
+		ctx.clip();
 	}
 }
 
@@ -2423,8 +2458,8 @@ BARS.defineActions(function() {
 		options: {
 			rectangle: {name: true, icon: 'fas.fa-square'},
 			rectangle_h: {name: true, icon: 'far.fa-square'},
-			ellipse: {name: true, icon: 'circle'},
-			ellipse_h: {name: true, icon: 'radio_button_unchecked'},
+			ellipse: {name: true, icon: 'fas.fa-circle'},
+			ellipse_h: {name: true, icon: 'far.fa-circle'},
 		}
 	})
 	new BarSelect('blend_mode', {

@@ -22,9 +22,11 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					texture.selection.maskCanvas(ctx);
 					ctx.clearRect(0, 0, texture.width, texture.height);
 					ctx.filter = 'invert(1)';
 					ctx.drawImage(texture.img, 0, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -59,6 +61,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
@@ -66,6 +69,7 @@ BARS.defineActions(function() {
 										ctx.filter = `brightness(1.0) contrast(1.0)`;
 									}
 									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -147,6 +151,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
@@ -154,6 +159,7 @@ BARS.defineActions(function() {
 										ctx.filter = `brightness(1.0)`;
 									}
 									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -511,6 +517,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `opacity(${this.opacity}%)`;
@@ -523,6 +530,7 @@ BARS.defineActions(function() {
 										ctx.filter = `opacity(100%)`;
 										ctx.drawImage(original_imgs[i], 0, 0);
 									}
+									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -589,7 +597,7 @@ BARS.defineActions(function() {
 						palette[color] = tinycolor(color);
 					})
 					Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, pixel) => {
-
+						if (!texture.selection.allow(x, y)) return;
 						if (pixel[3] < 4) return;
 						let smallest_distance = Infinity;
 						let nearest_color = null;
