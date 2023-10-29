@@ -141,6 +141,12 @@ class ModelProject {
 		let data = recent_projects.find(p => p.path == path);
 		return data;
 	}
+	getUVWidth(texture = 0) {
+		return (texture && Format.per_texture_uv_size) ? texture.uv_width : this.texture_width;
+	}
+	getUVHeight(texture = 0) {
+		return (texture && Format.per_texture_uv_size) ? texture.uv_height : this.texture_height;
+	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
 	}

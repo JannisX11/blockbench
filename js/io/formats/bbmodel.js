@@ -544,10 +544,10 @@ var codec = new Codec('project', {
 						}
 						if (!copy.box_uv) {
 							let tex = copy.faces[face].getTexture();
-							copy.faces[face].uv[0] *= (tex ? tex.getUVWidth() : Project.texture_width) / width;
-							copy.faces[face].uv[2] *= (tex ? tex.getUVWidth() : Project.texture_width) / width;
-							copy.faces[face].uv[1] *= (tex ? tex.getUVHeight() : Project.texture_height) / height;
-							copy.faces[face].uv[3] *= (tex ? tex.getUVHeight() : Project.texture_height) / height;
+							copy.faces[face].uv[0] *= (Project.getUVWidth(tex)) / width;
+							copy.faces[face].uv[2] *= (Project.getUVWidth(tex)) / width;
+							copy.faces[face].uv[1] *= (Project.getUVHeight(tex)) / height;
+							copy.faces[face].uv[3] *= (Project.getUVHeight(tex)) / height;
 						}
 					}
 				} else if (copy instanceof Mesh) {
@@ -562,8 +562,8 @@ var codec = new Codec('project', {
 						}
 						for (let vkey in copy.faces[fkey].uv) {
 							let tex = copy.faces[fkey].getTexture();
-							copy.faces[fkey].uv[vkey][0] *= (tex ? tex.getUVWidth() : Project.texture_width) / width;
-							copy.faces[fkey].uv[vkey][1] *= (tex ? tex.getUVHeight() : Project.texture_height) / height;
+							copy.faces[fkey].uv[vkey][0] *= Project.getUVWidth(tex) / width;
+							copy.faces[fkey].uv[vkey][1] *= Project.getUVHeight(tex) / height;
 						}
 					}
 				}
