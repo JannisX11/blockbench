@@ -1460,6 +1460,32 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	#plugin_browser_page .settings_list {
 		padding: 4px 20px;
 	}
+	#plugin_browser_page .features_list {
+		padding: 4px 20px;
+	}
+	li.plugin_feature_entry {
+		display: flex;
+		gap: 8px;
+		padding-left: 4px;
+		min-height: 28px;
+		align-items: center;
+	}
+	li.plugin_feature_entry.clickable {
+		cursor: pointer;
+	}
+	li.plugin_feature_entry.clickable:hover {
+		color: var(--color-light);
+	}
+	li.plugin_feature_entry label {
+		white-space: nowrap;
+		cursor: inherit;
+	}
+	li.plugin_feature_entry > .description,
+	li.plugin_feature_entry > .extra_info {
+		color: var(--color-subtle_text);
+		margin-left: auto;
+		cursor: inherit;
+	}
 
 	
 	#plugin_browser_start_page > img {

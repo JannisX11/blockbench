@@ -1,5 +1,8 @@
 const StartScreen = {
-	loaders: {}
+	loaders: {},
+	open() {
+		Interface.tab_bar.openNewTab();
+	}
 };
 
 function addStartScreenSection(id, data) {
@@ -542,6 +545,7 @@ class ModelLoader {
 		this.show_on_start_screen = true;
 		this.confidential = options.confidential || false;
 		this.condition = options.condition;
+		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.format_page = options.format_page;
 		this.onFormatPage = options.onFormatPage;

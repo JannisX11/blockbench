@@ -11,6 +11,7 @@ class Panel extends EventSystem {
 		this.condition = data.condition;
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;
 
