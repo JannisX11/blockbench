@@ -3,7 +3,6 @@ name: Deploy Web App with build step
 on:
   push:
     branches: [ "gh-pages" ]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,7 +15,6 @@ concurrency:
 
 jobs:
   deploy:
-    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
