@@ -9,8 +9,22 @@ class KeyframeDataPoint {
 		if (data.values) {
 			Object.assign(data, data.values)
 		}
+		let file_value_before = this.file;
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
+		}
+		if (isApp && data.file && !file_value_before) {
+			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
+				Timeline.visualizeAudioFile(this.file);
+			} else if (this.keyframe.channel == 'particle') {
+				try {
+					Blockbench.read([this.file], {}, (files) => {
+						Animator.loadParticleEmitter(this.file, files[0].content);
+					})
+				} catch (err) {
+					console.log('Could not load particle effect for', this.file)
+				}
+			}
 		}
 	}
 	getUndoCopy() {

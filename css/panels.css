@@ -1383,6 +1383,9 @@
 		stroke-width: 0;
 		pointer-events: initial;
 	}
+	.keyframe .keyframe_waveform > polygon:hover {
+		fill: var(--color-accent);
+	}
 
 	#timeline_graph_editor {
 		position: absolute;
