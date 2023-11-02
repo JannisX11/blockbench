@@ -359,7 +359,8 @@ class UndoSystem {
 					}
 				}
 			}
-			Canvas.updateAllFaces()
+			Canvas.updateAllFaces();
+			updateInterfacePanels();
 		}
 
 		if (save.layers) {
@@ -659,11 +660,13 @@ UndoSystem.save = class {
 	addTextureOrLayer(texture) {
 		if (texture.layers_enabled && texture.layers[0]) {
 			let layer = texture.getActiveLayer();
+			if (!this.aspects.layers) this.aspects.layers = [];
 			if (this.aspects.layers.safePush(layer)) {
 				if (!this.layers) this.layers = {};
 				this.layers[layer.uuid] = layer.getUndoCopy(this.aspects.bitmap);
 			}
 		} else {
+			if (!this.aspects.textures) this.aspects.textures = [];
 			if (this.aspects.textures.safePush(texture)) {
 				if (!this.textures) this.textures = {};
 				this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)

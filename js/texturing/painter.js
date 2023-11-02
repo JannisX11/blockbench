@@ -14,25 +14,18 @@ const Painter = {
 		if (texture.mode === 'link') {
 			texture.convertToInternal();
 		}
-		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 		let {canvas, ctx} = texture.getActiveCanvas();
 		Painter.current.ctx = ctx;
+		if (!Painter.current.textures) Painter.current.textures = [];
+		Painter.current.textures.safePush(texture);
+		Painter.current.texture = texture;
 
-		if (options.use_cache &&
-			Painter.current.cached_canvases[texture.uuid]
-		) {
-			//IS CACHED
-			callback(canvas);
-			if (options.no_update === true) {
-				return;
-			}
-		} else {
-			//IS UNCACHED
-			Painter.current.texture = texture
-			Painter.current.cached_canvases[texture.uuid] = canvas;
-			callback(canvas);
+		callback(canvas);
+
+		if (options.use_cache && options.no_update === true) {
+			return;
 		}
 
 		if (options.no_undo && options.use_cache) {
@@ -42,8 +35,7 @@ const Painter = {
 			texture.display_canvas = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
-			texture.updateLayerChanges(true);
-			texture.updateSource(canvas.toDataURL());
+			texture.updateChangesAfterEdit();
 			if (!options.no_undo && !options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
@@ -271,7 +263,9 @@ const Painter = {
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {
-			texture.updateLayerChanges(true);
+			Painter.current.textures.forEach(texture => {
+				texture.updateChangesAfterEdit();
+			})
 			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
 		}
@@ -280,7 +274,8 @@ const Painter = {
 		}
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
-		delete Painter.current.cached_canvases;
+		delete Painter.texture;
+		delete Painter.textures;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -421,10 +416,10 @@ const Painter = {
 			tool.brush.draw({ctx, x, y, size, softness, texture, event});
 
 		} else {
+			let face_matrix = settings.paint_side_restrict.value && Painter.current.face_matrices[matrix_id];
 			let run_per_pixel = (pxcolor, local_opacity, px, py) => {
-				if (Painter.current.face_matrices[matrix_id] && settings.paint_side_restrict.value) {
-					let matrix = Painter.current.face_matrices[matrix_id];
-					if (!matrix[px] || !matrix[px][py % texture.display_height]) {
+				if (face_matrix) {
+					if (!face_matrix[px] || !face_matrix[px][py % texture.display_height]) {
 						return pxcolor;
 					}
 				}
@@ -1060,7 +1055,6 @@ const Painter = {
 					texture.selection.maskCanvas(ctx);
 					let rect = texture.selection.getBoundingRect(true);
 					ctx.rect(rect.start_x, rect.start_y, rect.width, rect.height);
-					console.log(rect)
 				}
 				ctx.fillStyle = gradient;
 				ctx.fill();
@@ -1744,6 +1738,13 @@ class IntMatrix {
 		}
 		return rect;
 	}
+	hasSelection() {
+		if (this.is_custom) {
+			return this.array.findIndex(v => v) != -1;
+		} else {
+			return this.override;
+		}
+	}
 	/**
 	 * Set the value at a specified pixel
 	 * @param {number} x 
@@ -1764,8 +1765,7 @@ class IntMatrix {
 	 * If there was a selection, whether override or not, clear it
 	 */
 	clear() {
-		if (this.override == true) this.override = false;
-		if (this.array) this.array.fill(0);
+		this.setOverride(false);
 	}
 	/**
 	 * Change override mode
@@ -2423,7 +2423,7 @@ BARS.defineActions(function() {
 		},
 		onSelect() {
 			let texture = Texture.selected;
-			if (texture && texture.selection.is_custom && (!texture.selected_layer || !texture.selected_layer.in_limbo)) {
+			if (texture && texture.selection.is_custom && texture.selection.hasSelection() && (!texture.selected_layer || !texture.selected_layer.in_limbo)) {
 				Texture.selected.selectionToLayer();
 			}
 		}
@@ -2718,7 +2718,7 @@ BARS.defineActions(function() {
 		tool_setting: 'brush_size',
 		category: 'paint',
 		settings: {
-			min: 1, max: 50, interval: 1, default: 1,
+			min: 1, max: 1024, interval: 1, default: 1,
 		}
 	})
 	new NumSlider('slider_brush_softness', {

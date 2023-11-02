@@ -2198,6 +2198,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
 						this.centerView();
 					}
+					this.updateCanvasImageRendering();
 					UVEditor.updateSelectionOutline(false);
 				},
 				centerView() {
@@ -2268,6 +2269,13 @@ Interface.definePanels(function() {
 							  (Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
+				updateCanvasImageRendering() {
+					if (this.texture && this.texture.display_canvas) {
+						let wrapper = this.$refs.texture_canvas_wrapper;
+						if (!wrapper) return;
+						this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
+					}
+				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
 				
@@ -2301,6 +2309,8 @@ Interface.definePanels(function() {
 							if (this.zoom == 1 && Panels.uv.isInSidebar() && diagonal_offset/UVEditor.width < 0.12) {
 								this.centerView();
 							}
+
+							this.updateCanvasImageRendering();
 							
 							if (this.mode == 'paint') {
 								this.mouse_coords.active = false;
@@ -3413,7 +3423,7 @@ Interface.definePanels(function() {
 								texture.display_canvas = true;
 								UVEditor.vue.updateTextureCanvas();
 							}
-							if (!layer.in_limbo && texture.selection.is_custom) {
+							if (!layer.in_limbo && texture.selection.is_custom && texture.selection.hasSelection()) {
 								texture.selectionToLayer();
 								layer = texture.selected_layer;
 								initial_offset = layer.offset.slice();
@@ -3429,12 +3439,13 @@ Interface.definePanels(function() {
 						selection_rect.active = false;
 
 						if (create_selection) {
-							if (!calcrect) {
-								texture.selection.clear();
-								UVEditor.updateSelectionOutline();
+							if (!calcrect || selection_rect.width == 0 || selection_rect.height == 0) {
+								if (!texture.selection.hasSelection()) {
+									texture.selection.clear();
+									UVEditor.updateSelectionOutline();
+								}
 								return;
 							}
-							if (selection_rect.width == 0 || selection_rect.height == 0) return;
 
 							if (op_mode == 'create') {
 								texture.selection.clear();
@@ -3498,6 +3509,9 @@ Interface.definePanels(function() {
 										}
 									}
 								}
+							}
+							if (!texture.selection.hasSelection()) {
+								texture.selection.clear();
 							}
 							UVEditor.updateSelectionOutline();
 						} else {

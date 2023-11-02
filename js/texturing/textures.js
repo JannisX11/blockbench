@@ -319,9 +319,6 @@ class Texture {
 	}
 	getUndoCopy(bitmap) {
 		var copy = {};
-		if (this.display_canvas && bitmap) {
-			this.updateSource(this.canvas.toDataURL());
-		}
 		for (var key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
@@ -341,7 +338,7 @@ class Texture {
 		}
 		if (bitmap || this.internal) {
 			copy.source = this.source
-			if (!this.internal) {
+			if (!this.layers_enabled) {
 				copy.image_data = this.getDataURL();
 			}
 		}
@@ -349,9 +346,6 @@ class Texture {
 	}
 	getSaveCopy(bitmap) {
 		var copy = {};
-		if (this.display_canvas && bitmap) {
-			this.updateSource(this.canvas.toDataURL());
-		}
 		for (var key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
@@ -1626,6 +1620,14 @@ class Texture {
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
 		}
+	}
+	updateChangesAfterEdit() {
+		if (this.layers_enabled) {
+			return this.updateLayerChanges(true);
+		}
+		this.getMaterial().map.needsUpdate = true;
+		this.source = this.canvas.toDataURL();
+		this.updateImageFromCanvas();
 	}
 	updateImageFromCanvas() {
 		this.img.update_from_canvas = true;

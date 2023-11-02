@@ -58,8 +58,9 @@ class TextureLayer {
 		if (undo) {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
-		this.texture.layers.remove(this);
-		if (this.texture.selected_layer == this) this.texture.selected_layer = null;
+		let index = this.texture.layers.indexOf(this);
+		this.texture.layers.splice(index, 1);
+		if (this.texture.selected_layer == this) this.texture.selected_layer = this.texture.layers[index-1] || this.texture.layers[index];
 		if (undo) {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Remove layer');
