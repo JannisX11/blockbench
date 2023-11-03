@@ -609,7 +609,7 @@ function setProjectResolution(width, height, modify_uv) {
 		modify_uv = false;
 	}
 
-	let textures = Project.per_texture_uv_size ? Texture.all : undefined;
+	let textures = Format.per_texture_uv_size ? Texture.all : undefined;
 
 	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true, textures});
 
@@ -997,7 +997,7 @@ BARS.defineActions(function() {
 						Project.texture_height != texture_height
 					) {
 						// Adjust UV Mapping if resolution changed
-						if (!Project.box_uv && !box_uv &&
+						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
