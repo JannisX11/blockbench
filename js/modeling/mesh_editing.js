@@ -746,8 +746,8 @@ BARS.defineActions(function() {
 				var adjustedTo = cube.to.slice();
 				adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
 				for (let i = 0; i < adjustedFrom.length; i++) {
-					adjustedFrom[i] - cube.origin[i];
-					adjustedTo[i] - cube.origin[i]
+					adjustedFrom[i] -= cube.origin[i];
+					adjustedTo[i] -= cube.origin[i]
 				}
 				let vertex_keys = [
 					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
