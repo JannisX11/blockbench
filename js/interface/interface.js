@@ -76,6 +76,7 @@ const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
+		modes: {},
 		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
@@ -94,10 +95,16 @@ const Interface = {
 		}
 	},
 	get left_bar_width() {
-		return Prop.show_left_bar && Interface.getLeftPanels().length ? Interface.data.left_bar_width : 0;
+		if (Prop.show_left_bar && Interface.getLeftPanels().length) { 
+			return Interface.data.modes[Mode.selected?.id]?.left_bar_width ?? Interface.data.left_bar_width;
+		}
+		return 0;
 	},
 	get right_bar_width() {
-		return Prop.show_right_bar && Interface.getRightPanels().length ? Interface.data.right_bar_width : 0;
+		if (Prop.show_right_bar && Interface.getRightPanels().length) { 
+			return Interface.data.modes[Mode.selected?.id]?.right_bar_width ?? Interface.data.right_bar_width;
+		}
+		return 0;
 	},
 	get top_panel_height() {
 		return 1;
@@ -146,21 +153,23 @@ const Interface = {
 			condition() {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
+				if (!Mode.selected) return false;
 				for (let p of Interface.data.left_bar) {
 					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'left_bar') {
 						return true;
 					}
 				}
 			},
-			get() {return Interface.data.left_bar_width},
+			get() {return Interface.left_bar_width},
 			set(o, diff) {
+				if (!Interface.data.modes[Mode.selected.id]) Interface.data.modes[Mode.selected.id] = {};
 				let min = 128;
-				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
-				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.right_bar_width)
+				Interface.data.modes[Mode.selected.id].left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 				
 				if (calculated == min) {
 					Prop.show_left_bar = false;
-					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+					Interface.data.modes[Mode.selected.id].left_bar_width = Interface.default_data.left_bar_width;
 				} else {
 					Prop.show_left_bar = true;
 				}
@@ -169,7 +178,7 @@ const Interface = {
 				this.setPosition({
 					top: 0,
 					bottom: 0,
-					left: Interface.data.left_bar_width+2
+					left: Interface.left_bar_width+2
 				})
 			}
 		}),
@@ -177,21 +186,23 @@ const Interface = {
 			condition() {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
+				if (!Mode.selected) return false;
 				for (let p of Interface.data.right_bar) {
 					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'right_bar') {
 						return true;
 					}
 				}
 			},
-			get() {return Interface.data.right_bar_width},
+			get() {return Interface.right_bar_width},
 			set(o, diff) {
+				if (!Interface.data.modes[Mode.selected.id]) Interface.data.modes[Mode.selected.id] = {};
 				let min = 128;
-				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
-				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.left_bar_width);
+				Interface.data.modes[Mode.selected.id].right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 				
 				if (calculated == min) {
 					Prop.show_right_bar = false;
-					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+					Interface.data.modes[Mode.selected.id].right_bar_width = Interface.default_data.right_bar_width;
 				} else {
 					Prop.show_right_bar = true;
 				}
@@ -200,7 +211,7 @@ const Interface = {
 				this.setPosition({
 					top: 30,
 					bottom: 0,
-					right: Interface.data.right_bar_width-2
+					right: Interface.right_bar_width-2
 				})
 			}
 		}),
