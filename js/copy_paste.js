@@ -142,6 +142,10 @@ const Clipbench = {
 				break;
 			case 'face':
 				UVEditor.copy(event);
+				if (Prop.active_panel == 'uv') {
+					Clipbench.group = undefined;
+					Clipbench.elements = [];
+				}
 				break;
 			case 'mesh_selection':
 				UVEditor.copy(event);
@@ -164,6 +168,9 @@ const Clipbench = {
 			}
 			if (cut) {
 				BarItems.delete.trigger();
+			}
+			if (Prop.active_panel == 'outliner') {
+				UVEditor.clipboard = []
 			}
 		}
 	},
