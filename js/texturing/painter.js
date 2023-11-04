@@ -276,6 +276,7 @@ const Painter = {
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
+		delete Painter.current.last_pixel;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -808,6 +809,24 @@ const Painter = {
 				interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
 			} else {
 				interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+			}
+		}
+
+		if (Toolbox.selected.brush?.pixel_perfect && BarItems.pixel_perfect_drawing.value && BarItems.slider_brush_size.get() == 1) {
+			let direction = 0;
+			if (length == 1 && diff_x && !diff_y) {direction = 1;}
+			if (length == 1 && !diff_x && diff_y) {direction = 2;}
+			let image_data = Painter.current.ctx.getImageData(end_x, end_y, 1, 1);
+			let pixel = {
+				direction,
+				image_data,
+				position: [end_x, end_y]
+			};
+			if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
+				Painter.current.ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
+				delete Painter.current.last_pixel;
+			} else {
+				Painter.current.last_pixel = pixel;
 			}
 		}
 
@@ -1479,6 +1498,7 @@ const Painter = {
 							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
 							use_opacity: preset.opacity !== null,
 							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
+							pixel_perfect: preset.pixel_perfect == null ? BarItems.pixel_perfect_drawing.value : preset.pixel_perfect,
 							use_color: preset.color !== null,
 							color: preset.color == null ? ColorPanel.get() : preset.color,
 							shape: preset.shape ? preset.shape : 'unset',
@@ -1545,6 +1565,7 @@ const Painter = {
 				opacity: {label: ' ', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
 				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
 				softness: {label: ' ', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
+				pixel_perfect: {label: 'action.pixel_perfect_drawing', type: 'checkbox'},
 				use_color: {label: 'data.color', type: 'checkbox'},
 				color: {label: ' ', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
 				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
@@ -1604,6 +1625,7 @@ const Painter = {
 		if (typeof preset.size == 'number') 	BarItems.slider_brush_size.setValue(preset.size);
 		if (typeof preset.softness == 'number') BarItems.slider_brush_softness.setValue(preset.softness);
 		if (typeof preset.opacity == 'number') 	BarItems.slider_brush_opacity.setValue(preset.opacity);
+		if (preset.pixel_perfect != undefined) 	BarItems.pixel_perfect_drawing.set(preset.pixel_perfect);
 		if (preset.color) 		ColorPanel.set(preset.color);
 		if (preset.shape) {
 			BarItems.brush_shape.set(preset.shape);
@@ -1624,6 +1646,16 @@ const Painter = {
 			default: true,
 			size: 1,
 			softness: 0,
+			pixel_perfect: false,
+			shape: 'square',
+			blend_mode: 'default'
+		},
+		{
+			name: 'menu.brush_presets.pixel_perfect',
+			default: true,
+			size: 1,
+			softness: 0,
+			pixel_perfect: false,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -1632,6 +1664,7 @@ const Painter = {
 			default: true,
 			size: 5,
 			softness: 70,
+			pixel_perfect: false,
 			shape: 'circle',
 			blend_mode: 'default'
 		}
@@ -1666,6 +1699,7 @@ BARS.defineActions(function() {
 			softness: true,
 			opacity: true,
 			offset_even_radius: true,
+			pixel_perfect: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {
 				return 1 + BarItems.slider_brush_size.get() * BarItems.slider_brush_softness.get() / 1500;
@@ -1710,9 +1744,13 @@ BARS.defineActions(function() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[0])
 				}},
-				{name: 'menu.brush_presets.smooth_brush', icon: 'fa-paint-brush', click() {
+				{name: 'menu.brush_presets.pixel_perfect_brush', icon: 'stylus_note', click() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[1])
+				}},
+				{name: 'menu.brush_presets.smooth_brush', icon: 'fa-paint-brush', click() {
+					BarItems.brush_tool.select();
+					Painter.loadBrushPreset(Painter.default_brush_presets[2])
 				}},
 			];
 			StateMemory.brush_presets.forEach((preset) => {
@@ -2338,5 +2376,10 @@ BARS.defineActions(function() {
 				}
 			}
 		}
+	})
+	new Toggle('pixel_perfect_drawing', {
+		icon: 'stylus_laser_pointer',
+		category: 'view',
+		condition: () => Toolbox && Toolbox.selected.brush?.pixel_perfect == true,
 	})
 })

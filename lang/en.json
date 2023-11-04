@@ -1084,6 +1084,8 @@
 	"action.slider_brush_opacity.desc": "Opacity of the brush from 0 to 255",
 	"action.slider_brush_softness": "Softness",
 	"action.slider_brush_softness.desc": "Softness of the brush in percent",
+	"action.pixel_perfect_drawing": "Pixel Perfect Drawing",
+	"action.pixel_perfect_drawing.desc": "Draw smooth pixel-art lines without double pixels at curves",
 	"action.brush_shape": "Brush Shape",
 	"action.brush_shape.square": "Square",
 	"action.brush_shape.circle": "Circle",
@@ -1839,6 +1841,7 @@
 
 	"menu.brush_presets.dialog": "Brush Presets...",
 	"menu.brush_presets.pixel_brush": "Pixel Brush",
+	"menu.brush_presets.pixel_perfect": "Pixel-perfect Brush",
 	"menu.brush_presets.smooth_brush": "Smooth Brush",
 
 	"menu.palette.load.default": "Default",
