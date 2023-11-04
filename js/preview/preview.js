@@ -1410,6 +1410,24 @@ class Preview {
 		console.warn('Preview.updateBackground() is no longer supported')
 	}
 	//Misc
+	copyView(preview) {
+		this.setProjectionMode(preview.isOrtho);
+		// Update camera
+		this.controls.unlinked = preview.controls.unlinked;
+		this.controls.target.copy(preview.controls.target);
+		this.camera.position.copy(preview.camera.position);
+		this.camera.quaternion.copy(preview.camera.quaternion);
+		if (this.isOrtho) {
+			this.camera.zoom = preview.camera.zoom;
+			this.camera.top = preview.camera.top;
+			this.camera.bottom = preview.camera.bottom;
+			this.camera.right = preview.camera.right;
+			this.camera.left = preview.camera.left;
+			this.camOrtho.updateProjectionMatrix();
+		} else {
+			this.setFOV(preview.camPers.fov);
+		}
+	}
 	screenshot(options, cb) {
 		return Screencam.screenshotPreview(this, options, cb);
 	}

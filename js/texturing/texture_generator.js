@@ -424,7 +424,6 @@ const TextureGenerator = {
 		
 		//Drawing
 		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
-		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
 
 		templates.forEach(function(t) {
 			if (options.rearrange_uv) {
@@ -443,7 +442,7 @@ const TextureGenerator = {
 					})
 				}
 			}
-			TextureGenerator.paintCubeBoxTemplate(t.obj, texture, canvas, t);
+			TextureGenerator.paintCubeBoxTemplate(t.obj, texture, canvas, t, false, res_multiple);
 		})
 
 		var dataUrl = canvas.toDataURL()
@@ -451,6 +450,8 @@ const TextureGenerator = {
 		if (makeTexture instanceof Texture) {
 			makeTexture.updateSource(dataUrl);
 		}
+		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
+
 		if (texture) {
 			cubes.forEach(function(cube) {
 				if (!Format.single_texture) {
@@ -502,12 +503,12 @@ const TextureGenerator = {
 			})
 		}
 	},
-	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas) {
+	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas, res_multiple) {
 		if (typeof background_color === 'string') {
 			border_color = background_color
 			color = undefined
 		}
-		var res_multiple = canvas.width / (texture ? texture.getUVWidth() : Project.texture_width);
+		var res_multiple = canvas.width / Project.getUVWidth(texture);
 		var ctx = canvas.getContext('2d');
 		ctx.fillStyle = border_color;
 		ctx.fillRect(
@@ -535,7 +536,7 @@ const TextureGenerator = {
 			}
 		}
 	},
-	boxUVdrawTexture(face, coords, texture, canvas) {
+	boxUVdrawTexture(face, coords, texture, canvas, res_multiple) {
 		if (!Format.single_texture) {
 			if (face.texture === undefined || face.texture === null) return false;
 			texture = face.getTexture()
@@ -543,7 +544,6 @@ const TextureGenerator = {
 		if (!texture || !texture.img) return false;
 
 		var ctx = canvas.getContext('2d');
-		var res_multiple = canvas.width/texture.getUVWidth();
 		ctx.save()
 		var uv = face.uv.slice();
 
@@ -575,12 +575,14 @@ const TextureGenerator = {
 			}
 		}
 		ctx.imageSmoothingEnabled = false;
+		let old_factor_x = (Format.per_texture_uv_size ? texture.getUVWidth() : TextureGenerator.old_project_resolution[0]) / texture.img.naturalWidth;
+		let old_factor_y = (Format.per_texture_uv_size ? texture.getUVHeight() : TextureGenerator.old_project_resolution[1]) / texture.img.naturalHeight;
 		ctx.drawImage(
 			texture.img,
-			src.ax/TextureGenerator.old_project_resolution[0] * texture.img.naturalWidth,
-			src.ay/TextureGenerator.old_project_resolution[1] * texture.img.naturalHeight,
-			src.x /TextureGenerator.old_project_resolution[0] * texture.img.naturalWidth,
-			src.y /TextureGenerator.old_project_resolution[1] * texture.img.naturalHeight,
+			src.ax * old_factor_x,
+			src.ay * old_factor_y,
+			src.x  * old_factor_x,
+			src.y  * old_factor_y,
 			coords.x*res_multiple*flip[0],
 			coords.y*res_multiple*flip[1],
 			coords.w*res_multiple*flip[0],
@@ -589,7 +591,7 @@ const TextureGenerator = {
 		ctx.restore()
 		return true;
 	},
-	paintCubeBoxTemplate(cube, texture, canvas, template, transparent) {
+	paintCubeBoxTemplate(cube, texture, canvas, template, transparent, res_multiple) {
 
 		if (!template) {
 			template = new TextureGenerator.boxUVCubeTemplate(cube, Project.box_uv ? 0 : 1);
@@ -603,9 +605,9 @@ const TextureGenerator = {
 			if (face == 'south' && cube.size(2) == 0) continue;
 			
 			if (!cube.faces[face].getTexture() ||
-				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas)
+				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas, res_multiple)
 			) {
-				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas)
+				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas, res_multiple)
 			}
 		}
 
@@ -634,10 +636,10 @@ const TextureGenerator = {
 				{face: 'down', fIndex: 6,	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]}
 			]
 			face_list.forEach(function(f) {
-				cube.faces[f.face].uv[0] = (f.from[0]		   + Math.floor(cube.uv_offset[0]+0.0000001)) / canvas.width  * Project.texture_width;
-				cube.faces[f.face].uv[1] = (f.from[1]		   + Math.floor(cube.uv_offset[1]+0.0000001)) / canvas.height * Project.texture_height;
-				cube.faces[f.face].uv[2] = (f.from[0]+f.size[0]+ Math.floor(cube.uv_offset[0]+0.0000001)) / canvas.width  * Project.texture_width;
-				cube.faces[f.face].uv[3] = (f.from[1]+f.size[1]+ Math.floor(cube.uv_offset[1]+0.0000001)) / canvas.height * Project.texture_height;
+				cube.faces[f.face].uv[0] = (f.from[0]		   + Math.floor(cube.uv_offset[0]+0.0000001)) / res_multiple;
+				cube.faces[f.face].uv[1] = (f.from[1]		   + Math.floor(cube.uv_offset[1]+0.0000001)) / res_multiple;
+				cube.faces[f.face].uv[2] = (f.from[0]+f.size[0]+ Math.floor(cube.uv_offset[0]+0.0000001)) / res_multiple;
+				cube.faces[f.face].uv[3] = (f.from[1]+f.size[1]+ Math.floor(cube.uv_offset[1]+0.0000001)) / res_multiple;
 				cube.faces[f.face].rotation = 0;
 			})
 		}
@@ -1574,7 +1576,7 @@ const TextureGenerator = {
 			makeTexture.updateSource(dataUrl);
 		}
 
-		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1], makeTexture instanceof Texture ? makeTexture : undefined);
+		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
 
 		if (texture) {
 			element_list.forEach(function(element) {
@@ -1699,7 +1701,7 @@ const TextureGenerator = {
 		var dataUrl = canvas.toDataURL()
 		var texture = cb(dataUrl)
 
-		let affected_elements = TextureGenerator.changeProjectResolution(new_resolution[0], new_resolution[1]);
+		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
 
 		if (texture) {
 			face_list.forEach(({face, fkey}, i) => {
@@ -1725,11 +1727,17 @@ const TextureGenerator = {
 		})
 	},
 	//Misc
-	changeProjectResolution(width, height, texture) {
-		let factor_x = width / Project.texture_width;
-		let factor_y = height / Project.texture_height;
-		Project.texture_width = width;
-		Project.texture_height = height;
+	changeUVResolution(width, height, texture) {
+		let factor_x = width / Project.getUVWidth(texture);
+		let factor_y = height / Project.getUVHeight(texture);
+		if (!Format.per_texture_uv_size) {
+			Project.texture_width = width;
+			Project.texture_height = height;
+		}
+		if (texture) {
+			texture.uv_width = width;
+			texture.uv_height = height;
+		}
 		let changed_elements = [];
 
 		if (!Project.box_uv && !Format.single_texture && (factor_x !== 1 || factor_y !== 1)) {

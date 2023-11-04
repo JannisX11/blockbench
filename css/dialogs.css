@@ -147,11 +147,11 @@
 	.dialog_bar > label {
 		width: var(--max_label_width);
 	}
-	.dialog_bar::after {
+	/*.dialog_bar::after {
 		content: "";
 		clear: both;
 		display: block;
-	}
+	}*/
 	.dialog_bar.narrow {
 		min-height: 30px;
 	}
@@ -372,6 +372,10 @@
 		grid-area: buttons;
 		margin-top: 0px;
 		margin-bottom: 12px;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: right;
+		gap: 3px;
 	}
 	
 	.dialog_sidebar .dialog_sidebar_pages {
@@ -1455,6 +1459,32 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 	}
 	#plugin_browser_page .settings_list {
 		padding: 4px 20px;
+	}
+	#plugin_browser_page .features_list {
+		padding: 4px 20px;
+	}
+	li.plugin_feature_entry {
+		display: flex;
+		gap: 8px;
+		padding-left: 4px;
+		min-height: 28px;
+		align-items: center;
+	}
+	li.plugin_feature_entry.clickable {
+		cursor: pointer;
+	}
+	li.plugin_feature_entry.clickable:hover {
+		color: var(--color-light);
+	}
+	li.plugin_feature_entry label {
+		white-space: nowrap;
+		cursor: inherit;
+	}
+	li.plugin_feature_entry > .description,
+	li.plugin_feature_entry > .extra_info {
+		color: var(--color-subtle_text);
+		margin-left: auto;
+		cursor: inherit;
 	}
 
 	

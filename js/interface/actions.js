@@ -47,7 +47,7 @@ class BarItem extends EventSystem {
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
 			this.uses = 0;
-			Keybinds.actions.push(this)
+			Keybinds.actions.push(this);
 		}
 	}
 	conditionMet() {

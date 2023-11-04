@@ -1079,7 +1079,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
 			var materials = []
@@ -1089,7 +1089,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color])
+						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 					}
 				}
 			})

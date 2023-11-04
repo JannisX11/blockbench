@@ -71,7 +71,7 @@ class Property {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
 		} else if (this.isArray) {
-			return this.default.slice();
+			return this.default ? this.default.slice() : [];
 		} else if (this.isObject) {
 			return Object.keys(this.default).length ? JSON.parse(JSON.stringify(this.default)) : {};
 		} else {

@@ -973,6 +973,177 @@ BARS.defineActions(function() {
 					});
 				},
 
+				// Features
+				getPluginFeatures(plugin) {
+					let types = [];
+
+					let formats = [];
+					for (let id in Formats) {
+						if (Formats[id].plugin == plugin.id) formats.push(Formats[id]);
+					}
+					if (formats.length) {
+						types.push({
+							id: 'formats',
+							name: tl('data.format'),
+							features: formats.map(format => {
+								return {
+									id: format.id,
+									name: format.name,
+									icon: format.icon,
+									description: format.description,
+									click: format.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(format);
+									})
+								}
+							})
+						})
+					}
+
+					let loaders = [];
+					for (let id in ModelLoader.loaders) {
+						if (ModelLoader.loaders[id].plugin == plugin.id) loaders.push(ModelLoader.loaders[id]);
+					}
+					if (loaders.length) {
+						types.push({
+							id: 'loaders',
+							name: tl('format_category.loaders'),
+							features: loaders.map(loader => {
+								return {
+									id: loader.id,
+									name: loader.name,
+									icon: loader.icon,
+									description: loader.description,
+									click: loader.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(loader);
+									})
+								}
+							})
+						})
+					}
+
+					let codecs = [];
+					for (let id in Codecs) {
+						if (Codecs[id].plugin == plugin.id) codecs.push(Codecs[id]);
+					}
+					if (codecs.length) {
+						types.push({
+							id: 'codecs',
+							name: 'Codec',
+							features: codecs.map(codec => {
+								return {
+									id: codec.id,
+									name: codec.name,
+									icon: codec.export_action ? codec.export_action.icon : 'save',
+									description: codec.export_action ? codec.export_action.description : ''
+								}
+							})
+						})
+					}
+
+					let bar_items = Keybinds.actions.filter(action => action.plugin == plugin.id);
+					let tools = bar_items.filter(action => action instanceof Tool);
+					let other_actions = bar_items.filter(action => action instanceof Tool == false);
+
+					if (tools.length) {
+						types.push({
+							id: 'tools',
+							name: tl('category.tools'),
+							features: tools.map(tool => {
+								return {
+									id: tool.id,
+									name: tool.name,
+									icon: tool.icon,
+									description: tool.description,
+									extra_info: tool.keybind.label,
+									click: Condition(tool.condition) && (() => {
+										ActionControl.select(tool.name);
+									})
+								}
+							})
+						})
+					}
+					if (other_actions.length) {
+						types.push({
+							id: 'actions',
+							name: 'Action',
+							features: other_actions.map(action => {
+								return {
+									id: action.id,
+									name: action.name,
+									icon: action.icon,
+									description: action.description,
+									extra_info: action.keybind.label,
+									click: Condition(action.condition) && (() => {
+										ActionControl.select(action.name);
+									})
+								}
+							})
+						})
+					}
+
+					let panels = [];
+					for (let id in Panels) {
+						if (Panels[id].plugin == plugin.id) panels.push(Panels[id]);
+					}
+					if (panels.length) {
+						types.push({
+							id: 'panels',
+							name: tl('data.panel'),
+							features: panels.map(panel => {
+								return {
+									id: panel.id,
+									name: panel.name,
+									icon: panel.icon
+								}
+							})
+						})
+					}
+
+					let setting_list = [];
+					for (let id in settings) {
+						if (settings[id].plugin == plugin.id) setting_list.push(settings[id]);
+					}
+					if (setting_list.length) {
+						types.push({
+							id: 'settings',
+							name: tl('data.setting'),
+							features: setting_list.map(setting => {
+								return {
+									id: setting.id,
+									name: setting.name,
+									icon: setting.icon,
+									click: () => {
+										this.page_tab = 'settings';
+									}
+								}
+							})
+						})
+					}
+
+					let validator_checks = Validator.checks.filter(check => check.plugin == plugin.id);
+					if (validator_checks.length) {
+						types.push({
+							id: 'validator_checks',
+							name: 'Validator Check',
+							features: validator_checks.map(validator_check => {
+								return {
+									id: validator_check.id,
+									name: validator_check.name,
+									icon: 'task_alt'
+								}
+							})
+						})
+					}
+					//TODO
+					//Modes
+					//Element Types
+					return types;
+				},
+
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				tl
@@ -1187,17 +1358,19 @@ BARS.defineActions(function() {
 							</ul>
 						</div>
 						
-						<div v-if="page_tab == 'features'">
-							Tools
-							Actions
-							Formats
-							Codecs
-							Panels
-							Modes
-							Settings
-							Validator Checks
-							Element Types
-						</div>
+						<ul v-if="page_tab == 'features'" class="features_list">
+							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
+								<h4>{{ type.name }}</h4>
+								<ul>
+									<li v-for="feature in type.features" :key="feature.id" class="plugin_feature_entry" :class="{clickable: feature.click}" @click="feature.click && feature.click($event)">
+										<dynamic-icon v-if="feature.icon" :icon="feature.icon" />
+										<label>{{ feature.name }}</label>
+										<div class="description">{{ feature.description }}</div>
+										<div v-if="feature.extra_info" class="extra_info">{{ feature.extra_info }}</div>
+									</li>
+								</ul>
+							</li>
+						</ul>
 						
 					</div>
 					

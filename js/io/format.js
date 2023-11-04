@@ -19,6 +19,7 @@ class ModelFormat {
 		this.show_in_new_list = true;
 		this.can_convert_to = true;
 		this.confidential = false;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);

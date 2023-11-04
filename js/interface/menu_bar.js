@@ -444,6 +444,7 @@ const MenuBar = {
 			new MenuSeparator('media'),
 			'screenshot_model',
 			'screenshot_app',
+			'advanced_screenshot',
 			'record_model_gif',
 			'timelapse',
 		])

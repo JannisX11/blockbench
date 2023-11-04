@@ -784,7 +784,6 @@ window.Dialog = class Dialog {
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) button_bar.append('&nbsp;')
 				button_bar.append(button)
 			})
 
@@ -1038,7 +1037,6 @@ window.MessageBox = class MessageBox extends Dialog {
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) button_bar.append('&nbsp;')
 				button_bar.append(button)
 			})
 

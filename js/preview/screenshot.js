@@ -48,9 +48,29 @@ const Screencam = {
 			})
 		}
 	}),
-	screenshotPreview(preview, options, cb) {
-		if (!options) options = 0;
-
+	advanced_screenshot_dialog: new Dialog({
+		id: 'advanced_screenshot',
+		title: 'action.advanced_screenshot',
+		form: {
+			/*angle_preset: 	{type: 'select', label: 'dialog.advanced_screenshot.angle_preset', value: 'view', options: {
+				view: 'View',
+			}},*/
+			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
+			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
+			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 40, condition: form => !form.zoom_to_fit},
+			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
+				off: 'dialog.advanced_screenshot.anti_aliasing.off',
+				msaa: 'dialog.advanced_screenshot.anti_aliasing.msaa',
+				ssaa: 'dialog.advanced_screenshot.anti_aliasing.ssaa',
+			}},
+			show_gizmos: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.show_gizmos'},
+			shading: 		{type: 'checkbox', label: 'dialog.advanced_screenshot.shading', value: settings.shading.value},
+		},
+		onConfirm(result) {
+			Screencam.advancedScreenshot(Preview.selected, result, Screencam.returnScreenshot);
+		}
+	}),
+	screenshotPreview(preview, options = 0, cb) {
 		Canvas.withoutGizmos(function() {
 
 			preview.render()
@@ -103,6 +123,57 @@ const Screencam = {
 				}
 			}
 		})
+	},
+	async advancedScreenshot(preview = Preview.selected, options = 0, cb) {
+		let current_shading = settings.shading.value;
+
+		let render = async () => {
+
+			if (typeof options.shading == 'boolean' && options.shading != current_shading) {
+				settings.shading.set(options.shading);
+			}
+
+			let render_viewport = options.anti_aliasing == 'msaa' ? MediaPreview : Screencam.NoAAPreview;
+
+			let sample_factor = options.anti_aliasing == 'ssaa' ? 4 : 1;
+			render_viewport.resize(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+			render_viewport.copyView(preview);
+			if (!render_viewport.isOrtho) {
+				render_viewport.camera.setFocalLength(options.zoom);
+			}
+			render_viewport.render();
+
+			if (options.anti_aliasing == 'ssaa') {
+
+                let img_frame = new CanvasFrame(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+                let frame = new CanvasFrame(options.resolution[0], options.resolution[1]);
+                let img = new Image()
+                img.src = render_viewport.canvas.toDataURL();
+                await new Promise((resolve, reject) => {
+                    img.onload = function() {
+                        resolve()
+                    }
+                    img.onerror = reject;
+                })
+                img_frame.ctx.filter = `blur(1px)`;
+                img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+                frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
+
+				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
+
+			} else {
+				Screencam.returnScreenshot(render_viewport.canvas.toDataURL(), cb);
+			}
+
+			if (settings.shading.value != current_shading) {
+				settings.shading.set(current_shading);
+			}
+		};
+		if (options.show_gizmos) {
+			render();
+		} else {
+			Canvas.withoutGizmos(render);
+		}
 	},
 	fullScreen(options = 0, cb) {
 		setTimeout(async function() {
@@ -166,9 +237,9 @@ const Screencam = {
 		center.innerHTML = `<div>${img.naturalWidth} x ${img.naturalHeight}px, ${size_text}, ${is_gif ? 'GIF' : 'PNG'}</div>`;
 		center.appendChild(img);
 
-		let buttons = [tl('dialog.save'), tl('dialog.cancel')]
+		let buttons = ['dialog.save', 'dialog.cancel'];
 		if (!is_gif) {
-			buttons.splice(0, 0, tl('message.screenshot.clipboard'))
+			buttons = ['message.screenshot.clipboard', 'dialog.save', 'menu.texture.edit', 'dialog.cancel'];
 		}
 		let dialog = new Dialog({
 			title: 'message.screenshot.title', 
@@ -178,9 +249,10 @@ const Screencam = {
 				center
 			],
 			buttons,
-			onButton(result) {
+			onButton(result_index) {
+				let result = buttons[result_index];
 
-				if (result === 0 && buttons.length == 3) {
+				if (result === 'message.screenshot.clipboard') {
 					if (navigator.clipboard && navigator.clipboard.write) {
 						fetch(dataUrl).then(async data => {
 							const blob = await data.blob();
@@ -194,7 +266,7 @@ const Screencam = {
 						Blockbench.showQuickMessage('message.screenshot.right_click');
 						return false;
 					}
-				} else if (result === buttons.length-2) {
+				} else if (result === 'dialog.save') {
 					Blockbench.export({
 						resource_id: 'screenshot',
 						extensions: [is_gif ? 'gif' : 'png'],
@@ -203,6 +275,9 @@ const Screencam = {
 						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
 						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
+				} else if (result === 'menu.texture.edit') {
+					Codecs.image.load(dataUrl, '', [img.naturalWidth, img.naturalHeight]);
+					Texture.all[0].name = 'screenshot';
 				}
 			}
 		})
@@ -668,6 +743,14 @@ BARS.defineActions(function() {
 			} else {
 				Screencam.screenshot2DEditor();
 			}
+		}
+	})
+	new Action('advanced_screenshot', {
+		icon: 'add_a_photo',
+		category: 'view',
+		condition: () => !!Project && !Format.image_editor,
+		click() {
+			Screencam.advanced_screenshot_dialog.show();
 		}
 	})
 	new Action('record_model_gif', {

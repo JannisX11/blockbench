@@ -88,8 +88,9 @@ const UVEditor = {
 			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
-			if (x === Painter.current.x && y === Painter.current.y) {
-				return
+			let interval = Toolbox.selected.brush?.interval || 1;
+			if (Math.sqrt(Math.pow(x - Painter.current.x, 2) + Math.pow(y - Painter.current.y, 2)) < interval) {
+				return;
 			}
 			if (Painter.current.face !== UVEditor.selected_faces[0]) {
 				Painter.current.x = x
