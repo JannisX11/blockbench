@@ -26,7 +26,7 @@ const Painter = {
 		) {
 			//IS CACHED
 			canvas = Painter.current.cached_canvases[texture.uuid];
-			Painter.current.ctx = canvas.getContext('2d');
+			Painter.current.ctx = canvas.getContext('2d', {willReadFrequently: true});
 			callback(canvas);
 			if (options.no_update === true) {
 				return;
@@ -128,8 +128,9 @@ const Painter = {
 			let new_face;
 			let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
 
-			if (x === Painter.current.x && y === Painter.current.y) {
-				return
+			let interval = Toolbox.selected.brush?.interval || 1;
+			if (Math.sqrt(Math.pow(x - Painter.current.x, 2) + Math.pow(y - Painter.current.y, 2)) < interval) {
+				return;
 			}
 
 			if (
@@ -426,9 +427,9 @@ const Painter = {
 			}
 			let shape = BarItems.brush_shape.value;
 			if (shape == 'square') {
-				Painter.editSquare(ctx, x, y, size, softness, run_per_pixel);
+				Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
 			} else if (shape == 'circle') {
-				Painter.editCircle(ctx, x, y, size, softness, run_per_pixel);
+				Painter.editCircle(ctx, x, y, size, softness * 1.8, run_per_pixel);
 			}
 
 		}
@@ -799,13 +800,15 @@ const Painter = {
 		if (new_face && !length) {
 			length = 1
 		}
-		var interval = Toolbox.selected.brush?.line_interval || 1;
+		let interval = Toolbox.selected.brush?.interval || 1;
 		var i = Math.min(interval, length);
 		var x, y;
-		if (Math.abs(diff_x) > Math.abs(diff_y)) {
-			interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
-		} else {
-			interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+		if (interval == 1) {
+			if (Math.abs(diff_x) > Math.abs(diff_y)) {
+				interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+			} else {
+				interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+			}
 		}
 
 		while (i <= length) {
@@ -1320,7 +1323,8 @@ const Painter = {
 		ctx.putImageData(arr, x, y)
 	},
 	editCircle(ctx, x, y, r, soft, editPx) {
-		r = Math.round(r+1)/2
+		r = Math.round(r+1)/2;
+		let pixel_roundness_factor = 1 + 1 / (r+3);
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
@@ -1352,9 +1356,7 @@ const Painter = {
 				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
 				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
-				if (r < 8) {
-					distance *= 1.2;
-				}
+				distance *= pixel_roundness_factor;
 				var pos_on_gradient = Math.floor(distance/r);
 			}
 
@@ -1374,7 +1376,7 @@ const Painter = {
 			}
 		});
 	},
-	editSquare(ctx, x, y, r, s, editPx) {
+	editSquare(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
@@ -1403,8 +1405,8 @@ const Painter = {
 			}
 
 			var distance = Math.max(Math.abs(v_px), Math.abs(v_py));
-			if (s*r != 0) {
-				var pos_on_gradient = Math.clamp((distance-(1-s)*r) / (s*r), 0, 1)
+			if (soft*r != 0) {
+				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
 				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
 				var pos_on_gradient = Math.floor((distance)/r)
@@ -1665,6 +1667,9 @@ BARS.defineActions(function() {
 			opacity: true,
 			offset_even_radius: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
+			get interval() {
+				return 1 + BarItems.slider_brush_size.get() * BarItems.slider_brush_softness.get() / 1500;
+			},
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
 				if (blend_mode == 'set_opacity') local_opacity = 1;
@@ -1675,12 +1680,14 @@ BARS.defineActions(function() {
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					var before = Painter.getAlphaMatrix(texture, px, py)
-					Painter.setAlphaMatrix(texture, px, py, a);
-					if (a > before) {
-						a = (a - before) / (1 - before);
-					} else if (before) {
-						a = 0;
+					if (opacity < 1) {
+						let before = Painter.getAlphaMatrix(texture, px, py);
+						let new_val = (before||0);
+						if (before) {
+							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
+						}
+						new_val = new_val + (1-new_val) * a;
+						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
 					}
 					let result_color;
 					if (blend_mode == 'default') {
@@ -1897,18 +1904,22 @@ BARS.defineActions(function() {
 			opacity: true,
 			offset_even_radius: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
+			get interval() {
+				return 1 + BarItems.slider_brush_size.get() * BarItems.slider_brush_softness.get() / 1500;
+			},
 			changePixel(px, py, pxcolor, local_opacity, {opacity, ctx, x, y, size, softness, texture, event}) {
 				if (Painter.lock_alpha) return pxcolor;
 
 				var a = opacity * local_opacity;
 
-				var before = Painter.getAlphaMatrix(texture, px, py)
-				Painter.setAlphaMatrix(texture, px, py, a);
-
-				if (a > before) {
-					a = (a - before) / (1 - before);
-				} else if (before) {
-					a = 0;
+				if (opacity < 1) {
+					let before = Painter.getAlphaMatrix(texture, px, py);
+					let new_val = (before||0);
+					if (before) {
+						a = Math.clamp(a, 0, (opacity - before) / (1 - before));
+					}
+					new_val = new_val + (1-new_val) * a;
+					if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
 				}
 				pxcolor.a = Math.clamp(pxcolor.a * (1-a), 0, 1);
 				return pxcolor;
