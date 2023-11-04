@@ -136,5 +136,5 @@ function getAxisNumber(letter) {
 }
 let string_num_regex = /^-?\d+(\.\d+f?)?$/;
 function isStringNumber(string) {
-	return string_num_regex.test(string);
+	return typeof string == 'number' || string_num_regex.test(string);
 }

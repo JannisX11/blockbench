@@ -1078,6 +1078,40 @@ BARS.defineActions(function() {
 		}
 	})
 
+	new Action('bake_ik_animation', {
+		icon: 'precision_manufacturing',
+		category: 'animation',
+		condition: () => Modes.animate && NullObject.all.findIndex(n => n.ik_target) != -1,
+		click() {
+			let animation = Animation.selected;
+			let ik_samples = animation.sampleIK(animation.snapping);
+
+			let keyframes = [];
+			Undo.initEdit({keyframes});
+			
+			for (let uuid in ik_samples) {
+				let animator = animation.animators[uuid];
+				ik_samples[uuid].forEach(({array}) => {
+					array[0] = Math.roundTo(array[0], 4);
+					array[1] = Math.roundTo(array[1], 4);
+					array[2] = Math.roundTo(array[2], 4);
+				})
+				ik_samples[uuid].forEach(({array}, i) => {
+					let before = ik_samples[uuid][i-1];
+					let after = ik_samples[uuid][i+1];
+					if ((!before || before.array.equals(array)) && (!after || after.array.equals(array))) return;
+
+					let time = Timeline.snapTime(i / animation.snapping, animation);
+					let values = {x: array[0], y: array[1], z: array[2]};
+					let kf = animator.createKeyframe(values, time, 'rotation', false, false);
+					keyframes.push(kf);
+				})
+				animator.addToTimeline();
+			}
+			
+			Undo.finishEdit('Bake IK rotations');
+		}
+	})
 	new Action('bake_animation_into_model', {
 		icon: 'directions_run',
 		category: 'animation',

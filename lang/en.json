@@ -1649,6 +1649,8 @@
 	"action.save_all_animations.desc": "Save all currently loaded animations",
 	"action.export_animation_file": "Export Animations...",
 	"action.export_animation_file.desc": "Export a selection of animations into a new file",
+	"action.bake_ik_animation": "Bake Inverse Kinematics",
+	"action.bake_ik_animation.desc": "Bake the rotations applied by inverse kinematics into the selected animation",
 	"action.bake_animation_into_model": "Bake Animation into Model",
 	"action.bake_animation_into_model.desc": "Bake the currently displayed animation frame into the model. Only applies rotation and position, scale is ignored.",
 	"action.slider_animation_length": "Animation Length",
