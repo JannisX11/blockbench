@@ -253,6 +253,9 @@
 		margin-right: 10px;
 		pointer-events: none;
 	}
+	.dialog_message_box_command > .icon {
+		margin-right: 10px;
+	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
 		margin-bottom: -14px;

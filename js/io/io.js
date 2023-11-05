@@ -194,12 +194,25 @@ async function loadImages(files, event) {
 		doLoadImages(all_methods[0]);
 
 	} else if (all_methods.length) {
+		let icons = {
+			replace_texture: 'file_upload',
+			texture: 'library_add',
+			layer: 'new_window',
+			reference_image: 'wallpaper',
+			edit: 'draw',
+			minecraft_skin: 'icon-player',
+			extrude_with_cubes: 'eject',
+		};
+		let commands = {};
+		for (let id in options) {
+			commands[id] = {text: options[id], icon: icons[id]};
+		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
 		if (files.length > 1) message += ` (${files.length})`;
 		Blockbench.showMessageBox({
 			id: 'load_images',
-			commands: options,
+			commands,
 			title, message,
 			icon: img,
 			buttons: ['dialog.cancel'],
