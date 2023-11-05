@@ -7,7 +7,7 @@ module.exports = {
     entry: './src/index.js',
     output: {
         filename: 'bundle.js',
-        path: PathModule.resolve(__dirname, 'js', 'webpack')
+        path: PathModule.resolve(__dirname, 'js')
     },
     module: {
         rules: [
