@@ -197,11 +197,10 @@ const UVEditor = {
 		}
 		this.vue.selection_outline = outline;
 	},
-	addPastingOverlay() {
+	/*addPastingOverlay() {
 		if (Painter.selection.overlay) return;
 		let scope = this;
 		let overlay = $(Interface.createElement('div', {id: 'texture_pasting_overlay'}));
-		UVEditor.vue.copy_overlay.state = 'move';
 
 		open_interface = {
 			confirm() {
@@ -241,7 +240,6 @@ const UVEditor = {
 	},
 	removePastingOverlay() {
 		Painter.selection.overlay.detach();
-		UVEditor.vue.copy_overlay.state = 'off';
 		delete Painter.selection.overlay;
 		open_interface = false;
 	},
@@ -254,7 +252,7 @@ const UVEditor = {
 			.css('left', Painter.selection.x * m)
 			.css('top', (Painter.selection.y%this.texture.display_height) * m);
 		return this;
-	},
+	},*/
 	focusOnSelection() {
 		let min_x = UVEditor.getUVWidth();
 		let min_y = UVEditor.getUVHeight();
@@ -395,7 +393,6 @@ const UVEditor = {
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
 			UVEditor.updateSelectionOutline(false);
-			if (Painter.selection.overlay) UVEditor.updatePastingOverlay()
 		})
 		return this;
 	},
@@ -1922,65 +1919,6 @@ Interface.definePanels(function() {
 		return temp_canvas
 	}
 
-	let copy_overlay = {
-		state: 'off',
-		width: 0, height: 0,
-		
-		doPlace() {
-			open_interface.confirm();
-		},
-		doCancel() {
-			open_interface.hide();
-		},
-		doCut(e) {
-			UVEditor.removePastingOverlay()
-			UVEditor.texture.edit((canvas) => {
-				var ctx = canvas.getContext('2d');
-				ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
-			})
-		},
-		doMirror_x(e) {
-			let temp_canvas = getCanvasCopy()
-	
-			let ctx = Painter.selection.canvas.getContext('2d');
-			ctx.save();
-			ctx.translate(ctx.canvas.width, 0);
-			ctx.scale(-1, 1);
-	
-			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-			ctx.drawImage(temp_canvas, ctx.canvas.width, 0, -ctx.canvas.width, ctx.canvas.height);
-			ctx.restore();
-			UVEditor.updatePastingOverlay()
-		},
-		doMirror_y(e) {
-			let temp_canvas = getCanvasCopy()
-	
-			let ctx = Painter.selection.canvas.getContext('2d');
-			ctx.save();
-			ctx.translate(0, ctx.canvas.height);
-			ctx.scale(1, -1);
-	
-			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-			ctx.drawImage(temp_canvas, 0, ctx.canvas.height, ctx.canvas.width, -ctx.canvas.height);
-			ctx.restore();
-		},
-		doRotate(e) {
-			let temp_canvas = getCanvasCopy()
-	
-			let ctx = Painter.selection.canvas.getContext('2d');
-			[ctx.canvas.width, ctx.canvas.height] = [ctx.canvas.height, ctx.canvas.width]
-			ctx.save();
-			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-	
-			ctx.translate(ctx.canvas.width/2,ctx.canvas.height/2);
-			ctx.rotate(Math.PI/2);
-	
-			ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
-	
-			ctx.restore();
-			UVEditor.updatePastingOverlay()
-		},
-	}
 	
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
@@ -2055,7 +1993,6 @@ Interface.definePanels(function() {
 					active: false,
 					ellipse: false
 				},
-				copy_overlay,
 
 				uv_resolution: [16, 16],
 				elements: [],
@@ -3301,6 +3238,7 @@ Interface.definePanels(function() {
 					let create_selection = !(op_mode == 'create' && clicked_val) && Toolbox.selected.id == 'selection_tool';
 					let layer = texture.selected_layer;
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
+					console.log('X')
 
 					/*if (op_mode == 'create' && clicked_val) {
 						if (open_interface) {
@@ -3385,6 +3323,7 @@ Interface.definePanels(function() {
 					}
 
 					let last_x, last_y;
+					let started_movement = false;
 					function drag(e1) {
 
 						var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
@@ -3416,28 +3355,36 @@ Interface.definePanels(function() {
 							selection_rect.width = calcrect.x;
 							selection_rect.height = calcrect.y;
 
+							Blockbench.setCursorTooltip(`${selection_rect.width} x ${selection_rect.height}`);
+
 						} else {
-							UVEditor.vue.selection_outline = '';
-							if (!layer) {
-								texture.activateLayers();
-								layer = texture.selected_layer;
-								texture.display_canvas = true;
-								UVEditor.vue.updateTextureCanvas();
-							}
-							if (!layer.in_limbo && texture.selection.is_custom && texture.selection.hasSelection()) {
-								texture.selectionToLayer();
-								layer = texture.selected_layer;
-								initial_offset = layer.offset.slice();
+							if (!started_movement) {
+								UVEditor.vue.selection_outline = '';
+								if ((!layer || !layer.in_limbo) && texture.selection.is_custom && texture.selection.hasSelection()) {
+									Undo.initEdit({textures: [texture], bitmap: true});
+									texture.selectionToLayer(false);
+									layer = texture.selected_layer;
+									initial_offset = layer.offset.slice();
+								} else if (!layer) {
+									Undo.initEdit({textures: [texture], bitmap: true});
+									texture.activateLayers(false);
+									layer = texture.selected_layer;
+								} else {
+									Undo.initEdit({layers: [layer], bitmap: true});
+								}
 							}
 							layer.offset[0] = initial_offset[0] + x - start_x;
 							layer.offset[1] = initial_offset[1] + y - start_y;
+							Blockbench.setCursorTooltip(`${x - start_x} x ${y - start_y}`);
 							texture.updateLayerChanges();
 						}
+						started_movement = true;
 					}
 					function stop() {
 						removeEventListeners(document, 'pointermove', drag);
 						removeEventListeners(document, 'pointerup', stop);
 						selection_rect.active = false;
+						Blockbench.setCursorTooltip();
 
 						if (create_selection) {
 							if (!calcrect || selection_rect.width == 0 || selection_rect.height == 0) {
@@ -3517,26 +3464,10 @@ Interface.definePanels(function() {
 							UVEditor.updateSelectionOutline();
 						} else {
 							texture.updateLayerChanges(true);
-							texture.selection.translate(last_x - start_x, last_y - start_y);
+							texture.selection.clear();
 							UVEditor.updateSelectionOutline();
+							Undo.finishEdit('Move layer');
 						}
-
-
-						/*if (isApp) {
-							let image = nativeImage.createFromDataURL(canvas.toDataURL())
-							clipboard.writeImage(image)
-						}*/
-						/*Painter.selection.canvas = canvas;
-
-						Painter.selection.move_mode = BarItems.copy_paste_tool_mode.value == 'move';
-						if (Painter.selection.move_mode) {
-							UVEditor.texture.edit((canvas) => {
-								var ctx = canvas.getContext('2d');
-								ctx.clearRect(Painter.selection.x, Painter.selection.y, Painter.selection.canvas.width, Painter.selection.canvas.height);
-							}, {no_undo_finish: true});
-						}
-
-						//UVEditor.addPastingOverlay();*/
 					}
 					addEventListeners(document, 'pointermove', drag);
 					addEventListeners(document, 'pointerup', stop);
@@ -3881,25 +3812,25 @@ Interface.definePanels(function() {
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>
 					</div>
 
-					<div v-show="mode == 'paint'" class="bar uv_painter_info">
-						<div v-if="copy_overlay.state == 'move'" ref="copy_paste_tool_control" class="copy_paste_tool_control">
-							<div class="tool button_cut" @click="copy_overlay.doCut"><div class="tooltip">${tl('uv_editor.copy_paste_tool.cut')}</div><i class="fa_big icon fa fas fa-cut"></i></div>
-							<div class="tool button_mirror_x" @click="copy_overlay.doMirror_x"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
-							<div class="tool button_mirror_y" @click="copy_overlay.doMirror_y"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
-							<div class="tool button_rotate" @click="copy_overlay.doRotate"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
+					<div class="uv_layer_limbo_options" v-if="texture && texture.selected_layer && texture.selected_layer.in_limbo">
+						<button @click="texture.selected_layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
+						<button @click="texture.selected_layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
+					</div>
 
-							<div class="tool button_cancel" @click="copy_overlay.doCancel"><div class="tooltip">${tl('dialog.cancel')}</div><i class="material-icons">clear</i></div>
-							<div class="tool button_place" @click="copy_overlay.doPlace"><div class="tooltip">${tl('uv_editor.copy_paste_tool.place')}</div><i class="material-icons">check</i></div>
+					<div v-show="mode == 'paint'" class="bar uv_painter_info">
+						<div v-if="texture && texture.selected_layer && texture.selected_layer.in_limbo" ref="copy_paste_tool_control" class="copy_paste_tool_control">
+							<div class="tool button_mirror_x" @click="texture.selected_layer.flip(0)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
+							<div class="tool button_mirror_y" @click="texture.selected_layer.flip(1)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
+							<div class="tool button_rotate" @click="texture.selected_layer.rotate(90)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
 						</div>
 
 						<template v-else>
-							<span v-if="copy_overlay.state == 'select'" style="color: var(--color-subtle_text);">{{ copy_overlay.width + ' ⨉ ' + copy_overlay.height }}</span>
 							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.active ? (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) : '-' }}</span>
 							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>
 
-						<div v-show="copy_overlay.state !== 'move'" id="toggle_uv_overlay_anchor"></div>
+						<div id="toggle_uv_overlay_anchor"></div>
 					</div>
 
 					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">

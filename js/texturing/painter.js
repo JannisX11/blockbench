@@ -2435,7 +2435,7 @@ BARS.defineActions(function() {
 		onSelect() {
 			let texture = Texture.selected;
 			if (texture && texture.selection.is_custom && texture.selection.hasSelection() && (!texture.selected_layer || !texture.selected_layer.in_limbo)) {
-				Texture.selected.selectionToLayer();
+				Texture.selected.selectionToLayer(true);
 			}
 		}
 	})

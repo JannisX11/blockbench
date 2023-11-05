@@ -57,6 +57,16 @@ const SharedActions = {
 		}
 		return false;
 	},
+	find(action_id, event, context) {
+		let list = this.actions[action_id];
+		if (!list) return;
+		for (let handler of list) {
+			if (Condition(handler.condition, context)) {
+				return handler;
+			}
+		}
+		return null;
+	},
 	actions: {}
 };
 

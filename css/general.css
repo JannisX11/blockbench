@@ -239,7 +239,6 @@
 		white-space: pre-line;
 		cursor: default;
 		pointer-events: none;
-		border-radius: 6px;
 	}
 	.uv_message_box {
 		position: absolute;

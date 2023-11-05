@@ -735,6 +735,10 @@
 	.texture_layer.selected {
 		background-color: var(--color-selected);
 	}
+	.texture_layer.in_limbo {
+		border: 2px dashed var(--color-accent);
+		font-style: italic;
+	}
 	.texture_layer .layer_icon_wrapper {
 		height: 40px;
 		width: 40px;
@@ -2440,6 +2444,16 @@ span.controller_state_section_info {
 	.copy_paste_tool_control .tool.button_cancel {
 		color: var(--color-close);
 		float: right;
+	}
+	.uv_layer_limbo_options {
+		position: absolute;
+		bottom: 52px;
+		left: 0;
+		right: 0;
+		margin: auto;
+		background-color: var(--color-ui);
+		padding: 0 4px;
+		width: fit-content;
 	}
 
 /*Chat*/

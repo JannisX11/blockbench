@@ -3,7 +3,7 @@ class TextureLayer {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
 		this.canvas = document.createElement('canvas');
-		this.ctx = this.canvas.getContext('2d');
+		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
 		this.in_limbo = false;
 
 		this.img = new Image();
@@ -23,7 +23,7 @@ class TextureLayer {
 		return this.canvas.width;
 	}
 	get height() {
-		return this.canvas.width;
+		return this.canvas.height;
 	}
 	get size() {
 		return [this.canvas.width, this.canvas.height];
@@ -90,17 +90,88 @@ class TextureLayer {
 		return copy;
 	}
 	setLimbo() {
+		this.texture.layers.forEach(layer => layer.in_limbo = false);
 		this.in_limbo = true;
+	}
+	resolveLimbo(keep_separate) {
+		if (keep_separate) {
+			TextureLayer.selected.in_limbo = false;
+		} else {
+			TextureLayer.selected.mergeDown(true);
+		}
+		Texture.selected.selection.clear();
+		UVEditor.updateSelectionOutline();
 	}
 	setSize(width, height) {
 		this.canvas.width = width;
 		this.canvas.height = height;
 	}
 	toggleVisibility() {
-		Undo.initEdit({textures: [this.texture]});
+		Undo.initEdit({layers: [this]});
 		this.visible = !this.visible;
 		this.texture.updateLayerChanges(true);
 		Undo.finishEdit('Toggle layer visibility');
+	}
+	mergeDown(undo = true) {
+		let down_layer = this.texture.layers[this.texture.layers.indexOf(this) - 1];
+		if (!down_layer) {
+			this.in_limbo = false;
+			return;
+		}
+
+		if (undo) {
+			Undo.initEdit({textures: [this.texture], bitmap: true});
+		}
+		down_layer.ctx.drawImage(this.canvas, this.offset[0], this.offset[1]);
+
+		let index = this.texture.layers.indexOf(this);
+		this.texture.layers.splice(index, 1);
+		if (this.texture.selected_layer == this) this.texture.selected_layer = this.texture.layers[index-1] || this.texture.layers[index];
+		if (undo) {
+			this.texture.updateLayerChanges(true);
+			Undo.finishEdit('Merge layers');
+		}
+	}
+	flip(axis = 0, undo) {
+		let temp_canvas = this.canvas.cloneNode();
+		let temp_canvas_ctx = temp_canvas.getContext('2d');
+		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
+
+		if (undo) Undo.initEdit({layers: [this]});
+
+		this.ctx.save();
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		this.ctx.translate(this.canvas.width, 0);
+		if (axis == 0) {
+			this.ctx.scale(-1, 1);
+			this.ctx.drawImage(temp_canvas, this.canvas.width, 0, -this.canvas.width, this.canvas.height);
+		} else {
+			this.ctx.scale(1, -1);
+			this.ctx.drawImage(temp_canvas, this.canvas.width, 0, this.canvas.width, -this.canvas.height);
+		}
+		this.ctx.restore();
+
+		this.texture.updateLayerChanges(undo);
+
+		if (undo) Undo.finishEdit('Flip layer');
+	}
+	rotate(angle = 90, undo) {
+		let temp_canvas = this.canvas.cloneNode();
+		let temp_canvas_ctx = temp_canvas.getContext('2d');
+		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
+
+		if (undo) Undo.initEdit({layers: [this]});
+
+		[this.canvas.width, this.canvas.height] = [this.canvas.height, this.canvas.width];
+		this.ctx.save();
+		this.ctx.translate(this.canvas.width/2,this.canvas.height/2);
+		this.ctx.rotate(Math.degToRad(angle));
+		this.ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
+		this.ctx.restore();
+
+		this.texture.updateLayerChanges(undo);
+
+		if (undo) Undo.finishEdit('Rotate layer');
 	}
 	propertiesDialog() {
 		let dialog = new Dialog({
@@ -166,6 +237,7 @@ Object.defineProperty(TextureLayer, 'selected', {
 })
 
 SharedActions.add('delete', {
+	subject: 'layer',
 	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
 	run() {
 		if (Texture.selected.layers.length >= 2) {
@@ -173,7 +245,20 @@ SharedActions.add('delete', {
 		}
 	}
 })
+SharedActions.add('delete', {
+	subject: 'layer_priority',
+	condition: () => Texture.selected?.selected_layer.in_limbo,
+	priority: 2,
+	run() {
+		if (Texture.selected.layers.length >= 2) {
+			Texture.selected?.selected_layer.remove(true);
+		}
+		Texture.selected.selection.clear()
+		UVEditor.updateSelectionOutline()
+	}
+})
 SharedActions.add('duplicate', {
+	subject: 'layer',
 	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
 	run() {
 		let texture = Texture.selected;
@@ -420,7 +505,7 @@ Interface.definePanels(function() {
 				>
 					<li
 						v-for="layer in layers"
-						:class="{ selected: layer.selected }"
+						:class="{ selected: layer.selected, in_limbo: layer.in_limbo }"
 						:key="layer.uuid"
 						:layer_id="layer.uuid"
 						class="texture_layer"

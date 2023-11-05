@@ -13,7 +13,7 @@ class Texture {
 		this.show_icon = true
 		this.error = 0;
 		this.visible = true;
-		this.display_canvas = false;
+		this.display_canvas = true;
 		this.source_overwritten = false;
 		//Data
 		this.img = 0;
@@ -1304,6 +1304,7 @@ class Texture {
 	}
 	activateLayers(undo) {
 		if (undo) Undo.initEdit({textures: [this], bitmap: true});
+		console.trace('E')
 		this.layers_enabled = true;
 		if (!this.layers.length) {
 			let layer = new TextureLayer({
@@ -1318,24 +1319,20 @@ class Texture {
 		updateInterfacePanels();
 		BARS.updateConditions();
 	}
-	selectionToLayer() {
-
-
-
+	selectionToLayer(undo) {
 		let texture = this;
 		let selection = texture.selection;
+
+		if (undo) Undo.initEdit({textures: [texture], bitmap: true});
+		if (!texture.layers_enabled) {
+			texture.activateLayers(false);
+		}
 
 		let {canvas, ctx} = texture.getActiveCanvas();
 		let layer = texture.selected_layer;
 		let offset = layer ? layer.offset.slice() : [0, 0];
 		let copy_canvas = canvas;
 
-		Undo.initEdit({textures: [texture], bitmap: true});
-
-		if (!texture.layers_enabled) {
-			texture.activateLayers(false);
-		}
-		
 		if (selection.is_custom)  {
 			let rect = selection.getBoundingRect();
 			copy_canvas = document.createElement('canvas');
@@ -1361,7 +1358,7 @@ class Texture {
 		if (texture.mode === 'link') {
 			texture.convertToInternal();
 		}
-		texture.selection.forEachPixel((x, y, val) => {
+		selection.forEachPixel((x, y, val) => {
 			if (val) {
 				ctx.clearRect(x, y, 1, 1);
 			}
@@ -1375,7 +1372,7 @@ class Texture {
 		new_layer.setLimbo();
 
 		texture.updateLayerChanges(true);
-		Undo.finishEdit('Texture selection to layer');
+		if (undo) Undo.finishEdit('Texture selection to layer');
 		updateInterfacePanels();
 		BARS.updateConditions();
 	}
