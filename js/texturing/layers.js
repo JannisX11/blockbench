@@ -156,12 +156,12 @@ new Property(TextureLayer, 'boolean', 'visible', {default: true});
 
 Object.defineProperty(TextureLayer, 'all', {
 	get() {
-		Texture.selected?.layers_enabled ? Texture.selected.layers : [];
+		return Texture.selected?.layers_enabled ? Texture.selected.layers : [];
 	}
 })
 Object.defineProperty(TextureLayer, 'selected', {
 	get() {
-		Texture.selected?.selected_layer;
+		return Texture.selected?.selected_layer;
 	}
 })
 
