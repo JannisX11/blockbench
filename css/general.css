@@ -216,13 +216,30 @@
 		cursor: default;
 		pointer-events: none;
 	}
-
 	@media (max-device-width: 640px) {
 		#quick_message_box {
 			bottom: 26px;
 			top: unset;
 			padding: 6px;
 		}
+	}
+	#cursor_tooltip {
+		position: absolute;
+		z-index: 101;
+		max-width: 250px;
+		width: fit-content;
+		line-height: 18px;
+		padding: 2px 8px;
+		margin-top: 10px;
+		margin-left: 9px;
+		background-color: var(--color-bright_ui);
+		color: var(--color-bright_ui_text);
+		box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);;
+		overflow-wrap: break-word;
+		white-space: pre-line;
+		cursor: default;
+		pointer-events: none;
+		border-radius: 6px;
 	}
 	.uv_message_box {
 		position: absolute;

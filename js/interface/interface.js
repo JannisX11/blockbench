@@ -547,6 +547,11 @@ function setupInterface() {
 	document.addEventListener('mousemove', event => {
 		mouse_pos.x = event.clientX;
 		mouse_pos.y = event.clientY;
+
+		if (Interface.cursor_tooltip?.textContent) {
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
 	})
 	updateInterface()
 }
