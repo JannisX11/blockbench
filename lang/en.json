@@ -2104,7 +2104,7 @@
 	"uv_editor.transparent_face": "Transparent Face",
 
 	"uv_editor.copy_paste_tool.place": "Place",
-	"uv_editor.copy_paste_tool.to_layer": "Place",
+	"uv_editor.copy_paste_tool.to_layer": "To New Layer",
 	"uv_editor.copy_paste_tool.mirror_x": "Mirror X",
 	"uv_editor.copy_paste_tool.mirror_y": "Mirror Y",
 	"uv_editor.copy_paste_tool.rotate": "Rotate 90 Degrees",

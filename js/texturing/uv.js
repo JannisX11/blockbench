@@ -1974,6 +1974,7 @@ Interface.definePanels(function() {
 				pixel_grid: settings.painting_grid.value,
 				uv_overlay: false,
 				texture: 0,
+				layer: null,
 				mouse_coords: {x: -1, y: -1, active: false},
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
@@ -2175,6 +2176,7 @@ Interface.definePanels(function() {
 					} else {
 						this.texture = 0;
 					}
+					this.layer = (this.texture && this.texture.selected_layer) || null;
 					// Display canvas while painting
 					UVEditor.updateSelectionOutline();
 					this.updateTextureCanvas();
@@ -3079,6 +3081,9 @@ Interface.definePanels(function() {
 				toPixels(uv_coord, offset = 0) {
 					return (uv_coord / this.uv_resolution[0] * this.inner_width + offset) + 'px'
 				},
+				toTexturePixels(tex_coord, offset = 0) {
+					return (tex_coord / this.texture.width * this.inner_width + offset) + 'px'
+				},
 				getDisplayedUVElements() {
 					if (this.mode == 'uv' || this.uv_overlay) {
 						return (this.display_uv === 'all_elements' || this.mode == 'paint')
@@ -3230,15 +3235,18 @@ Interface.definePanels(function() {
 					let texture = UVEditor.texture;
 					if (!texture) return;
 					if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
+					if (!texture.selected) texture.select();
+
 					let clicked_val = texture.selection.get(Math.floor(x), Math.floor(y));
 					let selection_mode = BarItems.selection_tool.mode;
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
 					let start_x, start_y, calcrect;
-					let create_selection = !(op_mode == 'create' && clicked_val) && Toolbox.selected.id == 'selection_tool';
+					let create_selection = Toolbox.selected.id == 'selection_tool'
+						&& !(op_mode == 'create' && clicked_val)
+						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let layer = texture.selected_layer;
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
-					console.log('X')
 
 					/*if (op_mode == 'create' && clicked_val) {
 						if (open_interface) {
@@ -3320,6 +3328,7 @@ Interface.definePanels(function() {
 						}
 
 					} else {
+
 					}
 
 					let last_x, last_y;
@@ -3372,11 +3381,14 @@ Interface.definePanels(function() {
 								} else {
 									Undo.initEdit({layers: [layer], bitmap: true});
 								}
+								texture.selection.clear();
+								UVEditor.updateSelectionOutline();
 							}
 							layer.offset[0] = initial_offset[0] + x - start_x;
 							layer.offset[1] = initial_offset[1] + y - start_y;
 							Blockbench.setCursorTooltip(`${x - start_x} x ${y - start_y}`);
 							texture.updateLayerChanges();
+							UVEditor.vue.$forceUpdate();
 						}
 						started_movement = true;
 					}
@@ -3391,6 +3403,9 @@ Interface.definePanels(function() {
 								if (!texture.selection.hasSelection()) {
 									texture.selection.clear();
 									UVEditor.updateSelectionOutline();
+								}
+								if (TextureLayer.selected?.in_limbo) {
+									TextureLayer.selected.resolveLimbo();
 								}
 								return;
 							}
@@ -3464,13 +3479,19 @@ Interface.definePanels(function() {
 							UVEditor.updateSelectionOutline();
 						} else {
 							texture.updateLayerChanges(true);
-							texture.selection.clear();
-							UVEditor.updateSelectionOutline();
 							Undo.finishEdit('Move layer');
 						}
 					}
 					addEventListeners(document, 'pointermove', drag);
 					addEventListeners(document, 'pointerup', stop);
+				},
+				isTransformingLayer() {
+					if (!this.texture || !this.texture.selected_layer) return false;
+					let tool = Toolbox.selected;
+					if (tool.id == 'move_layer_tool' || (tool.id == 'selection_tool' && TextureLayer.selected?.in_limbo)) {
+						return true;
+					}
+					return false;
 				},
 
 				checkFormat(values) {
@@ -3770,7 +3791,7 @@ Interface.definePanels(function() {
 									height: toPixels(selection_rect.height),
 								}">
 							</div>
-
+							
 
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
@@ -3792,6 +3813,26 @@ Interface.definePanels(function() {
 								<path :d="textureGridBold" class="bold_grid" />
 							</svg>
 
+							<div class="uv_layer_transform_handles"
+								v-if="isTransformingLayer()"
+								:style="{
+									left: toTexturePixels(layer.offset[0]),
+									top: toTexturePixels(layer.offset[1]),
+									width: toTexturePixels(layer.width),
+									height: toTexturePixels(layer.height)
+								}"
+							>
+								<div class="uv_resize_corner uv_c_nw" @mousedown="resizeLayer(key, $event, -1, -1)" @touchstart.prevent="resizeLayer(key, $event, -1, -1)" style="left: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_ne" @mousedown="resizeLayer(key, $event, 1, -1)" @touchstart.prevent="resizeLayer(key, $event, 1, -1)" style="right: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_sw" @mousedown="resizeLayer(key, $event, -1, 1)" @touchstart.prevent="resizeLayer(key, $event, -1, 1)" style="left: 0; bottom: 0;" />
+								<div class="uv_resize_corner uv_c_se" @mousedown="resizeLayer(key, $event, 1, 1)" @touchstart.prevent="resizeLayer(key, $event, 1, 1)" style="right: 0; bottom: 0;" />
+
+								<div class="uv_resize_corner uv_c_n" @mousedown="resizeLayer(key, $event, 0, -1)" @touchstart.prevent="resizeLayer(key, $event, 0, -1)" style="top: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_s" @mousedown="resizeLayer(key, $event, 0, 1)" @touchstart.prevent="resizeLayer(key, $event, 0, 1)" style="bottom: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_w" @mousedown="resizeLayer(key, $event, -1, 0)" @touchstart.prevent="resizeLayer(key, $event, -1, 0)" style="left: 0; top: 50%;" />
+								<div class="uv_resize_corner uv_c_e" @mousedown="resizeLayer(key, $event, 1, 0)" @touchstart.prevent="resizeLayer(key, $event, 1, 0)" style="right: 0; top: 50%;" />
+							</div>
+
 							<div id="texture_selection_rect"
 								v-if="texture_selection_rect.active"
 								:style="{
@@ -3812,16 +3853,16 @@ Interface.definePanels(function() {
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>
 					</div>
 
-					<div class="uv_layer_limbo_options" v-if="texture && texture.selected_layer && texture.selected_layer.in_limbo">
-						<button @click="texture.selected_layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
-						<button @click="texture.selected_layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
+					<div class="uv_layer_limbo_options" v-if="texture && layer && layer.in_limbo">
+						<button @click="layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
+						<button @click="layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
 					</div>
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">
-						<div v-if="texture && texture.selected_layer && texture.selected_layer.in_limbo" ref="copy_paste_tool_control" class="copy_paste_tool_control">
-							<div class="tool button_mirror_x" @click="texture.selected_layer.flip(0)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
-							<div class="tool button_mirror_y" @click="texture.selected_layer.flip(1)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
-							<div class="tool button_rotate" @click="texture.selected_layer.rotate(90)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
+						<div v-if="texture && layer && layer.in_limbo" ref="copy_paste_tool_control" class="copy_paste_tool_control">
+							<div class="tool button_mirror_x" @click="layer.flip(0)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
+							<div class="tool button_mirror_y" @click="layer.flip(1)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
+							<div class="tool button_rotate" @click="layer.rotate(90)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
 						</div>
 
 						<template v-else>

@@ -2406,6 +2406,11 @@ BARS.defineActions(function() {
 		},
 		onSelect() {
 
+		},
+		onUnselect() {
+			if (TextureLayer.selected?.in_limbo) {
+				TextureLayer.selected.resolveLimbo();
+			}
 		}
 	})
 	selection_tool.mode = 'rectangle';

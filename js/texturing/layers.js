@@ -48,6 +48,7 @@ class TextureLayer {
 	}
 	select() {
 		this.texture.selected_layer = this;
+		UVEditor.vue.layer = this;
 		BarItems.layer_opacity.update();
 	}
 	showContextMenu(event) {
@@ -65,10 +66,12 @@ class TextureLayer {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Remove layer');
 		}
+		if (UVEditor.vue.layer == this) UVEditor.vue.layer = null;
 	}
 	getUndoCopy(image_data) {
 		let copy = {};
 		copy.texture = this.texture.uuid;
+		copy.uuid = this.uuid;
 		for (var key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
@@ -84,6 +87,7 @@ class TextureLayer {
 		for (var key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
+		delete copy.in_limbo;
 		copy.width = this.width;
 		copy.height = this.height;
 		copy.data_url = this.canvas.toDataURL();
@@ -99,6 +103,7 @@ class TextureLayer {
 		} else {
 			TextureLayer.selected.mergeDown(true);
 		}
+		UVEditor.vue.$forceUpdate();
 		Texture.selected.selection.clear();
 		UVEditor.updateSelectionOutline();
 	}
@@ -131,6 +136,7 @@ class TextureLayer {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Merge layers');
 		}
+		if (UVEditor.vue.layer == this) UVEditor.vue.layer = null;
 	}
 	flip(axis = 0, undo) {
 		let temp_canvas = this.canvas.cloneNode();
@@ -224,6 +230,7 @@ new Property(TextureLayer, 'string', 'name', {default: 'layer'});
 new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
+new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
 	get() {
