@@ -221,6 +221,7 @@
 	"modifier_actions.select_range": "Select range",
 	"modifier_actions.drag_to_duplicate": "Drag to duplicate",
 	"modifier_actions.uniform_scaling": "Uniform Scaling",
+	"modifier_actions.no_uniform_scaling": "Free Scaling",
 	"modifier_actions.snap_direction": "Snap Direction",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",

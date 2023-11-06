@@ -25,6 +25,12 @@ class TextureLayer {
 	get height() {
 		return this.canvas.height;
 	}
+	get scaled_width() {
+		return this.canvas.width * this.scale[0];
+	}
+	get scaled_height() {
+		return this.canvas.height * this.scale[1];
+	}
 	get size() {
 		return [this.canvas.width, this.canvas.height];
 	}
@@ -61,12 +67,14 @@ class TextureLayer {
 		}
 		let index = this.texture.layers.indexOf(this);
 		this.texture.layers.splice(index, 1);
-		if (this.texture.selected_layer == this) this.texture.selected_layer = this.texture.layers[index-1] || this.texture.layers[index];
+		if (this.texture.selected_layer == this) {
+			let select_next = this.texture.layers[index-1] || this.texture.layers[index];
+			if (select_next) select_next.select();
+		}
 		if (undo) {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Remove layer');
 		}
-		if (UVEditor.vue.layer == this) UVEditor.vue.layer = null;
 	}
 	getUndoCopy(image_data) {
 		let copy = {};
@@ -99,7 +107,26 @@ class TextureLayer {
 	}
 	resolveLimbo(keep_separate) {
 		if (keep_separate) {
-			TextureLayer.selected.in_limbo = false;
+			if (this.scale[0] != 1 || this.scale[1] != 1) {
+				
+				let temp_canvas = this.canvas.cloneNode();
+				let temp_canvas_ctx = temp_canvas.getContext('2d');
+				temp_canvas_ctx.drawImage(this.canvas, 0, 0);
+	
+				Undo.initEdit({layers: [this]});
+	
+				this.canvas.width = Math.round(this.canvas.width * this.scale[0]);
+				this.canvas.height = Math.round(this.canvas.height * this.scale[1]);
+				this.ctx.drawImage(temp_canvas, 0, 0, this.canvas.width, this.canvas.height);
+				this.scale.V2_set(1, 1);
+	
+				this.texture.updateLayerChanges(undo);
+				TextureLayer.selected.in_limbo = false;
+				Undo.finishEdit('Place selection as layer');
+
+			} else {
+				TextureLayer.selected.in_limbo = false;
+			}
 		} else {
 			TextureLayer.selected.mergeDown(true);
 		}
@@ -127,16 +154,19 @@ class TextureLayer {
 		if (undo) {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
-		down_layer.ctx.drawImage(this.canvas, this.offset[0], this.offset[1]);
+		down_layer.ctx.imageSmoothingEnabled = false;
+		down_layer.ctx.drawImage(this.canvas, this.offset[0], this.offset[1], this.scaled_width, this.scaled_height);
 
 		let index = this.texture.layers.indexOf(this);
 		this.texture.layers.splice(index, 1);
-		if (this.texture.selected_layer == this) this.texture.selected_layer = this.texture.layers[index-1] || this.texture.layers[index];
+		if (this.texture.selected_layer == this) {
+			let select_next = this.texture.layers[index-1] || this.texture.layers[index];
+			if (select_next) select_next.select();
+		}
 		if (undo) {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Merge layers');
 		}
-		if (UVEditor.vue.layer == this) UVEditor.vue.layer = null;
 	}
 	flip(axis = 0, undo) {
 		let temp_canvas = this.canvas.cloneNode();
@@ -147,13 +177,14 @@ class TextureLayer {
 
 		this.ctx.save();
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		this.ctx.translate(this.canvas.width, 0);
 		if (axis == 0) {
+			this.ctx.translate(this.canvas.width, 0);
 			this.ctx.scale(-1, 1);
 			this.ctx.drawImage(temp_canvas, this.canvas.width, 0, -this.canvas.width, this.canvas.height);
 		} else {
+			this.ctx.translate(0, this.canvas.height);
 			this.ctx.scale(1, -1);
-			this.ctx.drawImage(temp_canvas, this.canvas.width, 0, this.canvas.width, -this.canvas.height);
+			this.ctx.drawImage(temp_canvas, 0, this.canvas.height, this.canvas.width, -this.canvas.height);
 		}
 		this.ctx.restore();
 
@@ -176,8 +207,14 @@ class TextureLayer {
 		this.ctx.restore();
 
 		this.texture.updateLayerChanges(undo);
+		UVEditor.vue.$forceUpdate();
 
 		if (undo) Undo.finishEdit('Rotate layer');
+	}
+	center() {
+		this.offset[0] = Math.round(Math.max(0, this.texture.width  - this.width ) / 2);
+		this.offset[1] = Math.round(Math.max(0, this.texture.height - this.height) / 2);
+		this.texture.updateLayerChanges();
 	}
 	propertiesDialog() {
 		let dialog = new Dialog({
@@ -228,6 +265,7 @@ TextureLayer.prototype.menu = new Menu([
 ])
 new Property(TextureLayer, 'string', 'name', {default: 'layer'});
 new Property(TextureLayer, 'vector2', 'offset');
+new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
@@ -254,7 +292,7 @@ SharedActions.add('delete', {
 })
 SharedActions.add('delete', {
 	subject: 'layer_priority',
-	condition: () => Texture.selected?.selected_layer.in_limbo,
+	condition: () => Texture.selected?.selected_layer?.in_limbo,
 	priority: 2,
 	run() {
 		if (Texture.selected.layers.length >= 2) {
@@ -308,6 +346,23 @@ BARS.defineActions(() => {
 			}
 			let texture = Texture.selected;
 			texture.activateLayers(true);
+		}
+	})
+	new Action('disable_texture_layers', {
+		icon: 'layers_clear',
+		category: 'layers',
+		condition: () => Texture.selected && Texture.selected.layers_enabled,
+		click() {
+			let texture = Texture.selected;
+			Undo.initEdit({textures: [texture], bitmap: true});
+			texture.layers_enabled = false;
+			if (!texture.layers.length) {
+				texture.layers.empty();
+			}
+			Undo.finishEdit('Disable layers on texture');
+			UVEditor.vue.layer = this;
+			updateInterfacePanels();
+			BARS.updateConditions();
 		}
 	})
 	new NumSlider('layer_opacity', {

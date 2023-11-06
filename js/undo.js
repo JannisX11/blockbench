@@ -361,6 +361,7 @@ class UndoSystem {
 			}
 			Canvas.updateAllFaces();
 			updateInterfacePanels();
+			UVEditor.vue.updateTexture();
 		}
 
 		if (save.layers) {
@@ -384,7 +385,8 @@ class UndoSystem {
 				tex.updateSource();
 				tex.keep_size = true;
 			})
-			Canvas.updateAllFaces()
+			Canvas.updateAllFaces();
+			UVEditor.vue.updateTexture();
 		}
 
 		if (save.texture_order) {

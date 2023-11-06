@@ -2537,7 +2537,7 @@ Interface.definePanels(function() {
 						}
 					}
 				},
-				drag({event, onDrag, onEnd, onAbort, snap}) {
+				drag({event, onDrag, onEnd, onAbort, snap, uv_grid}) {
 					if (event.which == 2 || event.which == 3) return;
 					convertTouchEvent(event);
 					let scope = this;
@@ -2552,7 +2552,11 @@ Interface.definePanels(function() {
 						let step_x, step_y;
 						let snap = original_snap;
 
-						if (snap == undefined) {
+						if (uv_grid == false) {
+							step_x = (scope.inner_width / scope.texture.width / snap);
+							step_y = (scope.inner_height / scope.texture.height / snap);
+
+						} else if (snap == undefined) {
 							snap = UVEditor.grid / canvasGridSize(e1.shiftKey || Pressing.overrides.shift, e1.ctrlOrCmd || Pressing.overrides.ctrl);
 	
 							step_x = (scope.inner_width / UVEditor.getResolution(0) / snap);
@@ -3242,29 +3246,16 @@ Interface.definePanels(function() {
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
 					let start_x, start_y, calcrect;
+					let layer = texture.selected_layer;
 					let create_selection = Toolbox.selected.id == 'selection_tool'
 						&& !(op_mode == 'create' && clicked_val)
 						&& !event.target.classList.contains('uv_layer_transform_handles');
-					let layer = texture.selected_layer;
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
-					/*if (op_mode == 'create' && clicked_val) {
-						if (open_interface) {
-							open_interface.confirm()
-						} else {
-							UVEditor.removePastingOverlay()
-						}
-					}*/
 					start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
 					start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
 
 					if (create_selection) {
-						//$(this.$refs.frame).find('#texture_selection_rect').detach();
-						//let rect = document.createElement('div');
-						//rect.style.visibility = 'hidden';
-						//rect.id = 'texture_selection_rect';
-						//this.$refs.frame.append(rect)
-
 						if (op_mode == 'create') {
 							texture.selection.clear();
 						}
@@ -3326,8 +3317,6 @@ Interface.definePanels(function() {
 							UVEditor.updateSelectionOutline();
 							return;
 						}
-
-					} else {
 
 					}
 
@@ -3484,6 +3473,50 @@ Interface.definePanels(function() {
 					}
 					addEventListeners(document, 'pointermove', drag);
 					addEventListeners(document, 'pointerup', stop);
+				},
+				resizeLayer(event, dir_x, dir_y) {
+					if (event.which == 2 || event.which == 3 || !this.texture || !this.layer) return;
+					convertTouchEvent(event);
+					let layer = this.layer;
+					event.stopPropagation();
+
+					Undo.initEdit({layers: [layer]});
+
+					let initial_scale = layer.scale.slice();
+					let target_size = [layer.scaled_width, layer.scaled_height];
+					let last_target_size = [layer.scaled_width, layer.scaled_height];
+					let initial_size = [layer.width, layer.height];
+					if (dir_x && dir_y) Interface.addSuggestedModifierKey('alt', 'modifier_actions.no_uniform_scaling');
+					this.drag({
+						event,
+						onDrag: (x, y, e1) => {
+							last_target_size.replace(target_size);
+							target_size[0] = Math.max(target_size[0] + (x * dir_x), 0);
+							target_size[1] = Math.max(target_size[1] + (y * dir_y), 0);
+							if (!(e1.ctrlOrCmd || Pressing.overrides.ctrl) && dir_x && dir_y) {
+								target_size[1] = Math.round(target_size[0] * (initial_size[1] / initial_size[0]));
+							}
+							x = target_size[0] - last_target_size[0];
+							y = target_size[1] - last_target_size[1];
+							if (dir_x == -1) layer.offset[0] -= x;
+							if (dir_y == -1) layer.offset[1] -= y;
+
+							layer.scale[0] = target_size[0] / initial_size[0];
+							layer.scale[1] = target_size[1] / initial_size[1];
+							Blockbench.setCursorTooltip(`${target_size[0]} x ${target_size[1]}\n${Math.round(layer.scale[0] * 100)}% x ${Math.round(layer.scale[1] * 100)}%`);
+							this.texture.updateLayerChanges();
+							UVEditor.vue.$forceUpdate();
+
+							return [x * dir_x, y * dir_y];
+						},
+						onEnd: () => {
+							Undo.finishEdit('Resize layer');
+							Blockbench.setCursorTooltip();
+							if (dir_x && dir_y) Interface.removeSuggestedModifierKey('alt', 'modifier_actions.no_uniform_scaling');
+						},
+						snap: 1,
+						uv_grid: false
+					})
 				},
 				isTransformingLayer() {
 					if (!this.texture || !this.texture.selected_layer) return false;
@@ -3818,19 +3851,19 @@ Interface.definePanels(function() {
 								:style="{
 									left: toTexturePixels(layer.offset[0]),
 									top: toTexturePixels(layer.offset[1]),
-									width: toTexturePixels(layer.width),
-									height: toTexturePixels(layer.height)
+									width: toTexturePixels(layer.scaled_width),
+									height: toTexturePixels(layer.scaled_height)
 								}"
 							>
-								<div class="uv_resize_corner uv_c_nw" @mousedown="resizeLayer(key, $event, -1, -1)" @touchstart.prevent="resizeLayer(key, $event, -1, -1)" style="left: 0; top: 0;" />
-								<div class="uv_resize_corner uv_c_ne" @mousedown="resizeLayer(key, $event, 1, -1)" @touchstart.prevent="resizeLayer(key, $event, 1, -1)" style="right: 0; top: 0;" />
-								<div class="uv_resize_corner uv_c_sw" @mousedown="resizeLayer(key, $event, -1, 1)" @touchstart.prevent="resizeLayer(key, $event, -1, 1)" style="left: 0; bottom: 0;" />
-								<div class="uv_resize_corner uv_c_se" @mousedown="resizeLayer(key, $event, 1, 1)" @touchstart.prevent="resizeLayer(key, $event, 1, 1)" style="right: 0; bottom: 0;" />
+								<div class="uv_resize_corner uv_c_nw" @mousedown="resizeLayer($event, -1, -1)" @touchstart.prevent="resizeLayer($event, -1, -1)" style="left: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_ne" @mousedown="resizeLayer($event, 1, -1)" @touchstart.prevent="resizeLayer($event, 1, -1)" style="right: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_sw" @mousedown="resizeLayer($event, -1, 1)" @touchstart.prevent="resizeLayer($event, -1, 1)" style="left: 0; bottom: 0;" />
+								<div class="uv_resize_corner uv_c_se" @mousedown="resizeLayer($event, 1, 1)" @touchstart.prevent="resizeLayer($event, 1, 1)" style="right: 0; bottom: 0;" />
 
-								<div class="uv_resize_corner uv_c_n" @mousedown="resizeLayer(key, $event, 0, -1)" @touchstart.prevent="resizeLayer(key, $event, 0, -1)" style="top: 0; left: 50%;" />
-								<div class="uv_resize_corner uv_c_s" @mousedown="resizeLayer(key, $event, 0, 1)" @touchstart.prevent="resizeLayer(key, $event, 0, 1)" style="bottom: 0; left: 50%;" />
-								<div class="uv_resize_corner uv_c_w" @mousedown="resizeLayer(key, $event, -1, 0)" @touchstart.prevent="resizeLayer(key, $event, -1, 0)" style="left: 0; top: 50%;" />
-								<div class="uv_resize_corner uv_c_e" @mousedown="resizeLayer(key, $event, 1, 0)" @touchstart.prevent="resizeLayer(key, $event, 1, 0)" style="right: 0; top: 50%;" />
+								<div class="uv_resize_corner uv_c_n" @mousedown="resizeLayer($event, 0, -1)" @touchstart.prevent="resizeLayer($event, 0, -1)" style="top: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_s" @mousedown="resizeLayer($event, 0, 1)" @touchstart.prevent="resizeLayer($event, 0, 1)" style="bottom: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_w" @mousedown="resizeLayer($event, -1, 0)" @touchstart.prevent="resizeLayer($event, -1, 0)" style="left: 0; top: 50%;" />
+								<div class="uv_resize_corner uv_c_e" @mousedown="resizeLayer($event, 1, 0)" @touchstart.prevent="resizeLayer($event, 1, 0)" style="right: 0; top: 50%;" />
 							</div>
 
 							<div id="texture_selection_rect"
@@ -3853,9 +3886,12 @@ Interface.definePanels(function() {
 						<div class="uv_transparent_face" v-else-if="selected_faces.length">${tl('uv_editor.transparent_face')}</div>
 					</div>
 
-					<div class="uv_layer_limbo_options" v-if="texture && layer && layer.in_limbo">
-						<button @click="layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
-						<button @click="layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
+					<div class="uv_layer_limbo_options" v-if="isTransformingLayer()">
+						<template v-if="texture && layer && layer.in_limbo">
+							<button @click="layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
+							<button @click="layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
+						</template>
+						<button v-else-if="layer.scale[0] != 1 && layer.scale[1] != 1" @click="layer.resolveLimbo(true)">${tl('dialog.scale.confirm')}</button>
 					</div>
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">

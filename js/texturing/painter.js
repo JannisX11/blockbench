@@ -1292,6 +1292,7 @@ const Painter = {
 		if (local_y < 0) { y -= local_y; local_y = 0; }
 		w = Math.min(w, ctx.canvas.width - local_x);
 		h = Math.min(h, ctx.canvas.height - local_y);
+		if (!w || !h) return;
 		let arr = ctx.getImageData(local_x, local_y, w, h)
 		for (let i = 0; i < arr.data.length; i += 4) {
 			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]]
@@ -1838,6 +1839,7 @@ SharedActions.add('copy', {
 	subject: 'image_content',
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
 	run(event, cut) {
+		// todo: Make work on layers with existing offset
 		let texture = Texture.getDefault();
 		let selection = texture.selection;
 
@@ -1911,10 +1913,12 @@ SharedActions.add('paste', {
 			if (!texture.layers_enabled) {
 				texture.activateLayers(false);
 			}
-			let layer = new TextureLayer({name: 'pasted', offset: [0, 0]}, texture);
+			let offset = Clipbench.image ? [Clipbench.image.x, Clipbench.image.y] : undefined;
+			let layer = new TextureLayer({name: 'pasted', offset}, texture);
 			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
 			layer.setSize(frame.width, frame.height);
 			layer.ctx.putImageData(image_data, 0, 0);
+			if (!offset) layer.center();
 			texture.layers.push(layer);
 			layer.select();
 			layer.setLimbo();
@@ -1939,6 +1943,59 @@ SharedActions.add('paste', {
 				}
 			}).catch(() => {})
 		}
+		
+	}
+})
+SharedActions.add('duplicate', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event) {
+		let texture = Texture.getDefault();
+		let selection = texture.selection;
+
+		let {canvas, ctx} = texture.getActiveCanvas();
+		let layer = texture.selected_layer;
+		let offset = layer ? layer.offset.slice() : [0, 0];
+		
+		if (selection.is_custom) {
+			let rect = selection.getBoundingRect();
+			let copy_canvas = document.createElement('canvas');
+			let copy_ctx = copy_canvas.getContext('2d');
+			copy_canvas.width = rect.width;
+			copy_canvas.height = rect.height;
+			
+			copy_ctx.beginPath()
+			selection.forEachPixel((x, y, val) => {
+				if (!val) return;
+				copy_ctx.rect(
+					x - rect.start_x - offset[0],
+					y - rect.start_y - offset[1],
+					1, 1
+				);
+			})
+			copy_ctx.closePath();
+			copy_ctx.clip();
+			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+
+			canvas = copy_canvas;
+		}
+
+		Undo.initEdit({textures: [texture], bitmap: true});
+		if (!texture.layers_enabled) {
+			texture.activateLayers(false);
+		}
+		let new_layer = new TextureLayer({name: layer.name + ' - copy', offset}, texture);
+		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+		new_layer.setSize(canvas.width, canvas.height);
+		new_layer.ctx.putImageData(image_data, 0, 0);
+		texture.layers.push(new_layer);
+		new_layer.select();
+		new_layer.setLimbo();
+		texture.updateLayerChanges(true);
+
+		Undo.finishEdit('Duplicate texture selection');
+		updateInterfacePanels();
+		BARS.updateConditions();
 		
 	}
 })
@@ -2405,7 +2462,7 @@ BARS.defineActions(function() {
 			return false;
 		},
 		onSelect() {
-
+			UVEditor.vue.updateTexture();
 		},
 		onUnselect() {
 			if (TextureLayer.selected?.in_limbo) {

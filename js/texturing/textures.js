@@ -387,18 +387,15 @@ class Texture {
 				}
 				this.layers.push(layer);
 			})
-			old_layers.forEach(layer => {
-				layer.remove();
-			})
 
 		} else if (!data.layers_enabled) {
-			this.layers.forEachReverse(layer => {
-				layer.remove();
-			})
+			this.layers.empty();
 		}
 		if (data.selected_layer) {
 			let layer = this.layers.find(l => l.uuid == data.selected_layer);
 			if (layer) layer.select();
+		} else if (this.selected_layer && (this.layers_enabled == false || !this.layers.find(this.selected_layer))) {
+			delete this.selected_layer;
 		}
 
 		if (this.mode === 'bitmap' || !isApp) {
@@ -1304,7 +1301,6 @@ class Texture {
 	}
 	activateLayers(undo) {
 		if (undo) Undo.initEdit({textures: [this], bitmap: true});
-		console.trace('E')
 		this.layers_enabled = true;
 		if (!this.layers.length) {
 			let layer = new TextureLayer({
@@ -1608,7 +1604,8 @@ class Texture {
 		for (let layer of this.layers) {
 			if (layer.visible == false || layer.opacity == 0) continue;
 			this.ctx.filter = `opacity(${layer.opacity / 100})`;
-			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1]);
+			this.ctx.imageSmoothingEnabled = false;
+			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1], layer.scaled_width, layer.scaled_height);
 		}
 		this.ctx.filter = '';
 
@@ -1776,6 +1773,7 @@ class Texture {
 				]
 			},
 			'enable_texture_layers',
+			'disable_texture_layers',
 			new MenuSeparator('file'),
 			{
 				icon: 'folder',
@@ -2016,8 +2014,9 @@ SharedActions.add('duplicate', {
 	run() {
 		let copy = Texture.selected.getUndoCopy();
 		delete copy.path;
-		copy.convertToInternal(Texture.selected.getDataURL());
-		new Texture(copy).fillParticle().load().add(true);
+		let new_tex = new Texture(copy).fillParticle();
+		new_tex.convertToInternal(Texture.selected.getDataURL());
+		new_tex.load().add(true);
 	}
 })
 Clipbench.setTexture = function(texture) {
