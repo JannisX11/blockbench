@@ -2137,7 +2137,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport && this.zoom == 1 && ((!this.$refs.viewport.scrollLeft && !this.$refs.viewport.scrollTop) || this.centered_view)) {
 						this.centerView();
 					}
-					this.updateCanvasImageRendering();
+					this.updateTextureCanvas();
 					UVEditor.updateSelectionOutline(false);
 				},
 				centerView() {
@@ -2182,19 +2182,19 @@ Interface.definePanels(function() {
 					this.updateTextureCanvas();
 				},
 				updateTextureCanvas() {
-					if (this.texture && this.texture.display_canvas) {
-						Vue.nextTick(() => {
-							let wrapper = this.$refs.texture_canvas_wrapper;
-							if (!wrapper) return;
-							this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
-							this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
-							this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
-							if (wrapper.firstChild) {
-								wrapper.firstChild.remove();
-							}
-							wrapper.append(this.texture.canvas);
-						})
-					}
+					if (!this.texture || !this.texture.display_canvas) return;
+					this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
+					this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
+					this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
+
+					Vue.nextTick(() => {
+						let wrapper = this.$refs.texture_canvas_wrapper;
+						if (!wrapper || wrapper.firstChild == this.texture.canvas) return;
+						if (wrapper.firstChild) {
+							wrapper.firstChild.remove();
+						}
+						wrapper.append(this.texture.canvas);
+					})
 				},
 				updateMouseCoords(event) {					
 					convertTouchEvent(event);
@@ -2208,13 +2208,6 @@ Interface.definePanels(function() {
 					let grab = Toolbox.selected.id == 'move_layer_tool' ||
 							  (Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
-				},
-				updateCanvasImageRendering() {
-					if (this.texture && this.texture.display_canvas) {
-						let wrapper = this.$refs.texture_canvas_wrapper;
-						if (!wrapper) return;
-						this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
-					}
 				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
@@ -2250,7 +2243,7 @@ Interface.definePanels(function() {
 								this.centerView();
 							}
 
-							this.updateCanvasImageRendering();
+							this.updateTextureCanvas();
 							
 							if (this.mode == 'paint') {
 								this.mouse_coords.active = false;

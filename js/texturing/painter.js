@@ -1680,7 +1680,7 @@ const Painter = {
 			default: true,
 			size: 1,
 			softness: 0,
-			pixel_perfect: false,
+			pixel_perfect: true,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -2125,7 +2125,7 @@ BARS.defineActions(function() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[0])
 				}},
-				{name: 'menu.brush_presets.pixel_perfect_brush', icon: 'stylus_note', click() {
+				{name: 'menu.brush_presets.pixel_perfect', icon: 'stylus_note', click() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[1])
 				}},

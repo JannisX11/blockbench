@@ -1818,6 +1818,7 @@ class Texture {
 				click(texture) { texture.openMenu()}
 			}
 	])
+	Texture.prototype.offset = [0, 0];
 	Texture.getDefault = function() {
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
 			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
@@ -2141,6 +2142,7 @@ TextureAnimator = {
 			}
 		})
 		BarItems.animated_texture_frame.update();
+		UVEditor.vue.updateTextureCanvas();
 		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
 	},
 	reset() {
@@ -2155,6 +2157,7 @@ TextureAnimator = {
 			if (!el.faces || !el.preview_controller.updateUV) return;
 			el.preview_controller.updateUV(el);
 		})
+		UVEditor.vue.updateTextureCanvas();
 	},
 	updateButton() {
 		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )

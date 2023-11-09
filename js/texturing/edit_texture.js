@@ -338,6 +338,7 @@ BARS.defineActions(function() {
 
 									if (this.preview_changes) {
 										for (let i = 0; i < image_data.data.length; i += 4) {
+											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
 											
 											let R = image_data.original_data[i+0]
 											let G = image_data.original_data[i+1]
@@ -359,6 +360,7 @@ BARS.defineActions(function() {
 										}
 									} else {
 										for (let i = 0; i < image_data.data.length; i += 4) {
+											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
 											image_data.data[i+0] = image_data.original_data[i+0];
 											image_data.data[i+1] = image_data.original_data[i+1];
 											image_data.data[i+2] = image_data.original_data[i+2];
@@ -482,7 +484,7 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
-					Undo.finishEdit('Invert colors');
+					Undo.finishEdit('Adjust curves');
 				},
 				onCancel() {
 					Undo.cancelEdit();
@@ -517,6 +519,7 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
+									ctx.save();
 									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
@@ -692,9 +695,11 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(-1, 1);
 					ctx.drawImage(texture.img, -canvas.width, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -712,9 +717,11 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(1, -1);
 					ctx.drawImage(texture.img, 0, -canvas.height);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -732,9 +739,11 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(Math.PI/2);
 					ctx.drawImage(texture.img, 0, -canvas.height);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -752,9 +761,11 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(-Math.PI/2);
 					ctx.drawImage(texture.img, -canvas.width, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -768,6 +779,30 @@ BARS.defineActions(function() {
 		click() {
 			let texture = Texture.getDefault();
 			texture.resizeDialog();
+		}
+	})
+	new Action('crop_texture_to_selection', {
+		icon: 'crop',
+		category: 'textures',
+		condition: () => Texture.all.length,
+		click() {
+			let texture = Texture.getDefault();
+			let rect = texture.selection.getBoundingRect();
+			let uv_factor = texture.width / texture.uv_width;
+			texture.edit((canvas) => {
+
+				canvas.width = rect.width;
+				canvas.height = rect.height;
+				texture.ctx.imageSmoothingEnabled = false;
+				texture.ctx.drawImage(texture.img, -rect.start_x, -rect.start_y, texture.width, texture.height);
+
+				texture.uv_width = canvas.width * uv_factor;
+				texture.uv_height = canvas.height * uv_factor;
+				texture.selection.clear();
+
+			}, {edit_name: 'Crop texture to selection'});
+
+			setTimeout(updateSelection, 100);
 		}
 	})
 })

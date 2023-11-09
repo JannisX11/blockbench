@@ -1486,9 +1486,11 @@
 	"action.rotate_texture_cw": "Rotate Texture Clockwise",
 	"action.rotate_texture_ccw": "Rotate Texture Counter-clockwise",
 	"action.resize_texture": "Resize Texture...",
+	"action.crop_texture_to_selection": "Crop Texture to Selection",
 
 	"action.create_empty_layer": "Create Empty Layer",
 	"action.enable_texture_layers": "Enable Layers",
+	"action.disable_texture_layers": "Disable Layers",
 	"action.layer_opacity": "Layer Opacity",
 
 	"action.add_display_preset": "New Preset",

@@ -155,6 +155,7 @@ async function loadImages(files, event) {
 			layer.setSize(frame.width, frame.height);
 			layer.ctx.putImageData(image_data, 0, 0);
 			texture.layers.push(layer);
+			layer.center();
 			layer.select();
 			layer.setLimbo();
 			texture.updateLayerChanges(true);

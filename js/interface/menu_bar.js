@@ -323,7 +323,8 @@ const MenuBar = {
 			'flip_texture_y',
 			'rotate_texture_cw',
 			'rotate_texture_ccw',
-			'resize_texture'
+			'resize_texture',
+			'crop_texture_to_selection'
 		], {
 			condition: {modes: ['paint']}
 		})
