@@ -295,6 +295,7 @@
 		display: flex;
 		white-space: nowrap;
 		height: 26px;
+		width: env(titlebar-area-x, 100%);
 	}
 	header > * {
 		display: inline-block;
