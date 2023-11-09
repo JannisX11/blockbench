@@ -1120,7 +1120,7 @@ class Preview {
 			!Transformer.dragging &&
 			!this.selection.click_target
 		) {
-			unselectAll();
+			unselectAllElements();
 		}
 		delete this.selection.click_target;
 		return this;
@@ -1242,7 +1242,7 @@ class Preview {
 			]
 		}
 
-		unselectAll()
+		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
 			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
@@ -1519,7 +1519,7 @@ class Preview {
 				if (typeof preset == 'string') {
 					children.push('_'); return;
 				}
-				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'far.fa-dot-circle' : 'far.fa-circle'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
@@ -2025,7 +2025,7 @@ BARS.defineActions(function() {
 			textured: {name: true, icon: 'image', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
 			solid: {name: true, icon: 'fas.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
-			uv: {name: true, icon: 'padding', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
+			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {

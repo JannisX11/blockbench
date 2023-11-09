@@ -195,13 +195,13 @@ const MenuBar = {
 				{
 					id: 'profiles',
 					name: 'data.settings_profile',
-					icon: 'settings_applications',
+					icon: 'manage_accounts',
 					condition: () => SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') != -1,
 					children: () => {
 						let list = [
 							{
 								name: 'generic.none',
-								icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+								icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 								click: () => {
 									SettingsProfile.unselect();
 								}
@@ -212,7 +212,7 @@ const MenuBar = {
 							if (profile.condition.type != 'selectable') return;
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 								color: markerColors[profile.color].standard,
 								click: () => {
 									profile.select();

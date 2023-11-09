@@ -77,7 +77,7 @@ const Interface = {
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		modes: {},
-		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		left_bar: ['uv', 'color', 'layers', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
 			paint: {
@@ -558,6 +558,11 @@ function setupInterface() {
 	document.addEventListener('mousemove', event => {
 		mouse_pos.x = event.clientX;
 		mouse_pos.y = event.clientY;
+
+		if (Interface.cursor_tooltip?.textContent) {
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
 	})
 	updateInterface()
 }

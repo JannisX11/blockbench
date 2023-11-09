@@ -12,41 +12,30 @@ const Painter = {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
 		if (texture.mode === 'link') {
-			texture.source = texture.getDataURL()
-			texture.mode = 'bitmap'
-			texture.saved = false
+			texture.convertToInternal();
 		}
-		if (!Painter.current.cached_canvases) Painter.current.cached_canvases = {};
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
-		let canvas;
+		let {canvas, ctx} = texture.getActiveCanvas();
+		Painter.current.ctx = ctx;
+		if (!Painter.current.textures) Painter.current.textures = [];
+		Painter.current.textures.safePush(texture);
+		Painter.current.texture = texture;
 
-		if (options.use_cache &&
-			Painter.current.cached_canvases[texture.uuid]
-		) {
-			//IS CACHED
-			canvas = Painter.current.cached_canvases[texture.uuid];
-			Painter.current.ctx = canvas.getContext('2d', {willReadFrequently: true});
-			callback(canvas);
-			if (options.no_update === true) {
-				return;
-			}
-		} else {
-			//IS UNCACHED
-			Painter.current.texture = texture
-			canvas = Painter.current.cached_canvases[texture.uuid] = Painter.getCanvas(texture);
-			Painter.current.ctx = canvas.getContext('2d');
-			callback(canvas);
+		callback(canvas);
+
+		if (options.use_cache && options.no_update === true) {
+			return;
 		}
 
 		if (options.no_undo && options.use_cache) {
+			texture.updateLayerChanges();
 			let map = texture.getMaterial().map;
-			map.image = canvas;
 			map.needsUpdate = true;
 			texture.display_canvas = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
-			texture.updateSource(canvas.toDataURL())
+			texture.updateChangesAfterEdit();
 			if (!options.no_undo && !options.no_undo_finish) {
 				Undo.finishEdit(edit_name)
 			}
@@ -147,7 +136,7 @@ const Painter = {
 				new_face = true
 				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture && Undo.current_save) {
-					Undo.current_save.addTexture(texture)
+					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
 				Painter.current.face = data.face;
@@ -178,13 +167,22 @@ const Painter = {
 		}
 
 		if (Toolbox.selected.id === 'color_picker') {
-			Painter.colorPicker(texture, x, y)
+			Painter.colorPicker(texture, x, y);
+			return;
 
-		} else if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
-
-			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
-			Painter.brushChanges = false;
-			Painter.painting = true;
+		}
+		
+		let undo_aspects = {selected_texture: true, bitmap: true};
+		if (texture.layers_enabled && texture.layers[0]) {
+			undo_aspects.layers = [texture.getActiveLayer()];
+		} else {
+			undo_aspects.textures = [texture];
+		}
+		Undo.initEdit(undo_aspects);
+		Painter.brushChanges = false;
+		Painter.painting = true;
+		
+		if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 			Painter.current = {
 				element: data && data.element,
 				face: data && data.face,
@@ -193,14 +191,12 @@ const Painter = {
 				face_matrices: {}
 			}
 			Painter.startPixel = [x, y];
-			Painter.current.clear.width = texture.width;
-			Painter.current.clear.height = texture.height;
-			Painter.current.clear.getContext('2d').drawImage(texture.img, 0, 0);
+			let {canvas} = texture.getActiveCanvas();
+			Painter.current.clear.width = canvas.width;
+			Painter.current.clear.height = canvas.height;
+			Painter.current.clear.getContext('2d').drawImage(canvas, 0, 0);
 
 		} else {
-			Undo.initEdit({textures: [texture], selected_texture: true, bitmap: true});
-			Painter.brushChanges = false;
-			Painter.painting = true;
 			Painter.current.face_matrices = {};
 
 			let is_line
@@ -261,12 +257,16 @@ const Painter = {
 			delete Painter.paint_stroke_canceled;
 			return;
 		}
+		let texture = Painter.current.texture;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
 			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {
+			Painter.current.textures.forEach(texture => {
+				texture.updateChangesAfterEdit();
+			})
 			Undo.finishEdit('Paint texture');
 			Painter.brushChanges = false;
 		}
@@ -277,6 +277,8 @@ const Painter = {
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
 		delete Painter.current.last_pixel;
+		delete Painter.current.texture;
+		delete Painter.current.textures;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -417,10 +419,10 @@ const Painter = {
 			tool.brush.draw({ctx, x, y, size, softness, texture, event});
 
 		} else {
+			let face_matrix = settings.paint_side_restrict.value && Painter.current.face_matrices[matrix_id];
 			let run_per_pixel = (pxcolor, local_opacity, px, py) => {
-				if (Painter.current.face_matrices[matrix_id] && settings.paint_side_restrict.value) {
-					let matrix = Painter.current.face_matrices[matrix_id];
-					if (!matrix[px] || !matrix[px][py % texture.display_height]) {
+				if (face_matrix) {
+					if (!face_matrix[px] || !face_matrix[px][py % texture.display_height]) {
 						return pxcolor;
 					}
 				}
@@ -490,6 +492,7 @@ const Painter = {
 				for (let x in matrix) {
 					for (let y in matrix[x]) {
 						if (!matrix[x][y]) continue;
+						if (!texture.selection.allow(x, y)) continue;
 						x = parseInt(x); y = parseInt(y);
 						ctx.rect(x, y, 1, 1);
 					}
@@ -859,9 +862,6 @@ const Painter = {
 
 			function drawShape(start_x, start_y, x, y, uvTag) {
 
-				var rect = Painter.setupRectFromFace(uvTag, texture);
-				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-
 				let diff_x = x - start_x;
 				let diff_y = y - start_y;
 
@@ -880,7 +880,16 @@ const Painter = {
 					ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation();
 				}
 
+
 				if (shape === 'rectangle') {
+					if (uvTag) {
+						let rect = Painter.setupRectFromFace(uvTag, texture);
+						let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+						ctx.beginPath();
+						ctx.rect(rect[0], rect[1], w, h);
+					} else {
+						texture.selection.maskCanvas(ctx);
+					}
 					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
 					ctx.lineWidth = width;
 					ctx.beginPath();
@@ -894,6 +903,8 @@ const Painter = {
 						ctx.fill();
 					}
 				} else if (shape === 'ellipse') {
+					let rect = Painter.setupRectFromFace(uvTag, texture);
+					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 					Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
@@ -1022,8 +1033,6 @@ const Painter = {
 			}
 
 			function drawGradient(start_x, start_y, x, y, uvTag) {
-				let rect = Painter.setupRectFromFace(uvTag, texture);
-				var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 				let diff_x = x - start_x;
 				let diff_y = y - start_y;
 
@@ -1060,10 +1069,19 @@ const Painter = {
 				gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
 				gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
 
-				ctx.beginPath();
+				if (uvTag) {
+					let rect = Painter.setupRectFromFace(uvTag, texture);
+					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
+					ctx.beginPath();
+					ctx.rect(rect[0], rect[1], w, h);
+				} else {
+					texture.selection.maskCanvas(ctx);
+					let rect = texture.selection.getBoundingRect(true);
+					ctx.rect(rect.start_x, rect.start_y, rect.width, rect.height);
+				}
 				ctx.fillStyle = gradient;
-				ctx.rect(rect[0], rect[1], w, h);
 				ctx.fill();
+				ctx.restore();
 
 				return [diff_x, diff_y];
 			}
@@ -1272,13 +1290,7 @@ const Painter = {
 	},
 	getCanvas(texture) {
 		if (texture instanceof Texture) {
-			if (texture.display_canvas) return texture.canvas;
-			let canvas = texture.canvas;
-			let ctx = canvas.getContext('2d');
-			canvas.width = texture.width;
-			canvas.height = texture.height;
-			ctx.drawImage(texture.img, 0, 0)
-			return canvas;
+			return texture.canvas;
 		} else {
 			let img = texture;
 			let canvas = document.createElement('canvas');
@@ -1290,20 +1302,30 @@ const Painter = {
 		}
 	},
 	scanCanvas(ctx, x, y, w, h, cb) {
-		let arr = ctx.getImageData(x, y, w, h)
+		let local_x = x;
+		let local_y = y;
+		if (Painter.current.texture && Painter.current.texture.selected_layer) {
+			local_x -= Painter.current.texture.selected_layer.offset[0];
+			local_y -= Painter.current.texture.selected_layer.offset[1];
+		}
+		if (local_x < 0) { x -= local_x; local_x = 0; }
+		if (local_y < 0) { y -= local_y; local_y = 0; }
+		w = Math.min(w, ctx.canvas.width - local_x);
+		h = Math.min(h, ctx.canvas.height - local_y);
+		if (!w || !h) return;
+		let arr = ctx.getImageData(local_x, local_y, w, h)
 		for (let i = 0; i < arr.data.length; i += 4) {
 			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]]
 
-			let px = x + (i/4) % w
-			let py = y + Math.floor((i/4) / w)
-			if (px >= ctx.canvas.width || px < 0 || py >= ctx.canvas.height || py < 0) continue;
+			let px = x + (i/4) % w;
+			let py = y + Math.floor((i/4) / w);
 			let result = cb(px, py, pixel) || pixel
 
 			result.forEach((p, pi) => {
 				if (p != arr.data[i+pi]) arr.data[i+pi] = p
 			})
 		}
-		ctx.putImageData(arr, x, y)
+		ctx.putImageData(arr, local_x, local_y)
 	},
 	getPixelColor(ctx, x, y) {
 		let {data} = ctx.getImageData(x, y, 1, 1)
@@ -1314,11 +1336,12 @@ const Painter = {
 			a: data[3]/256
 		})
 	},
-	modifyCanvasSection(ctx, x, y, w, h, cb) {
+	modifyCanvasSection(ctx, x, y, w, h, cb, texture) {
 		var arr = ctx.getImageData(x, y, w, h)
 		var processed = [];
 
 		cb((px, py, editPx) => {
+			if (UVEditor.texture && !UVEditor.texture.selection.allow(px, py)) {;return;}
 			//changePixel
 			px = Math.floor(px)-x;
 			py = Math.floor(py)-y;
@@ -1358,6 +1381,7 @@ const Painter = {
 			) {
 				return;
 			}
+			if (Painter.current.texture.selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1411,6 +1435,7 @@ const Painter = {
 			) {
 				return;
 			}
+			if (Painter.current.texture.selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1670,6 +1695,362 @@ const Painter = {
 		}
 	]
 }
+
+class IntMatrix {
+	constructor(width = 16, height = 16) {
+		this.width = width;
+		this.height = height;
+		this.array = null;
+		this.override = false;
+	}
+	get is_custom() {
+		return this.override === null;
+	}
+	/**
+	 * The array does not exist by default to save memory, this activates it.
+	 */
+	activate() {
+		this.array = new Int8Array(this.width * this.height);
+	}
+	/**
+	 * Get the value at the specified pixel
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	get(x, y) {
+		if (this.override !== null) {
+			return this.override
+		} else {
+			if (x < 0 || x >= this.width || y < 0 || y >= this.height) return 0;
+			return this.array[y * this.width + x] || 0;
+		}
+	}
+	/**
+	 * Test whether painting is allowed at a specific pixel
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	allow(x, y) {
+		if (this.override !== null) {
+			return true;
+		} else {
+			return this.array[y * this.width + x];
+		}
+	}
+	/**
+	 * Get the value at the specified pixel directly without override and bounds check
+	 * @param {*} x 
+	 * @param {*} y 
+	 * @returns 
+	 */
+	getDirect(x, y) {
+		return this.array[y * this.width + x];
+	}
+	getBoundingRect(respect_empty) {
+		let rect = new Rectangle();
+		if (this.override == true || (respect_empty && this.override == false)) {
+			rect.width = this.width;
+			rect.height = this.height;
+		} else if (this.override == null) {
+			let min_x = this.width;
+			let min_y = this.height;
+			let max_x = 0;
+			let max_y = 0;
+			this.forEachPixel((x, y, value) => {
+				if (!value) return;
+				min_x = Math.min(min_x, x);
+				min_y = Math.min(min_y, y);
+				max_x = Math.max(max_x, x+1);
+				max_y = Math.max(max_y, y+1);
+			})
+			if (min_x == this.width) {
+				// No pixel selected
+				rect.width = this.width;
+				rect.height = this.height;
+			} else {
+				rect.fromCoords(min_x, min_y, max_x, max_y);
+			}
+		}
+		return rect;
+	}
+	hasSelection() {
+		if (this.is_custom) {
+			return this.array.findIndex(v => v) != -1;
+		} else {
+			return this.override;
+		}
+	}
+	/**
+	 * Set the value at a specified pixel
+	 * @param {number} x 
+	 * @param {number} y 
+	 * @param {number} value 
+	 */
+	set(x, y, value) {
+		if (this.override !== null) {
+			if (!this.array) this.activate();
+			if (this.override == true) {
+				this.array.fill(1);
+			}
+			this.override = null;
+		}
+		this.array[y * this.width + x] = value;
+	}
+	/**
+	 * If there was a selection, whether override or not, clear it
+	 */
+	clear() {
+		this.setOverride(false);
+	}
+	/**
+	 * Change override mode
+	 * @param {true|false|null} value 
+	 * @returns 
+	 */
+	setOverride(value) {
+		if (value === this.override) return;
+		this.override = value;
+		if (value === null) {
+			if (!this.array) {
+				this.activate();
+			} else {
+				this.array.fill(0);
+			}
+		} else {
+			delete this.array;
+		}
+	}
+	/**
+	 * Change the size of the matrix. Unless using overrides, the selection gets lost.
+	 * @param {number} width 
+	 * @param {number} height 
+	 * @returns {boolean} Whether the size had to be changed
+	 */
+	changeSize(width, height)  {
+		if (width == this.width && height == this.height) return false;
+		this.width = width;
+		this.height = height;
+		if (this.array) {
+			this.array = new Int8Array(this.width * this.height);
+		}
+		return true;
+	}
+	forEachPixel(callback) {
+		let length = this.width * this.height;
+		for (let i = 0; i < length; i++) {
+			let x = i % this.width;
+			let y = Math.floor(i /  this.width);
+			callback(x, y, this.array[i], i);
+		}
+	}
+	translate(offset_x, offset_y) {
+		if (this.override !== null) return;
+		let new_array = new Int8Array(this.width * this.height);
+		this.forEachPixel((x, y, value, i) => {
+			x += offset_x;
+			y += offset_y;
+			if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+			new_array[y * this.width + x] = value;
+		})
+		this.array = new_array;
+	}
+	maskCanvas(ctx) {
+		if (!this.is_custom) return;
+		ctx.save();
+		ctx.beginPath();
+		this.forEachPixel((x, y, value) => {
+			if (!value) return;
+			ctx.rect(x, y, 1, 1);
+		});
+		ctx.closePath();
+		ctx.clip();
+	}
+}
+
+SharedActions.add('copy', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event, cut) {
+		// todo: Make work on layers with existing offset
+		let texture = Texture.getDefault();
+		let selection = texture.selection;
+
+		let {canvas, ctx} = texture.getActiveCanvas();
+		let layer = texture.selected_layer;
+		let offset = layer ? layer.offset : [0, 0];
+		
+		if (selection.override != null) {
+			Clipbench.image = {
+				x: offset[0], y: offset[1],
+				data: canvas.toDataURL(),
+			}
+		} else {
+			let rect = selection.getBoundingRect();
+			let copy_canvas = document.createElement('canvas');
+			let copy_ctx = copy_canvas.getContext('2d');
+			copy_canvas.width = rect.width;
+			copy_canvas.height = rect.height;
+			
+			copy_ctx.beginPath()
+			selection.forEachPixel((x, y, val) => {
+				if (!val) return;
+				copy_ctx.rect(
+					x - rect.start_x - offset[0],
+					y - rect.start_y - offset[1],
+					1, 1
+				);
+			})
+			copy_ctx.closePath();
+			copy_ctx.clip();
+			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+
+			Clipbench.image = {
+				x: rect.start_x,
+				y: rect.start_y,
+				data: copy_canvas.toDataURL()
+			}
+			canvas = copy_canvas;
+		}
+
+
+		if (isApp) {
+			let img = nativeImage.createFromDataURL(Clipbench.image.data);
+			clipboard.writeImage(img);
+		} else {
+			canvas.toBlob(blob => {
+				navigator.clipboard.write([
+					new ClipboardItem({
+						[blob.type]: blob,
+					}),
+				]);
+			});
+		}
+
+		if (cut) {
+			SharedActions.runSpecific('delete', 'image_content', {message: 'Cut texture selection'});
+		}
+	}
+})
+SharedActions.add('paste', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event) {
+		let texture = Texture.getDefault();
+
+		async function loadFromDataUrl(data_url) {
+			let frame = new CanvasFrame();
+			await frame.loadFromURL(data_url);
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+			if (!texture.layers_enabled) {
+				texture.activateLayers(false);
+			}
+			let offset = Clipbench.image ? [Clipbench.image.x, Clipbench.image.y] : undefined;
+			let layer = new TextureLayer({name: 'pasted', offset}, texture);
+			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
+			layer.setSize(frame.width, frame.height);
+			layer.ctx.putImageData(image_data, 0, 0);
+			if (!offset) layer.center();
+			texture.layers.push(layer);
+			layer.select();
+			layer.setLimbo();
+			texture.updateLayerChanges(true);
+
+			Undo.finishEdit('Paste into texture');
+			updateInterfacePanels();
+			BARS.updateConditions();
+		}
+		
+	
+		if (isApp) {
+			var image = clipboard.readImage().toDataURL();
+			loadFromDataUrl(image);
+		} else {
+			navigator.clipboard.read().then(content => {
+				if (content && content[0] && content[0].types.includes('image/png')) {
+					content[0].getType('image/png').then(blob => {
+						let url = URL.createObjectURL(blob);
+						loadFromDataUrl(url);
+					})
+				}
+			}).catch(() => {})
+		}
+		
+	}
+})
+SharedActions.add('duplicate', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event) {
+		let texture = Texture.getDefault();
+		let selection = texture.selection;
+
+		let {canvas, ctx} = texture.getActiveCanvas();
+		let layer = texture.selected_layer;
+		let offset = layer ? layer.offset.slice() : [0, 0];
+		
+		if (selection.is_custom) {
+			let rect = selection.getBoundingRect();
+			let copy_canvas = document.createElement('canvas');
+			let copy_ctx = copy_canvas.getContext('2d');
+			copy_canvas.width = rect.width;
+			copy_canvas.height = rect.height;
+			
+			copy_ctx.beginPath()
+			selection.forEachPixel((x, y, val) => {
+				if (!val) return;
+				copy_ctx.rect(
+					x - rect.start_x - offset[0],
+					y - rect.start_y - offset[1],
+					1, 1
+				);
+			})
+			copy_ctx.closePath();
+			copy_ctx.clip();
+			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+
+			canvas = copy_canvas;
+		}
+
+		Undo.initEdit({textures: [texture], bitmap: true});
+		if (!texture.layers_enabled) {
+			texture.activateLayers(false);
+		}
+		let new_layer = new TextureLayer({name: layer.name + ' - copy', offset}, texture);
+		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+		new_layer.setSize(canvas.width, canvas.height);
+		new_layer.ctx.putImageData(image_data, 0, 0);
+		texture.layers.push(new_layer);
+		new_layer.select();
+		new_layer.setLimbo();
+		texture.updateLayerChanges(true);
+
+		Undo.finishEdit('Duplicate texture selection');
+		updateInterfacePanels();
+		BARS.updateConditions();
+		
+	}
+})
+SharedActions.add('delete', {
+	subject: 'image_content',
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	run(event, context = 0) {
+		let texture = Texture.getDefault();
+		if (texture.selection.override == false) return;
+
+		texture.edit(canvas => {
+			let ctx = canvas.getContext('2d');
+			let selection = texture.selection;
+			selection.forEachPixel((x, y, val) => {
+				if (val) {
+					ctx.clearRect(x, y, 1, 1);
+				}
+			})
+		}, {edit_name: context.message || 'Delete texture section'});
+	}
+})
 
 BARS.defineActions(function() {
 
@@ -1990,6 +2371,12 @@ BARS.defineActions(function() {
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
 		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				Painter.startPaintTool(texture, x, y, undefined, event);
+			}
+			return false;
+		},
 		onSelect: function() {
 			Painter.updateNslideValues()
 		}
@@ -2042,7 +2429,7 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
-	new Tool('copy_paste_tool', {
+	/*new Tool('copy_paste_tool', {
 		icon: 'fa-vector-square',
 		category: 'tools',
 		toolbar: 'brush',
@@ -2063,6 +2450,93 @@ BARS.defineActions(function() {
 		onUnselect() {
 			if (Painter.selection.overlay && open_interface) {
 				open_interface.confirm()
+			}
+		}
+	})*/
+	let selection_tool = new Tool('selection_tool', {
+		icon: 'select',
+		category: 'tools',
+		toolbar: 'brush',
+		cursor: 'crosshair',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		keybind: new Keybind({key: 'm'}),
+		side_menu: new Menu('selection_tool', () => {
+			let modes = {
+				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
+				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
+				lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
+				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
+			};
+			let entries = [];
+			for (let id in modes) {
+				let entry = {
+					id,
+					name: modes[id].name,
+					icon: modes[id].icon,
+					click() {
+						selection_tool.setIcon(modes[id].icon);
+						selection_tool.mode = id;
+						selection_tool.select();
+					}
+				}
+				entries.push(entry);
+			}
+			return entries;
+		}),
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
+		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				UVEditor.vue.startTextureSelection(x, y, event);
+			}
+			return false;
+		},
+		onSelect() {
+			UVEditor.vue.updateTexture();
+		},
+		onUnselect() {
+			if (TextureLayer.selected?.in_limbo) {
+				TextureLayer.selected.resolveLimbo();
+			}
+		}
+	})
+	selection_tool.mode = 'rectangle';
+
+	new Tool('move_layer_tool', {
+		icon: 'drag_pan',
+		category: 'tools',
+		toolbar: 'brush',
+		cursor: 'move',
+		selectFace: true,
+		transformerMode: 'hidden',
+		paintTool: true,
+		allowed_view_modes: ['textured'],
+		modes: ['paint'],
+		condition: {modes: ['paint']},
+		onCanvasClick(data) {
+			if (data && data.element) {
+				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
+			}
+		},
+		onTextureEditorClick(texture, x, y, event) {
+			if (texture) {
+				UVEditor.vue.startTextureSelection(x, y, event);
+			}
+			return false;
+		},
+		onSelect() {
+			let texture = Texture.selected;
+			if (texture && texture.selection.is_custom && texture.selection.hasSelection() && (!texture.selected_layer || !texture.selected_layer.in_limbo)) {
+				Texture.selected.selectionToLayer(true);
 			}
 		}
 	})
@@ -2096,8 +2570,8 @@ BARS.defineActions(function() {
 		options: {
 			rectangle: {name: true, icon: 'fas.fa-square'},
 			rectangle_h: {name: true, icon: 'far.fa-square'},
-			ellipse: {name: true, icon: 'circle'},
-			ellipse_h: {name: true, icon: 'radio_button_unchecked'},
+			ellipse: {name: true, icon: 'fas.fa-circle'},
+			ellipse_h: {name: true, icon: 'far.fa-circle'},
 		}
 	})
 	new BarSelect('blend_mode', {
@@ -2143,6 +2617,28 @@ BARS.defineActions(function() {
 			move: true,
 		}
 	})
+	new BarSelect('selection_tool_operation_mode', {
+		category: 'paint',
+		condition: {tools: ['selection_tool']},
+		icon_mode: true,
+		options: {
+			create: {name: true, icon: 'shadow'},
+			add: {name: true, icon: 'shadow_add'},
+			subtract: {name: true, icon: 'shadow_minus'},
+			intersect: {name: true, icon: 'join_inner'},
+		}
+	})
+	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+		let tool = BarItems.selection_tool_operation_mode;
+		if (!Condition(tool.condition)) return;
+		if (now.shift) {
+			tool.set('add');
+		} else if (now.ctrl) {
+			tool.set('subtract');
+		} else if (before.ctrl || before.shift) {
+			tool.set('create');
+		}
+	});
 
 	StateMemory.init('mirror_painting_options', 'object');
 	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
@@ -2334,7 +2830,7 @@ BARS.defineActions(function() {
 		tool_setting: 'brush_size',
 		category: 'paint',
 		settings: {
-			min: 1, max: 50, interval: 1, default: 1,
+			min: 1, max: 1024, interval: 1, default: 1,
 		}
 	})
 	new NumSlider('slider_brush_softness', {

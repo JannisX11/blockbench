@@ -183,6 +183,68 @@ function highestInObject(obj, inverse) {
 	}
 	return result;
 }
+
+class Rectangle {
+	constructor(start_x = 0, start_y = 0, width = 0, height = 0) {
+		this.start_x = start_x;
+		this.start_y = start_y;
+		this.width = width;
+		this.height = height;
+	}
+	get start() {
+		return [this.x, this.y];
+	}
+	get w() {
+		return this.width;
+	}
+	get h() {
+		return this.width;
+	}
+	get end_x() {
+		return this.start_x + this.width;
+	}
+	get end_y() {
+		return this.start_y + this.height;
+	}
+	set end_x(val) {
+		return this.width = val - this.start_x;
+	}
+	set end_y(val) {
+		return this.height = val - this.start_y;
+	}
+	get area() {
+		return this.width * this.height;
+	}
+	fromCoords(x1, y1, x2, y2) {
+		this.start_x = x1;
+		this.width = x2 - x1;
+		this.start_y = y1;
+		this.height = y2 - y1;
+	}
+	fromUnorderedCoords(x1, y1, x2, y2) {
+		if (x1 < x2) {
+			this.start_x = x1;
+			this.width = x2 - x1;
+		} else {
+			this.start_x = x2;
+			this.width = x1 - x2;
+		}
+		if (y1 < y2) {
+			this.start_y = y1;
+			this.height = y2 - y1;
+		} else {
+			this.start_y = y2;
+			this.height = y1 - y2;
+		}
+	}
+	expandTo(x, y) {
+		if (x < this.start_x) this.start_x = x;
+		else if (x > this.end_x) this.end_x = x;
+
+		if (y < this.start_y) this.start_y = y;
+		else if (y > this.end_y) this.end_y = y;
+	}
+}
 function getRectangle(a, b, c, d) {
 	var rect = {};
 	if (!b && typeof a === 'object') {

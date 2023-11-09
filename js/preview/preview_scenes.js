@@ -675,7 +675,7 @@ BARS.defineActions(function() {
 					list.push({
 						id: key,
 						name: options[key],
-						icon: PreviewScene.active == scene ? 'radio_button_checked' : 'radio_button_unchecked',
+						icon: PreviewScene.active == scene ? 'far.fa-dot-circle' : 'far.fa-circle',
 						click() {
 							if (scene) {
 								scene.select();

@@ -105,6 +105,7 @@ async function loadImages(files, event) {
 		img.onerror = reject;
 	})
 
+	// Options
 	if (Project && texture_li && texture_li.length) {
 		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 		if (replace_texture) {
@@ -114,6 +115,9 @@ async function loadImages(files, event) {
 	if (Project) {
 		if (Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
+		}
+		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
+			options.layer = 'data.layer';
 		}
 		options.reference_image = 'data.reference_image';
 	}
@@ -138,6 +142,27 @@ async function loadImages(files, event) {
 		} else if (method == 'replace_texture') {
 			replace_texture.fromFile(files[0])
 			updateSelection();
+			
+		} else if (method == 'layer') {
+			let texture = Texture.getDefault();
+			let frame = new CanvasFrame(img);
+			Undo.initEdit({textures: [texture], bitmap: true});
+			if (!texture.layers_enabled) {
+				texture.activateLayers(false);
+			}
+			let layer = new TextureLayer({name: files[0].name, offset: [0, 0]}, texture);
+			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
+			layer.setSize(frame.width, frame.height);
+			layer.ctx.putImageData(image_data, 0, 0);
+			texture.layers.push(layer);
+			layer.select();
+			layer.setLimbo();
+			texture.updateLayerChanges(true);
+
+			Undo.finishEdit('Add image as layer');
+			updateInterfacePanels();
+			BARS.updateConditions();
+			BarItems.move_layer_tool.select();
 			
 		} else if (method == 'reference_image') {
 			
@@ -169,12 +194,25 @@ async function loadImages(files, event) {
 		doLoadImages(all_methods[0]);
 
 	} else if (all_methods.length) {
+		let icons = {
+			replace_texture: 'file_upload',
+			texture: 'library_add',
+			layer: 'new_window',
+			reference_image: 'wallpaper',
+			edit: 'draw',
+			minecraft_skin: 'icon-player',
+			extrude_with_cubes: 'eject',
+		};
+		let commands = {};
+		for (let id in options) {
+			commands[id] = {text: options[id], icon: icons[id]};
+		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
 		if (files.length > 1) message += ` (${files.length})`;
 		Blockbench.showMessageBox({
 			id: 'load_images',
-			commands: options,
+			commands,
 			title, message,
 			icon: img,
 			buttons: ['dialog.cancel'],
@@ -561,7 +599,7 @@ function autoParseJSON(data, feedback) {
 BARS.defineActions(function() {
 	//Import
 	new Action('open_model', {
-		icon: 'assessment',
+		icon: 'file_open',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
 		click: function () {

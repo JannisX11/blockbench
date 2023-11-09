@@ -387,11 +387,14 @@
 		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
-	#windows_window_menu li i:not(.material-icons) {
-		font-size: 10pt;
+	#windows_window_menu svg {
+		margin-top: 4px;
 	}
-	#windows_window_menu i.material-icons {
-		vertical-align: bottom;
+	body:not(.maximized) #windows_window_menu svg.restore {
+		display: none;
+	}
+	body.maximized #windows_window_menu svg.maximize {
+		display: none;
 	}
 	#mac_window_menu {
 		width: 68px;

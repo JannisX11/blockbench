@@ -867,6 +867,7 @@ window.Dialog = class Dialog {
 		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
 		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
 
+		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';
 		open_dialog = this.id;
 		open_interface = this;
@@ -880,7 +881,7 @@ window.Dialog = class Dialog {
 		open_interface = false;
 		Dialog.open = null;
 		Dialog.stack.remove(this);
-		Prop.active_panel = undefined;
+		Prop.active_panel = Prop._previous_active_panel;
 		$(this.object).detach();
 		
 		if (Dialog.stack.length) {
@@ -990,7 +991,10 @@ window.MessageBox = class MessageBox extends Dialog {
 				let command = options.commands[id];
 				if (!command || !Condition(command.condition)) continue;
 				let text = tl(typeof command == 'string' ? command : command.text);
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
+				if (command.icon) {
+					entry.prepend(Blockbench.getIconNode(command.icon));
+				}
 				entry.addEventListener('click', e => {
 					this.close(id, results, e);
 				})

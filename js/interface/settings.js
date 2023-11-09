@@ -152,8 +152,8 @@ class Setting {
 					id: key,
 					name: this.options[key],
 					icon: this.value == key
-						? 'radio_button_checked'
-						: 'radio_button_unchecked',
+						? 'far.fa-dot-circle'
+						: 'far.fa-circle',
 					click: () => {
 						this.set(key);
 						Settings.save();
@@ -582,7 +582,7 @@ const Settings = {
 			let list = [
 				{
 					name: 'generic.none',
-					icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+					icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 					click: () => {
 						SettingsProfile.unselect();
 					}
@@ -593,7 +593,7 @@ const Settings = {
 				if (profile.condition.type != 'selectable') return;
 				list.push({
 					name: profile.name,
-					icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 					color: markerColors[profile.color].standard,
 					click: () => {
 						profile.select();
@@ -873,7 +873,7 @@ onVueSetup(function() {
 					SettingsProfile.all.forEach(profile => {
 						items.push({
 							name: profile.name,
-							icon: 'settings_applications',
+							icon: 'manage_accounts',
 							color: markerColors[profile.color].standard,
 							click: () => {
 								this.profile = profile;

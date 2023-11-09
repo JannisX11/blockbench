@@ -649,20 +649,54 @@ function unselectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function removeSelectedKeyframes() {
-	Undo.initEdit({keyframes: Timeline.selected})
-	var i = Timeline.keyframes.length;
-	while (i > 0) {
-		i--;
-		let kf = Timeline.keyframes[i]
-		if (Timeline.selected.includes(kf)) {
-			kf.remove()
+SharedActions.add('delete', {
+	condition: () => Animator.open && Keyframe.selected.length,
+	priority: -1,
+	run() {
+		Undo.initEdit({keyframes: Timeline.selected})
+		var i = Timeline.keyframes.length;
+		while (i > 0) {
+			i--;
+			let kf = Timeline.keyframes[i]
+			if (Timeline.selected.includes(kf)) {
+				kf.remove()
+			}
 		}
+		updateKeyframeSelection()
+		Animator.preview()
+		Undo.finishEdit('Remove keyframes')
 	}
-	updateKeyframeSelection()
-	Animator.preview()
-	Undo.finishEdit('Remove keyframes')
-}
+})
+SharedActions.add('select_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		selectAllKeyframes()
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		unselectAllKeyframes()
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -1,
+	run() {
+		Timeline.keyframes.forEach((kf) => {
+			if (!kf.selected) {
+				Timeline.selected.push(kf)
+				kf.selected = true;
+			} else {
+				Timeline.selected.remove(kf);
+				kf.selected = false;
+			}
+		})
+		updateKeyframeSelection()
+	}
+})
 
 //Clipbench
 Object.assign(Clipbench, {
@@ -744,6 +778,7 @@ Object.assign(Clipbench, {
 		}
 	}
 })
+
 
 BARS.defineActions(function() {
 	new Action('add_keyframe', {

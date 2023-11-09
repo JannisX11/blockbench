@@ -98,7 +98,8 @@ codec.export = null;
 
 new ModelFormat('image', {
 	icon: 'image',
-	show_on_start_screen: false,
+	category: 'general',
+	show_on_start_screen: true,
 	show_in_new_list: true,
 	can_convert_to: false,
 	model_identifier: false,

@@ -623,9 +623,14 @@ window.addEventListener('blur', event => {
 			delete Toolbox.original;
 		}
 	}
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = false;
 	Pressing.alt = false;
 	Pressing.ctrl = false;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })
 
 window.addEventListener('focus', event => {
@@ -660,9 +665,17 @@ function getFocusedTextInput() {
 addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
+
+	
+	let modifiers_changed = Pressing.shift != e.shiftKey || Pressing.alt != e.altKey || Pressing.ctrl != e.ctrlKey;
+	let before = modifiers_changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = e.shiftKey;
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
+	if (modifiers_changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
+
 	if (e.which === 16) {
 		showShiftTooltip()
 	}
@@ -863,7 +876,12 @@ $(document).keyup(function(e) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = false;
 	Pressing.alt = false;
 	Pressing.ctrl = false;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })

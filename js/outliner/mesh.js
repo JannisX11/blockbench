@@ -295,7 +295,7 @@ class MeshFace extends Face {
 		return center;
 	}
 }
-new Property(MeshFace, 'array', 'vertices', {default: 0});
+new Property(MeshFace, 'array', 'vertices');
 
 
 class Mesh extends OutlinerElement {

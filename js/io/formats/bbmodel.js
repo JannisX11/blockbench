@@ -167,16 +167,14 @@ var codec = new Codec('project', {
 
 		model.textures = [];
 		Texture.all.forEach(tex => {
-			var t = tex.getUndoCopy();
-			delete t.selected;
-			delete t.image_data;
+			var t = tex.getSaveCopy();
 			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
 				t.source = tex.getDataURL()
-				t.mode = 'bitmap'
+				t.internal = true;
 			}
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);

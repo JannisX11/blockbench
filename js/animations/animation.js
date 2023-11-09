@@ -449,7 +449,7 @@ class Animation extends AnimationItem {
 		this.selected = true;
 		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
-		unselectAll();
+		unselectAllElements();
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
@@ -798,9 +798,9 @@ class Animation extends AnimationItem {
 		'duplicate',
 		new MenuSeparator('settings'),
 		{name: 'menu.animation.loop', icon: 'loop', children: [
-			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
-			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
-			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
+			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('once', true)}},
+			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('hold', true)}},
+			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('loop', true)}},
 		]},
 		new MenuSeparator('manage'),
 		{
@@ -930,6 +930,30 @@ Clipbench.pasteAnimation = function() {
 	}
 }
 
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
+	run() {
+		AnimationItem.selected.rename();
+	}
+})
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
+	run() {
+		AnimationItem.selected.remove(true);
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animations' && Animation.selected,
+	run() {
+		let copy = Animation.selected.getUndoCopy();
+		let animation = new Animation(copy);
+		Property.resetUniqueValues(Animation, animation);
+		animation.createUniqueName();
+		Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
+		animation.saved = false;
+		animation.add(true).select();
+	}
+})
 
 Blockbench.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],

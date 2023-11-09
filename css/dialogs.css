@@ -253,6 +253,9 @@
 		margin-right: 10px;
 		pointer-events: none;
 	}
+	.dialog_message_box_command > .icon {
+		margin-right: 10px;
+	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
 		margin-bottom: -14px;
@@ -1579,7 +1582,10 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		background-color: transparent;
 	}
 	#bar_item_list li {
-		padding: 4px; 
+		padding: 4px;
+		height: 32px;
+		display: flex;
+		gap: 8px;
 	}
 	#bar_item_list li:hover {
 		color: var(--color-light);
@@ -1589,7 +1595,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		height: 26px;
 		vertical-align: text-top;
 	}
-	#bar_item_list li:not(:hover) div.icon_wrapper.add, #bar_item_list li:hover div.icon_wrapper.normal {
+	#bar_item_list li:not(:hover) div.icon_wrapper.add, #bar_item_list li:hover > .icon {
 		display: none;
 	}
 	#bar_items_current {

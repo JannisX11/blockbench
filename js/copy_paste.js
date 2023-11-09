@@ -9,6 +9,7 @@ const Clipbench = {
 		face: 'face',
 		mesh_selection: 'mesh_selection',
 		texture: 'texture',
+		layer: 'layer',
 		outliner: 'outliner',
 		texture_selection: 'texture_selection',
 		image: 'image',
@@ -51,6 +52,9 @@ const Clipbench = {
 		}
 		if (p == 'textures' && (Texture.selected || mode === 2)) {
 			return Clipbench.types.texture;
+		}
+		if (p == 'layers' && Texture.selected && Texture.selected.selected_layer) {
+			return Clipbench.types.layer;
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
@@ -115,11 +119,17 @@ const Clipbench = {
 		if (p == 'textures') {
 			return Clipbench.types.texture;
 		}
+		if (p == 'layers' && Texture.selected && Texture.selected.selected_layer) {
+			return Clipbench.types.layer;
+		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
 		}
 	},
 	copy(event, cut) {
+		let match = SharedActions.run('copy', event, cut);
+		if (match) return;
+
 		let copy_type = Clipbench.getCopyType(1);
 		Clipbench.last_copied = copy_type;
 		switch (copy_type) {
@@ -175,6 +185,9 @@ const Clipbench = {
 		}
 	},
 	async paste(event) {
+		let match = SharedActions.run('paste', event);
+		if (match) return;
+
 		switch (await Clipbench.getPasteType()) {
 			case 'text':
 				Clipbench.setText(window.getSelection()+'');
@@ -417,7 +430,7 @@ BARS.defineActions(function() {
 		icon: 'fa-copy',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(1, true),
+		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
 		keybind: new Keybind({key: 'c', ctrl: true, shift: null}),
 		click(event) {
 			Clipbench.copy(event)
@@ -427,7 +440,7 @@ BARS.defineActions(function() {
 		icon: 'fa-cut',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(1, true),
+		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
 		keybind: new Keybind({key: 'x', ctrl: true, shift: null}),
 		click(event) {
 			Clipbench.copy(event, true)
@@ -437,7 +450,7 @@ BARS.defineActions(function() {
 		icon: 'fa-clipboard',
 		category: 'edit',
 		work_in_dialog: true,
-		condition: () => Clipbench.getCopyType(2, true),
+		condition: () => Clipbench.getCopyType(2, true) || SharedActions.condition('paste'),
 		keybind: new Keybind({key: 'v', ctrl: true, shift: null}),
 		click(event) {
 			Clipbench.paste(event)

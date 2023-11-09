@@ -1002,7 +1002,7 @@
 				Undo.cancelEdit();
 			}
 			function displayDistance(number) {
-				Blockbench.setStatusBarText(trimFloatNumber(number));
+				Blockbench.setCursorTooltip(trimFloatNumber(number));
 			}
 			function extendTransformLineOnAxis(long, axis) {
 				let axisNumber = getAxisNumber(axis);
@@ -1593,7 +1593,7 @@
 
 					extendTransformLine(false);
 
-					Blockbench.setStatusBarText();
+					Blockbench.setCursorTooltip();
 
 					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
 						if (Toolbox.selected.id === 'resize_tool') {

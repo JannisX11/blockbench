@@ -167,6 +167,22 @@ const Blockbench = {
 		}
 		return new deletableToast(notification);
 	},
+	setCursorTooltip(text) {
+		if (!Interface.cursor_tooltip) {
+			Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
+		}
+		if (text) {
+			Interface.cursor_tooltip.textContent = text;
+			if (!Interface.cursor_tooltip.parentNode) {
+				document.body.append(Interface.cursor_tooltip);
+				Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+				Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+			}
+		} else {
+			Interface.cursor_tooltip.textContent = '';
+			Interface.cursor_tooltip.remove();
+		}
+	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
 		setTimeout(function() {

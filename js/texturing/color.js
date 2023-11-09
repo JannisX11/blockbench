@@ -51,6 +51,19 @@ var palettes = {
 }
 
 
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab),
+	run() {
+		if (StateMemory.color_palette_locked) {
+			Blockbench.showQuickMessage('message.palette_locked');
+			return;
+		}
+		if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
+			ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
+		}
+	}
+})
+
 Interface.definePanels(() => {
 	var saved_colors = localStorage.getItem('colors');
 	if (saved_colors) {
@@ -144,10 +157,10 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.picker_type',
 							icon: 'palette',
 							children: [
-								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
+								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
 									settings.color_wheel.set(false);
 								}},
-								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
+								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
 									settings.color_wheel.set(true);
 								}}
 							]
@@ -157,12 +170,12 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.slider_mode',
 							icon: 'tune',
 							children: [
-								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
+								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
 									StateMemory.set('color_picker_rgb', false);
 									BARS.updateConditions();
 									this.updateSliders();
 								}},
-								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
+								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
 									StateMemory.set('color_picker_rgb', true);
 									BARS.updateConditions();
 									this.updateSliders();
