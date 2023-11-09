@@ -241,7 +241,7 @@ const Timeline = {
 		let second_fractions = 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * second_fractions)
+		let f = Math.round((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		Timeline.vue.timestamp = `${m}:${s}:${f}`;
@@ -344,6 +344,7 @@ const Timeline = {
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
+					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 				}
 			} else if (Timeline.dragging_endbracket) {
 
@@ -353,6 +354,7 @@ const Timeline = {
 				
 				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
+				Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 
 			} else if (Timeline.dragging_onion_skin_point) {
 
@@ -364,6 +366,7 @@ const Timeline = {
 					Timeline.vue.onion_skin_time = time;
 					Timeline.revealTime(time);
 					Animator.updateOnionSkin();
+					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 				}
 			}
 		})
@@ -380,6 +383,7 @@ const Timeline = {
 			} else if (Timeline.dragging_onion_skin_point) {
 				delete Timeline.dragging_onion_skin_point
 			}
+			Blockbench.setCursorTooltip();
 		})
 		
 		//Enter Time

@@ -26,6 +26,7 @@ class ResizeLine {
 				data.set(scope.before, difference);
 				updateInterface();
 				this.update();
+				Blockbench.setCursorTooltip(Math.round(this.get()));
 			}
 			let stop = (e2) => {
 				document.removeEventListener('pointermove', move, false);
@@ -33,6 +34,7 @@ class ResizeLine {
 				updateInterface()
 				this.update();
 				this.node.classList.remove('dragging');
+				Blockbench.setCursorTooltip();
 			}
 			document.addEventListener('pointermove', move, false);
 			document.addEventListener('pointerup', stop, false);
