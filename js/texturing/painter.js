@@ -1300,6 +1300,14 @@ const Painter = {
 			return canvas;
 		}
 	},
+	copyCanvas(original_canvas) {
+		let canvas = document.createElement('canvas');
+		let ctx = canvas.getContext('2d');
+		canvas.width = original_canvas.width;
+		canvas.height = original_canvas.height;
+		ctx.drawImage(original_canvas, 0, 0);
+		return canvas;
+	},
 	scanCanvas(ctx, x, y, w, h, cb) {
 		let local_x = x;
 		let local_y = y;

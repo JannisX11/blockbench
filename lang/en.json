@@ -1490,6 +1490,8 @@
 	"action.enable_texture_layers": "Enable Layers",
 	"action.disable_texture_layers": "Disable Layers",
 	"action.layer_opacity": "Layer Opacity",
+	"action.layer_to_texture_size": "Expand Layer to Texture Size",
+	"action.layer_to_texture_size.desc": "Expand the layer to the size of the texture",
 
 	"action.add_display_preset": "New Preset",
 	"action.add_display_preset.desc": "Add a new display setting preset",

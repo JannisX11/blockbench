@@ -1748,7 +1748,7 @@ class Texture {
 						return;
 					}
 					let copy = texture.getUndoCopy();
-					Codecs.image.load(copy, texture.path, [texture.naturalWidth, texture.naturalHeight]);
+					Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
 				}
 			},
 			{

@@ -44,12 +44,12 @@ let codec = new Codec('image', {
 			texture.load_callback = () => {
 				delete texture.load_callback;
 				texture.select();
-				if (resolution instanceof Array) {
+				if (resolution instanceof Array && resolution[0] && resolution[1]) {
 					texture.uv_width = resolution[0];
 					texture.uv_height = resolution[1];
 				} else {
-					texture.uv_width = texture.width;
 					texture.uv_height = texture.display_height;
+					texture.uv_width = texture.width;
 				}
 
 				if (i == files.length-1) {

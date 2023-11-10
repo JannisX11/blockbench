@@ -246,6 +246,7 @@ class TextureLayer {
 }
 TextureLayer.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
+	'layer_to_texture_size',
 	new MenuSeparator('copypaste'),
 	'copy',
 	'duplicate',
@@ -389,6 +390,25 @@ BARS.defineActions(() => {
 		onAfter() {
 			Undo.finishEdit('Change layer opacity');
 			Texture.selected.updateLayerChanges(true);
+		}
+	})
+	new Action('layer_to_texture_size', {
+		icon: 'fit_screen',
+		category: 'layers',
+		condition: () => TextureLayer.selected,
+		click() {
+			let layer = TextureLayer.selected;
+			Undo.initEdit({layers: [layer], bitmap: true});
+
+			let copy = Painter.copyCanvas(layer.canvas);
+			layer.canvas.width = layer.texture.width;
+			layer.canvas.height = layer.texture.height;
+			layer.ctx.drawImage(copy, layer.offset[0], layer.offset[1]);
+			console.log(copy, layer.offset[0], layer.offset[1])
+			layer.offset.V2_set(0, 0);
+
+			Undo.finishEdit('Expand layer to texture size');
+			layer.texture.updateLayerChanges(true);
 		}
 	})
 })
