@@ -428,9 +428,6 @@ Interface.definePanels(() => {
 	ColorPanel.set = function(color, secondary, no_sync) {
 		ColorPanel.change(color, secondary);
 		ColorPanel.addToHistory(ColorPanel.vue.main_color)
-		if (!no_sync && isApp && settings.sync_color.value) {
-			ipcRenderer.send('change-main-color', ColorPanel.vue.main_color);
-		}
 	}
 	ColorPanel.get = function(secondary) {
 		let color = secondary ? ColorPanel.vue.second_color : ColorPanel.vue.main_color;
@@ -1176,7 +1173,7 @@ BARS.defineActions(function() {
 		click: async function () {
 			if (Blockbench.platform == 'win32') {
 				// workaround for https://github.com/electron/electron/issues/27980
-				ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
+				ipcRenderer.send('request-color-picker', {sync: false});
 
 			} else if (typeof EyeDropper == 'function') {
 				let dropper = new EyeDropper();

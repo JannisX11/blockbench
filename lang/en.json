@@ -945,8 +945,6 @@
 	"settings.nearest_rectangle_select": "Rectangle Selection: Nearest Edge",
 	"settings.nearest_rectangle_select.desc": "Snap rectangle selections to the nearest pixel edge, like in GIMP, instead of entire pixels.",
 
-	"settings.sync_color": "Sync Color",
-	"settings.sync_color.desc": "Synchronize the color between different Blockbench instances",
 	"settings.color_wheel": "Color Wheel",
 	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.pick_color_opacity": "Pick Color Opacity",

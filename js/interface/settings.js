@@ -494,7 +494,6 @@ const Settings = {
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
 		//Paint
-		new Setting('sync_color',					{category: 'paint', value: false});
 		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
