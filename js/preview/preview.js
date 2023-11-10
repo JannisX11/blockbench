@@ -1138,7 +1138,13 @@ class Preview {
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
 			if (data) this.selection.click_target = data;
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
+			
+			let click_result;
+			if (typeof Toolbox.selected.onCanvasRightClick === 'function') {
+				click_result = Toolbox.selected.onCanvasRightClick(data || {event});
+			}
+			if (click_result == false) {
+			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
 				data.element.showContextMenu(event);
 
 			} else if (data.type == 'keyframe') {

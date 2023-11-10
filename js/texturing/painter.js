@@ -88,7 +88,7 @@ const Painter = {
 						}
 					}
 				}
-				ColorPanel.set(color);
+				ColorPanel.set(color, e.button == 2);
 			}
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
@@ -167,9 +167,8 @@ const Painter = {
 		}
 
 		if (Toolbox.selected.id === 'color_picker') {
-			Painter.colorPicker(texture, x, y);
+			Painter.colorPicker(texture, x, y, event);
 			return;
-
 		}
 		
 		let undo_aspects = {selected_texture: true, bitmap: true};
@@ -1109,7 +1108,7 @@ const Painter = {
 
 		}, {no_undo: true, use_cache: true});
 	},
-	colorPicker(texture, x, y) {
+	colorPicker(texture, x, y, event) {
 		var ctx = Painter.getCanvas(texture).getContext('2d')
 		let color = Painter.getPixelColor(ctx, x, y);
 		if (settings.pick_color_opacity.value) {
@@ -1121,7 +1120,7 @@ const Painter = {
 				}
 			}
 		}
-		ColorPanel.set(color);
+		ColorPanel.set(color, event && event.button == 2);
 	},
 	// Util
 	combineColors(base, added, opacity) {
@@ -2368,8 +2367,12 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		onCanvasClick: function(data) {
+		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event)
+		},
+		onCanvasRightClick(data) {
+			Painter.startPaintToolCanvas(data, data.event);
+			if (data.element) return false;
 		},
 		onTextureEditorClick(texture, x, y, event) {
 			if (texture) {

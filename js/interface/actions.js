@@ -432,6 +432,7 @@ class Tool extends Action {
 			this.condition = {modes: this.modes};
 		}
 		this.onCanvasClick = data.onCanvasClick;
+		this.onCanvasRightClick = data.onCanvasRightClick;
 		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
