@@ -795,6 +795,13 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				}
 			}
 		})
+		if (!used && !open_dialog) {
+			for (let tool of Tool.all) {
+				if (tool.keybind && typeof tool.trigger === 'function' && tool.keybind.isTriggered(e)) {
+					if (tool.switchModeAndSelect(e)) break;
+				}
+			}
+		}
 	}
 	// Menu
 	if (open_menu) {

@@ -2463,7 +2463,6 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
 		side_menu: new Menu('selection_tool', () => {
 			let modes = {
@@ -2521,7 +2520,7 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		condition: {modes: ['paint']},
+		keybind: new Keybind({key: 'v'}),
 		onCanvasClick(data) {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')

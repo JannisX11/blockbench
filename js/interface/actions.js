@@ -428,10 +428,8 @@ class Tool extends Action {
 		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
-		if (this.condition == undefined) {
-			this.condition = function() {
-				return !scope.modes || scope.modes.includes(Modes.id);
-			}
+		if (this.condition == undefined && this.modes instanceof Array) {
+			this.condition = {modes: this.modes};
 		}
 		this.onCanvasClick = data.onCanvasClick;
 		this.onTextureEditorClick = data.onTextureEditorClick;
@@ -440,6 +438,7 @@ class Tool extends Action {
 		this.node.onclick = () => {
 			scope.select();
 		}
+		Tool.all.push(this);
 	}
 	select() {
 		if (this === Toolbox.selected) return;
@@ -495,19 +494,28 @@ class Tool extends Action {
 		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (this.modes) {
-			for (var i = 0; i < this.modes.length; i++) {
-				var mode = Modes.options[this.modes[i]]
-				if (mode && Condition(mode.condition)) {
-					mode.select()
-					this.select()
-					return true;
-				}
-			}
+		} else if (this.modes && event instanceof KeyboardEvent == false) {
+			return this.switchModeAndSelect();
 		}
 		return false;
 	}
+	switchModeAndSelect() {
+		for (var i = 0; i < this.modes.length; i++) {
+			var mode = Modes.options[this.modes[i]]
+			if (mode && Condition(mode.condition)) {
+				mode.select()
+				this.select()
+				return true;
+			}
+		}
+	}
+	delete() {
+		super.delete();
+		Tool.all.remove(this);
+	}
 }
+Tool.all = [];
+Tool.selected = null;
 class Toggle extends Action {
 	constructor(id, data) {
 		super(id, data);
@@ -1808,6 +1816,7 @@ const BARS = {
 				selectElements: true,
 				cursor: 'copy',
 				modes: ['edit'],
+				condition: {modes: ['edit']},
 				keybind: new Keybind({key: 'x'}),
 				onCanvasClick(data) {
 					Vertexsnap.canvasClick(data)
