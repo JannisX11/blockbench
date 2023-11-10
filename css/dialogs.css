@@ -173,6 +173,7 @@
 	.dialog_bar .tool {
 		position: relative;
 		margin: 0;
+		margin-right: auto;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
 		display: none !important;
@@ -198,6 +199,10 @@
 		flex-shrink: 0;
 		padding-top: 4px;
 		margin-left: 5px;
+	}
+	.dialog_bar.form_toggle_disabled *:not(.form_input_toggle) {
+		pointer-events: none;
+		opacity: 0.6;
 	}
 	.tab_bar {
 		height: 30px;

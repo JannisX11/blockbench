@@ -369,6 +369,21 @@ function buildForm(dialog) {
 				}
 				bar.append(icon);
 			}
+			if (data.toggle_enabled) {
+				let toggle = Interface.createElement('input', {
+					type: 'checkbox',
+					class: 'focusable_input form_input_toggle',
+					id: form_id + '_toggle',
+				})
+				toggle.checked = data.toggle_default != false;
+				bar.append(toggle);
+				bar.toggleClass('form_toggle_disabled', !toggle.checked);
+				toggle.addEventListener('input', () => {
+					dialog.updateFormValues();
+					bar.toggleClass('form_toggle_disabled', !toggle.checked);
+				});
+				data.input_toggle = toggle;
+			}
 			dialog_content.append(bar)
 			data.bar = bar;
 		}
@@ -633,7 +648,9 @@ window.Dialog = class Dialog {
 		let result = {}
 		if (this.form) {
 			for (let form_id in this.form) {
-				let data = this.form[form_id]
+				let data = this.form[form_id];
+				if (data && data.input_toggle && data.input_toggle.checked == false) continue;
+
 				if (typeof data === 'object') {
 					switch (data.type) {
 						default:

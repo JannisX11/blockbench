@@ -23,7 +23,6 @@ const TextureGenerator = {
 		type_options.blank = 'dialog.create_texture.type.blank';
 		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Texture.getDefault().getUVWidth())*16 : 16;
 
-		TextureGenerator.background_color.set('#00000000')
 		let resolution_presets = {
 			16: '16x',
 			32: '32x',
@@ -44,7 +43,7 @@ const TextureGenerator = {
 
 				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
@@ -56,11 +55,6 @@ const TextureGenerator = {
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
 				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
 
-			},
-			onFormChange(form) {
-				if (form.type == 'template' && TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
-					TextureGenerator.background_color.set('#00000000')
-				}
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
@@ -76,7 +70,6 @@ const TextureGenerator = {
 	appendToTemplateDialog() {
 		let texture = Texture.getDefault();
 		if (!texture) return;
-		TextureGenerator.background_color.set('#00000000');
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.append_to_template'),
@@ -91,11 +84,6 @@ const TextureGenerator = {
 				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
 				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false, condition: (form) => (form.rearrange_uv)},
-			},
-			onFormChange(form) {
-				if (TextureGenerator.background_color.get().toHex8() === 'ffffffff') {
-					TextureGenerator.background_color.set('#00000000')
-				}
 			},
 			onConfirm(options) {
 				dialog.hide()
@@ -119,9 +107,6 @@ const TextureGenerator = {
 		}
 		if (!options.resolution || isNaN(options.resolution[0]) || isNaN(options.resolution[1])) {
 			options.resolution = [16, 16]
-		}
-		if (options.color === undefined) {
-			options.color = new tinycolor().toRgb()
 		}
 		if (Format.single_texture) {
 			options.texture = Texture.getDefault()
@@ -169,8 +154,10 @@ const TextureGenerator = {
 		canvas.height = height;
 		var ctx = canvas.getContext('2d')
 
-		ctx.fillStyle = new tinycolor(color).toRgbString()
-		ctx.fillRect(0, 0, width, height)
+		if (color) {
+			ctx.fillStyle = new tinycolor(color).toRgbString();
+			ctx.fillRect(0, 0, width, height);
+		}
 
 		cb(canvas.toDataURL())
 	},
@@ -403,7 +390,7 @@ const TextureGenerator = {
 			new_resolution = [Project.texture_width, Project.texture_height];
 		}
 
-		if (background_color.getAlpha() != 0) {
+		if (background_color) {
 			background_color = background_color.toRgbString()
 		}
 		let canvas = document.createElement('canvas');
@@ -1217,7 +1204,7 @@ const TextureGenerator = {
 			})
 		}
 
-		if (background_color.getAlpha() != 0) {
+		if (background_color) {
 			background_color = background_color.toRgbString()
 		}
 		let canvas = document.createElement('canvas');
