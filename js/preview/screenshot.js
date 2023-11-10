@@ -364,8 +364,7 @@ const Screencam = {
 			}
 	
 			if (options.play && animation) {
-				Timeline.time = 0;
-				Timeline.start()
+				Timeline.setTime(0);
 				if (!animation.length) options.length_mode = 'seconds';
 			} else if (options.length_mode == 'animation') {
 				options.length_mode = 'seconds'
@@ -385,6 +384,10 @@ const Screencam = {
 
 			recording = true;
 			loop = setInterval(() => {
+				if (animation) {
+					Timeline.setTime(interval*frames / 1000);
+					Animator.preview(true);
+				}
 				frames++;
 				Canvas.withoutGizmos(function() {
 					// Update camera

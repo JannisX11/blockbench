@@ -2479,7 +2479,7 @@ BARS.defineActions(function() {
 			let modes = {
 				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
 				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-				lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+				//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
 				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
 				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
 			};
