@@ -2,6 +2,6 @@
 index.php
 electron-builder.env
 node_modules/
-js/bundle.js
+bundle.js
 workbox-*.js
 service_worker.js
