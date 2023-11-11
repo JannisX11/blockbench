@@ -83,7 +83,7 @@ const UVEditor = {
 		var texture = UVEditor.getTexture()
 		if (!texture) {
 			Blockbench.showQuickMessage('message.untextured')
-		} else if (event.which === 1 || (event.touches && event.touches.length == 1)) {
+		} else if (event.which === 1 || Keybinds.extra.paint_secondary_color.keybind.isTriggered(event) || (event.touches && event.touches.length == 1)) {
 			var new_face;
 			var {x, y} = UVEditor.getBrushCoordinates(event, texture);
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
@@ -2327,9 +2327,8 @@ Interface.definePanels(function() {
 						$(getFocusedTextInput()).trigger('blur');
 						return false;
 
-					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || (event.touches && event.touches.length == 1))) {
+					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || Keybinds.extra.paint_secondary_color.keybind.isTriggered(event) || (event.touches && event.touches.length == 1))) {
 						// Paint
-						//if (event.target && event.target.id === 'uv_viewport') return;
 						UVEditor.startPaintTool(event);
 						event.preventDefault();
 						return false;

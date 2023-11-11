@@ -1026,6 +1026,7 @@
 	"category.transform": "Transform",
 	"category.color": "Color",
 	"category.paint": "Paint",
+	"category.layers": "Layers",
 	"category.view": "View",
 	"category.display": "Display Settings",
 	"category.animation": "Animation",
@@ -1039,6 +1040,7 @@
 	"keybind.preview_drag": "Drag View",
 	"keybind.preview_zoom": "Zoom View",
 	"keybind.preview_area_select": "Area Select",
+	"keybind.paint_secondary_color": "Paint with Secondary Color",
 	"keybind.confirm": "Confirm",
 	"keybind.cancel": "Cancel",
 

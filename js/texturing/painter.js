@@ -272,6 +272,7 @@ const Painter = {
 		if (Toolbox.selected.id == 'gradient_tool' || Toolbox.selected.id == 'draw_shape_tool') {
 			Blockbench.setStatusBarText();
 		}
+		preventContextMenu();
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
@@ -373,7 +374,7 @@ const Painter = {
 	},
 	useBrush(texture, ctx, x, y, event) {
 
-		var color = tinycolor(ColorPanel.get()).toRgb();
+		var color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
 		var size = BarItems.slider_brush_size.get();
 		let softness = BarItems.slider_brush_softness.get()/100;
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
@@ -851,7 +852,7 @@ const Painter = {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
-			let color = tinycolor(ColorPanel.get()).toRgb();
+			let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
 			let b_opacity = BarItems.slider_brush_opacity.get()/255;
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
@@ -889,7 +890,7 @@ const Painter = {
 					} else {
 						texture.selection.maskCanvas(ctx);
 					}
-					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString();
+					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).setAlpha(b_opacity).toRgbString();
 					ctx.lineWidth = width;
 					ctx.beginPath();
 					var rect = getRectangle(start_x, start_y, start_x+diff_x, start_y+diff_y);
@@ -1065,8 +1066,9 @@ const Painter = {
 				}
 
 				let gradient = ctx.createLinearGradient(start_x, start_y, x, y);
-				gradient.addColorStop(0, tinycolor(ColorPanel.get()).setAlpha(b_opacity).toRgbString());
-				gradient.addColorStop(1, tinycolor(ColorPanel.get()).setAlpha(0).toRgbString());
+				let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event)));
+				gradient.addColorStop(0, color.setAlpha(b_opacity).toRgbString());
+				gradient.addColorStop(1, color.setAlpha(0).toRgbString());
 
 				if (uvTag) {
 					let rect = Painter.setupRectFromFace(uvTag, texture);
@@ -2086,6 +2088,10 @@ SharedActions.add('delete', {
 
 BARS.defineActions(function() {
 
+	new KeybindItem('paint_secondary_color', {
+		category: 'paint',
+		keybind: new Keybind({shift: null})
+	})
 	new Tool('pan_tool', {
 		icon: 'pan_tool',
 		category: 'tools',
