@@ -21,6 +21,8 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
+			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [500, 500], toggle_enabled: true, toggle_default: false},
+			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
@@ -39,6 +41,8 @@ const Screencam = {
 				length_mode: formData.length_mode,
 				length: formData.length,
 				fps: formData.fps,
+				resolution: formData.resolution,
+				zoom: formData.zoom,
 				quality: formData.quality,
 				pixelate: formData.pixelate,
 				background,
@@ -52,12 +56,26 @@ const Screencam = {
 		id: 'advanced_screenshot',
 		title: 'action.advanced_screenshot',
 		form: {
-			/*angle_preset: 	{type: 'select', label: 'dialog.advanced_screenshot.angle_preset', value: 'view', options: {
-				view: 'View',
-			}},*/
+			angle_preset: 	{type: 'select', label: 'dialog.advanced_screenshot.angle_preset', value: 'view', options() {
+				let options = {
+					view: 'View',
+				};
+				let presets = localStorage.getItem('camera_presets')
+				presets = (presets && autoParseJSON(presets, false)) || [];
+
+				DefaultCameraPresets.forEach(preset => {
+					if (!Condition(preset.condition)) return;
+					options[preset.id] = {color: preset.color, name: tl(preset.name)};
+				})
+				presets.forEach((preset, i) => {
+					if (!Condition(preset.condition)) return;
+					options['_'+i] = preset.name;
+				})
+				return options;
+			}},
 			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
 			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
-			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 40, condition: form => !form.zoom_to_fit},
+			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
 			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
 				off: 'dialog.advanced_screenshot.anti_aliasing.off',
 				msaa: 'dialog.advanced_screenshot.anti_aliasing.msaa',
@@ -137,9 +155,24 @@ const Screencam = {
 
 			let sample_factor = options.anti_aliasing == 'ssaa' ? 4 : 1;
 			render_viewport.resize(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
-			render_viewport.copyView(preview);
-			if (!render_viewport.isOrtho) {
-				render_viewport.camera.setFocalLength(options.zoom);
+			if (options.angle_preset == 'view') {
+				render_viewport.copyView(preview);
+			} else {
+				let preset = isNaN(options.angle_preset.substring(1))
+					? DefaultCameraPresets.find(p => p.id == options.angle_preset)
+					: JSON.parse(localStorage.getItem('camera_presets'))[parseInt(options.angle_preset)];
+				render_viewport.loadAnglePreset(preset);
+			}
+			if (options.zoom) {
+				if (!render_viewport.isOrtho) {
+					render_viewport.camera.setFocalLength(options.zoom);
+				} else {
+					render_viewport.camera.zoom = options.zoom / 100 * sample_factor;
+					render_viewport.camera.updateProjectionMatrix();
+				}
+			}
+			if (render_viewport.isOrtho) {
+
 			}
 			render_viewport.render();
 
@@ -307,6 +340,7 @@ const Screencam = {
 		let recording = false;
 		let loop = null;
 		let crop = Screencam.gif_crop;
+		let custom_resolution = options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height);
 		let background_image;
 		if (options.background_image) {
 			background_image = new Image();
@@ -376,10 +410,17 @@ const Screencam = {
 
 			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
 			let NoAAPreview = Screencam.NoAAPreview;
-			NoAAPreview.resize(
-				preview.width * window.devicePixelRatio / options.pixelate,
-				preview.height * window.devicePixelRatio / options.pixelate
-			);
+			if (custom_resolution) {
+				NoAAPreview.resize(
+					canvas_width / options.pixelate,
+					canvas_height / options.pixelate
+				);
+			} else {
+				NoAAPreview.resize(
+					preview.width * window.devicePixelRatio / options.pixelate,
+					preview.height * window.devicePixelRatio / options.pixelate
+				);
+			}
 			NoAAPreview.setProjectionMode(preview.isOrtho);
 
 			recording = true;
@@ -403,7 +444,17 @@ const Screencam = {
 						NoAAPreview.camera.left = preview.camera.left;
 						NoAAPreview.camOrtho.updateProjectionMatrix();
 					} else {
-						NoAAPreview.setFOV(preview.camPers.fov);
+						if (options.zoom) {
+							if (!NoAAPreview.isOrtho) {
+								NoAAPreview.camera.setFocalLength(options.zoom);
+							} else {
+								NoAAPreview.camera.zoom = options.zoom / 100;
+								NoAAPreview.camera.updateProjectionMatrix();
+							}
+							NoAAPreview.camPers.setFocalLength(options.zoom);
+						} else {
+							NoAAPreview.setFOV(preview.camPers.fov);
+						}
 					}
 
 					let [canvas, ctx] = createEmptyCanvas();
@@ -417,12 +468,16 @@ const Screencam = {
 					if (background_image) {
 						ctx.drawImage(background_image, 0, 0, canvas_width, canvas_height);
 					}
-					ctx.drawImage(NoAAPreview.canvas,
-						Math.round(-crop.left * window.devicePixelRatio),
-						Math.round(-crop.top * window.devicePixelRatio),
-						Math.round(NoAAPreview.width * options.pixelate),
-						Math.round(NoAAPreview.height * options.pixelate)
-					);
+					if (custom_resolution) {
+						ctx.drawImage(NoAAPreview.canvas, 0, 0, NoAAPreview.width * options.pixelate, NoAAPreview.height * options.pixelate);
+					} else {
+						ctx.drawImage(NoAAPreview.canvas,
+							Math.round(-crop.left * window.devicePixelRatio),
+							Math.round(-crop.top * window.devicePixelRatio),
+							Math.round(NoAAPreview.width * options.pixelate),
+							Math.round(NoAAPreview.height * options.pixelate)
+						);
+					}
 					if (options.format == 'png_sequence' || options.format == 'gif' || options.format == 'apng') {
 						frame_canvases.push(canvas);
 					}
@@ -572,10 +627,12 @@ const Screencam = {
 			frame.remove();
 		}
 		function updateCrop() {
-			crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
-			crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
-			crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
-			crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
+			if (!options.resolution) {
+				crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
+				crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
+				crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
+				crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
+			}
 			frame.style.top = crop.top + 'px';
 			frame.style.left = crop.left + 'px';
 			frame.style.right = crop.right + 'px';
@@ -591,6 +648,10 @@ const Screencam = {
 		frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
 		frame.append(frame_label);
 
+		if (options.resolution) {
+			crop.left = crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
+			crop.top = crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
+		}
 		function drag(e1) {
 			let crop_original = Object.assign({}, crop);
 			function move(e2) {
@@ -599,6 +660,7 @@ const Screencam = {
 				crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
 				crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
 				crop.bottom	= crop_original.bottom	- (e2.clientY - e1.clientY);
+				custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -621,6 +683,7 @@ const Screencam = {
 				convertTouchEvent(e2);
 				crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
 				crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
+				custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {

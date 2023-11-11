@@ -111,7 +111,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.true_isometric_right',
-		id: 'isometric_right',
+		id: 'true_isometric_right',
 		projection: 'orthographic',
 		position: [-64, 64+8, -64],
 		target: [0, 8, 0],
@@ -120,7 +120,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.true_isometric_left',
-		id: 'isometric_left',
+		id: 'true_isometric_left',
 		projection: 'orthographic',
 		position: [64, 64+8, -64],
 		target: [0, 8, 0],
@@ -1429,6 +1429,10 @@ class Preview {
 			this.camera.bottom = preview.camera.bottom;
 			this.camera.right = preview.camera.right;
 			this.camera.left = preview.camera.left;
+			let ratio = this.width / this.height;
+			let current_ratio = (this.camera.right - this.camera.left) / (this.camera.top - this.camera.bottom);
+			this.camera.right *= ratio / current_ratio;
+			this.camera.left *= ratio / current_ratio;
 			this.camOrtho.updateProjectionMatrix();
 		} else {
 			this.setFOV(preview.camPers.fov);
@@ -1509,8 +1513,7 @@ class Preview {
 			preview.newAnglePreset()
 		}},
 		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
-			var children = [
-			]
+			let children = []
 			let presets = localStorage.getItem('camera_presets')
 			presets = (presets && autoParseJSON(presets, false)) || [];
 			let all_presets = [

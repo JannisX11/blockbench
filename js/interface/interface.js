@@ -703,20 +703,20 @@ $(document).keyup(function(event) {
 // Custom Elements
 Interface.CustomElements.ResizeLine = ResizeLine;
 Interface.CustomElements.SelectInput = function(id, data) {
-	function getNameFor(key) {
-		let val = data.options[key];
+	function getNameFor(val) {
 		if (val) {
 			return tl(val.name || val);
 		} else {
 			return '';
 		}
 	}
-	let value = data.value || data.default || Object.keys(data.options)[0];
-	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(value));
-	function setKey(key) {
+	let options = typeof data.options == 'function' ? data.options() : data.options;
+	let value = data.value || data.default || Object.keys(options)[0];
+	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
+	function setKey(key, options) {
 		value = key;
 		select.setAttribute('value', key);
-		select.textContent = getNameFor(key);
+		select.textContent = getNameFor(options[key]);
 		if (typeof data.onChange == 'function') {
 			data.onChange(value);
 		}
@@ -724,15 +724,17 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	select.addEventListener('click', function(event) {
 		if (Menu.closed_in_this_click == id) return this;
 		let items = [];
-		for (let key in data.options) {
-			let val = data.options[key];
+		let options = typeof data.options == 'function' ? data.options() : data.options;
+		for (let key in options) {
+			let val = options[key];
 			if (val) {
 				items.push({
-					name: getNameFor(key),
+					name: getNameFor(options[key]),
 					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+					color: val.color,
 					condition: val.condition,
 					click: (e) => {
-						setKey(key);
+						setKey(key, options);
 					}
 				})
 			}
