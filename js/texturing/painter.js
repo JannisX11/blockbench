@@ -1863,14 +1863,60 @@ class IntMatrix {
 		})
 		this.array = new_array;
 	}
-	maskCanvas(ctx) {
+	toBoxes() {
+		if (!this.is_custom) return [0, 0, this.width, this.height];
+		let boxes = [];
+		this.forEachPixel((x, y, value) => {
+			if (value !== 1) return;
+			let w = 1;
+			let h = 1;
+			let can_exp_w = true;
+			let can_exp_h = true;
+			let i = 0;
+			while (can_exp_w || can_exp_h) {
+				i++;
+				if (can_exp_w && x + i >= this.width) can_exp_w = false;
+				if (can_exp_w) {
+					for (let j = 0; j < h; j++) {
+						if (this.getDirect(x+i, y+j) != 1) {
+							can_exp_w = false;
+							break;
+						}
+					}
+					if (can_exp_w) w++;
+				}
+				if (can_exp_h && y + i >= this.height) can_exp_h = false;
+				if (can_exp_h) {
+					for (let j = 0; j < h; j++) {
+						if (this.getDirect(x+j, y+i) != 1) {
+							can_exp_h = false;
+							break;
+						}
+					}
+					if (can_exp_h) h++;
+				}
+			}
+			for (let x2 = 0; x2 < w; x2++) {
+				for (let y2 = 0; y2 < h; y2++) {
+					this.array[(y+y2) * this.width + (x+x2)] = 2;
+				}
+			};
+			boxes.push([x, y, w, h]);
+		})
+		this.forEachPixel((x, y, value, i) => {
+			if (value === 2) this.array[i] = 1;
+		})
+		return boxes;
+	}
+	maskCanvas(ctx, offset = [0, 0]) {
 		if (!this.is_custom) return;
+
 		ctx.save();
 		ctx.beginPath();
-		this.forEachPixel((x, y, value) => {
-			if (!value) return;
-			ctx.rect(x, y, 1, 1);
-		});
+		let boxes = this.toBoxes();
+		boxes.forEach(box => {
+			ctx.rect(box[0] - offset[0], box[1] - offset[0], box[2], box[3]);
+		})
 		ctx.closePath();
 		ctx.clip();
 	}
@@ -1900,17 +1946,7 @@ SharedActions.add('copy', {
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
 			
-			copy_ctx.beginPath()
-			selection.forEachPixel((x, y, val) => {
-				if (!val) return;
-				copy_ctx.rect(
-					x - rect.start_x - offset[0],
-					y - rect.start_y - offset[1],
-					1, 1
-				);
-			})
-			copy_ctx.closePath();
-			copy_ctx.clip();
+			selection.maskCanvas(copy_ctx, offset);
 			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
 
 			Clipbench.image = {
@@ -2005,17 +2041,7 @@ SharedActions.add('duplicate', {
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
 			
-			copy_ctx.beginPath()
-			selection.forEachPixel((x, y, val) => {
-				if (!val) return;
-				copy_ctx.rect(
-					x - rect.start_x - offset[0],
-					y - rect.start_y - offset[1],
-					1, 1
-				);
-			})
-			copy_ctx.closePath();
-			copy_ctx.clip();
+			selection.maskCanvas(copy_ctx, offset);
 			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
 
 			canvas = copy_canvas;
@@ -2050,10 +2076,9 @@ SharedActions.add('delete', {
 		texture.edit(canvas => {
 			let ctx = canvas.getContext('2d');
 			let selection = texture.selection;
-			selection.forEachPixel((x, y, val) => {
-				if (val) {
-					ctx.clearRect(x, y, 1, 1);
-				}
+			let boxes = selection.toBoxes();
+			boxes.forEach(box => {
+				ctx.clearRect(box[0], box[1], box[2], box[3]);
 			})
 		}, {edit_name: context.message || 'Delete texture section'});
 	}

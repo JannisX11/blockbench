@@ -66,6 +66,7 @@ class ModelProject {
 		ProjectData[this.uuid] = {
 			model_3d: new THREE.Object3D(),
 			materials: {},
+			texture_selections: {},
 			nodes_3d: {}
 		}
 	}
@@ -128,6 +129,9 @@ class ModelProject {
 	}
 	get materials() {
 		return ProjectData[this.uuid].materials;
+	}
+	get texture_selections() {
+		return ProjectData[this.uuid].texture_selections;
 	}
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;

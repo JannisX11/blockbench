@@ -26,9 +26,9 @@ class Texture {
 		this.layers = [];
 		this.layers_enabled = false;
 		this.selected_layer = null;
-		this.selection = new IntMatrix(0, 0);
 		this.internal = !isApp;
 		this.uuid = uuid || guid()
+		Project.texture_selections[this.uuid] = new IntMatrix(0, 0);
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -300,6 +300,9 @@ class Texture {
 	}
 	set mode(mode) {
 		this.internal = mode == 'bitmap';
+	}
+	get selection() {
+		return Project.texture_selections[this.uuid];
 	}
 	getUVWidth() {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
@@ -900,6 +903,7 @@ class Texture {
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		delete Project.materials[this.uuid];
+		delete Project.texture_selections[this.uuid];
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
@@ -1335,18 +1339,7 @@ class Texture {
 			let copy_ctx = copy_canvas.getContext('2d');
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
-			
-			copy_ctx.beginPath()
-			selection.forEachPixel((x, y, val) => {
-				if (!val) return;
-				copy_ctx.rect(
-					x - rect.start_x - offset[0],
-					y - rect.start_y - offset[1],
-					1, 1
-				);
-			})
-			copy_ctx.closePath();
-			copy_ctx.clip();
+			selection.maskCanvas(copy_ctx, offset);
 			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
 			offset.V2_add(rect.start_x, rect.start_y);
 		}
@@ -1354,10 +1347,9 @@ class Texture {
 		if (texture.mode === 'link') {
 			texture.convertToInternal();
 		}
-		selection.forEachPixel((x, y, val) => {
-			if (val) {
-				ctx.clearRect(x, y, 1, 1);
-			}
+		let boxes = selection.toBoxes();
+		boxes.forEach(box => {
+			ctx.clearRect(box[0], box[1], box[2], box[3]);
 		})
 
 		let new_layer = new TextureLayer({name: 'selection', offset}, texture);
