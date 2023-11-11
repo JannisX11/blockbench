@@ -1339,9 +1339,9 @@ class Texture {
 			let copy_ctx = copy_canvas.getContext('2d');
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
+			offset.V2_add(rect.start_x, rect.start_y);
 			selection.maskCanvas(copy_ctx, offset);
 			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
-			offset.V2_add(rect.start_x, rect.start_y);
 		}
 		
 		if (texture.mode === 'link') {

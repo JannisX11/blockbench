@@ -9,7 +9,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'reference_image',
-		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
 			files.map(file => {
 				return new ReferenceImage({
@@ -113,17 +113,22 @@ async function loadImages(files, event) {
 		}
 	}
 	if (Project) {
-		if (Condition(Panels.textures.condition)) {
+		if (!Format.image_editor && Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
 		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
 			options.layer = 'data.layer';
 		}
-		options.reference_image = 'data.reference_image';
 	}
 	options.edit = 'message.load_images.edit_image';
+	if (Project) {
+		options.reference_image = 'data.reference_image';
+	}
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
 		options.minecraft_skin = 'format.skin';
+	}
+	if (Project && !Format.image_editor && Condition(Panels.textures.condition)) {
+		options.texture = 'action.import_texture';
 	}
 	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
 		options.extrude_with_cubes = 'dialog.extrude.title';

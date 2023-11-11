@@ -1915,7 +1915,7 @@ class IntMatrix {
 		ctx.beginPath();
 		let boxes = this.toBoxes();
 		boxes.forEach(box => {
-			ctx.rect(box[0] - offset[0], box[1] - offset[0], box[2], box[3]);
+			ctx.rect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
 		})
 		ctx.closePath();
 		ctx.clip();

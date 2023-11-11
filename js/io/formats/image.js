@@ -44,6 +44,8 @@ let codec = new Codec('image', {
 			texture.load_callback = () => {
 				delete texture.load_callback;
 				texture.select();
+				texture.activateLayers(false);
+
 				if (resolution instanceof Array && resolution[0] && resolution[1]) {
 					texture.uv_width = resolution[0];
 					texture.uv_height = resolution[1];

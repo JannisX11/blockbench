@@ -2576,7 +2576,7 @@ span.controller_state_section_info {
 	#color_panel_head .side {
 		height: 100%;
 		flex-grow: 1;
-		width: calc(100% - 32px);
+		overflow: hidden;
 	}
 	#color_panel_head .side input {
 		width: 100%;
@@ -2587,17 +2587,16 @@ span.controller_state_section_info {
 	}
 	#color_history {
 		width: 100%;
-		height: 20px;
-		overflow-x: scroll;
-		overflow-y: hidden;
-		white-space: nowrap;
-		scroll-behavior: smooth;
+		height: 17px;
+		margin-top: 1px;
+		display: flex;
 	}
 	#color_history > li {
 		vertical-align: top;
 		display: inline-block;
 		width: 30px;
-		height: 12px;
+		height: 100%;
+		min-width: 18px;
 		cursor: pointer;
 	}
 	#color_history > li:hover {

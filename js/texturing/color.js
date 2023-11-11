@@ -236,8 +236,8 @@ Interface.definePanels(() => {
 				},
 				drop(event) {
 				},
-				setColor(color) {
-					ColorPanel.set(color, this.second_color_selected);
+				setColor(color, second_color = this.second_color_selected) {
+					ColorPanel.set(color, second_color);
 				},
 				swapColors() {
 					BarItems.swap_colors.click();
@@ -317,7 +317,8 @@ Interface.definePanels(() => {
 									v-for="(color, i) in history" v-if="i || color != main_color"
 									:key="color"
 									:style="{'background-color': color}"
-									:title="color" @click="setColor(color)"
+									:title="color"
+									@click="setColor(color)" @contextmenu="setColor(color, true)"
 								></li>
 							</div>
 						</div>
@@ -354,8 +355,7 @@ Interface.definePanels(() => {
 								:title="color" :key="color"
 								:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
 								@click="setColor(color)"
-								@mouseenter="hover_color = color"
-								@mouseleave="hover_color = ''"
+								@contextmenu.stop="setColor(color, true)"
 							>
 								<div class="color_inner" :style="{'background-color': color}"></div>
 							</li>
