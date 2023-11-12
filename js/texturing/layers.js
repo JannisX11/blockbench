@@ -155,7 +155,7 @@ class TextureLayer {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
 		down_layer.ctx.imageSmoothingEnabled = false;
-		down_layer.ctx.drawImage(this.canvas, this.offset[0], this.offset[1], this.scaled_width, this.scaled_height);
+		down_layer.ctx.drawImage(this.canvas, this.offset[0] - down_layer.offset[0], this.offset[1] - down_layer.offset[1], this.scaled_width, this.scaled_height);
 
 		let index = this.texture.layers.indexOf(this);
 		this.texture.layers.splice(index, 1);
@@ -447,7 +447,7 @@ Interface.definePanels(function() {
 	new Panel('layers', {
 		icon: 'layers',
 		growable: true,
-		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled,
+		condition: () => Modes.paint && ((Texture.selected && Texture.selected.layers_enabled) || Format.image_editor),
 		default_position: {
 			slot: 'left_bar',
 			float_position: [0, 0],
@@ -602,8 +602,8 @@ Interface.definePanels(function() {
 						</label>
 
 						<div class="in_list_button" @click.stop="layer.toggleVisibility()">
-							<i v-if="layer.visible" class="material-icons">visibility</i>
-							<i v-else class="material-icons toggle_disabled">visibility_off</i>
+							<i v-if="layer.visible" class="material-icons icon">visibility</i>
+							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>
 					</li>
 				</ul>

@@ -3253,8 +3253,8 @@ Interface.definePanels(function() {
 						}
 						
 						if (selection_mode == 'wand' || selection_mode == 'color') {
-							let {canvas, ctx} = texture.getActiveCanvas();
-							let image_data = ctx.getImageData(x, y, 1, 1);
+							let {canvas, ctx, offset} = texture.getActiveCanvas();
+							let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
 							let pxcol = [...image_data.data];
 							let map = {};
 							Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
@@ -3285,31 +3285,22 @@ Interface.definePanels(function() {
 										}
 									}
 								}
-								checkPx(x, y, 0, 0)
+								checkPx(x - offset[0], y - offset[1], 0, 0)
 								scan_value = false;
 							}
+							let value = op_mode == 'subtract' ? 0 : 1;
 							for (let x in map) {
 								for (let y in map[x]) {
 									if (map[x][y] == scan_value) {
 										x = parseInt(x);
 										y = parseInt(y);
-										switch (op_mode) {
-											case 'create': case 'add': {
-												texture.selection.set(x, y, 1);
-												break;
-											}
-											case 'subtract': {
-												texture.selection.set(x, y, 0);
-												break;
-											}
-										}
+										texture.selection.set(x + offset[0], y + offset[1], value);
 									}
 								}
 							}
 							UVEditor.updateSelectionOutline();
 							return;
 						}
-
 					}
 
 					let last_x, last_y;

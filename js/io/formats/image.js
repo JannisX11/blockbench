@@ -98,6 +98,12 @@ codec.compile = null;
 codec.parse = null;
 codec.export = null;
 
+Codecs.project.on('parsed', () => {
+	if (Texture.all[0] && !Texture.selected) {
+		Texture.all[0].select();
+	}
+})
+
 new ModelFormat('image', {
 	icon: 'image',
 	category: 'general',

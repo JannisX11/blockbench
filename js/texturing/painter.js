@@ -16,13 +16,14 @@ const Painter = {
 		}
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
-		let {canvas, ctx} = texture.getActiveCanvas();
+		let {canvas, ctx, offset} = texture.getActiveCanvas();
 		Painter.current.ctx = ctx;
 		if (!Painter.current.textures) Painter.current.textures = [];
 		Painter.current.textures.safePush(texture);
 		Painter.current.texture = texture;
+		Painter.current.offset = offset;
 
-		callback(canvas);
+		callback(canvas, Painter.current);
 
 		if (options.use_cache && options.no_update === true) {
 			return;
@@ -848,7 +849,7 @@ const Painter = {
 		Painter.brushChanges = true;
 
 		texture.edit(function(canvas) {
-			var ctx = canvas.getContext('2d')
+			let {ctx, offset} = Painter.current;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
@@ -886,9 +887,9 @@ const Painter = {
 						let rect = Painter.setupRectFromFace(uvTag, texture);
 						let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 						ctx.beginPath();
-						ctx.rect(rect[0], rect[1], w, h);
+						ctx.rect(rect[0] - offset[0], rect[1] - offset[1], w, h);
 					} else {
-						texture.selection.maskCanvas(ctx);
+						texture.selection.maskCanvas(ctx, offset);
 					}
 					ctx.strokeStyle = ctx.fillStyle = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).setAlpha(b_opacity).toRgbString();
 					ctx.lineWidth = width;
@@ -896,16 +897,16 @@ const Painter = {
 					var rect = getRectangle(start_x, start_y, start_x+diff_x, start_y+diff_y);
 					
 					if (hollow && rect.w > 0 && rect.h > 0) {
-						ctx.rect(rect.ax+(width%2 ? 0.5 : 1), rect.ay+(width%2 ? 0.5 : 1), rect.x, rect.y);
+						ctx.rect(rect.ax+(width%2 ? 0.5 : 1) - offset[0], rect.ay+(width%2 ? 0.5 : 1) - offset[1], rect.x, rect.y);
 						ctx.stroke();
 					} else {
-						ctx.rect(rect.ax, rect.ay, rect.x+1, rect.y+1);
+						ctx.rect(rect.ax - offset[0], rect.ay - offset[1], rect.x+1, rect.y+1);
 						ctx.fill();
 					}
 				} else if (shape === 'ellipse') {
 					let rect = Painter.setupRectFromFace(uvTag, texture);
 					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
-					Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, (changePixel) => {
+					Painter.modifyCanvasSection(ctx, rect[0], rect[1], w, h, offset, (changePixel) => {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
@@ -1025,7 +1026,7 @@ const Painter = {
 
 		texture.edit(function(canvas) {
 			let b_opacity = BarItems.slider_brush_opacity.get()/255;
-			var ctx = canvas.getContext('2d')
+			let {ctx, offset} = Painter.current;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
 			if (Painter.lock_alpha) {
@@ -1065,7 +1066,7 @@ const Painter = {
 					y = start_y + diff_y * Math.sign(y - start_y);
 				}
 
-				let gradient = ctx.createLinearGradient(start_x, start_y, x, y);
+				let gradient = ctx.createLinearGradient(start_x - offset[0], start_y - offset[1], x - offset[0], y - offset[1]);
 				let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event)));
 				gradient.addColorStop(0, color.setAlpha(b_opacity).toRgbString());
 				gradient.addColorStop(1, color.setAlpha(0).toRgbString());
@@ -1074,11 +1075,11 @@ const Painter = {
 					let rect = Painter.setupRectFromFace(uvTag, texture);
 					let [w, h] = [rect[2] - rect[0], rect[3] - rect[1]];
 					ctx.beginPath();
-					ctx.rect(rect[0], rect[1], w, h);
+					ctx.rect(rect[0] - offset[0], rect[1] - offset[1], w, h);
 				} else {
-					texture.selection.maskCanvas(ctx);
+					texture.selection.maskCanvas(ctx, offset);
 					let rect = texture.selection.getBoundingRect(true);
-					ctx.rect(rect.start_x, rect.start_y, rect.width, rect.height);
+					ctx.rect(rect.start_x - offset[0], rect.start_y - offset[1], rect.width, rect.height);
 				}
 				ctx.fillStyle = gradient;
 				ctx.fill();
@@ -1126,15 +1127,15 @@ const Painter = {
 	},
 	// Util
 	combineColors(base, added, opacity) {
-		if (Math.isNumber(base)) base = intToRGBA(base)
-		if (Math.isNumber(added)) added = intToRGBA(added)
+		//if (Math.isNumber(base)) base = intToRGBA(base)
+		//if (Math.isNumber(added)) added = intToRGBA(added)
 
 		if (added.a*opacity == 1) return {r: added.r, g: added.g, b: added.b, a: added.a};
 
-		var original_a = added.a
+		let original_a = added.a
 		added.a = added.a*opacity
 
-		var mix = {};
+		let mix = {};
 		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
 		mix.r = Math.round((added.r * added.a / mix.a) + (base.r * base.a * (1 - added.a) / mix.a)); // red
 		mix.g = Math.round((added.g * added.a / mix.a) + (base.g * base.a * (1 - added.a) / mix.a)); // green
@@ -1144,13 +1145,13 @@ const Painter = {
 		return mix;
 	},
 	blendColors(base, added, opacity, blend_mode) {
-		if (Math.isNumber(base)) base = intToRGBA(base)
-		if (Math.isNumber(added)) added = intToRGBA(added)
+		//if (Math.isNumber(base)) base = intToRGBA(base);
+		//if (Math.isNumber(added)) added = intToRGBA(added);
 
-		var original_a = added.a
-		added.a = added.a*opacity
+		let original_a = added.a;
+		added.a = added.a*opacity;
 
-		var mix = {};
+		let mix = {};
 		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
 
 		let luminance;
@@ -1345,21 +1346,26 @@ const Painter = {
 			a: data[3]/256
 		})
 	},
-	modifyCanvasSection(ctx, x, y, w, h, cb, texture) {
-		var arr = ctx.getImageData(x, y, w, h)
-		var processed = [];
+	modifyCanvasSection(ctx, x, y, w, h, offset = [0, 0], cb) {
+		if (x < offset[0]) x = offset[0];
+		if (y < offset[1]) y = offset[1];
+		w = Math.min(w, ctx.canvas.width - x + offset[0]);
+		h = Math.min(h, ctx.canvas.height - y + offset[1]);
+		let arr = ctx.getImageData(x - offset[0], y - offset[1], w, h);
+		let processed = [];
+		let texture_selection = UVEditor.texture && UVEditor.texture.selection;
 
 		cb((px, py, editPx) => {
-			if (UVEditor.texture && !UVEditor.texture.selection.allow(px, py)) {;return;}
-			//changePixel
-			px = Math.floor(px)-x;
-			py = Math.floor(py)-y;
+			if (texture_selection && !texture_selection.allow(px, py)) return;
+			// to image data space
+			px = px - x;
+			py = py - y;
 			if (px < 0 || px >= w) return;
 			if (py < 0 || py >= h) return;
 			let start = (px + py*w) * 4;
 			if (processed.includes(start)) return;
 			processed.push(start);
-			var result_color = editPx({
+			let result_color = editPx({
 				r: arr.data[start+0],
 				g: arr.data[start+1],
 				b: arr.data[start+2],
@@ -1371,11 +1377,12 @@ const Painter = {
 			arr.data[start+3] = result_color.a*255
 		})
 
-		ctx.putImageData(arr, x, y)
+		ctx.putImageData(arr, x - offset[0], y - offset[1]);
 	},
 	editCircle(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2;
 		let pixel_roundness_factor = 1 + 1 / (r+3);
+		let selection = Painter.current.texture.selection;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
@@ -1390,7 +1397,7 @@ const Painter = {
 			) {
 				return;
 			}
-			if (Painter.current.texture.selection.allow(px, py) == 0) return;
+			if (selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1430,6 +1437,7 @@ const Painter = {
 	},
 	editSquare(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2;
+		let selection = Painter.current.texture.selection;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				settings.paint_side_restrict.value &&
@@ -1444,7 +1452,7 @@ const Painter = {
 			) {
 				return;
 			}
-			if (Painter.current.texture.selection.allow(px, py) == 0) return;
+			if (selection.allow(px, py) == 0) return;
 
 			let v_px = px - x;
 			let v_py = py - y;
@@ -1928,13 +1936,10 @@ SharedActions.add('copy', {
 	subject: 'image_content',
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
 	run(event, cut) {
-		// todo: Make work on layers with existing offset
 		let texture = Texture.getDefault();
 		let selection = texture.selection;
 
-		let {canvas, ctx} = texture.getActiveCanvas();
-		let layer = texture.selected_layer;
-		let offset = layer ? layer.offset : [0, 0];
+		let {canvas, ctx, offset} = texture.getActiveCanvas();
 		
 		if (selection.override != null) {
 			Clipbench.image = {
@@ -1948,8 +1953,9 @@ SharedActions.add('copy', {
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
 			
-			selection.maskCanvas(copy_ctx, offset);
-			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+			selection.maskCanvas(copy_ctx, [rect.start_x, rect.start_y]);
+			console.log(-rect.start_x + offset[0], -rect.start_y + offset[1])
+			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 
 			Clipbench.image = {
 				x: rect.start_x,
@@ -2032,9 +2038,8 @@ SharedActions.add('duplicate', {
 		let texture = Texture.getDefault();
 		let selection = texture.selection;
 
-		let {canvas, ctx} = texture.getActiveCanvas();
+		let {canvas, ctx, offset} = texture.getActiveCanvas();
 		let layer = texture.selected_layer;
-		let offset = layer ? layer.offset.slice() : [0, 0];
 		
 		if (selection.is_custom) {
 			let rect = selection.getBoundingRect();
@@ -2075,12 +2080,11 @@ SharedActions.add('delete', {
 		let texture = Texture.getDefault();
 		if (texture.selection.override == false) return;
 
-		texture.edit(canvas => {
-			let ctx = canvas.getContext('2d');
+		texture.edit((canvas, {ctx, offset}) => {
 			let selection = texture.selection;
 			let boxes = selection.toBoxes();
 			boxes.forEach(box => {
-				ctx.clearRect(box[0], box[1], box[2], box[3]);
+				ctx.clearRect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
 			})
 		}, {edit_name: context.message || 'Delete texture section'});
 	}
@@ -2133,7 +2137,15 @@ BARS.defineActions(function() {
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					if (opacity < 1) {
+					if (blend_mode == 'difference') {
+						let before = Painter.getAlphaMatrix(texture, px, py)
+						Painter.setAlphaMatrix(texture, px, py, a);
+						if (a > before) {
+							a = (a - before) / (1 - before);
+						} else if (before) {
+							a = 0;
+						}
+					} else if (opacity < 1) {
 						let before = Painter.getAlphaMatrix(texture, px, py);
 						let new_val = (before||0);
 						if (before) {

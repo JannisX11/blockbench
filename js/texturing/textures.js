@@ -30,28 +30,6 @@ class Texture {
 		this.uuid = uuid || guid()
 		Project.texture_selections[this.uuid] = new IntMatrix(0, 0);
 
-		if (typeof data === 'object') {
-			this.extend(data)
-		}
-		if (!this.id) {
-			var i = Texture.all.length;
-			while (true) {
-				var c = 0
-				var duplicates = false;
-				while (c < Texture.all.length) {
-					if (Texture.all[c].id == i) {
-						duplicates = true;
-					}
-					c++;
-				}
-				if (duplicates === true) {
-					i++;
-				} else {
-					this.id = i.toString();
-					break;
-				}
-			}
-		}
 
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
@@ -280,6 +258,32 @@ class Texture {
 				return true;
 			} else {
 				scope.loadEmpty()
+			}
+		}
+
+		if (typeof data === 'object') {
+			this.extend(data);
+			if (this.layers_enabled) {
+				setTimeout(() => this.updateLayerChanges(), 40);
+			}
+		}
+		if (!this.id) {
+			var i = Texture.all.length;
+			while (true) {
+				var c = 0
+				var duplicates = false;
+				while (c < Texture.all.length) {
+					if (Texture.all[c].id == i) {
+						duplicates = true;
+					}
+					c++;
+				}
+				if (duplicates === true) {
+					i++;
+				} else {
+					this.id = i.toString();
+					break;
+				}
 			}
 		}
 	}
@@ -722,7 +726,7 @@ class Texture {
 		}
 	}
 	refresh(single) {
-		if (this.mode === 'bitmap') {
+		if (this.internal) {
 			return false;
 		}
 		if (single) {
@@ -841,6 +845,9 @@ class Texture {
 		}
 		this.selected = true
 		Texture.selected = this;
+		if (this.layers_enabled && !this.selected_layer && this.layers[0]) {
+			this.layers[0].select();
+		}
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
 			Canvas.updatePaintingGrid()
@@ -1328,9 +1335,8 @@ class Texture {
 			texture.activateLayers(false);
 		}
 
-		let {canvas, ctx} = texture.getActiveCanvas();
-		let layer = texture.selected_layer;
-		let offset = layer ? layer.offset.slice() : [0, 0];
+		let {canvas, ctx, offset} = texture.getActiveCanvas();
+		let new_offset = [0, 0];
 		let copy_canvas = canvas;
 
 		if (selection.is_custom)  {
@@ -1339,9 +1345,9 @@ class Texture {
 			let copy_ctx = copy_canvas.getContext('2d');
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
-			offset.V2_add(rect.start_x, rect.start_y);
-			selection.maskCanvas(copy_ctx, offset);
-			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+			new_offset = [rect.start_x, rect.start_y];
+			selection.maskCanvas(copy_ctx, new_offset);
+			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 		}
 		
 		if (texture.mode === 'link') {
@@ -1349,10 +1355,10 @@ class Texture {
 		}
 		let boxes = selection.toBoxes();
 		boxes.forEach(box => {
-			ctx.clearRect(box[0], box[1], box[2], box[3]);
+			ctx.clearRect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
 		})
 
-		let new_layer = new TextureLayer({name: 'selection', offset}, texture);
+		let new_layer = new TextureLayer({name: 'selection', offset: new_offset}, texture);
 		new_layer.setSize(copy_canvas.width, copy_canvas.height);
 		new_layer.ctx.drawImage(copy_canvas, 0, 0);
 		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
@@ -1590,7 +1596,7 @@ class Texture {
 		this.saved = false;
 	}
 	updateLayerChanges(update_data_url) {
-		if (!this.layers_enabled) return this;
+		if (!this.layers_enabled || this.width == 0) return this;
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
@@ -1831,6 +1837,8 @@ class Texture {
 	new Property(Texture, 'string', 'folder')
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
+	new Property(Texture, 'number', 'width')
+	new Property(Texture, 'number', 'height')
 	new Property(Texture, 'number', 'uv_width')
 	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
