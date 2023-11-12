@@ -242,6 +242,9 @@ Interface.definePanels(() => {
 				swapColors() {
 					BarItems.swap_colors.click();
 				},
+				getSwapColorsTooltip() {
+					return `${BarItems.swap_colors.name} (${BarItems.swap_colors.keybind})`
+				},
 				selectMainOrSecondary(secondary) {
 					if (this.second_color_selected != secondary) {
 						this.second_color_selected = !!secondary;
@@ -306,7 +309,7 @@ Interface.definePanels(() => {
 						<div class="chosen">
 							<div class="secondary" :class="{selected: second_color_selected}" :style="{'background-color': (second_color_selected && hover_color) || second_color}" @click="selectMainOrSecondary(true)"></div>
 							<div class="main" :class="{selected: !second_color_selected}" :style="{'background-color': (!second_color_selected && hover_color) || main_color}" @click="selectMainOrSecondary(false)"></div>
-							<div class="tool switcher" @click="swapColors()">
+							<div class="tool switcher" @click="swapColors()" :title="getSwapColorsTooltip()">
 								<i class="material-icons icon">swap_vert</i>
 							</div>
 						</div>

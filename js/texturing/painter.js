@@ -2096,6 +2096,11 @@ BARS.defineActions(function() {
 		category: 'paint',
 		keybind: new Keybind({shift: null})
 	})
+	Blockbench.onUpdateTo('4.9.0-beta.1', () => {
+		if (Keybinds.extra.preview_drag.keybind.key != 3 && Keybinds.extra.preview_rotate.keybind.key != 3) {
+			Keybinds.extra.paint_secondary_color.keybind.set({key: 3}).save(false);
+		}
+	})
 	new Tool('pan_tool', {
 		icon: 'pan_tool',
 		category: 'tools',

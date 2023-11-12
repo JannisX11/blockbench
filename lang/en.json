@@ -1362,6 +1362,8 @@
 	"action.slider_color_red": "Color Red",
 	"action.slider_color_green": "Color Green",
 	"action.slider_color_blue": "Color Blue",
+	"action.swap_colors": "Swap Colors",
+	"action.swap_colors.desc": "Swap the main color with the secondary color",
 	"action.add_to_palette": "Add To Palette",
 	"action.add_to_palette.desc": "Add the selected color to the color palette",
 	"action.import_palette": "Import Palette",
