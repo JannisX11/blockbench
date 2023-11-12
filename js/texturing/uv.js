@@ -2182,7 +2182,7 @@ Interface.definePanels(function() {
 					this.updateTextureCanvas();
 				},
 				updateTextureCanvas() {
-					if (!this.texture || !this.texture.display_canvas) return;
+					if (!this.texture) return;
 					this.texture.canvas.style.objectPosition = `0 ${-this.texture.currentFrame * this.inner_height}px`;
 					this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 					this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
@@ -2199,7 +2199,6 @@ Interface.definePanels(function() {
 				updateMouseCoords(event) {					
 					convertTouchEvent(event);
 					if (!this.texture) return;
-					var pixel_size = this.inner_width / (this.texture ? this.texture.width : this.uv_resolution[0]);
 
 					var {x, y} = UVEditor.getBrushCoordinates(event, this.texture);
 					this.mouse_coords.active = true;
@@ -3465,7 +3464,6 @@ Interface.definePanels(function() {
 
 					Undo.initEdit({layers: [layer]});
 
-					let initial_scale = layer.scale.slice();
 					let target_size = [layer.scaled_width, layer.scaled_height];
 					let last_target_size = [layer.scaled_width, layer.scaled_height];
 					let initial_size = [layer.width, layer.height];
@@ -3816,12 +3814,7 @@ Interface.definePanels(function() {
 
 							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
-							<img
-								:style="{objectFit: texture.frameCount > 1 ? 'cover' : 'fill', objectPosition: \`0 -\${texture.currentFrame * inner_height}px\`, imageRendering: texture.width < inner_width ? 'inherit' : 'auto'}"
-								v-if="texture && texture.error != 1 && !texture.display_canvas"
-								:src="texture.source"
-							>
-							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" v-if="texture && texture.error != 1 && texture.display_canvas"></div>
+							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" :key="'texture_canvas_wrapper'" v-show="texture && texture.error != 1"></div>
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
 
 							<svg id="uv_texture_grid" v-if="pixel_grid && mode == 'paint' && texture && texture.width">
@@ -3874,7 +3867,7 @@ Interface.definePanels(function() {
 							<button @click="layer.resolveLimbo(true)">${tl('uv_editor.copy_paste_tool.to_layer')}</button>
 							<button @click="layer.resolveLimbo(false)">${tl('uv_editor.copy_paste_tool.place')}</button>
 						</template>
-						<button v-else-if="layer.scale[0] != 1 && layer.scale[1] != 1" @click="layer.resolveLimbo(true)">${tl('dialog.scale.confirm')}</button>
+						<button v-else-if="layer.scale[0] != 1 || layer.scale[1] != 1" @click="layer.resolveLimbo(true)">${tl('dialog.scale.confirm')}</button>
 					</div>
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">
@@ -3885,7 +3878,7 @@ Interface.definePanels(function() {
 						</div>
 
 						<template v-else>
-							<span v-else style="color: var(--color-subtle_text);">{{ mouse_coords.active ? (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) : '-' }}</span>
+							<span style="color: var(--color-subtle_text);">{{ mouse_coords.active ? (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) : '-' }}</span>
 							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>

@@ -13,7 +13,6 @@ class Texture {
 		this.show_icon = true
 		this.error = 0;
 		this.visible = true;
-		this.display_canvas = true;
 		this.source_overwritten = false;
 		//Data
 		this.img = 0;
@@ -750,9 +749,11 @@ class Texture {
 
 		let timeout;
 		this.watcher = fs.watch(scope.path, (eventType) => {
+			if (this.file_just_changed_flag) return;
 			if (eventType == 'change') {
 				if (timeout) clearTimeout(timeout)
 				timeout = setTimeout(() => {
+					if (scope.layers_enabled || scope.internal) return;
 					if (Texture.all.includes(scope)) {
 						scope.reloadTexture();
 					} else {
@@ -1449,6 +1450,8 @@ class Texture {
 			}
 
 			if (!as && this.path && fs.existsSync(this.path)) {
+				this.file_just_changed_flag = true;
+				setTimeout(() => {delete this.file_just_changed_flag}, 100);
 				fs.writeFileSync(this.path, image);
 				postSave(this.path);
 				this.mode = 'link';
@@ -1801,7 +1804,33 @@ class Texture {
 				icon: 'refresh',
 				name: 'menu.texture.refresh',
 				condition: function(texture) {return texture.mode == 'link'},
-				click(texture) {texture.reloadTexture()}
+				click(texture) {
+					if (texture.layers_enabled) {
+						Blockbench.showMessageBox({
+							translateKey: 'texture_refresh_conflict',
+							icon: 'priority_high',
+							commands: {
+								keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
+								keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
+							},
+							buttons: ['dialog.cancel'],
+						}, (choice) => {
+							if (choice == 'keep_theirs') {
+								Undo.initEdit({textures: [texture], bitmap: true});
+								UVEditor.vue.layer = null;
+								texture.layers_enabled = false;
+								texture.selected_layer = null;
+								texture.layers.empty();
+								texture.refresh(true)
+								Undo.finishEdit('Disable layers on texture');
+								updateInterfacePanels();
+								BARS.updateConditions();
+							}
+						})
+					} else {
+						texture.reloadTexture()
+					}
+				}
 			},
 			{
 				icon: 'file_upload',
