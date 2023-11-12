@@ -689,6 +689,10 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.flip(0, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
@@ -711,6 +715,10 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.flip(1, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
@@ -733,6 +741,10 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.rotate(90, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
@@ -755,6 +767,10 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.rotate(-90, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {

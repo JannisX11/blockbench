@@ -33,7 +33,6 @@ const Painter = {
 			texture.updateLayerChanges();
 			let map = texture.getMaterial().map;
 			map.needsUpdate = true;
-			texture.display_canvas = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
 			texture.updateChangesAfterEdit();
@@ -384,6 +383,10 @@ const Painter = {
 					  ? (Painter.current.element.uuid + Painter.current.face)
 					  : Painter.current.face;
 
+		if (TextureLayer.selected) {
+			TextureLayer.selected.expandTo([x+size-1, y+size-1], [x-size+1, y-size+1]);
+		}
+
 		ctx.clip()
 		if (Painter.current.element instanceof Mesh) {
 			let face = Painter.current.element.faces[Painter.current.face];
@@ -444,7 +447,7 @@ const Painter = {
 		let b_opacity = BarItems.slider_brush_opacity.get()/255;
 		let fill_mode = BarItems.fill_mode.get()
 		let blend_mode = BarItems.blend_mode.value;
-		let element = Painter.current.element;
+		let {element, offset} = Painter.current;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
 		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
@@ -501,14 +504,16 @@ const Painter = {
 			}
 			ctx.fill()
 
-		} else if (fill_mode === 'face') {
-			ctx.fill()
+		} else if (fill_mode === 'face' || fill_mode === 'element') {
+			texture.selection.maskCanvas(ctx, offset);
+			ctx.fill();
 		} else {
-			let image_data = ctx.getImageData(x, y, 1, 1)
+			let selection = texture.selection;
+			let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
 			let pxcol = [...image_data.data];
 			let map = {}
 			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-				if (pxcol.equals(px)) {
+				if (pxcol.equals(px) && selection.allow(x, y)) {
 					if (!map[x]) map[x] = {}
 					map[x][y] = true
 				}
@@ -525,7 +530,7 @@ const Painter = {
 						checkPx(x, y-1)
 					}
 				}
-				checkPx(x, y)
+				checkPx(x, y, 0, 0);
 				scan_value = false;
 			}
 			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
@@ -808,6 +813,7 @@ const Painter = {
 		let interval = Toolbox.selected.brush?.interval || 1;
 		var i = Math.min(interval, length);
 		var x, y;
+		let {ctx, offset} = Painter.current;
 		if (interval == 1) {
 			if (Math.abs(diff_x) > Math.abs(diff_y)) {
 				interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
@@ -820,14 +826,14 @@ const Painter = {
 			let direction = 0;
 			if (length == 1 && diff_x && !diff_y) {direction = 1;}
 			if (length == 1 && !diff_x && diff_y) {direction = 2;}
-			let image_data = Painter.current.ctx.getImageData(end_x, end_y, 1, 1);
+			let image_data = ctx.getImageData(end_x - offset[0], end_y - offset[1], 1, 1);
 			let pixel = {
 				direction,
 				image_data,
-				position: [end_x, end_y]
+				position: [end_x - offset[0], end_y - offset[1]]
 			};
 			if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
-				Painter.current.ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
+				ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
 				delete Painter.current.last_pixel;
 			} else {
 				Painter.current.last_pixel = pixel;

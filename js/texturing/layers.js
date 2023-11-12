@@ -117,10 +117,11 @@ class TextureLayer {
 	
 				this.canvas.width = Math.round(this.canvas.width * this.scale[0]);
 				this.canvas.height = Math.round(this.canvas.height * this.scale[1]);
+				this.ctx.imageSmoothingEnabled = false;
 				this.ctx.drawImage(temp_canvas, 0, 0, this.canvas.width, this.canvas.height);
 				this.scale.V2_set(1, 1);
 	
-				this.texture.updateLayerChanges(undo);
+				this.texture.updateLayerChanges(true);
 				TextureLayer.selected.in_limbo = false;
 				Undo.finishEdit('Place selection as layer');
 
@@ -154,6 +155,7 @@ class TextureLayer {
 		if (undo) {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
+		down_layer.expandTo(this.offset, this.offset.slice().V2_add(this.width, this.height));
 		down_layer.ctx.imageSmoothingEnabled = false;
 		down_layer.ctx.drawImage(this.canvas, this.offset[0] - down_layer.offset[0], this.offset[1] - down_layer.offset[1], this.scaled_width, this.scaled_height);
 
@@ -166,6 +168,27 @@ class TextureLayer {
 		if (undo) {
 			this.texture.updateLayerChanges(true);
 			Undo.finishEdit('Merge layers');
+		}
+	}
+	expandTo(...points) {
+		let min = this.offset.slice();
+		let max = this.offset.slice().V2_add(this.width, this.height);
+		points.forEach(point => {
+			point = [
+				Math.clamp(point[0], 0, this.texture.width),
+				Math.clamp(point[1], 0, this.texture.height),
+			]
+			min[0] = Math.min(min[0], point[0]);
+			min[1] = Math.min(min[1], point[1]);
+			max[0] = Math.max(max[0], point[0]);
+			max[1] = Math.max(max[1], point[1]);
+		});
+		if (min[0] < this.offset[0] || min[1] < this.offset[1] || max[0] > this.offset[0]+this.width || max[1] > this.offset[1]+this.height) {
+			let copy_canvas = Painter.copyCanvas(this.canvas);
+			this.canvas.width = max[0] - min[0];
+			this.canvas.height = max[1] - min[1];
+			this.ctx.drawImage(copy_canvas, this.offset[0] - min[0], this.offset[1] - min[1]);
+			this.offset.replace(min);
 		}
 	}
 	flip(axis = 0, undo) {
@@ -220,7 +243,6 @@ class TextureLayer {
 		let dialog = new Dialog({
 			id: 'layer_properties',
 			title: this.name,
-			width: 660,
 			form: {
 				name: {label: 'generic.name', value: this.name},
 				opacity: {label: 'Opacity', type: 'range', value: this.opacity},
@@ -245,8 +267,15 @@ class TextureLayer {
 	}
 }
 TextureLayer.prototype.menu = new Menu([
-	new MenuSeparator('settings'),
+	new MenuSeparator('edit'),
+	{id: 'transform', name: 'menu.transform', icon: 'transform', children: [
+		'flip_texture_x',
+		'flip_texture_y',
+		'rotate_texture_cw',
+		'rotate_texture_ccw',
+	]},
 	'layer_to_texture_size',
+	'merge_layer_down',
 	new MenuSeparator('copypaste'),
 	'copy',
 	'duplicate',
@@ -357,11 +386,10 @@ BARS.defineActions(() => {
 			let texture = Texture.selected;
 			Undo.initEdit({textures: [texture], bitmap: true});
 			texture.layers_enabled = false;
-			if (!texture.layers.length) {
-				texture.layers.empty();
-			}
+			texture.selected_layer = null;
+			texture.layers.empty();
 			Undo.finishEdit('Disable layers on texture');
-			UVEditor.vue.layer = this;
+			UVEditor.vue.layer = null;
 			updateInterfacePanels();
 			BARS.updateConditions();
 		}
@@ -409,6 +437,14 @@ BARS.defineActions(() => {
 
 			Undo.finishEdit('Expand layer to texture size');
 			layer.texture.updateLayerChanges(true);
+		}
+	})
+	new Action('merge_layer_down', {
+		icon: 'fa-caret-square-down',
+		category: 'layers',
+		condition: () => TextureLayer.selected,
+		click() {
+			TextureLayer.selected.mergeDown(true);
 		}
 	})
 })

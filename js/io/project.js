@@ -194,7 +194,7 @@ class ModelProject {
 			OutlinerNode.uuids[group.uuid] = group;
 		})
 		Outliner.root = this.outliner;
-		Interface.Panels.outliner.inside_vue.root = this.outliner;
+		Panels.outliner.inside_vue.root = this.outliner;
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
@@ -206,7 +206,8 @@ class ModelProject {
 			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
 		}
 
-		Interface.Panels.textures.inside_vue.textures = Texture.all;
+		Panels.textures.inside_vue.textures = Texture.all;
+		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
 		scene.add(this.model_3d);
 
 		Panels.animations.inside_vue.animations = this.animations;
@@ -218,10 +219,10 @@ class ModelProject {
 		if (selected_anim) selected_anim.select();
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
-		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
-		Interface.Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
+		Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+		Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
 
-		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
+		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
 
