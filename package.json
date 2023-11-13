@@ -45,6 +45,7 @@
 			"lib/",
 			"font/",
 			"main.js",
+			"bundle.js",
 			"index.html",
 			"package.json",
 			"favicon.png",
