@@ -1204,9 +1204,9 @@ class Texture {
 
 				scope.edit((canvas) => {
 
-					canvas.width = formResult.size[0];
-					canvas.height = formResult.size[1];
-					let new_ctx = canvas.getContext('2d');
+					scope.canvas.width = formResult.size[0];
+					scope.canvas.height = formResult.size[1];
+					let new_ctx = scope.canvas.getContext('2d');
 					new_ctx.imageSmoothingEnabled = false;
 
 					if (formResult.mode == 'crop') {
@@ -1231,6 +1231,8 @@ class Texture {
 					} else {
 						new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
 					}
+					scope.width = formResult.size[0];
+					scope.height = formResult.size[1];
 
 					scope.keep_size = true;
 					if (formResult.mode == 'scale') {

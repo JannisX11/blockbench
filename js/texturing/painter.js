@@ -2014,6 +2014,7 @@ SharedActions.add('paste', {
 			layer.select();
 			layer.setLimbo();
 			texture.updateLayerChanges(true);
+			texture.saved = false;
 
 			Undo.finishEdit('Paste into texture');
 			updateInterfacePanels();
@@ -2072,6 +2073,7 @@ SharedActions.add('duplicate', {
 		new_layer.select();
 		new_layer.setLimbo();
 		texture.updateLayerChanges(true);
+		texture.saved = false;
 
 		Undo.finishEdit('Duplicate texture selection');
 		updateInterfacePanels();

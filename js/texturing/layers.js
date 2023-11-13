@@ -73,6 +73,7 @@ class TextureLayer {
 		}
 		if (undo) {
 			this.texture.updateLayerChanges(true);
+			this.texture.saved = false;
 			Undo.finishEdit('Remove layer');
 		}
 	}
@@ -113,7 +114,7 @@ class TextureLayer {
 				let temp_canvas_ctx = temp_canvas.getContext('2d');
 				temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 	
-				Undo.initEdit({layers: [this]});
+				Undo.initEdit({layers: [this], bitmap: true});
 	
 				this.canvas.width = Math.round(this.canvas.width * this.scale[0]);
 				this.canvas.height = Math.round(this.canvas.height * this.scale[1]);
@@ -143,6 +144,7 @@ class TextureLayer {
 		Undo.initEdit({layers: [this]});
 		this.visible = !this.visible;
 		this.texture.updateLayerChanges(true);
+		this.texture.saved = false;
 		Undo.finishEdit('Toggle layer visibility');
 	}
 	mergeDown(undo = true) {
@@ -167,6 +169,7 @@ class TextureLayer {
 		}
 		if (undo) {
 			this.texture.updateLayerChanges(true);
+			this.texture.saved = false;
 			Undo.finishEdit('Merge layers');
 		}
 	}
@@ -196,7 +199,7 @@ class TextureLayer {
 		let temp_canvas_ctx = temp_canvas.getContext('2d');
 		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 
-		if (undo) Undo.initEdit({layers: [this]});
+		if (undo) Undo.initEdit({layers: [this], bitmap: true});
 
 		this.ctx.save();
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -220,7 +223,7 @@ class TextureLayer {
 		let temp_canvas_ctx = temp_canvas.getContext('2d');
 		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 
-		if (undo) Undo.initEdit({layers: [this]});
+		if (undo) Undo.initEdit({layers: [this], bitmap: true});
 
 		[this.canvas.width, this.canvas.height] = [this.canvas.height, this.canvas.width];
 		this.ctx.save();
@@ -418,6 +421,7 @@ BARS.defineActions(() => {
 		onAfter() {
 			Undo.finishEdit('Change layer opacity');
 			Texture.selected.updateLayerChanges(true);
+			Texture.selected.saved = false;
 		}
 	})
 	new Action('layer_to_texture_size', {
@@ -598,6 +602,7 @@ Interface.definePanels(function() {
 							texture.layers.splice(index, 0, layer);
 
 							texture.updateLayerChanges(true);
+							texture.saved = false;
 							Undo.finishEdit('Reorder layers');
 						}
 					}

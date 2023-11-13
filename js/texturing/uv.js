@@ -3450,6 +3450,7 @@ Interface.definePanels(function() {
 							UVEditor.updateSelectionOutline();
 						} else {
 							texture.updateLayerChanges(true);
+							texture.saved = false;
 							Undo.finishEdit('Move layer');
 						}
 					}

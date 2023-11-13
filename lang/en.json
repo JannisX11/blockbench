@@ -1445,7 +1445,7 @@
 	"action.convert_to_mesh": "Convert to Mesh",
 	"action.convert_to_mesh.desc": "Convert the selected elements into meshes",
 	"action.apply_mesh_rotation": "Apply Rotation",
-	"action.apply_mesh_rotation.desc": "Reset the element rotation of the mesh, any apply it to the geometry instead",
+	"action.apply_mesh_rotation.desc": "Reset the element rotation of the mesh, and apply it to the geometry instead",
 	"action.invert_face": "Invert Face",
 	"action.invert_face.desc": "Invert the selected faces to make them face the opposite direction",
 	"action.switch_face_crease": "Switch Face Crease",
