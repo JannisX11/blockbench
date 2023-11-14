@@ -1880,7 +1880,7 @@ class IntMatrix {
 		this.array = new_array;
 	}
 	toBoxes() {
-		if (!this.is_custom) return [0, 0, this.width, this.height];
+		if (!this.is_custom) return [[0, 0, this.width, this.height]];
 		let boxes = [];
 		this.forEachPixel((x, y, value) => {
 			if (value !== 1) return;

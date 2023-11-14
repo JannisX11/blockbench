@@ -176,7 +176,7 @@ class Texture {
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
-			scope.selection.changeSize(scope.width, scope.height);
+			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				scope.error = 2;
 			}
@@ -263,7 +263,11 @@ class Texture {
 		if (typeof data === 'object') {
 			this.extend(data);
 			if (this.layers_enabled) {
-				setTimeout(() => this.updateLayerChanges(), 40);
+				setTimeout(() => {
+					Project.whenNextOpen(() => {
+						this.updateLayerChanges()
+					})
+				}, 40);
 			}
 		}
 		if (!this.id) {
@@ -1612,7 +1616,9 @@ class Texture {
 		}
 		this.ctx.filter = '';
 
-		this.getMaterial().map.needsUpdate = true;
+		if (!Format.image_editor) {
+			this.getMaterial().map.needsUpdate = true;
+		}
 		if (update_data_url) {
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
@@ -1622,7 +1628,9 @@ class Texture {
 		if (this.layers_enabled) {
 			return this.updateLayerChanges(true);
 		}
-		this.getMaterial().map.needsUpdate = true;
+		if (!Format.image_editor) {
+			this.getMaterial().map.needsUpdate = true;
+		}
 		this.source = this.canvas.toDataURL();
 		this.updateImageFromCanvas();
 	}

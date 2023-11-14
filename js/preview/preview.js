@@ -1050,8 +1050,8 @@ class Preview {
 				let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
 
 				// UV
-				let uv_factor_x = Project.texture_width / texture.width;
-				let uv_factor_y = Project.texture_height / texture.display_height;
+				let uv_factor_x = texture.getUVWidth() / texture.width;
+				let uv_factor_y = texture.getUVHeight() / texture.display_height;
 				let offset = 0;
 				let x = intersect.uv.x * texture.width;
 				let y = (1-intersect.uv.y) * texture.height;
