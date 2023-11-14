@@ -780,9 +780,9 @@ const UVEditor = {
 					face.uv[0] = Math.min(face.uv[0], UVEditor.getUVWidth() - width);
 					face.uv[1] = Math.min(face.uv[1], UVEditor.getUVHeight() - height);
 					face.uv_size = [width, height];
-					left2 *= UVEditor.getResolution(0, face) / UVEditor.getUVWidth();
-					top2 *= UVEditor.getResolution(1, face) / UVEditor.getUVHeight();
-					face.uv_size = [left2, top2];
+					// left2 *= UVEditor.getResolution(0, face) / UVEditor.getUVWidth();
+					// top2 *= UVEditor.getResolution(1, face) / UVEditor.getUVHeight();
+					// face.uv_size = [left2, top2];
 					if (mirror_x) [face.uv[0], face.uv[2]] = [face.uv[2], face.uv[0]];
 					if (mirror_y) [face.uv[1], face.uv[3]] = [face.uv[3], face.uv[1]];
 				})

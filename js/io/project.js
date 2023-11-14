@@ -672,15 +672,17 @@ function setProjectResolution(width, height, modify_uv) {
 	}
 }
 function updateProjectResolution() {
-	if (Interface.Panels.uv) {
-		UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
-		UVEditor.vue.updateSize()
-	}
-	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
-	if (Texture.selected) {
-		// Update animated textures
-		Texture.selected.height++;
-		Texture.selected.height--;
+	if (!Format.per_texture_uv_size) {
+		if (Interface.Panels.uv) {
+			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
+			UVEditor.vue.updateSize()
+		}
+		Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
+		if (Texture.selected) {
+			// Update animated textures
+			Texture.selected.height++;
+			Texture.selected.height--;
+		}
 	}
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
