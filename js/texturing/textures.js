@@ -1603,6 +1603,7 @@ class Texture {
 		this.internal = true;
 		this.source = data_url;
 		this.saved = false;
+		return this;
 	}
 	updateLayerChanges(update_data_url) {
 		if (!this.layers_enabled || this.width == 0) return this;
@@ -2052,7 +2053,7 @@ SharedActions.add('delete', {
 SharedActions.add('duplicate', {
 	condition: () => Prop.active_panel == 'textures' && Texture.selected,
 	run() {
-		let copy = Texture.selected.getUndoCopy();
+		let copy = Texture.selected.getSaveCopy();
 		delete copy.path;
 		let new_tex = new Texture(copy).fillParticle();
 		new_tex.convertToInternal(Texture.selected.getDataURL());
@@ -2063,7 +2064,7 @@ Clipbench.setTexture = function(texture) {
 	//Sets the raw image of the texture
 	if (!isApp) return;
 
-	Clipbench.texture = texture.getUndoCopy();
+	Clipbench.texture = texture.getSaveCopy();
 	delete Clipbench.texture.path;
 	Clipbench.texture.internal = true;
 	Clipbench.texture.saved = false;
@@ -2081,14 +2082,15 @@ Clipbench.setTexture = function(texture) {
 Clipbench.pasteTextures = function() {
 	function loadFromDataUrl(dataUrl) {
 		if (!dataUrl || dataUrl.length < 32) return;
-		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true);
+		var texture = new Texture({name: 'pasted', folder: 'block' }).fillParticle().convertToInternal(dataUrl)
+		texture.load().add(true);
 		setTimeout(function() {
 			texture.openMenu();
 		}, 40)
 	}
 
 	if (Clipbench.texture) {
-		var texture = new Texture(Clipbench.texture).fillParticle().load().add(true);
+		var texture = new Texture(Clipbench.texture).convertToInternal(Clipbench.texture.source).fillParticle().load().add(true);
 		setTimeout(function() {
 			texture.openMenu();
 		}, 40)
