@@ -2625,6 +2625,7 @@ Interface.definePanels(function() {
 						this.texture.edit(canvas => {
 							let tex_ctx = canvas.getContext('2d');
 							ctx.beginPath();
+							tex_ctx.save();
 							tex_ctx.beginPath();
 							UVEditor.getMappableElements().forEach(el => {
 								if (el instanceof Mesh) {
@@ -2667,6 +2668,7 @@ Interface.definePanels(function() {
 							ctx.drawImage(this.texture.img, 0, 0);
 							tex_ctx.clip();
 							tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
+							tex_ctx.restore();
 						}, {no_undo: true})
 
 						UVEditor.vue.$refs.frame.append(overlay_canvas);
