@@ -1875,12 +1875,12 @@ span.controller_state_section_info {
 	.UVEditor > .toolbar {
 		margin-top: 3px;
 	}
-	#project_resolution_status {
+	#uv_resolution_status {
 		margin: 2px;
 		padding: 0px 5px;
 		pointer-events: auto;
 	}
-	#project_resolution_status:hover {
+	#uv_resolution_status:hover {
 		color: var(--color-light);
 	}
 
@@ -1987,6 +1987,14 @@ span.controller_state_section_info {
 		left: -10px;
 		color: white;
 		width: 16px;
+	}
+	div#uv_brush_line_preview {
+		margin: calc(var(--radius) * 1px);
+		position: relative;
+		height: 2px;
+		transform-origin: left;
+		background-color: #cccccc;
+		pointer-events: none;
 	}
 	canvas.move_texture_with_uv {
 		position: absolute;

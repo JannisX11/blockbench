@@ -1975,7 +1975,8 @@ Interface.definePanels(function() {
 				uv_overlay: false,
 				texture: 0,
 				layer: null,
-				mouse_coords: {x: -1, y: -1, active: false},
+				mouse_coords: {x: -1, y: -1, active: false, line_preview: false},
+				last_brush_position: [0, 0],
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
 				brush_type: BarItems.brush_shape.value,
@@ -3510,6 +3511,30 @@ Interface.definePanels(function() {
 					}
 					return false;
 				},
+				getLinePreviewAngle() {
+					let angle = Math.atan2(this.last_brush_position[1] - this.mouse_coords.y, this.last_brush_position[0] - this.mouse_coords.x);
+					return Math.radToDeg(angle);
+				},
+				getLinePreviewStyle() {
+					let tex = this.texture;
+					let pixel_size = this.inner_width / (tex ? tex.width : Project.texture_width);
+					let width = Math.sqrt(Math.pow(this.mouse_coords.x - this.last_brush_position[0], 2) + Math.pow(this.mouse_coords.y - this.last_brush_position[1], 2));
+					let angle = this.getLinePreviewAngle();
+					return {
+						width: width * pixel_size + 'px',
+						rotate: angle + 'deg'
+					};
+				},
+				getBrushPositionText() {
+					if (!this.mouse_coords.active) return '';
+					let string = trimFloatNumber(this.mouse_coords.x, 1) + ', ' + trimFloatNumber(this.mouse_coords.y, 1);
+					if (this.mouse_coords.line_preview) {
+						let angle = this.getLinePreviewAngle();
+						angle = (angle + 180) % 90;
+						string += `, ${trimFloatNumber(Math.roundTo(angle, 1))}°`;
+					}
+					return string;
+				},
 
 				checkFormat(values) {
 					for (let key in values) {
@@ -3813,7 +3838,9 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
-							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="brush_type" :style="getBrushOutlineStyle()"></div>
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="brush_type" :style="getBrushOutlineStyle()">
+								<div v-if="mouse_coords.line_preview" id="uv_brush_line_preview" :style="getLinePreviewStyle()"></div>
+							</div>
 
 							<div id="uv_copy_brush_outline" v-if="copy_brush_source && texture && texture.uuid == copy_brush_source.texture" :style="getCopyBrushOutlineStyle()"></div>
 
@@ -3881,7 +3908,7 @@ Interface.definePanels(function() {
 						</div>
 
 						<template v-else>
-							<span style="color: var(--color-subtle_text);">{{ mouse_coords.active ? (trimFloatNumber(mouse_coords.x, 1) + ', ' + trimFloatNumber(mouse_coords.y, 1)) : '-' }}</span>
+							<span style="color: var(--color-subtle_text);">{{ getBrushPositionText() }}</span>
 							<span v-if="texture" class="uv_panel_texture_name" @click="selectTextureMenu($event)">{{ texture.name }}</span>
 							<span style="color: var(--color-subtle_text);">{{ Math.round(this.zoom*100).toString() + '%' }}</span>
 						</template>
@@ -3907,6 +3934,12 @@ Interface.definePanels(function() {
 			UVEditor.loadViewportOffset();
 		})
 	})
+
+	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+		if (before.shift != now.shift && document.querySelector('#uv_viewport:hover')) {
+			UVEditor.vue.mouse_coords.line_preview = now.shift;
+		}
+	});
 
 	Toolbars.uv_editor.toPlace()
 

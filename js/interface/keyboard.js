@@ -886,9 +886,9 @@ $(document).keyup(function(e) {
 	}
 	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
 	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
-	Pressing.shift = false;
-	Pressing.alt = false;
-	Pressing.ctrl = false;
+	Pressing.shift = e.shiftKey;
+	Pressing.alt = e.altKey;
+	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
 		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
 	}
