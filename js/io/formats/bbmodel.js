@@ -323,12 +323,12 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(element) {
+			model.elements.forEach(function(template) {
 
-				var copy = OutlinerElement.fromSave(element, true)
-				for (var face in copy.faces) {
-					if (!Format.single_texture && element.faces) {
-						var texture = element.faces[face].texture !== null && Texture.all[element.faces[face].texture]
+				let copy = OutlinerElement.fromSave(template, true)
+				for (let face in copy.faces) {
+					if (!Format.single_texture && template.faces) {
+						let texture = template.faces[face].texture !== null && Texture.all[template.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
@@ -337,7 +337,6 @@ var codec = new Codec('project', {
 					}
 				}
 				copy.init()
-				
 			})
 		}
 		if (model.outliner) {
@@ -408,6 +407,7 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Canvas.updateAllFaces()
 		ReferenceImage.updateAll();
 		Validator.validate()
 		this.dispatchEvent('parsed', {model})
@@ -640,6 +640,7 @@ var codec = new Codec('project', {
 		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Canvas.updateAllFaces()
 		ReferenceImage.updateAll();
 		this.dispatchEvent('parsed', {model})
 	}

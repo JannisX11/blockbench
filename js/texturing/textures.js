@@ -28,7 +28,7 @@ class Texture {
 		this.internal = !isApp;
 		this.uuid = uuid || guid()
 		Project.texture_selections[this.uuid] = new IntMatrix(0, 0);
-
+		this.flags = new Set();
 
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
@@ -171,8 +171,8 @@ class Texture {
 
 		var size_control = {};
 
-		this.img.onload = function() {
-			this.tex.needsUpdate = true;
+		this.img.onload = () => {
+			tex.needsUpdate = true;
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
@@ -188,6 +188,12 @@ class Texture {
 				scope.canvas.width = scope.width;
 				scope.canvas.height = scope.height;
 				scope.ctx.drawImage(img, 0, 0);
+			}
+
+			if (this.flags.has('update_uv_size_from_resolution')) {
+				this.flags.delete('update_uv_size_from_resolution');
+				this.uv_width = scope.width;
+				this.uv_height = scope.display_height;
 			}
 
 			if (scope.isDefault) {
@@ -248,7 +254,7 @@ class Texture {
 				}
 			})
 		}
-		this.img.onerror = function(error) {
+		this.img.onerror = (error) => {
 			if (isApp &&
 				!scope.isDefault &&
 				scope.mode !== 'bitmap' &&
@@ -753,7 +759,7 @@ class Texture {
 
 		let timeout;
 		this.watcher = fs.watch(scope.path, (eventType) => {
-			if (this.file_just_changed_flag) return;
+			if (this.flags.has('file_just_changed')) return;
 			if (eventType == 'change') {
 				if (timeout) clearTimeout(timeout)
 				timeout = setTimeout(() => {
@@ -878,6 +884,9 @@ class Texture {
 		}
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
+		}
+		if (Format.per_texture_uv_size) {
+			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
 			Undo.initEdit({textures: []})
@@ -1456,8 +1465,8 @@ class Texture {
 			}
 
 			if (!as && this.path && fs.existsSync(this.path)) {
-				this.file_just_changed_flag = true;
-				setTimeout(() => {delete this.file_just_changed_flag}, 100);
+				this.flags.add('file_just_changed');
+				setTimeout(() => {this.flags.delete('file_just_changed')}, 100);
 				fs.writeFileSync(this.path, image);
 				postSave(this.path);
 				this.mode = 'link';
@@ -2391,6 +2400,9 @@ Interface.definePanels(function() {
 						return texture.getErrorMessage()
 					} else {
 						let message = texture.width + ' x ' + texture.height + 'px';
+						if (!Format.image_editor) {
+							message += ` (${texture.width / texture.getUVWidth() * 16}x)`;
+						}
 						if (texture.frameCount > 1) {
 							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
 						}
