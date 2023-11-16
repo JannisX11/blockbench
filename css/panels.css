@@ -2469,6 +2469,7 @@ span.controller_state_section_info {
 		margin: auto;
 		padding: 0 4px;
 		width: fit-content;
+		z-index: 20;
 	}
 	.uv_layer_limbo_options > button {
 		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);

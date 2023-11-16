@@ -115,6 +115,9 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
@@ -205,6 +208,9 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
@@ -484,6 +490,9 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust curves');
 				},
 				onCancel() {
@@ -575,6 +584,9 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust opacity');
 				},
 				onCancel() {

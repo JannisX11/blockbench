@@ -215,6 +215,7 @@ class TextureLayer {
 		this.ctx.restore();
 
 		this.texture.updateLayerChanges(undo);
+		this.texture.saved = false;
 
 		if (undo) Undo.finishEdit('Flip layer');
 	}
@@ -233,6 +234,7 @@ class TextureLayer {
 		this.ctx.restore();
 
 		this.texture.updateLayerChanges(undo);
+		this.texture.saved = false;
 		UVEditor.vue.$forceUpdate();
 
 		if (undo) Undo.finishEdit('Rotate layer');
