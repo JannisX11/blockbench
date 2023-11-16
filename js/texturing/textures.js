@@ -1342,7 +1342,7 @@ class Texture {
 		updateInterfacePanels();
 		BARS.updateConditions();
 	}
-	selectionToLayer(undo) {
+	selectionToLayer(undo, clone) {
 		let texture = this;
 		let selection = texture.selection;
 
@@ -1369,10 +1369,12 @@ class Texture {
 		if (texture.mode === 'link') {
 			texture.convertToInternal();
 		}
-		let boxes = selection.toBoxes();
-		boxes.forEach(box => {
-			ctx.clearRect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
-		})
+		if (!clone) {
+			let boxes = selection.toBoxes();
+			boxes.forEach(box => {
+				ctx.clearRect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
+			})
+		}
 
 		let new_layer = new TextureLayer({name: 'selection', offset: new_offset}, texture);
 		new_layer.setSize(copy_canvas.width, copy_canvas.height);

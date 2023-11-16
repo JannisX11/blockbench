@@ -2574,6 +2574,7 @@ BARS.defineActions(function() {
 			if (TextureLayer.selected?.in_limbo) {
 				TextureLayer.selected.resolveLimbo();
 			}
+			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
 	selection_tool.mode = 'rectangle';
@@ -2674,14 +2675,6 @@ BARS.defineActions(function() {
 			copy: true,
 			pattern: true,
 			sample: true
-		}
-	})
-	new BarSelect('copy_paste_tool_mode', {
-		category: 'paint',
-		condition: {tools: ['copy_paste_tool']},
-		options: {
-			copy: true,
-			move: true,
 		}
 	})
 	new BarSelect('selection_tool_operation_mode', {

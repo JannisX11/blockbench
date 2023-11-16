@@ -135,6 +135,7 @@ class TextureLayer {
 		UVEditor.vue.$forceUpdate();
 		Texture.selected.selection.clear();
 		UVEditor.updateSelectionOutline();
+		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
 	setSize(width, height) {
 		this.canvas.width = width;
@@ -438,7 +439,6 @@ BARS.defineActions(() => {
 			layer.canvas.width = layer.texture.width;
 			layer.canvas.height = layer.texture.height;
 			layer.ctx.drawImage(copy, layer.offset[0], layer.offset[1]);
-			console.log(copy, layer.offset[0], layer.offset[1])
 			layer.offset.V2_set(0, 0);
 
 			Undo.finishEdit('Expand layer to texture size');
@@ -482,7 +482,7 @@ Interface.definePanels(function() {
 		if (!obj) {
 			return;
 		} else {
-			if (loc < 16) return -1;
+			if (loc <= 20) return -1;
 			return 1;
 		}
 	}

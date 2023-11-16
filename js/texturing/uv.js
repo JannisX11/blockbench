@@ -1445,6 +1445,7 @@ SharedActions.add('select_all', {
 	run() {
 		UVEditor.texture.selection.setOverride(UVEditor.texture.selection.override == true ? false : true);
 		UVEditor.updateSelectionOutline();
+		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
 })
 SharedActions.add('unselect_all', {
@@ -1459,6 +1460,7 @@ SharedActions.add('unselect_all', {
 	run() {
 		UVEditor.texture.selection.setOverride(false);
 		UVEditor.updateSelectionOutline();
+		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
 })
 SharedActions.add('invert_selection', {
@@ -3345,7 +3347,7 @@ Interface.definePanels(function() {
 								UVEditor.vue.selection_outline = '';
 								if ((!layer || !layer.in_limbo) && texture.selection.is_custom && texture.selection.hasSelection()) {
 									Undo.initEdit({textures: [texture], bitmap: true});
-									texture.selectionToLayer(false);
+									texture.selectionToLayer(false, (e1.altKey || Pressing.overrides.alt));
 									layer = texture.selected_layer;
 									initial_offset = layer.offset.slice();
 								} else if (!layer) {
@@ -3451,6 +3453,7 @@ Interface.definePanels(function() {
 								texture.selection.clear();
 							}
 							UVEditor.updateSelectionOutline();
+							Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 						} else {
 							texture.updateLayerChanges(true);
 							texture.saved = false;
