@@ -1410,7 +1410,7 @@ Interface.definePanels(function() {
 					if (!this.animation_files_enabled) {
 						return {
 							'': {
-								animations: this.animations,
+								animations: this.animations.concat(this.animation_controllers),
 								name: '',
 								hide_head: true
 							}
