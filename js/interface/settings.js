@@ -548,7 +548,8 @@ const Settings = {
 			spaces_4: tl('settings.json_indentation.spaces_4'),
 			spaces_2: tl('settings.json_indentation.spaces_2'),
 		}});
-		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('final_newline',		{category: 'export', value: false});
+		new Setting('minifiedout',			{category: 'export', value: false});
 		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});

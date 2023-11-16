@@ -481,8 +481,8 @@ function compileJSON(object, options = {}) {
 	}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
-		var s = '\n'
-		for (var i = 0; i < tabs; i++) {
+		let s = '\n';
+		for (let i = 0; i < tabs; i++) {
 			s += indentation;
 		}
 		return s;
@@ -550,7 +550,11 @@ function compileJSON(object, options = {}) {
 		}
 		return out;
 	}
-	return handleVar(object, 1)
+	let file = handleVar(object, 1);
+	if ((settings.final_newline.value && options.final_newline != false) || options.final_newline == true) {
+		file += '\n';
+	}
+	return file;
 }
 function autoParseJSON(data, feedback) {
 	if (data.substr(0, 4) === '<lz>') {
