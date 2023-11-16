@@ -1494,7 +1494,7 @@ class Preview {
 		{
 			icon: 'icon-player',
 			name: 'settings.display_skin',
-			condition: () => ((display_mode && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
+			condition: () => ((Modes.display && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
 			click: function() {
 			
 				changeDisplaySkin()
@@ -1983,7 +1983,7 @@ function animate() {
 		}
 	})
 	framespersecond++;
-	if (display_mode === true && ground_animation === true && !Transformer.hoverAxis) {
+	if (Modes.display === true && ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
 	Blockbench.dispatchEvent('render_frame');

@@ -1199,7 +1199,7 @@
 
 				if (Toolbox.selected.transformerMode !== 'rotate') {
 					point.sub( offset );
-					if (!display_mode) {
+					if (!Modes.display) {
 						point.removeEuler(worldRotation)
 					}
 

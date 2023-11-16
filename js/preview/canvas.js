@@ -743,7 +743,7 @@ const Canvas = {
 			obj.visible = false
 		})
 		var ground_anim_before = ground_animation
-		if (display_mode && ground_animation) {
+		if (Modes.display && ground_animation) {
 			ground_animation = false
 		}
 		updateCubeHighlights(null, true);
@@ -758,7 +758,7 @@ const Canvas = {
 			obj.visible = obj.was_visible
 			delete obj.was_visible
 		})
-		if (display_mode && ground_anim_before) {
+		if (Modes.display && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();

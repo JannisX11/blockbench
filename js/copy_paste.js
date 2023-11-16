@@ -32,7 +32,7 @@ const Clipbench = {
 		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
 			return Clipbench.types.texture_selection;
 		}
-		if (display_mode) {
+		if (Modes.display) {
 			return Clipbench.types.display_slot
 		}
 		if (Animator.open && Prop.active_panel == 'animations') {
@@ -74,7 +74,7 @@ const Clipbench = {
 		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
 			return Clipbench.types.texture_selection;
 		}
-		if (display_mode) {
+		if (Modes.display) {
 			return Clipbench.types.display_slot
 		}
 		if (Animator.open && Prop.active_panel == 'animations') {

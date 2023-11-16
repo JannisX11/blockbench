@@ -225,15 +225,6 @@ class ModelProject {
 		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
-
-		Modes.options[this.mode].select();
-		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
-			BarItems[this.tool].select();
-		}
-
-		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
-
-		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 		
 		Preview.all.forEach(preview => {
 			let data = this.previews[preview.id];
@@ -247,6 +238,15 @@ class ModelProject {
 				preview.loadAnglePreset(preview.default_angle);
 			}
 		})
+
+		Modes.options[this.mode].select();
+		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
+			BarItems[this.tool].select();
+		}
+
+		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
+
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;

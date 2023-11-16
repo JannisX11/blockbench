@@ -95,7 +95,7 @@ const Screencam = {
 
 			if (options.crop !== false) {
 
-				if (display_mode && display_slot === 'gui') {
+				if (Modes.display && display_slot === 'gui') {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
 	
