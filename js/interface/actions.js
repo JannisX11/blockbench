@@ -1173,7 +1173,7 @@ class BarSelect extends Widget {
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
-		$(this.node).on('mousewheel', event => {
+		$(this.node).on('wheel', event => {
 			scope.trigger(event.originalEvent);
 		})
 	}
