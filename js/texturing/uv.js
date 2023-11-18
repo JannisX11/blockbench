@@ -3705,7 +3705,7 @@ Interface.definePanels(function() {
 						@contextmenu="contextMenu($event)"
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
-						@mousewheel="onMouseWheel($event)"
+						@wheel="onMouseWheel($event)"
 						@mousemove="updateMouseCoords($event)"
 						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"

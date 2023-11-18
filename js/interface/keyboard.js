@@ -216,7 +216,7 @@ class Keybind {
 			document.removeEventListener('keyup', onActivate)
 			document.removeEventListener('keydown', onActivateDown)
 			overlay.off('mousedown', onActivate)
-			overlay.off('mousewheel', onActivate)
+			overlay.off('wheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
 
@@ -247,7 +247,7 @@ class Keybind {
 		document.addEventListener('keyup', onActivate)
 		document.addEventListener('keydown', onActivateDown)
 		overlay.on('mousedown', onActivate)
-		overlay.on('mousewheel', onActivate)
+		overlay.on('wheel', onActivate)
 
 		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 		return this;
@@ -879,6 +879,10 @@ document.addEventListener('wheel', (e) => {
 $(document).keyup(function(e) {
 	if (Pressing.alt && ActionControl.open) {
 		ActionControl.vue.$forceUpdate()
+	}
+	// Firefox-specific fix for suppressing the menu bar
+	if(e.which == 18) {
+		e.preventDefault();
 	}
 	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
 		Toolbox.original.select()

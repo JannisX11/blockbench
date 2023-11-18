@@ -1527,7 +1527,7 @@ Interface.definePanels(() => {
 				<div id="animation_controllers_wrapper"
 					:class="{connecting_controllers: connecting}"
 					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
-					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
+					@click="deselect($event)" @wheel="onMouseWheel($event)"
 				>
 
 					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
