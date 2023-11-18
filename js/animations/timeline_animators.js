@@ -81,7 +81,9 @@ class GeneralAnimator {
 		var deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
-		Undo.addKeyframeCasualties(deleted);
+		if (undo) {
+			Undo.addKeyframeCasualties(deleted);
+		}
 		Animation.selected.setLength();
 
 		if (undo) {
@@ -92,14 +94,22 @@ class GeneralAnimator {
 	getOrMakeKeyframe(channel) {
 		let before, result;
 		let epsilon = Timeline.getStep()/2 || 0.01;
+		let has_before = false;
 
 		for (let kf of this[channel]) {
 			if (Math.abs(kf.time - Timeline.time) <= epsilon) {
 				before = kf;
 			}
+			if (kf.time < Timeline.time) {
+				has_before = true;
+			}
 		}
 		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
-		return {before, result};
+		let new_keyframe;
+		if (settings.auto_keyframe.value && !before && !has_before) {
+			new_keyframe = this.createKeyframe({}, 0, channel, false, false);
+		}
+		return {before, result, new_keyframe};
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'timeline'
@@ -183,7 +193,7 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	select(group_is_selected) {
 		if (!this.getGroup()) {
-			unselectAll();
+			unselectAllElements();
 			return this;
 		}
 		if (this.group.locked) return;
@@ -451,6 +461,40 @@ class BoneAnimator extends GeneralAnimator {
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
 	}
+	applyAnimationPreset(preset) {
+		let keyframes = [];
+		Undo.initEdit({keyframes});
+		let current_time = Timeline.snapTime(Timeline.time);
+		for (let channel in this.channels) {
+			let timeline = preset[channel];
+			for (let timecode in timeline) {
+				let data = {};
+				let value = timeline[timecode];
+				if (value instanceof Array) {
+					data = {x: value[0], y: value[1], z: value[2]};
+				} else if (value.pre) {
+					data = {data_points: [
+						{x: value.pre[0], y: value.pre[1], z: value.pre[2]},
+						{x: value.post[0], y: value.post[1], z: value.post[2]},
+					]}
+				} else {
+					data = {
+						x: value.post[0], y: value.post[1], z: value.post[2],
+						interpolation: value.lerp_mode
+					};
+				}
+				let kf = this.createKeyframe(data, current_time + parseFloat(timecode), channel, false, false);
+				keyframes.push(kf);
+			}
+		}
+		if (preset.length) {
+			this.animation.setLength(current_time + preset.length);
+		}
+		keyframes[0].select();
+		Undo.finishEdit('Apply animation preset');
+		Animator.preview();
+		return this;
+	}
 }
 	BoneAnimator.prototype.type = 'bone';
 	BoneAnimator.prototype.channels = {
@@ -460,6 +504,7 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	Group.animator = BoneAnimator;
 	BoneAnimator.prototype.menu = new Menu('bone_animator', [
+		new MenuSeparator('settings'),
 		{
 			id: 'rotation_global',
 			name: 'menu.animator.rotation_global',
@@ -471,7 +516,9 @@ class BoneAnimator extends GeneralAnimator {
 				Undo.finishEdit('Toggle rotation in global space');
 				Animator.preview();
 			}
-		}
+		},
+		new MenuSeparator('presets'),
+		'apply_animation_preset'
 	])
 
 class NullObjectAnimator extends BoneAnimator {
@@ -499,7 +546,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	select(element_is_selected) {
 		if (!this.getElement()) {
-			unselectAll();
+			unselectAllElements();
 			return this;
 		}
 		if (this.getElement().locked) return;
@@ -804,3 +851,90 @@ class EffectAnimator extends GeneralAnimator {
 		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
 		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
 	}
+
+StateMemory.init('animation_presets', 'array');
+
+BARS.defineActions(() => {
+	new Action('apply_animation_preset', {
+		condition: () => Modes.animate && Timeline.selected_animator && Timeline.selected_animator.applyAnimationPreset,
+		icon: 'library_books',
+		click: function (e) {
+			new Menu('apply_animation_preset', this.children(), {searchable: true}).open(e.target);
+		},
+		children() {
+			let animator = Timeline.selected_animator;
+			let entries = [];
+			for (let id in Animator.animation_presets) {
+				let preset = Animator.animation_presets[id];
+				let entry = {
+					name: preset.name,
+					icon: 'fast_forward',
+					click: () => {
+						animator.applyAnimationPreset(preset);
+					}
+				}
+				entries.push(entry);
+			}
+			if (StateMemory.animation_presets.length) entries.push('_');
+			for (let preset of StateMemory.animation_presets) {
+				let entry = {
+					name: preset.name,
+					icon: 'fast_forward',
+					click: () => {
+						animator.applyAnimationPreset(preset);
+					},
+					children: [
+						{icon: 'delete', name: 'generic.delete', click: () => {
+							Blockbench.showMessageBox({
+								title: 'generic.delete',
+								message: 'generic.confirm_delete',
+								buttons: ['dialog.confirm', 'dialog.cancel'],
+							}, result => {
+								if (result == 1) return;
+								StateMemory.animation_presets.remove(preset);
+								StateMemory.save('animation_presets');
+							})
+						}}
+					]
+				}
+				entries.push(entry);
+			}
+			return entries;
+		}
+	})
+	new Action('save_animation_preset', {
+		icon: 'playlist_add',
+		condition: () => Modes.animate && Keyframe.selected.length && Keyframe.selected.allAre(kf => kf.animator == Keyframe.selected[0].animator),
+		click(event) {	
+			let dialog = new Dialog({
+				id: 'save_animation_preset',
+				title: 'action.save_animation_preset',
+				width: 540,
+				form: {
+					name: {label: 'generic.name'},
+				},
+				onConfirm: function(formResult) {
+					if (!formResult.name) return;
+	
+					let preset = {
+						uuid: guid(),
+						name: formResult.name,
+					}
+					let keyframes = Keyframe.selected.slice().sort((a, b) => a.time - b.time);
+					let start_time = keyframes[0].time;
+					for (let kf of keyframes) {
+						if (!kf.transform) continue;
+						if (!preset[kf.channel]) preset[kf.channel] = {};
+						let data = kf.compileBedrockKeyframe();
+						let timecode = trimFloatNumber(Timeline.snapTime(kf.time - start_time)).toString();
+						preset[kf.channel][timecode] = data;
+					}
+
+					StateMemory.animation_presets.push(preset);
+					StateMemory.save('animation_presets');
+				}
+			})
+			dialog.show()
+		}
+	})
+})

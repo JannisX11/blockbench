@@ -116,13 +116,12 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
+	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: local('Material Icons'),
-			local('MaterialIcons-Regular'),
-			url(../font/MaterialIcons-Regular.ttf) format('truetype');
+		src: url(../font/material-icons.woff2) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -681,15 +680,15 @@
 	}
 	.numeric_input > div.tool {
 		position: absolute;
-		width: 22px;
+		width: 18px;
 		right: 1px;
 		top: 0;
 		color: var(--color-subtle_text);
 		cursor: ew-resize;
 	}
 	.numeric_input > div.tool > i {
-		font-size: 20px;
-		margin-top: 5px;
+		font-size: 18px;
+		margin-top: 6px;
 	}
 
 	div.nslide {

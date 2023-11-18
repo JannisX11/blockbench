@@ -387,11 +387,14 @@
 		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
-	#windows_window_menu li i:not(.material-icons) {
-		font-size: 10pt;
+	#windows_window_menu svg {
+		margin-top: 4px;
 	}
-	#windows_window_menu i.material-icons {
-		vertical-align: bottom;
+	body:not(.maximized) #windows_window_menu svg.restore {
+		display: none;
+	}
+	body.maximized #windows_window_menu svg.maximize {
+		display: none;
 	}
 	#mac_window_menu {
 		width: 68px;
@@ -593,7 +596,6 @@
 	}
 
 	#mode_selector {
-		font-size: 1.1em;
 		height: 30px;
 		margin-left: auto;
 		margin-right: 0;
@@ -604,8 +606,9 @@
 		height: 30px;
 		margin: 0 5px;
 		overflow: hidden;
-    	padding-top: 2px;
-    	font-size: 18px;
+		padding-top: 1px;
+		font-size: 1.2em;
+		cursor: pointer;
 	}
 	#mode_selector li:hover {
 		color: var(--color-light);

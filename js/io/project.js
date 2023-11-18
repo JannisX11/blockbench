@@ -66,6 +66,7 @@ class ModelProject {
 		ProjectData[this.uuid] = {
 			model_3d: new THREE.Object3D(),
 			materials: {},
+			texture_selections: {},
 			nodes_3d: {}
 		}
 	}
@@ -129,6 +130,9 @@ class ModelProject {
 	get materials() {
 		return ProjectData[this.uuid].materials;
 	}
+	get texture_selections() {
+		return ProjectData[this.uuid].texture_selections;
+	}
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;
 	}
@@ -140,6 +144,12 @@ class ModelProject {
 		let path = this.export_path || this.save_path;
 		let data = recent_projects.find(p => p.path == path);
 		return data;
+	}
+	getUVWidth(texture = 0) {
+		return (texture && Format.per_texture_uv_size) ? texture.uv_width : this.texture_width;
+	}
+	getUVHeight(texture = 0) {
+		return (texture && Format.per_texture_uv_size) ? texture.uv_height : this.texture_height;
 	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
@@ -184,7 +194,7 @@ class ModelProject {
 			OutlinerNode.uuids[group.uuid] = group;
 		})
 		Outliner.root = this.outliner;
-		Interface.Panels.outliner.inside_vue.root = this.outliner;
+		Panels.outliner.inside_vue.root = this.outliner;
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
@@ -196,7 +206,8 @@ class ModelProject {
 			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
 		}
 
-		Interface.Panels.textures.inside_vue.textures = Texture.all;
+		Panels.textures.inside_vue.textures = Texture.all;
+		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
 		scene.add(this.model_3d);
 
 		Panels.animations.inside_vue.animations = this.animations;
@@ -208,21 +219,12 @@ class ModelProject {
 		if (selected_anim) selected_anim.select();
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
-		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
-		Interface.Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
+		Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+		Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
 
-		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
+		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
-
-		Modes.options[this.mode].select();
-		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
-			BarItems[this.tool].select();
-		}
-
-		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
-
-		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 		
 		Preview.all.forEach(preview => {
 			let data = this.previews[preview.id];
@@ -236,6 +238,15 @@ class ModelProject {
 				preview.loadAnglePreset(preview.default_angle);
 			}
 		})
+
+		Modes.options[this.mode].select();
+		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
+			BarItems[this.tool].select();
+		}
+
+		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
+
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;
@@ -510,8 +521,7 @@ new Property(ModelProject, 'array', 'timeline_setups', {
 	condition: () => Format.animation_mode,
 });
 new Property(ModelProject, 'object', 'unhandled_root_fields', {
-	exposed: false,
-	default: {}
+	exposed: false
 });
 
 
@@ -604,7 +614,9 @@ function setProjectResolution(width, height, modify_uv) {
 		modify_uv = false;
 	}
 
-	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
+	let textures = Format.per_texture_uv_size ? Texture.all : undefined;
+
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true, textures});
 
 	let old_res = {
 		x: Project.texture_width,
@@ -648,6 +660,11 @@ function setProjectResolution(width, height, modify_uv) {
 			Outliner.elements.forEach(element => shiftElement(element, 1));
 		}
 	}
+	textures && textures.forEach(tex => {
+		tex.uv_width = Project.texture_width;
+		tex.uv_height = Project.texture_height;
+	});
+
 	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {
@@ -655,15 +672,17 @@ function setProjectResolution(width, height, modify_uv) {
 	}
 }
 function updateProjectResolution() {
-	if (Interface.Panels.uv) {
-		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
-		UVEditor.vue.updateSize()
-	}
-	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
-	if (Texture.selected) {
-		// Update animated textures
-		Texture.selected.height++;
-		Texture.selected.height--;
+	if (!Format.per_texture_uv_size) {
+		if (Interface.Panels.uv) {
+			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
+			UVEditor.vue.updateSize()
+		}
+		Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
+		if (Texture.selected) {
+			// Update animated textures
+			Texture.selected.height++;
+			Texture.selected.height--;
+		}
 	}
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
@@ -985,7 +1004,7 @@ BARS.defineActions(function() {
 						Project.texture_height != texture_height
 					) {
 						// Adjust UV Mapping if resolution changed
-						if (!Project.box_uv && !box_uv &&
+						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})

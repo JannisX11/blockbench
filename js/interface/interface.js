@@ -26,6 +26,7 @@ class ResizeLine {
 				data.set(scope.before, difference);
 				updateInterface();
 				this.update();
+				Blockbench.setCursorTooltip(Math.round(this.get()));
 			}
 			let stop = (e2) => {
 				document.removeEventListener('pointermove', move, false);
@@ -33,6 +34,7 @@ class ResizeLine {
 				updateInterface()
 				this.update();
 				this.node.classList.remove('dragging');
+				Blockbench.setCursorTooltip();
 			}
 			document.addEventListener('pointermove', move, false);
 			document.addEventListener('pointerup', stop, false);
@@ -76,7 +78,8 @@ const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
-		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		modes: {},
+		left_bar: ['uv', 'color', 'layers', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
 		right_bar: ['element', 'bone', 'color', 'skin_pose', 'outliner', 'chat'],
 		panels: {
 			paint: {
@@ -94,10 +97,16 @@ const Interface = {
 		}
 	},
 	get left_bar_width() {
-		return Prop.show_left_bar && Interface.getLeftPanels().length ? Interface.data.left_bar_width : 0;
+		if (Prop.show_left_bar && Interface.getLeftPanels().length) { 
+			return Interface.data.modes[Mode.selected?.id]?.left_bar_width ?? Interface.data.left_bar_width;
+		}
+		return 0;
 	},
 	get right_bar_width() {
-		return Prop.show_right_bar && Interface.getRightPanels().length ? Interface.data.right_bar_width : 0;
+		if (Prop.show_right_bar && Interface.getRightPanels().length) { 
+			return Interface.data.modes[Mode.selected?.id]?.right_bar_width ?? Interface.data.right_bar_width;
+		}
+		return 0;
 	},
 	get top_panel_height() {
 		return 1;
@@ -146,21 +155,23 @@ const Interface = {
 			condition() {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
+				if (!Mode.selected) return false;
 				for (let p of Interface.data.left_bar) {
 					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'left_bar') {
 						return true;
 					}
 				}
 			},
-			get() {return Interface.data.left_bar_width},
+			get() {return Interface.left_bar_width},
 			set(o, diff) {
+				if (!Interface.data.modes[Mode.selected.id]) Interface.data.modes[Mode.selected.id] = {};
 				let min = 128;
-				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.data.right_bar_width)
-				Interface.data.left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.right_bar_width)
+				Interface.data.modes[Mode.selected.id].left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
 				
 				if (calculated == min) {
 					Prop.show_left_bar = false;
-					Interface.data.left_bar_width = Interface.default_data.left_bar_width;
+					Interface.data.modes[Mode.selected.id].left_bar_width = Interface.default_data.left_bar_width;
 				} else {
 					Prop.show_left_bar = true;
 				}
@@ -169,7 +180,7 @@ const Interface = {
 				this.setPosition({
 					top: 0,
 					bottom: 0,
-					left: Interface.data.left_bar_width+2
+					left: Interface.left_bar_width+2
 				})
 			}
 		}),
@@ -177,21 +188,23 @@ const Interface = {
 			condition() {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
+				if (!Mode.selected) return false;
 				for (let p of Interface.data.right_bar) {
 					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'right_bar') {
 						return true;
 					}
 				}
 			},
-			get() {return Interface.data.right_bar_width},
+			get() {return Interface.right_bar_width},
 			set(o, diff) {
+				if (!Interface.data.modes[Mode.selected.id]) Interface.data.modes[Mode.selected.id] = {};
 				let min = 128;
-				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.data.left_bar_width);
-				Interface.data.right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.left_bar_width);
+				Interface.data.modes[Mode.selected.id].right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
 				
 				if (calculated == min) {
 					Prop.show_right_bar = false;
-					Interface.data.right_bar_width = Interface.default_data.right_bar_width;
+					Interface.data.modes[Mode.selected.id].right_bar_width = Interface.default_data.right_bar_width;
 				} else {
 					Prop.show_right_bar = true;
 				}
@@ -200,7 +213,7 @@ const Interface = {
 				this.setPosition({
 					top: 30,
 					bottom: 0,
-					right: Interface.data.right_bar_width-2
+					right: Interface.right_bar_width-2
 				})
 			}
 		}),
@@ -547,6 +560,11 @@ function setupInterface() {
 	document.addEventListener('mousemove', event => {
 		mouse_pos.x = event.clientX;
 		mouse_pos.y = event.clientY;
+
+		if (Interface.cursor_tooltip?.textContent) {
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
 	})
 	updateInterface()
 }
@@ -685,20 +703,20 @@ $(document).keyup(function(event) {
 // Custom Elements
 Interface.CustomElements.ResizeLine = ResizeLine;
 Interface.CustomElements.SelectInput = function(id, data) {
-	function getNameFor(key) {
-		let val = data.options[key];
+	function getNameFor(val) {
 		if (val) {
 			return tl(val.name || val);
 		} else {
 			return '';
 		}
 	}
-	let value = data.value || data.default || Object.keys(data.options)[0];
-	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(value));
-	function setKey(key) {
+	let options = typeof data.options == 'function' ? data.options() : data.options;
+	let value = data.value || data.default || Object.keys(options)[0];
+	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
+	function setKey(key, options) {
 		value = key;
 		select.setAttribute('value', key);
-		select.textContent = getNameFor(key);
+		select.textContent = getNameFor(options[key]);
 		if (typeof data.onChange == 'function') {
 			data.onChange(value);
 		}
@@ -706,15 +724,17 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	select.addEventListener('click', function(event) {
 		if (Menu.closed_in_this_click == id) return this;
 		let items = [];
-		for (let key in data.options) {
-			let val = data.options[key];
+		let options = typeof data.options == 'function' ? data.options() : data.options;
+		for (let key in options) {
+			let val = options[key];
 			if (val) {
 				items.push({
-					name: getNameFor(key),
+					name: getNameFor(options[key]),
 					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+					color: val.color,
 					condition: val.condition,
 					click: (e) => {
-						setKey(key);
+						setKey(key, options);
 					}
 				})
 			}

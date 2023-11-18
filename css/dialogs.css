@@ -147,11 +147,11 @@
 	.dialog_bar > label {
 		width: var(--max_label_width);
 	}
-	.dialog_bar::after {
+	/*.dialog_bar::after {
 		content: "";
 		clear: both;
 		display: block;
-	}
+	}*/
 	.dialog_bar.narrow {
 		min-height: 30px;
 	}
@@ -173,6 +173,7 @@
 	.dialog_bar .tool {
 		position: relative;
 		margin: 0;
+		margin-right: auto;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
 		display: none !important;
@@ -198,6 +199,10 @@
 		flex-shrink: 0;
 		padding-top: 4px;
 		margin-left: 5px;
+	}
+	.dialog_bar.form_toggle_disabled *:not(.form_input_toggle) {
+		pointer-events: none;
+		opacity: 0.6;
 	}
 	.tab_bar {
 		height: 30px;
@@ -252,6 +257,9 @@
 		font-weight: 900;
 		margin-right: 10px;
 		pointer-events: none;
+	}
+	.dialog_message_box_command > .icon {
+		margin-right: 10px;
 	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
@@ -372,6 +380,10 @@
 		grid-area: buttons;
 		margin-top: 0px;
 		margin-bottom: 12px;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: right;
+		gap: 3px;
 	}
 	
 	.dialog_sidebar .dialog_sidebar_pages {
@@ -486,54 +498,54 @@
 
 
 	/*Settings*/
-	#settingslist {
+	.settings_list {
 		width: 100%;
 		max-height: 600px;
 		overflow-y: scroll;
 		clear: both;
 	}
-	#settingslist li {
+	.settings_list li {
 		padding: 2px 1px;
 		margin: 4px 0;
 	}
-	#settingslist li.has_profile_override {
+	.settings_list li.has_profile_override {
 		border: 1px solid var(--color-profile);
 		padding: 1px 0;
 		position: relative;
 	}
-	#settingslist .setting_profile_clear_button {
+	.settings_list .setting_profile_clear_button {
 		position: absolute;
 		top: 4px;
 		right: 0;
 	}
-	#settingslist li:hover input[type=checkbox] {
+	.settings_list li:hover input[type=checkbox] {
 		color: var(--color-light);
 	}
-	#settingslist .setting_element {
+	.settings_list .setting_element {
 		width: 50px;
 		text-align: center;
 		float: left;
 		margin-top: 12px;
 	}
-	#settingslist input[type=checkbox] {
+	.settings_list input[type=checkbox] {
 		margin-top: -6px;
 	}
-	#settingslist input[type=checkbox]::before {
+	.settings_list input[type=checkbox]::before {
 		font-size: 18pt;
 	}
-	#settingslist li > .setting_icon {
+	.settings_list li > .setting_icon {
 		margin-top: 8px;
 	}
-	#settingslist li > .setting_label {
+	.settings_list li > .setting_label {
 		display: inline-block;
 		margin-left: 8px;
 		width: calc(100% - 60px);
 	}
-	#settingslist .setting_name {
+	.settings_list .setting_name {
 		font-size: 1.1em;
 		display: inline-block;
 	}
-	#settingslist .setting_description {
+	.settings_list .setting_description {
 		font-size: 0.94em;
 		color: var(--color-subtle_text);
 	}
@@ -553,7 +565,7 @@
 	.setting_profile_value_indicator:hover {
 		opacity: 1;
 	}
-	#settingslist input[type=number] {
+	.settings_list input[type=number] {
 		height: 28px;
 		width: 100%;
 		background-color: var(--color-back);
@@ -561,24 +573,24 @@
 		padding-left: 4px;
 		text-align: right;
 	}
-	#settingslist input[type=text], #settingslist input[type=password] {
+	.settings_list input[type=text], .settings_list input[type=password] {
 		padding: 10px;
 		margin-left: 5px;
 		vertical-align: bottom;
 	}
-	#settingslist div.bar_select {
+	.settings_list div.bar_select {
 		margin: 8px;
 		width: 96%;
 	}
-	#settingslist div.bar_select select {
+	.settings_list div.bar_select select {
 		width: 100%;
 	}
-	#settingslist li .setting_icon i {
+	.settings_list li .setting_icon i {
 		font-size: 26pt;
 		width: 34px;
 		margin-top: -6px;
 	}
-	#settingslist li:hover .setting_icon i {
+	.settings_list li:hover .setting_icon i {
 		color: var(--color-light);
 	}
 	.password_toggle {
@@ -1401,6 +1413,27 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		margin: 0;
 		margin-top: 4px;
 	}
+	#plugin_browser_page_tab_bar {
+		display: flex;
+		height: 32px;
+		width: 100%;
+		float: right;
+		padding: 0 20px;
+	}
+	#plugin_browser_page_tab_bar > li {
+		height: 100%;
+		margin: 0 5px;
+		padding: 2px 4px;
+		font-size: 1.2em;
+		overflow: hidden;
+		cursor: pointer;
+	}
+	#plugin_browser_page_tab_bar > li.selected {
+		border-bottom: 3px solid var(--color-accent);
+	}
+	#plugin_browser_page_tab_bar > li:hover {
+		color: var(--color-light);
+	}
 	#plugin_browser_page > .about {
 		overflow-y: auto;
 		padding: 16px 24px;
@@ -1421,6 +1454,45 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		right: 0;
 		overflow: hidden;
 		max-width: unset;
+	}
+	#plugin_browser_details {
+		padding: 8px 24px;
+	}
+	#plugin_browser_details tr:nth-child(even) {
+		background-color: var(--color-back);
+	}
+	#plugin_browser_details td {
+		padding: 5px 2px;
+		line-height: 20px;
+	}
+	#plugin_browser_page .settings_list {
+		padding: 4px 20px;
+	}
+	#plugin_browser_page .features_list {
+		padding: 4px 20px;
+	}
+	li.plugin_feature_entry {
+		display: flex;
+		gap: 8px;
+		padding-left: 4px;
+		min-height: 28px;
+		align-items: center;
+	}
+	li.plugin_feature_entry.clickable {
+		cursor: pointer;
+	}
+	li.plugin_feature_entry.clickable:hover {
+		color: var(--color-light);
+	}
+	li.plugin_feature_entry label {
+		white-space: nowrap;
+		cursor: inherit;
+	}
+	li.plugin_feature_entry > .description,
+	li.plugin_feature_entry > .extra_info {
+		color: var(--color-subtle_text);
+		margin-left: auto;
+		cursor: inherit;
 	}
 
 	
@@ -1515,7 +1587,10 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		background-color: transparent;
 	}
 	#bar_item_list li {
-		padding: 4px; 
+		padding: 4px;
+		height: 32px;
+		display: flex;
+		gap: 8px;
 	}
 	#bar_item_list li:hover {
 		color: var(--color-light);
@@ -1525,7 +1600,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		height: 26px;
 		vertical-align: text-top;
 	}
-	#bar_item_list li:not(:hover) div.icon_wrapper.add, #bar_item_list li:hover div.icon_wrapper.normal {
+	#bar_item_list li:not(:hover) div.icon_wrapper.add, #bar_item_list li:hover > .icon {
 		display: none;
 	}
 	#bar_items_current {

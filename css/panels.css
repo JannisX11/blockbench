@@ -459,6 +459,7 @@
 	}
 	.drag_hover[order="-1"]::before {
 		margin-top: -1px;
+		top: 0;
 	}
 	.drag_hover[order="1"]::before {
 		bottom: -1px;
@@ -707,6 +708,60 @@
 		top: -8px;
 		left: -1px;
 	}
+/* Layers */
+	#layers_list {
+		display: flex;
+		flex-direction: column-reverse;
+		justify-content: flex-start;
+		padding-bottom: 20px;
+	}
+	.texture_layer {
+		display: flex;
+		height: 40px;
+		white-space: nowrap;
+		position: relative;
+		padding-left: 8px;
+		padding-right: 8px;
+		box-sizing: border-box;
+		align-items: center;
+		gap: 6px;
+	}
+	.texture_layer:first-child {
+		margin-bottom: auto;
+	}
+	.texture_layer:hover {
+		color: var(--color-light);
+	}
+	.texture_layer.selected {
+		background-color: var(--color-selected);
+	}
+	.texture_layer.in_limbo {
+		border: 2px dashed var(--color-accent);
+		font-style: italic;
+	}
+	.texture_layer .layer_icon_wrapper {
+		height: 40px;
+		width: 40px;
+		flex-grow: 0;
+		flex-shrink: 0;
+		overflow: hidden;
+	}
+	.texture_layer canvas {
+		width: 100%;
+	}
+	.texture_layer > label {
+		flex-grow: 1;
+	}
+	.texture_layer i.toggle_disabled {
+		color: var(--color-subtle_text);
+	}
+	.texture_layer i.icon {
+		font-size: 19px;
+		margin-top: 1px;
+	}
+	.texture_layer.drag_hover[order]::before {
+		left: -6px;
+	}
 
 /*Animations*/
 	#panel_animations #animations_list {
@@ -756,6 +811,7 @@
 	}
 	.in_list_button {
 		width: 22px;
+		height: 22px;
 		color: var(--color-text);
 	}
 	.in_list_button:hover {
@@ -1046,6 +1102,21 @@
 		margin-left: -1px;
 		margin-top: -2px;
 		height: 5000px;
+	}
+	#timeline_onion_skin_point {
+		position: absolute;
+		z-index: 2;
+		cursor: ew-resize;
+
+		height: 26px;
+		width: 18px;
+		top: 0;
+		margin-left: -8px;
+
+		border-right: 9px solid transparent;
+		border-left: 9px solid transparent;
+		border-top: 12px solid var(--color-text);
+		border-radius: 2px;
 	}
 	#timeline_endbracket {
 		position: absolute;
@@ -1367,6 +1438,9 @@
 		stroke: none;
 		stroke-width: 0;
 		pointer-events: initial;
+	}
+	.keyframe .keyframe_waveform > polygon:hover {
+		fill: var(--color-accent);
 	}
 
 	#timeline_graph_editor {
@@ -1801,12 +1875,12 @@ span.controller_state_section_info {
 	.UVEditor > .toolbar {
 		margin-top: 3px;
 	}
-	#project_resolution_status {
+	#uv_resolution_status {
 		margin: 2px;
 		padding: 0px 5px;
 		pointer-events: auto;
 	}
-	#project_resolution_status:hover {
+	#uv_resolution_status:hover {
 		color: var(--color-light);
 	}
 
@@ -1847,7 +1921,7 @@ span.controller_state_section_info {
 	}
 
 	body[mode=paint] #uv_frame {
-		cursor: crosshair !important;
+		cursor: crosshair;
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
@@ -1914,6 +1988,14 @@ span.controller_state_section_info {
 		color: white;
 		width: 16px;
 	}
+	div#uv_brush_line_preview {
+		margin: calc(var(--radius) * 1px);
+		position: relative;
+		height: 2px;
+		transform-origin: left;
+		background-color: #cccccc;
+		pointer-events: none;
+	}
 	canvas.move_texture_with_uv {
 		position: absolute;
 		pointer-events: none;
@@ -1955,6 +2037,38 @@ span.controller_state_section_info {
 		transform: scaleY(-1);
 		font-size: 16px;
 		padding-top: 2px;
+	}
+	#uv_selection_outline {
+		--color-selection-outline-a: black;
+		--color-selection-outline-b: white;
+		position: absolute;
+		pointer-events: none;
+		width: calc(100% + 2px);
+		height: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#uv_selection_outline path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-selection-outline-a);
+	}
+	#uv_selection_outline path.dash_overlay {
+		stroke: var(--color-selection-outline-b);
+		stroke-dasharray: 6px 4px;
+		stroke-dashoffset: 0;
+		animation: selection-outline-shift 700ms linear infinite;
+		animation-timing-function: steps(3, end);
+	}
+	@keyframes selection-outline-shift {
+		0% {
+			stroke-dashoffset: 0;
+		}
+		100% {
+			stroke-dashoffset: -10px;
+		}
 	}
 
 	.face_properties_toggle {
@@ -2136,6 +2250,10 @@ span.controller_state_section_info {
 	.uv_resize_corner.uv_c_ne {cursor: ne-resize;}
 	.uv_resize_corner.uv_c_sw {cursor: sw-resize;}
 	.uv_resize_corner.uv_c_se {cursor: se-resize;}
+	.uv_resize_corner.uv_c_n {cursor: n-resize;}
+	.uv_resize_corner.uv_c_s {cursor: s-resize;}
+	.uv_resize_corner.uv_c_w {cursor: w-resize;}
+	.uv_resize_corner.uv_c_e {cursor: e-resize;}
 
 	#uv_seleced_faces {
 		display: flex;
@@ -2293,6 +2411,14 @@ span.controller_state_section_info {
 		mix-blend-mode: difference;
 		box-sizing: content-box;
 	}
+	#texture_selection_rect > .ellipse {
+		width: calc(100% - 2px);
+		height: calc(100% - 2px);
+		border: 1px dashed white;
+		mix-blend-mode: difference;
+		box-sizing: content-box;
+		border-radius: 50%;
+	}
 	#texture_pasting_overlay {
 		position: absolute;
 		pointer-events: initial !important;
@@ -2334,6 +2460,24 @@ span.controller_state_section_info {
 	.copy_paste_tool_control .tool.button_cancel {
 		color: var(--color-close);
 		float: right;
+	}
+	.uv_layer_limbo_options {
+		position: absolute;
+		bottom: 52px;
+		left: 0;
+		right: 0;
+		margin: auto;
+		padding: 0 4px;
+		width: fit-content;
+		z-index: 20;
+	}
+	.uv_layer_limbo_options > button {
+		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+	}
+	.uv_layer_transform_handles {
+		border: 1px solid var(--color-text);
+		position: absolute;
+		cursor: move;
 	}
 
 /*Chat*/
@@ -2405,15 +2549,49 @@ span.controller_state_section_info {
 		height: 50px;
 		padding: 0 8px;
 	}
-	#color_panel_head .main {
-		width: 32px;
-		height: 38px;
+	#color_panel_head .chosen {
+		width: 56px;
 		flex-shrink: 0;
+		position: relative;
 	}
+	#color_panel_head .chosen > .main,
+	#color_panel_head .chosen > .secondary {
+		width: 32px;
+		height: 28px;
+		border: 1px solid var(--color-border);
+		position: absolute;
+	}
+	#color_panel_head .chosen > .main {
+		top: 2px;
+		left: 0;
+		width: 34px;
+		height: 30px;
+		box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+	}
+	#color_panel_head .chosen > .secondary {
+		top: 18px;
+		left: 18px;
+	}
+	#color_panel_head .chosen > .selected {
+		border-color: var(--color-accent);
+		border-width: 2px;
+	}
+	#color_panel_head .chosen > .switcher {
+		top: 0;
+		right: 0;
+		position: absolute;
+		height: 22px;
+		width: 22px;
+	}
+	#color_panel_head .chosen > .switcher > .icon {
+		margin-top: 0;
+		font-size: 19px;
+	}
+
 	#color_panel_head .side {
 		height: 100%;
 		flex-grow: 1;
-		width: calc(100% - 32px);
+		overflow: hidden;
 	}
 	#color_panel_head .side input {
 		width: 100%;
@@ -2424,17 +2602,16 @@ span.controller_state_section_info {
 	}
 	#color_history {
 		width: 100%;
-		height: 20px;
-		overflow-x: scroll;
-		overflow-y: hidden;
-		white-space: nowrap;
-		scroll-behavior: smooth;
+		height: 17px;
+		margin-top: 1px;
+		display: flex;
 	}
 	#color_history > li {
 		vertical-align: top;
 		display: inline-block;
 		width: 30px;
-		height: 12px;
+		height: 100%;
+		min-width: 18px;
 		cursor: pointer;
 	}
 	#color_history > li:hover {

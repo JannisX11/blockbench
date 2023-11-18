@@ -404,7 +404,7 @@ class ReferenceImage {
 			let options = Object.keys(layers).map(key => {
 				return {
 					name: layers[key],
-					icon: this.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: this.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click: () => {
 						this.changeLayer(key);
 						this.update().save();
@@ -669,7 +669,7 @@ ReferenceImage.prototype.menu = new Menu([
 				children.push({
 					id: key,
 					name: layers[key],
-					icon: reference.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: reference.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click() {
 						reference.changeLayer(key);
 						reference.update().save();
@@ -773,6 +773,13 @@ StateMemory.global_reference_images.forEach(template => {
 	new ReferenceImage(template).addAsGlobalReference();
 });
 
+SharedActions.add('delete', {
+	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
+	priority: 1,
+	run() {
+		ReferenceImage.selected.delete();
+	}
+})
 
 const ReferenceImageMode = {
 	active: false,

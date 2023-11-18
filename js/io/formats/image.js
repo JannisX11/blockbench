@@ -28,7 +28,7 @@ let codec = new Codec('image', {
 		}
 
 
-		files.forEach(file => {
+		files.forEach((file, i) => {
 			let texture;
 			if (file.uuid) {
 				texture = new Texture(file).load();
@@ -41,29 +41,31 @@ let codec = new Codec('image', {
 			} else {
 				texture = new Texture().fromFile(file);
 			}
+			texture.load_callback = () => {
+				delete texture.load_callback;
+				texture.select();
+				texture.activateLayers(false);
+
+				if (resolution instanceof Array && resolution[0] && resolution[1]) {
+					texture.uv_width = resolution[0];
+					texture.uv_height = resolution[1];
+				} else {
+					texture.uv_height = texture.display_height;
+					texture.uv_width = texture.width;
+				}
+
+				if (i == files.length-1) {
+					UVEditor.vue.updateTexture();
+					let pixel_size_limit = Math.min(32 / UVEditor.getPixelSize(), 1);
+					if (pixel_size_limit < 1) UVEditor.setZoom(pixel_size_limit)
+					if (isApp) updateRecentProjectThumbnail();
+				}
+			}
 			texture.add(false);
 		})
 
-		UVEditor.vue.updateTexture()
 		let last = Texture.all.last();
-		Project.name = last.name || 'image';
-		if (last) {
-			last.load_callback = () => {
-				delete last.load_callback;
-				last.select();
-				if (resolution instanceof Array) {
-					Project.texture_width = resolution[0];
-					Project.texture_height = resolution[1];
-				} else {
-					Project.texture_height = last.display_height;
-					Project.texture_width = last.width;
-				}
-				let pixel_size_limit = Math.min(32 / UVEditor.getPixelSize(), 1);
-				if (pixel_size_limit < 1) UVEditor.setZoom(pixel_size_limit)
-
-				if (isApp) updateRecentProjectThumbnail();
-			}
-		}
+		Project.name = last?.name || 'image';
 
 		if (path && isApp && !files[0].no_file ) {
 			loadDataFromModelMemory();
@@ -96,14 +98,22 @@ codec.compile = null;
 codec.parse = null;
 codec.export = null;
 
+Codecs.project.on('parsed', () => {
+	if (Texture.all[0] && !Texture.selected) {
+		Texture.all[0].select();
+	}
+})
+
 new ModelFormat('image', {
 	icon: 'image',
-	show_on_start_screen: false,
+	category: 'general',
+	show_on_start_screen: true,
 	show_in_new_list: true,
 	can_convert_to: false,
 	model_identifier: false,
 	single_texture: true,
 	animated_textures: true,
+	per_texture_uv_size: true,
 	edit_mode: false,
 	image_editor: true,
 	new() {

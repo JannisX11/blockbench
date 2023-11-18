@@ -97,6 +97,7 @@ class ValidatorCheck {
 		this.errors = [];
 		this.warnings = [];
 		this._timeout = null;
+		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		Validator.checks.push(this);
 		Validator.updateCashedTriggers();

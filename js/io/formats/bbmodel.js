@@ -167,15 +167,14 @@ var codec = new Codec('project', {
 
 		model.textures = [];
 		Texture.all.forEach(tex => {
-			var t = tex.getUndoCopy();
-			delete t.selected;
+			var t = tex.getSaveCopy();
 			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
 				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
-				t.source = 'data:image/png;base64,'+tex.getBase64()
-				t.mode = 'bitmap'
+				t.source = tex.getDataURL()
+				t.internal = true;
 			}
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
@@ -324,12 +323,12 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(element) {
+			model.elements.forEach(function(template) {
 
-				var copy = OutlinerElement.fromSave(element, true)
-				for (var face in copy.faces) {
-					if (!Format.single_texture && element.faces) {
-						var texture = element.faces[face].texture !== null && Texture.all[element.faces[face].texture]
+				let copy = OutlinerElement.fromSave(template, true)
+				for (let face in copy.faces) {
+					if (!Format.single_texture && template.faces) {
+						let texture = template.faces[face].texture !== null && Texture.all[template.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
@@ -338,7 +337,6 @@ var codec = new Codec('project', {
 					}
 				}
 				copy.init()
-				
 			})
 		}
 		if (model.outliner) {
@@ -409,6 +407,7 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Canvas.updateAllFaces()
 		ReferenceImage.updateAll();
 		Validator.validate()
 		this.dispatchEvent('parsed', {model})
@@ -542,10 +541,11 @@ var codec = new Codec('project', {
 							copy.faces[face].texture = default_texture.uuid
 						}
 						if (!copy.box_uv) {
-							copy.faces[face].uv[0] *= Project.texture_width / width;
-							copy.faces[face].uv[2] *= Project.texture_width / width;
-							copy.faces[face].uv[1] *= Project.texture_height / height;
-							copy.faces[face].uv[3] *= Project.texture_height / height;
+							let tex = copy.faces[face].getTexture();
+							copy.faces[face].uv[0] *= (Project.getUVWidth(tex)) / width;
+							copy.faces[face].uv[2] *= (Project.getUVWidth(tex)) / width;
+							copy.faces[face].uv[1] *= (Project.getUVHeight(tex)) / height;
+							copy.faces[face].uv[3] *= (Project.getUVHeight(tex)) / height;
 						}
 					}
 				} else if (copy instanceof Mesh) {
@@ -559,8 +559,9 @@ var codec = new Codec('project', {
 							copy.faces[fkey].texture = default_texture.uuid
 						}
 						for (let vkey in copy.faces[fkey].uv) {
-							copy.faces[fkey].uv[vkey][0] *= Project.texture_width / width;
-							copy.faces[fkey].uv[vkey][1] *= Project.texture_height / height;
+							let tex = copy.faces[fkey].getTexture();
+							copy.faces[fkey].uv[vkey][0] *= Project.getUVWidth(tex) / width;
+							copy.faces[fkey].uv[vkey][1] *= Project.getUVHeight(tex) / height;
 						}
 					}
 				}
@@ -639,6 +640,7 @@ var codec = new Codec('project', {
 		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
+		Canvas.updateAllFaces()
 		ReferenceImage.updateAll();
 		this.dispatchEvent('parsed', {model})
 	}

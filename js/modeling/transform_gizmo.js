@@ -1002,7 +1002,7 @@
 				Undo.cancelEdit();
 			}
 			function displayDistance(number) {
-				Blockbench.setStatusBarText(trimFloatNumber(number));
+				Blockbench.setCursorTooltip(trimFloatNumber(number));
 			}
 			function extendTransformLineOnAxis(long, axis) {
 				let axisNumber = getAxisNumber(axis);
@@ -1161,11 +1161,12 @@
 					var animator = Animation.selected.getBoneAnimator();
 					if (animator) {
 
-						var {before, result} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
+						var {before, result, new_keyframe} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
 
 						Undo.initEdit({keyframes: before ? [before] : []})
 						result.select();
 						scope.keyframes.push(result);
+						if (new_keyframe) scope.keyframes.push(new_keyframe)
 					}
 
 				} else if (Modes.id === 'display') {
@@ -1198,7 +1199,7 @@
 
 				if (Toolbox.selected.transformerMode !== 'rotate') {
 					point.sub( offset );
-					if (!display_mode) {
+					if (!Modes.display) {
 						point.removeEuler(worldRotation)
 					}
 
@@ -1592,7 +1593,7 @@
 
 					extendTransformLine(false);
 
-					Blockbench.setStatusBarText();
+					Blockbench.setCursorTooltip();
 
 					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
 						if (Toolbox.selected.id === 'resize_tool') {

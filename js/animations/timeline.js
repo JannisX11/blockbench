@@ -69,6 +69,7 @@ const Timeline = {
 	get second() {return Timeline.time},
 	get animation_length() {return Animation.selected ? Animation.selected.length : 0;},
 	playing: false,
+	graph_editor_limit: 10_000,
 	selector: {
 		start: [0, 0],
 		selecting: false,
@@ -240,7 +241,7 @@ const Timeline = {
 		let second_fractions = 100;
 		let m = Math.floor(time/60)
 		let s = Math.floor(time%60)
-		let f = Math.floor((time%1) * second_fractions)
+		let f = Math.round((time%1) * second_fractions)
 		if ((s+'').length === 1) {s = '0'+s}
 		if ((f+'').length === 1) {f = '0'+f}
 		Timeline.vue.timestamp = `${m}:${s}:${f}`;
@@ -298,6 +299,10 @@ const Timeline = {
 					Blockbench.showQuickMessage('message.no_animation_selected');
 				}
 
+			} else if (e.target.id == 'timeline_onion_skin_point') {
+
+				Timeline.dragging_onion_skin_point = true;
+
 			} else {
 
 				convertTouchEvent(e);
@@ -339,6 +344,7 @@ const Timeline = {
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
+					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 				}
 			} else if (Timeline.dragging_endbracket) {
 
@@ -348,7 +354,20 @@ const Timeline = {
 				
 				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
+				Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 
+			} else if (Timeline.dragging_onion_skin_point) {
+
+				convertTouchEvent(e);
+				let offset = e.clientX - $('#timeline_time').offset().left;
+				let time = Timeline.snapTime(offset / Timeline.vue._data.size)
+				
+				if (Timeline.vue.onion_skin_time != time) {
+					Timeline.vue.onion_skin_time = time;
+					Timeline.revealTime(time);
+					Animator.updateOnionSkin();
+					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
+				}
 			}
 		})
 		.on('mouseup touchend', e => {
@@ -358,10 +377,13 @@ const Timeline = {
 				Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
-
 				Undo.finishEdit('Change Animation Length')
 				delete Timeline.dragging_endbracket
+
+			} else if (Timeline.dragging_onion_skin_point) {
+				delete Timeline.dragging_onion_skin_point
 			}
+			Blockbench.setCursorTooltip();
 		})
 		
 		//Enter Time
@@ -631,6 +653,7 @@ const Timeline = {
 		'jump_to_timeline_end',
 		new MenuSeparator('copypaste'),
 		'paste',
+		'apply_animation_preset',
 		new MenuSeparator('view'),
 		{name: 'menu.view.zoom', id: 'zoom', condition: isApp, icon: 'search', children: [
 			'zoom_in',
@@ -713,6 +736,9 @@ Interface.definePanels(() => {
 				show_all_handles: !Settings.get('only_selected_bezier_handles'),
 				loop_graphs: [''],
 
+				onion_skin_mode: BarItems.animation_onion_skin.value,
+				onion_skin_time: 0,
+
 				channels: {
 					rotation: true,
 					position: true,
@@ -780,8 +806,8 @@ Interface.definePanels(() => {
 					let points = [];
 					let loop_points = [];
 
-					let min = this.show_zero_line ? -1 : 10000,
-						max = this.show_zero_line ? 1 : -10000;
+					let min = this.show_zero_line ? -1 : Timeline.graph_editor_limit,
+						max = this.show_zero_line ? 1 : -Timeline.graph_editor_limit;
 
 					for (let time = Math.clamp(this.scroll_left - 9, 0, Infinity); time < (clientWidth + this.scroll_left - this.head_width); time += step) {
 						Timeline.time = time / this.size;
@@ -1418,10 +1444,14 @@ Interface.definePanels(() => {
 								</div>
 								<div id="timeline_playhead"
 									v-bind:style="{left: (playhead * size) + 'px'}"
-								></div>
+								/>
+								<div id="timeline_onion_skin_point"
+									v-if="onion_skin_mode == 'select'"
+									v-bind:style="{left: (onion_skin_time * size) + 'px'}"
+								/>
 								<div id="timeline_endbracket"
 									v-bind:style="{left: (animation_length * size) + 'px'}"
-								></div>
+								/>
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"
@@ -1816,7 +1846,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			Timeline.vue._data.animators.purge();
-			unselectAll();
+			unselectAllElements();
 		}
 	})
 	new Action('select_effect_animator', {
@@ -1890,7 +1920,7 @@ BARS.defineActions(function() {
 					icon: 'star_outline',
 					click() {
 						Timeline.vue._data.animators.purge();
-						unselectAll();
+						unselectAllElements();
 						setup.animators.forEach(uuid => {
 							var ba = Animation.selected.animators[uuid]
 							if (ba) ba.addToTimeline();

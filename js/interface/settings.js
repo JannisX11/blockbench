@@ -32,6 +32,7 @@ class Setting {
 		this.name = data.name || tl(`settings.${id}`);
 		this.description = data.description || tl(`settings.${id}.desc`);
 		this.launch_setting = data.launch_setting || false;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		if (this.type == 'number') {
 			this.min = data.min;
@@ -151,8 +152,8 @@ class Setting {
 					id: key,
 					name: this.options[key],
 					icon: this.value == key
-						? 'radio_button_checked'
-						: 'radio_button_unchecked',
+						? 'far.fa-dot-circle'
+						: 'far.fa-circle',
 					click: () => {
 						this.set(key);
 						Settings.save();
@@ -457,6 +458,7 @@ const Settings = {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
 		new Setting('deactivate_size_limit',	{category: 'edit', value: false});
+		new Setting('modded_entity_integer_size',{category:'edit', value: true});
 		new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
 		new Setting('preview_paste_behavior',	{category: 'edit', value: 'always_ask', type: 'select', options: {
 			'always_ask': tl('settings.preview_paste_behavior.always_ask'),
@@ -465,6 +467,7 @@ const Settings = {
 			'mesh_selection': tl('menu.paste.mesh_selection'),
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
+		new Setting('auto_keyframe',		{category: 'edit', value: true});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -491,7 +494,6 @@ const Settings = {
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 
 		//Paint
-		new Setting('sync_color',					{category: 'paint', value: false});
 		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
 			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
 		}});
@@ -546,7 +548,8 @@ const Settings = {
 			spaces_4: tl('settings.json_indentation.spaces_4'),
 			spaces_2: tl('settings.json_indentation.spaces_2'),
 		}});
-		new Setting('minifiedout', 			{category: 'export', value: false});
+		new Setting('final_newline',		{category: 'export', value: false});
+		new Setting('minifiedout',			{category: 'export', value: false});
 		new Setting('embed_textures', 		{category: 'export', value: true});
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
@@ -579,7 +582,7 @@ const Settings = {
 			let list = [
 				{
 					name: 'generic.none',
-					icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+					icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 					click: () => {
 						SettingsProfile.unselect();
 					}
@@ -590,7 +593,7 @@ const Settings = {
 				if (profile.condition.type != 'selectable') return;
 				list.push({
 					name: profile.name,
-					icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 					color: markerColors[profile.color].standard,
 					click: () => {
 						profile.select();
@@ -870,7 +873,7 @@ onVueSetup(function() {
 					SettingsProfile.all.forEach(profile => {
 						items.push({
 							name: profile.name,
-							icon: 'settings_applications',
+							icon: 'manage_accounts',
 							color: markerColors[profile.color].standard,
 							click: () => {
 								this.profile = profile;
@@ -960,7 +963,7 @@ onVueSetup(function() {
 
 					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
 
-					<ul id="settingslist">
+					<ul class="settings_list" id="settingslist">
 
 						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
 							v-on="setting.click ? {click: setting.click} : {}"

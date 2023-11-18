@@ -6,6 +6,7 @@ const Plugins = {
 	download_stats: {},
 	all: [],			//Vue Object Data
 	registered: {},
+	currently_loading: '',
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	devReload() {
 		var reloads = 0;
@@ -49,9 +50,11 @@ class Plugin {
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
+		this.website = '';
 		this.source = 'store';
 		this.creation_date = 0;
 		this.await_loading = false;
+		this.details = null;
 		this.about_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
@@ -73,6 +76,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.string(this, data, 'max_version')
+		Merge.string(this, data, 'website')
 		Merge.boolean(this, data, 'await_loading');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
@@ -508,6 +512,64 @@ class Plugin {
 			this.about_fetched = true;
 		}
 	}
+	getPluginDetails() {
+		if (this.details) return this.details;
+		this.details = {
+			version: this.version,
+			last_modified: 'N/A',
+			creation_date: 'N/A',
+			last_modified_full: '',
+			creation_date_full: '',
+			min_version: this.min_version ? (this.min_version+'+') : '-',
+			max_version: this.max_version || '',
+			website: this.website || '',
+			author: this.author,
+			variant: this.variant == 'both' ? 'All' : this.variant,
+			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
+		};
+
+		let trackDate = (input_date, key) => {
+			let date = new Date(input_date);
+			var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+			let label;
+			if (diff <= 0) {
+				label = tl('dates.today');
+			} else if (diff == 1) {
+				label = tl('dates.yesterday');
+			} else if (diff <= 7) {
+				label = tl('dates.this_week');
+			} else if (diff <= 60) {
+				label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
+			} else {
+				label = date.toLocaleDateString();
+			}
+			this.details[key] = label;
+			this.details[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+		}
+		if (this.source == 'store') {
+			this.details.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			this.details.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+
+			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
+			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
+			fetch(commit_url).catch((err) => {
+				console.error('Cannot access commit info for ' + this.id, err);
+			}).then(async response => {
+				let commits = await response.json().catch(err => console.error(err));
+				if (!commits || !commits.length) return;
+				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
+
+				if (!this.creation_date) {
+					trackDate(Date.parse(commits.last().commit.committer.date), 'creation_date');
+				}
+			});
+
+		}
+		if (this.creation_date) {
+			trackDate(this.creation_date, 'creation_date');
+		}
+		return this.details;
+	}
 }
 Plugin.prototype.menu = new Menu([
 	new MenuSeparator('installation'),
@@ -606,7 +668,9 @@ Plugin.register = function(id, data) {
 	plugin.extend(data)
 	if (plugin.isInstallable() == true && plugin.disabled == false) {
 		if (plugin.onload instanceof Function) {
-			plugin.onload()
+			Plugins.currently_loading = id;
+			plugin.onload();
+			Plugins.currently_loading = '';
 		}
 	}
 	return plugin;
@@ -758,11 +822,13 @@ BARS.defineActions(function() {
 		component: {
 			data: {
 				tab: 'installed',
+				page_tab: 'about',
 				search_term: '',
 				items: Plugins.all,
 				selected_plugin: null,
 				page: 0,
 				per_page: 25,
+				settings: settings,
 				isMobile: Blockbench.isMobile,
 			},
 			computed: {
@@ -823,6 +889,16 @@ BARS.defineActions(function() {
 						pages.push(i);
 					}
 					return pages;
+				},
+				selected_plugin_settings() {
+					if (!this.selected_plugin) return {};
+					let plugin_settings = {};
+					for (let id in this.settings) {
+						if (settings[id].plugin == this.selected_plugin.id) {
+							plugin_settings[id] = settings[id];
+						}
+					}
+					return plugin_settings;
 				}
 			},
 			methods: {
@@ -835,8 +911,15 @@ BARS.defineActions(function() {
 					this.$refs.plugin_list.scrollTop = 0;
 				},
 				selectPlugin(plugin) {
+					if (!plugin) {
+						this.selected_plugin = Plugin.selected = null;
+						return;
+					}
 					plugin.fetchAbout();
-					this.selected_plugin = plugin;
+					this.selected_plugin = Plugin.selected = plugin;
+					if (!this.selected_plugin.installed && this.page_tab == 'settings') {
+						this.page_tab == 'about';
+					}
 				},
 				showDependency(dependency) {
 					let plugin = Plugins.all.find(p => p.id == dependency);
@@ -862,8 +945,205 @@ BARS.defineActions(function() {
 					}
 				},
 				formatAbout(about) {
-					return pureMarked('## About\n\n' + about);
+					return pureMarked(about);
 				},
+				reduceLink(url) {
+					return url.replace('https://', '').substring(0, 50)+'...';
+				},
+
+				// Settings
+				saveSettings() {
+					Settings.saveLocalStorages();
+				},
+				settingContextMenu(setting, event) {
+					new Menu([
+						{
+							name: 'dialog.settings.reset_to_default',
+							icon: 'replay',
+							click: () => {
+								setting.ui_value = setting.default_value;
+								this.saveSettings();
+							}
+						}
+					]).open(event);
+				},
+				getProfileValuesForSetting(key) {
+					return SettingsProfile.all.filter(profile => {
+						return profile.settings[key] !== undefined;
+					});
+				},
+
+				// Features
+				getPluginFeatures(plugin) {
+					let types = [];
+
+					let formats = [];
+					for (let id in Formats) {
+						if (Formats[id].plugin == plugin.id) formats.push(Formats[id]);
+					}
+					if (formats.length) {
+						types.push({
+							id: 'formats',
+							name: tl('data.format'),
+							features: formats.map(format => {
+								return {
+									id: format.id,
+									name: format.name,
+									icon: format.icon,
+									description: format.description,
+									click: format.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(format);
+									})
+								}
+							})
+						})
+					}
+
+					let loaders = [];
+					for (let id in ModelLoader.loaders) {
+						if (ModelLoader.loaders[id].plugin == plugin.id) loaders.push(ModelLoader.loaders[id]);
+					}
+					if (loaders.length) {
+						types.push({
+							id: 'loaders',
+							name: tl('format_category.loaders'),
+							features: loaders.map(loader => {
+								return {
+									id: loader.id,
+									name: loader.name,
+									icon: loader.icon,
+									description: loader.description,
+									click: loader.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(loader);
+									})
+								}
+							})
+						})
+					}
+
+					let codecs = [];
+					for (let id in Codecs) {
+						if (Codecs[id].plugin == plugin.id) codecs.push(Codecs[id]);
+					}
+					if (codecs.length) {
+						types.push({
+							id: 'codecs',
+							name: 'Codec',
+							features: codecs.map(codec => {
+								return {
+									id: codec.id,
+									name: codec.name,
+									icon: codec.export_action ? codec.export_action.icon : 'save',
+									description: codec.export_action ? codec.export_action.description : ''
+								}
+							})
+						})
+					}
+
+					let bar_items = Keybinds.actions.filter(action => action.plugin == plugin.id);
+					let tools = bar_items.filter(action => action instanceof Tool);
+					let other_actions = bar_items.filter(action => action instanceof Tool == false);
+
+					if (tools.length) {
+						types.push({
+							id: 'tools',
+							name: tl('category.tools'),
+							features: tools.map(tool => {
+								return {
+									id: tool.id,
+									name: tool.name,
+									icon: tool.icon,
+									description: tool.description,
+									extra_info: tool.keybind.label,
+									click: Condition(tool.condition) && (() => {
+										ActionControl.select(tool.name);
+									})
+								}
+							})
+						})
+					}
+					if (other_actions.length) {
+						types.push({
+							id: 'actions',
+							name: 'Action',
+							features: other_actions.map(action => {
+								return {
+									id: action.id,
+									name: action.name,
+									icon: action.icon,
+									description: action.description,
+									extra_info: action.keybind.label,
+									click: Condition(action.condition) && (() => {
+										ActionControl.select(action.name);
+									})
+								}
+							})
+						})
+					}
+
+					let panels = [];
+					for (let id in Panels) {
+						if (Panels[id].plugin == plugin.id) panels.push(Panels[id]);
+					}
+					if (panels.length) {
+						types.push({
+							id: 'panels',
+							name: tl('data.panel'),
+							features: panels.map(panel => {
+								return {
+									id: panel.id,
+									name: panel.name,
+									icon: panel.icon
+								}
+							})
+						})
+					}
+
+					let setting_list = [];
+					for (let id in settings) {
+						if (settings[id].plugin == plugin.id) setting_list.push(settings[id]);
+					}
+					if (setting_list.length) {
+						types.push({
+							id: 'settings',
+							name: tl('data.setting'),
+							features: setting_list.map(setting => {
+								return {
+									id: setting.id,
+									name: setting.name,
+									icon: setting.icon,
+									click: () => {
+										this.page_tab = 'settings';
+									}
+								}
+							})
+						})
+					}
+
+					let validator_checks = Validator.checks.filter(check => check.plugin == plugin.id);
+					if (validator_checks.length) {
+						types.push({
+							id: 'validator_checks',
+							name: 'Validator Check',
+							features: validator_checks.map(validator_check => {
+								return {
+									id: validator_check.id,
+									name: validator_check.name,
+									icon: 'task_alt'
+								}
+							})
+						})
+					}
+					//TODO
+					//Modes
+					//Element Types
+					return types;
+				},
+
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				tl
@@ -873,7 +1153,7 @@ BARS.defineActions(function() {
 				<content style="display: flex;" class="dialog_content">
 					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
 						<div class="bar flex" id="plugins_list_main_bar">
-							<div class="tool" v-if="!isMobile" @click="selected_plugin = null"><i class="material-icons icon">home</i></div>
+							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
 						<div class="tab_bar">
@@ -906,7 +1186,7 @@ BARS.defineActions(function() {
 					</div>
 					
 					<div id="plugin_browser_page" v-if="selected_plugin">
-						<div v-if="isMobile" @click="selected_plugin = null;" class="plugin_browser_back_button">
+						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}" @contextmenu="selected_plugin.showContextMenu($event)">
@@ -964,8 +1244,134 @@ BARS.defineActions(function() {
 							</div>
 						</div>
 
-						<dynamic-icon v-if="!selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
-						<div class="about markdown" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)"></div>
+						<ul id="plugin_browser_page_tab_bar">
+							<li :class="{selected: page_tab == 'about'}" @click="page_tab = 'about'">About</li>
+							<li :class="{selected: page_tab == 'details'}" @click="page_tab = 'details'">Details</li>
+							<li :class="{selected: page_tab == 'settings'}" @click="page_tab = 'settings'" v-if="selected_plugin.installed">Settings</li>
+							<li :class="{selected: page_tab == 'features'}" @click="page_tab = 'features'" v-if="selected_plugin.installed">Features</li>
+						</ul>
+
+						<dynamic-icon v-if="page_tab == 'about' && !selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
+
+						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
+						</div>
+
+						<table v-if="page_tab == 'details'" id="plugin_browser_details">
+							<tbody>
+								<tr>
+									<td>Author</td>
+									<td>{{ selected_plugin.getPluginDetails().author }}</td>
+								</tr>
+								<tr>
+									<td>Identifier</td>
+									<td>{{ selected_plugin.id }}</td>
+								</tr>
+								<tr>
+									<td>Version</td>
+									<td>{{ selected_plugin.details.version }}</td>
+								</tr>
+								<tr>
+									<td>Last updated</td>
+									<td :title="selected_plugin.details.last_modified_full">{{ selected_plugin.details.last_modified }}</td>
+								</tr>
+								<tr>
+									<td>Published</td>
+									<td :title="selected_plugin.details.creation_date_full">{{ selected_plugin.details.creation_date }}</td>
+								</tr>
+								<tr>
+									<td>Required Blockbench version</td>
+									<td>{{ selected_plugin.details.min_version }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.max_version">
+									<td>Maximum allowed Blockbench version</td>
+									<td>{{ selected_plugin.details.max_version }}</td>
+								</tr>
+								<tr>
+									<td>Supported variants</td>
+									<td>{{ capitalizeFirstLetter(selected_plugin.details.variant || '') }}</td>
+								</tr>
+								<tr>
+									<td>Installations per week</td>
+									<td>{{ selected_plugin.details.weekly_installations }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.website">
+									<td>Website</td>
+									<td>{{ selected_plugin.details.website }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.source">
+									<td>Plugin source</td>
+									<td><a :href="selected_plugin.details.source" :title="selected_plugin.details.source">{{ reduceLink(selected_plugin.details.source) }}</a></td>
+								</tr>
+								<tr v-if="selected_plugin.details.issue_url">
+									<td>Report issues</td>
+									<td><a :href="selected_plugin.details.issue_url" :title="selected_plugin.details.issue_url">{{ reduceLink(selected_plugin.details.issue_url) }}</a></td>
+								</tr>
+							</tbody>
+						</table>
+						
+						<div v-if="page_tab == 'settings'">
+							<ul class="settings_list">
+								<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
+									v-on="setting.click ? {click: setting.click} : {}"
+									@contextmenu="settingContextMenu(setting, $event)"
+								>
+									<template v-if="setting.type === 'number'">
+										<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
+									</template>
+									<template v-else-if="setting.type === 'click'">
+										<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+									</template>
+									<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+										<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+									</template>
+
+									<div class="setting_label">
+										<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+										<div class="setting_profile_value_indicator"
+											v-for="profile_here in getProfileValuesForSetting(key)"
+											:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+											:class="{active: profile_here.isActive()}"
+											:title="tl('Has override in profile ' + profile_here.name)"
+											@click.stop="profile = (profile == profile_here) ? null : profile_here"
+										/>
+										<div class="setting_description">{{ setting.description }}</div>
+									</div>
+
+									<template v-if="setting.type === 'text'">
+										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" v-on:input="saveSettings()">
+									</template>
+
+									<template v-if="setting.type === 'password'">
+										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" v-on:input="saveSettings()">
+										<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+											<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+											<i class="fas fa-eye" v-else></i>
+										</div>
+									</template>
+
+									<template v-else-if="setting.type === 'select'">
+										<div class="bar_select">
+											<select-input v-model="setting.ui_value" :options="setting.options" />
+										</div>
+									</template>
+								</li>
+							</ul>
+						</div>
+						
+						<ul v-if="page_tab == 'features'" class="features_list">
+							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
+								<h4>{{ type.name }}</h4>
+								<ul>
+									<li v-for="feature in type.features" :key="feature.id" class="plugin_feature_entry" :class="{clickable: feature.click}" @click="feature.click && feature.click($event)">
+										<dynamic-icon v-if="feature.icon" :icon="feature.icon" />
+										<label>{{ feature.name }}</label>
+										<div class="description">{{ feature.description }}</div>
+										<div v-if="feature.extra_info" class="extra_info">{{ feature.extra_info }}</div>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						
 					</div>
 					
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">

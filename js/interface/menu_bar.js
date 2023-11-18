@@ -181,6 +181,7 @@ const MenuBar = {
 				'export_obj',
 				'export_fbx',
 				'export_collada',
+				'export_modded_animations',
 				'upload_sketchfab',
 				'share_model',
 			]},
@@ -194,13 +195,13 @@ const MenuBar = {
 				{
 					id: 'profiles',
 					name: 'data.settings_profile',
-					icon: 'settings_applications',
+					icon: 'manage_accounts',
 					condition: () => SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') != -1,
 					children: () => {
 						let list = [
 							{
 								name: 'generic.none',
-								icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+								icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 								click: () => {
 									SettingsProfile.unselect();
 								}
@@ -211,7 +212,7 @@ const MenuBar = {
 							if (profile.condition.type != 'selectable') return;
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 								color: markerColors[profile.color].standard,
 								click: () => {
 									profile.select();
@@ -253,6 +254,7 @@ const MenuBar = {
 				'switch_face_crease',
 				'merge_vertices',
 				'dissolve_edges',
+				'apply_mesh_rotation',
 				'split_mesh',
 				'merge_meshes',
 			]},
@@ -321,18 +323,21 @@ const MenuBar = {
 			'flip_texture_y',
 			'rotate_texture_cw',
 			'rotate_texture_ccw',
-			'resize_texture'
+			'resize_texture',
+			'crop_texture_to_selection'
 		], {
 			condition: {modes: ['paint']}
 		})
 
 		new BarMenu('animation', [
 			new MenuSeparator('edit_options'),
+			'animation_onion_skin',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
+			'bake_ik_animation',
 			'bake_animation_into_model',
 			new MenuSeparator('file'),
 			'load_animation_file',
@@ -441,6 +446,7 @@ const MenuBar = {
 			new MenuSeparator('media'),
 			'screenshot_model',
 			'screenshot_app',
+			'advanced_screenshot',
 			'record_model_gif',
 			'timelapse',
 		])

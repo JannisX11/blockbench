@@ -11,6 +11,7 @@ class Panel extends EventSystem {
 		this.condition = data.condition;
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;
 
@@ -557,9 +558,9 @@ class Panel extends EventSystem {
 			if (Blockbench.isMobile) {
 				this.width = this.node.clientWidth;
 			} else if (this.slot == 'left_bar') {
-				this.width = Interface.data.left_bar_width
+				this.width = Interface.left_bar_width;
 			} else if (this.slot == 'right_bar') {
-				this.width = Interface.data.right_bar_width
+				this.width = Interface.right_bar_width;
 			}
 			if (this.slot == 'top' || this.slot == 'bottom') {
 
@@ -612,7 +613,7 @@ function updateInterfacePanels() {
 
 	Interface.work_screen.style.setProperty(
 		'grid-template-columns',
-		Interface.data.left_bar_width+'px auto '+ Interface.data.right_bar_width +'px'
+		Interface.left_bar_width+'px auto '+ Interface.right_bar_width +'px'
 	)
 	for (var key in Interface.Panels) {
 		var panel = Panels[key]
