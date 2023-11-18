@@ -3878,10 +3878,10 @@ Interface.definePanels(function() {
 							<div id="texture_selection_rect"
 								v-if="texture_selection_rect.active"
 								:style="{
-									left: toPixels(texture_selection_rect.pos_x),
-									top: toPixels(texture_selection_rect.pos_y),
-									width: toPixels(texture_selection_rect.width),
-									height: toPixels(texture_selection_rect.height),
+									left: toTexturePixels(texture_selection_rect.pos_x),
+									top: toTexturePixels(texture_selection_rect.pos_y),
+									width: toTexturePixels(texture_selection_rect.width),
+									height: toTexturePixels(texture_selection_rect.height),
 								}">
 								<div class="ellipse" v-if="texture_selection_rect.ellipse" />
 							</div>
