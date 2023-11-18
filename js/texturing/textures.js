@@ -1123,8 +1123,10 @@ class Texture {
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
 				
 				if (Format.per_texture_uv_size) {
+					let changed = this.uv_width != results.uv_size[0] || this.uv_height != results.uv_size[1];
 					this.uv_width = results.uv_size[0];
 					this.uv_height = results.uv_size[1];
+					if (changed) Canvas.updateAllUVs();
 				}
 
 				if (this.render_mode == 'layered' && old_render_mode !== this.render_mode) {

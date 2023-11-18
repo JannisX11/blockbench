@@ -302,9 +302,14 @@ class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
-		this.vertices = {};
-		this.faces = {};
-		this.seams = {};
+		this.static = {
+			properties: {
+				vertices: {},
+				faces: {},
+				seams: {},
+			}
+		}
+		Object.freeze(this.static);
 
 		if (!data.vertices) {
 			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
@@ -330,6 +335,24 @@ class Mesh extends OutlinerElement {
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
+	}
+	get vertices() {
+		return this.static.properties.vertices;
+	}
+	get faces() {
+		return this.static.properties.faces;
+	}
+	get seams() {
+		return this.static.properties.seams;
+	}
+	set vertices(v) {
+		this.static.properties.vertices = v;
+	}
+	set faces(v) {
+		this.static.properties.faces = v;
+	}
+	set seams(v) {
+		this.static.properties.seams = v;
 	}
 	get position() {
 		return this.origin;
@@ -439,19 +462,33 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	getUndoCopy(aspects = {}) {
-		var copy = new Mesh(this)
-		if (aspects.uv_only) {
-			copy = {
-				faces: copy.faces,
+		let el = {};
+
+		if (!aspects.uv_only) {
+			for (var key in Mesh.properties) {
+				Mesh.properties[key].copy(this, el)
+			}
+			if (Object.keys(this.seams).length) {
+				el.seams = {};
+				for (let key in this.seams) {
+					el.seams[key] = this.seams[key];
+				}
+			}
+
+			el.vertices = {};
+			for (let key in this.vertices) {
+				el.vertices[key] = this.vertices[key].slice();
 			}
 		}
-		copy.uuid = this.uuid;
-		copy.type = this.type;
-		delete copy.parent;
-		for (let fkey in copy.faces) {
-			delete copy.faces[fkey].mesh;
+
+		el.faces = {};
+		for (let key in this.faces) {
+			el.faces[key] = this.faces[key].getUndoCopy();
 		}
-		return copy;
+
+		el.type = 'mesh';
+		el.uuid = this.uuid
+		return el;
 	}
 	getSaveCopy(project) {
 		var el = {}
@@ -887,14 +924,15 @@ new NodePreviewController(Mesh, {
 		let indices = [];
 		let outline_positions = [];
 		mesh.outline.vertex_order.empty();
+		let {vertices, faces} = element;
 
-		for (let key in element.vertices) {
-			let vector = element.vertices[key];
+		for (let key in vertices) {
+			let vector = vertices[key];
 			point_position_array.push(...vector);
 		}
 
-		for (let key in element.faces) {
-			let face = element.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -905,7 +943,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					indices.push(position_array.length / 3);
-					position_array.push(...element.vertices[key])
+					position_array.push(...vertices[key])
 				})
 				let normal = face.getNormal();
 				normal_array.push(...normal, ...normal, ...normal);
@@ -925,10 +963,10 @@ new NodePreviewController(Mesh, {
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
 				face.vertices.forEach((vkey, i) => {
-					if (!element.vertices[vkey]) {
+					if (!vertices[vkey]) {
 						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
 					}
-					position_array.push(...element.vertices[vkey])
+					position_array.push(...vertices[vkey])
 					face_indices[vkey] = index_offset + i;
 				})
 
@@ -955,7 +993,7 @@ new NodePreviewController(Mesh, {
 		}
 
 		mesh.outline.vertex_order.forEach(key => {
-			outline_positions.push(...element.vertices[key]);
+			outline_positions.push(...vertices[key]);
 		})
 
 		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
@@ -1004,10 +1042,11 @@ new NodePreviewController(Mesh, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
+			let faces = element.faces;
 			var materials = []
-			for (let key in element.faces) {
-				if (element.faces[key].vertices.length < 3) continue;
-				var tex = element.faces[key].getTexture()
+			for (let key in faces) {
+				if (faces[key].vertices.length < 3) continue;
+				var tex = faces[key].getTexture()
 				if (tex && tex.uuid) {
 					materials.push(Project.materials[tex.uuid])
 				} else {
@@ -1026,9 +1065,9 @@ new NodePreviewController(Mesh, {
 				let switch_index = 0;
 				let reduced_materials = [];
 
-				for (let key in element.faces) {
-					if (element.faces[key].vertices.length < 3) continue;
-					let face = element.faces[key];
+				for (let key in faces) {
+					if (faces[key].vertices.length < 3) continue;
+					let face = faces[key];
 					let material = materials[i];
 
 					if (current_mat != material) {
@@ -1057,12 +1096,12 @@ new NodePreviewController(Mesh, {
 		this.dispatchEvent('update_faces', {element});
 	},
 	updateUV(element) {
-		var {mesh} = element;
+		let {mesh, faces} = element;
 		if (mesh === undefined || !mesh.geometry) return;
 		let uv_array = [];
 
-		for (let key in element.faces) {
-			let face = element.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 			if (face.vertices.length <= 2) continue;
 			
 			let stretch = 1;
@@ -1122,9 +1161,10 @@ new NodePreviewController(Mesh, {
 		}
 
 		let face_outlines = {};
+		let faces = element.faces;
 		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
 			selected_faces.forEach(fkey => {
-				let face = element.faces[fkey];
+				let face = faces[fkey];
 				face.vertices.forEach(vkey => {
 					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
 					face.vertices.forEach(vkey2 => {
@@ -1183,8 +1223,9 @@ new NodePreviewController(Mesh, {
 		
 		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
-			for (let fkey in element.faces) {
-				let face = element.faces[fkey];
+			let faces = element.faces;
+			for (let fkey in faces) {
+				let face = faces[fkey];
 				if (face.vertices.length < 3) continue;
 				if (selected_faces.indexOf(fkey) != -1 && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
