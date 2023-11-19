@@ -38,7 +38,7 @@ class Texture {
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
-		this.ctx = this.canvas.getContext('2d');
+		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
 		let img = this.img = new Image()
 		img.src = 'assets/missing.png'
 
@@ -1769,8 +1769,7 @@ class Texture {
 					let target = Texture.all[Texture.all.indexOf(texture)-1];
 					Undo.initEdit({textures: [target], bitmap: true});
 
-					target.edit(canvas => {
-						let ctx = canvas.getContext('2d');
+					target.edit((canvas, {ctx}) => {
 						ctx.drawImage(texture.img, 0, 0);
 					}, {no_undo: true})
 

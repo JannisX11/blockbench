@@ -136,7 +136,7 @@ Interface.definePanels(() => {
 				second_color_selected: false,
 				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
 				set color_code(color) {
-					if (this.second_color_selected) {
+					if (this.second_color_selected == false) {
 						this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
 					} else {
 						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
