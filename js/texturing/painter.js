@@ -2005,7 +2005,7 @@ SharedActions.add('paste', {
 			if (!texture.layers_enabled) {
 				texture.activateLayers(false);
 			}
-			let offset = Clipbench.image ? [Clipbench.image.x, Clipbench.image.y] : undefined;
+			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
 			let layer = new TextureLayer({name: 'pasted', offset}, texture);
 			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
 			layer.setSize(frame.width, frame.height);
@@ -2017,6 +2017,7 @@ SharedActions.add('paste', {
 			texture.updateChangesAfterEdit();
 
 			Undo.finishEdit('Paste into texture');
+			if (Toolbox.selected.id != 'selection_tool') BarItems.move_layer_tool.select();
 			updateInterfacePanels();
 			BARS.updateConditions();
 		}

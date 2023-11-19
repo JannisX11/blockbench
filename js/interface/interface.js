@@ -486,7 +486,7 @@ function setupInterface() {
 
 
 	// Click binds
-	Interface.preview.addEventListener('click', e => setActivePanel('preview'));
+	Interface.preview.addEventListener('click', e => setActivePanel(Format.image_editor ? 'uv' : 'preview'));
 	
 	Interface.work_screen.addEventListener('dblclick', event => {
 		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));

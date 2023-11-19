@@ -1897,7 +1897,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Toggle('paint_mode_uv_overlay', {
-		icon: 'splitscreen',
+		icon: 'stack',
 		category: 'animation',
 		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
