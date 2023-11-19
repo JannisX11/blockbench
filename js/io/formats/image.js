@@ -31,7 +31,7 @@ let codec = new Codec('image', {
 		files.forEach((file, i) => {
 			let texture;
 			if (file.uuid) {
-				texture = new Texture(file).load();
+				texture = new Texture(file, file.uuid).load();
 			} else if (typeof file == 'string') {
 				if (file.startsWith('data:image/png')) {
 					texture = new Texture({name: 'image'}).fromDataURL(file);

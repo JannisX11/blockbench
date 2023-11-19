@@ -393,6 +393,7 @@ class Texture {
 		Merge.boolean(this, data, 'visible')
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
+		Merge.boolean(this, data, 'internal')
 		Merge.boolean(this, data, 'keep_size')
 
 		if (data.layers instanceof Array) {
@@ -1644,13 +1645,15 @@ class Texture {
 	}
 	updateChangesAfterEdit() {
 		if (this.layers_enabled) {
-			return this.updateLayerChanges(true);
+			this.updateLayerChanges(true);
+		} else {
+			if (!Format.image_editor) {
+				this.getMaterial().map.needsUpdate = true;
+			}
+			this.source = this.canvas.toDataURL();
+			this.updateImageFromCanvas();
 		}
-		if (!Format.image_editor) {
-			this.getMaterial().map.needsUpdate = true;
-		}
-		this.source = this.canvas.toDataURL();
-		this.updateImageFromCanvas();
+		this.syncToOtherProject();
 	}
 	updateImageFromCanvas() {
 		this.img.update_from_canvas = true;
@@ -1659,6 +1662,23 @@ class Texture {
 	getActiveCanvas() {
 		let layer = this.layers_enabled && this.getActiveLayer();
 		return layer ? layer : this;
+	}
+	syncToOtherProject() {
+		if (!this.sync_to_project) return this;
+		let project = ModelProject.all.find(p => p.uuid == this.sync_to_project);
+		if (!project) return this;
+		let other_texture = project.textures.find(tex => tex.uuid == this.uuid && tex != this);
+		if (!other_texture) return this;
+
+		let copy = this.getUndoCopy(true);
+		delete copy.sync_to_project;
+		other_texture.extend(copy);
+		if (other_texture.layers_enabled) {
+			other_texture.updateLayerChanges(true);
+		} else {
+			other_texture.updateSource(other_texture.source);
+		}
+		return this;
 	}
 	edit(cb, options) {
 		var scope = this;
@@ -1774,10 +1794,14 @@ class Texture {
 						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();
 						tex2.select();
-						return;
+					} else {
+						let original_uuid = Project.uuid;
+						let copy = texture.getUndoCopy();
+						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
+						// Sync
+						texture.sync_to_project = Project.uuid;
+						if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
 					}
-					let copy = texture.getUndoCopy();
-					Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
 				}
 			},
 			{
@@ -1900,6 +1924,7 @@ class Texture {
 	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
 	new Property(Texture, 'boolean', 'layers_enabled')
+	new Property(Texture, 'string', 'sync_to_project')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
 	

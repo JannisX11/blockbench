@@ -341,6 +341,7 @@ class UndoSystem {
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
 						}
+						tex.syncToOtherProject();
 					}
 				} else {
 					var tex = new Texture(save.textures[uuid], uuid)
@@ -384,6 +385,7 @@ class UndoSystem {
 				tex.updateLayerChanges(true);
 				tex.updateSource();
 				tex.keep_size = true;
+				tex.syncToOtherProject();
 			})
 			Canvas.updateAllFaces();
 			UVEditor.vue.updateTexture();
