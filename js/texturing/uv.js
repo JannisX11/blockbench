@@ -3332,6 +3332,11 @@ Interface.definePanels(function() {
 						
 							calcrect = getRectangle(start_x_here, start_y_here, x, y);
 							if (!calcrect.x && !calcrect.y) return;
+							if (e1.ctrlKey || Pressing.overrides.ctrl) {
+								calcrect.y = calcrect.x = Math.round((calcrect.y + calcrect.x) / 2);
+								calcrect.bx = calcrect.ax + calcrect.x;
+								calcrect.by = calcrect.ay + calcrect.y;
+							}
 
 							selection_rect.active = true;
 							selection_rect.ellipse = selection_mode == 'ellipse';
@@ -3354,6 +3359,12 @@ Interface.definePanels(function() {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.activateLayers(false);
 									layer = texture.selected_layer;
+								/*} else if (event.altKey || Pressing.overrides.alt) {
+									Undo.initEdit({textures: [texture], bitmap: true});
+									let old_layer = texture.selected_layer;
+									SharedActions.runSpecific('duplicate', 'layer', event, layer, true);
+									layer = texture.selected_layer;
+									old_layer.resolveLimbo(true);*/
 								} else {
 									Undo.initEdit({layers: [layer], bitmap: true});
 								}
@@ -3877,13 +3888,13 @@ Interface.definePanels(function() {
 
 							<div id="texture_selection_rect"
 								v-if="texture_selection_rect.active"
+								:class="{ellipse: texture_selection_rect.ellipse}"
 								:style="{
 									left: toTexturePixels(texture_selection_rect.pos_x),
 									top: toTexturePixels(texture_selection_rect.pos_y),
 									width: toTexturePixels(texture_selection_rect.width),
 									height: toTexturePixels(texture_selection_rect.height),
 								}">
-								<div class="ellipse" v-if="texture_selection_rect.ellipse" />
 							</div>
 
 							<svg id="uv_selection_outline" v-if="mode == 'paint'">

@@ -2408,15 +2408,10 @@ span.controller_state_section_info {
 		pointer-events: none;
 		border: 1px dashed white;
 		margin: -1px;
-		mix-blend-mode: difference;
 		box-sizing: content-box;
+		background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
 	}
-	#texture_selection_rect > .ellipse {
-		width: calc(100% - 2px);
-		height: calc(100% - 2px);
-		border: 1px dashed white;
-		mix-blend-mode: difference;
-		box-sizing: content-box;
+	#texture_selection_rect.ellipse {
 		border-radius: 50%;
 	}
 	#texture_pasting_overlay {

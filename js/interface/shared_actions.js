@@ -36,11 +36,11 @@ const SharedActions = {
 		}
 		return false;
 	},
-	runSpecific(action_id, subject, event, context) {
+	runSpecific(action_id, subject, event, context, force) {
 		let list = this.actions[action_id];
 		if (!list) return;
 		for (let handler of list) {
-			if (handler.subject == subject && Condition(handler.condition)) {
+			if (handler.subject == subject && (force || Condition(handler.condition))) {
 				handler.run(event, context);
 				return true;
 			}

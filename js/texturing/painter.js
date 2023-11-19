@@ -2690,6 +2690,7 @@ BARS.defineActions(function() {
 	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
 		let tool = BarItems.selection_tool_operation_mode;
 		if (!Condition(tool.condition)) return;
+		if (UVEditor.vue.selection_rect.active) return;
 		if (now.shift) {
 			tool.set('add');
 		} else if (now.ctrl) {
