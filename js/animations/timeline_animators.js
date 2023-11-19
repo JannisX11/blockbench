@@ -106,7 +106,7 @@ class GeneralAnimator {
 		}
 		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
 		let new_keyframe;
-		if (settings.auto_keyframe.value && !before && !has_before) {
+		if (settings.auto_keyframe.value && Timeline.snapTime(Timeline.time) != 0 && !before && !has_before) {
 			new_keyframe = this.createKeyframe({}, 0, channel, false, false);
 		}
 		return {before, result, new_keyframe};
