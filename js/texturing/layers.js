@@ -72,8 +72,7 @@ class TextureLayer {
 			if (select_next) select_next.select();
 		}
 		if (undo) {
-			this.texture.updateLayerChanges(true);
-			this.texture.saved = false;
+			this.texture.updateChangesAfterEdit();
 			Undo.finishEdit('Remove layer');
 		}
 	}
@@ -144,8 +143,7 @@ class TextureLayer {
 	toggleVisibility() {
 		Undo.initEdit({layers: [this]});
 		this.visible = !this.visible;
-		this.texture.updateLayerChanges(true);
-		this.texture.saved = false;
+		this.texture.updateChangesAfterEdit();
 		Undo.finishEdit('Toggle layer visibility');
 	}
 	mergeDown(undo = true) {
@@ -169,8 +167,7 @@ class TextureLayer {
 			if (select_next) select_next.select();
 		}
 		if (undo) {
-			this.texture.updateLayerChanges(true);
-			this.texture.saved = false;
+			this.texture.updateChangesAfterEdit();
 			Undo.finishEdit('Merge layers');
 		}
 	}
@@ -246,22 +243,29 @@ class TextureLayer {
 		this.texture.updateLayerChanges();
 	}
 	propertiesDialog() {
+		let blend_mode_options = {};
+		TextureLayer.properties.blend_mode.enum_values.forEach(mode => {
+			blend_mode_options[mode] = `action.blend_mode.${mode}`
+		});
 		let dialog = new Dialog({
 			id: 'layer_properties',
 			title: this.name,
 			form: {
 				name: {label: 'generic.name', value: this.name},
 				opacity: {label: 'Opacity', type: 'range', value: this.opacity},
+				blend_mode: {label: 'action.blend_mode', type: 'select', value: this.blend_mode, options: blend_mode_options},
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
 				if (
 					form_data.name != this.name
 					|| form_data.opacity != this.opacity
+					|| form_data.blend_mode != this.blend_mode
 				) {
 					Undo.initEdit({layers: [this]});
-					this.extend(form_data)
-					Blockbench.dispatchEvent('edit_layer_properties', {layer: this})
+					this.extend(form_data);
+					this.texture.updateChangesAfterEdit();
+					Blockbench.dispatchEvent('edit_layer_properties', {layer: this});
 					Undo.finishEdit('Edit layer properties');
 				}
 			},
@@ -273,6 +277,21 @@ class TextureLayer {
 	}
 }
 TextureLayer.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
+	{name: 'action.blend_mode', icon: 'loop', children: () => {
+		return TextureLayer.properties.blend_mode.enum_values.map(mode => {
+			return {
+				name: `action.blend_mode.${mode}`,
+				icon: layer => (layer.blend_mode == mode ? 'far.fa-dot-circle' : 'far.fa-circle'),
+				click(layer) {
+					Undo.initEdit({layers: [layer]});
+					layer.blend_mode = mode;
+					layer.texture.updateChangesAfterEdit();
+					Undo.finishEdit('Change layer opacity');
+				}
+			}
+		})
+	}},
 	new MenuSeparator('edit'),
 	{id: 'transform', name: 'menu.transform', icon: 'transform', children: [
 		'flip_texture_x',
@@ -304,6 +323,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'difference']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
@@ -423,8 +443,7 @@ BARS.defineActions(() => {
 		},
 		onAfter() {
 			Undo.finishEdit('Change layer opacity');
-			Texture.selected.updateLayerChanges(true);
-			Texture.selected.saved = false;
+			this.texture.updateChangesAfterEdit();
 		}
 	})
 	new Action('layer_to_texture_size', {
@@ -644,7 +663,7 @@ Interface.definePanels(function() {
 							{{ layer.name }}
 						</label>
 
-						<div class="in_list_button" @click.stop="layer.toggleVisibility()">
+						<div class="in_list_button" @click.stop="layer.toggleVisibility()" @dblclick.stop>
 							<i v-if="layer.visible" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>

@@ -1630,10 +1630,12 @@ class Texture {
 		for (let layer of this.layers) {
 			if (layer.visible == false || layer.opacity == 0) continue;
 			this.ctx.filter = `opacity(${layer.opacity / 100})`;
+			this.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(layer.blend_mode);
 			this.ctx.imageSmoothingEnabled = false;
 			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1], layer.scaled_width, layer.scaled_height);
 		}
 		this.ctx.filter = '';
+		this.ctx.globalCompositeOperation = 'source-over';
 
 		if (!Format.image_editor) {
 			this.getMaterial().map.needsUpdate = true;
@@ -1653,6 +1655,7 @@ class Texture {
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
 		}
+		this.saved = false;
 		this.syncToOtherProject();
 	}
 	updateImageFromCanvas() {

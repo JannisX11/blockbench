@@ -1273,8 +1273,8 @@ const Painter = {
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
 	},
-	getBlendModeCompositeOperation() {
-		switch (BarItems.blend_mode.value) {
+	getBlendModeCompositeOperation(input = BarItems.blend_mode.value) {
+		switch (input) {
 			case 'set_opacity': return 'source-atop';
 			case 'color': return 'color';
 			case 'behind': return 'destination-over';
@@ -2014,8 +2014,7 @@ SharedActions.add('paste', {
 			texture.layers.push(layer);
 			layer.select();
 			layer.setLimbo();
-			texture.updateLayerChanges(true);
-			texture.saved = false;
+			texture.updateChangesAfterEdit();
 
 			Undo.finishEdit('Paste into texture');
 			updateInterfacePanels();
