@@ -302,14 +302,14 @@ class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
-		this.static = {
+		this._static = {
 			properties: {
 				vertices: {},
 				faces: {},
 				seams: {},
 			}
 		}
-		Object.freeze(this.static);
+		Object.freeze(this._static);
 
 		if (!data.vertices) {
 			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
@@ -337,22 +337,22 @@ class Mesh extends OutlinerElement {
 		}
 	}
 	get vertices() {
-		return this.static.properties.vertices;
+		return this._static.properties.vertices;
 	}
 	get faces() {
-		return this.static.properties.faces;
+		return this._static.properties.faces;
 	}
 	get seams() {
-		return this.static.properties.seams;
+		return this._static.properties.seams;
 	}
 	set vertices(v) {
-		this.static.properties.vertices = v;
+		this._static.properties.vertices = v;
 	}
 	set faces(v) {
-		this.static.properties.faces = v;
+		this._static.properties.faces = v;
 	}
 	set seams(v) {
-		this.static.properties.seams = v;
+		this._static.properties.seams = v;
 	}
 	get position() {
 		return this.origin;

@@ -27,8 +27,13 @@ class Texture {
 		this.selected_layer = null;
 		this.internal = !isApp;
 		this.uuid = uuid || guid()
-		Project.texture_selections[this.uuid] = new IntMatrix(0, 0);
 		this.flags = new Set();
+
+		this._static = Object.freeze({
+			properties: {
+				selection: new IntMatrix(0, 0)
+			}
+		});
 
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
@@ -315,7 +320,7 @@ class Texture {
 		this.internal = mode == 'bitmap';
 	}
 	get selection() {
-		return Project.texture_selections[this.uuid];
+		return this._static.properties.selection;
 	}
 	getUVWidth() {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
@@ -758,7 +763,7 @@ class Texture {
 		this.stopWatcher();
 
 		let timeout;
-		this.watcher = fs.watch(scope.path, (eventType) => {
+		this._static.properties.watcher = fs.watch(scope.path, (eventType) => {
 			if (this.flags.has('file_just_changed')) return;
 			if (eventType == 'change') {
 				if (timeout) clearTimeout(timeout)
@@ -779,8 +784,8 @@ class Texture {
 		})
 	}
 	stopWatcher() {
-		if (isApp && this.watcher) {
-			this.watcher.close()
+		if (isApp && this._static.properties.watcher) {
+			this._static.properties.watcher.close()
 		}
 		return this;
 	}
@@ -924,7 +929,6 @@ class Texture {
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		delete Project.materials[this.uuid];
-		delete Project.texture_selections[this.uuid];
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
