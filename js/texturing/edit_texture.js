@@ -3,7 +3,7 @@ BARS.defineActions(function() {
 
 	function getTextures() {
 		if (Texture.selected) {
-			return [Texture.selected];
+			return Texture.all.filter(t => t.selected || t.multi_selected);
 		} else {
 			return Texture.all;
 		}

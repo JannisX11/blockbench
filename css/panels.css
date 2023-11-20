@@ -561,8 +561,13 @@
 		padding-right: 8px;
 		box-sizing: border-box;
 	}
+	.texture.multi_selected {
+		color: var(--color-light);
+		background-color: var(--color-button);
+	}
 	.texture.selected {
 		background: var(--color-selected);
+		color: var(--color-light);
 	}
 	.texture > i {
 		margin-top: 12px;
@@ -589,6 +594,15 @@
 	}
 	.texture.selected img.texture_icon {
 		margin-top: 0;
+	}
+	.texture > i.texture_multi_select_icon {
+		color: var(--color-accent);
+		position: absolute;
+		font-size: 26px;
+		right: 10px;
+	}
+	.texture.selected > i.texture_multi_select_icon {
+		display: none;
 	}
 	.texture_drag_helper {
 		z-index: 100;

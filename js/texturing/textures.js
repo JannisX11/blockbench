@@ -10,6 +10,7 @@ class Texture {
 		//meta
 		this.source = ''
 		this.selected = false
+		this.multi_selected = false
 		this.show_icon = true
 		this.error = 0;
 		this.visible = true;
@@ -854,14 +855,29 @@ class Texture {
 	}
 	//Management
 	select(event) {
+		if (event instanceof Event) {
+			Prop.active_panel = 'textures';
+		}
+		if (event && (event.shiftKey || event.ctrlKey)) {
+			this.multi_selected = true;
+			if (event.shiftKey) {
+				let start_i = Texture.last_selected;
+				let end_i = Texture.all.indexOf(this);
+				if (start_i > end_i) [start_i, end_i] = [end_i, start_i];
+				for (let i = start_i+1; i < end_i; i++) {
+					Texture.all[i].multi_selected = true;
+				}
+			}
+			Texture.last_selected = Texture.all.indexOf(this);
+			return;
+		}
 		Texture.all.forEach(s => {
 			if (s.selected) s.selected = false;
+			if (s.multi_selected) s.multi_selected = false;
 		})
-		if (event) {
-			Prop.active_panel = 'textures'
-		}
-		this.selected = true
+		this.selected = true;
 		Texture.selected = this;
+		Texture.last_selected = Texture.all.indexOf(this);
 		if (this.layers_enabled && !this.selected_layer && this.layers[0]) {
 			this.layers[0].select();
 		}
@@ -1824,7 +1840,8 @@ class Texture {
 					'flip_texture_x',
 					'flip_texture_y',
 					'rotate_texture_cw',
-					'rotate_texture_ccw'
+					'rotate_texture_ccw',
+					'crop_texture_to_selection'
 				]
 			},
 			'enable_texture_layers',
@@ -2091,7 +2108,20 @@ function getTexturesById(id) {
 SharedActions.add('delete', {
 	condition: () => Prop.active_panel == 'textures' && Texture.selected,
 	run() {
-		Texture.selected.remove();
+		let textures = Texture.all.filter(texture => {
+			return texture.selected || texture.multi_selected;
+		})
+		Undo.initEdit({textures});
+		textures.forEach(texture => {
+			texture.remove(true);
+		})
+		Canvas.updateAllFaces();
+		TextureAnimator.updateButton();
+		if (UVEditor.texture == this) {
+			UVEditor.vue.updateTexture();
+		}
+		BARS.updateConditions();
+		Undo.finishEdit('Remove texture', {textures: []})
 	}
 })
 SharedActions.add('duplicate', {
@@ -2495,7 +2525,7 @@ Interface.definePanels(function() {
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
-							v-bind:class="{ selected: texture.selected, particle: texture.particle}"
+							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle}"
 							v-bind:texid="texture.uuid"
 							:key="texture.uuid"
 							class="texture"
@@ -2512,19 +2542,22 @@ Interface.definePanels(function() {
 								<div class="texture_name">{{ texture.name }}</div>
 								<div class="texture_res">{{ getDescription(texture) }}</div>
 							</div>
-							<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
-							<i class="material-icons texture_visibility_icon clickable"
-								v-bind:class="{icon_off: !texture.visible}"
-								v-if="texture.render_mode == 'layered'"
-								@click.stop="texture.toggleVisibility()"
-								@dblclick.stop
-							>
-								{{ texture.visible ? 'visibility' : 'visibility_off' }}
-							</i>
-							<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-								<template v-if="texture.saved">check_circle</template>
-								<template v-else>save</template>
-							</i>
+							<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
+							<template v-else>
+								<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+								<i class="material-icons texture_visibility_icon clickable"
+									v-bind:class="{icon_off: !texture.visible}"
+									v-if="texture.render_mode == 'layered'"
+									@click.stop="texture.toggleVisibility()"
+									@dblclick.stop
+								>
+									{{ texture.visible ? 'visibility' : 'visibility_off' }}
+								</i>
+								<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
+									<template v-if="texture.saved">check_circle</template>
+									<template v-else>save</template>
+								</i>
+							</template>
 						</li>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
