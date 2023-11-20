@@ -56,6 +56,7 @@ class TextureLayer {
 		this.texture.selected_layer = this;
 		UVEditor.vue.layer = this;
 		BarItems.layer_opacity.update();
+		BarItems.layer_blend_mode.set(this.blend_mode);
 	}
 	showContextMenu(event) {
 		if (!this.selected) this.select();
@@ -278,20 +279,7 @@ class TextureLayer {
 }
 TextureLayer.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
-	{name: 'action.blend_mode', icon: 'loop', children: () => {
-		return TextureLayer.properties.blend_mode.enum_values.map(mode => {
-			return {
-				name: `action.blend_mode.${mode}`,
-				icon: layer => (layer.blend_mode == mode ? 'far.fa-dot-circle' : 'far.fa-circle'),
-				click(layer) {
-					Undo.initEdit({layers: [layer]});
-					layer.blend_mode = mode;
-					layer.texture.updateChangesAfterEdit();
-					Undo.finishEdit('Change layer opacity');
-				}
-			}
-		})
-	}},
+	'layer_blend_mode',
 	new MenuSeparator('edit'),
 	{id: 'transform', name: 'menu.transform', icon: 'transform', children: [
 		'flip_texture_x',
@@ -443,7 +431,25 @@ BARS.defineActions(() => {
 		},
 		onAfter() {
 			Undo.finishEdit('Change layer opacity');
-			this.texture.updateChangesAfterEdit();
+			Texture.selected.updateChangesAfterEdit();
+		}
+	})
+	let blend_mode_options = {};
+	TextureLayer.properties.blend_mode.enum_values.forEach(mode => {
+		blend_mode_options[mode] = `action.blend_mode.${mode}`;
+	})
+	new BarSelect('layer_blend_mode', {
+		name: 'action.blend_mode',
+		category: 'animation',
+		condition: () => Modes.paint && TextureLayer.selected,
+		options: blend_mode_options,
+		onChange(sel) {
+			let mode = sel.value;
+			let layer = TextureLayer.selected;
+			Undo.initEdit({layers: [layer]});
+			layer.blend_mode = mode;
+			layer.texture.updateChangesAfterEdit();
+			Undo.finishEdit('Change layer blend mode');
 		}
 	})
 	new Action('layer_to_texture_size', {
@@ -520,6 +526,8 @@ Interface.definePanels(function() {
 				children: [
 					'create_empty_layer',
 					'enable_texture_layers',
+					'layer_opacity',
+					'layer_blend_mode'
 				]
 			})
 		],
