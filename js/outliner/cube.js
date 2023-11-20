@@ -115,36 +115,50 @@ class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
-		this.from = [0, 0, 0];
-		this.to = [size, size, size];
 		this.shade = true;
 		this.mirror_uv = false;
 		this.color = Math.floor(Math.random()*markerColors.length)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
 		this.stretch = [1, 1, 1];
-		this.rotation = [0, 0, 0];
-		this.origin = [0, 0, 0];
 		this.visibility = true;
 		this.autouv = 0;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
 		}
+		this._static = Object.freeze({
+			properties: {
+				faces: {
+					north: 	new CubeFace('north', null, this),
+					east: 	new CubeFace('east', null, this),
+					south: 	new CubeFace('south', null, this),
+					west: 	new CubeFace('west', null, this),
+					up: 	new CubeFace('up', null, this),
+					down: 	new CubeFace('down', null, this)
+				},
+				from: [0, 0, 0],
+				to: [size, size, size],
+				rotation: [0, 0, 0],
+				origin: [0, 0, 0],
+			}
+		})
 
 		this.box_uv = Project.box_uv;
-		this.faces = {
-			north: 	new CubeFace('north', null, this),
-			east: 	new CubeFace('east', null, this),
-			south: 	new CubeFace('south', null, this),
-			west: 	new CubeFace('west', null, this),
-			up: 	new CubeFace('up', null, this),
-			down: 	new CubeFace('down', null, this)
-		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
 	}
+	get faces() {return this._static.properties.faces};
+	get from() {return this._static.properties.from};
+	get to() {return this._static.properties.to};
+	get rotation() {return this._static.properties.rotation};
+	get origin() {return this._static.properties.origin};
+	set faces(v) {this._static.properties.faces = v};
+	set from(v) {this._static.properties.from = v};
+	set to(v) {this._static.properties.to = v};
+	set rotation(v) {this._static.properties.rotation = v};
+	set origin(v) {this._static.properties.origin = v};
 	extend(object) {
 		for (var key in Cube.properties) {
 			Cube.properties[key].merge(this, object)
