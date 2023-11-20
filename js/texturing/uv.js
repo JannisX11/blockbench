@@ -1896,9 +1896,28 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Snap UV to pixel grid')
 		}
 	})
+	new Toggle('edit_mode_uv_overlay', {
+		name: 'action.paint_mode_uv_overlay',
+		description: 'action.edit_mode_uv_overlay.desc',
+		icon: 'stack',
+		category: 'uv',
+		condition: {modes: ['edit']},
+		onChange(value) {
+			if (value) {
+				Project.display_uv = UVEditor.vue.display_uv = 'all_elements';
+				settings.show_only_selected_uv.set(true);
+			} else {
+				if (settings.show_only_selected_uv.value) {
+					Project.display_uv = UVEditor.vue.display_uv = 'selected_faces';
+				} else {
+					Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
+				}
+			}
+		}
+	})
 	new Toggle('paint_mode_uv_overlay', {
 		icon: 'stack',
-		category: 'animation',
+		category: 'uv',
 		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
@@ -3958,6 +3977,7 @@ Interface.definePanels(function() {
 	Toolbars.uv_editor.toPlace()
 
 	BarItems.paint_mode_uv_overlay.toElement('#toggle_uv_overlay_anchor');
+	BarItems.edit_mode_uv_overlay.toElement('#toggle_edit_uv_overlay_anchor');
 
 	let {slider_bar} = UVEditor.vue.$refs;
 
@@ -4095,4 +4115,5 @@ Interface.definePanels(function() {
 		onAfter
 
 	}).toElement(slider_bar);
+	BarItems.edit_mode_uv_overlay.toElement(slider_bar);
 })

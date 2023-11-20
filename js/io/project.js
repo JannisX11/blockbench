@@ -198,6 +198,8 @@ class ModelProject {
 		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
+		BarItems.edit_mode_uv_overlay.value = this.display_uv == 'all_elements';
+		BarItems.edit_mode_uv_overlay.updateEnabledState();
 		for (let uuid in this.mesh_selection) {
 			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
 		}

@@ -2341,6 +2341,10 @@ span.controller_state_section_info {
 	.bar.uv_editor_sliders > .tool {
 		flex-grow: 1;
 	}
+	.bar.uv_editor_sliders > .edit_mode_uv_overlay {
+		flex-grow: 0;
+		margin-left: auto;
+	}
 	.uv_painter_info {
 		display: flex;
 	}
