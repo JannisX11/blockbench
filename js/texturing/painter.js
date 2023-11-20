@@ -124,7 +124,7 @@ const Painter = {
 
 			if (
 				Painter.current.element !== data.element ||
-				(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face)))
+				(Painter.current.face !== data.face && !(data.element.faces[data.face] instanceof MeshFace && Painter.getMeshUVIsland(data.face, data.element.faces[data.face]).includes(Painter.current.face)))
 			) {
 				if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 					return;
@@ -148,6 +148,13 @@ const Painter = {
 		removeEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
 		removeEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
 		Painter.stopPaintTool();
+	},
+	getMeshUVIsland(fkey, face) {
+		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
+		if (!Painter.current.uv_islands[fkey]) {
+			Painter.current.uv_islands[fkey] = face.getUVIsland();
+		}
+		return Painter.current.uv_islands[fkey];
 	},
 	// Paint Tool Main
 	startPaintTool(texture, x, y, uvTag, event, data) {
@@ -203,7 +210,7 @@ const Painter = {
 				is_line = (event.shiftKey || Pressing.overrides.shift)
 					   && Painter.current.element == data.element
 					   && (Painter.current.face == data.face ||
-							(data.element.faces[data.face] instanceof MeshFace && data.element.faces[data.face].getUVIsland().includes(Painter.current.face))
+							(data.element.faces[data.face] instanceof MeshFace && Painter.getMeshUVIsland(data.face, data.element.faces[data.face]).includes(Painter.current.face))
 						)
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
@@ -279,11 +286,18 @@ const Painter = {
 		delete Painter.current.last_pixel;
 		delete Painter.current.texture;
 		delete Painter.current.textures;
+		delete Painter.current.uv_rects;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
 	setupRectFromFace(uvTag, texture) {
+		if (!Painter.current.uv_rects) {
+			Painter.current.uv_rects = new Map();
+		}
+		let val = Painter.current.uv_rects.get(uvTag);
+		if (val) return val;
+
 		let rect;
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
@@ -313,7 +327,7 @@ const Painter = {
 				
 				let current_face = Mesh.selected[0] && Mesh.selected[0].faces[Painter.current.face];
 				if (current_face) {
-					let island = current_face.getUVIsland();
+					let island = Painter.getMeshUVIsland(Painter.current.face, current_face);
 					island.forEach(fkey => {
 						let face = Mesh.selected[0].faces[fkey];
 						for (let vkey in face.uv) {
@@ -333,6 +347,7 @@ const Painter = {
 		} else {
 			rect = Painter.editing_area = [0, 0, texture.img.naturalWidth, texture.img.naturalHeight]
 		}
+		Painter.current.uv_rects.set(uvTag, rect);
 		return rect;
 	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
@@ -393,7 +408,7 @@ const Painter = {
 			let face = Painter.current.element.faces[Painter.current.face];
 			if (face && face.vertices.length > 2 && !Painter.current.face_matrices[matrix_id]) {
 				Painter.current.face_matrices[matrix_id] = face.getOccupationMatrix(true, [0, 0]);
-				let island = face.getUVIsland();
+				let island = Painter.getMeshUVIsland(Painter.current.face, face);
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
 					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[matrix_id]);
