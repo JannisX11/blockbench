@@ -308,7 +308,7 @@ const MenuBar = {
 			}
 		})
 
-		new BarMenu('texture', [
+		new BarMenu('image', [
 			new MenuSeparator('adjustment'),
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',

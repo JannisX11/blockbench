@@ -116,6 +116,13 @@ new ModelFormat('image', {
 	per_texture_uv_size: true,
 	edit_mode: false,
 	image_editor: true,
+	format_page: {
+		button_text: 'format.image.new',
+		content: [
+			{type: 'image', source: './assets/image_editor.png', width: 640},
+			{text: tl('format.image.info.summary')},
+		]
+	},
 	new() {
 		if (newProject(this)) {
 			TextureGenerator.addBitmapDialog();

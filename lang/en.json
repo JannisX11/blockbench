@@ -157,6 +157,8 @@
 
 	"format.image": "Image",
 	"format.image.desc": "Edit images in the 2D image editor",
+	"format.image.new": "Create New Image",
+	"format.image.info.summary": "The 2D Image editor lets you create and edit images and pixel art directly in Blockbench, without the need for an external image editor. Edit images, modify textures, or create your own pixel art!",
 
 	"format_category.general": "General",
 	"format_category.low_poly": "Low-Poly",
@@ -1820,6 +1822,7 @@
 	"menu.transform": "Transform",
 	"menu.uv": "UV",
 	"menu.texture": "Texture",
+	"menu.image": "Image",
 	"menu.tools": "Tools",
 	"menu.display": "Display",
 	"menu.animation": "Animation",
