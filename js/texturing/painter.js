@@ -2688,16 +2688,20 @@ BARS.defineActions(function() {
 			intersect: {name: true, icon: 'join_inner'},
 		}
 	})
+	let last_mode = null;
 	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
 		let tool = BarItems.selection_tool_operation_mode;
 		if (!Condition(tool.condition)) return;
 		if (UVEditor.vue.selection_rect.active) return;
 		if (now.shift) {
+			if (!last_mode) last_mode = tool.value;
 			tool.set('add');
 		} else if (now.ctrl) {
+			if (!last_mode) last_mode = tool.value;
 			tool.set('subtract');
 		} else if (before.ctrl || before.shift) {
-			tool.set('create');
+			tool.set(last_mode);
+			last_mode = null;
 		}
 	});
 
