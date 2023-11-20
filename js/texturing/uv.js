@@ -2116,8 +2116,8 @@ Interface.definePanels(function() {
 					if (!this.$refs.viewport) return;
 					let old_size = this.width;
 					let size = Format.image_editor
-							? Math.floor(Math.clamp(Interface.center_screen.clientWidth - 10, 64, 1e5))
-							: Math.floor(Math.clamp(UVEditor.panel.width - 10, 64, 1e5));
+							? Math.floor(Math.clamp(Interface.center_screen.clientWidth - 8, 64, 1e5))
+							: Math.floor(Math.clamp(UVEditor.panel.width - 8, 64, 1e5));
 					this.width = size;
 					if (Format.image_editor) {
 						this.height = Interface.center_screen.clientHeight - 38;
