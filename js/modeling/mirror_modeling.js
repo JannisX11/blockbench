@@ -199,7 +199,7 @@ const MirrorModeling = {
 					}
 				})
 
-			} else if (deleted_face_vertices.length == 0) {
+			} else if (deleted_face_vertices.length == 0 && face.vertices.find((vkey) => vkey != vertex_counterpart[vkey])) {
 				// Recreate face as mirrored
 				let new_face_key;
 				for (let key in deleted_faces) {
