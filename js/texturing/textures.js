@@ -907,7 +907,7 @@ class Texture {
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
 		}
-		if (Format.per_texture_uv_size) {
+		if (Format.per_texture_uv_size && undo) {
 			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
@@ -2117,9 +2117,7 @@ SharedActions.add('delete', {
 		})
 		Canvas.updateAllFaces();
 		TextureAnimator.updateButton();
-		if (UVEditor.texture == this) {
-			UVEditor.vue.updateTexture();
-		}
+		UVEditor.vue.updateTexture();
 		BARS.updateConditions();
 		Undo.finishEdit('Remove texture', {textures: []})
 	}

@@ -495,7 +495,7 @@ const TextureGenerator = {
 			border_color = background_color
 			color = undefined
 		}
-		var res_multiple = canvas.width / Project.getUVWidth(texture);
+		//res_multiple = canvas.width / Project.getUVWidth(texture);
 		var ctx = canvas.getContext('2d');
 		ctx.fillStyle = border_color;
 		ctx.fillRect(
@@ -566,10 +566,10 @@ const TextureGenerator = {
 		let old_factor_y = (Format.per_texture_uv_size ? texture.getUVHeight() : TextureGenerator.old_project_resolution[1]) / texture.img.naturalHeight;
 		ctx.drawImage(
 			texture.img,
-			src.ax * old_factor_x,
-			src.ay * old_factor_y,
-			src.x  * old_factor_x,
-			src.y  * old_factor_y,
+			src.ax / old_factor_x,
+			src.ay / old_factor_y,
+			src.x  / old_factor_x,
+			src.y  / old_factor_y,
 			coords.x*res_multiple*flip[0],
 			coords.y*res_multiple*flip[1],
 			coords.w*res_multiple*flip[0],
@@ -1724,6 +1724,7 @@ const TextureGenerator = {
 		if (texture) {
 			texture.uv_width = width;
 			texture.uv_height = height;
+			texture.flags.delete('update_uv_size_from_resolution');
 		}
 		let changed_elements = [];
 
