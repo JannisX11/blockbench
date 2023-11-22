@@ -1435,7 +1435,7 @@ Interface.definePanels(() => {
 							</div>
 						</div>
 						<div id="timeline_time_wrapper">
-							<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
+						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
 								<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 									<span>{{ t.text }}</span>
 									<div class="substeps">
@@ -1474,7 +1474,7 @@ Interface.definePanels(() => {
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
 								<div class="animator_head_bar">
-									<div class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
+									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
@@ -1503,7 +1503,7 @@ Interface.definePanels(() => {
 								>
 									<div class="channel_head"
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
-										v-bind:style="{left: scroll_left+'px', width: head_width+'px'}"
+										v-bind:style="{left: '0px', width: head_width+'px'}"
 										@click.stop="selectChannel(animator, channel);"
 										@contextmenu.stop="animator.showContextMenu($event)"
 									>
@@ -1555,7 +1555,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 							</li>
-							<div id="timeline_empty_head" class="channel_head" v-bind:style="{left: scroll_left+'px', width: head_width+'px'}">
+							<div id="timeline_empty_head" class="channel_head" v-bind:style="{width: head_width+'px'}">
 							</div>
 							<div id="timeline_selector" class="selection_rectangle"></div>
 							<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">

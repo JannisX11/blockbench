@@ -185,7 +185,6 @@
 	}
 	.list {
 		background-color: var(--color-back);
-		width: 100%;
 		overflow-y: scroll;
 		flex-grow: 1;
 	}

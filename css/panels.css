@@ -1250,6 +1250,8 @@
 		flex-shrink: 0;
 		background-color: var(--color-back);
 		z-index: 4;
+		border-bottom: 1px solid var(--color-border);
+		height: calc(100% + 1px);
 	}
 	#timeline_timestamp {
 		font-family: var(--font-code);
@@ -1344,7 +1346,8 @@
 		width: fit-content !important;
 	}
 	.channel_head {
-		position: relative;
+		position: sticky;
+		left: 0;
 		display: flex;
 		width: 144px;
 		background-color: var(--color-ui);
