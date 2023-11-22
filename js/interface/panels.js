@@ -21,7 +21,7 @@ class Panel extends EventSystem {
 		this.toolbars = [];
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
-		this.position_data = Interface.data.panels[this.id];
+		this.position_data = Interface.getModeData().panels[this.id];
 		let defaultp = this.default_position = data.default_position || 0;
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
@@ -29,6 +29,11 @@ class Panel extends EventSystem {
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
 		if (this.position_data.folded == undefined) this.position_data.folded 		= defaultp.folded || false;
+
+		for (let mode_id in Interface.data.modes) {
+			let mode_data = Interface.getModeData(mode_id);
+			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
+		}
 
 		this.handle = Interface.createElement('h3', {class: 'panel_handle'}, Interface.createElement('label', {}, Interface.createElement('span', {}, this.name)));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`}, this.handle);
@@ -335,8 +340,8 @@ class Panel extends EventSystem {
 		this.position_data.folded = !!state;
 	}
 	resetCustomLayout() {
-		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
-		this.position_data = Interface.data.panels[this.id];
+		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
+		this.position_data = Interface.getModeData().panels[this.id];
 		
 		let defaultp = this.default_position || 0;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || 'left_bar';
@@ -469,8 +474,8 @@ class Panel extends EventSystem {
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
 			let change_panel_order = !!ref_panel;
-			if (!ref_panel && Interface.data[slot].includes(this.id)) {
-				let panels = Interface.data[slot].filter(id => Panels[id] && Panels[id].slot == slot || id == this.id);
+			if (!ref_panel && Interface.getModeData()[slot].includes(this.id)) {
+				let panels = Interface.getModeData()[slot].filter(id => Panels[id] && Panels[id].slot == slot || id == this.id);
 				let index = panels.indexOf(this.id);
 				if (index == 0) {
 					ref_panel = Panels[panels[1]];
@@ -488,12 +493,12 @@ class Panel extends EventSystem {
 					$(ref_panel.node).after(this.node);
 				}
 				if (change_panel_order) {
-					Interface.data[slot].remove(this.id);
-					Interface.data[slot].splice(Interface.data[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
+					Interface.getModeData()[slot].remove(this.id);
+					Interface.getModeData()[slot].splice(Interface.getModeData()[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
 				}
 			} else {
 				document.getElementById(slot).append(this.node);
-				Interface.data[slot].safePush(this.id);
+				Interface.getModeData()[slot].safePush(this.id);
 			}
 
 		} else if (slot == 'top') {
@@ -529,6 +534,53 @@ class Panel extends EventSystem {
 		if (Panels[this.id]) {
 			TickUpdates.interface = true;
 			this.dispatchEvent('moved_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
+		}
+		return this;
+	}
+	updateSlot() {
+		let position_data = this.position_data;
+		let {slot} = position_data;
+
+		this.node.classList.remove('floating');
+
+		if (slot == 'left_bar' || slot == 'right_bar') {
+
+			document.getElementById(slot).append(this.node);
+			Interface.getModeData()[slot].safePush(this.id);
+
+		} else if (slot == 'top') {
+			document.getElementById('top_slot').append(this.node);
+
+		} else if (slot == 'bottom') {
+			document.getElementById('bottom_slot').append(this.node);
+
+		} else if (slot == 'float' && !Blockbench.isMobile) {
+			Interface.work_screen.append(this.node);
+			this.node.classList.add('floating');
+			this.dispatchEvent('change_zindex', {zindex: 14});
+			if (!this.resize_handles) {
+				this.setupFloatHandles();
+			}
+		}
+		if (slot !== 'float') {
+			Panel.floating_panel_z_order.remove(this.id);
+			this.node.style.zIndex = '';
+			this.dispatchEvent('change_zindex', {zindex: null});
+		}
+		if (this.folded != this.node.classList.contains('folded')) {
+			this.folded = !!this.folded;
+			let new_icon = Blockbench.getIconNode(this.folded ? 'expand_less' : 'expand_more');
+			$(this.handle).find('> .panel_folding_button > .icon').replaceWith(new_icon);
+			this.node.classList.toggle('folded', this.folded);
+			if (this.onFold) {
+				this.onFold();
+			}
+		}
+		
+		this.update();
+
+		if (Panels[this.id]) {
+			TickUpdates.interface = true;
 		}
 		return this;
 	}
@@ -651,7 +703,7 @@ function updateSidebarOrder() {
 
 		bar_node.childNodes.forEach(panel_node => panel_node.remove());
 
-		Interface.data[bar].forEach(panel_id => {
+		Interface.getModeData()[bar].forEach(panel_id => {
 			let panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
 				bar_node.append(panel.node);
