@@ -132,11 +132,13 @@ new ModelFormat('image', {
 	onActivation() {
 		Interface.preview.classList.add('image_mode');
 		UVEditor.vue.hidden = false;
-		Interface.preview.append(document.getElementById('UVEditor'))
+		Interface.preview.append(document.getElementById('UVEditor'));
+		Panels.textures.handle.firstChild.textContent = tl('panel.textures.images');
 	},
 	onDeactivation() {
 		Interface.preview.classList.remove('image_mode');
-		Panels.uv.node.append(document.getElementById('UVEditor'))
+		Panels.uv.node.append(document.getElementById('UVEditor'));
+		Panels.textures.handle.firstChild.textContent = tl('panel.textures');
 	},
 	codec
 })

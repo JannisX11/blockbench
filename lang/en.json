@@ -2055,6 +2055,7 @@
 	"panel.uv": "UV",
 	"panel.display": "Display",
 	"panel.textures": "Textures",
+	"panel.textures.images": "Images",
 	"panel.layers": "Layers",
 	"panel.color": "Color",
 	"panel.color.picker": "Picker",
