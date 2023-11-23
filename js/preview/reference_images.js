@@ -243,7 +243,7 @@ class ReferenceImage {
 	updateTransform() {
 		if (!this.node.isConnected) return this;
 		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
-		if (preview) {
+		if (preview && preview.node.isConnected) {
 
 			let zoom = this.getZoomLevel();;
 			let pos_x = this.position[0];
