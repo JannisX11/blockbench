@@ -77,6 +77,8 @@ class Plugin {
 		Merge.string(this, data, 'min_version')
 		Merge.string(this, data, 'max_version')
 		Merge.string(this, data, 'website')
+		Merge.string(this, data, 'repository')
+		Merge.string(this, data, 'bug_tracker')
 		Merge.boolean(this, data, 'await_loading');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
@@ -523,6 +525,8 @@ class Plugin {
 			min_version: this.min_version ? (this.min_version+'+') : '-',
 			max_version: this.max_version || '',
 			website: this.website || '',
+			repository: this.repository || '',
+			bug_tracker: this.bug_tracker || '',
 			author: this.author,
 			variant: this.variant == 'both' ? 'All' : this.variant,
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
@@ -547,8 +551,8 @@ class Plugin {
 			this.details[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 		}
 		if (this.source == 'store') {
-			this.details.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
-			this.details.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			if (!this.details.bug_tracker) this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			if (!this.details.repository) this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
 
 			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
@@ -1298,13 +1302,13 @@ BARS.defineActions(function() {
 									<td>Website</td>
 									<td>{{ selected_plugin.details.website }}</td>
 								</tr>
-								<tr v-if="selected_plugin.details.source">
+								<tr v-if="selected_plugin.details.repository">
 									<td>Plugin source</td>
-									<td><a :href="selected_plugin.details.source" :title="selected_plugin.details.source">{{ reduceLink(selected_plugin.details.source) }}</a></td>
+									<td><a :href="selected_plugin.details.repository" :title="selected_plugin.details.repository">{{ reduceLink(selected_plugin.details.repository) }}</a></td>
 								</tr>
-								<tr v-if="selected_plugin.details.issue_url">
+								<tr v-if="selected_plugin.details.bug_tracker">
 									<td>Report issues</td>
-									<td><a :href="selected_plugin.details.issue_url" :title="selected_plugin.details.issue_url">{{ reduceLink(selected_plugin.details.issue_url) }}</a></td>
+									<td><a :href="selected_plugin.details.bug_tracker" :title="selected_plugin.details.bug_tracker">{{ reduceLink(selected_plugin.details.bug_tracker) }}</a></td>
 								</tr>
 							</tbody>
 						</table>
