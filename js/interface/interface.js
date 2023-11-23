@@ -93,7 +93,8 @@ const Interface = {
 						slot: 'right_bar',
 						float_position: [300, 0],
 						float_size: [300, 300],
-						height: 300
+						height: 300,
+						folded: true
 					}
 				}
 			}

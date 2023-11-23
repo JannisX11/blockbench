@@ -1805,11 +1805,18 @@ class Texture {
 			{
 				icon: 'draw',
 				name: 'menu.texture.edit_in_blockbench',
-				condition: (texture) => !Format.image_editor && texture.path,
+				condition: (texture) => !Format.image_editor,
 				click(texture) {
-					let existing_tab = ModelProject.all.find(project => project.format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
+					let existing_tab, tex2;
+					for (let project of ModelProject.all) {
+						if (!project.format.image_editor) continue;
+						tex2 = project.textures.find(t => t.uuid == texture.uuid || (t.path && t.path == texture.path));
+						if (tex2) {
+							existing_tab = project;
+							break;
+						}
+					}
 					if (existing_tab) {
-						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();
 						tex2.select();
 					} else {
