@@ -2227,7 +2227,7 @@ span.controller_state_section_info {
 	.cube_uv_face.selected:not(.unselected) {
 		border-color: var(--color-uv-hover);
 		z-index: 4;
-		box-shadow: 0 0 4px #000000cc;
+		outline: 1px solid var(--color-border);
 	}
 	.cube_uv_face.unselected,
 	.cube_box_uv.unselected {
