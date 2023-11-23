@@ -629,6 +629,7 @@ BARS.defineActions(function() {
 						pixel[0] = nearest_color._r;
 						pixel[1] = nearest_color._g;
 						pixel[2] = nearest_color._b;
+						return pixel;
 					})
 
 				}, {no_undo: true});

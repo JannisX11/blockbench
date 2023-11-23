@@ -575,6 +575,7 @@ const Painter = {
 					px[1] = result_color.g
 					px[2] = result_color.b
 					if (!Painter.lock_alpha) px[3] = result_color.a*255
+					return px;
 				}
 			})
 		}
@@ -1345,19 +1346,26 @@ const Painter = {
 		w = Math.min(w, ctx.canvas.width - local_x);
 		h = Math.min(h, ctx.canvas.height - local_y);
 		if (!w || !h) return;
-		let arr = ctx.getImageData(local_x, local_y, w, h)
+		let arr = ctx.getImageData(local_x, local_y, w, h);
+		let changes = false;
 		for (let i = 0; i < arr.data.length; i += 4) {
-			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]]
+			let pixel = [arr.data[i], arr.data[i+1], arr.data[i+2], arr.data[i+3]];
 
 			let px = x + (i/4) % w;
 			let py = y + Math.floor((i/4) / w);
-			let result = cb(px, py, pixel) || pixel
+			let result = cb(px, py, pixel);
 
-			result.forEach((p, pi) => {
-				if (p != arr.data[i+pi]) arr.data[i+pi] = p
-			})
+			if (result) {
+				arr.data[i+0] = result[0];
+				arr.data[i+1] = result[1];
+				arr.data[i+2] = result[2];
+				arr.data[i+3] = result[3];
+				changes = true;
+			}
 		}
-		ctx.putImageData(arr, local_x, local_y)
+		if (changes) {
+			ctx.putImageData(arr, local_x, local_y);
+		}
 	},
 	getPixelColor(ctx, x, y) {
 		let {data} = ctx.getImageData(x, y, 1, 1)
@@ -1405,11 +1413,10 @@ const Painter = {
 		r = Math.round(r+1)/2;
 		let pixel_roundness_factor = 1 + 1 / (r+3);
 		let selection = Painter.current.texture.selection;
+		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
-				settings.paint_side_restrict.value &&
-				Painter.editing_area && 
-				typeof Painter.editing_area === 'object' &&
+				check_painting_area &&
 				(
 					px+0.02 < Math.floor(Painter.editing_area[0]) ||
 					py+0.02 < Math.floor(Painter.editing_area[1]) ||
@@ -1432,19 +1439,20 @@ const Painter = {
 				v_px += 0.5; v_py += r%1;
 			}
 
-			var distance = Math.sqrt(v_px*v_px + v_py*v_py)
+			let distance = Math.sqrt(v_px*v_px + v_py*v_py)
+			let pos_on_gradient;
 			if (soft*r != 0) {
-				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
 				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
 				distance *= pixel_roundness_factor;
-				var pos_on_gradient = Math.floor(distance/r);
+				pos_on_gradient = Math.floor(distance/r);
 			}
 
-			var opacity = limitNumber(1-pos_on_gradient, 0, 1)
+			let opacity = Math.clamp(1-pos_on_gradient, 0, 1);
 
 			if (opacity > 0) {
-				var result_color = editPx({
+				let result_color = editPx({
 					r: pixel[0],
 					g: pixel[1],
 					b: pixel[2],
@@ -1455,16 +1463,16 @@ const Painter = {
 				pixel[2] = result_color.b
 				pixel[3] = result_color.a*255
 			}
+			return pixel;
 		});
 	},
 	editSquare(ctx, x, y, r, soft, editPx) {
 		r = Math.round(r+1)/2;
 		let selection = Painter.current.texture.selection;
+		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
-				settings.paint_side_restrict.value &&
-				Painter.editing_area && 
-				typeof Painter.editing_area === 'object' &&
+				check_painting_area &&
 				(
 					px+0.02 < Math.floor(Painter.editing_area[0]) ||
 					py+0.02 < Math.floor(Painter.editing_area[1]) ||
@@ -1487,18 +1495,19 @@ const Painter = {
 				v_px += 0.5; v_py += r%1;
 			}
 
-			var distance = Math.max(Math.abs(v_px), Math.abs(v_py));
+			let distance = Math.max(Math.abs(v_px), Math.abs(v_py));
+			let pos_on_gradient;
 			if (soft*r != 0) {
-				var pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
 				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
-				var pos_on_gradient = Math.floor((distance)/r)
+				pos_on_gradient = Math.floor((distance)/r)
 			}
 
-			var opacity = limitNumber(1-pos_on_gradient, 0, 1)
+			let opacity = limitNumber(1-pos_on_gradient, 0, 1)
 
 			if (opacity > 0) {
-				var result_color = editPx({
+				let result_color = editPx({
 					r: pixel[0],
 					g: pixel[1],
 					b: pixel[2],
@@ -1508,6 +1517,7 @@ const Painter = {
 				pixel[1] = result_color.g
 				pixel[2] = result_color.b
 				pixel[3] = result_color.a*255
+				return pixel;
 			}
 		});
 	},
@@ -2135,6 +2145,12 @@ BARS.defineActions(function() {
 		modes: ['paint'],
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
+	const BlendModes = {
+		set_opacity: 'set_opacity',
+		set_opacity: 'set_opacity',
+		difference: 'difference',
+		default: 'default',
+	}
 	new Tool('brush_tool', {
 		icon: 'fa-paint-brush',
 		category: 'tools',
@@ -2154,19 +2170,24 @@ BARS.defineActions(function() {
 			pixel_perfect: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {
-				return 1 + BarItems.slider_brush_size.get() * BarItems.slider_brush_softness.get() / 1500;
+				let size = BarItems.slider_brush_size.get();
+				if (size > 40) {
+					return size / 12;
+				} else {
+					return 1 + size * BarItems.slider_brush_softness.get() / 1500;
+				}
 			},
 			changePixel(px, py, pxcolor, local_opacity, {color, opacity, ctx, x, y, size, softness, texture, event}) {
 				let blend_mode = BarItems.blend_mode.value;
-				if (blend_mode == 'set_opacity') local_opacity = 1;
+				if (blend_mode == BlendModes.set_opacity) local_opacity = 1;
 				let a = opacity * local_opacity;
 
-				if (blend_mode == 'set_opacity') {
+				if (blend_mode == BlendModes.set_opacity) {
 					if (Painter.lock_alpha && pxcolor.a == 0) return pxcolor;
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					if (blend_mode == 'difference') {
+					if (blend_mode == BlendModes.difference) {
 						let before = Painter.getAlphaMatrix(texture, px, py)
 						Painter.setAlphaMatrix(texture, px, py, a);
 						if (a > before) {
@@ -2184,7 +2205,7 @@ BARS.defineActions(function() {
 						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
 					}
 					let result_color;
-					if (blend_mode == 'default') {
+					if (blend_mode == BlendModes.default) {
 						result_color = Painter.combineColors(pxcolor, color, a);
 					} else {
 						result_color = Painter.blendColors(pxcolor, color, a, blend_mode);
