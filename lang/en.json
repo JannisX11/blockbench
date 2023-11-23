@@ -1904,6 +1904,8 @@
 	"menu.texture.elements": "Apply to Elements",
 	"menu.texture.file": "File",
 	"menu.texture.refresh": "Refresh",
+	"menu.texture.discard_changes": "Discard Changes",
+	"menu.texture.discard_changes.desc": "Discard all unsaved changes and load the latest version from the file",
 	"menu.texture.change": "Change File",
 	"menu.texture.folder": "Show in File Explorer",
 	"menu.texture.render_mode": "Render Mode",

@@ -1911,6 +1911,26 @@ class Texture {
 				}
 			},
 			{
+				name: 'menu.texture.discard_changes',
+				description: 'menu.texture.discard_changes.desc',
+				icon: 'delete_sweep',
+				condition: (texture) => texture.internal && texture.path && isApp,
+				click(texture) {
+					Undo.initEdit({textures: [texture], bitmap: true});
+					UVEditor.vue.layer = null;
+					texture.layers_enabled = false;
+					texture.selected_layer = null;
+					texture.layers.empty();
+					texture.internal = false;
+					texture.saved = true;
+					texture.source = texture.path.replace(/#/g, '%23') + '?' + tex_version;
+					Texture.selected.reloadTexture();
+					Undo.finishEdit('Discard texture changes');
+					updateInterfacePanels();
+					BARS.updateConditions();
+				}
+			},
+			{
 				icon: 'file_upload',
 				name: 'menu.texture.change',
 				click(texture) { texture.reopen()}
