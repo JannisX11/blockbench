@@ -502,6 +502,7 @@ const Settings = {
 			if (!value) scene.remove(Canvas.brush_outline);
 		}});
 		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
+		new Setting('move_with_selection_tool',		{category: 'paint', value: true});
 		new Setting('pick_color_opacity',			{category: 'paint', value: false});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});

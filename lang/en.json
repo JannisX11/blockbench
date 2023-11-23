@@ -961,6 +961,8 @@
 	"settings.brush_cursor_3d.desc": "Display an outline around the brush in the 3D workspace",
 	"settings.outlines_in_paint_mode": "Selection Outlines in Paint Mode",
 	"settings.outlines_in_paint_mode.desc": "Display element selection outlines while in paint mode",
+	"settings.move_with_selection_tool": "Use Selection Tool to Move Selections",
+	"settings.move_with_selection_tool.desc": "Allow the Selection Tool to directly move selections, without having to switch to the Move Layer tool",
 	"settings.paint_through_transparency": "Paint Through Transparency",
 	"settings.paint_through_transparency.desc": "Paint through transparent pixels when Lock Alpha Channel is enabled",
 	"settings.paint_side_restrict": "Restrict Brush to Side",

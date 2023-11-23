@@ -2227,7 +2227,7 @@ Interface.definePanels(function() {
 					this.mouse_coords.x = x;
 					this.mouse_coords.y = y;
 					let grab = Toolbox.selected.id == 'move_layer_tool' ||
-							  (Toolbox.selected.id == 'selection_tool' && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
+							  (Toolbox.selected.id == 'selection_tool' && settings.move_with_selection_tool.value && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
 				onMouseWheel(event) {
@@ -3263,7 +3263,7 @@ Interface.definePanels(function() {
 					let start_x, start_y, calcrect;
 					let layer = texture.selected_layer;
 					let create_selection = Toolbox.selected.id == 'selection_tool'
-						&& !(op_mode == 'create' && clicked_val)
+						&& !(op_mode == 'create' && settings.move_with_selection_tool.value && clicked_val)
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
@@ -3539,7 +3539,7 @@ Interface.definePanels(function() {
 				isTransformingLayer() {
 					if (!this.texture || !this.texture.selected_layer) return false;
 					let tool = Toolbox.selected;
-					if (tool.id == 'move_layer_tool' || (tool.id == 'selection_tool' && TextureLayer.selected?.in_limbo)) {
+					if (tool.id == 'move_layer_tool' || (tool.id == 'selection_tool' && settings.move_with_selection_tool.value && TextureLayer.selected?.in_limbo)) {
 						return true;
 					}
 					return false;

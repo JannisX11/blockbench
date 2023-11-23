@@ -2678,7 +2678,7 @@ BARS.defineActions(function() {
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
 			face: true,
-			element: true,
+			element: {name: true, condition: () => !Format.image_editor},
 			color_connected: true,
 			color: true,
 		}
