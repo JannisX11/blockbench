@@ -818,19 +818,31 @@ BARS.defineActions(function() {
 			let texture = Texture.getDefault();
 			let rect = texture.selection.getBoundingRect();
 			let uv_factor = texture.width / texture.uv_width;
-			texture.edit((canvas) => {
+			if (!rect.width || !rect.height) return;
 
-				canvas.width = rect.width;
-				canvas.height = rect.height;
+			Undo.initEdit({textures: [texture], bitmap: true});
+
+			if (!texture.layers_enabled) {
+				texture.width = texture.canvas.width = rect.width;
+				texture.height = texture.canvas.height = rect.height;
 				texture.ctx.imageSmoothingEnabled = false;
-				texture.ctx.drawImage(texture.img, -rect.start_x, -rect.start_y, texture.width, texture.height);
+				texture.ctx.drawImage(texture.img, rect.start_x, rect.start_y, texture.width, texture.height);
+			} else {
+				texture.width = texture.canvas.width = rect.width;
+				texture.height = texture.canvas.height = rect.height;
+				texture.layers.forEach(layer => {
+					layer.offset[0] -= rect.start_x;
+					layer.offset[1] -= rect.start_y;
+				})
+			}
+			texture.uv_width = texture.canvas.width * uv_factor;
+			texture.uv_height = texture.canvas.height * uv_factor;
 
-				texture.uv_width = canvas.width * uv_factor;
-				texture.uv_height = canvas.height * uv_factor;
-				texture.selection.clear();
+			texture.updateChangesAfterEdit();
+			texture.selection.clear();
+			UVEditor.updateSelectionOutline();
 
-			}, {edit_name: 'Crop texture to selection'});
-
+			Undo.finishEdit('Crop texture to selection');
 			setTimeout(updateSelection, 100);
 		}
 	})
