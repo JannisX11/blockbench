@@ -606,7 +606,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
 				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast(event) && Modes.display === false) {
+				if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 					return;
 				}
 				handleMouseDownRotate( event );
@@ -616,7 +616,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
 			if ( scope.enablePan === false ) return;
-			if (event.which === 1 && Canvas.raycast(event) && Modes.display === false) {
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 				return;
 			}
 			handleMouseDownPan( event );
@@ -625,7 +625,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		} else if ( Keybinds.extra.preview_zoom.keybind.isTriggered(event) ) {
 
 			if ( scope.enableZoom === false ) return;
-			if (event.which === 1 && Canvas.raycast(event) && Modes.display === false) {
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 				return;
 			}
 			handleMouseDownDolly( event );
