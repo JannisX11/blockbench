@@ -376,7 +376,7 @@ var codec = new Codec('obj', {
 			if (materials.hasOwnProperty(key) && materials[key]) {
 				var tex = materials[key];
 				mtlOutput += 'newmtl m_' +key+ '\n'
-				mtlOutput += `map_Kd ${tex.name} \n`;
+				mtlOutput += `map_Kd ${tex.name}\n`;
 			}
 		}
 		mtlOutput += 'newmtl none'
