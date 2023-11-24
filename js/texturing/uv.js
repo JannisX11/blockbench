@@ -3263,7 +3263,7 @@ Interface.definePanels(function() {
 					let start_x, start_y, calcrect;
 					let layer = texture.selected_layer;
 					let create_selection = Toolbox.selected.id == 'selection_tool'
-						&& !(op_mode == 'create' && settings.move_with_selection_tool.value && clicked_val)
+						&& !(op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer.in_limbo))
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
@@ -3484,7 +3484,11 @@ Interface.definePanels(function() {
 							}
 							UVEditor.updateSelectionOutline();
 							Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
-						} else {
+						} else if (!started_movement) {
+							if (TextureLayer.selected?.in_limbo) {
+								TextureLayer.selected.resolveLimbo();
+							}
+						} {
 							texture.updateLayerChanges(true);
 							texture.saved = false;
 							Undo.finishEdit('Move layer');
