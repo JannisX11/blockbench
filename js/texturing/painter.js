@@ -1414,6 +1414,8 @@ const Painter = {
 		let pixel_roundness_factor = 1 + 1 / (r+3);
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
+		let is_smooth = x%1 != 0;
+		let r_1 = r%1;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
@@ -1431,12 +1433,12 @@ const Painter = {
 			let v_px = px - x;
 			let v_py = py - y;
 
-			if (x%1) {
+			if (is_smooth) {
 				// Smooth
 				v_px += 0.5; v_py += 0.5;
-			} else if (r%1) {
+			} else if (r_1) {
 				// Pixel Perfect
-				v_px += 0.5; v_py += r%1;
+				v_px += 0.5; v_py += r_1;
 			}
 
 			let distance = Math.sqrt(v_px*v_px + v_py*v_py)
@@ -1470,6 +1472,8 @@ const Painter = {
 		r = Math.round(r+1)/2;
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
+		let is_smooth = x%1 != 0;
+		let r_1 = r%1;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
@@ -1487,12 +1491,12 @@ const Painter = {
 			let v_px = px - x;
 			let v_py = py - y;
 
-			if (x%1) {
+			if (is_smooth) {
 				// Smooth
 				v_px += 0.5; v_py += 0.5;
-			} else if (r%1) {
+			} else if (r_1) {
 				// Pixel Perfect
-				v_px += 0.5; v_py += r%1;
+				v_px += 0.5; v_py += r_1;
 			}
 
 			let distance = Math.max(Math.abs(v_px), Math.abs(v_py));

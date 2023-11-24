@@ -89,7 +89,7 @@ Math.snapToValues = function(val, snap_points, epsilon = 12) {
 	}
 }
 Math.hermiteBlend = function(input) {
-	return 3*Math.pow(input, 2) - 2*Math.pow(input, 3);
+	return 3*(input**2) - 2*(input**3);
 }
 Math.clamp = function(number, min, max) {
 	if (number > max) number = max;

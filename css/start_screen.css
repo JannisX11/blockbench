@@ -115,7 +115,7 @@
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
-		overflow-x: hidden;
+		overflow: hidden;
 		height: 30px;
 		right: 0px;
 		left: 0px;
@@ -124,6 +124,7 @@
 		padding-top: 2px;
 		position: absolute;
 		text-align: center;
+		white-space: nowrap;
 	}
 	#start_screen .recent_project.thumbnail .icon_wrapper {
 		position: absolute;

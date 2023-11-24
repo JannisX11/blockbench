@@ -8,6 +8,12 @@ class ModelProject {
 		this.locked = false;
 		this.thumbnail = '';
 
+		this._static = Object.freeze({
+			properties: {
+				undo: new UndoSystem()
+			}
+		})
+
 		this.box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
 		this._texture_height = 16;
@@ -20,7 +26,6 @@ class ModelProject {
 		this.export_options = {};
 		this.added_models = 0;
 
-		this.undo = new UndoSystem();
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.tool = '';
@@ -101,6 +106,9 @@ class ModelProject {
 		if (Project == this) {
 			setProjectTitle(name);
 		}
+	}
+	get undo() {
+		return this._static.properties.undo;
 	}
 	get saved() {
 		return this._saved;
