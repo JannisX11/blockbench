@@ -130,8 +130,21 @@ class TextureLayer {
 				TextureLayer.selected.in_limbo = false;
 			}
 		} else {
-			TextureLayer.selected.mergeDown(true);
+			if (this.texture.flags.has('temporary_layers') && this.texture.layers.length == 2) {
+				Undo.initEdit({textures: [this.texture], bitmap: true});
+				TextureLayer.selected.mergeDown(false);
+				this.texture.layers_enabled = false;
+				this.texture.selected_layer = null;
+				this.texture.layers.empty();
+				Undo.finishEdit('Disable layers on texture');
+				UVEditor.vue.layer = null;
+				updateInterfacePanels();
+				BARS.updateConditions();
+			} else {
+				TextureLayer.selected.mergeDown(true);
+			}
 		}
+		this.texture.flags.delete('temporary_layers');
 		UVEditor.vue.$forceUpdate();
 		Texture.selected.selection.clear();
 		UVEditor.updateSelectionOutline();

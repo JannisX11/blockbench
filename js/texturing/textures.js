@@ -1371,6 +1371,7 @@ class Texture {
 
 		if (undo) Undo.initEdit({textures: [texture], bitmap: true});
 		if (!texture.layers_enabled) {
+			texture.flags.add('temporary_layers');
 			texture.activateLayers(false);
 		}
 
