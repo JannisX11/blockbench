@@ -6,6 +6,7 @@ body:
   attributes:
     value: |
       **Before submitting a suggestion, please check if it has already been suggested.**
+      Please only include one suggestion per issue, as issues are used to track the status of a suggestion.
 - type: textarea
   id: details
   attributes:
