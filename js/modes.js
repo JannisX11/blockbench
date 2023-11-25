@@ -60,7 +60,8 @@ class Mode extends KeybindItem {
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';
 		}
-
+		
+		UVEditor.beforeMoving();
 		for (let id in Panels) {
 			Panels[id].position_data = Interface.getModeData().panels[id];
 			Panels[id].updateSlot();

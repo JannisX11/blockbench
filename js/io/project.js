@@ -1131,10 +1131,12 @@ BARS.defineActions(function() {
 					if (!format || format == Format) return;
 					
 					if (formResult.create_copy) {
+						let selected_texture_uuid = Texture.selected?.uuid
 						let model = Codecs.project.compile({raw: true});
 						setupProject(Format)
 						Codecs.project.parse(model);
-						if (Project.name) Project.name += ' - Converted'
+						if (Project.name) Project.name += ' - Converted';
+						Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
 					}
 					
 					format.convertTo()

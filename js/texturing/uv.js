@@ -620,7 +620,7 @@ const UVEditor = {
 	},
 	saveViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project')) return;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return;
 		Project.uv_viewport.offset[0] = (uv_viewport.scrollLeft - this.width/2) / this.vue.inner_width;
 		Project.uv_viewport.offset[1] = (uv_viewport.scrollTop - this.height/2) / this.vue.inner_height;
 	},
@@ -632,6 +632,12 @@ const UVEditor = {
 			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
 			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
 		})
+	},
+	beforeMoving() {
+		UVEditor.saveViewportOffset();
+		setTimeout(() => {
+			UVEditor.loadViewportOffset();
+		}, 0);
 	},
 
 	//Events
@@ -3262,8 +3268,9 @@ Interface.definePanels(function() {
 					let selection_rect = this.texture_selection_rect;
 					let start_x, start_y, calcrect;
 					let layer = texture.selected_layer;
+					let move_with_selection_tool = Toolbox.selected.id == 'selection_tool' && op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer?.in_limbo)
 					let create_selection = Toolbox.selected.id == 'selection_tool'
-						&& !(op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer.in_limbo))
+						&& !move_with_selection_tool
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 

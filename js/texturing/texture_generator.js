@@ -495,8 +495,8 @@ const TextureGenerator = {
 			border_color = background_color
 			color = undefined
 		}
-		//res_multiple = canvas.width / Project.getUVWidth(texture);
-		var ctx = canvas.getContext('2d');
+		if (!res_multiple) res_multiple = canvas.width / Project.getUVWidth(texture);
+		let ctx = canvas.getContext('2d');
 		ctx.fillStyle = border_color;
 		ctx.fillRect(
 			coords.x*res_multiple,
