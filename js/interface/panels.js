@@ -350,6 +350,11 @@ class Panel extends EventSystem {
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
 		if (this.position_data.folded == undefined) this.position_data.folded 	= defaultp.folded || false;
 
+		for (let mode_id in Interface.data.modes) {
+			let mode_data = Interface.getModeData(mode_id);
+			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
+		}
+
 		this.moveTo(this.slot);
 		this.fold(this.folded);
 		return this;
@@ -538,8 +543,7 @@ class Panel extends EventSystem {
 		return this;
 	}
 	updateSlot() {
-		let position_data = this.position_data;
-		let {slot} = position_data;
+		let slot = this.slot;
 
 		this.node.classList.remove('floating');
 
