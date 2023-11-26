@@ -255,6 +255,7 @@
 					@mouseenter="mouseEnter(project, $event)"
 					@mouseleave="mouseLeave(project, $event)"
 				>
+					<dynamic-icon :icon="project.format ? project.format.icon : 'home'"></dynamic-icon>
 					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
 					<label>{{ project.getDisplayName() }}</label>
 					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">

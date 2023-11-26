@@ -680,6 +680,9 @@
 	#tab_bar .project_tab.move_forth {
 		left: var(--tabwidth);
 	}
+	#tab_bar .project_tab > .icon {
+		pointer-events: none;
+	}
 	#tab_bar .project_tab > label {
 		overflow: hidden;
 		width: calc(100% - 20px);
