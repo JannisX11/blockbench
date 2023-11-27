@@ -400,7 +400,7 @@ const Painter = {
 					  : Painter.current.face;
 
 		if (TextureLayer.selected) {
-			TextureLayer.selected.expandTo([x+size-1, y+size-1], [x-size+1, y-size+1]);
+			TextureLayer.selected.expandTo([x-size+1, y-size+1], [x+size, y+size]);
 		}
 
 		ctx.clip()

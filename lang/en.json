@@ -1498,6 +1498,7 @@
 	"action.rotate_texture_ccw.desc": "Rotate the texture or layer counter-clockwise",
 	"action.resize_texture": "Resize Texture...",
 	"action.crop_texture_to_selection": "Crop Texture to Selection",
+	"action.crop_layer_to_selection": "Crop Layer to Selection",
 
 	"action.create_empty_layer": "Create Empty Layer",
 	"action.enable_texture_layers": "Enable Layers",

@@ -285,7 +285,7 @@ class TextureLayer {
 		});
 		let dialog = new Dialog({
 			id: 'layer_properties',
-			title: this.name,
+			title: `${this.name} (${this.width}x${this.height})`,
 			form: {
 				name: {label: 'generic.name', value: this.name},
 				opacity: {label: 'Opacity', type: 'range', value: this.opacity},
@@ -322,6 +322,7 @@ TextureLayer.prototype.menu = new Menu([
 		'rotate_texture_cw',
 		'rotate_texture_ccw',
 	]},
+	'crop_layer_to_selection',
 	'layer_to_texture_size',
 	'merge_layer_down',
 	new MenuSeparator('copypaste'),
@@ -529,6 +530,29 @@ BARS.defineActions(() => {
 		condition: () => TextureLayer.selected,
 		click() {
 			TextureLayer.selected.mergeDown(true);
+		}
+	})
+	
+	new Action('crop_layer_to_selection', {
+		icon: 'crop',
+		category: 'layer',
+		condition: () => TextureLayer.selected,
+		click() {
+			let layer = TextureLayer.selected;
+			let rect = layer.texture.selection.getBoundingRect();
+			if (!rect.width || !rect.height) return;
+
+			Undo.initEdit({layers: [layer], bitmap: true});
+
+			let copy = Painter.copyCanvas(layer.canvas)
+			layer.canvas.width = rect.width;
+			layer.canvas.height = rect.height;
+			layer.ctx.drawImage(copy, layer.offset[0]-rect.start_x, layer.offset[1]-rect.start_y);
+			layer.offset.V2_set(rect.start_x, rect.start_y);
+
+			layer.texture.updateChangesAfterEdit();
+
+			Undo.finishEdit('Crop layer to selection');
 		}
 	})
 })

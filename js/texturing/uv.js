@@ -3495,7 +3495,21 @@ Interface.definePanels(function() {
 							if (TextureLayer.selected?.in_limbo) {
 								TextureLayer.selected.resolveLimbo();
 							}
-						} {
+							if (Toolbox.selected.id == 'move_layer_tool') {
+								// select
+								let layers_reverse = texture.layers.slice().reverse();
+								for (let layer of layers_reverse) {
+									let {offset} = layer;
+									if (x >= offset[0] && y >= offset[1] && x < offset[0] + layer.width && y < offset[1] + layer.height) {
+										let data = layer.ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
+										if (data.data[3] > 10) {
+											layer.select();
+											break;
+										}
+									}
+								}
+							}
+						} else {
 							texture.updateLayerChanges(true);
 							texture.saved = false;
 							Undo.finishEdit('Move layer');
