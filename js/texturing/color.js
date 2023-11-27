@@ -451,7 +451,7 @@ Interface.definePanels(() => {
 
 	if (isApp) {
 		ipcRenderer.on('set-main-color', (event, arg) => {
-			ColorPanel.set(arg, true);
+			ColorPanel.set(arg);
 		})
 	}	
 

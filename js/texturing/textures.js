@@ -1358,8 +1358,7 @@ class Texture {
 			let image_data = this.ctx.getImageData(0, 0, this.width, this.height);
 			layer.setSize(this.width, this.height);
 			layer.ctx.putImageData(image_data, 0, 0);
-			this.layers.push(layer);
-			layer.select();
+			layer.addForEditing();
 		}
 		if (undo) Undo.finishEdit('Enable layers on texture');
 		updateInterfacePanels();

@@ -153,12 +153,34 @@ class TextureLayer {
 	setSize(width, height) {
 		this.canvas.width = width;
 		this.canvas.height = height;
+		return this;
 	}
 	toggleVisibility() {
 		Undo.initEdit({layers: [this]});
 		this.visible = !this.visible;
 		this.texture.updateChangesAfterEdit();
 		Undo.finishEdit('Toggle layer visibility');
+		return this;
+	}
+	scrollTo() {
+		let el = document.querySelector(`#layers_list > li[layer_id="${this.uuid}"]`);
+		if (el) {
+			el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+		}
+		return this;
+	}
+	addForEditing() {
+		let i = this.texture.layers.indexOf(this.texture.selected_layer);
+		if (i == -1) {
+			this.texture.layers.push(this);
+		} else {
+			this.texture.layers.splice(i+1, 0, this);
+		}
+		this.select();
+		Vue.nextTick(() => {
+			this.scrollTo();
+		});
+		return this;
 	}
 	mergeDown(undo = true) {
 		let down_layer = this.texture.layers[this.texture.layers.indexOf(this) - 1];
@@ -369,9 +391,28 @@ SharedActions.add('duplicate', {
 		copy.name += '-copy';
 		Undo.initEdit({textures: [texture]});
 		let layer = new TextureLayer(copy, texture);
-		texture.layers.push(layer);
-		layer.select();
+		layer.addForEditing();
 		Undo.finishEdit('Duplicate layer');
+	}
+})
+SharedActions.add('copy', {
+	subject: 'layer',
+	condition: () => Prop.active_panel == 'layers' && TextureLayer.selected,
+	run() {
+		let layer = TextureLayer.selected;
+		let copy = layer.getUndoCopy(true);
+		Clipbench.layer = copy;
+	}
+})
+SharedActions.add('paste', {
+	subject: 'layer',
+	condition: () => Prop.active_panel == 'layers' && Texture.selected && Clipbench.layer,
+	run() {
+		let texture = Texture.selected;
+		Undo.initEdit({textures: [texture]});
+		let layer = new TextureLayer(Clipbench.layer, texture);
+		layer.addForEditing();
+		Undo.finishEdit('Paste layer');
 	}
 })
 
@@ -387,8 +428,7 @@ BARS.defineActions(() => {
 				name: `layer #${texture.layers.length+1}`
 			}, texture);
 			layer.setSize(texture.width, texture.height);
-			texture.layers.push(layer);
-			layer.select();
+			layer.addForEditing();
 			Undo.finishEdit('Create empty layer');
 			BARS.updateConditions();
 		}

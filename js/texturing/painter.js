@@ -2099,8 +2099,7 @@ SharedActions.add('duplicate', {
 		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 		new_layer.setSize(canvas.width, canvas.height);
 		new_layer.ctx.putImageData(image_data, 0, 0);
-		texture.layers.push(new_layer);
-		new_layer.select();
+		new_layer.addForEditing();
 		new_layer.setLimbo();
 		texture.updateLayerChanges(true);
 		texture.saved = false;
