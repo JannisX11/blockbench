@@ -499,7 +499,7 @@ const Timeline = {
 		Timeline.keyframes.forEach((kf) => {
 			max_length = Math.max(max_length, kf.time)
 		})
-		max_length = Math.max(max_length, Timeline.time) + 50/Timeline.vue._data.size
+		max_length = Math.max(max_length, Timeline.time) + width/2/Timeline.vue._data.size
 		return max_length;
 	},
 	updateSize() {

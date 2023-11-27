@@ -283,6 +283,7 @@ class Panel extends EventSystem {
 					let diff = Blockbench.isLandscape ? e1.clientX - e2.clientX : e1.clientY - e2.clientY;
 					if (!started && Math.abs(diff) > 4) {
 						started = true;
+						if (this.folded) this.fold();
 					}
 					if (!started) return;
 					
