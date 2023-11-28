@@ -1779,6 +1779,8 @@
 	"action.animation_onion_skin.previous": "Previous",
 	"action.animation_onion_skin.next": "Next",
 	"action.animation_onion_skin.previous_next": "Previous + Next",
+	"action.animation_onion_skin_selective": "Selective Onion Skin",
+	"action.animation_onion_skin_selective.desc": "Only display onion skin for the selected part of the model",
 	"action.looped_animation_playback": "Looped Playback",
 	"action.looped_animation_playback.desc": "Preview animations in an infinite loop",
 	"action.apply_animation_preset": "Apply Animation Preset",

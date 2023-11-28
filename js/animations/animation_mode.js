@@ -216,6 +216,7 @@ const Animator = {
 	},
 	updateOnionSkin() {
 		let mode = BarItems.animation_onion_skin.value;
+		let selective = BarItems.animation_onion_skin_selective.value;
 		if (mode == 'off') {
 			Animator.onion_skin_object.children.empty();
 			return;
@@ -255,6 +256,7 @@ const Animator = {
 
 			elements.forEach(obj => {
 				if (!obj.visibility) return;
+				if (selective && !obj.selected) return;
 				let mesh = obj.mesh;
 				if (!mesh || !mesh.geometry || !mesh.outline) return;
 
@@ -1244,6 +1246,16 @@ BARS.defineActions(function() {
 		},
 		onChange() {
 			Timeline.vue.onion_skin_mode = this.value;
+			Animator.updateOnionSkin();
+		}
+	})
+	// Motion Trail
+	new Toggle('animation_onion_skin_selective', {
+		icon: 'animation',
+		category: 'animation',
+		default: true,
+		condition: () => Animator.open && BarItems.animation_onion_skin.value != 'off',
+		onChange(value) {
 			Animator.updateOnionSkin();
 		}
 	})
