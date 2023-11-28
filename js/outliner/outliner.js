@@ -1353,13 +1353,10 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
-				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
-					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color % markerColors.length].pastel}"
-					v-on:dblclick.stop="doubleClickIcon(node)"
-				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
+				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 

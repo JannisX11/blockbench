@@ -77,7 +77,7 @@ class Locator extends OutlinerElement {
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
-	Locator.prototype.icon = 'fa fa-anchor';
+	Locator.prototype.icon = 'fa-anchor';
 	Locator.prototype.name_regex = 'a-z0-9_'
 	Locator.prototype.movable = true;
 	Locator.prototype.rotatable = true;

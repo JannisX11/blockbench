@@ -800,7 +800,7 @@ class Mesh extends OutlinerElement {
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
-	Mesh.prototype.icon = 'fa far fa-gem';
+	Mesh.prototype.icon = 'far.fa-gem';
 	Mesh.prototype.movable = true;
 	Mesh.prototype.resizable = true;
 	Mesh.prototype.rotatable = true;

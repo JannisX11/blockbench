@@ -385,6 +385,9 @@
 		padding-top: 4px;
 		overflow: hidden;
 	}
+	.outliner_object > i.fa_big {
+		font-size: unset;
+	}
 	.outliner_object > i[class*=" icon-"]:not(.fa) {
 		padding-top: 0px;
 	}
