@@ -230,6 +230,13 @@ const Animator = {
 				Timeline.time - Timeline.getStep(),
 				Timeline.time + Timeline.getStep()
 			];
+		} else if (mode == 'previous_next_2') {
+			times = [
+				Timeline.time - Timeline.getStep()*2,
+				Timeline.time - Timeline.getStep()*1,
+				Timeline.time + Timeline.getStep()*1,
+				Timeline.time + Timeline.getStep()*2,
+			];
 		} else if (mode == 'select') {
 			times = [Timeline.vue.onion_skin_time];
 		}
@@ -1099,6 +1106,25 @@ Animator.animation_presets = {
 			}
 		},
 	},
+	swell: {
+		name: 'Swell',
+		length: 1.0417,
+		"rotation": {
+			"0": [0, 0, 0],
+			"1": ["math.sin(q.anim_time * 3000) * 3", 0, "math.cos(q.anim_time * 2000) * 3"],
+			"1.0417": [0, 0, 0]
+		},
+		"scale": {
+			"0": [1, 1, 1],
+			"1": [1.2, 1.2, 1.2],
+			"0.1667": [1.0075, 1.0075, 1.0075],
+			"0.3333": [1.02, 1.02, 1.02],
+			"0.5": [1.045, 1.045, 1.045],
+			"0.6667": [1.08, 1.08, 1.08],
+			"0.8333": [1.13, 1.13, 1.13],
+			"1.0417": {"pre": [1.6, 1.6, 1.6], "post": [0, 0, 0]}
+		}
+	},
 	circle: {
 		name: 'Circle',
 		"position": {
@@ -1213,7 +1239,8 @@ BARS.defineActions(function() {
 			select: true,
 			previous: true,
 			next: true,
-			previous_next: true
+			previous_next: true,
+			previous_next_2: tl('action.animation_onion_skin.previous_next') + ' (2)',
 		},
 		onChange() {
 			Timeline.vue.onion_skin_mode = this.value;
