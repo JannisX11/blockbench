@@ -483,6 +483,10 @@ const UVEditor = {
 		this.displayTools();
 		this.displayTools();
 		this.vue.box_uv = UVEditor.isBoxUV();
+		this.vue.uv_resolution.V2_set(
+			UVEditor.getUVWidth(),
+			UVEditor.getUVHeight()
+		);
 		this.vue.$forceUpdate();
 		return this;
 	},
@@ -2106,22 +2110,22 @@ Interface.definePanels(function() {
 			},
 			watch: {
 				texture() {
-					this.uv_resolution = [
+					this.uv_resolution.V2_set(
 						UVEditor.getUVWidth(),
 						UVEditor.getUVHeight()
-					];
+					);
 				},
 				'texture.uv_width'(value) {
-					this.uv_resolution = [
+					this.uv_resolution.V2_set(
 						UVEditor.getUVWidth(),
 						UVEditor.getUVHeight()
-					];
+					);
 				},
 				'texture.uv_height'(value) {
-					this.uv_resolution = [
+					this.uv_resolution.V2_set(
 						UVEditor.getUVWidth(),
 						UVEditor.getUVHeight()
-					];
+					);
 				},
 				mode() {
 					Vue.nextTick(() => {

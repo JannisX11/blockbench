@@ -1159,6 +1159,7 @@ class Texture {
 				}
 
 				this.updateMaterial();
+				UVEditor.loadData();
 
 				if (Format.texture_mcmeta) {
 					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => this[key] !== results[key])) {
