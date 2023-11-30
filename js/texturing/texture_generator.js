@@ -12,7 +12,7 @@ const TextureGenerator = {
 		west:	{c1: '#f48686', c2: '#FFA7A4', place: t => {return {x: t.posx+t.z+t.x, 	y: t.posy+t.z, 	w: t.z, 	h: t.y}}},
 		south:	{c1: '#f8dd72', c2: '#FFF899', place: t => {return {x: t.posx+t.z+t.x+t.z,y: t.posy+t.z, 	w: t.x, 	h: t.y}}},
 	},
-	addBitmapDialog() {
+	addBitmapDialog(callback) {
 		let type_options = {};
 		if (Format.edit_mode) {
 			type_options.template = 'dialog.create_texture.type.template'
@@ -62,7 +62,7 @@ const TextureGenerator = {
 					results.resolution = results.resolution_vec;
 				}
 				dialog.hide()
-				TextureGenerator.addBitmap(results);
+				TextureGenerator.addBitmap(results, callback);
 				return false;
 			}
 		}).show()

@@ -749,10 +749,8 @@
 		flex-grow: 0;
 		width: auto;
 		color: var(--color-accent);
-	}
-	#tab_bar .project_tab > label.project_tab_session_badge i {
-		margin-right: 2px;
-		margin-left: -4px;
+		flex-shrink: 0;
+		padding-right: 0;
 	}
 	#tab_bar.invisible {
 		visibility: hidden;

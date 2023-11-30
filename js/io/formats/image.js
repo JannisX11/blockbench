@@ -125,7 +125,12 @@ new ModelFormat('image', {
 	},
 	new() {
 		if (newProject(this)) {
-			TextureGenerator.addBitmapDialog();
+			TextureGenerator.addBitmapDialog(() => {
+				setTimeout(() => {
+					Undo.history.empty();
+					Undo.index = 0;
+				}, 1);
+			});
 			return true;
 		}
 	},
