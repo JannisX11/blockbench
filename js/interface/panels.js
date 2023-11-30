@@ -763,6 +763,7 @@ function setupMobilePanelSelector() {
 					}
 					if (panel) {
 						panel.moveTo('bottom');
+						if (panel.folded) panel.fold();
 					} else {
 						resizeWindow();
 					}

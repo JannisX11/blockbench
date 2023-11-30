@@ -2150,6 +2150,10 @@ Interface.definePanels(function() {
 					this.width = size;
 					if (Format.image_editor) {
 						this.height = Interface.center_screen.clientHeight - 38;
+						if (Blockbench.isMobile) {
+							let panel = Interface.getBottomPanel();
+							if (panel) this.height -= panel.height;
+						}
 
 					} else if (Panels.uv.slot.includes('_bar')) {
 						this.height = size * Math.clamp(this.uv_resolution[1] / this.uv_resolution[0], 0.5, 1);
