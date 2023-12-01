@@ -111,7 +111,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.true_isometric_right',
-		id: 'isometric_right',
+		id: 'true_isometric_right',
 		projection: 'orthographic',
 		position: [-64, 64+8, -64],
 		target: [0, 8, 0],
@@ -120,7 +120,7 @@ const DefaultCameraPresets = [
 	},
 	{
 		name: 'camera_angle.true_isometric_left',
-		id: 'isometric_left',
+		id: 'true_isometric_left',
 		projection: 'orthographic',
 		position: [64, 64+8, -64],
 		target: [0, 8, 0],
@@ -743,7 +743,7 @@ class Preview {
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0;
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
@@ -1014,6 +1014,11 @@ class Preview {
 				Toolbox.selected.onCanvasClick(data)
 				Blockbench.dispatchEvent('canvas_click', data)
 			}
+
+			if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
+				this.startSelRect(event)
+			}
+			
 			return true;
 		}
 		if (is_canvas_click && typeof Toolbox.selected.onCanvasClick === 'function') {
@@ -1050,8 +1055,8 @@ class Preview {
 				let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
 
 				// UV
-				let uv_factor_x = Project.texture_width / texture.width;
-				let uv_factor_y = Project.texture_height / texture.display_height;
+				let uv_factor_x = texture.getUVWidth() / texture.width;
+				let uv_factor_y = texture.getUVHeight() / texture.display_height;
 				let offset = 0;
 				let x = intersect.uv.x * texture.width;
 				let y = (1-intersect.uv.y) * texture.height;
@@ -1120,7 +1125,7 @@ class Preview {
 			!Transformer.dragging &&
 			!this.selection.click_target
 		) {
-			unselectAll();
+			unselectAllElements();
 		}
 		delete this.selection.click_target;
 		return this;
@@ -1138,7 +1143,13 @@ class Preview {
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
 			if (data) this.selection.click_target = data;
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
+			
+			let click_result;
+			if (typeof Toolbox.selected.onCanvasRightClick === 'function') {
+				click_result = Toolbox.selected.onCanvasRightClick(data || {event});
+			}
+			if (click_result == false) {
+			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
 				data.element.showContextMenu(event);
 
 			} else if (data.type == 'keyframe') {
@@ -1242,7 +1253,7 @@ class Preview {
 			]
 		}
 
-		unselectAll()
+		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
 			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
@@ -1410,6 +1421,28 @@ class Preview {
 		console.warn('Preview.updateBackground() is no longer supported')
 	}
 	//Misc
+	copyView(preview) {
+		this.setProjectionMode(preview.isOrtho);
+		// Update camera
+		this.controls.unlinked = preview.controls.unlinked;
+		this.controls.target.copy(preview.controls.target);
+		this.camera.position.copy(preview.camera.position);
+		this.camera.quaternion.copy(preview.camera.quaternion);
+		if (this.isOrtho) {
+			this.camera.zoom = preview.camera.zoom;
+			this.camera.top = preview.camera.top;
+			this.camera.bottom = preview.camera.bottom;
+			this.camera.right = preview.camera.right;
+			this.camera.left = preview.camera.left;
+			let ratio = this.width / this.height;
+			let current_ratio = (this.camera.right - this.camera.left) / (this.camera.top - this.camera.bottom);
+			this.camera.right *= ratio / current_ratio;
+			this.camera.left *= ratio / current_ratio;
+			this.camOrtho.updateProjectionMatrix();
+		} else {
+			this.setFOV(preview.camPers.fov);
+		}
+	}
 	screenshot(options, cb) {
 		return Screencam.screenshotPreview(this, options, cb);
 	}
@@ -1466,7 +1499,7 @@ class Preview {
 		{
 			icon: 'icon-player',
 			name: 'settings.display_skin',
-			condition: () => ((display_mode && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
+			condition: () => ((Modes.display && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
 			click: function() {
 			
 				changeDisplaySkin()
@@ -1485,8 +1518,7 @@ class Preview {
 			preview.newAnglePreset()
 		}},
 		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
-			var children = [
-			]
+			let children = []
 			let presets = localStorage.getItem('camera_presets')
 			presets = (presets && autoParseJSON(presets, false)) || [];
 			let all_presets = [
@@ -1501,7 +1533,7 @@ class Preview {
 				if (typeof preset == 'string') {
 					children.push('_'); return;
 				}
-				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'radio_button_checked' : 'radio_button_unchecked'); 
+				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'far.fa-dot-circle' : 'far.fa-circle'); 
 				children.push({
 					name: preset.name,
 					color: preset.color,
@@ -1956,7 +1988,7 @@ function animate() {
 		}
 	})
 	framespersecond++;
-	if (display_mode === true && ground_animation === true && !Transformer.hoverAxis) {
+	if (Modes.display === true && ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
 	Blockbench.dispatchEvent('render_frame');
@@ -2007,7 +2039,7 @@ BARS.defineActions(function() {
 			textured: {name: true, icon: 'image', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
 			solid: {name: true, icon: 'fas.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
-			uv: {name: true, icon: 'padding', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
+			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
 		},
 		onChange() {

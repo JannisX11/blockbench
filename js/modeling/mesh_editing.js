@@ -98,6 +98,207 @@ const ProportionalEdit = {
 	}
 }
 
+SharedActions.add('delete', {
+	condition: () => Modes.edit && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
+	run() {
+		let meshes = Mesh.selected.slice();
+		Undo.initEdit({elements: meshes, outliner: true})
+
+		Mesh.selected.forEach(mesh => {
+			let selected_vertices = mesh.getSelectedVertices();
+			let selected_edges = mesh.getSelectedEdges();
+			let selected_faces = mesh.getSelectedFaces();
+
+			if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
+				let affected_vertices = [];
+				selected_faces.forEach(fkey => {
+					affected_vertices.safePush(...mesh.faces[fkey].vertices);
+					delete mesh.faces[fkey];
+				})
+				affected_vertices.forEach(vertex_key => {
+					let used = false;
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key];
+						if (face.vertices.includes(vertex_key)) used = true;
+					}
+					if (!used) {
+						delete mesh.vertices[vertex_key];
+					}
+				})
+			} else if (BarItems.selection_mode.value == 'edge') {
+				for (let key in mesh.faces) {
+					let face = mesh.faces[key];
+					let sorted_vertices = face.getSortedVertices();
+					let has_edge = sorted_vertices.find((vkey_a, i) => {
+						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
+						let edge = [vkey_a, vkey_b];
+						return selected_edges.find(edge2 => sameMeshEdge(edge, edge2))
+					})
+					if (has_edge) {
+						delete mesh.faces[key];
+					}
+				}
+				selected_edges.forEachReverse(edge => {
+					edge.forEach(vkey => {
+						let used = false;
+						for (let key in mesh.faces) {
+							let face = mesh.faces[key];
+							if (face.vertices.includes(vkey)) used = true;
+						}
+						if (!used) {
+							delete mesh.vertices[vkey];
+							selected_vertices.remove(vkey);
+							selected_edges.remove(edge);
+						}
+					})
+				})
+
+			} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
+				selected_vertices.forEach(vkey => {
+					for (let key in mesh.faces) {
+						let face = mesh.faces[key];
+						if (!face.vertices.includes(vkey)) continue;
+						if (face.vertices.length > 2) {
+							let initial_normal;
+							if (face.vertices.length == 4) {
+								initial_normal = face.getNormal();
+							}
+							face.vertices.remove(vkey);
+							delete face.uv[vkey];
+							
+							if (face.vertices.length == 3 && face.getAngleTo(initial_normal) > 90) {
+								face.invert();
+							}
+							if (face.vertices.length == 2) {
+								for (let fkey2 in mesh.faces) {
+									if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
+										delete mesh.faces[key];
+										break;
+									}
+								}
+							}
+						} else {
+							delete mesh.faces[key];
+						}
+					}
+					delete mesh.vertices[vkey];
+				})
+			} else {
+				meshes.remove(mesh);
+				mesh.remove(false);
+			}
+		})
+
+		Undo.finishEdit('Delete mesh part')
+		Canvas.updateView({elements: meshes, selection: true, element_aspects: {geometry: true, faces: true, uv: meshes.length > 0}})
+	}
+})
+SharedActions.add('select_all', {
+	condition: () => Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		let selection_mode = BarItems.selection_mode.value;
+		if (selection_mode == 'vertex') {
+			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					mesh.getSelectedVertices(true).empty();
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+				}
+			})
+		} else if (selection_mode == 'edge') {
+			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					mesh.getSelectedVertices(true).empty();
+					mesh.getSelectedEdges(true).empty();
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+					let edges = mesh.getSelectedEdges(true);
+					for (let fkey in mesh.faces) {
+						let face = mesh.faces[fkey];
+						let f_vertices = face.getSortedVertices();
+						f_vertices.forEach((vkey_a, i) => {
+							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
+							edges.push(edge);
+						})
+					}
+				}
+			})
+		} else {
+			let unselect = Mesh.selected[0].getSelectedFaces().length == Object.keys(Mesh.selected[0].faces).length;
+			Mesh.selected.forEach(mesh => {
+				if (unselect) {
+					delete Project.mesh_selection[mesh.uuid];
+				} else {
+					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
+					mesh.getSelectedFaces(true).replace(Object.keys(mesh.faces));
+				}
+			})
+		}
+		updateSelection();
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		Mesh.selected.forEach(mesh => {
+			delete Project.mesh_selection[mesh.uuid];
+		})
+		updateSelection();
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		let selection_mode = BarItems.selection_mode.value;
+		if (selection_mode == 'vertex') {
+			Mesh.selected.forEach(mesh => {
+				let selected = mesh.getSelectedVertices();
+				let now_selected = Object.keys(mesh.vertices).filter(vkey => !selected.includes(vkey));
+				mesh.getSelectedVertices(true).replace(now_selected);
+			})
+		} else if (selection_mode == 'edge') {
+			Mesh.selected.forEach(mesh => {
+				let old_edges = mesh.getSelectedEdges().slice();
+				let vertices = mesh.getSelectedVertices(true).empty();
+				let edges = mesh.getSelectedEdges(true).empty();
+				
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					let f_vertices = face.getSortedVertices();
+					f_vertices.forEach((vkey_a, i) => {
+						let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
+						if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
+							edges.push(edge);
+							vertices.safePush(edge[0], edge[1]);
+						}
+					})
+				}
+			})
+		} else {
+			Mesh.selected.forEach(mesh => {
+				let old_faces = mesh.getSelectedFaces().slice();
+				let vertices = mesh.getSelectedVertices(true).empty();
+				let faces = mesh.getSelectedFaces(true).empty();
+				
+				for (let fkey in mesh.faces) {
+					if (!old_faces.includes(fkey)) {
+						let face = mesh.faces[fkey];
+						faces.push(fkey);
+						vertices.safePush(...face.vertices);
+					}
+				}
+			})
+		}
+		updateSelection();
+	}
+})
+
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
 		id: 'add_primitive',
@@ -414,9 +615,9 @@ BARS.defineActions(function() {
 	new BarSelect('selection_mode', {
 		options: {
 			object: {name: true, icon: 'far.fa-gem'},
-			cluster: {name: true, icon: 'fas.fa-link'},
-			face: {name: true, icon: 'crop_portrait'},
-			edge: {name: true, icon: 'fa-grip-lines-vertical'},
+			cluster: {name: true, icon: 'link'},
+			face: {name: true, icon: 'far.fa-square'},
+			edge: {name: true, icon: 'pen_size_3'},
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
@@ -746,8 +947,8 @@ BARS.defineActions(function() {
 				var adjustedTo = cube.to.slice();
 				adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
 				for (let i = 0; i < adjustedFrom.length; i++) {
-					adjustedFrom[i] - cube.origin[i];
-					adjustedTo[i] - cube.origin[i]
+					adjustedFrom[i] -= cube.origin[i];
+					adjustedTo[i] -= cube.origin[i]
 				}
 				let vertex_keys = [
 					mesh.addVertices([adjustedTo[0],	adjustedTo[1], 		adjustedTo[2]   ])[0],
@@ -797,6 +998,26 @@ BARS.defineActions(function() {
 			})
 			updateSelection();
 			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
+		}
+	})
+	new Action('apply_mesh_rotation', {
+		icon: 'published_with_changes',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected.length)},
+		click() {
+			let vec = new THREE.Vector3();
+			Undo.initEdit({elements: Mesh.selected});
+			Mesh.selected.forEach(mesh => {
+				let rotation = mesh.mesh.rotation;
+				for (let vkey in mesh.vertices) {
+					vec.fromArray(mesh.vertices[vkey]);
+					vec.applyEuler(rotation);
+					mesh.vertices[vkey].V3_set(vec.x, vec.y, vec.z);
+				}
+				mesh.rotation.V3_set(0, 0, 0);
+			})
+			Undo.finishEdit('Apply mesh rotation')
+			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, transform: true}, selection: true})
 		}
 	})
 	new Action('invert_face', {

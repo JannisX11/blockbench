@@ -11,9 +11,9 @@ Object.assign(Blockbench, {
 			//resource_id
 
 		if (isApp) {
-			var properties = []
+			let properties = [];
 			if (options.multiple) {
-				properties.push('multiSelections')
+				properties.push('openFile', 'multiSelections')
 			}
 			if (options.extensions[0] === 'image/*') {
 				options.type = 'Images'
@@ -32,7 +32,7 @@ Object.assign(Blockbench, {
 						name: options.type ? options.type : options.extensions[0],
 						extensions: options.extensions
 					}],
-					properties: (properties.length && Blockbench.platform !== 'darwin')?properties:undefined,
+					properties: properties.length ? properties : undefined,
 					defaultPath: settings.streamer_mode.value
 						? app.getPath('desktop')
 						: options.startpath

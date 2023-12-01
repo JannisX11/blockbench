@@ -24,6 +24,7 @@ class Codec extends EventSystem {
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 	}
 	getExportOptions() {
 		let options = {};

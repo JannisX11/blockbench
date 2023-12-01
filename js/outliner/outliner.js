@@ -422,7 +422,10 @@ class OutlinerElement extends OutlinerNode {
 		return copy;
 	}
 	select(event, isOutlinerClick) {
-		if (Modes.animate && !this.constructor.animator) return false;
+		if (Modes.animate && !this.constructor.animator) {
+			Blockbench.showQuickMessage('message.group_required_to_animate');
+			return false;
+		}
 		//Shiftv
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
@@ -977,6 +980,104 @@ function toggleCubeProperty(key) {
 
 StateMemory.init('advanced_outliner_toggles', 'boolean')
 
+SharedActions.add('rename', {
+	condition: {modes: ['edit', 'paint']},
+	priority: -1,
+	run() {
+		renameOutliner();
+	}
+});
+SharedActions.add('delete', {
+	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.selected)),
+	priority: -1,
+	run() {
+		var array;
+		Undo.initEdit({elements: selected, outliner: true, selection: true})
+		if (Group.selected) {
+			Group.selected.remove(true)
+			return;
+		}
+		if (array == undefined) {
+			array = selected.slice(0)
+		} else if (array.constructor !== Array) {
+			array = [array]
+		} else {
+			array = array.slice(0)
+		}
+		array.forEach(function(s) {
+			s.remove(false)
+		})
+		TickUpdates.selection = true;
+		Undo.finishEdit('Delete elements')
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Modes.edit && Group.selected && (Group.selected.matchesSelection() || selected.length === 0),
+	priority: -1,
+	run() {
+		let cubes_before = elements.length;
+		Undo.initEdit({outliner: true, elements: [], selection: true});
+		let g = Group.selected.duplicate();
+		g.select();
+		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Modes.edit && Outliner.selected.length,
+	priority: -2,
+	run() {
+		let added_elements = [];
+		Undo.initEdit({elements: added_elements, outliner: true, selection: true})
+		selected.forEachReverse(function(obj, i) {
+			let copy = obj.duplicate();
+			added_elements.push(copy);
+		})
+		BarItems.move_tool.select();
+		Undo.finishEdit('Duplicate elements')
+	}
+})
+SharedActions.add('select_all', {
+	condition: () => Modes.edit || Modes.paint,
+	priority: -2,
+	run() {
+		let selectable_elements = Outliner.elements.filter(element => !element.locked);
+		if (Outliner.selected.length < selectable_elements.length) {
+			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
+				Outliner.root[0].select();
+			} else {
+				selectable_elements.forEach(obj => {
+					obj.selectLow()
+				})
+				TickUpdates.selection = true;
+			}
+		} else {
+			unselectAllElements()
+		}
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Modes.edit || Modes.paint,
+	priority: -2,
+	run() {
+		unselectAllElements()
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Modes.edit || Modes.paint,
+	priority: -2,
+	run() {
+		Outliner.elements.forEach(element => {
+			if (element.selected) {
+				element.unselect()
+			} else {
+				element.selectLow()
+			}
+		})
+		if (Group.selected) Group.selected.unselect();
+		updateSelection();
+	}
+})
+
 BARS.defineActions(function() {
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
@@ -1204,114 +1305,6 @@ BARS.defineActions(function() {
 			$('.dialog#selection_creator .form_bar_name > input').focus()
 		}
 	})
-	new Action('invert_selection', {
-		icon: 'swap_vert',
-		category: 'edit',
-		keybind: new Keybind({key: 'i', ctrl: true}),
-		condition: () => Modes.edit || Modes.paint || Modes.animate,
-		click: function () {
-			if (Modes.animate) {
-				if (!Animation.selected) return;
-				Timeline.keyframes.forEach((kf) => {
-					if (!kf.selected) {
-						Timeline.selected.push(kf)
-						kf.selected = true;
-					} else {
-						Timeline.selected.remove(kf);
-						kf.selected = false;
-					}
-				})
-				updateKeyframeSelection()
-
-			} else if (Modes.edit && BarItems.selection_mode.value !== 'object' && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length) {
-				let selection_mode = BarItems.selection_mode.value;
-				if (selection_mode == 'vertex') {
-					Mesh.selected.forEach(mesh => {
-						let selected = mesh.getSelectedVertices();
-						let now_selected = Object.keys(mesh.vertices).filter(vkey => !selected.includes(vkey));
-						mesh.getSelectedVertices(true).replace(now_selected);
-					})
-				} else if (selection_mode == 'edge') {
-					Mesh.selected.forEach(mesh => {
-						let old_vertices = mesh.getSelectedVertices().slice();
-						let old_edges = mesh.getSelectedEdges().slice();
-						let vertices = mesh.getSelectedVertices(true).empty();
-						let edges = mesh.getSelectedEdges(true).empty();
-						
-						for (let fkey in mesh.faces) {
-							let face = mesh.faces[fkey];
-							let f_vertices = face.getSortedVertices();
-							f_vertices.forEach((vkey_a, i) => {
-								let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
-								if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
-									edges.push(edge);
-									vertices.safePush(edge[0], edge[1]);
-								}
-							})
-						}
-					})
-				} else {
-					Mesh.selected.forEach(mesh => {
-						let old_vertices = mesh.getSelectedVertices().slice();
-						let old_faces = mesh.getSelectedFaces().slice();
-						let vertices = mesh.getSelectedVertices(true).empty();
-						let faces = mesh.getSelectedFaces(true).empty();
-						
-						for (let fkey in mesh.faces) {
-							if (!old_faces.includes(fkey)) {
-								let face = mesh.faces[fkey];
-								faces.push(fkey);
-								vertices.safePush(...face.vertices);
-							}
-						}
-					})
-				}
-				updateSelection();
-		
-			} else {
-				elements.forEach(function(s) {
-					if (s.selected) {
-						s.unselect()
-					} else {
-						s.selectLow()
-					}
-				})
-				if (Group.selected) Group.selected.unselect()
-			}
-			updateSelection()
-			Blockbench.dispatchEvent('invert_selection')
-		}
-	})
-	new Action('select_all', {
-		icon: 'select_all',
-		category: 'edit',
-		condition: () => !Modes.display,
-		keybind: new Keybind({key: 'a', ctrl: true}),
-		click() {selectAll()}
-	})
-	new Action('unselect_all', {
-		icon: 'border_clear',
-		category: 'edit',
-		condition: () => !Modes.display,
-		click() {
-			if (Modes.animate) {
-				unselectAllKeyframes()
-			} else if (Prop.active_panel == 'uv') {
-				this.vue.selected_faces.empty();
-				UVEditor.displayTools();
-		
-			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
-				Mesh.selected.forEach(mesh => {
-					delete Project.mesh_selection[mesh.uuid];
-				})
-				updateSelection();
-		
-			} else if (Modes.edit || Modes.paint) {
-				unselectAll()
-			}
-			Blockbench.dispatchEvent('select_all')
-		}
-	})
 
 	new Action('hide_everything_except_selection', {
 		icon: 'fa-glasses',
@@ -1360,13 +1353,10 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
-				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
-					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color % markerColors.length].pastel}"
-					v-on:dblclick.stop="doubleClickIcon(node)"
-				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
+				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
@@ -1605,7 +1595,7 @@ Interface.definePanels(function() {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
 							if (e1.target && e1.offsetX > e1.target.clientWidth) return;
-							if (e2.target && e2.target.id == 'cubes_list') unselectAll();
+							if (e2.target && e2.target.id == 'cubes_list') unselectAllElements();
 						}
 						addEventListeners(document, 'mouseup touchend', off);
 						return;

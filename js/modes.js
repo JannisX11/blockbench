@@ -60,6 +60,17 @@ class Mode extends KeybindItem {
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';
 		}
+		
+		UVEditor.beforeMoving();
+		for (let id in Panels) {
+			let old_pos_data = Panels[id].position_data;
+			Panels[id].position_data = Interface.getModeData().panels[id];
+			if (!Panels[id].position_data) {
+				Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
+			}
+			Panels[id].updateSlot();
+		}
+		updateSidebarOrder();
 
 		Canvas.updateRenderSides()
 		if (this.tool && BarItems[this.tool] && Condition(BarItems[this.tool])) {
@@ -153,13 +164,6 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
-			if (Format.image_editor) {
-				let old_color_slot = Panels.color.slot;
-				Panels.color.position_data = Interface.data.panels.color_2d;
-				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
-			}
-			Panels.uv.position_data = Interface.data.panels.paint;
-			if (Panels.uv.slot !== Interface.data.panels.uv.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
@@ -169,13 +173,6 @@ BARS.defineActions(function() {
 				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
-			Panels.uv.position_data = Interface.data.panels.uv;
-			if (Panels.uv.slot !== Interface.data.panels.paint.slot) Panels.uv.moveTo(Panels.uv.slot);
-			if (Panels.color.position_data == Interface.data.panels.color_2d) {
-				let old_color_slot = Panels.color.slot;
-				Panels.color.position_data = Interface.data.panels.color;
-				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
-			}
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},

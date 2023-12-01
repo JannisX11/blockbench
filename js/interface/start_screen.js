@@ -1,5 +1,8 @@
 const StartScreen = {
-	loaders: {}
+	loaders: {},
+	open() {
+		Interface.tab_bar.openNewTab();
+	}
 };
 
 function addStartScreenSection(id, data) {
@@ -152,23 +155,15 @@ onVueSetup(function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
+					description: "Splash Art 1st Place by [morange](https://twitter.com/OrangewithMC) & [PeacedoveWum](https://twitter.com/PeacedoveWum)",
 				},
 				{
 					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [PICASSO](https://twitter.com/Picasso114514) & [AnzSama](https://twitter.com/AnzSamaEr)",
+					description: "Splash Art 2nd Place by [Wackyblocks](https://twitter.com/Wackyblocks)",
 				},
 				{
 					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [Wanwin](https://wan-win.com/#3darts)",
-				},
-				{
-					source: "./assets/splash_art/4.png",
-					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999)",
-				},
-				{
-					source: "./assets/splash_art/5.png",
-					description: "Splash Art 5th Place by [Azagwen](https://twitter.com/azagwen) & [shroomy](https://twitter.com/ShroomyArts)",
+					description: "Splash Art 3rd Place by [David Grindholmen](https://david_grindholmen.artstation.com/) & [Quinten Bench](https://quintenbench.wixsite.com/quinten-bench)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -542,6 +537,7 @@ class ModelLoader {
 		this.show_on_start_screen = true;
 		this.confidential = options.confidential || false;
 		this.condition = options.condition;
+		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.format_page = options.format_page;
 		this.onFormatPage = options.onFormatPage;

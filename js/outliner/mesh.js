@@ -49,7 +49,11 @@ class MeshFace extends Face {
 		}
 	}
 	getBoundingRect() {
-		let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
+		let texture = Format.per_texture_uv_size && this.getTexture();
+		let min_x = texture ? texture.getUVWidth() : Project.texture_width,
+			min_y = texture ? texture.getUVHeight() : Project.texture_height,
+			max_x = 0,
+			max_y = 0;
 		this.vertices.forEach(vkey => {
 			min_x = Math.min(min_x, this.uv[vkey][0]); max_x = Math.max(max_x, this.uv[vkey][0]);
 			min_y = Math.min(min_y, this.uv[vkey][1]); max_y = Math.max(max_y, this.uv[vkey][1]);
@@ -61,8 +65,8 @@ class MeshFace extends Face {
 		let rect = this.getBoundingRect();
 		let texture = texture_space && this.getTexture();
 		let sorted_vertices = this.getSortedVertices();
-		let factor_x = texture ? (texture.width  / Project.texture_width) : 1;
-		let factor_y = texture ? (texture.display_height / Project.texture_height) : 1;
+		let factor_x = texture ? (texture.width  / texture.getUVWidth()) : 1;
+		let factor_y = texture ? (texture.display_height / texture.getUVHeight()) : 1;
 
 		if (texture_space && texture) {
 			rect.ax *= factor_x;
@@ -130,14 +134,15 @@ class MeshFace extends Face {
 		}
 		return matrix;
 	}
-	getUVIsland() {
+	getUVIsland(max_depth = 4096) {
 		let keys = [this.getFaceKey()];
-		function crawl(face) {
+		let epsilon = 0.2;
+		function crawl(face, depth) {
+			if (depth >= max_depth) return;
 			for (let i = 0; i < face.vertices.length; i++) {
 				let adjacent = face.getAdjacentFace(i);
 				if (!adjacent) continue;
 				if (keys.includes(adjacent.key)) continue;
-				let epsilon = 0.2;
 				let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
 				let uv_a2 = face.uv[adjacent.edge[0]];
 				if (!Math.epsilon(uv_a1[0], uv_a2[0], epsilon) || !Math.epsilon(uv_a1[1], uv_a2[1], epsilon)) continue;
@@ -145,10 +150,10 @@ class MeshFace extends Face {
 				let uv_b2 = face.uv[adjacent.edge[1]];
 				if (!Math.epsilon(uv_b1[0], uv_b2[0], epsilon) || !Math.epsilon(uv_b1[1], uv_b2[1], epsilon)) continue;
 				keys.push(adjacent.key);
-				crawl(adjacent.face);
+				crawl(adjacent.face, depth+1);
 			}
 		}
-		crawl(this);
+		crawl(this, 0);
 		return keys;
 	}
 	getAngleTo(other) {
@@ -291,16 +296,21 @@ class MeshFace extends Face {
 		return center;
 	}
 }
-new Property(MeshFace, 'array', 'vertices', {default: 0});
+new Property(MeshFace, 'array', 'vertices');
 
 
 class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
-		this.vertices = {};
-		this.faces = {};
-		this.seams = {};
+		this._static = {
+			properties: {
+				vertices: {},
+				faces: {},
+				seams: {},
+			}
+		}
+		Object.freeze(this._static);
 
 		if (!data.vertices) {
 			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
@@ -326,6 +336,24 @@ class Mesh extends OutlinerElement {
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
+	}
+	get vertices() {
+		return this._static.properties.vertices;
+	}
+	get faces() {
+		return this._static.properties.faces;
+	}
+	get seams() {
+		return this._static.properties.seams;
+	}
+	set vertices(v) {
+		this._static.properties.vertices = v;
+	}
+	set faces(v) {
+		this._static.properties.faces = v;
+	}
+	set seams(v) {
+		this._static.properties.seams = v;
 	}
 	get position() {
 		return this.origin;
@@ -435,19 +463,33 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	getUndoCopy(aspects = {}) {
-		var copy = new Mesh(this)
-		if (aspects.uv_only) {
-			copy = {
-				faces: copy.faces,
+		let el = {};
+
+		if (!aspects.uv_only) {
+			for (var key in Mesh.properties) {
+				Mesh.properties[key].copy(this, el)
+			}
+			if (Object.keys(this.seams).length) {
+				el.seams = {};
+				for (let key in this.seams) {
+					el.seams[key] = this.seams[key];
+				}
+			}
+
+			el.vertices = {};
+			for (let key in this.vertices) {
+				el.vertices[key] = this.vertices[key].slice();
 			}
 		}
-		copy.uuid = this.uuid;
-		copy.type = this.type;
-		delete copy.parent;
-		for (let fkey in copy.faces) {
-			delete copy.faces[fkey].mesh;
+
+		el.faces = {};
+		for (let key in this.faces) {
+			el.faces[key] = this.faces[key].getUndoCopy();
 		}
-		return copy;
+
+		el.type = 'mesh';
+		el.uuid = this.uuid
+		return el;
 	}
 	getSaveCopy(project) {
 		var el = {}
@@ -758,7 +800,7 @@ class Mesh extends OutlinerElement {
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
-	Mesh.prototype.icon = 'fa far fa-gem';
+	Mesh.prototype.icon = 'far.fa-gem';
 	Mesh.prototype.movable = true;
 	Mesh.prototype.resizable = true;
 	Mesh.prototype.rotatable = true;
@@ -773,6 +815,7 @@ class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
+		'apply_mesh_rotation',
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
@@ -882,14 +925,15 @@ new NodePreviewController(Mesh, {
 		let indices = [];
 		let outline_positions = [];
 		mesh.outline.vertex_order.empty();
+		let {vertices, faces} = element;
 
-		for (let key in element.vertices) {
-			let vector = element.vertices[key];
+		for (let key in vertices) {
+			let vector = vertices[key];
 			point_position_array.push(...vector);
 		}
 
-		for (let key in element.faces) {
-			let face = element.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -900,7 +944,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					indices.push(position_array.length / 3);
-					position_array.push(...element.vertices[key])
+					position_array.push(...vertices[key])
 				})
 				let normal = face.getNormal();
 				normal_array.push(...normal, ...normal, ...normal);
@@ -920,10 +964,10 @@ new NodePreviewController(Mesh, {
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
 				face.vertices.forEach((vkey, i) => {
-					if (!element.vertices[vkey]) {
+					if (!vertices[vkey]) {
 						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
 					}
-					position_array.push(...element.vertices[vkey])
+					position_array.push(...vertices[vkey])
 					face_indices[vkey] = index_offset + i;
 				})
 
@@ -950,7 +994,7 @@ new NodePreviewController(Mesh, {
 		}
 
 		mesh.outline.vertex_order.forEach(key => {
-			outline_positions.push(...element.vertices[key]);
+			outline_positions.push(...vertices[key]);
 		})
 
 		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
@@ -999,10 +1043,11 @@ new NodePreviewController(Mesh, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
+			let faces = element.faces;
 			var materials = []
-			for (let key in element.faces) {
-				if (element.faces[key].vertices.length < 3) continue;
-				var tex = element.faces[key].getTexture()
+			for (let key in faces) {
+				if (faces[key].vertices.length < 3) continue;
+				var tex = faces[key].getTexture()
 				if (tex && tex.uuid) {
 					materials.push(Project.materials[tex.uuid])
 				} else {
@@ -1021,9 +1066,9 @@ new NodePreviewController(Mesh, {
 				let switch_index = 0;
 				let reduced_materials = [];
 
-				for (let key in element.faces) {
-					if (element.faces[key].vertices.length < 3) continue;
-					let face = element.faces[key];
+				for (let key in faces) {
+					if (faces[key].vertices.length < 3) continue;
+					let face = faces[key];
 					let material = materials[i];
 
 					if (current_mat != material) {
@@ -1052,12 +1097,12 @@ new NodePreviewController(Mesh, {
 		this.dispatchEvent('update_faces', {element});
 	},
 	updateUV(element) {
-		var {mesh} = element;
+		let {mesh, faces} = element;
 		if (mesh === undefined || !mesh.geometry) return;
 		let uv_array = [];
 
-		for (let key in element.faces) {
-			let face = element.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 			if (face.vertices.length <= 2) continue;
 			
 			let stretch = 1;
@@ -1067,10 +1112,13 @@ new NodePreviewController(Mesh, {
 				stretch = tex.frameCount
 				frame = tex.currentFrame || 0;
 			}
+			let uv_size = tex
+				? [tex.getUVWidth(), tex.getUVHeight()]
+				: [Project.texture_width, Project.texture_height];
 
 			face.vertices.forEach((key, i) => {
-				let u = (face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width;
-				let v = (face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height;
+				let u = (face.uv[key] ? face.uv[key][0] : 0) / uv_size[0];
+				let v = (face.uv[key] ? face.uv[key][1] : 0) / uv_size[1];
 				if (stretch > 1) {
 					v = (v + frame) / stretch;
 				}
@@ -1114,9 +1162,10 @@ new NodePreviewController(Mesh, {
 		}
 
 		let face_outlines = {};
+		let faces = element.faces;
 		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
 			selected_faces.forEach(fkey => {
-				let face = element.faces[fkey];
+				let face = faces[fkey];
 				face.vertices.forEach(vkey => {
 					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
 					face.vertices.forEach(vkey2 => {
@@ -1175,8 +1224,9 @@ new NodePreviewController(Mesh, {
 		
 		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
-			for (let fkey in element.faces) {
-				let face = element.faces[fkey];
+			let faces = element.faces;
+			for (let fkey in faces) {
+				let face = faces[fkey];
 				if (face.vertices.length < 3) continue;
 				if (selected_faces.indexOf(fkey) != -1 && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
@@ -1209,8 +1259,8 @@ new NodePreviewController(Mesh, {
 			if (face.vertices.length <= 2) continue;
 			let offset = face.getNormal(true).V3_multiply(0.01);
 			let texture = face.getTexture();
-			var psize_x = texture ? Project.texture_width / texture.width : 1;
-			var psize_y = texture ? Project.texture_height / texture.display_height : 1;
+			var psize_x = texture ? texture.getUVWidth() / texture.width : 1;
+			var psize_y = texture ? texture.getUVHeight() / texture.display_height : 1;
 
 			let vertices = face.getSortedVertices();
 			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];

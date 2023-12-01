@@ -169,7 +169,7 @@ const MirrorModeling = {
 		for (let fkey of original_fkeys) {
 			let face = mesh.faces[fkey];
 			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
-			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2) {
+			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2 && !(face.vertices.length == 3 && deleted_face_vertices.length == 1)) {
 				// cannot flip. restore vertices instead?
 				deleted_face_vertices.forEach(vkey => {
 					mesh.vertices[vkey] = deleted_vertices[vkey];
@@ -199,7 +199,7 @@ const MirrorModeling = {
 					}
 				})
 
-			} else if (deleted_face_vertices.length == 0) {
+			} else if (deleted_face_vertices.length == 0 && face.vertices.find((vkey) => vkey != vertex_counterpart[vkey])) {
 				// Recreate face as mirrored
 				let new_face_key;
 				for (let key in deleted_faces) {
@@ -381,7 +381,7 @@ Blockbench.on('finish_edit', ({aspects}) => {
 				}
 				if (is_centered) {
 					let mirror_element = MirrorModeling.cached_elements[element.uuid]?.counterpart;
-					if (mirror_element) {
+					if (mirror_element && mirror_element.uuid != element.uuid) {
 						MirrorModeling.insertElementIntoUndo(mirror_element, Undo.current_save.aspects, mirror_element.getUndoCopy());
 						mirror_element.remove();
 						aspects.elements.remove(mirror_element);

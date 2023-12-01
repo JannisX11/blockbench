@@ -21,6 +21,8 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
+			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [500, 500], toggle_enabled: true, toggle_default: false},
+			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
@@ -39,6 +41,8 @@ const Screencam = {
 				length_mode: formData.length_mode,
 				length: formData.length,
 				fps: formData.fps,
+				resolution: formData.resolution,
+				zoom: formData.zoom,
 				quality: formData.quality,
 				pixelate: formData.pixelate,
 				background,
@@ -48,16 +52,50 @@ const Screencam = {
 			})
 		}
 	}),
-	screenshotPreview(preview, options, cb) {
-		if (!options) options = 0;
+	advanced_screenshot_dialog: new Dialog({
+		id: 'advanced_screenshot',
+		title: 'action.advanced_screenshot',
+		form: {
+			angle_preset: 	{type: 'select', label: 'dialog.advanced_screenshot.angle_preset', value: 'view', options() {
+				let options = {
+					view: 'View',
+				};
+				let presets = localStorage.getItem('camera_presets')
+				presets = (presets && autoParseJSON(presets, false)) || [];
 
+				DefaultCameraPresets.forEach(preset => {
+					if (!Condition(preset.condition)) return;
+					options[preset.id] = {color: preset.color, name: tl(preset.name)};
+				})
+				presets.forEach((preset, i) => {
+					if (!Condition(preset.condition)) return;
+					options['_'+i] = preset.name;
+				})
+				return options;
+			}},
+			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
+			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
+			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
+			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
+				off: 'dialog.advanced_screenshot.anti_aliasing.off',
+				msaa: 'dialog.advanced_screenshot.anti_aliasing.msaa',
+				ssaa: 'dialog.advanced_screenshot.anti_aliasing.ssaa',
+			}},
+			show_gizmos: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.show_gizmos'},
+			shading: 		{type: 'checkbox', label: 'dialog.advanced_screenshot.shading', value: settings.shading.value},
+		},
+		onConfirm(result) {
+			Screencam.advancedScreenshot(Preview.selected, result, Screencam.returnScreenshot);
+		}
+	}),
+	screenshotPreview(preview, options = 0, cb) {
 		Canvas.withoutGizmos(function() {
 
 			preview.render()
 
 			if (options.crop !== false) {
 
-				if (display_mode && display_slot === 'gui') {
+				if (Modes.display && display_slot === 'gui') {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
 	
@@ -103,6 +141,72 @@ const Screencam = {
 				}
 			}
 		})
+	},
+	async advancedScreenshot(preview = Preview.selected, options = 0, cb) {
+		let current_shading = settings.shading.value;
+
+		let render = async () => {
+
+			if (typeof options.shading == 'boolean' && options.shading != current_shading) {
+				settings.shading.set(options.shading);
+			}
+
+			let render_viewport = options.anti_aliasing == 'msaa' ? MediaPreview : Screencam.NoAAPreview;
+
+			let sample_factor = options.anti_aliasing == 'ssaa' ? 4 : 1;
+			render_viewport.resize(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+			if (options.angle_preset == 'view') {
+				render_viewport.copyView(preview);
+			} else {
+				let preset = isNaN(options.angle_preset.substring(1))
+					? DefaultCameraPresets.find(p => p.id == options.angle_preset)
+					: JSON.parse(localStorage.getItem('camera_presets'))[parseInt(options.angle_preset)];
+				render_viewport.loadAnglePreset(preset);
+			}
+			if (options.zoom) {
+				if (!render_viewport.isOrtho) {
+					render_viewport.camera.setFocalLength(options.zoom);
+				} else {
+					render_viewport.camera.zoom = options.zoom / 100 * sample_factor;
+					render_viewport.camera.updateProjectionMatrix();
+				}
+			}
+			if (render_viewport.isOrtho) {
+
+			}
+			render_viewport.render();
+
+			if (options.anti_aliasing == 'ssaa') {
+
+                let img_frame = new CanvasFrame(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+                let frame = new CanvasFrame(options.resolution[0], options.resolution[1]);
+                let img = new Image()
+                img.src = render_viewport.canvas.toDataURL();
+                await new Promise((resolve, reject) => {
+                    img.onload = function() {
+                        resolve()
+                    }
+                    img.onerror = reject;
+                })
+                img_frame.ctx.filter = `blur(1px)`;
+                img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+                frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
+
+				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
+
+			} else {
+				Screencam.returnScreenshot(render_viewport.canvas.toDataURL(), cb);
+			}
+
+			if (settings.shading.value != current_shading) {
+				settings.shading.set(current_shading);
+			}
+		};
+		if (options.show_gizmos) {
+			render();
+		} else {
+			Canvas.withoutGizmos(render);
+		}
 	},
 	fullScreen(options = 0, cb) {
 		setTimeout(async function() {
@@ -166,9 +270,9 @@ const Screencam = {
 		center.innerHTML = `<div>${img.naturalWidth} x ${img.naturalHeight}px, ${size_text}, ${is_gif ? 'GIF' : 'PNG'}</div>`;
 		center.appendChild(img);
 
-		let buttons = [tl('dialog.save'), tl('dialog.cancel')]
+		let buttons = ['dialog.save', 'dialog.cancel'];
 		if (!is_gif) {
-			buttons.splice(0, 0, tl('message.screenshot.clipboard'))
+			buttons = ['message.screenshot.clipboard', 'dialog.save', 'menu.texture.edit', 'dialog.cancel'];
 		}
 		let dialog = new Dialog({
 			title: 'message.screenshot.title', 
@@ -178,9 +282,10 @@ const Screencam = {
 				center
 			],
 			buttons,
-			onButton(result) {
+			onButton(result_index) {
+				let result = buttons[result_index];
 
-				if (result === 0 && buttons.length == 3) {
+				if (result === 'message.screenshot.clipboard') {
 					if (navigator.clipboard && navigator.clipboard.write) {
 						fetch(dataUrl).then(async data => {
 							const blob = await data.blob();
@@ -194,7 +299,7 @@ const Screencam = {
 						Blockbench.showQuickMessage('message.screenshot.right_click');
 						return false;
 					}
-				} else if (result === buttons.length-2) {
+				} else if (result === 'dialog.save') {
 					Blockbench.export({
 						resource_id: 'screenshot',
 						extensions: [is_gif ? 'gif' : 'png'],
@@ -203,6 +308,9 @@ const Screencam = {
 						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
 						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
 					})
+				} else if (result === 'menu.texture.edit') {
+					Codecs.image.load(dataUrl, '', [img.naturalWidth, img.naturalHeight]);
+					Texture.all[0].name = 'screenshot';
 				}
 			}
 		})
@@ -232,6 +340,7 @@ const Screencam = {
 		let recording = false;
 		let loop = null;
 		let crop = Screencam.gif_crop;
+		let custom_resolution = options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height);
 		let background_image;
 		if (options.background_image) {
 			background_image = new Image();
@@ -289,8 +398,7 @@ const Screencam = {
 			}
 	
 			if (options.play && animation) {
-				Timeline.time = 0;
-				Timeline.start()
+				Timeline.setTime(0);
 				if (!animation.length) options.length_mode = 'seconds';
 			} else if (options.length_mode == 'animation') {
 				options.length_mode = 'seconds'
@@ -302,14 +410,25 @@ const Screencam = {
 
 			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
 			let NoAAPreview = Screencam.NoAAPreview;
-			NoAAPreview.resize(
-				preview.width * window.devicePixelRatio / options.pixelate,
-				preview.height * window.devicePixelRatio / options.pixelate
-			);
+			if (custom_resolution) {
+				NoAAPreview.resize(
+					canvas_width / options.pixelate,
+					canvas_height / options.pixelate
+				);
+			} else {
+				NoAAPreview.resize(
+					preview.width * window.devicePixelRatio / options.pixelate,
+					preview.height * window.devicePixelRatio / options.pixelate
+				);
+			}
 			NoAAPreview.setProjectionMode(preview.isOrtho);
 
 			recording = true;
 			loop = setInterval(() => {
+				if (animation) {
+					Timeline.setTime(interval*frames / 1000);
+					Animator.preview(true);
+				}
 				frames++;
 				Canvas.withoutGizmos(function() {
 					// Update camera
@@ -325,7 +444,17 @@ const Screencam = {
 						NoAAPreview.camera.left = preview.camera.left;
 						NoAAPreview.camOrtho.updateProjectionMatrix();
 					} else {
-						NoAAPreview.setFOV(preview.camPers.fov);
+						if (options.zoom) {
+							if (!NoAAPreview.isOrtho) {
+								NoAAPreview.camera.setFocalLength(options.zoom);
+							} else {
+								NoAAPreview.camera.zoom = options.zoom / 100;
+								NoAAPreview.camera.updateProjectionMatrix();
+							}
+							NoAAPreview.camPers.setFocalLength(options.zoom);
+						} else {
+							NoAAPreview.setFOV(preview.camPers.fov);
+						}
 					}
 
 					let [canvas, ctx] = createEmptyCanvas();
@@ -339,12 +468,16 @@ const Screencam = {
 					if (background_image) {
 						ctx.drawImage(background_image, 0, 0, canvas_width, canvas_height);
 					}
-					ctx.drawImage(NoAAPreview.canvas,
-						Math.round(-crop.left * window.devicePixelRatio),
-						Math.round(-crop.top * window.devicePixelRatio),
-						Math.round(NoAAPreview.width * options.pixelate),
-						Math.round(NoAAPreview.height * options.pixelate)
-					);
+					if (custom_resolution) {
+						ctx.drawImage(NoAAPreview.canvas, 0, 0, NoAAPreview.width * options.pixelate, NoAAPreview.height * options.pixelate);
+					} else {
+						ctx.drawImage(NoAAPreview.canvas,
+							Math.round(-crop.left * window.devicePixelRatio),
+							Math.round(-crop.top * window.devicePixelRatio),
+							Math.round(NoAAPreview.width * options.pixelate),
+							Math.round(NoAAPreview.height * options.pixelate)
+						);
+					}
 					if (options.format == 'png_sequence' || options.format == 'gif' || options.format == 'apng') {
 						frame_canvases.push(canvas);
 					}
@@ -494,10 +627,12 @@ const Screencam = {
 			frame.remove();
 		}
 		function updateCrop() {
-			crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
-			crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
-			crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
-			crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
+			if (!options.resolution) {
+				crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
+				crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
+				crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
+				crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
+			}
 			frame.style.top = crop.top + 'px';
 			frame.style.left = crop.left + 'px';
 			frame.style.right = crop.right + 'px';
@@ -513,6 +648,10 @@ const Screencam = {
 		frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
 		frame.append(frame_label);
 
+		if (options.resolution) {
+			crop.left = crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
+			crop.top = crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
+		}
 		function drag(e1) {
 			let crop_original = Object.assign({}, crop);
 			function move(e2) {
@@ -521,6 +660,7 @@ const Screencam = {
 				crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
 				crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
 				crop.bottom	= crop_original.bottom	- (e2.clientY - e1.clientY);
+				custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -543,6 +683,7 @@ const Screencam = {
 				convertTouchEvent(e2);
 				crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
 				crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
+				custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -668,6 +809,14 @@ BARS.defineActions(function() {
 			} else {
 				Screencam.screenshot2DEditor();
 			}
+		}
+	})
+	new Action('advanced_screenshot', {
+		icon: 'add_a_photo',
+		category: 'view',
+		condition: () => !!Project && !Format.image_editor,
+		click() {
+			Screencam.advanced_screenshot_dialog.show();
 		}
 	})
 	new Action('record_model_gif', {

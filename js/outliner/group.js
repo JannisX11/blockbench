@@ -449,6 +449,7 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
+		'apply_animation_preset',
 		'add_locator',
 		new MenuSeparator('manage'),
 		'resolve_group',

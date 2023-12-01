@@ -115,36 +115,50 @@ class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
-		this.from = [0, 0, 0];
-		this.to = [size, size, size];
 		this.shade = true;
 		this.mirror_uv = false;
 		this.color = Math.floor(Math.random()*markerColors.length)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
 		this.stretch = [1, 1, 1];
-		this.rotation = [0, 0, 0];
-		this.origin = [0, 0, 0];
 		this.visibility = true;
 		this.autouv = 0;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
 		}
+		this._static = Object.freeze({
+			properties: {
+				faces: {
+					north: 	new CubeFace('north', null, this),
+					east: 	new CubeFace('east', null, this),
+					south: 	new CubeFace('south', null, this),
+					west: 	new CubeFace('west', null, this),
+					up: 	new CubeFace('up', null, this),
+					down: 	new CubeFace('down', null, this)
+				},
+				from: [0, 0, 0],
+				to: [size, size, size],
+				rotation: [0, 0, 0],
+				origin: [0, 0, 0],
+			}
+		})
 
 		this.box_uv = Project.box_uv;
-		this.faces = {
-			north: 	new CubeFace('north', null, this),
-			east: 	new CubeFace('east', null, this),
-			south: 	new CubeFace('south', null, this),
-			west: 	new CubeFace('west', null, this),
-			up: 	new CubeFace('up', null, this),
-			down: 	new CubeFace('down', null, this)
-		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
 	}
+	get faces() {return this._static.properties.faces};
+	get from() {return this._static.properties.from};
+	get to() {return this._static.properties.to};
+	get rotation() {return this._static.properties.rotation};
+	get origin() {return this._static.properties.origin};
+	set faces(v) {this._static.properties.faces = v};
+	set from(v) {this._static.properties.from = v};
+	set to(v) {this._static.properties.to = v};
+	set rotation(v) {this._static.properties.rotation = v};
+	set origin(v) {this._static.properties.origin = v};
 	extend(object) {
 		for (var key in Cube.properties) {
 			Cube.properties[key].merge(this, object)
@@ -867,7 +881,7 @@ class Cube extends OutlinerElement {
 }
 	Cube.prototype.title = tl('data.cube');
 	Cube.prototype.type = 'cube';
-	Cube.prototype.icon = 'fa fa-cube';
+	Cube.prototype.icon = 'fa-cube';
 	Cube.prototype.movable = true;
 	Cube.prototype.resizable = true;
 	Cube.prototype.rotatable = true;
@@ -1079,7 +1093,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
 			var materials = []
@@ -1089,7 +1103,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color])
+						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 					}
 				}
 			})
@@ -1101,14 +1115,14 @@ new NodePreviewController(Cube, {
 		Cube.preview_controller.dispatchEvent('update_faces', {element});
 	},
 	updateUV(element, animation = true) {
-		var mesh = element.mesh
+		let mesh = element.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
 		if (element.box_uv) {
 
-			var size = element.size(undefined, Format.box_uv_float_size != true);
+			let size = element.size(undefined, Format.box_uv_float_size != true);
 			
-			var face_list = [   
+			let face_list = [   
 				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
 				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
 				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
@@ -1124,7 +1138,7 @@ new NodePreviewController(Cube, {
 				})
 				//East+West
 				
-				var p = {}
+				let p = {}
 
 				p.from = face_list[0].from.slice()
 				p.size = face_list[0].size.slice()
@@ -1140,7 +1154,7 @@ new NodePreviewController(Cube, {
 
 				if (element.faces[f.face].texture == null) return;
 
-				var uv= [
+				let uv= [
 					f.from[0]			 +  element.uv_offset[0],
 					f.from[1]			 +  element.uv_offset[1],
 					f.from[0] + f.size[0] + element.uv_offset[0],
@@ -1154,9 +1168,38 @@ new NodePreviewController(Cube, {
 				element.faces[f.face].uv[1] = uv[1]
 				element.faces[f.face].uv[2] = uv[2]
 				element.faces[f.face].uv[3] = uv[3]
+			})
 
-				//Fight Bleeding
-				for (var si = 0; si < 2; si++) {
+		}
+
+		Canvas.face_order.forEach((fkey, index) => {
+			let face = element.faces[fkey];
+			if (face.texture === null) return;
+
+			let stretch = 1;
+			let frame = 0;
+			let tex = face.getTexture();
+			let uv = face.uv;
+			let vertex_uvs = mesh.geometry.attributes.uv;
+			let pw = Project.texture_width;
+			let ph = Project.texture_height;
+			if (tex && Format.per_texture_uv_size) {
+				pw = tex.getUVWidth();
+				ph = tex.getUVHeight();
+			}
+
+			if (tex instanceof Texture && tex.frameCount !== 1) {
+				stretch = tex.frameCount || 1;
+				if (animation === true && tex.currentFrame) {
+					frame = tex.currentFrame;
+				}
+			}
+			stretch *= -1;
+
+			// Box UV fight texture bleeding
+			if (element.box_uv) {
+				uv = uv.slice();
+				for (let si = 0; si < 2; si++) {
 					let margin = 1/64;
 					if (uv[si] > uv[si+2]) {
 						margin = -margin
@@ -1164,42 +1207,37 @@ new NodePreviewController(Cube, {
 					uv[si] += margin
 					uv[si+2] -= margin
 				}
+			}
 
-				stretch = 1;
-				frame = 0;
-				let tex = element.faces[f.face].getTexture();
-				if (tex instanceof Texture && tex.frameCount !== 1) {
-					stretch = tex.frameCount
-					if (animation === true && tex.currentFrame) {
-						frame = tex.currentFrame
-					}
-				}
+			let arr = [
+				[uv[0]/pw, (uv[1]/ph)/stretch+1],
+				[uv[2]/pw, (uv[1]/ph)/stretch+1],
+				[uv[0]/pw, (uv[3]/ph)/stretch+1],
+				[uv[2]/pw, (uv[3]/ph)/stretch+1],
+			]
+			if (frame > 0 && stretch !== -1) {
+				//Animate
+				let offset = (1/stretch) * frame
+				arr[0][1] += offset
+				arr[1][1] += offset
+				arr[2][1] += offset
+				arr[3][1] += offset
+			}
+			let rot = (face.rotation+0)
+			while (rot > 0) {
+				let a = arr[0];
+				arr[0] = arr[2];
+				arr[2] = arr[3];
+				arr[3] = arr[1];
+				arr[1] = a;
+				rot = rot-90;
+			}
+			vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
+			vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
+			vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
+			vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
+		})
 
-				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
-			})
-
-		} else {
-		
-			var stretch = 1
-			var frame = 0
-
-			Canvas.face_order.forEach((face, fIndex) => {
-
-				if (element.faces[face].texture === null) return;
-
-				stretch = 1;
-				frame = 0;
-				let tex = element.faces[face].getTexture();
-				if (tex instanceof Texture && tex.frameCount !== 1) {
-					stretch = tex.frameCount
-					if (animation === true && tex.currentFrame) {
-						frame = tex.currentFrame
-					}
-				}
-				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, element.faces[face], frame, stretch)
-			})
-
-		}
 		mesh.geometry.attributes.uv.needsUpdate = true;
 
 		this.dispatchEvent('update_uv', {element});
@@ -1261,8 +1299,8 @@ new NodePreviewController(Cube, {
 			var texture = face.getTexture();
 			if (texture === null) return;
 
-			var px_x = texture ? Project.texture_width / texture.width : 1;
-			var px_y = texture ? Project.texture_height / texture.height : 1;
+			var px_x = texture ? texture.uv_width / texture.width : 1;
+			var px_y = texture ? texture.uv_height / texture.height : 1;
 			var uv_size = [
 				Math.abs(face.uv_size[0]),
 				Math.abs(face.uv_size[1])
@@ -1288,7 +1326,7 @@ new NodePreviewController(Cube, {
 			//Columns
 			var width = end[0]-start[0];
 			var step = Math.abs( width / uv_size[0] );
-			if (texture) step *= Project.texture_width / texture.width;
+			if (texture) step *= texture.uv_width / texture.width;
 			if (step < epsilon) step = epsilon;
 
 			for (var col = start[0] - uv_offset[0]; col <= end[0]; col += step) {
@@ -1303,7 +1341,7 @@ new NodePreviewController(Cube, {
 			var step = Math.abs( height / uv_size[1] );
 			if (texture) {
 				let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
-				step *= Project.texture_height / tex_height;
+				step *= texture.uv_height / tex_height;
 			}
 			if (step < epsilon) step = epsilon;
 

@@ -1822,7 +1822,7 @@ BARS.defineActions(function() {
 			var arr = elements.slice()
 			var empty_elements = [];
 			var cleared_total = 0;
-			unselectAll()
+			unselectAllElements()
 			arr.forEach(element => {
 				var clear_count = 0;
 				var original_face_count = Object.keys(element.faces).length
@@ -1878,7 +1878,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit && Format.java_face_properties,
 		click() {
 			if (!Cube.selected.length) {
-				selectAll();
+				BarItems.select_all.click();
 			}
 			Undo.initEdit({elements: Cube.selected});
 			

@@ -157,6 +157,7 @@ const ModelScaler = {
 			element_aspects: {geometry: true, transform: true},
 			groups: ModelScaler.getScaleGroups(),
 			group_aspects: {transform: true},
+			selection: true
 		})
 		if (save === true) {
 			Undo.finishEdit('Scale model')
@@ -189,6 +190,7 @@ const ModelScaler = {
 			element_aspects: {geometry: true, transform: true},
 			groups: ModelScaler.getScaleGroups(),
 			group_aspects: {transform: true},
+			selection: true
 		})
 	},
 	setPivot(mode) {
@@ -222,7 +224,7 @@ BARS.defineActions(function() {
 		click() {
 			if (Outliner.selected.length == 0) {
 				Prop.active_panel = 'preview';
-				selectAll();
+				BarItems.select_all.click();
 			}
 
 			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig});

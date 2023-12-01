@@ -216,7 +216,7 @@ class Keybind {
 			document.removeEventListener('keyup', onActivate)
 			document.removeEventListener('keydown', onActivateDown)
 			overlay.off('mousedown', onActivate)
-			overlay.off('mousewheel', onActivate)
+			overlay.off('wheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
 
@@ -247,7 +247,7 @@ class Keybind {
 		document.addEventListener('keyup', onActivate)
 		document.addEventListener('keydown', onActivateDown)
 		overlay.on('mousedown', onActivate)
-		overlay.on('mousewheel', onActivate)
+		overlay.on('wheel', onActivate)
 
 		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 		return this;
@@ -314,6 +314,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
 		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
 		Keybinds.extra.preview_area_select.keybind.set({key: 1}).save(false);
+		Keybinds.extra.paint_secondary_color.keybind.set({key: 3}).save(false);
 	}
 
 	Keybinds.save();
@@ -623,9 +624,14 @@ window.addEventListener('blur', event => {
 			delete Toolbox.original;
 		}
 	}
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = false;
 	Pressing.alt = false;
 	Pressing.ctrl = false;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })
 
 window.addEventListener('focus', event => {
@@ -660,9 +666,17 @@ function getFocusedTextInput() {
 addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
+
+	
+	let modifiers_changed = Pressing.shift != e.shiftKey || Pressing.alt != e.altKey || Pressing.ctrl != e.ctrlKey;
+	let before = modifiers_changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = e.shiftKey;
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
+	if (modifiers_changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
+
 	if (e.which === 16) {
 		showShiftTooltip()
 	}
@@ -782,6 +796,13 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				}
 			}
 		})
+		if (!used && !open_dialog) {
+			for (let tool of Tool.all) {
+				if (tool.keybind && typeof tool.trigger === 'function' && tool.keybind.isTriggered(e)) {
+					if (tool.switchModeAndSelect(e)) break;
+				}
+			}
+		}
 	}
 	// Menu
 	if (open_menu) {
@@ -859,11 +880,20 @@ $(document).keyup(function(e) {
 	if (Pressing.alt && ActionControl.open) {
 		ActionControl.vue.$forceUpdate()
 	}
+	// Firefox-specific fix for suppressing the menu bar
+	if(e.which == 18) {
+		e.preventDefault();
+	}
 	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
-	Pressing.shift = false;
-	Pressing.alt = false;
-	Pressing.ctrl = false;
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
+	Pressing.shift = e.shiftKey;
+	Pressing.alt = e.altKey;
+	Pressing.ctrl = e.ctrlKey;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })

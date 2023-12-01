@@ -97,7 +97,7 @@ class NullObject extends OutlinerElement {
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
-	NullObject.prototype.icon = 'fa far fa-circle';
+	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
 	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;

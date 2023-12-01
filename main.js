@@ -180,12 +180,6 @@ app.on('open-file', function (event, path) {
 	}
 })
 
-ipcMain.on('change-main-color', (event, arg) => {
-	all_wins.forEach(win => {
-		if (win.isDestroyed() || win.webContents == event.sender.webContents) return;
-		win.webContents.send('set-main-color', arg)
-	})
-})
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })

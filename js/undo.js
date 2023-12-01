@@ -328,11 +328,20 @@ class UndoSystem {
 					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]).updateSource()
+						tex.extend(save.textures[uuid]);
+						if (tex.source_overwritten && save.textures[uuid].image_data) {
+							// If the source file was overwritten by more recent changes, make sure to display the original data
+							tex.convertToInternal(save.textures[uuid].image_data);
+						}
+						if (tex.layers_enabled) {
+							tex.updateLayerChanges(true);
+						}
+						tex.updateSource();
 						tex.keep_size = true;
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
 						}
+						tex.syncToOtherProject();
 					}
 				} else {
 					var tex = new Texture(save.textures[uuid], uuid)
@@ -351,7 +360,35 @@ class UndoSystem {
 					}
 				}
 			}
-			Canvas.updateAllFaces()
+			Canvas.updateAllFaces();
+			updateInterfacePanels();
+			UVEditor.vue.updateTexture();
+		}
+
+		if (save.layers) {
+			let affected_textures = [];
+			for (let uuid in save.layers) {
+				if (reference.layers[uuid]) {
+					let tex = Texture.all.find(tex => tex.uuid == save.layers[uuid].texture);
+					let layer = tex && tex.layers.find(l => l.uuid == uuid);
+					if (layer) {
+						layer.extend(save.layers[uuid]);
+						affected_textures.safePush(tex);
+					}
+				}
+			}
+			affected_textures.forEach(tex => {
+				/*if (tex.source_overwritten && save.layers[uuid].image_data) {
+					// If the source file was overwritten by more recent changes, make sure to display the original data
+					tex.convertToInternal(save.layers[uuid].image_data);
+				}*/
+				tex.updateLayerChanges(true);
+				tex.updateSource();
+				tex.keep_size = true;
+				tex.syncToOtherProject();
+			})
+			Canvas.updateAllFaces();
+			UVEditor.vue.updateTexture();
 		}
 
 		if (save.texture_order) {
@@ -542,8 +579,16 @@ UndoSystem.save = class {
 		if (aspects.textures) {
 			this.textures = {}
 			aspects.textures.forEach(t => {
-				var tex = t.getUndoCopy(aspects.bitmap)
+				let tex = t.getUndoCopy(aspects.bitmap)
 				this.textures[t.uuid] = tex
+			})
+		}
+
+		if (aspects.layers) {
+			this.layers = {};
+			aspects.layers.forEach(layer => {
+				let copy = layer.getUndoCopy(aspects.bitmap)
+				this.layers[layer.uuid] = copy;
 			})
 		}
 
@@ -614,6 +659,22 @@ UndoSystem.save = class {
 		if (!this.textures) return;
 		if (this.aspects.textures.safePush(texture)) {
 			this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+		}
+	}
+	addTextureOrLayer(texture) {
+		if (texture.layers_enabled && texture.layers[0]) {
+			let layer = texture.getActiveLayer();
+			if (!this.aspects.layers) this.aspects.layers = [];
+			if (this.aspects.layers.safePush(layer)) {
+				if (!this.layers) this.layers = {};
+				this.layers[layer.uuid] = layer.getUndoCopy(this.aspects.bitmap);
+			}
+		} else {
+			if (!this.aspects.textures) this.aspects.textures = [];
+			if (this.aspects.textures.safePush(texture)) {
+				if (!this.textures) this.textures = {};
+				this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+			}
 		}
 	}
 	addElements(elements, aspects = {}) {

@@ -70,7 +70,7 @@ class TextureMesh extends OutlinerElement {
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
-	TextureMesh.prototype.icon = 'fa fa-puzzle-piece';
+	TextureMesh.prototype.icon = 'fa-puzzle-piece';
 	TextureMesh.prototype.movable = true;
 	TextureMesh.prototype.scalable = true;
 	TextureMesh.prototype.rotatable = true;

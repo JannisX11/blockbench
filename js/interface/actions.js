@@ -31,6 +31,7 @@ class BarItem extends EventSystem {
 		this.condition = data.condition;
 		this.nodes = []
 		this.toolbars = []
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 		//Key
 		this.category = data.category ? data.category : 'misc'
 		if (!data.private && this.condition !== false/*Rule out app/web only actions*/) {
@@ -46,7 +47,7 @@ class BarItem extends EventSystem {
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
 			this.uses = 0;
-			Keybinds.actions.push(this)
+			Keybinds.actions.push(this);
 		}
 	}
 	conditionMet() {
@@ -373,13 +374,13 @@ class Action extends BarItem {
 		return clone;
 	}
 	setIcon(icon) {
-		var scope = this;
 		this.icon = icon
 		this.icon_node = Blockbench.getIconNode(this.icon)
 		$(this.menu_node).find('.icon').replaceWith(this.icon_node)
 
-		this.nodes.forEach(function(n) {
-			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
+		this.nodes.forEach(n => {
+			let old_icon = n.querySelector('.icon:not(.action_more_options)');
+			old_icon.replaceWith(this.icon_node.cloneNode(true));
 		})
 	}
 	setName(name) {
@@ -427,17 +428,18 @@ class Tool extends Action {
 		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
-		if (this.condition == undefined) {
-			this.condition = function() {
-				return !scope.modes || scope.modes.includes(Modes.id);
-			}
+		if (this.condition == undefined && this.modes instanceof Array) {
+			this.condition = {modes: this.modes};
 		}
 		this.onCanvasClick = data.onCanvasClick;
+		this.onCanvasRightClick = data.onCanvasRightClick;
+		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
 		this.node.onclick = () => {
 			scope.select();
 		}
+		Tool.all.push(this);
 	}
 	select() {
 		if (this === Toolbox.selected) return;
@@ -493,19 +495,28 @@ class Tool extends Action {
 		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (this.modes) {
-			for (var i = 0; i < this.modes.length; i++) {
-				var mode = Modes.options[this.modes[i]]
-				if (mode && Condition(mode.condition)) {
-					mode.select()
-					this.select()
-					return true;
-				}
-			}
+		} else if (this.modes && event instanceof KeyboardEvent == false) {
+			return this.switchModeAndSelect();
 		}
 		return false;
 	}
+	switchModeAndSelect() {
+		for (var i = 0; i < this.modes.length; i++) {
+			var mode = Modes.options[this.modes[i]]
+			if (mode && Condition(mode.condition)) {
+				mode.select()
+				this.select()
+				return true;
+			}
+		}
+	}
+	delete() {
+		super.delete();
+		Tool.all.remove(this);
+	}
 }
+Tool.all = [];
+Tool.selected = null;
 class Toggle extends Action {
 	constructor(id, data) {
 		super(id, data);
@@ -1162,7 +1173,7 @@ class BarSelect extends Widget {
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
-		$(this.node).on('mousewheel', event => {
+		$(this.node).on('wheel', event => {
 			scope.trigger(event.originalEvent);
 		})
 	}
@@ -1806,6 +1817,7 @@ const BARS = {
 				selectElements: true,
 				cursor: 'copy',
 				modes: ['edit'],
+				condition: {modes: ['edit']},
 				keybind: new Keybind({key: 'x'}),
 				onCanvasClick(data) {
 					Vertexsnap.canvasClick(data)
@@ -1861,230 +1873,6 @@ const BARS = {
 			})
 
 		//Edit Generic
-			new Action('rename', {
-				icon: 'text_format',
-				category: 'edit',
-				keybind: new Keybind({key: 113}),
-				click: function () {
-					if (Modes.edit || Modes.paint) {
-						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
-						AnimationItem.selected.rename();
-					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-						AnimationController.selected?.selected_state.rename();
-					}
-				}
-			})
-			new Action('delete', {
-				icon: 'delete',
-				category: 'edit',
-				keybind: new Keybind({key: 46}),
-				condition: () => !Dialog.open,
-				click() {
-					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
-					if (ReferenceImageMode.active && ReferenceImage.selected) {
-						ReferenceImage.selected.delete();
-
-					} else if (Prop.active_panel == 'textures' && Texture.selected) {
-						Texture.selected.remove()
-
-					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
-						if (StateMemory.color_palette_locked) {
-							Blockbench.showQuickMessage('message.palette_locked');
-							return;
-						}
-						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
-							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
-						}
-					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
-
-						let meshes = Mesh.selected.slice();
-						Undo.initEdit({elements: meshes, outliner: true})
-
-						Mesh.selected.forEach(mesh => {
-							let selected_vertices = mesh.getSelectedVertices();
-							let selected_edges = mesh.getSelectedEdges();
-							let selected_faces = mesh.getSelectedFaces();
-
-							if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
-								let affected_vertices = [];
-								selected_faces.forEach(fkey => {
-									affected_vertices.safePush(...mesh.faces[fkey].vertices);
-									delete mesh.faces[fkey];
-								})
-								affected_vertices.forEach(vertex_key => {
-									let used = false;
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (face.vertices.includes(vertex_key)) used = true;
-									}
-									if (!used) {
-										delete mesh.vertices[vertex_key];
-									}
-								})
-							} else if (BarItems.selection_mode.value == 'edge') {
-								for (let key in mesh.faces) {
-									let face = mesh.faces[key];
-									let sorted_vertices = face.getSortedVertices();
-									let has_edge = sorted_vertices.find((vkey_a, i) => {
-										let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
-										let edge = [vkey_a, vkey_b];
-										return selected_edges.find(edge2 => sameMeshEdge(edge, edge2))
-									})
-									if (has_edge) {
-										delete mesh.faces[key];
-									}
-								}
-								selected_edges.forEachReverse(edge => {
-									edge.forEach(vkey => {
-										let used = false;
-										for (let key in mesh.faces) {
-											let face = mesh.faces[key];
-											if (face.vertices.includes(vkey)) used = true;
-										}
-										if (!used) {
-											delete mesh.vertices[vkey];
-											selected_vertices.remove(vkey);
-											selected_edges.remove(edge);
-										}
-									})
-								})
-
-							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
-								selected_vertices.forEach(vkey => {
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (!face.vertices.includes(vkey)) continue;
-										if (face.vertices.length > 2) {
-											let initial_normal;
-											if (face.vertices.length == 4) {
-												initial_normal = face.getNormal();
-											}
-											face.vertices.remove(vkey);
-											delete face.uv[vkey];
-											
-											if (face.vertices.length == 3 && face.getAngleTo(initial_normal) > 90) {
-												face.invert();
-											}
-											if (face.vertices.length == 2) {
-												for (let fkey2 in mesh.faces) {
-													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
-														delete mesh.faces[key];
-														break;
-													}
-												}
-											}
-										} else {
-											delete mesh.faces[key];
-										}
-									}
-									delete mesh.vertices[vkey];
-								})
-							} else {
-								meshes.remove(mesh);
-								mesh.remove(false);
-							}
-						})
-
-						Undo.finishEdit('Delete mesh part')
-						Canvas.updateView({elements: meshes, selection: true, element_aspects: {geometry: true, faces: true, uv: meshes.length > 0}})
-
-					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
-
-						var array;
-						Undo.initEdit({elements: selected, outliner: true, selection: true})
-						if (Group.selected) {
-							Group.selected.remove(true)
-							return;
-						}
-						if (array == undefined) {
-							array = selected.slice(0)
-						} else if (array.constructor !== Array) {
-							array = [array]
-						} else {
-							array = array.slice(0)
-						}
-						array.forEach(function(s) {
-							s.remove(false)
-						})
-						TickUpdates.selection = true;
-						Undo.finishEdit('Delete elements')
-
-					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
-						AnimationItem.selected.remove(true)
-
-					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-						AnimationController.selected?.selected_state.remove(true);
-
-					} else if (Animator.open) {
-						removeSelectedKeyframes()
-					}
-				}
-			})
-			new Action('duplicate', {
-				icon: 'content_copy',
-				category: 'edit',
-				condition: () => {
-					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
-						|| (Prop.active_panel == 'textures' && Texture.selected)
-						|| (Modes.edit && (selected.length || Group.selected));
-				},
-				keybind: new Keybind({key: 'd', ctrl: true}),
-				click() {
-					if (Modes.animate) {
-						if (Animation.selected && Prop.active_panel == 'animations') {
-							var copy = Animation.selected.getUndoCopy();
-							var animation = new Animation(copy);
-							Property.resetUniqueValues(Animation, animation);
-							animation.createUniqueName();
-							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
-							animation.saved = false;
-							animation.add(true).select();
-						
-						} else if (AnimationController.selected && Prop.active_panel == 'animations') {
-							var copy = AnimationController.selected.getUndoCopy();
-							var controller = new AnimationController(copy);
-							Property.resetUniqueValues(AnimationController, controller);
-							controller.createUniqueName();
-							AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
-							controller.saved = false;
-							controller.add(true).select();
-
-						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-							Undo.initEdit({animation_controllers: [AnimationController.selected]});
-							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
-							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
-							AnimationController.selected.states.remove(state);
-							AnimationController.selected.states.splice(index+1, 0, state);
-							Undo.finishEdit('Duplicate animation controller state');
-
-						}
-					} else if (Prop.active_panel == 'textures' && Texture.selected) {
-						let copy = Texture.selected.getUndoCopy();
-						delete copy.path;
-						copy.mode = 'bitmap';
-						copy.saved = false;
-						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
-						new Texture(copy).fillParticle().load().add(true);
-
-					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
-						var cubes_before = elements.length;
-						Undo.initEdit({outliner: true, elements: [], selection: true});
-						var g = Group.selected.duplicate();
-						g.select();
-						Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
-					} else {
-						var added_elements = [];
-						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-						selected.forEachReverse(function(obj, i) {
-							var copy = obj.duplicate();
-							added_elements.push(copy);
-						})
-						BarItems.move_tool.select();
-						Undo.finishEdit('Duplicate elements')
-					}
-				}
-			})
 			let find_replace_dialog = new Dialog({
 				id: 'find_replace',
 				title: 'action.find_replace',
@@ -2266,7 +2054,8 @@ const BARS = {
 				'color_picker',
 				'draw_shape_tool',
 				'gradient_tool',
-				'copy_paste_tool'
+				'selection_tool',
+				'move_layer_tool',
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
@@ -2369,6 +2158,7 @@ const BARS = {
 				'copy_brush_mode',
 				'draw_shape_type',
 				'copy_paste_tool_mode',
+				'selection_tool_operation_mode',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',

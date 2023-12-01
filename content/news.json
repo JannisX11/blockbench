@@ -5,25 +5,30 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.8", "type": "h2"},
-			{"text": "The Plugin Browser Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.8.0)!"}
+			{"text": "Welcome to Blockbench 4.9", "type": "h2"},
+			{"text": "The Image Editor Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.9.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/plugin_browser.png",
-				"title": "Plugin Browser",
-				"text": "Redesigned plugin browser! More info about plugins, and other new features!"
+				"image": "https://web.blockbench.net/content/layers.png",
+				"title": "Layers & Selection Tools",
+				"text": "The 2D Image Editor now features selection tools, layers, secondary color, and more!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/mirror_modeling.png",
-				"title": "Mirror Modeling",
-				"text": "Model one half of your model, the other side updates automatically!"
+				"image": "https://web.blockbench.net/content/onion_skin.png",
+				"title": "Animation Onion Skinning",
+				"text": "Display different points in time of your animation as reference!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/outliner_search.png",
-				"title": "Searchable Outliner",
-				"text": "Find your elements quickly with the new search bar!"
+				"image": "https://web.blockbench.net/content/animation_presets.png",
+				"title": "Animation Presets",
+				"text": "Select from a list of 20 built-in animation presets, or create your own, to make an animation in no time!"
+			},
+			{
+				"image": "https://web.blockbench.net/content/plugin_info.png",
+				"title": "Plugin Info & Settings",
+				"text": "View details and features of a plugin, and change settings, directly from the plugin menu"
 			}
 		]
 	}

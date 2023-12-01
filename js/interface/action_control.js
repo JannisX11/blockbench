@@ -149,7 +149,7 @@ BARS.defineActions(function() {
 				'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
 				'setting': 	{name: tl('data.setting'), icon: 'settings'},
 				'settings': {name: tl('data.setting'), icon: 'settings'},
-				'profile':	{name: tl('data.settings_profile'), icon: 'settings_applications'},
+				'profile':	{name: tl('data.settings_profile'), icon: 'manage_accounts'},
 				'+plugin': 	{name: tl('action.add_plugin'), icon: 'extension'},
 				'-plugin': 	{name: tl('action.remove_plugin'), icon: 'extension_off'},
 				'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
@@ -277,7 +277,7 @@ BARS.defineActions(function() {
 				if (type == 'profile') {
 					list.push({
 						name: tl('generic.none'),
-						icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+						icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 						type: 'profile'
 					})
 					for (let profile of SettingsProfile.all) {
@@ -288,7 +288,7 @@ BARS.defineActions(function() {
 						) {
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 								color: markerColors[profile.color].standard,
 								uuid: profile.uuid,
 								type: 'profile'

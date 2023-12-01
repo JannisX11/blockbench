@@ -597,7 +597,7 @@ new ValidatorCheck('molang_syntax', {
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character');
 			}
-			if (clear_string.match(/[\w.]\s+[\w.]/)) {
+			if (clear_string.match(/[\w.()]\s+[\w.()]/) || clear_string.match(/(?<!\w)[0-9._]+\(|\)[a-z0-9._]+/)) {
 				issues.push('Two expressions with no operator in between');
 			}
 			if (clear_string.match(/(^|[^a-z0-9_])[\d.]+[a-z_]+/i)) {
