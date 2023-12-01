@@ -586,6 +586,7 @@ new ValidatorCheck('molang_syntax', {
 	update_triggers: ['update_keyframe_selection', 'edit_animation_properties'],
 	run() {
 		let check = this;
+		let keywords = ['return', 'continue', 'break'];
 		function validateMolang(string, message, instance) {
 			if (!string || typeof string !== 'string') return;
 			let clear_string = string.replace(/'.*'/g, '0');
@@ -597,7 +598,7 @@ new ValidatorCheck('molang_syntax', {
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character');
 			}
-			if (clear_string.match(/[\w.()]\s+[\w.()]/) || clear_string.match(/(?<!\w)[0-9._]+\(|\)[a-z0-9._]+/)) {
+			if ((clear_string.match(/[\w.]\s+[\w.]/) && !keywords.find(k => clear_string.includes(k))) || clear_string.match(/(?<!\w)[0-9._]+\(|\)[a-z0-9._]+/)) {
 				issues.push('Two expressions with no operator in between');
 			}
 			if (clear_string.match(/(^|[^a-z0-9_])[\d.]+[a-z_]+/i)) {

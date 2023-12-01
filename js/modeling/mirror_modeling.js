@@ -169,7 +169,7 @@ const MirrorModeling = {
 		for (let fkey of original_fkeys) {
 			let face = mesh.faces[fkey];
 			let deleted_face_vertices = face.vertices.filter(vkey => deleted_vertices[vkey]);
-			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2 && !(face.vertices.length == 3 && deleted_face_vertices.length == 1)) {
+			if (deleted_face_vertices.length && face.vertices.length != deleted_face_vertices.length*2 && face.vertices.filter(vkey => center_vertices.includes(vkey)).length + deleted_face_vertices.length*2 != face.vertices.length) {
 				// cannot flip. restore vertices instead?
 				deleted_face_vertices.forEach(vkey => {
 					mesh.vertices[vkey] = deleted_vertices[vkey];
