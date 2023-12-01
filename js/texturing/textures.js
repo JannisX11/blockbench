@@ -2284,6 +2284,7 @@ TextureAnimator = {
 		})
 		BarItems.animated_texture_frame.update();
 		UVEditor.vue.updateTextureCanvas();
+		UVEditor.updateSelectionOutline(true);
 		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
 	},
 	reset() {
@@ -2298,6 +2299,7 @@ TextureAnimator = {
 			if (!el.faces || !el.preview_controller.updateUV) return;
 			el.preview_controller.updateUV(el);
 		})
+		UVEditor.updateSelectionOutline(true)
 		UVEditor.vue.updateTextureCanvas();
 	},
 	updateButton() {
