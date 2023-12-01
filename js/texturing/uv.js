@@ -3188,6 +3188,7 @@ Interface.definePanels(function() {
 					}
 				},
 				getSelectedUVBoundingBox() {
+					if (!Project) return [0, 0, 0, 0];
 					let min = [UVEditor.getUVWidth(), UVEditor.getUVHeight()];
 					let max = [0, 0];
 					this.selected_faces.forEach(fkey => {
@@ -3569,6 +3570,16 @@ Interface.definePanels(function() {
 						uv_grid: false
 					})
 				},
+				getUVSelectionFrameStyle() {
+					let box = this.getSelectedUVBoundingBox();
+					if (!box) return {};
+					return {
+						left: this.toPixels(box[0], 0),
+						top: this.toPixels(box[1], 0),
+						width: this.toPixels(box[2] - box[0], 0),
+						height: this.toPixels(box[3] - box[1], 0),
+					};
+				},
 				isTransformingLayer() {
 					if (!this.texture || !this.texture.selected_layer) return false;
 					let tool = Toolbox.selected;
@@ -3868,26 +3879,20 @@ Interface.definePanels(function() {
 
 							</template>
 
-							<div id="uv_rotate_handle" v-if="mode == 'uv' && isRotatingAvailable()"
-								@mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"
-								:title="tl('uv_editor.rotate_uv')"
-								:style="{
-									left: toPixels(getSelectedUVBoundingBox()[0], -25),
-									top: toPixels(getSelectedUVBoundingBox()[1], -25),
-								}
-							">
-								<i class="material-icons">rotate_right</i>
-							</div>
-
-							<div id="uv_scale_handle" v-if="mode == 'uv' && isScalingAvailable()"
-								@mousedown.stop="scaleFaces($event)" @touchstart.prevent.stop="scaleFaces($event)"
-								:title="tl('uv_editor.scale_uv')"
-								:style="{
-									left: toPixels(getSelectedUVBoundingBox()[2], -2),
-									top: toPixels(getSelectedUVBoundingBox()[3], -2),
-								}
-							">
-								<i class="fa fa-solid fa-square-up-right"></i>
+							<div id="uv_selection_frame" v-if="mode == 'uv'" :style="getUVSelectionFrameStyle()">
+								<div id="uv_rotate_handle" v-if="isRotatingAvailable()"
+									@mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"
+									:title="tl('uv_editor.rotate_uv')"
+								>
+									<i class="material-icons">rotate_right</i>
+								</div>
+								
+								<div id="uv_scale_handle" v-if="isScalingAvailable()"
+									@mousedown.stop="scaleFaces($event)" @touchstart.prevent.stop="scaleFaces($event)"
+									:title="tl('uv_editor.scale_uv')"
+								>
+									<i class="fa fa-solid fa-square-up-right"></i>
+								</div>
 							</div>
 
 							<div class="selection_rectangle"
