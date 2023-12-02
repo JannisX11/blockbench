@@ -3829,7 +3829,7 @@ Interface.definePanels(function() {
 
 							</template>
 
-							<div id="uv_selection_frame" v-if="mode == 'uv'" :style="getUVSelectionFrameStyle()">
+							<div id="uv_selection_frame" v-if="mode == 'uv' && isScalingAvailable()" :style="getUVSelectionFrameStyle()">
 								<div id="uv_rotate_handle" v-if="isRotatingAvailable()"
 									@mousedown.stop="rotateFace($event)" @touchstart.prevent.stop="rotateFace($event)"
 									:title="tl('uv_editor.rotate_uv')"

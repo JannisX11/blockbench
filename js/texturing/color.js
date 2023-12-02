@@ -130,8 +130,8 @@ Interface.definePanels(() => {
 				width: 100,
 				open_tab: StateMemory.color_picker_tab || 'picker',
 				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
-				main_color: '#000000',
-				second_color: '#ffffff',
+				main_color: '#ffffff',
+				second_color: '#000000',
 				hover_color: '',
 				second_color_selected: false,
 				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
@@ -142,7 +142,7 @@ Interface.definePanels(() => {
 						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
 					}
 				},
-				text_input: '#000000',
+				text_input: '#ffffff',
 				hsv: {
 					h: 0,
 					s: 0,

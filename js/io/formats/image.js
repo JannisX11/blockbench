@@ -59,6 +59,7 @@ let codec = new Codec('image', {
 					let pixel_size_limit = Math.min(32 / UVEditor.getPixelSize(), 1);
 					if (pixel_size_limit < 1) UVEditor.setZoom(pixel_size_limit)
 					if (isApp) updateRecentProjectThumbnail();
+					UVEditor.vue.centerView();
 				}
 			}
 			texture.add(false);
@@ -101,6 +102,7 @@ codec.export = null;
 Codecs.project.on('parsed', () => {
 	if (Texture.all[0] && !Texture.selected) {
 		Texture.all[0].select();
+		UVEditor.vue.centerView();
 	}
 })
 
@@ -129,6 +131,7 @@ new ModelFormat('image', {
 				setTimeout(() => {
 					Undo.history.empty();
 					Undo.index = 0;
+					UVEditor.vue.centerView();
 				}, 1);
 			});
 			return true;
