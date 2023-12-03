@@ -163,30 +163,15 @@ const Screencam = {
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
-			bg_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
-			turn:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
+			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
+			turnspeed:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
 		},
 		onConfirm(formData) {
-			let background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
+			formData.background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
 			this.hide();
-			if (document.getElementById('gif_recording_frame')) {
-				document.getElementById('gif_recording_frame').remove();
-			}
-			Screencam.createGif({
-				format: formData.format,
-				length_mode: formData.length_mode,
-				length: formData.length,
-				fps: formData.fps,
-				resolution: formData.resolution,
-				zoom: formData.zoom,
-				quality: formData.quality,
-				pixelate: formData.pixelate,
-				background,
-				background_image: formData.bg_image,
-				play: formData.play,
-				turnspeed: formData.turn,
-			})
+			document.getElementById('gif_recording_frame')?.remove();
+			Screencam.createGif(formData)
 		}
 	}),
 	advanced_screenshot_dialog: new Dialog({
@@ -201,7 +186,7 @@ const Screencam = {
 				presets = (presets && autoParseJSON(presets, false)) || [];
 
 				DefaultCameraPresets.forEach(preset => {
-					if (!Condition(preset.condition)) return;
+					if (!Condition(preset.condition)) returnspeed;
 					options[preset.id] = {color: preset.color, name: tl(preset.name)};
 				})
 				presets.forEach((preset, i) => {
@@ -632,7 +617,7 @@ const Screencam = {
 			ScreencamGIFFormats[options.format].process(vars, options)
 		}
 		function cancel() {
-			frame.remove();
+			vars.frame.remove();
 		}
 		function updateCrop() {
 			if (!options.resolution) {
@@ -722,13 +707,13 @@ const Screencam = {
 
 		let stop_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('stop'));
 		stop_button.addEventListener('click', event => {
-			recording ? endRecording(true) : cancel();
+			vars.recording ? endRecording(true) : cancel();
 		})
 		controls.append(stop_button);
 
 		let cancel_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'));
 		cancel_button.addEventListener('click', event => {
-			recording ? endRecording(false) : cancel();
+			vars.recording ? endRecording(false) : cancel();
 		})
 		controls.append(cancel_button);
 	},
