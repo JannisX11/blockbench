@@ -1980,6 +1980,7 @@ SharedActions.add('copy', {
 		if (selection.override != null) {
 			Clipbench.image = {
 				x: offset[0], y: offset[1],
+				frame: texture.currentFrame,
 				data: canvas.toDataURL(),
 			}
 		} else {
@@ -1995,6 +1996,7 @@ SharedActions.add('copy', {
 			Clipbench.image = {
 				x: rect.start_x,
 				y: rect.start_y,
+				frame: texture.currentFrame,
 				data: copy_canvas.toDataURL()
 			}
 			canvas = copy_canvas;
@@ -2034,6 +2036,10 @@ SharedActions.add('paste', {
 				texture.activateLayers(false);
 			}
 			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let old_frame = Clipbench.image?.frame || 0;
+			if (old_frame || texture.currentFrame) {
+				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
+			}
 			let layer = new TextureLayer({name: 'pasted', offset}, texture);
 			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
 			layer.setSize(frame.width, frame.height);
