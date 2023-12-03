@@ -79,11 +79,13 @@ var codec = new Codec('obj', {
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null) {
 						let face = element.faces[key];
+						let texture = face.getTexture();
+						let uv_size = [Project.getUVWidth(texture), Project.getUVHeight(texture)];
 						let uv_outputs = [];
-						uv_outputs.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
-						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[1] / Project.texture_height}`);
-						uv_outputs.push(`vt ${face.uv[2] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
-						uv_outputs.push(`vt ${face.uv[0] / Project.texture_width} ${1 - face.uv[3] / Project.texture_height}`);
+						uv_outputs.push(`vt ${face.uv[0] / uv_size[0]} ${1 - face.uv[1] / uv_size[1]}`);
+						uv_outputs.push(`vt ${face.uv[2] / uv_size[0]} ${1 - face.uv[1] / uv_size[1]}`);
+						uv_outputs.push(`vt ${face.uv[2] / uv_size[0]} ${1 - face.uv[3] / uv_size[1]}`);
+						uv_outputs.push(`vt ${face.uv[0] / uv_size[0]} ${1 - face.uv[3] / uv_size[1]}`);
 						var rot = face.rotation || 0;
 						while (rot > 0) {
 							uv_outputs.splice(0, 0, uv_outputs.pop());
@@ -175,9 +177,10 @@ var codec = new Codec('obj', {
 						let face = element.faces[key];
 						let vertices = face.getSortedVertices().slice();
 						let tex = element.faces[key].getTexture();
+						let uv_size = [Project.getUVWidth(tex), Project.getUVHeight(tex)];
 
 						vertices.forEach(vkey => {
-							output.push(`vt ${face.uv[vkey][0] / Project.texture_width} ${1 - face.uv[vkey][1] / Project.texture_height}`);
+							output.push(`vt ${face.uv[vkey][0] / uv_size[0]} ${1 - face.uv[vkey][1] / uv_size[1]}`);
 							nbVertexUvs += 1;
 						})
 
