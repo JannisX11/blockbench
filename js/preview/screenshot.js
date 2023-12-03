@@ -88,14 +88,14 @@ const ScreencamGIFFormats = {
 		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
 		async process(vars, options) {
 			let [canvas] = createEmptyCanvas(vars.canvas_width, vars.canvas_height);
-	        vars.apng_encoder = new APNGencoder(canvas);
-	        
-	        vars.apng_encoder.setRepeat(0);
-	        vars.apng_encoder.setDelay(Math.round(vars.interval / 10));    // 1/100 sec
-	        vars.apng_encoder.setDispose((vars.background_image || options.background) ? 0 : 1);
-	        vars.apng_encoder.setBlend(1);
-	        
-	        vars.apng_encoder.start();
+			vars.apng_encoder = new APNGencoder(canvas);
+			
+			vars.apng_encoder.setRepeat(0);
+			vars.apng_encoder.setDelay(Math.round(vars.interval / 10));    // 1/100 sec
+			vars.apng_encoder.setDispose((vars.background_image || options.background) ? 0 : 1);
+			vars.apng_encoder.setBlend(1);
+			
+			vars.apng_encoder.start();
 
 			let i = 0;
 			for (let canvas of vars.frame_canvases) {
@@ -315,19 +315,19 @@ const Screencam = {
 
 			if (options.anti_aliasing == 'ssaa') {
 
-                let img_frame = new CanvasFrame(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
-                let frame = new CanvasFrame(options.resolution[0], options.resolution[1]);
-                let img = new Image()
-                img.src = render_viewport.canvas.toDataURL();
-                await new Promise((resolve, reject) => {
-                    img.onload = function() {
-                        resolve()
-                    }
-                    img.onerror = reject;
-                })
-                img_frame.ctx.filter = `blur(1px)`;
-                img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
-                frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
+				let img_frame = new CanvasFrame(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+				let frame = new CanvasFrame(options.resolution[0], options.resolution[1]);
+				let img = new Image()
+				img.src = render_viewport.canvas.toDataURL();
+				await new Promise((resolve, reject) => {
+					img.onload = function() {
+						resolve()
+					}
+					img.onerror = reject;
+				})
+				img_frame.ctx.filter = `blur(1px)`;
+				img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+				frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
 
 				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
 
