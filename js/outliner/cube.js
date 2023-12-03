@@ -1183,7 +1183,7 @@ new NodePreviewController(Cube, {
 			let vertex_uvs = mesh.geometry.attributes.uv;
 			let pw = Project.texture_width;
 			let ph = Project.texture_height;
-			if (tex && Format.per_texture_uv_size) {
+			if (tex && Format.per_texture_uv_size && Project.view_mode !== 'uv') {
 				pw = tex.getUVWidth();
 				ph = tex.getUVHeight();
 			}
