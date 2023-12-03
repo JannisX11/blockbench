@@ -75,8 +75,6 @@ const ScreencamGIFFormats = {
 			let blob = new Blob([buffer], {type: 'image/gif'});
 			var reader = new FileReader();
 			reader.onload = () => {
-				Blockbench.setProgress();
-				Blockbench.setStatusBarText();
 				delete Screencam.processing_gif;
 				Screencam.returnScreenshot(reader.result, vars.cb, blob);
 			}
@@ -106,7 +104,6 @@ const ScreencamGIFFormats = {
 			}
 
 			vars.apng_encoder.finish();
-			Blockbench.setProgress();
 
 			var base64Out = bytesToBase64(vars.apng_encoder.stream().bin);
 			let dataUrl = "data:image/png;base64," + base64Out;
@@ -134,7 +131,6 @@ const ScreencamGIFFormats = {
 					content,
 					savetype: 'zip'
 				})
-				Blockbench.setProgress();
 			})
 		}
 	}
@@ -594,7 +590,7 @@ const Screencam = {
 
 			vars.frame.classList.add('recording');
 		}
-		function endRecording(render) {
+		async function endRecording(render) {
 			if (!vars.recording) return;
 			vars.recording = false;
 			clearInterval(vars.loop);
@@ -614,7 +610,9 @@ const Screencam = {
 			if (!options.silent) {
 				Blockbench.setStatusBarText(`${tl('status_bar.processing_gif')} ${tl(ScreencamGIFFormats[options.format].name)}`)
 			}
-			ScreencamGIFFormats[options.format].process(vars, options)
+			await ScreencamGIFFormats[options.format].process(vars, options)
+			Blockbench.setProgress();
+			Blockbench.setStatusBarText();
 		}
 		function cancel() {
 			vars.frame.remove();
