@@ -128,7 +128,7 @@ const UVEditor = {
 			this.vue.selection_outline = '';
 			return;
 		}
-		let size = UVEditor.getPixelSize();
+		let size = UVEditor.getTexturePixelSize();
 		let width = this.vue.texture.width;
 		let height = this.vue.texture.display_height;
 		let full_height = this.vue.texture.height;
@@ -192,7 +192,7 @@ const UVEditor = {
 			}
 			await new Promise(r => setTimeout(r, 0));
 		}
-		size = UVEditor.getPixelSize();
+		size = UVEditor.getTexturePixelSize();
 		let outline = '';
 		for (let line of lines) {
 			outline += `${outline ? '' : ' '}${line[0] ? 'M' : 'L'}${line[1] * size + 1} ${(line[2]-anim_offset) * size + 1}`;
@@ -280,6 +280,13 @@ const UVEditor = {
 					: UVEditor.getUVWidth()
 			);
 		}
+	},
+	getTexturePixelSize() {
+		return this.inner_width/ (
+			(typeof this.texture === 'object' && this.texture.width)
+				? this.texture.width
+				: UVEditor.getUVWidth()
+		);
 	},
 	getFaces(obj, event) {
 		let available = Object.keys(obj.faces)
@@ -2019,7 +2026,7 @@ Interface.definePanels(function() {
 				textureGrid() {
 					if (!this.texture) return '';
 					let lines = [];
-					let size = UVEditor.getPixelSize();
+					let size = UVEditor.getTexturePixelSize();
 					if (size <= 5) return '';
 					// =
 					for (let y = 1; y < this.texture.display_height; y++) {
@@ -2035,13 +2042,13 @@ Interface.definePanels(function() {
 				},
 				textureGridStroke() {
 					if (!this.texture) return '';
-					let size = UVEditor.getPixelSize();
+					let size = UVEditor.getTexturePixelSize();
 					return Math.clamp((size - 4) / 16, 0, 0.4) + 'px';
 				},
 				textureGridBold() {
 					if (!this.texture) return '';
 					let lines = [];
-					let size = UVEditor.getPixelSize();
+					let size = UVEditor.getTexturePixelSize();
 					let interval = 16;
 					// =
 					for (let y = interval; y < this.texture.display_height; y += interval) {
