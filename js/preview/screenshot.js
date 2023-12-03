@@ -1,4 +1,145 @@
 
+function createEmptyCanvas(width, height) {
+	canvas = document.createElement('canvas');
+	let ctx = canvas.getContext('2d');
+	canvas.width = width;
+	canvas.height = height;
+	ctx.imageSmoothingEnabled = false;
+	return [canvas, ctx];
+}
+
+const ScreencamGIFFormats = {
+	gif: {
+		name: 'dialog.create_gif.format.gif',
+		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
+		async process(vars, options) {
+			vars.gif = GIFEnc.GIFEncoder()
+			if (!options.silent) {
+				Screencam.processing_gif = vars.gif;
+			}
+			let i = 0;
+			let format = 'rgba4444';
+			function quantize(data) {
+				let palette = [[0, 0, 0]];
+				for (let i = 0; i < data.length; i += 4) {
+					if (data[i+3] < 127) {
+						continue;
+					}
+					let r = data[i];
+					let g = data[i+1];
+					let b = data[i+2];
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
+					if (match == -1) {
+						palette.push([r, g, b])
+					}
+					if (palette.length > 256) break;
+				}
+				return palette;
+			}
+			function applyPalette(data, palette) {
+				let array = new Uint8Array(data.length / 4);
+				for (let i = 0; i < array.length; i++) {
+					if (data[i*4+3] < 127) {
+						continue;
+					}
+					let r = data[i*4];
+					let g = data[i*4+1];
+					let b = data[i*4+2];
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
+					if (match == -1) {match = 0;}
+					array[i] = match;
+				}
+				return array;
+			}
+			for (let canvas of vars.frame_canvases) {
+				let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+				let palette = quantize(data, 256, {format, oneBitAlpha: true});
+				let index;
+				if (palette.length > 256) {
+					// Built-in methods
+					palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
+					index = GIFEnc.applyPalette(data, palette, format);
+				} else {
+					// Direct flicker-free color mapping
+					index = applyPalette(data, palette, format);
+				}
+				vars.gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: vars.interval, transparent: true});
+				i++;
+				Blockbench.setProgress(i / vars.frame_canvases.length);
+				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+
+			vars.gif.finish();
+
+			let buffer = vars.gif.bytesView();
+			let blob = new Blob([buffer], {type: 'image/gif'});
+			var reader = new FileReader();
+			reader.onload = () => {
+				Blockbench.setProgress();
+				Blockbench.setStatusBarText();
+				delete Screencam.processing_gif;
+				Screencam.returnScreenshot(reader.result, vars.cb, blob);
+			}
+			reader.readAsDataURL(blob);
+		}
+	},
+	apng: {
+		name: 'APNG',
+		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
+		async process(vars, options) {
+			let [canvas] = createEmptyCanvas(vars.canvas_width, vars.canvas_height);
+	        vars.apng_encoder = new APNGencoder(canvas);
+	        
+	        vars.apng_encoder.setRepeat(0);
+	        vars.apng_encoder.setDelay(Math.round(vars.interval / 10));    // 1/100 sec
+	        vars.apng_encoder.setDispose((vars.background_image || options.background) ? 0 : 1);
+	        vars.apng_encoder.setBlend(1);
+	        
+	        vars.apng_encoder.start();
+
+			let i = 0;
+			for (let canvas of vars.frame_canvases) {
+				vars.apng_encoder.addFrame(canvas);
+				i++;
+				Blockbench.setProgress(i / vars.frame_canvases.length);
+				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+
+			vars.apng_encoder.finish();
+			Blockbench.setProgress();
+
+			var base64Out = bytesToBase64(vars.apng_encoder.stream().bin);
+			let dataUrl = "data:image/png;base64," + base64Out;
+			Screencam.returnScreenshot(dataUrl, vars.cb);
+		}
+	},
+	png_sequence: {
+		name: 'dialog.create_gif.format.png_sequence',
+		async process(vars) {
+			let archive = new JSZip();
+			let digits = vars.frame_canvases.length.toString().length;
+			let i = 0;
+			for (let canvas of vars.frame_canvases) {
+				let data_url = canvas.toDataURL();
+				archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
+				i++;
+				Blockbench.setProgress(i / vars.frame_canvases.length);
+				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+			archive.generateAsync({type: 'blob'}).then(content => {
+				Blockbench.export({
+					type: 'Zip Archive',
+					extensions: ['zip'],
+					name: 'png_sequence',
+					content,
+					savetype: 'zip'
+				})
+				Blockbench.setProgress();
+			})
+		}
+	}
+}
+
 const Screencam = {
 	NoAAPreview: null,
 	recording_timelapse: false,
@@ -7,11 +148,7 @@ const Screencam = {
 		title: tl('dialog.create_gif.title'),
 		draggable: true,
 		form: {
-			format: {label: 'dialog.create_gif.format', type: 'select', options: {
-				gif: 'dialog.create_gif.format.gif',
-				apng: 'APNG',
-				png_sequence: 'dialog.create_gif.format.png_sequence',
-			}},
+			format: {label: 'dialog.create_gif.format', type: 'select', options: Object.fromEntries(Object.entries(ScreencamGIFFormats).map(e => [e[0], e[1].name]))},
 			'_1': '_',
 			length_mode: {label: 'dialog.create_gif.length_mode', type: 'select', default: 'seconds', options: {
 				seconds: 'dialog.create_gif.length_mode.seconds',
@@ -329,77 +466,52 @@ const Screencam = {
 		if (!options.pixelate) options.pixelate = 1;
 		if (!options.quality) options.quality = 40;
 
-		let preview = Preview.selected;
-		let animation = Animation.selected;
-		let interval = options.fps ? (1000/options.fps) : 100;
-		let frames = 0;
-		let gif;
-		let apng_encoder;
-		let frame_canvases = [];
-		let frame, frame_label;
-		let recording = false;
-		let loop = null;
-		let crop = Screencam.gif_crop;
-		let custom_resolution = options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height);
-		let background_image;
+		const vars = {
+			cb,
+			preview: Preview.selected,
+			animation: Animation.selected,
+			interval: options.fps ? (1000/options.fps) : 100,
+			frames: 0,
+			frame_canvases: [],
+			recording: false,
+			loop: null,
+			crop: Screencam.gif_crop,
+			custom_resolution: options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height),
+		}
 		if (options.background_image) {
-			background_image = new Image();
-			background_image.src = options.background_image
-			background_image.onerror = () => {
-				background_image = null;
+			vars.background_image = new Image();
+			vars.background_image.src = options.background_image
+			vars.background_image.onerror = () => {
+				vars.background_image = null;
 			}
 		}
-		if (options.format == 'gif' || options.format == 'apng') {
-			interval = Math.max(Math.round(interval/10) * 10, 20);
+		if (ScreencamGIFFormats[options.format].interval) {
+			vars.interval = ScreencamGIFFormats[options.format].interval(vars)
 		}
 
 		function getProgress() {
 			switch (options.length_mode) {
-				case 'seconds': return interval*frames/(options.length*1000); break;
-				case 'frames': return frames/options.length; break;
-				case 'turntable': return Math.abs(preview.controls.autoRotateProgress) / (2*Math.PI); break;
-				case 'animation': return Timeline.time / (animation.length-(interval/1000)); break;
+				case 'seconds': return vars.interval*vars.frames/(options.length*1000); break;
+				case 'frames': return vars.frames/options.length; break;
+				case 'turntable': return Math.abs(vars.preview.controls.autoRotateProgress) / (2*Math.PI); break;
+				case 'animation': return Timeline.time / (vars.animation.length-(vars.interval/1000)); break;
 			}
 		}
 		function startRecording() {
-			let canvas_width = Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000);
-			let canvas_height = Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000);
-
-			function createEmptyCanvas() {
-				canvas = document.createElement('canvas');
-				let ctx = canvas.getContext('2d');
-				canvas.width = canvas_width;
-				canvas.height = canvas_height;
-				ctx.imageSmoothingEnabled = false;
-				return [canvas, ctx];
-			}
-
-			if (options.format == 'gif') {
-				gif = GIFEnc.GIFEncoder();
-
-			} else if (options.format == 'apng') {
-				let [canvas] = createEmptyCanvas();
-				apng_encoder = new APNGencoder(canvas);
-				
-				apng_encoder.setRepeat(0);
-				apng_encoder.setDelay(Math.round(interval / 10));    // 1/100 sec
-				apng_encoder.setDispose((background_image || options.background) ? 0 : 1);
-				apng_encoder.setBlend(1);
-			  
-				apng_encoder.start();
-			}
+			vars.canvas_width = Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000);
+			vars.canvas_height = Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000);
 	
 			if (options.turnspeed) {
-				preview.controls.autoRotate = true;
-				preview.controls.autoRotateSpeed = options.turnspeed;
-				preview.controls.autoRotateProgress = 0;
+				vars.preview.controls.autoRotate = true;
+				vars.preview.controls.autoRotateSpeed = options.turnspeed;
+				vars.preview.controls.autoRotateProgress = 0;
 			} else if (options.length_mode == 'turntable') {
 				options.length_mode = 'seconds'
 			}
 	
-			if (options.play && animation) {
+			if (options.play && vars.animation) {
 				Timeline.setTime(0);
-				if (!animation.length) options.length_mode = 'seconds';
+				if (!vars.animation.length) options.length_mode = 'seconds';
 			} else if (options.length_mode == 'animation') {
 				options.length_mode = 'seconds'
 			}
@@ -410,38 +522,38 @@ const Screencam = {
 
 			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
 			let NoAAPreview = Screencam.NoAAPreview;
-			if (custom_resolution) {
+			if (vars.custom_resolution) {
 				NoAAPreview.resize(
-					canvas_width / options.pixelate,
-					canvas_height / options.pixelate
+					vars.canvas_width / options.pixelate,
+					vars.canvas_height / options.pixelate
 				);
 			} else {
 				NoAAPreview.resize(
-					preview.width * window.devicePixelRatio / options.pixelate,
-					preview.height * window.devicePixelRatio / options.pixelate
+					vars.preview.width * window.devicePixelRatio / options.pixelate,
+					vars.preview.height * window.devicePixelRatio / options.pixelate
 				);
 			}
-			NoAAPreview.setProjectionMode(preview.isOrtho);
+			NoAAPreview.setProjectionMode(vars.preview.isOrtho);
 
-			recording = true;
-			loop = setInterval(() => {
-				if (animation) {
-					Timeline.setTime(interval*frames / 1000);
+			vars.recording = true;
+			vars.loop = setInterval(() => {
+				if (vars.animation) {
+					Timeline.setTime(vars.interval*vars.frames / 1000);
 					Animator.preview(true);
 				}
-				frames++;
+				vars.frames++;
 				Canvas.withoutGizmos(function() {
 					// Update camera
-					NoAAPreview.controls.unlinked = preview.controls.unlinked;
-					NoAAPreview.controls.target.copy(preview.controls.target);
-					NoAAPreview.camera.position.copy(preview.camera.position);
-					NoAAPreview.camera.quaternion.copy(preview.camera.quaternion);
+					NoAAPreview.controls.unlinked = vars.preview.controls.unlinked;
+					NoAAPreview.controls.target.copy(vars.preview.controls.target);
+					NoAAPreview.camera.position.copy(vars.preview.camera.position);
+					NoAAPreview.camera.quaternion.copy(vars.preview.camera.quaternion);
 					if (NoAAPreview.isOrtho) {
-						NoAAPreview.camera.zoom = preview.camera.zoom;
-						NoAAPreview.camera.top = preview.camera.top;
-						NoAAPreview.camera.bottom = preview.camera.bottom;
-						NoAAPreview.camera.right = preview.camera.right;
-						NoAAPreview.camera.left = preview.camera.left;
+						NoAAPreview.camera.zoom = vars.preview.camera.zoom;
+						NoAAPreview.camera.top = vars.preview.camera.top;
+						NoAAPreview.camera.bottom = vars.preview.camera.bottom;
+						NoAAPreview.camera.right = vars.preview.camera.right;
+						NoAAPreview.camera.left = vars.preview.camera.left;
 						NoAAPreview.camOrtho.updateProjectionMatrix();
 					} else {
 						if (options.zoom) {
@@ -453,11 +565,11 @@ const Screencam = {
 							}
 							NoAAPreview.camPers.setFocalLength(options.zoom);
 						} else {
-							NoAAPreview.setFOV(preview.camPers.fov);
+							NoAAPreview.setFOV(vars.preview.camPers.fov);
 						}
 					}
 
-					let [canvas, ctx] = createEmptyCanvas();
+					let [canvas, ctx] = createEmptyCanvas(vars.canvas_width, vars.canvas_height);
 
 					NoAAPreview.render();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -465,188 +577,84 @@ const Screencam = {
 						ctx.fillStyle = options.background;
 						ctx.fillRect(0, 0, canvas.width, canvas.height);
 					}
-					if (background_image) {
-						ctx.drawImage(background_image, 0, 0, canvas_width, canvas_height);
+					if (vars.background_image) {
+						ctx.drawImage(vars.background_image, 0, 0, canvas.width, canvas.height);
 					}
-					if (custom_resolution) {
+					if (vars.custom_resolution) {
 						ctx.drawImage(NoAAPreview.canvas, 0, 0, NoAAPreview.width * options.pixelate, NoAAPreview.height * options.pixelate);
 					} else {
 						ctx.drawImage(NoAAPreview.canvas,
-							Math.round(-crop.left * window.devicePixelRatio),
-							Math.round(-crop.top * window.devicePixelRatio),
+							Math.round(-vars.crop.left * window.devicePixelRatio),
+							Math.round(-vars.crop.top * window.devicePixelRatio),
 							Math.round(NoAAPreview.width * options.pixelate),
 							Math.round(NoAAPreview.height * options.pixelate)
 						);
 					}
-					if (options.format == 'png_sequence' || options.format == 'gif' || options.format == 'apng') {
-						frame_canvases.push(canvas);
+					if (ScreencamGIFFormats[options.format].frameRendered) {
+						ScreencamGIFFormats[options.format].frameRendered(vars, canvas)
+					} else {
+						vars.frame_canvases.push(canvas)
 					}
 					NoAAPreview.controls.unlinked = false;
 				})
 				Blockbench.setProgress(getProgress());
-				frame_label.textContent = frames + ' - ' + (interval*frames/1000).toFixed(2) + 's';
+				vars.frame_label.textContent = vars.frames + ' - ' + (vars.interval*vars.frames/1000).toFixed(2) + 's';
 
 				if (getProgress() >= 1) {
 					endRecording(true);
 					return;
 				}
 	
-			}, interval)
+			}, vars.interval)
 
-			frame.classList.add('recording');
+			vars.frame.classList.add('recording');
 		}
-		async function endRecording(render) {
-			if (!recording) return;
-			recording = false;
-			clearInterval(loop);
-			if (frame) {
-				frame.remove();
+		function endRecording(render) {
+			if (!vars.recording) return;
+			vars.recording = false;
+			clearInterval(vars.loop);
+			if (vars.frame) {
+				vars.frame.remove();
 			}
 			Blockbench.setProgress();
 			if (Animator.open && Timeline.playing) {
 				Timeline.pause();
 			}
 			if (options.turnspeed) {
-				preview.controls.autoRotate = false;
+				vars.preview.controls.autoRotate = false;
 			}
 
 			// Render
 			if (!render) return;
 			if (!options.silent) {
 				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
-				Screencam.processing_gif = gif;
 			}
-			if (options.format == 'gif') {
-				let i = 0;
-				let format = 'rgba4444';
-				function quantize(data) {
-					let palette = [[0, 0, 0]];
-					for (let i = 0; i < data.length; i += 4) {
-						if (data[i+3] < 127) {
-							continue;
-						}
-						let r = data[i];
-						let g = data[i+1];
-						let b = data[i+2];
-						let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
-						if (match == -1) {
-							palette.push([r, g, b])
-						}
-						if (palette.length > 256) break;
-					}
-					return palette;
-				}
-				function applyPalette(data, palette) {
-					let array = new Uint8Array(data.length / 4);
-					for (let i = 0; i < array.length; i++) {
-						if (data[i*4+3] < 127) {
-							continue;
-						}
-						let r = data[i*4];
-						let g = data[i*4+1];
-						let b = data[i*4+2];
-						let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
-						if (match == -1) {match = 0;}
-						array[i] = match;
-					}
-					return array;
-				}
-				for (let canvas of frame_canvases) {
-					let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-					let palette = quantize(data, 256, {format, oneBitAlpha: true});
-					let index;
-					if (palette.length > 256) {
-						// Built-in methods
-						palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
-						index = GIFEnc.applyPalette(data, palette, format);
-					} else {
-						// Direct flicker-free color mapping
-						index = applyPalette(data, palette, format);
-					}
-					gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: interval, transparent: true});
-					i++;
-					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 0));
-				}
-
-				gif.finish();
-
-				let buffer = gif.bytesView();
-				let blob = new Blob([buffer], {type: 'image/gif'});
-				var reader = new FileReader();
-				reader.onload = () => {
-					Blockbench.setProgress();
-					Blockbench.setStatusBarText();
-					delete Screencam.processing_gif;
-					Screencam.returnScreenshot(reader.result, cb, blob);
-				}
-				reader.readAsDataURL(blob);
-
-			} else if (options.format == 'apng') {
-
-				let i = 0;
-				for (let canvas of frame_canvases) {
-					apng_encoder.addFrame(canvas);
-					i++;
-					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 0));
-				}
-
-				apng_encoder.finish();
-				Blockbench.setProgress();
-
-				var base64Out = bytesToBase64(apng_encoder.stream().bin);
-				let dataUrl = "data:image/png;base64," + base64Out;
-				Screencam.returnScreenshot(dataUrl, cb);
-
-			} else if (options.format == 'png_sequence') {
-				// Export PNGs as ZIP
-				let archive = new JSZip();
-				let digits = frame_canvases.length.toString().length;
-				let i = 0;
-				for (let canvas of frame_canvases) {
-					let data_url = canvas.toDataURL();
-					archive.file(i.toDigitString(digits) + '.png', data_url.replace('data:image/png;base64,', ''), {base64: true});
-					i++;
-					Blockbench.setProgress(i / frame_canvases.length);
-					await new Promise(resolve => setTimeout(resolve, 0));
-				}
-				archive.generateAsync({type: 'blob'}).then(content => {
-					Blockbench.export({
-						type: 'Zip Archive',
-						extensions: ['zip'],
-						name: 'png_sequence',
-						content: content,
-						savetype: 'zip'
-					})
-					Blockbench.setProgress();
-				})
-			}
+			ScreencamGIFFormats[options.format].process(vars, options)
 		}
 		function cancel() {
 			frame.remove();
 		}
 		function updateCrop() {
 			if (!options.resolution) {
-				crop.left = 	Math.clamp(crop.left, 	0, preview.width/2  - 20);
-				crop.right = 	Math.clamp(crop.right, 	0, preview.width/2  - 20);
-				crop.top = 		Math.clamp(crop.top, 	0, preview.height/2 - 20);
-				crop.bottom = 	Math.clamp(crop.bottom, 0, preview.height/2 - 20);
+				vars.crop.left = 	Math.clamp(vars.crop.left, 	0, vars.preview.width/2  - 20);
+				vars.crop.right = 	Math.clamp(vars.crop.right, 	0, vars.preview.width/2  - 20);
+				vars.crop.top = 		Math.clamp(vars.crop.top, 	0, vars.preview.height/2 - 20);
+				vars.crop.bottom = 	Math.clamp(vars.crop.bottom, 0, vars.preview.height/2 - 20);
 			}
-			frame.style.top = crop.top + 'px';
-			frame.style.left = crop.left + 'px';
-			frame.style.right = crop.right + 'px';
-			frame.style.bottom = crop.bottom + 'px';
-			frame_label.textContent = Math.round(Math.clamp((preview.width - crop.left - crop.right) * window.devicePixelRatio, 24, 4000))
-							+ ' x ' + Math.round(Math.clamp((preview.height - crop.top - crop.bottom) * window.devicePixelRatio, 24, 4000))
+			vars.frame.style.top = vars.crop.top + 'px';
+			vars.frame.style.left = vars.crop.left + 'px';
+			vars.frame.style.right = vars.crop.right + 'px';
+			vars.frame.style.bottom = vars.crop.bottom + 'px';
+			vars.frame_label.textContent = Math.round(Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000))
+							+ ' x ' + Math.round(Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000))
 		}
 
 		// Setup recording UI
-		frame = Interface.createElement('div', {id: 'gif_recording_frame'});
-		preview.node.append(frame);
+		vars.frame = Interface.createElement('div', {id: 'gif_recording_frame'});
+		vars.preview.node.append(vars.frame);
 
-		frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
-		frame.append(frame_label);
+		vars.frame_label = Interface.createElement('div', {id: 'gif_recording_frame_label'});
+		vars.frame.append(vars.frame_label);
 
 		if (options.resolution) {
 			crop.left = crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
@@ -670,7 +678,7 @@ const Screencam = {
 			addEventListeners(document, 'mousemove touchmove', move);
 			addEventListeners(document, 'mouseup touchend', stop);
 		}
-		addEventListeners(frame_label, 	'mousedown touchstart', e => drag(e, 'right', 'top'));
+		addEventListeners(vars.frame_label, 'mousedown touchstart', e => drag(e, 'right', 'top'));
 
 		let resizer_top_right = 	Interface.createElement('div', {style: 'top: -2px; right: -2px;', 	class: 'gif_recording_frame_handle gif_resize_ne'}, Blockbench.getIconNode('arrow_back_ios'));
 		let resizer_top_left = 		Interface.createElement('div', {style: 'top: -2px; left: -2px;', 	class: 'gif_recording_frame_handle gif_resize_nw'}, Blockbench.getIconNode('arrow_back_ios'));
@@ -697,14 +705,14 @@ const Screencam = {
 		addEventListeners(resizer_top_left, 	'mousedown touchstart', e => resize(e, 'left', 'top'));
 		addEventListeners(resizer_bottom_right, 'mousedown touchstart', e => resize(e, 'right', 'bottom'));
 		addEventListeners(resizer_bottom_left,	'mousedown touchstart', e => resize(e, 'left', 'bottom'));
-		frame.append(resizer_top_right);
-		frame.append(resizer_top_left);
-		frame.append(resizer_bottom_right);
-		frame.append(resizer_bottom_left);
+		vars.frame.append(resizer_top_right);
+		vars.frame.append(resizer_top_left);
+		vars.frame.append(resizer_bottom_right);
+		vars.frame.append(resizer_bottom_left);
 		updateCrop();
 
 		let controls = Interface.createElement('div', {id: 'gif_recording_controls'});
-		frame.append(controls);
+		vars.frame.append(controls);
 
 		let record_button = Interface.createElement('div', {class: 'tool gif_record_button'}, Blockbench.getIconNode('fiber_manual_record', 'var(--color-close)'));
 		record_button.addEventListener('click', event => {
