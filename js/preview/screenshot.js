@@ -517,7 +517,7 @@ const Screencam = {
 			}
 	
 			if (!options.silent) {
-				Blockbench.setStatusBarText(tl('status_bar.recording_gif'));
+				Blockbench.setStatusBarText(`${tl('status_bar.recording_gif')} ${tl(ScreencamGIFFormats[options.format].name)}`);
 			}
 
 			// Use renderer without anti aliasing to avoid texture bleeding and color flickering
@@ -627,7 +627,7 @@ const Screencam = {
 			// Render
 			if (!render) return;
 			if (!options.silent) {
-				Blockbench.setStatusBarText(tl('status_bar.processing_gif'))
+				Blockbench.setStatusBarText(`${tl('status_bar.processing_gif')} ${tl(ScreencamGIFFormats[options.format].name)}`)
 			}
 			ScreencamGIFFormats[options.format].process(vars, options)
 		}
