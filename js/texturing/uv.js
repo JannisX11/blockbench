@@ -2428,6 +2428,11 @@ Interface.definePanels(function() {
 						addEventListeners(document, 'mouseup touchend', stop, false);
 					}
 				},
+				onMouseEnter(event) {
+					if (this.mode == 'paint' && Painter.current.x != undefined) {
+						this.mouse_coords.line_preview = event.shiftKey;
+					}
+				},
 				onMouseLeave(event) {
 					if (this.mode == 'paint') {
 						this.mouse_coords.active = false;
@@ -3731,6 +3736,7 @@ Interface.definePanels(function() {
 						@touchstart="onMouseDown($event)"
 						@wheel="onMouseWheel($event)"
 						@mousemove="updateMouseCoords($event)"
+						@mouseenter="onMouseEnter($event)"
 						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
 						ref="viewport"
@@ -3958,7 +3964,9 @@ Interface.definePanels(function() {
 
 	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
 		if (before.shift != now.shift && document.querySelector('#uv_viewport:hover')) {
-			UVEditor.vue.mouse_coords.line_preview = now.shift;
+			let active = now.shift;
+			if (Painter.current.x == undefined) active = false;
+			UVEditor.vue.mouse_coords.line_preview = active;
 		}
 	});
 

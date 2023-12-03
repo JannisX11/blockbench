@@ -535,7 +535,7 @@ BARS.defineActions(() => {
 	
 	new Action('crop_layer_to_selection', {
 		icon: 'crop',
-		category: 'layer',
+		category: 'layers',
 		condition: () => TextureLayer.selected,
 		click() {
 			let layer = TextureLayer.selected;

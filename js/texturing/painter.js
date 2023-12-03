@@ -1990,7 +1990,6 @@ SharedActions.add('copy', {
 			copy_canvas.height = rect.height;
 			
 			selection.maskCanvas(copy_ctx, [rect.start_x, rect.start_y]);
-			console.log(-rect.start_x + offset[0], -rect.start_y + offset[1])
 			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 
 			Clipbench.image = {

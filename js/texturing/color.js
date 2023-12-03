@@ -239,6 +239,9 @@ Interface.definePanels(() => {
 				setColor(color, second_color = this.second_color_selected) {
 					ColorPanel.set(color, second_color);
 				},
+				changeColor(color, secondary = this.second_color_selected) {
+					this[secondary ? 'second_color' : 'main_color'] = color;
+				},
 				swapColors() {
 					BarItems.swap_colors.click();
 				},
@@ -347,7 +350,7 @@ Interface.definePanels(() => {
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
 							<input id="main_colorpicker">
 						</div>
-						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="setColor" :width="width" :height="width"></color-wheel>
+						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
