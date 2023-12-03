@@ -186,7 +186,7 @@ const Screencam = {
 				presets = (presets && autoParseJSON(presets, false)) || [];
 
 				DefaultCameraPresets.forEach(preset => {
-					if (!Condition(preset.condition)) returnspeed;
+					if (!Condition(preset.condition)) return;
 					options[preset.id] = {color: preset.color, name: tl(preset.name)};
 				})
 				presets.forEach((preset, i) => {
