@@ -187,6 +187,7 @@
 		background-color: var(--color-back);
 		overflow-y: scroll;
 		flex-grow: 1;
+		clear: both;
 	}
 	.list::-webkit-scrollbar-track {
 		background: var(--color-back);
