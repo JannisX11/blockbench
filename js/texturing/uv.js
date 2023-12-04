@@ -3155,7 +3155,7 @@ Interface.definePanels(function() {
 					let max = [0, 0];
 					this.selected_faces.forEach(fkey => {
 						this.mappable_elements.forEach(element => {
-							if (!element.faces[fkey]) return;
+							if (!element.faces[fkey] || element.faces[fkey].texture === null) return;
 
 							let face = element.faces[fkey];
 							if (element instanceof Cube) {
@@ -3764,7 +3764,7 @@ Interface.definePanels(function() {
 								<template v-if="element.type == 'cube' && !element.box_uv">
 									<div class="cube_uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="(face.getTexture() == texture || texture == 0) && (display_uv !== 'selected_faces' || selected_faces.includes(key))"
+										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || selected_faces.includes(key))"
 										:title="face_names[key]"
 										:class="{selected: selected_faces.includes(key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(key, $event)"
