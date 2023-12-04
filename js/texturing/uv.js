@@ -3245,8 +3245,8 @@ Interface.definePanels(function() {
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
-					start_x = Math.clamp(x, 0, UVEditor.texture ? UVEditor.texture.width : Project.texture_width);
-					start_y = Math.clamp(y, 0, UVEditor.texture ? UVEditor.texture.height : Project.texture_height);
+					start_x = x;
+					start_y = y;
 
 					if (create_selection) {
 						if (op_mode == 'create') {
