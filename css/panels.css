@@ -1342,13 +1342,11 @@
 		display: flex;
 		min-height: 24px;
 	}
-	li.animator {
-		width: fit-content;
-	}
 	#timeline_vue.graph_editor li.animator {
+		width: fit-content;
 		position: sticky;
 		left: 0;
-		z-index: 3;
+		z-index: 5;
 	}
 	#timeline_vue.graph_editor li.animator > div {
 		width: fit-content !important;
