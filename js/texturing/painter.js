@@ -295,8 +295,11 @@ const Painter = {
 		if (!Painter.current.uv_rects) {
 			Painter.current.uv_rects = new Map();
 		}
-		let val = Painter.current.uv_rects.get(uvTag);
-		if (val) return val;
+		let cached_rect = Painter.current.uv_rects.get(uvTag);
+		if (cached_rect) {
+			Painter.editing_area = cached_rect;
+			return cached_rect;
+		}
 
 		let rect;
 		let uvFactorX = texture.width / texture.getUVWidth();
