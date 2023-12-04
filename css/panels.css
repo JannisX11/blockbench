@@ -1958,6 +1958,13 @@ span.controller_state_section_info {
 		object-fit: cover;
 		object-position: 0 0;
 	}
+	/* Fix in Firefox + iPadOS */
+	#uv_frame_spacer {
+		width: 1px;
+		height: 1px;
+		pointer-events: none;
+		position: relative;
+	}
 	#uv_texture_grid {
 		position: absolute;
 		pointer-events: none;

@@ -3757,6 +3757,7 @@ Interface.definePanels(function() {
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
 						>
+							<div id="uv_frame_spacer" :style="{left: (inner_width+getFrameMargin()[0])+'px', top: (inner_height+getFrameMargin()[1])+'px'}"></div>
 
 							<template v-for="element in getDisplayedUVElements()">
 
