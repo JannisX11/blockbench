@@ -115,6 +115,20 @@ class ModelFormat {
 			})
 		}
 
+		if (!Format.per_texture_uv_size && old_format.per_texture_uv_size) {
+			let tex = Texture.getDefault();
+			if (tex) {
+				Project.texture_width = tex.uv_width;
+				Project.texture_height = tex.uv_height;
+			}
+		}
+		if (Format.per_texture_uv_size && !old_format.per_texture_uv_size) {
+			Texture.all.forEach(tex => {
+				tex.uv_width = Project.texture_width;
+				tex.uv_height = Project.texture_height;
+			})
+		}
+
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
 			Group.all.forEach(group => {
