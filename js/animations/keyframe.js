@@ -525,6 +525,13 @@ class Keyframe {
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
 		}
+		if (save && this.interpolation != 'bezier') {
+			delete copy.bezier_linked;
+			delete copy.bezier_left_time;
+			delete copy.bezier_left_value;
+			delete copy.bezier_right_time;
+			delete copy.bezier_right_value;
+		}
 		this.data_points.forEach(data_point => {
 			let point_copy = data_point.getUndoCopy();
 			if (options.absolute_paths == false) delete point_copy.file;
