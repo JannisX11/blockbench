@@ -588,7 +588,7 @@ window.Dialog = class Dialog {
 		}
 		return form_result;
 	}
-	setFormValues(values) {
+	setFormValues(values, update = true) {
 		for (let form_id in this.form) {
 			let data = this.form[form_id];
 			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
@@ -642,7 +642,7 @@ window.Dialog = class Dialog {
 				}
 			}
 		}
-		this.updateFormValues();
+		if (update) this.updateFormValues();
 	}
 	getFormResult() {
 		let result = {}

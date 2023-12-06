@@ -2085,7 +2085,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_all_grids', {
 		name: tl('settings.grids'),
 		description: tl('settings.grids.desc'),
-		icon: 'grid',
+		icon: 'grid_on',
 		category: 'view',
 		linked_setting: 'grids',
 		condition: () => !Modes.paint
