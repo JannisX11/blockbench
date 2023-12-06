@@ -2206,11 +2206,13 @@ BARS.defineActions(function() {
 						} else if (before) {
 							a = 0;
 						}
-					} else if (opacity < 1) {
+					} else if (opacity < 1 || blend_mode != BlendModes.default) {
 						let before = Painter.getAlphaMatrix(texture, px, py);
 						let new_val = (before||0);
-						if (before) {
+						if (a > before) {
 							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
+						} else if (before) {
+							a = 0;
 						}
 						new_val = new_val + (1-new_val) * a;
 						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
