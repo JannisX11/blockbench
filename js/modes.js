@@ -62,15 +62,17 @@ class Mode extends KeybindItem {
 		}
 		
 		UVEditor.beforeMoving();
-		for (let id in Panels) {
-			let old_pos_data = Panels[id].position_data;
-			Panels[id].position_data = Interface.getModeData().panels[id];
-			if (!Panels[id].position_data) {
-				Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
+		if (!Blockbench.isMobile) {
+			for (let id in Panels) {
+				let old_pos_data = Panels[id].position_data;
+				Panels[id].position_data = Interface.getModeData().panels[id];
+				if (!Panels[id].position_data) {
+					Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
+				}
+				Panels[id].updateSlot();
 			}
-			Panels[id].updateSlot();
+			updateSidebarOrder();
 		}
-		updateSidebarOrder();
 
 		Canvas.updateRenderSides()
 		if (this.tool && BarItems[this.tool] && Condition(BarItems[this.tool])) {
