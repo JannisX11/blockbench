@@ -11,9 +11,7 @@ const Painter = {
 		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
-		if (texture.mode === 'link') {
-			texture.convertToInternal();
-		}
+		if (!texture.internal) texture.convertToInternal();
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 		let {canvas, ctx, offset} = texture.getActiveCanvas();

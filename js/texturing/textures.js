@@ -1663,6 +1663,7 @@ class Texture {
 		}
 	}
 	updateChangesAfterEdit() {
+		if (!this.internal) this.convertToInternal();
 		if (this.layers_enabled) {
 			this.updateLayerChanges(true);
 		} else {
@@ -1700,17 +1701,14 @@ class Texture {
 		}
 		return this;
 	}
-	edit(cb, options) {
-		var scope = this;
-		if (!options) options = false;
-
+	edit(cb, options = 0) {
 		if (cb) {
-			Painter.edit(scope, cb, options);
+			Painter.edit(this, cb, options);
 
-		} else if (scope.mode === 'link') {
+		} else if (this.mode === 'link') {
 			this.convertToInternal();
 		}
-		scope.saved = false;
+		this.saved = false;
 	}
 }
 	Texture.prototype.menu = new Menu([
