@@ -598,10 +598,10 @@ var codec = new Codec('project', {
 					ani.uuid = guid();
 				}
 				if (base_ani.animators) {
-					for (let key in animators) {
+					for (let key in base_ani.animators) {
 						if (uuid_map[key]) {
-							animators[uuid_map[key]] = animators[key];
-							delete animators[key];
+							base_ani.animators[uuid_map[key]] = base_ani.animators[key];
+							delete base_ani.animators[key];
 						}
 					}
 				}
