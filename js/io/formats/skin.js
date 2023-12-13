@@ -160,7 +160,7 @@ codec.export = null;
 codec.rebuild = function(model_id, pose) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
-	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock));
+	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset[variant]);
 	codec.parse(model, undefined, undefined, pose && pose !== 'none');
 	if (pose && pose !== 'none') {
 		setTimeout(() => {
@@ -245,6 +245,7 @@ function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, l
 }
 
 const model_options = {};
+let selected_model = '';
 const skin_dialog = new Dialog({
 	title: tl('dialog.skin.title'),
 	id: 'skin',
@@ -254,7 +255,7 @@ const skin_dialog = new Dialog({
 			type: 'select',
 			options: model_options
 		},
-		variant: {
+		game_edition: {
 			label: 'dialog.skin.variant',
 			type: 'inline_select',
 			default: 'java_edition',
@@ -263,7 +264,17 @@ const skin_dialog = new Dialog({
 				bedrock_edition: 'Bedrock Edition',
 			},
 			condition(form) {
-				return !skin_presets[form.model].model;
+				return skin_presets[form.model].model_bedrock;
+			}
+		},
+		variant: {
+			label: 'dialog.skin.variant',
+			type: 'select',
+			options() {
+				return (selected_model && skin_presets[selected_model].variants) || {}
+			},
+			condition(form) {
+				return skin_presets[form.model].variants;
 			}
 		},
 		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
@@ -287,7 +298,19 @@ const skin_dialog = new Dialog({
 		pose: {type: 'checkbox', label: 'dialog.skin.pose', value: true, condition: form => (!!skin_presets[form.model].pose)},
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
 	},
-	draggable: true,
+	onFormChange(result) {
+		selected_model = result.model;
+		let variants = skin_presets[result.model].variants;
+		if (variants) {
+			for (let key in variants) {
+				if (!result.variant || !variants[result.variant]) {
+					result.variant = key;
+					skin_dialog.setFormValues({variant: key}, false);
+					break;
+				}
+			}
+		}
+	},
 	onConfirm(result) {
 		if (result.model == 'flat_texture') {
 			if (result.texture) {
@@ -299,9 +322,22 @@ const skin_dialog = new Dialog({
 		} else {
 			if (newProject(format)) {
 				let preset = skin_presets[result.model];
-				let model = JSON.parse(preset.model || (result.variant == 'java_edition' ? preset.model_java : preset.model_bedrock));
+				let raw_model;
+				if (preset.model_bedrock) {
+					raw_model = result.game_edition == 'java_edition' ? preset.model_java : preset.model_bedrock;
+				} else if (preset.variants) {
+					raw_model = preset.variants[result.variant].model;
+				} else {
+					raw_model = preset.model;
+				}
+				let model = JSON.parse(raw_model);
 				codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
-				Project.skin_model = result.model + '.' + (result.variant == 'java_edition' ? 'java' : 'bedrock');
+				Project.skin_model = result.model;
+				if (preset.model_bedrock) {
+					Project.skin_model += '.' + (result.game_edition == 'java_edition' ? 'java' : 'bedrock');
+				} else if (preset.variants) {
+					Project.skin_model += '.' + result.variant;
+				}
 			}
 		}
 	},
@@ -1192,84 +1228,173 @@ skin_presets.banner = {
 skin_presets.bat = {
 	display_name: 'Bat',
 	pose: true,
-	model: `{
-		"name": "bat",
-		"texturewidth": 64,
-		"textureheight": 64,
-		"bones": [
-			{
-				"name": "Head",
-				"pivot": [0, 24, 0],
-				"cubes": [
-					{"name": "Head", "origin": [-3, 21, -3], "size": [6, 6, 6], "uv": [0, 0]}
+	variants: {	
+		new: {
+			name: 'New',
+			model: `{
+				"name": "bat_v2",
+				"texturewidth": 32,
+				"textureheight": 32,
+				"eyes": [
+					[1, 10, 2, 1],
+					[5, 10, 2, 1]
+				],
+				"bones": [
+					{
+						"name": "Head",
+						"pivot": [0, 7, 0],
+						"cubes": [
+							{"origin": [-2, 7, -1], "size": [4, 3, 2], "uv": [0, 7]}
+						]
+					},
+					{
+						"name": "rightEar",
+						"parent": "Head",
+						"pivot": [-1.5, 9, 0],
+						"cubes": [
+							{"origin": [-4, 8, 0], "size": [3, 5, 0], "uv": [1, 15]}
+						]
+					},
+					{
+						"name": "leftEar",
+						"parent": "Head",
+						"pivot": [1.1, 10, 0],
+						"cubes": [
+							{"origin": [1, 8, 0], "size": [3, 5, 0], "uv": [8, 15]}
+						]
+					},
+					{
+						"name": "body",
+						"pivot": [0, 7, 0],
+						"cubes": [
+							{"origin": [-1.5, 2, -1], "size": [3, 5, 2], "uv": [0, 0]}
+						]
+					},
+					{
+						"name": "feet",
+						"parent": "body",
+						"pivot": [0, 2, 0],
+						"cubes": [
+							{"origin": [-1.5, 0, 0], "size": [3, 2, 0], "uv": [16, 16]}
+						]
+					},
+					{
+						"name": "rightWing",
+						"parent": "body",
+						"pivot": [-1.5, 7, 0],
+						"cubes": [
+							{"origin": [-3.5, 2, 0], "size": [2, 7, 0], "uv": [12, 0]}
+						]
+					},
+					{
+						"name": "rightWingTip",
+						"parent": "rightWing",
+						"pivot": [-3.5, 7, 0],
+						"cubes": [
+							{"origin": [-9.5, 1, 0], "size": [6, 8, 0], "uv": [16, 0]}
+						]
+					},
+					{
+						"name": "leftWing",
+						"parent": "body",
+						"pivot": [1.5, 7, 0],
+						"cubes": [
+							{"origin": [1.5, 2, 0], "size": [2, 7, 0], "uv": [12, 7]}
+						]
+					},
+					{
+						"name": "leftWingTip",
+						"parent": "leftWing",
+						"pivot": [3.5, 7, 0],
+						"cubes": [
+							{"origin": [3.5, 1, 0], "size": [6, 8, 0], "uv": [16, 8]}
+						]
+					}
 				]
-			},
-			{
-				"name": "rightEar",
-				"parent": "Head",
-				"pivot": [0, 24, 0],
-				"cubes": [
-					{"name": "rightEar", "origin": [-4, 26, -2], "size": [3, 4, 1], "uv": [24, 0]}
+			}`
+		},
+		old: {
+			name: 'Old',
+			model: `{
+				"name": "bat",
+				"texturewidth": 64,
+				"textureheight": 64,
+				"bones": [
+					{
+						"name": "Head",
+						"pivot": [0, 24, 0],
+						"cubes": [
+							{"name": "Head", "origin": [-3, 21, -3], "size": [6, 6, 6], "uv": [0, 0]}
+						]
+					},
+					{
+						"name": "rightEar",
+						"parent": "Head",
+						"pivot": [0, 24, 0],
+						"cubes": [
+							{"name": "rightEar", "origin": [-4, 26, -2], "size": [3, 4, 1], "uv": [24, 0]}
+						]
+					},
+					{
+						"name": "leftEar",
+						"parent": "Head",
+						"pivot": [0, 24, 0],
+						"mirror": true,
+						"cubes": [
+							{"name": "leftEar", "origin": [1, 26, -2], "size": [3, 4, 1], "uv": [24, 0]}
+						]
+					},
+					{
+						"name": "body",
+						"pivot": [0, 24, 0],
+						"rotation": [30, 0, 0],
+						"cubes": [
+							{"name": "body", "origin": [-3, 8, -3], "size": [6, 12, 6], "uv": [0, 16]},
+							{"name": "body", "origin": [-5, -8, 0], "size": [10, 16, 1], "uv": [0, 34]}
+						]
+					},
+					{
+						"name": "rightWing",
+						"parent": "body",
+						"pivot": [0, 24, 0],
+						"pose": [0, -10, 0],
+						"cubes": [
+							{"name": "rightWing", "origin": [-12, 7, 1.5], "size": [10, 16, 1], "uv": [42, 0]}
+						]
+					},
+					{
+						"name": "rightWingTip",
+						"parent": "rightWing",
+						"pivot": [-12, 23, 1.5],
+						"pose": [0, -15, 0],
+						"cubes": [
+							{"name": "rightWingTip", "origin": [-20, 10, 1.5], "size": [8, 12, 1], "uv": [24, 16]}
+						]
+					},
+					{
+						"name": "leftWing",
+						"parent": "body",
+						"pivot": [0, 24, 0],
+						"pose": [0, 10, 0],
+						"mirror": true,
+						"cubes": [
+							{"name": "leftWing", "origin": [2, 7, 1.5], "size": [10, 16, 1], "uv": [42, 0]}
+						]
+					},
+					{
+						"name": "leftWingTip",
+						"parent": "leftWing",
+						"pivot": [12, 23, 1.5],
+						"pose": [0, 15, 0],
+						"mirror": true,
+						"cubes": [
+							{"name": "leftWingTip", "origin": [12, 10, 1.5], "size": [8, 12, 1], "uv": [24, 16]}
+						]
+					}
 				]
-			},
-			{
-				"name": "leftEar",
-				"parent": "Head",
-				"pivot": [0, 24, 0],
-				"mirror": true,
-				"cubes": [
-					{"name": "leftEar", "origin": [1, 26, -2], "size": [3, 4, 1], "uv": [24, 0]}
-				]
-			},
-			{
-				"name": "body",
-				"pivot": [0, 24, 0],
-				"rotation": [30, 0, 0],
-				"cubes": [
-					{"name": "body", "origin": [-3, 8, -3], "size": [6, 12, 6], "uv": [0, 16]},
-					{"name": "body", "origin": [-5, -8, 0], "size": [10, 16, 1], "uv": [0, 34]}
-				]
-			},
-			{
-				"name": "rightWing",
-				"parent": "body",
-				"pivot": [0, 24, 0],
-				"pose": [0, -10, 0],
-				"cubes": [
-					{"name": "rightWing", "origin": [-12, 7, 1.5], "size": [10, 16, 1], "uv": [42, 0]}
-				]
-			},
-			{
-				"name": "rightWingTip",
-				"parent": "rightWing",
-				"pivot": [-12, 23, 1.5],
-				"pose": [0, -15, 0],
-				"cubes": [
-					{"name": "rightWingTip", "origin": [-20, 10, 1.5], "size": [8, 12, 1], "uv": [24, 16]}
-				]
-			},
-			{
-				"name": "leftWing",
-				"parent": "body",
-				"pivot": [0, 24, 0],
-				"pose": [0, 10, 0],
-				"mirror": true,
-				"cubes": [
-					{"name": "leftWing", "origin": [2, 7, 1.5], "size": [10, 16, 1], "uv": [42, 0]}
-				]
-			},
-			{
-				"name": "leftWingTip",
-				"parent": "leftWing",
-				"pivot": [12, 23, 1.5],
-				"pose": [0, 15, 0],
-				"mirror": true,
-				"cubes": [
-					{"name": "leftWingTip", "origin": [12, 10, 1.5], "size": [8, 12, 1], "uv": [24, 16]}
-				]
-			}
-		]
-	}`
+			}`
+		},
+	}
 };
 skin_presets.bed = {
 	display_name: 'Bed',
