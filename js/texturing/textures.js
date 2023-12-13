@@ -1279,8 +1279,10 @@ class Texture {
 					} else if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
 
 						if (Format.per_texture_uv_size) {
-							scope.uv_width = Project.texture_width * (formResult.size[0] / old_width);
-							scope.uv_height = Project.texture_height * (formResult.size[1] / old_height);
+							scope.uv_width = scope.uv_width * (formResult.size[0] / old_width);
+							scope.uv_height = scope.uv_height * (formResult.size[1] / old_height);
+							Project.texture_width = scope.uv_width;
+							Project.texture_height = scope.uv_height;
 						} else {
 							Undo.current_save.uv_mode = {
 								box_uv: Project.box_uv,
