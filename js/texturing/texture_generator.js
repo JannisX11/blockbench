@@ -75,7 +75,7 @@ const TextureGenerator = {
 			title: tl('action.append_to_template'),
 			width: 480,
 			form: {
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color},
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (!Project.box_uv && Cube.all.length)},
 				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: Math.isPowerOfTwo(texture.width)},
@@ -145,7 +145,7 @@ const TextureGenerator = {
 			TextureGenerator.generateColorMapTemplate(options, makeTexture);
 		} else {
 			Undo.initEdit({textures: [], selected_texture: true})
-			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture)
+			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture);
 		}
 	},
 	generateBlank(height, width, color, cb) {
@@ -158,8 +158,14 @@ const TextureGenerator = {
 			ctx.fillStyle = new tinycolor(color).toRgbString();
 			ctx.fillRect(0, 0, width, height);
 		}
-
-		cb(canvas.toDataURL())
+		let texture = cb(canvas.toDataURL());
+		texture.uv_width = width;
+		texture.uv_height = height;
+		if (Format.per_texture_uv_size) {
+			Project.texture_width = width;
+			Project.texture_height = height;
+		}
+		return texture;
 	},
 	//constructors
 	boxUVCubeTemplate: function(obj, min_size) {
@@ -1717,10 +1723,10 @@ const TextureGenerator = {
 	changeUVResolution(width, height, texture) {
 		let factor_x = width / Project.getUVWidth(texture);
 		let factor_y = height / Project.getUVHeight(texture);
-		if (!Format.per_texture_uv_size) {
-			Project.texture_width = width;
-			Project.texture_height = height;
-		}
+
+		Project.texture_width = width;
+		Project.texture_height = height;
+
 		if (texture) {
 			texture.uv_width = width;
 			texture.uv_height = height;
@@ -1728,7 +1734,7 @@ const TextureGenerator = {
 		}
 		let changed_elements = [];
 
-		if (!Project.box_uv && !Format.single_texture && (factor_x !== 1 || factor_y !== 1)) {
+		if (!Project.box_uv && !Format.single_texture && !Format.per_texture_uv_size && (factor_x !== 1 || factor_y !== 1)) {
 			changed_elements = Outliner.elements.filter(el => el.faces && !el.selected);
 			Undo.current_save.addElements(changed_elements, {uv_only: true});
 

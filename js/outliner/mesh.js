@@ -1112,7 +1112,7 @@ new NodePreviewController(Mesh, {
 				stretch = tex.frameCount
 				frame = tex.currentFrame || 0;
 			}
-			let uv_size = tex
+			let uv_size = (tex && Project.view_mode !== 'uv')
 				? [tex.getUVWidth(), tex.getUVHeight()]
 				: [Project.texture_width, Project.texture_height];
 

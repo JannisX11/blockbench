@@ -2136,8 +2136,13 @@ BARS.defineActions(function() {
 
 	let player_skin_setup = false;
 	function updateBase(mode) {
+		let root_has_binding = Outliner.root.find(g => g instanceof Group && g.bedrock_binding)
 		if (mode == 'attachable_first') {
-			Project.model_3d.position.set(-20, 21, 0);
+			if (root_has_binding) {
+				Project.model_3d.position.set(-20, 21, 0);
+			} else {
+				Project.model_3d.position.set(-8, 6, -18);
+			}
 			Project.model_3d.rotation.set(
 				Math.degToRad(-95),
 				Math.degToRad(45),
@@ -2151,8 +2156,13 @@ BARS.defineActions(function() {
 
 		if (mode == 'attachable_third') {
 			let angle = Math.degToRad(15);
-			let arm_offset = Reusable.vec1.set(1, -31, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
-			Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			if (root_has_binding) {
+				let arm_offset = Reusable.vec1.set(1, -31, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
+				Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			} else {
+				let arm_offset = Reusable.vec1.set(1, -7, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
+				Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			}
 			Project.model_3d.rotation.set(angle, 0, 0);
 			player_preview_model.enable()
 

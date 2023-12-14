@@ -1342,13 +1342,11 @@
 		display: flex;
 		min-height: 24px;
 	}
-	li.animator {
-		width: fit-content;
-	}
 	#timeline_vue.graph_editor li.animator {
+		width: fit-content;
 		position: sticky;
 		left: 0;
-		z-index: 3;
+		z-index: 5;
 	}
 	#timeline_vue.graph_editor li.animator > div {
 		width: fit-content !important;
@@ -1959,6 +1957,13 @@ span.controller_state_section_info {
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+	}
+	/* Fix in Firefox + iPadOS */
+	#uv_frame_spacer {
+		width: 1px;
+		height: 1px;
+		pointer-events: none;
+		position: relative;
 	}
 	#uv_texture_grid {
 		position: absolute;
@@ -2694,6 +2699,9 @@ span.controller_state_section_info {
 		overflow: visible;
 		margin: 2px 4px 0 4px;
 		width: calc(100% - 8px);
+	}
+	#center #panel_color .sp-top.sp-cf {
+		height: var(--height);
 	}
 /* Skin Pose */
 	#skin_pose_selector {

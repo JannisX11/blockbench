@@ -229,6 +229,7 @@ const Timeline = {
 	},
 	revealTime(time) {
 		let body = document.getElementById('timeline_body');
+		if (!body) return;
 		var scroll = body.scrollLeft;
 		var playhead = time * Timeline.vue._data.size + 8;
 		if (playhead < scroll || playhead > scroll + document.getElementById('timeline_vue').clientWidth - Timeline.vue._data.head_width) {

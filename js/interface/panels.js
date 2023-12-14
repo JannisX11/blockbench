@@ -758,7 +758,7 @@ function setupMobilePanelSelector() {
 						let panel_b = Panels[key];
 						if (panel_b.slot == 'bottom') {
 							$(panel_b.node).detach();
-							panel_b.slot = 'left_bar';
+							panel_b.position_data.slot = 'left_bar';
 						}
 					}
 					if (panel) {

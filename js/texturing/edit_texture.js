@@ -826,7 +826,7 @@ BARS.defineActions(function() {
 				texture.width = texture.canvas.width = rect.width;
 				texture.height = texture.canvas.height = rect.height;
 				texture.ctx.imageSmoothingEnabled = false;
-				texture.ctx.drawImage(texture.img, rect.start_x, rect.start_y, texture.width, texture.height);
+				texture.ctx.drawImage(texture.img, -rect.start_x, -rect.start_y);
 			} else {
 				texture.width = texture.canvas.width = rect.width;
 				texture.height = texture.canvas.height = rect.height;

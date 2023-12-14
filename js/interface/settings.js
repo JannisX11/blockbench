@@ -666,7 +666,11 @@ const Settings = {
 		let settings_to_change = new Set();
 		for (let profile of SettingsProfile.all) {
 			for (let key in profile.settings) {
-				settings_to_change.add(key);
+				if (settings[key]) {
+					settings_to_change.add(key);
+				} else {
+					delete profile.settings[key];
+				}
 			}
 		}
 		settings_to_change.forEach(key => {

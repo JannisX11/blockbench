@@ -1276,11 +1276,13 @@ class Texture {
 						// Nothing
 					} else if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
-					} else if ((Format.single_texture || Texture.all.length == 1)) {
+					} else if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
 
 						if (Format.per_texture_uv_size) {
-							this.uv_width = Project.texture_width * (formResult.size[0] / old_width);
-							this.uv_height = Project.texture_height * (formResult.size[1] / old_height);
+							scope.uv_width = scope.uv_width * (formResult.size[0] / old_width);
+							scope.uv_height = scope.uv_height * (formResult.size[1] / old_height);
+							Project.texture_width = scope.uv_width;
+							Project.texture_height = scope.uv_height;
 						} else {
 							Undo.current_save.uv_mode = {
 								box_uv: Project.box_uv,
@@ -1663,6 +1665,7 @@ class Texture {
 		}
 	}
 	updateChangesAfterEdit() {
+		if (!this.internal) this.convertToInternal();
 		if (this.layers_enabled) {
 			this.updateLayerChanges(true);
 		} else {
@@ -1700,17 +1703,14 @@ class Texture {
 		}
 		return this;
 	}
-	edit(cb, options) {
-		var scope = this;
-		if (!options) options = false;
-
+	edit(cb, options = 0) {
 		if (cb) {
-			Painter.edit(scope, cb, options);
+			Painter.edit(this, cb, options);
 
-		} else if (scope.mode === 'link') {
+		} else if (this.mode === 'link') {
 			this.convertToInternal();
 		}
-		scope.saved = false;
+		this.saved = false;
 	}
 }
 	Texture.prototype.menu = new Menu([
@@ -2284,6 +2284,7 @@ TextureAnimator = {
 		})
 		BarItems.animated_texture_frame.update();
 		UVEditor.vue.updateTextureCanvas();
+		UVEditor.updateSelectionOutline(true);
 		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
 	},
 	reset() {
@@ -2298,6 +2299,7 @@ TextureAnimator = {
 			if (!el.faces || !el.preview_controller.updateUV) return;
 			el.preview_controller.updateUV(el);
 		})
+		UVEditor.updateSelectionOutline(true)
 		UVEditor.vue.updateTextureCanvas();
 	},
 	updateButton() {

@@ -11,9 +11,7 @@ const Painter = {
 		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
-		if (texture.mode === 'link') {
-			texture.convertToInternal();
-		}
+		if (!texture.internal) texture.convertToInternal();
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -295,8 +293,11 @@ const Painter = {
 		if (!Painter.current.uv_rects) {
 			Painter.current.uv_rects = new Map();
 		}
-		let val = Painter.current.uv_rects.get(uvTag);
-		if (val) return val;
+		let cached_rect = Painter.current.uv_rects.get(uvTag);
+		if (cached_rect) {
+			Painter.editing_area = cached_rect;
+			return cached_rect;
+		}
 
 		let rect;
 		let uvFactorX = texture.width / texture.getUVWidth();
@@ -1980,6 +1981,7 @@ SharedActions.add('copy', {
 		if (selection.override != null) {
 			Clipbench.image = {
 				x: offset[0], y: offset[1],
+				frame: texture.currentFrame,
 				data: canvas.toDataURL(),
 			}
 		} else {
@@ -1990,12 +1992,12 @@ SharedActions.add('copy', {
 			copy_canvas.height = rect.height;
 			
 			selection.maskCanvas(copy_ctx, [rect.start_x, rect.start_y]);
-			console.log(-rect.start_x + offset[0], -rect.start_y + offset[1])
 			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 
 			Clipbench.image = {
 				x: rect.start_x,
 				y: rect.start_y,
+				frame: texture.currentFrame,
 				data: copy_canvas.toDataURL()
 			}
 			canvas = copy_canvas;
@@ -2035,6 +2037,10 @@ SharedActions.add('paste', {
 				texture.activateLayers(false);
 			}
 			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let old_frame = Clipbench.image?.frame || 0;
+			if (old_frame || texture.currentFrame) {
+				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
+			}
 			let layer = new TextureLayer({name: 'pasted', offset}, texture);
 			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
 			layer.setSize(frame.width, frame.height);
@@ -2198,11 +2204,13 @@ BARS.defineActions(function() {
 						} else if (before) {
 							a = 0;
 						}
-					} else if (opacity < 1) {
+					} else if (opacity < 1 || blend_mode != BlendModes.default) {
 						let before = Painter.getAlphaMatrix(texture, px, py);
 						let new_val = (before||0);
-						if (before) {
+						if (a > before) {
 							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
+						} else if (before) {
+							a = 0;
 						}
 						new_val = new_val + (1-new_val) * a;
 						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
