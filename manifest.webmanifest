@@ -20,6 +20,14 @@
 			"purpose": "maskable"
 		}
 	],
+	"screenshots": [
+		{
+			"src": "content/front_page_app.png",
+			"sizes": "1920x1040",
+			"type": "image/png",
+			"label": "Blockbench Interface"
+		}
+	],
 	"start_url": "./index.html",
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
