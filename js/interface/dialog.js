@@ -994,12 +994,14 @@ window.MessageBox = class MessageBox extends Dialog {
 		let jq_dialog = $(this.object);
 
 		if (options.message) {
-			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			content.append($(`<div class="dialog_bar markdown" style="height: auto; margin-bottom: 10px;">`+
 				pureMarked(tl(options.message))+
 			'</div></div>')[0]);
 		}
 		if (options.icon) {
-			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+			let bar = jq_dialog.find('.dialog_bar');
+			bar.prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'));
+			bar.append('<div style="clear:both;"></div>');
 		}
 
 		if (options.commands) {

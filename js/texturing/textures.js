@@ -1040,14 +1040,15 @@ class Texture {
 					require('child_process').spawn(settings.image_editor.value, [this.path])
 				}
 			} else {
-				electron.dialog.showMessageBoxSync(currentwindow, {
-					type: 'info',
-					noLink: true,
+				Blockbench.showMessageBox({
+					icon: 'fas.fa-pen-square',
 					title: tl('message.image_editor_missing.title'),
-					message: tl('message.image_editor_missing.message'),
-					detail: tl('message.image_editor_missing.detail')
+					message: tl('message.image_editor_missing.detail'),
+					buttons: ['dialog.ok', 'dialog.cancel']
+				}, (result) => {
+					if (result == 1) return;
+					selectImageEditorFile(scope)
 				})
-				selectImageEditorFile(scope)
 			}
 		}
 		return this;

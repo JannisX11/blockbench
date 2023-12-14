@@ -366,35 +366,39 @@ class ModelProject {
 		}
 
 		async function saveWarning() {
-			await new Promise(resolve => setTimeout(resolve, 4));
-			if (Project.saved) {
-				return true;
-			} else {
+			return await new Promise((resolve) => {
 				if (isApp) {
-					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
-						type: 'question',
-						buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
-						title: 'Blockbench',
-						message: tl('message.close_warning.message'),
-						noLink: true
-					})
+					shell.beep();
+				}
+				Blockbench.showMessageBox({
+					title: Project.getDisplayName(),
+					message: tl('message.close_warning.message'),
+					buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
+					cancel_on_click_outside: false,
+					width: 472,
+				}, async (answer) => {
 					if (answer === 0) {
 						if (Project.save_path || Project.export_path) {
 							BarItems.save_project.trigger();
 						} else {
 							await BarItems.export_over.click();
 						}
-						return Project.saved;
+						await new Promise(resolve => setTimeout(resolve, 4));
+						console.log(Project.saved)
+						resolve(Project.saved);
+					} else if (answer == 1) {
+						console.log(true)
+						resolve(true);
+					} else if (answer == 2) {
+						console.log(false)
+						resolve(false);
 					}
-					return answer !== 2;
-				} else {
-					var answer = confirm(tl('message.close_warning.web'))
-					return answer;
-				}
-			}
+				})
+			});
 		}
 
-		if (force || await saveWarning()) {
+		if (force || Project.saved || await saveWarning()) {
+			console.log(true)
 			try {
 				if (isApp) {
 					updateRecentProjectData();
