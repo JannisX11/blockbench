@@ -169,7 +169,9 @@ var codec = new Codec('project', {
 		Texture.all.forEach(tex => {
 			var t = tex.getSaveCopy();
 			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
-				let relative = PathModule.relative(Project.save_path, tex.path);
+				// Relative paths are only valid for directories, but save_path
+				// is a path to a regular file, so dirname is necessary here
+				let relative = PathModule.relative(PathModule.dirname(Project.save_path), tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
