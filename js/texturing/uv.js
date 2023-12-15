@@ -3762,7 +3762,7 @@ Interface.definePanels(function() {
 							<template v-for="element in getDisplayedUVElements()">
 
 								<template v-if="element.type == 'cube' && !element.box_uv">
-									<div class="cube_uv_face"
+									<div class="cube_uv_face uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
 										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || selected_faces.includes(key))"
 										:title="face_names[key]"
@@ -3799,7 +3799,7 @@ Interface.definePanels(function() {
 									</div>
 								</template>
 								
-								<div v-else-if="element.type == 'cube'" class="cube_box_uv"
+								<div v-else-if="element.type == 'cube'" class="cube_box_uv uv_face"
 									:key="element.uuid"
 									@mousedown.prevent="dragFace(null, $event)"
 									@touchstart.prevent="dragFace(null, $event)"
@@ -3814,7 +3814,7 @@ Interface.definePanels(function() {
 								</div>
 
 								<template v-if="element.type == 'mesh'">
-									<div class="mesh_uv_face"
+									<div class="mesh_uv_face uv_face"
 										v-for="(face, key) in filterMeshFaces(element.faces)" :key="element.uuid + ':' + key"
 										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || selected_faces.includes(key)) && face.getTexture() == texture"
 										:class="{selected: selected_faces.includes(key)}"
