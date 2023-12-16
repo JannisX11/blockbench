@@ -304,7 +304,7 @@ var codec = new Codec('project', {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
 				if (isApp && tex.relative_path && Project.save_path) {
-					let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
+					let resolved_path = PathModule.resolve(PathModule.dirname(Project.save_path), tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
 						tex_copy.fromPath(resolved_path)
 						return;
@@ -501,7 +501,7 @@ var codec = new Codec('project', {
 				return tex_copy;
 			}
 			if (isApp && tex.relative_path && Project.save_path) {
-				let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
+				let resolved_path = PathModule.resolve(PathModule.dirname(Project.save_path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
 					tex_copy.fromPath(resolved_path)
 					return tex_copy;
