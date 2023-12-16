@@ -161,6 +161,10 @@ const TextureGenerator = {
 		let texture = cb(canvas.toDataURL());
 		texture.uv_width = width;
 		texture.uv_height = height;
+		if (Format.per_texture_uv_size) {
+			Project.texture_width = width;
+			Project.texture_height = height;
+		}
 		return texture;
 	},
 	//constructors
@@ -1719,10 +1723,10 @@ const TextureGenerator = {
 	changeUVResolution(width, height, texture) {
 		let factor_x = width / Project.getUVWidth(texture);
 		let factor_y = height / Project.getUVHeight(texture);
-		if (!Format.per_texture_uv_size) {
-			Project.texture_width = width;
-			Project.texture_height = height;
-		}
+
+		Project.texture_width = width;
+		Project.texture_height = height;
+
 		if (texture) {
 			texture.uv_width = width;
 			texture.uv_height = height;

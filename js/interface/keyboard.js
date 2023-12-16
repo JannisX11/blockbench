@@ -847,6 +847,16 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			ReferenceImageMode.deactivate();
 			used = true;
 		}
+	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected && Texture.selected.selection.is_custom) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			SharedActions.run('unselect_all', e);
+			used = true;
+		}
+	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			TextureLayer.selected.resolveLimbo(false);
+			used = true;
+		}
 	}
 	if (ActionControl.open) {
 		used = ActionControl.handleKeys(e) || used

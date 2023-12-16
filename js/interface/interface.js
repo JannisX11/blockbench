@@ -746,6 +746,9 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	let value = data.value || data.default || Object.keys(options)[0];
 	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
 	function setKey(key, options) {
+		if (!options) {
+			options = typeof data.options == 'function' ? data.options() : data.options;
+		}
 		value = key;
 		select.setAttribute('value', key);
 		select.textContent = getNameFor(options[key]);

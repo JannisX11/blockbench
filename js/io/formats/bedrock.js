@@ -1137,7 +1137,7 @@ var codec = new Codec('bedrock', {
 				return;
 			}
 		}
-		if (data && index !== undefined) {
+		if (data) {
 
 			if (Group.all.find(group => group.bedrock_binding)) {
 				data.format_version = '1.16.0';
