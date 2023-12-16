@@ -2102,7 +2102,7 @@ Interface.definePanels(function() {
 							: Math.floor(Math.clamp(UVEditor.panel.width - 8, 64, 1e5));
 					this.width = size;
 					if (Format.image_editor) {
-						this.height = Interface.center_screen.clientHeight - 38;
+						this.height = Interface.preview.clientHeight - 38;
 						if (Blockbench.isMobile) {
 							let panel = Interface.getBottomPanel();
 							if (panel) this.height -= panel.height;
