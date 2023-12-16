@@ -11,9 +11,7 @@ const Painter = {
 		if (!options.no_undo && !options.no_undo_init) {
 			Undo.initEdit({textures: [texture], bitmap: true})
 		}
-		if (texture.mode === 'link') {
-			texture.convertToInternal();
-		}
+		if (!texture.internal) texture.convertToInternal();
 
 		let edit_name = options.no_undo ? null : (options.edit_name || 'Edit texture');
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2036,6 +2034,7 @@ SharedActions.add('paste', {
 
 			Undo.initEdit({textures: [texture], bitmap: true});
 			if (!texture.layers_enabled) {
+				texture.flags.add('temporary_layers');
 				texture.activateLayers(false);
 			}
 			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
@@ -2093,17 +2092,19 @@ SharedActions.add('duplicate', {
 			copy_canvas.width = rect.width;
 			copy_canvas.height = rect.height;
 			
-			selection.maskCanvas(copy_ctx, offset);
-			copy_ctx.drawImage(canvas, -rect.start_x, -rect.start_y);
+			selection.maskCanvas(copy_ctx, [rect.start_x, rect.start_y]);
+			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 
 			canvas = copy_canvas;
+			offset = [rect.start_x, rect.start_y];
 		}
 
 		Undo.initEdit({textures: [texture], bitmap: true});
 		if (!texture.layers_enabled) {
+			texture.flags.add('temporary_layers');
 			texture.activateLayers(false);
 		}
-		let new_layer = new TextureLayer({name: layer.name + ' - copy', offset}, texture);
+		let new_layer = new TextureLayer({name: layer ? (layer.name + ' - copy') : 'selection', offset}, texture);
 		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 		new_layer.setSize(canvas.width, canvas.height);
 		new_layer.ctx.putImageData(image_data, 0, 0);
@@ -2115,7 +2116,6 @@ SharedActions.add('duplicate', {
 		Undo.finishEdit('Duplicate texture selection');
 		updateInterfacePanels();
 		BARS.updateConditions();
-		
 	}
 })
 SharedActions.add('delete', {
@@ -2206,11 +2206,13 @@ BARS.defineActions(function() {
 						} else if (before) {
 							a = 0;
 						}
-					} else if (opacity < 1) {
+					} else if (opacity < 1 || blend_mode != BlendModes.default) {
 						let before = Painter.getAlphaMatrix(texture, px, py);
 						let new_val = (before||0);
-						if (before) {
+						if (a > before) {
 							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
+						} else if (before) {
+							a = 0;
 						}
 						new_val = new_val + (1-new_val) * a;
 						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);

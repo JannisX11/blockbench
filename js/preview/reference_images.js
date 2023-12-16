@@ -820,6 +820,9 @@ const ReferenceImageMode = {
 		})
 		files.forEach(file => {
 			let ref = new ReferenceImage({source: file.content, name: file.name});
+			if (Format.image_editor) {
+				ref.layer = 'viewport';
+			}
 			if (save_mode == 'project') {
 				ref.addAsReference(true);
 			} else {

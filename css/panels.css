@@ -1940,7 +1940,7 @@ span.controller_state_section_info {
 		--color-uv-background: transparent;
 		--uv-line-width: 1px;
 	}
-	#uv_frame.overlay_mode * {
+	#uv_frame.overlay_mode .uv_face {
 		pointer-events: none;
 	}
 
@@ -2699,6 +2699,9 @@ span.controller_state_section_info {
 		overflow: visible;
 		margin: 2px 4px 0 4px;
 		width: calc(100% - 8px);
+	}
+	#center #panel_color .sp-top.sp-cf {
+		height: var(--height);
 	}
 /* Skin Pose */
 	#skin_pose_selector {

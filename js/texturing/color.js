@@ -111,14 +111,20 @@ Interface.definePanels(() => {
 			})
 		],
 		onResize() {
-			Interface.Panels.color.vue.width = 0;
+			Panels.color.vue.width = 0;
 			Vue.nextTick(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
 				this.vue.$refs.square_picker.style.display = 'none';
-				let max = this.isInSidebar()
-					? 1000
-					: Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
-				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
+				Panels.color.vue.width = Math.clamp(this.width, 100, 1000);
+				if (!this.isInSidebar()) {
+					if (this.vue.picker_type == 'box') {
+						let height = this.height - this.vue.$el.clientHeight - this.handle.clientHeight - 6;
+						Panels.color.vue.picker_height = Math.clamp(height, 100, 1000);
+					} else {
+						let max = Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
+						Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
+					}
+				}
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
 					$('#main_colorpicker').spectrum('reflow');
@@ -128,6 +134,7 @@ Interface.definePanels(() => {
 		component: {
 			data: {
 				width: 100,
+				picker_height: 100,
 				open_tab: StateMemory.color_picker_tab || 'picker',
 				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
 				main_color: '#ffffff',
@@ -152,10 +159,6 @@ Interface.definePanels(() => {
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
 			},
 			methods: {
-				togglePickerType() {
-					settings.color_wheel.set(!settings.color_wheel.value);
-					Panels.color.onResize();
-				},
 				colorPickerMenu(event) {
 					new Menu('color_picker_menu', [
 						{
@@ -165,9 +168,11 @@ Interface.definePanels(() => {
 							children: [
 								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
 									settings.color_wheel.set(false);
+									Panels.color.onResize();
 								}},
 								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
 									settings.color_wheel.set(true);
+									Panels.color.onResize();
 								}}
 							]
 						},
@@ -347,7 +352,7 @@ Interface.definePanels(() => {
 
 					</div>
 					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
-						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
+						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
 						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>

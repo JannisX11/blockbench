@@ -145,7 +145,7 @@ const TextureGenerator = {
 			TextureGenerator.generateColorMapTemplate(options, makeTexture);
 		} else {
 			Undo.initEdit({textures: [], selected_texture: true})
-			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture)
+			TextureGenerator.generateBlank(options.resolution[1], options.resolution[0], options.color, makeTexture);
 		}
 	},
 	generateBlank(height, width, color, cb) {
@@ -158,8 +158,14 @@ const TextureGenerator = {
 			ctx.fillStyle = new tinycolor(color).toRgbString();
 			ctx.fillRect(0, 0, width, height);
 		}
-
-		cb(canvas.toDataURL())
+		let texture = cb(canvas.toDataURL());
+		texture.uv_width = width;
+		texture.uv_height = height;
+		if (Format.per_texture_uv_size) {
+			Project.texture_width = width;
+			Project.texture_height = height;
+		}
+		return texture;
 	},
 	//constructors
 	boxUVCubeTemplate: function(obj, min_size) {
@@ -1717,10 +1723,10 @@ const TextureGenerator = {
 	changeUVResolution(width, height, texture) {
 		let factor_x = width / Project.getUVWidth(texture);
 		let factor_y = height / Project.getUVHeight(texture);
-		if (!Format.per_texture_uv_size) {
-			Project.texture_width = width;
-			Project.texture_height = height;
-		}
+
+		Project.texture_width = width;
+		Project.texture_height = height;
+
 		if (texture) {
 			texture.uv_width = width;
 			texture.uv_height = height;

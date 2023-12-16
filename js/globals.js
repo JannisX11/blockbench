@@ -66,3 +66,5 @@ Blockbench.DisplaySlot = DisplaySlot;
 Blockbench.Reusable = Reusable;
 
 Blockbench.Texture = Texture;
+Blockbench.TextureLayer = TextureLayer;
+Blockbench.SharedActions = SharedActions;

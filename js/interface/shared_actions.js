@@ -21,7 +21,7 @@ const SharedActions = {
 
 		return {
 			delete() {
-				lsit.remove(handler);
+				list.remove(handler);
 			}
 		}
 	},
