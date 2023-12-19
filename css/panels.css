@@ -1940,7 +1940,8 @@ span.controller_state_section_info {
 		--color-uv-background: transparent;
 		--uv-line-width: 1px;
 	}
-	#uv_frame.overlay_mode .uv_face {
+	#uv_frame.overlay_mode .uv_face,
+	#uv_frame.overlay_mode .uv_face * {
 		pointer-events: none;
 	}
 
