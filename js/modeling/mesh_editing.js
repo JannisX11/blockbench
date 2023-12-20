@@ -99,7 +99,7 @@ const ProportionalEdit = {
 }
 
 SharedActions.add('delete', {
-	condition: () => Modes.edit && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
+	condition: () => Modes.edit && Prop.active_panel == 'preview' && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
 	run() {
 		let meshes = Mesh.selected.slice();
 		Undo.initEdit({elements: meshes, outliner: true})
