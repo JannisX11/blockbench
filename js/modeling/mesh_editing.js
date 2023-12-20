@@ -2170,7 +2170,8 @@ BARS.defineActions(function() {
 							vertex_textures: [],
 							vertex_normals: [],
 						}
-						args.forEach(triplet => {
+						args.forEach((triplet, i) => {
+							if (i >= 4) return;
 							let [v, vt, vn] = triplet.split('/').map(v => parseInt(v));
 							if (!vertex_keys[ v-1 ]) {
 								vertex_keys[ v-1 ] = mesh.addVertices(vertices[v-1])[0];
