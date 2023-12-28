@@ -981,6 +981,7 @@ function toggleCubeProperty(key) {
 StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 SharedActions.add('rename', {
+	subject: 'outliner',
 	condition: {modes: ['edit', 'paint']},
 	priority: -1,
 	run() {
@@ -988,6 +989,7 @@ SharedActions.add('rename', {
 	}
 });
 SharedActions.add('delete', {
+	subject: 'outliner',
 	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.selected)),
 	priority: -1,
 	run() {
@@ -1012,6 +1014,7 @@ SharedActions.add('delete', {
 	}
 })
 SharedActions.add('duplicate', {
+	subject: 'outliner',
 	condition: () => Modes.edit && Group.selected && (Group.selected.matchesSelection() || selected.length === 0),
 	priority: -1,
 	run() {
@@ -1023,6 +1026,7 @@ SharedActions.add('duplicate', {
 	}
 })
 SharedActions.add('duplicate', {
+	subject: 'outliner',
 	condition: () => Modes.edit && Outliner.selected.length,
 	priority: -2,
 	run() {
@@ -1037,6 +1041,7 @@ SharedActions.add('duplicate', {
 	}
 })
 SharedActions.add('select_all', {
+	subject: 'outliner',
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
@@ -1056,6 +1061,7 @@ SharedActions.add('select_all', {
 	}
 })
 SharedActions.add('unselect_all', {
+	subject: 'outliner',
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
@@ -1063,6 +1069,7 @@ SharedActions.add('unselect_all', {
 	}
 })
 SharedActions.add('invert_selection', {
+	subject: 'outliner',
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {

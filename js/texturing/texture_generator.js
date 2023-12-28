@@ -62,6 +62,9 @@ const TextureGenerator = {
 					results.resolution = results.resolution_vec;
 				}
 				dialog.hide()
+				if (Format.edit_mode && Outliner.selected.length == 0) {
+					SharedActions.runSpecific('select_all', 'outliner');
+				}
 				TextureGenerator.addBitmap(results, callback);
 				return false;
 			}
