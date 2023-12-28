@@ -1748,6 +1748,8 @@ Interface.definePanels(function() {
 			'add_cube',
 			'add_texture_mesh',
 			'add_group',
+			new MenuSeparator('copypaste'),
+			'paste',
 			new MenuSeparator('manage'),
 			'select_all',
 			'sort_outliner',
