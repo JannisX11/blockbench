@@ -591,17 +591,19 @@ const TextureGenerator = {
 		}
 		
 		for (var face in TextureGenerator.face_data) {
-			let d = TextureGenerator.face_data[face]
+			let d = TextureGenerator.face_data[face];
+			let previous_texture = cube.faces[face].getTexture()
+
+			if (previous_texture) {
+				let success = TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas, res_multiple);
+				if (success) continue;
+			}
 
 			if (face == 'west' && cube.size(0) == 0) continue;
 			if (face == 'down' && cube.size(1) == 0) continue;
 			if (face == 'south' && cube.size(2) == 0) continue;
 			
-			if (!cube.faces[face].getTexture() ||
-				!TextureGenerator.boxUVdrawTexture(cube.faces[face], d.place(template), texture, canvas, res_multiple)
-			) {
-				TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas, res_multiple)
-			}
+			TextureGenerator.boxUVdrawTemplateRectangle(d.c1, transparent ? null : d.c2, cube.faces[face], d.place(template), texture, canvas, res_multiple)
 		}
 
 		if (template && template.duplicates) {
