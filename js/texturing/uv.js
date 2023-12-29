@@ -3613,6 +3613,7 @@ Interface.definePanels(function() {
 				toggleFaceTint(key, event) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					UVEditor.switchTint(event)
+					UVEditor.vue.$forceUpdate();
 					Undo.finishEdit('Toggle face tint')
 				},
 				changeFaceTint(key, event) {
