@@ -74,6 +74,11 @@ const UVEditor = {
 			tool_result = Toolbox.selected.onTextureEditorClick(texture, coords.x, coords.y, event);
 		}
 		if (tool_result !== false && texture) {
+			if (event.target.id == 'uv_viewport') {
+				// Discard scrollbar clicks
+				if (event.offsetX >= event.target.clientWidth) return;
+				if (event.offsetY >= event.target.clientHeight) return;
+			}
 			Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
 			addEventListeners(UVEditor.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
