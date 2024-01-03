@@ -782,7 +782,6 @@
 
 /*Animations*/
 	#panel_animations #animations_list {
-		min-height: 126px;
 		padding-bottom: 12px;
 	}
 	.animation {
