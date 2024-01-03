@@ -785,7 +785,7 @@ BARS.defineActions(function() {
 							reference_face = face;
 							reference_face_strength = match_strength;
 						}
-						if (face.isSelected(key)) {
+						if (match_strength == face.vertices.length) {
 							delete mesh.faces[key];
 						}
 					}
@@ -1167,6 +1167,8 @@ BARS.defineActions(function() {
 							} else if (match) {
 								// perpendicular edge, currently unused
 								direction = match.getNormal(true);
+							} else {
+								direction = [0, 1, 0];
 							}
 						}
 
