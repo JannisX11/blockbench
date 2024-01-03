@@ -523,8 +523,10 @@ function setupInterface() {
 	Interface.work_screen.addEventListener('dblclick', event => {
 		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
 		if (!reference) return;
-		if (document.querySelector('.preview:hover')) {
+		if (document.querySelector('.preview > canvas:hover')) {
 			if (Preview.selected.raycast(event)) return;
+		} else if (document.querySelector('#preview:hover')) {
+			return;
 		}
 		reference.select();
 	});

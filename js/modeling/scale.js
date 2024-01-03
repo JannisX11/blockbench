@@ -69,7 +69,7 @@ const ModelScaler = {
 		if (Group.selected) {
 			Group.selected.forEachChild((g) => {
 				groups.push(g);
-			}, Group)
+			}, Group, true);
 		} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
 			groups = Group.all;
 		}
@@ -81,6 +81,7 @@ const ModelScaler = {
 		let {origin} = data;
 		let axis_enabled = ['x', 'y', 'z'].map(axis => document.getElementById(`model_scale_${axis}_axis`).checked);
 		let overflow = [];
+		let scale_groups = ModelScaler.getScaleGroups();
 		
 		Outliner.selected.forEach(function(obj) {
 			obj.autouv = 0;
@@ -139,10 +140,10 @@ const ModelScaler = {
 				Canvas.updateUV(obj)
 			}
 		})
-		ModelScaler.getScaleGroups().forEach((g) => {
-			if (axis_enabled[0]) g.origin[0] = g.old_origin[0] * size;
-			if (axis_enabled[1]) g.origin[1] = g.old_origin[1] * size;
-			if (axis_enabled[2]) g.origin[2] = g.old_origin[2] * size;
+		scale_groups.forEach((g) => {
+			if (axis_enabled[0]) g.origin[0] = ((g.old_origin[0] - origin[0]) * size) + origin[0];
+			if (axis_enabled[1]) g.origin[1] = ((g.old_origin[1] - origin[1]) * size) + origin[1];
+			if (axis_enabled[2]) g.origin[2] = ((g.old_origin[2] - origin[2]) * size) + origin[2];
 			if (save === true) {
 				delete g.old_origin
 			}
@@ -155,7 +156,7 @@ const ModelScaler = {
 		Canvas.updateView({
 			elements: Outliner.selected,
 			element_aspects: {geometry: true, transform: true},
-			groups: ModelScaler.getScaleGroups(),
+			groups: scale_groups,
 			group_aspects: {transform: true},
 			selection: true
 		})
