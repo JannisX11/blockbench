@@ -292,22 +292,33 @@ class Cube extends OutlinerElement {
 		return Project.nodes_3d[this.uuid];
 	}
 	getUndoCopy(aspects = 0) {
-		var copy = new Cube(this)
-		if (aspects.uv_only) {
-			copy = {
-				box_uv: copy.box_uv,
-				uv_offset: copy.uv_offset,
-				faces: copy.faces,
-				mirror_uv: copy.mirror_uv,
-				autouv: copy.autouv,
-			}
+		let copy = {};
+
+		for (var key in Cube.properties) {
+			Cube.properties[key].copy(this, copy);
 		}
-		for (let face_id in copy.faces) {
-			copy.faces[face_id] = copy.faces[face_id].getUndoCopy()
+
+		copy.from = this.from.slice();
+		copy.to = this.to.slice();
+		copy.stretch = this.stretch.slice();
+		copy.inflate = this.inflate;
+		copy.rotation = this.rotation.slice();
+		copy.origin = this.origin.slice();
+		copy.uv_offset = this.uv_offset.slice();
+		copy.autouv = this.autouv;
+		copy.color = this.color;
+		copy.visibility = this.visibility;
+		copy.export = this.export;
+		copy.shade = this.shade;
+		copy.mirror_uv = this.mirror_uv;
+
+		copy.faces = {};
+		for (let face_id in this.faces) {
+			copy.faces[face_id] = this.faces[face_id].getUndoCopy();
 		}
+
 		copy.uuid = this.uuid
 		copy.type = this.type;
-		delete copy.parent;
 		return copy;
 	}
 	getSaveCopy(project) {

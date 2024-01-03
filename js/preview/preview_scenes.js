@@ -271,17 +271,15 @@ class PreviewModel {
 			}
 
 			let indices = [];
-			let j = 0;
 			mesh.geometry.faces = [];
 			mesh.geometry.clearGroups();
 			Canvas.face_order.forEach((fkey, i) => {
 				if (cube.faces[fkey]) {
 					indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
 					mesh.geometry.faces.push(fkey)
-					j++;
 				}
 			})
-			mesh.geometry.setIndex(indices)
+			mesh.geometry.setIndex(indices);
 
 			for (let face in cube.faces) {
 				let uv_array = getUVArray(cube.faces[face]);
@@ -451,6 +449,10 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 	scale: [0.9375, 0.9375, 0.9375],
 	onUpdate() {
 		this.material.color.copy(Canvas.global_light_color);
+		if (!this.was_set_up) {
+			DisplayMode.updateDisplaySkin();
+			this.was_set_up = true;
+		}
 	},
 	cubes: [
 		{
@@ -507,6 +509,9 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 				"down": {"uv": [36, 32, 28, 36]}
 			}
 		},
+
+
+		// ======= Wide Arms
 		{
 			// Right Arm
 			"position": [4, 12, -2],
@@ -567,6 +572,72 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 				"down": {"uv": [60, 48, 56, 52]}
 			}
 		},
+
+
+		// ======= Slim Arms
+		{
+			// Right Arm
+			"position": [4, 11.5, -2],
+			"size": [3, 12, 4],
+			"origin": [5, 21.5, 0],
+			"rotation": [-1, 0, 3],
+			"faces": {
+				"north": {"uv": [44,20,47,32]},
+				"east": {"uv": [40,20,44,32]},
+				"south": {"uv": [51,20,54,32]},
+				"west": {"uv": [47,20,51,32]},
+				"up": {"uv": [47,20,44,16]},
+				"down": {"uv": [50,16,47,20]}
+			}
+		},
+		{
+			// Arm Layer
+			"position": [3.75, 11.25, -2.25],
+			"size": [3.5, 12.5, 4.5],
+			"origin": [5, 21.5, 0],
+			"rotation": [-1, 0, 3],
+			"faces": {
+				"north": {"uv": [44,36,47,48]},
+				"east": {"uv": [40,36,44,48]},
+				"south": {"uv": [51,36,54,48]},
+				"west": {"uv": [47,36,51,48]},
+				"up": {"uv": [47,36,44,32]},
+				"down": {"uv": [50,32,47,36]}
+			}
+		},
+		{
+			// Left Arm
+			"position": [-7, 11.5, -2],
+			"size": [3, 12, 4],
+			"origin": [-5, 21.5, 0],
+			"rotation": [1, 0, -3],
+			"faces": {
+				"north": {"uv": [36,52,39,64]},
+				"east": {"uv": [32,52,36,64]},
+				"south": {"uv": [43,52,46,64]},
+				"west": {"uv": [39,52,43,64]},
+				"up": {"uv": [39,52,36,48]},
+				"down": {"uv": [42,48,39,52]}
+			}
+		},
+		{
+			// Arm Layer
+			"position": [-7.25, 11.25, -2.25],
+			"size": [3.5, 12.5, 4.5],
+			"origin": [-5, 21.5, 0],
+			"rotation": [1, 0, -3],
+			"faces": {
+				"north": {"uv": [52,52,55,64]},
+				"east": {"uv": [48,52,52,64]},
+				"south": {"uv": [59,52,62,64]},
+				"west": {"uv": [55,52,59,64]},
+				"up": {"uv": [55,52,52,48]},
+				"down": {"uv": [58,48,55,52]}
+			}
+		},
+
+
+
 		{
 			// Right Leg
 			"position": [-0.1, 0, -2],
@@ -622,6 +693,14 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 	]
 })
 
+player_preview_model.updateArmVariant = function(slim) {
+	for (let i = 4; i < 8; i++) {
+		this.model_3d.children[i].visible = !slim;
+	}
+	for (let i = 8; i < 12; i++) {
+		this.model_3d.children[i].visible = !!slim;
+	}
+}
 
 StateMemory.init('minecraft_eula_accepted', 'object');
 const MinecraftEULA = {

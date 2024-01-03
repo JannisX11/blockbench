@@ -235,8 +235,9 @@ class Keybind {
 
 			scope.stopRecording()
 		}
+		let mac_modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
 		function onActivateDown(event) {
-			if (event.metaKey && event.which != 91) {
+			if (event.metaKey && !mac_modifiers.includes(event.key)) {
 				onActivate(event)
 			}
 		}

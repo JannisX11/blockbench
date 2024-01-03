@@ -99,7 +99,7 @@ const ProportionalEdit = {
 }
 
 SharedActions.add('delete', {
-	condition: () => Modes.edit && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
+	condition: () => Modes.edit && Prop.active_panel == 'preview' && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
 	run() {
 		let meshes = Mesh.selected.slice();
 		Undo.initEdit({elements: meshes, outliner: true})
@@ -785,7 +785,7 @@ BARS.defineActions(function() {
 							reference_face = face;
 							reference_face_strength = match_strength;
 						}
-						if (face.isSelected(key)) {
+						if (match_strength == face.vertices.length) {
 							delete mesh.faces[key];
 						}
 					}
@@ -1167,6 +1167,8 @@ BARS.defineActions(function() {
 							} else if (match) {
 								// perpendicular edge, currently unused
 								direction = match.getNormal(true);
+							} else {
+								direction = [0, 1, 0];
 							}
 						}
 
@@ -2170,7 +2172,8 @@ BARS.defineActions(function() {
 							vertex_textures: [],
 							vertex_normals: [],
 						}
-						args.forEach(triplet => {
+						args.forEach((triplet, i) => {
+							if (i >= 4) return;
 							let [v, vt, vn] = triplet.split('/').map(v => parseInt(v));
 							if (!vertex_keys[ v-1 ]) {
 								vertex_keys[ v-1 ] = mesh.addVertices(vertices[v-1])[0];

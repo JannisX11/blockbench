@@ -47,7 +47,7 @@ const Blockbench = {
 		if (icon === undefined) {
 			//Missing
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = 'help_outline';
 		} else if (icon instanceof HTMLElement) {
 			//Node
@@ -55,7 +55,7 @@ const Blockbench = {
 		} else if (icon === true || icon === false) {
 			//Boolean
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = icon ? 'check_box' : 'check_box_outline_blank';
 
 		} else if (icon === null) {
@@ -84,7 +84,7 @@ const Blockbench = {
 		} else {
 			//Material Icon
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = icon;
 		}
 		if (color) {

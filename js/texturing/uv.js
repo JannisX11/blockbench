@@ -74,6 +74,11 @@ const UVEditor = {
 			tool_result = Toolbox.selected.onTextureEditorClick(texture, coords.x, coords.y, event);
 		}
 		if (tool_result !== false && texture) {
+			if (event.target.id == 'uv_viewport') {
+				// Discard scrollbar clicks
+				if (event.offsetX >= event.target.clientWidth) return;
+				if (event.offsetY >= event.target.clientHeight) return;
+			}
 			Painter.startPaintTool(texture, coords.x, coords.y, undefined, event);
 			addEventListeners(UVEditor.vue.$refs.viewport, 'mousemove touchmove', UVEditor.movePaintTool, false );
 			addEventListeners(document, 'mouseup touchend', UVEditor.stopBrush, false );
@@ -233,7 +238,7 @@ const UVEditor = {
 				}
 			}
 		})
-		let pixel_size = UVEditor.inner_width / UVEditor.vue.project_resolution[0];
+		let pixel_size = UVEditor.inner_width / UVEditor.vue.uv_resolution[0];
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
 		let margin = UVEditor.vue.getFrameMargin();
@@ -3613,6 +3618,7 @@ Interface.definePanels(function() {
 				toggleFaceTint(key, event) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					UVEditor.switchTint(event)
+					UVEditor.vue.$forceUpdate();
 					Undo.finishEdit('Toggle face tint')
 				},
 				changeFaceTint(key, event) {

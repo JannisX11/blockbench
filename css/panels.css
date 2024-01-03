@@ -782,7 +782,6 @@
 
 /*Animations*/
 	#panel_animations #animations_list {
-		min-height: 126px;
 		padding-bottom: 12px;
 	}
 	.animation {
@@ -927,6 +926,11 @@
 		margin: 0 10px;
 		margin-top: 11px;
 		opacity: 0.5;
+	}
+	.keyframe_data_point {
+		display: flex;
+		flex-direction: column;
+		max-height: 250px;
 	}
 	#panel_keyframe .bar.flex {
 		height: auto;
@@ -1940,7 +1944,8 @@ span.controller_state_section_info {
 		--color-uv-background: transparent;
 		--uv-line-width: 1px;
 	}
-	#uv_frame.overlay_mode .uv_face {
+	#uv_frame.overlay_mode .uv_face,
+	#uv_frame.overlay_mode .uv_face * {
 		pointer-events: none;
 	}
 
@@ -2044,6 +2049,7 @@ span.controller_state_section_info {
 		pointer-events: none;
 		position: relative;
 		z-index: 1;
+		margin-top: -1px;
 	}
 	#uv_rotate_handle {
 		width: 21.4px;
