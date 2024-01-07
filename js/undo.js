@@ -512,15 +512,17 @@ class UndoSystem {
 		}
 
 		if (save.display_slots) {
-			for (var slot in save.display_slots) {
-				var data = save.display_slots[slot]
+			for (let slot in save.display_slots) {
+				let data = save.display_slots[slot]
 
 				if (!Project.display_settings[slot] && data) {
 					Project.display_settings[slot] = new DisplaySlot()
 				} else if (data === null && Project.display_settings[slot]) {
 					Project.display_settings[slot].default()
 				}
-				Project.display_settings[slot].extend(data).update()
+				if (Project.display_settings[slot]) {
+					Project.display_settings[slot].extend(data).update();
+				}
 			}
 		}
 

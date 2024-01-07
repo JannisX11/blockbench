@@ -1392,8 +1392,8 @@ class Texture {
 			selection.maskCanvas(copy_ctx, new_offset);
 			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 		}
-		
-		if (texture.mode === 'link') {
+
+		if (!texture.internal) {
 			texture.convertToInternal();
 		}
 		if (!clone) {
@@ -1661,15 +1661,16 @@ class Texture {
 			this.getMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {
+			this.internal = true;
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
 		}
 	}
 	updateChangesAfterEdit() {
-		if (!this.internal) this.convertToInternal();
 		if (this.layers_enabled) {
 			this.updateLayerChanges(true);
 		} else {
+			if (!this.internal) this.convertToInternal();
 			if (!Format.image_editor) {
 				this.getMaterial().map.needsUpdate = true;
 			}

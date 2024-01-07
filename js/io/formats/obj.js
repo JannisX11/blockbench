@@ -375,11 +375,15 @@ var codec = new Codec('obj', {
 		  
 		var mtlOutput = '# Made in Blockbench '+appVersion+'\n';;
 		
-		for (var key in materials) {
+		for (let key in materials) {
 			if (materials.hasOwnProperty(key) && materials[key]) {
-				var tex = materials[key];
+				let tex = materials[key];
+				let name = tex.name;
+				if (name.substr(-4) !== '.png') {
+					name += '.png';
+				}
 				mtlOutput += 'newmtl m_' +key+ '\n'
-				mtlOutput += `map_Kd ${tex.name}\n`;
+				mtlOutput += `map_Kd ${name}\n`;
 			}
 		}
 		mtlOutput += 'newmtl none'
