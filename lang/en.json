@@ -571,6 +571,9 @@
 	"dialog.animation_import.title": "Select Animations to Import",
 	"dialog.animation_export.title": "Select Animations to Export",
 
+	"dialog.change_animation_speed.speed": "Speed",
+	"dialog.change_animation_speed.adjust_snapping": "Adjust Snapping",
+
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.type": "Type",
 	"dialog.create_texture.type.blank": "Blank",
@@ -1699,6 +1702,8 @@
 	"action.slider_animation_length.desc": "Change the length of the selected animation",
 	"action.set_animation_end": "Set Animation End",
 	"action.set_animation_end.desc": "Set the end of the selected animation to the current timeline time",
+	"action.change_animation_speed": "Change Animation Speed...",
+	"action.change_animation_speed.desc": "Change the speed of the selected animation",
 	"action.slider_keyframe_time": "Timecode",
 	"action.slider_keyframe_time.desc": "Change the timecode of the selected keyframes",
 	"action.keyframe_interpolation": "Interpolation",

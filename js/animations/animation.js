@@ -802,6 +802,7 @@ class Animation extends AnimationItem {
 			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('hold', true)}},
 			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('loop', true)}},
 		]},
+		'change_animation_speed',
 		new MenuSeparator('manage'),
 		{
 			name: 'menu.animation.save',
@@ -1184,6 +1185,68 @@ BARS.defineActions(function() {
 			Modes.options.edit.select();
 			Canvas.updateAllBones();
 			Undo.finishEdit('Bake animation into model')
+		}
+	})
+	new Action('change_animation_speed', {
+		icon: 'av_timer',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Animation.selected},
+		click() {
+			let animation = Animation.selected;
+			Undo.initEdit({animations: [animation]});
+			let keyframes = [];
+			let initial_times = {};
+			let initial_snapping = animation.snapping;
+			let initial_length = animation.length;
+			for (let id in animation.animators) {
+				let animator = animation.animators[id];
+				keyframes.push(...animator.keyframes);
+			}
+			keyframes.forEach(kf => {
+				initial_times[kf.uuid] = kf.time;
+			})
+
+			let previous_speed = 1;
+			let previous_snapping = initial_snapping;
+			let dialog = new Dialog({
+				id: 'change_animation_speed',
+				title: 'action.change_animation_speed',
+				darken: false,
+				form: {
+					speed: {label: 'dialog.change_animation_speed.speed', type: 'range', value: 1, min: 0.1, max: 4, step: 0.01, editable_range_label: true, full_width: true},
+					adjust_snapping: {label: 'dialog.change_animation_speed.adjust_snapping', type: 'checkbox', value: true},
+					snapping: {label: 'menu.animation.snapping', type: 'number', value: initial_snapping, min: 1, max: 500, condition: result => result.adjust_snapping},
+				},
+				onFormChange({speed, adjust_snapping, snapping}) {
+					if (speed != previous_speed) {
+						snapping = adjust_snapping ? Math.roundTo(initial_snapping * speed, 2) : initial_snapping
+						dialog.setFormValues({snapping}, false);
+						console.trace('c sp', speed, previous_speed)
+
+					} else if (snapping != previous_snapping) {
+						speed = Math.clamp(Math.roundTo(snapping / initial_snapping, 2), 0.1, 4);
+						dialog.setFormValues({speed}, false);
+						console.trace('c snap', snapping, previous_snapping)
+					}
+					previous_speed = speed;
+					previous_snapping = snapping;
+
+					animation.snapping = snapping;
+					keyframes.forEach(kf => {
+						kf.time = Timeline.snapTime(initial_times[kf.uuid] / speed, animation);
+					})
+					animation.setLength(initial_length / speed);
+					console.log(animation.length);
+					TickUpdates.keyframes = true;
+					Animator.preview();
+				},
+				onConfirm(result) {
+					Undo.finishEdit('Change animation speed');
+				},
+				onCancel() {
+					Undo.cancelEdit();
+				}
+			}).show();
 		}
 	})
 })
