@@ -263,6 +263,8 @@
 	"message.plugin_dependencies.message1_update": "The plugin %0 has been updated and now requires these dependencies:",
 	"message.plugin_dependencies.message2": "Do you want to install them to continue?",
 	"message.plugin_dependencies.invalid": "Unfortunately the plugin cannot be installed, it has an invalid dependency:",
+	"message.plugin_deprecated.message": "Are you sure you want to install this deprecated plugin?",
+	"message.plugin_deprecated.install_anyway": "Install Anyway",
 
 	"message.unsaved_textures.title": "Unsaved Textures",
 	"message.unsaved_textures.message": "Your model has unsaved textures. Make sure to save them and paste them into your resource pack in the correct folder.",

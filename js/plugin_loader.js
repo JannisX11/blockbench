@@ -50,6 +50,7 @@ class Plugin {
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
+		this.deprecation_note = '';
 		this.website = '';
 		this.source = 'store';
 		this.creation_date = 0;
@@ -76,6 +77,7 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.string(this, data, 'max_version')
+		Merge.string(this, data, 'deprecation_note')
 		Merge.string(this, data, 'website')
 		Merge.string(this, data, 'repository')
 		Merge.string(this, data, 'bug_tracker')
@@ -100,6 +102,21 @@ class Plugin {
 		return this.title;
 	}
 	async install() {
+		if (this.tags.includes('Deprecated') || this.deprecation_note) {
+			let message = tl('message.plugin_deprecated.message');
+			if (this.deprecation_note) {
+				message += '\n\n*' + this.deprecation_note + '*';
+			}
+			let answer = await new Promise((resolve) => {
+				Blockbench.showMessageBox({
+					icon: 'warning',
+					title: this.title,
+					message,
+					buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway']
+				}, resolve)
+			})
+			if (answer == 0) return;
+		}
 		return await this.download(true);
 	}
 	async load(first, cb) {
