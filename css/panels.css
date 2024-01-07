@@ -1081,22 +1081,17 @@
 		z-index: 5;
 		height: 10px;
 		width: 20px;
+		cursor: pointer;
 	}
-	.timeline_marker::before {
-		content: "";
-		position: absolute;
-		border-style: solid;
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
-		border-right-color: transparent !important;
-		border-width: 10px;
-		border-radius: 3px;
+	.timeline_marker > i {
+		position: relative;
 		pointer-events: none;
-		border-color: inherit;
+		left: 5px;
+		top: -4px;
+		color: var(--color);
 	}
-	.timeline_marker:hover::before {
-		border-width: 11px;
-		margin-left: -1px;
+	.timeline_marker:hover > i {
+		top: -3px;
 	}
 	#timeline_playhead {
 		position: absolute;

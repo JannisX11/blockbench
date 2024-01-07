@@ -1456,10 +1456,12 @@ Interface.definePanels(() => {
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"
-									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color % markerColors.length].standard}"
+									v-bind:style="{left: (marker.time * size) + 'px', '--color': markerColors[marker.color % markerColors.length].standard}"
 									@contextmenu.prevent="marker.showContextMenu($event)"
 									v-on:click="marker.callPlayhead()"
-								></div>
+								>
+									<i class="material-icons icon">sports_score</i>
+								</div>
 							</div>
 						</div>
 					</div>
