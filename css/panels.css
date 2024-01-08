@@ -1981,7 +1981,7 @@ span.controller_state_section_info {
 		stroke: var(--color-grid);
 	}
 	#uv_texture_grid path.bold_grid {
-		stroke-width: 0.8px;
+		stroke-width: 0.86px;
 	}
 	div#uv_brush_outline {
 		border: 2px solid white;

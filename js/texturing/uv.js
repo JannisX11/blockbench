@@ -2054,7 +2054,7 @@ Interface.definePanels(function() {
 					if (!this.texture) return '';
 					let lines = [];
 					let size = UVEditor.getTexturePixelSize();
-					let interval = 16;
+					let interval = settings.image_editor_grid_size.value;
 					// =
 					for (let y = interval; y < this.texture.display_height; y += interval) {
 						lines.push(`M${0} ${y*size} L${this.inner_width} ${y*size}`);

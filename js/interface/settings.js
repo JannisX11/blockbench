@@ -481,6 +481,10 @@ const Settings = {
 			Canvas.updatePaintingGrid();
 			UVEditor.vue.pixel_grid = value;
 		}});
+		new Setting('image_editor_grid_size',{category: 'grid', type: 'number', value: 16, onChange() {
+			UVEditor.vue.zoom += 0.01;
+			UVEditor.vue.zoom -= 0.01;
+		}});
 		new Setting('ground_plane',			{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;
 		}});

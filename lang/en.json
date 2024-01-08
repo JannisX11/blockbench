@@ -905,6 +905,8 @@
 	"settings.display_grid.desc": "Show grid in display mode",
 	"settings.painting_grid": "Painting Grid",
 	"settings.painting_grid.desc": "Show grid on textured elements in paint mode",
+	"settings.image_editor_grid_size": "Image Editor Grid Size",
+	"settings.image_editor_grid_size.desc": "Size of the large grid in the 2D image editor",
 	"settings.ground_plane": "Ground Plane",
 	"settings.ground_plane.desc": "Show a floor plane below the model",
 
