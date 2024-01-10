@@ -217,10 +217,14 @@ const Animator = {
 	updateOnionSkin() {
 		let mode = BarItems.animation_onion_skin.value;
 		let selective = BarItems.animation_onion_skin_selective.value;
-		if (mode == 'off') {
-			Animator.onion_skin_object.children.empty();
-			return;
-		}
+
+		Animator.onion_skin_object.children.forEach(object => {
+			object.geometry.dispose();
+		});
+		Animator.onion_skin_object.children.empty();
+
+		if (mode == 'off') return;
+
 		let times = [];
 		if (mode == 'previous') {
 			times = [Timeline.time - Timeline.getStep()];
@@ -244,8 +248,6 @@ const Animator = {
 
 		let elements = Outliner.elements;
 		let last_time = Timeline.time;
-		
-		Animator.onion_skin_object.children.empty();
 
 		let i = -1;
 		for (let time of times) {

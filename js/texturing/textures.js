@@ -1276,11 +1276,13 @@ class Texture {
 						// Nothing
 					} else if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
-					} else if ((Format.single_texture || Texture.all.length == 1)) {
+					} else if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
 
 						if (Format.per_texture_uv_size) {
-							this.uv_width = Project.texture_width * (formResult.size[0] / old_width);
-							this.uv_height = Project.texture_height * (formResult.size[1] / old_height);
+							scope.uv_width = scope.uv_width * (formResult.size[0] / old_width);
+							scope.uv_height = scope.uv_height * (formResult.size[1] / old_height);
+							Project.texture_width = scope.uv_width;
+							Project.texture_height = scope.uv_height;
 						} else {
 							Undo.current_save.uv_mode = {
 								box_uv: Project.box_uv,
@@ -1389,8 +1391,8 @@ class Texture {
 			selection.maskCanvas(copy_ctx, new_offset);
 			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
 		}
-		
-		if (texture.mode === 'link') {
+
+		if (!texture.internal) {
 			texture.convertToInternal();
 		}
 		if (!clone) {
@@ -1658,6 +1660,7 @@ class Texture {
 			this.getMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {
+			this.internal = true;
 			this.source = this.canvas.toDataURL();
 			this.updateImageFromCanvas();
 		}
@@ -1666,6 +1669,7 @@ class Texture {
 		if (this.layers_enabled) {
 			this.updateLayerChanges(true);
 		} else {
+			if (!this.internal) this.convertToInternal();
 			if (!Format.image_editor) {
 				this.getMaterial().map.needsUpdate = true;
 			}
@@ -1700,17 +1704,14 @@ class Texture {
 		}
 		return this;
 	}
-	edit(cb, options) {
-		var scope = this;
-		if (!options) options = false;
-
+	edit(cb, options = 0) {
 		if (cb) {
-			Painter.edit(scope, cb, options);
+			Painter.edit(this, cb, options);
 
-		} else if (scope.mode === 'link') {
+		} else if (this.mode === 'link') {
 			this.convertToInternal();
 		}
-		scope.saved = false;
+		this.saved = false;
 	}
 }
 	Texture.prototype.menu = new Menu([

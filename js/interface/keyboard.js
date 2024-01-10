@@ -235,8 +235,9 @@ class Keybind {
 
 			scope.stopRecording()
 		}
+		let mac_modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
 		function onActivateDown(event) {
-			if (event.metaKey && event.which != 91) {
+			if (event.metaKey && !mac_modifiers.includes(event.key)) {
 				onActivate(event)
 			}
 		}
@@ -845,6 +846,16 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (ReferenceImageMode.active) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			ReferenceImageMode.deactivate();
+			used = true;
+		}
+	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected && Texture.selected.selection.is_custom) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			SharedActions.run('unselect_all', e);
+			used = true;
+		}
+	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			TextureLayer.selected.resolveLimbo(false);
 			used = true;
 		}
 	}

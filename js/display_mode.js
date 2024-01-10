@@ -1605,11 +1605,13 @@ function updateDisplaySkin(feedback) {
 			let {material} = PreviewModel.models.attachable_reference_player;
 			material.map.image.src = skin;
 			material.map.needsUpdate = true;
+			PreviewModel.models.attachable_reference_player.updateArmVariant(slim);
 		}
 		if (PreviewModel.models.minecraft_player) {
 			let {material} = PreviewModel.models.minecraft_player;
 			material.map.image.src = skin;
 			material.map.needsUpdate = true;
+			PreviewModel.models.minecraft_player.updateArmVariant(slim);
 		}
 	}
 	if (!val || typeof val !== 'string') {
@@ -1649,6 +1651,7 @@ function updateDisplaySkin(feedback) {
 		setPSkin(val, slim);
 	}
 }
+DisplayMode.updateDisplaySkin = updateDisplaySkin;
 
 BARS.defineActions(function() {
 	new Action('add_display_preset', {
@@ -1949,7 +1952,7 @@ Interface.definePanels(function() {
 // Bedrock Attachables
 BARS.defineActions(function() {
 
-	let player_preview_model = new PreviewModel('attachable_reference_player', {
+	let player_attachable_reference_model = new PreviewModel('attachable_reference_player', {
 		texture: './assets/player_skin.png',
 		texture_size: [64, 64],
 		cubes: [
@@ -2005,12 +2008,15 @@ BARS.defineActions(function() {
 					"down": {"uv": [36, 32, 28, 36]}
 				}
 			},
+
+
+			// ======= Wide Arms
 			{
 				// Right Arm
 				"position": [4, 12, -2],
 				"size": [4, 12, 4],
 				"origin": [5, 22, 0],
-				"rotation": [15, 0, 0],
+				"rotation": [-1, 0, 3],
 				"faces": {
 					"north": {"uv": [44, 20, 48, 32]},
 					"east": {"uv": [40, 20, 44, 32]},
@@ -2025,7 +2031,7 @@ BARS.defineActions(function() {
 				"position": [3.75, 11.75, -2.25],
 				"size": [4.5, 12.5, 4.5],
 				"origin": [5, 22, 0],
-				"rotation": [15, 0, 0],
+				"rotation": [-1, 0, 3],
 				"faces": {
 					"north": {"uv": [44, 36, 48, 48]},
 					"east": {"uv": [40, 36, 44, 48]},
@@ -2039,6 +2045,8 @@ BARS.defineActions(function() {
 				// Left Arm
 				"position": [-8, 12, -2],
 				"size": [4, 12, 4],
+				"origin": [-5, 22, 0],
+				"rotation": [1, 0, -3],
 				"faces": {
 					"north": {"uv": [36, 52, 40, 64]},
 					"east": {"uv": [32, 52, 36, 64]},
@@ -2052,6 +2060,8 @@ BARS.defineActions(function() {
 				// Arm Layer
 				"position": [-8.25, 11.75, -2.25],
 				"size": [4.5, 12.5, 4.5],
+				"origin": [-5, 22, 0],
+				"rotation": [1, 0, -3],
 				"faces": {
 					"north": {"uv": [52, 52, 56, 64]},
 					"east": {"uv": [48, 52, 52, 64]},
@@ -2061,6 +2071,71 @@ BARS.defineActions(function() {
 					"down": {"uv": [60, 48, 56, 52]}
 				}
 			},
+
+
+			// ======= Slim Arms
+			{
+				// Right Arm
+				"position": [4, 11.5, -2],
+				"size": [3, 12, 4],
+				"origin": [5, 21.5, 0],
+				"rotation": [-1, 0, 3],
+				"faces": {
+					"north": {"uv": [44,20,47,32]},
+					"east": {"uv": [40,20,44,32]},
+					"south": {"uv": [51,20,54,32]},
+					"west": {"uv": [47,20,51,32]},
+					"up": {"uv": [47,20,44,16]},
+					"down": {"uv": [50,16,47,20]}
+				}
+			},
+			{
+				// Arm Layer
+				"position": [3.75, 11.25, -2.25],
+				"size": [3.5, 12.5, 4.5],
+				"origin": [5, 21.5, 0],
+				"rotation": [-1, 0, 3],
+				"faces": {
+					"north": {"uv": [44,36,47,48]},
+					"east": {"uv": [40,36,44,48]},
+					"south": {"uv": [51,36,54,48]},
+					"west": {"uv": [47,36,51,48]},
+					"up": {"uv": [47,36,44,32]},
+					"down": {"uv": [50,32,47,36]}
+				}
+			},
+			{
+				// Left Arm
+				"position": [-7, 11.5, -2],
+				"size": [3, 12, 4],
+				"origin": [-5, 21.5, 0],
+				"rotation": [1, 0, -3],
+				"faces": {
+					"north": {"uv": [36,52,39,64]},
+					"east": {"uv": [32,52,36,64]},
+					"south": {"uv": [43,52,46,64]},
+					"west": {"uv": [39,52,43,64]},
+					"up": {"uv": [39,52,36,48]},
+					"down": {"uv": [42,48,39,52]}
+				}
+			},
+			{
+				// Arm Layer
+				"position": [-7.25, 11.25, -2.25],
+				"size": [3.5, 12.5, 4.5],
+				"origin": [-5, 21.5, 0],
+				"rotation": [1, 0, -3],
+				"faces": {
+					"north": {"uv": [52,52,55,64]},
+					"east": {"uv": [48,52,52,64]},
+					"south": {"uv": [59,52,62,64]},
+					"west": {"uv": [55,52,59,64]},
+					"up": {"uv": [55,52,52,48]},
+					"down": {"uv": [58,48,55,52]}
+				}
+			},
+
+
 			{
 				// Right Leg
 				"position": [-0.1, 0, -2],
@@ -2116,7 +2191,8 @@ BARS.defineActions(function() {
 		]
 	})
 
-	window.player_preview_model = player_preview_model;
+	window.player_attachable_reference_model = player_attachable_reference_model;
+	player_attachable_reference_model.updateArmVariant = player_preview_model.updateArmVariant;
 
 	let camera_preset_1st = {
 		name: tl('action.bedrock_animation_mode.attachable_first'),
@@ -2136,8 +2212,13 @@ BARS.defineActions(function() {
 
 	let player_skin_setup = false;
 	function updateBase(mode) {
+		let root_has_binding = Outliner.root.find(g => g instanceof Group && g.bedrock_binding)
 		if (mode == 'attachable_first') {
-			Project.model_3d.position.set(-20, 21, 0);
+			if (root_has_binding) {
+				Project.model_3d.position.set(-20, 21, 0);
+			} else {
+				Project.model_3d.position.set(-8, 6, -18);
+			}
 			Project.model_3d.rotation.set(
 				Math.degToRad(-95),
 				Math.degToRad(45),
@@ -2151,17 +2232,22 @@ BARS.defineActions(function() {
 
 		if (mode == 'attachable_third') {
 			let angle = Math.degToRad(15);
-			let arm_offset = Reusable.vec1.set(1, -31, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
-			Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			if (root_has_binding) {
+				let arm_offset = Reusable.vec1.set(1, -31, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
+				Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			} else {
+				let arm_offset = Reusable.vec1.set(1, -7, 1).applyAxisAngle(Reusable.vec2.set(1, 0, 0), angle);
+				Project.model_3d.position.set(5, 22, 0).add(arm_offset);
+			}
 			Project.model_3d.rotation.set(angle, 0, 0);
-			player_preview_model.enable()
+			player_attachable_reference_model.enable()
 
 			if (!player_skin_setup) {
 				updateDisplaySkin();
 				player_skin_setup = true;
 			}
 		} else {
-			player_preview_model.disable()
+			player_attachable_reference_model.disable()
 		}
 	
 		if (mode != 'attachable_first' && mode != 'attachable_third' && Format.id == 'bedrock') {

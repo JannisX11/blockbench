@@ -871,6 +871,7 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
+new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
 new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
@@ -1112,7 +1113,7 @@ new NodePreviewController(Mesh, {
 				stretch = tex.frameCount
 				frame = tex.currentFrame || 0;
 			}
-			let uv_size = tex
+			let uv_size = (tex && Project.view_mode !== 'uv')
 				? [tex.getUVWidth(), tex.getUVHeight()]
 				: [Project.texture_width, Project.texture_height];
 

@@ -372,7 +372,7 @@ Blockbench.on('finish_edit', ({aspects}) => {
 		aspects.elements = aspects.elements.slice();
 		let static_elements_copy = aspects.elements.slice();
 		static_elements_copy.forEach((element) => {
-			if (element.allow_mirror_modeling) {
+			if (element.allow_mirror_modeling && !element.locked) {
 				let is_centered = MirrorModeling.isCentered(element);
 
 				if (is_centered && element instanceof Mesh) {

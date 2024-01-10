@@ -376,7 +376,7 @@ class Action extends BarItem {
 	setIcon(icon) {
 		this.icon = icon
 		this.icon_node = Blockbench.getIconNode(this.icon)
-		$(this.menu_node).find('.icon').replaceWith(this.icon_node)
+		$(this.menu_node).find('> .icon').replaceWith(this.icon_node)
 
 		this.nodes.forEach(n => {
 			let old_icon = n.querySelector('.icon:not(.action_more_options)');

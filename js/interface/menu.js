@@ -443,6 +443,7 @@ class Menu {
 					parent[0].append(entry)
 				}
 				addEventListeners(entry, 'mouseenter mouseover', (e) => {
+					if (e.target.classList.contains('menu_separator')) return;
 					scope.hover(entry, e);
 				})
 			}

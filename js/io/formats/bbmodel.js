@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '4.5';
+let FORMATV = '4.9';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -459,6 +459,7 @@ var codec = new Codec('project', {
 		let new_elements = [];
 		let new_textures = [];
 		let new_animations = [];
+		let imported_format = Formats[model.meta.model_format];
 		Undo.initEdit({
 			elements: new_elements,
 			textures: new_textures,
@@ -518,6 +519,7 @@ var codec = new Codec('project', {
 		if (model.skin_model) {
 			Codecs.skin_model.rebuild(model.skin_model);
 		}
+		let adjust_uv = !Format.per_texture_uv_size || !imported_format?.per_texture_uv_size;
 		if (model.elements) {
 			let default_texture = new_textures[0] || Texture.getDefault();
 			let format = Formats[model.meta.model_format] || Format
@@ -540,8 +542,12 @@ var codec = new Codec('project', {
 						} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
 							copy.faces[face].texture = default_texture.uuid
 						}
-						if (!copy.box_uv) {
+						if (!copy.box_uv && adjust_uv) {
 							let tex = copy.faces[face].getTexture();
+							if (tex && imported_format?.per_texture_uv_size) {
+								width = tex.uv_width;
+								height = tex.uv_height;
+							}
 							copy.faces[face].uv[0] *= (Project.getUVWidth(tex)) / width;
 							copy.faces[face].uv[2] *= (Project.getUVWidth(tex)) / width;
 							copy.faces[face].uv[1] *= (Project.getUVHeight(tex)) / height;
@@ -558,10 +564,16 @@ var codec = new Codec('project', {
 						} else if (default_texture && copy.faces && copy.faces[fkey].texture !== null) {
 							copy.faces[fkey].texture = default_texture.uuid
 						}
-						for (let vkey in copy.faces[fkey].uv) {
-							let tex = copy.faces[fkey].getTexture();
-							copy.faces[fkey].uv[vkey][0] *= Project.getUVWidth(tex) / width;
-							copy.faces[fkey].uv[vkey][1] *= Project.getUVHeight(tex) / height;
+						if (adjust_uv) {
+							for (let vkey in copy.faces[fkey].uv) {
+								let tex = copy.faces[fkey].getTexture();
+								if (tex && imported_format?.per_texture_uv_size) {
+									width = tex.uv_width;
+									height = tex.uv_height;
+								}
+								copy.faces[fkey].uv[vkey][0] *= Project.getUVWidth(tex) / width;
+								copy.faces[fkey].uv[vkey][1] *= Project.getUVHeight(tex) / height;
+							}
 						}
 					}
 				}
@@ -598,10 +610,10 @@ var codec = new Codec('project', {
 					ani.uuid = guid();
 				}
 				if (base_ani.animators) {
-					for (let key in animators) {
+					for (let key in base_ani.animators) {
 						if (uuid_map[key]) {
-							animators[uuid_map[key]] = animators[key];
-							delete animators[key];
+							base_ani.animators[uuid_map[key]] = base_ani.animators[key];
+							delete base_ani.animators[key];
 						}
 					}
 				}

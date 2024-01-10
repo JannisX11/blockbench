@@ -295,7 +295,7 @@ function buildForm(dialog) {
 				case 'save':
 					if (data.type == 'folder' && !isApp) break;
 
-					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
+					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" style="pointer-events: none;" disabled>`);
 					input[0].value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value || '';
 					let input_wrapper = $('<div class="input_wrapper"></div>');
 					input_wrapper.append(input);
@@ -588,7 +588,7 @@ window.Dialog = class Dialog {
 		}
 		return form_result;
 	}
-	setFormValues(values) {
+	setFormValues(values, update = true) {
 		for (let form_id in this.form) {
 			let data = this.form[form_id];
 			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
@@ -642,7 +642,7 @@ window.Dialog = class Dialog {
 				}
 			}
 		}
-		this.updateFormValues();
+		if (update) this.updateFormValues();
 	}
 	getFormResult() {
 		let result = {}

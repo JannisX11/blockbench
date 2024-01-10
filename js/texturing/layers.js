@@ -248,10 +248,13 @@ class TextureLayer {
 		}
 		this.ctx.restore();
 
-		this.texture.updateLayerChanges(undo);
-		this.texture.saved = false;
-
-		if (undo) Undo.finishEdit('Flip layer');
+		if (undo) {
+			Undo.finishEdit('Flip layer');
+			this.texture.updateChangesAfterEdit();
+		} else {
+			this.texture.updateLayerChanges();
+			this.texture.saved = false;
+		}
 	}
 	rotate(angle = 90, undo) {
 		let temp_canvas = this.canvas.cloneNode();
@@ -267,11 +270,14 @@ class TextureLayer {
 		this.ctx.drawImage(temp_canvas,-temp_canvas.width/2,-temp_canvas.height/2);
 		this.ctx.restore();
 
-		this.texture.updateLayerChanges(undo);
-		this.texture.saved = false;
+		if (undo) {
+			Undo.finishEdit('Rotate layer');
+			this.texture.updateChangesAfterEdit();
+		} else {
+			this.texture.updateLayerChanges();
+			this.texture.saved = false;
+		}
 		UVEditor.vue.$forceUpdate();
-
-		if (undo) Undo.finishEdit('Rotate layer');
 	}
 	center() {
 		this.offset[0] = Math.round(Math.max(0, this.texture.width  - this.width ) / 2);
@@ -535,7 +541,7 @@ BARS.defineActions(() => {
 	
 	new Action('crop_layer_to_selection', {
 		icon: 'crop',
-		category: 'layer',
+		category: 'layers',
 		condition: () => TextureLayer.selected,
 		click() {
 			let layer = TextureLayer.selected;
@@ -707,8 +713,7 @@ Interface.definePanels(function() {
 							texture.layers.remove(layer);
 							texture.layers.splice(index, 0, layer);
 
-							texture.updateLayerChanges(true);
-							texture.saved = false;
+							texture.updateChangesAfterEdit();
 							Undo.finishEdit('Reorder layers');
 						}
 					}
