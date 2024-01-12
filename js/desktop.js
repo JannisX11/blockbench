@@ -175,6 +175,7 @@ function updateRecentProjectData() {
 	if (!project) return;
 	
 	project.name = Project.name;
+	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
 

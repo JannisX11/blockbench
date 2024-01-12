@@ -619,6 +619,9 @@
 		background: var(--color-track);
 		border-radius: 3px;
 	}
+	input[type=text].dark_bordered:read-only {
+		color: var(--color-subtle_text);
+	}
 	input:-webkit-autofill,
 	input:-webkit-autofill:hover, 
 	input:-webkit-autofill:focus, 

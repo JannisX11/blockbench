@@ -71,10 +71,10 @@ var codec = new Codec('project', {
 	load(model, file) {
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
+		Project.name = pathToName(name, false);
 		if (file.path && isApp && !file.no_file ) {
 			let project = Project;
 			Project.save_path = file.path;
-			Project.name = pathToName(name, false);
 			addRecentProject({
 				name,
 				path: file.path,
@@ -101,6 +101,7 @@ var codec = new Codec('project', {
 			custom_writer: isApp ? (content, path) => {
 				// Path needs to be changed before compiling for relative resource paths
 				Project.save_path = path;
+				Project.name = pathToName(path, false);
 				content = this.compile();
 				this.write(content, path);
 			} : null,

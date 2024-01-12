@@ -978,6 +978,10 @@ BARS.defineActions(function() {
 				}
 			}
 
+			if (form.name && (Project.save_path || Project.export_path || Format.image_editor) && !Format.legacy_editable_file_name) {
+				delete form.name;
+			}
+
 			form.uv_mode = {
 				label: 'dialog.project.default_uv_mode',
 				description: 'dialog.project.default_uv_mode.description',
