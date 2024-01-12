@@ -9,7 +9,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'reference_image',
-		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
+		{extensions: ReferenceImage.supported_extensions, propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
 			files.map(file => {
 				return new ReferenceImage({
