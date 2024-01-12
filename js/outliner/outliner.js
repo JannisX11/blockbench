@@ -369,7 +369,6 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	showContextMenu(event) {
-		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
 		if (!this.selected) {
 			this.select()

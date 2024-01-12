@@ -262,7 +262,6 @@ class Group extends OutlinerNode {
 		return array;
 	}
 	showContextMenu(event) {
-		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
 		if (Group.selected != this) this.select(event);
 		this.menu.open(event, this)
