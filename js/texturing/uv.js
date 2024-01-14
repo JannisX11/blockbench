@@ -1844,18 +1844,24 @@ BARS.defineActions(function() {
 				UVEditor.selected_faces.forEach(fkey => {
 					if (!element.faces[fkey]) return;
 					let face = element.faces[fkey];
+					let texture = face.getTexture();
+					let res_x = 1, res_y = 2;
+					if (texture) {
+						res_x = texture.getUVWidth() / texture.width;
+						res_y = texture.getUVHeight() / texture.display_height;
+					}
 					if (element instanceof Mesh) {
 						face.vertices.forEach(vkey => {
 							if ((!selected_vertices.length || selected_vertices.includes(vkey)) && face.uv[vkey]) {
-								face.uv[vkey][0] = Math.clamp(Math.round(face.uv[vkey][0]), 0, UVEditor.getUVWidth());
-								face.uv[vkey][1] = Math.clamp(Math.round(face.uv[vkey][1]), 0, UVEditor.getUVHeight());
+								face.uv[vkey][0] = Math.clamp(Math.round(face.uv[vkey][0] / res_x) * res_x, 0, UVEditor.getUVWidth());
+								face.uv[vkey][1] = Math.clamp(Math.round(face.uv[vkey][1] / res_y) * res_y, 0, UVEditor.getUVHeight());
 							}
 						})
 					} else if (element instanceof Cube) {
-						face.uv[0] = Math.clamp(Math.round(face.uv[0]), 0, UVEditor.getUVWidth());
-						face.uv[1] = Math.clamp(Math.round(face.uv[1]), 0, UVEditor.getUVHeight());
-						face.uv[2] = Math.clamp(Math.round(face.uv[2]), 0, UVEditor.getUVWidth());
-						face.uv[3] = Math.clamp(Math.round(face.uv[3]), 0, UVEditor.getUVHeight());
+						face.uv[0] = Math.clamp(Math.round(face.uv[0] / res_x) * res_x, 0, UVEditor.getUVWidth());
+						face.uv[1] = Math.clamp(Math.round(face.uv[1] / res_y) * res_y, 0, UVEditor.getUVHeight());
+						face.uv[2] = Math.clamp(Math.round(face.uv[2] / res_x) * res_x, 0, UVEditor.getUVWidth());
+						face.uv[3] = Math.clamp(Math.round(face.uv[3] / res_y) * res_y, 0, UVEditor.getUVHeight());
 					}
 				})
 				element.preview_controller.updateUV(element);
