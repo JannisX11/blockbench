@@ -187,7 +187,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
-		if (this.client_entity && this.client_entity.type == 'attachable') {
+		if (this.client_entity && this.client_entity.type == 'attachable' && Format.id == 'bedrock') {
 			Project.bedrock_animation_mode = 'attachable_first';
 			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
 		}
