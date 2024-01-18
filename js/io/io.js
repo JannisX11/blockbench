@@ -718,7 +718,7 @@ BARS.defineActions(function() {
 									export_codec.export();
 	
 								} else if (codec) {
-									Codecs[codec].export();
+									export_codec.export();
 								}
 								if (checkboxes.dont_show_again) {
 									settings.dialog_save_codec.set(false);
