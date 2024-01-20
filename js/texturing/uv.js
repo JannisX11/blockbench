@@ -2877,21 +2877,28 @@ Interface.definePanels(function() {
 									})
 
 								} else if (element instanceof Mesh) {
+									function setUV(angle) {
+										scope.selected_faces.forEach(fkey => {
+											let face = element.faces[fkey];
+											if (!face) return;
+											let sin = Math.sin(Math.degToRad(angle));
+											let cos = Math.cos(Math.degToRad(angle));
+											face.vertices.forEach(vkey => {
+												if (!face.uv[vkey]) return;
+												face.uv[vkey][0] = face.old_uv[vkey][0] - face_center[0];
+												face.uv[vkey][1] = face.old_uv[vkey][1] - face_center[1];
+												let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
+												let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
+												face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
+												face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
+											})
+										})
+									}
+									setUV(angle);
+									let e = 0.6;
 									scope.selected_faces.forEach(fkey => {
 										let face = element.faces[fkey];
 										if (!face) return;
-										face.vertices.forEach(vkey => {
-											if (!face.uv[vkey]) return;
-											let sin = Math.sin(Math.degToRad(angle));
-											let cos = Math.cos(Math.degToRad(angle));
-											face.uv[vkey][0] = face.old_uv[vkey][0] - face_center[0];
-											face.uv[vkey][1] = face.old_uv[vkey][1] - face_center[1];
-											let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
-											let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
-											face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
-											face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
-										})
-										let e = 0.6;
 										face.vertices.forEach((vkey, i) => {
 											for (let j = i+1; j < face.vertices.length; j++) {
 												let relative_angle = Math.radToDeg(Math.PI + Math.atan2(
@@ -2899,16 +2906,21 @@ Interface.definePanels(function() {
 													face.uv[vkey][0] - face.uv[face.vertices[j]][0],
 												)) % 180;
 												if (Math.abs(relative_angle - 90) < e) {
-													straight_angle = angle;
+													straight_angle = angle - (relative_angle - 90);
 													if (scope.helper_lines.x == -1) scope.helper_lines.x = face.uv[vkey][0];
+													break;
 												}
 												if (relative_angle < e || 180 - relative_angle < e) {
-													straight_angle = angle;
+													straight_angle = angle - (relative_angle > 90 ? (relative_angle-180) : relative_angle);
 													if (scope.helper_lines.y == -1) scope.helper_lines.y = face.uv[vkey][1];
+													break;
 												}
 											} 
 										})
 									})
+									if (straight_angle) {
+										setUV(straight_angle);
+									}
 								}
 							})
 							UVEditor.turnMapping()
