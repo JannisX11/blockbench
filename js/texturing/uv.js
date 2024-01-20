@@ -567,6 +567,7 @@ const UVEditor = {
 					if (isNaN(face.uv[vkey][axis])) face.uv[vkey][axis] = start;
 				})
 			})
+			Mesh.preview_controller.updateUV(mesh);
 		})
 		this.displayTools()
 		this.disableAutoUV()
