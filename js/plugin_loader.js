@@ -419,7 +419,8 @@ class Plugin {
 		this.unload()
 		this.tags.empty();
 		this.dependencies.empty();
-		Plugins.all.remove(this)
+		Plugins.all.remove(this);
+		this.details = null;
 
 		if (this.source == 'file') {
 			this.loadFromFile({path: this.path}, false)
@@ -1300,7 +1301,7 @@ BARS.defineActions(function() {
 								</tr>
 								<tr v-if="selected_plugin.details.website">
 									<td>Website</td>
-									<td>{{ selected_plugin.details.website }}</td>
+									<td><a :href="selected_plugin.details.website" :title="selected_plugin.details.website">{{ reduceLink(selected_plugin.details.website) }}</a></td>
 								</tr>
 								<tr v-if="selected_plugin.details.repository">
 									<td>Plugin source</td>

@@ -1493,6 +1493,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		color: var(--color-subtle_text);
 		margin-left: auto;
 		cursor: inherit;
+		overflow-wrap: anywhere;
 	}
 
 	
