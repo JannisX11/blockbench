@@ -2016,7 +2016,7 @@ BARS.defineActions(function() {
 				"position": [4, 12, -2],
 				"size": [4, 12, 4],
 				"origin": [5, 22, 0],
-				"rotation": [-1, 0, 3],
+				"rotation": [15, 0, 0],
 				"faces": {
 					"north": {"uv": [44, 20, 48, 32]},
 					"east": {"uv": [40, 20, 44, 32]},
@@ -2031,7 +2031,7 @@ BARS.defineActions(function() {
 				"position": [3.75, 11.75, -2.25],
 				"size": [4.5, 12.5, 4.5],
 				"origin": [5, 22, 0],
-				"rotation": [-1, 0, 3],
+				"rotation": [15, 0, 0],
 				"faces": {
 					"north": {"uv": [44, 36, 48, 48]},
 					"east": {"uv": [40, 36, 44, 48]},
@@ -2079,7 +2079,7 @@ BARS.defineActions(function() {
 				"position": [4, 11.5, -2],
 				"size": [3, 12, 4],
 				"origin": [5, 21.5, 0],
-				"rotation": [-1, 0, 3],
+				"rotation": [15, 0, 0],
 				"faces": {
 					"north": {"uv": [44,20,47,32]},
 					"east": {"uv": [40,20,44,32]},
@@ -2094,7 +2094,7 @@ BARS.defineActions(function() {
 				"position": [3.75, 11.25, -2.25],
 				"size": [3.5, 12.5, 4.5],
 				"origin": [5, 21.5, 0],
-				"rotation": [-1, 0, 3],
+				"rotation": [15, 0, 0],
 				"faces": {
 					"north": {"uv": [44,36,47,48]},
 					"east": {"uv": [40,36,44,48]},
@@ -2193,6 +2193,7 @@ BARS.defineActions(function() {
 
 	window.player_attachable_reference_model = player_attachable_reference_model;
 	player_attachable_reference_model.updateArmVariant = player_preview_model.updateArmVariant;
+	player_attachable_reference_model.updateArmVariant();
 
 	let camera_preset_1st = {
 		name: tl('action.bedrock_animation_mode.attachable_first'),
