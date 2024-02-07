@@ -345,7 +345,8 @@ var codec = new Codec('gltf', {
 		}
 	},
 	async export() {
-		await this.promptExportOptions();
+		let options = await this.promptExportOptions();
+		if (options === null) return;
 		let content = await this.compile();
 		await new Promise(r => setTimeout(r, 20));
 		Blockbench.export({

@@ -106,7 +106,8 @@ class Codec extends EventSystem {
 	}
 	async export() {
 		if (Object.keys(this.export_options).length) {
-			await this.promptExportOptions();
+			let result = await this.promptExportOptions();
+			if (result === null) return;
 		}
 		Blockbench.export({
 			resource_id: 'model',
