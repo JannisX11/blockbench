@@ -1724,7 +1724,7 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05" />
+										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
