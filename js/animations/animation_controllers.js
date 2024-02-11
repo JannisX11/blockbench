@@ -178,7 +178,8 @@ class AnimationControllerState {
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
 				let state = this.controller.states.find(s => s.uuid == transition.target);
-				return new oneLiner({[state ? state.name : 'missing_state']: transition.condition})
+				let condition = transition.condition.replace(/\n/g, '');
+				return new oneLiner({[state ? state.name : 'missing_state']: condition})
 			})
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
