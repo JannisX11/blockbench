@@ -655,7 +655,7 @@ class Preview {
 				position: {label: 'dialog.save_angle.position', type: 'vector', dimensions: 3, value: position},
 				target: {label: 'dialog.save_angle.target', type: 'vector', dimensions: 3, value: target, condition: ({rotation_mode}) => rotation_mode == 'target'},
 				rotation: {label: 'dialog.save_angle.rotation', type: 'vector', dimensions: 2, condition: ({rotation_mode}) => rotation_mode == 'rotation'},
-				zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: 1, condition: result => (result.projection == 'orthographic')},
+				zoom: {label: 'dialog.save_angle.zoom', type: 'number', value: Math.roundTo(scope.camOrtho.zoom || 1, 4), condition: result => scope.isOrtho},
 			},
 			onFormChange(form) {
 				if (form.rotation_mode !== rotation_mode) {
@@ -677,7 +677,7 @@ class Preview {
 					position: formResult.position,
 					target: formResult.target,
 				}
-				if (this.isOrtho) preset.zoom = this.camOrtho.zoom;
+				if (scope.isOrtho) preset.zoom = scope.camOrtho.zoom;
 
 				let presets = localStorage.getItem('camera_presets');
 				try {
