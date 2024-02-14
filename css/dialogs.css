@@ -147,6 +147,9 @@
 	.dialog_bar > label {
 		width: var(--max_label_width);
 	}
+	.dialog_bar > .molang_input {
+		width: calc(100% - var(--max_label_width));
+	}
 	/*.dialog_bar::after {
 		content: "";
 		clear: both;
