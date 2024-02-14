@@ -194,7 +194,13 @@ class TextureLayer {
 		}
 		down_layer.expandTo(this.offset, this.offset.slice().V2_add(this.width, this.height));
 		down_layer.ctx.imageSmoothingEnabled = false;
+		down_layer.ctx.filter = `opacity(${this.opacity / 100})`;
+		down_layer.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(this.blend_mode);
+
 		down_layer.ctx.drawImage(this.canvas, this.offset[0] - down_layer.offset[0], this.offset[1] - down_layer.offset[1], this.scaled_width, this.scaled_height);
+
+		down_layer.ctx.filter = '';
+		down_layer.ctx.globalCompositeOperation = 'source-over';
 
 		let index = this.texture.layers.indexOf(this);
 		this.texture.layers.splice(index, 1);
