@@ -725,14 +725,14 @@ const UVEditor = {
 					face.uv[0] = Math.min(face.uv[0], face.uv[2]);
 					face.uv[1] = Math.min(face.uv[1], face.uv[3]);
 					if (side == 'north' || side == 'south') {
-						width = obj.size(0);
-						height = obj.size(1);
+						width = Math.abs(obj.size(0));
+						height = Math.abs(obj.size(1));
 					} else if (side == 'east' || side == 'west') {
-						width = obj.size(2);
-						height = obj.size(1);
+						width = Math.abs(obj.size(2));
+						height = Math.abs(obj.size(1));
 					} else if (side == 'up' || side == 'down') {
-						width = obj.size(0);
-						height = obj.size(2);
+						width = Math.abs(obj.size(0));
+						height = Math.abs(obj.size(2));
 					}
 					if (face.rotation % 180) {
 						[width, height] = [height, width];
