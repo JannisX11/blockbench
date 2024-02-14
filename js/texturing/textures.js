@@ -1656,7 +1656,7 @@ class Texture {
 		this.ctx.filter = '';
 		this.ctx.globalCompositeOperation = 'source-over';
 
-		if (!Format.image_editor) {
+		if (!Format.image_editor && this.getMaterial()) {
 			this.getMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {
