@@ -1966,16 +1966,16 @@ if (new Date().getDate() == 1 && new Date().getMonth() == 3) {
 			this.coin_geometry = new THREE.OctahedronGeometry(5, 0);
 			this.coin_geometry2 = new THREE.OctahedronGeometry(6.2, 0);
 			this.coin_material = new THREE.MeshPhongMaterial({
-				color: 0xffeb9c,
+				color: new THREE.Color(3.3, 3.2, 0.8),
 				flatShading: false,
 				shininess: 1
 			});
 			this.coin_material2 = new THREE.MeshPhongMaterial({
-				color: 0xfff9bf,
-				flatShading: false,
-				shininess: 1,
-				opacity: 0.3,
-				transparent: true,
+				color: 0xff9c2b,
+				flatShading: true,
+				shininess: 0,
+				opacity: 0.5,
+				transparent: true
 			});
 			this.coins = [];
 			
@@ -2025,6 +2025,7 @@ if (new Date().getDate() == 1 && new Date().getMonth() == 3) {
 			this.on_track = true;
 			this.playing = true;
 			this.score = 0;
+			this.steer_direction = 0;
 			this.scene.rotation.set(0, 0, 0);
 			this.world.position.set(0, 0, -this.track_length_back * path_scale);
 			this.track.position.set(0, 0, 0);
@@ -2284,7 +2285,9 @@ if (new Date().getDate() == 1 && new Date().getMonth() == 3) {
 		
 	}
 	RainbowRace.start = () => {
-		RainbowRace.current_race = new RainbowRace();
+		if (!RainbowRace.current_race) {
+			RainbowRace.current_race = new RainbowRace();
+		}
 		RainbowRace.current_race.start();
 	}
 	RainbowRace.stop = () => {
