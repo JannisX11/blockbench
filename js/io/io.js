@@ -127,8 +127,12 @@ async function loadImages(files, event) {
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
 		options.minecraft_skin = 'format.skin';
 	}
-	if (Project && !Format.image_editor && Condition(Panels.textures.condition)) {
-		options.texture = 'action.import_texture';
+	if (Project && Condition(Panels.textures.condition)) {
+		if (Format.image_editor) {
+			options.texture = 'message.load_images.add_image';
+		} else {
+			options.texture = 'action.import_texture';
+		}
 	}
 	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
 		options.extrude_with_cubes = 'dialog.extrude.title';
@@ -138,9 +142,12 @@ async function loadImages(files, event) {
 		if (method == 'texture') {
 			let new_textures = [];
 			Undo.initEdit({textures: new_textures});
-			files.forEach(function(f) {
+			files.forEach(function(f, i) {
 				let tex = new Texture().fromFile(f).add().fillParticle();
 				new_textures.push(tex);
+				if (Format.image_editor && i == 0) {
+					tex.select();
+				}
 			});
 			Undo.finishEdit('Add texture');
 
