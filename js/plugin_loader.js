@@ -792,10 +792,14 @@ async function loadInstalledPlugins() {
 				}
 
 			} else if (plugin.source == 'url') {
-				var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
-				install_promises.push(instance.loadFromURL(plugin.path, false));
-				load_counter++;
-				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				if (plugin.path) {
+					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
+					install_promises.push(instance.loadFromURL(plugin.path, false));
+					load_counter++;
+					console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				} else {
+					Plugins.installed.remove(plugin);
+				}
 
 			} else {
 				if (Plugins.all.find(p => p.id == plugin.id)) {
