@@ -1051,7 +1051,8 @@ var codec = new Codec('fbx', {
 	},
 	async export() {
 		if (Object.keys(this.export_options).length) {
-			await this.promptExportOptions();
+			let result = await this.promptExportOptions();
+			if (result === null) return;
 		}
 		var scope = this;
 		if (isApp) {

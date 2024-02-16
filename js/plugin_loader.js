@@ -419,7 +419,8 @@ class Plugin {
 		this.unload()
 		this.tags.empty();
 		this.dependencies.empty();
-		Plugins.all.remove(this)
+		Plugins.all.remove(this);
+		this.details = null;
 
 		if (this.source == 'file') {
 			this.loadFromFile({path: this.path}, false)
@@ -791,10 +792,14 @@ async function loadInstalledPlugins() {
 				}
 
 			} else if (plugin.source == 'url') {
-				var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
-				install_promises.push(instance.loadFromURL(plugin.path, false));
-				load_counter++;
-				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				if (plugin.path) {
+					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
+					install_promises.push(instance.loadFromURL(plugin.path, false));
+					load_counter++;
+					console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				} else {
+					Plugins.installed.remove(plugin);
+				}
 
 			} else {
 				if (Plugins.all.find(p => p.id == plugin.id)) {
@@ -1300,7 +1305,7 @@ BARS.defineActions(function() {
 								</tr>
 								<tr v-if="selected_plugin.details.website">
 									<td>Website</td>
-									<td>{{ selected_plugin.details.website }}</td>
+									<td><a :href="selected_plugin.details.website" :title="selected_plugin.details.website">{{ reduceLink(selected_plugin.details.website) }}</a></td>
 								</tr>
 								<tr v-if="selected_plugin.details.repository">
 									<td>Plugin source</td>

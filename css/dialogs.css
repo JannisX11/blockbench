@@ -147,6 +147,9 @@
 	.dialog_bar > label {
 		width: var(--max_label_width);
 	}
+	.dialog_bar > .molang_input {
+		width: calc(100% - var(--max_label_width));
+	}
 	/*.dialog_bar::after {
 		content: "";
 		clear: both;
@@ -1493,6 +1496,7 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		color: var(--color-subtle_text);
 		margin-left: auto;
 		cursor: inherit;
+		overflow-wrap: anywhere;
 	}
 
 	

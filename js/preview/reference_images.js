@@ -583,7 +583,7 @@ class ReferenceImage {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
-				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && this.source && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
+				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && this.source && PathModule.isAbsolute(this.source), value: this.source, extensions: ReferenceImage.supported_extensions},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -624,6 +624,7 @@ class ReferenceImage {
 		return this;
 	}
 }
+ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	{
@@ -859,7 +860,7 @@ BARS.defineActions(function() {
 			}
 			Blockbench.import({
 				resource_id: 'reference_image',
-				extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
+				extensions: ReferenceImage.supported_extensions,
 				type: 'Image',
 				readtype: 'image'
 			}, async function(files) {
