@@ -616,6 +616,9 @@
 	#mode_selector li.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
+	#update_menu {
+		padding-top: 2px;
+	}
 
 /* Tab Bar */
 	#tab_bar {

@@ -710,9 +710,9 @@ ipcRenderer.on('update-available', (event, arg) => {
 			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
-			icon_node.textContent = 'done';
+			icon_node.textContent = 'browser_updated';
 			icon_node.classList.remove('spinning');
-			icon_node.style.color = '#5ef570';
+			icon_node.style.color = 'var(--color-confirm)';
 			click_action = function() {
 				Blockbench.showQuickMessage('message.update_after_restart')
 			}
