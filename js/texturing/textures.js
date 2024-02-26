@@ -40,7 +40,8 @@ class Texture {
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
 		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
-		let img = this.img = new Image()
+		let img = this.img = new Image();
+		img.setAttribute('pagespeed_no_transform', '');
 		img.src = 'assets/missing.png'
 
 		var tex = new THREE.Texture(this.canvas);
@@ -1610,7 +1611,7 @@ class Texture {
 				}
 				ctx.putImageData(data, 0, 0);
 		
-				let dataUrl = canvas.toDataURL('image/png');
+				let dataUrl = canvas.toDataURL('image/png', 1);
 		
 				Blockbench.export({
 					resource_id: 'texture',
@@ -1628,7 +1629,7 @@ class Texture {
 	getDataURL() {
 		var scope = this;
 		if (isApp && !scope.internal) {
-			var dataUrl = this.canvas.toDataURL('image/png');
+			var dataUrl = this.canvas.toDataURL('image/png', 1);
 		} else {
 			var dataUrl = scope.source;
 		}
@@ -1662,7 +1663,7 @@ class Texture {
 		}
 		if (update_data_url) {
 			this.internal = true;
-			this.source = this.canvas.toDataURL();
+			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
 	}
@@ -1674,7 +1675,7 @@ class Texture {
 			if (!Format.image_editor) {
 				this.getMaterial().map.needsUpdate = true;
 			}
-			this.source = this.canvas.toDataURL();
+			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
 		this.saved = false;
@@ -2199,7 +2200,7 @@ Clipbench.pasteTextures = function() {
 		Clipbench.texture = null;
 
 	} else if (isApp) {
-		var image = clipboard.readImage().toDataURL();
+		var image = clipboard.readImage().toDataURL('image/png', 1);
 		loadFromDataUrl(image);
 	} else {
 		navigator.clipboard.read().then(content => {

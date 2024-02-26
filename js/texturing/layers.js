@@ -99,7 +99,7 @@ class TextureLayer {
 		delete copy.in_limbo;
 		copy.width = this.width;
 		copy.height = this.height;
-		copy.data_url = this.canvas.toDataURL();
+		copy.data_url = this.canvas.toDataURL('image/png', 1);
 		return copy;
 	}
 	setLimbo() {

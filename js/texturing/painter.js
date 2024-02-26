@@ -1982,7 +1982,7 @@ SharedActions.add('copy', {
 			Clipbench.image = {
 				x: offset[0], y: offset[1],
 				frame: texture.currentFrame,
-				data: canvas.toDataURL(),
+				data: canvas.toDataURL('image/png', 1),
 			}
 		} else {
 			let rect = selection.getBoundingRect();
@@ -1998,7 +1998,7 @@ SharedActions.add('copy', {
 				x: rect.start_x,
 				y: rect.start_y,
 				frame: texture.currentFrame,
-				data: copy_canvas.toDataURL()
+				data: copy_canvas.toDataURL('image/png', 1)
 			}
 			canvas = copy_canvas;
 		}
