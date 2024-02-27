@@ -1155,6 +1155,8 @@
 	"action.move_tool.desc": "Tool to select and move elements",
 	"action.resize_tool": "Resize",
 	"action.resize_tool.desc": "Tool to select and resize elements",
+	"action.stretch_tool": "Stretch",
+	"action.stretch_tool.desc": "Tool to select and stretch elements",
 	"action.rotate_tool": "Rotate",
 	"action.rotate_tool.desc": "Tool to select and rotate elements",
 	"action.pivot_tool": "Pivot Tool",

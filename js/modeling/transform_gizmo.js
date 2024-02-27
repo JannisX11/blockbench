@@ -598,7 +598,8 @@
 
 				"translate": new THREE.TransformGizmoTranslate(),
 				"scale": new THREE.TransformGizmoScale(),
-				"rotate": new THREE.TransformGizmoRotate()
+				"rotate": new THREE.TransformGizmoRotate(),
+				"stretch": new THREE.TransformGizmoScale()
 			};
 
 			for ( var type in _gizmo ) {
@@ -732,7 +733,7 @@
 					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						this.rotation.set(0, 0, 0);
-					} else if (Toolbox.selected.transformerMode === 'scale') {
+					} else if (Toolbox.selected.transformerMode === 'scale' || Toolbox.selected.transformerMode === 'stretch') {
 						_gizmo[ _mode ].update( worldRotation, eye );
 						object.getWorldQuaternion(this.rotation)
 					} else {
@@ -798,7 +799,7 @@
 							Outliner.selected.forEach(element => {
 								if (
 									(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-									((element.resizable) && Toolbox.selected.transformerMode == 'scale') ||
+									((element.resizable) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
 									(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
 								) {
 									scope.attach(element);
@@ -931,7 +932,7 @@
 
 						let space = Transformer.getTransformSpace();
 						//Rotation
-						if (space >= 2 || Toolbox.selected.id == 'resize_tool') {
+						if (space >= 2 || Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id == 'stretch_tool') {
 							Transformer.rotation_ref = Group.selected ? Group.selected.mesh : (selected[0] && selected[0].mesh);
 							if (Toolbox.selected.id == 'rotate_tool' && Group.selected) {
 								Transformer.rotation_ref = Group.selected.mesh;
@@ -960,7 +961,7 @@
 					if (Toolbox.selected.transformerMode === 'translate') {
 						Transformer.rotation_ref = display_area;
 
-					} else if (Toolbox.selected.transformerMode === 'scale') {
+					} else if (Toolbox.selected.transformerMode === 'scale' || Toolbox.selected.transformerMode === 'stretch') {
 						Transformer.rotation_ref = display_base;
 
 					} else if (Toolbox.selected.transformerMode === 'rotate' && display_slot == 'gui') {
@@ -979,7 +980,7 @@
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
 						delete Transformer.rotation_ref;
 
-					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
+					} else if (Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id === 'stretch_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
 						Transformer.rotation_ref = Group.selected.mesh;
 
 					} else {
@@ -1014,6 +1015,7 @@
 						var line = main_gizmo.children[axisNumber*2];
 						break;
 					case 'scale':
+					case 'stretch':
 						var line = main_gizmo.children[(axisNumber*2 + (scope.direction?1:0)) * 2];
 						break;
 					case 'rotate':
@@ -1022,7 +1024,7 @@
 				}
 				line.scale[axis] = long ? 20000 : 1;
 				if (Toolbox.selected.transformerMode !== 'rotate') {
-					line.position[axis] = long ? -10000 : ((scope.direction || Toolbox.selected.transformerMode !== 'scale')?0:-1);
+					line.position[axis] = long ? -10000 : ((scope.direction || (Toolbox.selected.transformerMode !== 'scale' && Toolbox.selected.transformerMode !== 'stretch'))?0:-1);
 				} else {
 					line.base_scale[axis] = long ? 20000 : 1;
 				}
@@ -1090,7 +1092,7 @@
 						scope.last_valid_position.copy(scope.position)
 						scope.hasChanged = false
 
-						if (Toolbox.selected.id === 'resize_tool') {
+						if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
 							scope.direction = scope.axis.substr(0, 1) !== 'N'
 						}
 
@@ -1111,7 +1113,7 @@
 
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
-					if (Toolbox.selected.id === 'resize_tool') {
+					if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
 						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''));
 						selected.forEach(function(obj) {
 							if (obj instanceof Mesh) {
@@ -1121,6 +1123,7 @@
 								}
 							} else if (obj.resizable) {
 								obj.oldScale = obj.size(axisnr);
+								obj.oldStretch = obj.stretch.slice();
 								obj.oldUVOffset = obj.uv_offset.slice();
 								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
 							} 
@@ -1306,6 +1309,40 @@
 							scope.hasChanged = true
 						}
 
+					} else if (Toolbox.selected.id === 'stretch_tool') {
+						if (axisB) {
+							if (axis == 'y') {axis = 'z';} else
+							if (axisB == 'y') {axis = 'y';} else
+							if (axisB == 'z') {axis = 'x';}
+						}
+						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
+						let move_value = point[axis];
+						if (axis == 'e') move_value = point.length() * Math.sign(point.y||point.x);
+						move_value = Math.round( move_value / snap_factor ) * snap_factor;
+						move_value *= (scope.direction ? 1 : -1);
+
+						if (previousValue !== move_value) {
+							beforeFirstChange(event)
+
+							selected.forEach(function(obj, i) {
+								if (obj.stretch && obj.oldStretch) {
+									if (axis == 'e') {
+										obj.stretch[0] = obj.oldStretch[0] + move_value;
+										obj.stretch[1] = obj.oldStretch[1] + move_value;
+										obj.stretch[2] = obj.oldStretch[2] + move_value;
+									} else if (!axisB) {
+										obj.stretch[axisNumber] = obj.oldStretch[axisNumber] + move_value;
+									} else {
+										obj.stretch[axisNumber] = obj.oldStretch[axisNumber] + move_value;
+										obj.stretch[axisNumberB] = obj.oldStretch[axisNumberB] + move_value;
+									}
+								}
+							})
+							displayDistance(move_value);
+							Canvas.updatePositions()
+							previousValue = move_value
+							scope.hasChanged = true
+						}
 					} else if (Toolbox.selected.id === 'rotate_tool') {
 
 						var snap = getRotationInterval(event)
@@ -1553,7 +1590,7 @@
 							Project.display_settings[display_slot][channel][axisNumber] += difference;
 						}
 
-						if ((event.shiftKey || Pressing.overrides.shift) && channel === 'scale') {
+						if ((event.shiftKey || Pressing.overrides.shift) && (channel === 'scale' || channel === 'stretch')) {
 							var val = Project.display_settings[display_slot][channel][(axisNumber||0)]
 							Project.display_settings[display_slot][channel][((axisNumber||0)+1)%3] = val
 							Project.display_settings[display_slot][channel][((axisNumber||0)+2)%3] = val
@@ -1596,10 +1633,11 @@
 					Blockbench.setCursorTooltip();
 
 					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
-						if (Toolbox.selected.id === 'resize_tool') {
+						if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
 							//Scale
 							selected.forEach(function(obj) {
 								delete obj.oldScale;
+								delete obj.oldStretch;
 								delete obj.oldCenter;
 								delete obj.oldUVOffset;
 							})
