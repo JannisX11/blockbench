@@ -355,7 +355,9 @@ const Painter = {
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
 		Painter.currentPixel = [x, y];
 		Painter.brushChanges = true;
-		UVEditor.vue.last_brush_position.V2_set(x, y);
+		if (!is_opposite) {
+			UVEditor.vue.last_brush_position.V2_set(x, y);
+		}
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
 

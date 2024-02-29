@@ -744,7 +744,7 @@ window.Dialog = class Dialog {
 		handle.append(title);
 
 		let jq_dialog = $(this.object);
-		this.max_label_width = 0;
+		this.max_label_width = 140;
 		this.uses_wide_inputs = false;
 
 		let wrapper = document.createElement('div');

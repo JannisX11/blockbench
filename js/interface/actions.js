@@ -1688,7 +1688,12 @@ class Toolbar {
 		if (arr.equals(this.default_children)) {
 			delete BARS.stored[this.id];
 		}
-		localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
+		// Temporary fix
+		try {
+			localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
+		} catch (err) {
+			localStorage.removeItem('backup_model');
+		}
 		return this;
 	}
 	reset() {

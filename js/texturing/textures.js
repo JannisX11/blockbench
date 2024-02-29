@@ -1242,34 +1242,58 @@ class Texture {
 				})
 
 				scope.edit((canvas) => {
+					let temp_canvas = document.createElement('canvas');
+					let temp_ctx = temp_canvas.getContext('2d');
+					let resizeCanvas = (ctx) => {
+						temp_canvas.width = ctx.canvas.width;
+						temp_canvas.height = ctx.canvas.height;
+						temp_ctx.drawImage(ctx.canvas, 0, 0);
 
-					scope.canvas.width = formResult.size[0];
-					scope.canvas.height = formResult.size[1];
-					let new_ctx = scope.canvas.getContext('2d');
-					new_ctx.imageSmoothingEnabled = false;
-
-					if (formResult.mode == 'crop') {
-						switch (formResult.fill) {
-							case 'transparent':
-								new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
-								break;
-							case 'color':
-								new_ctx.fillStyle = ColorPanel.get();
-								new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
-								new_ctx.clearRect(0, 0, scope.width, scope.height)
-								new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
-								break;
-							case 'repeat':
-								for (var x = 0; x < formResult.size[0]; x += scope.width) {		
-									for (var y = 0; y < formResult.size[1]; y += scope.height) {
-										new_ctx.drawImage(scope.img, x, y, scope.width, scope.height);
+						if (ctx.canvas.width == scope.canvas.width && ctx.canvas.height == scope.canvas.height) {
+							ctx.canvas.width = formResult.size[0];
+							ctx.canvas.height = formResult.size[1];
+						} else if (formResult.mode == 'scale') {
+							ctx.canvas.width = Math.round(ctx.canvas.width * (formResult.size[0] / scope.canvas.width));
+							ctx.canvas.height = Math.round(ctx.canvas.height * (formResult.size[1] / scope.canvas.height));
+						}
+						ctx.imageSmoothingEnabled = false;
+	
+						if (formResult.mode == 'crop') {
+							switch (formResult.fill) {
+								case 'transparent':
+									ctx.drawImage(temp_canvas, 0, 0, temp_canvas.width, temp_canvas.height);
+									break;
+								case 'color':
+									ctx.fillStyle = ColorPanel.get();
+									ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
+									ctx.clearRect(0, 0, temp_canvas.width, temp_canvas.height)
+									ctx.drawImage(temp_canvas, 0, 0, temp_canvas.width, temp_canvas.height);
+									break;
+								case 'repeat':
+									for (var x = 0; x < formResult.size[0]; x += temp_canvas.width) {		
+										for (var y = 0; y < formResult.size[1]; y += temp_canvas.height) {
+											ctx.drawImage(temp_canvas, x, y, temp_canvas.width, temp_canvas.height);
+										}
 									}
-								}
-								break;
+									break;
+							}
+						} else {
+							ctx.drawImage(temp_canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+						}
+					}
+
+					if (scope.layers_enabled && scope.layers.length) {
+						for (let layer of scope.layers) {
+							resizeCanvas(layer.ctx);
+							if (formResult.mode == 'scale') {
+								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
+								layer.offset[1] = Math.round(layer.offset[1] * (formResult.size[1] / scope.height));
+							}
 						}
 					} else {
-						new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
+						resizeCanvas(scope.ctx);
 					}
+
 					scope.width = formResult.size[0];
 					scope.height = formResult.size[1];
 
@@ -1326,6 +1350,7 @@ class Texture {
 
 				Undo.finishEdit('Resize texture');
 
+				UVEditor.vue.updateTexture();
 				setTimeout(updateSelection, 100);
 			}
 		})
@@ -1658,7 +1683,7 @@ class Texture {
 		this.ctx.filter = '';
 		this.ctx.globalCompositeOperation = 'source-over';
 
-		if (!Format.image_editor) {
+		if (!Format.image_editor && this.getMaterial()) {
 			this.getMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {

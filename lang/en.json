@@ -384,6 +384,7 @@
 
 	"message.load_images.title": "Load Images",
 	"message.load_images.edit_image": "Edit Image",
+	"message.load_images.add_image": "Add Image",
 
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",

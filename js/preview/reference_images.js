@@ -672,6 +672,7 @@ class ReferenceImage {
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
+ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	{

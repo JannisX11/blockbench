@@ -748,9 +748,11 @@ class Cube extends OutlinerElement {
 		} else if (scope.autouv === 1) {
 
 			function calcAutoUV(face, size) {
-				var sx = scope.faces[face].uv[0]
-				var sy = scope.faces[face].uv[1]
-				var rot = scope.faces[face].rotation
+				size[0] = Math.abs(size[0]);
+				size[1] = Math.abs(size[1]);
+				var sx = scope.faces[face].uv[0];
+				var sy = scope.faces[face].uv[1];
+				var rot = scope.faces[face].rotation;
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
