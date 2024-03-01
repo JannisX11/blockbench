@@ -196,6 +196,41 @@ class MeshFace extends Face {
 		}
 		return vertices;
 	}
+	isConcave() {
+		if (this.vertices.length < 4) return false;
+		let {vec1, vec2, vec3, vec4} = Reusable;
+		let normal_vec = vec1.fromArray(this.getNormal(true));
+		let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+			normal_vec,
+			vec2.fromArray(this.mesh.vertices[this.vertices[0]])
+		)
+		let sorted_vertices = this.getSortedVertices();
+		let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+		let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
+		
+		let flat_positions = sorted_vertices.map(vkey => {
+			let coplanar_pos = plane.projectPoint(vec3.fromArray(this.mesh.vertices[vkey]), vec4);
+			coplanar_pos.applyEuler(e);
+			return [coplanar_pos.x, coplanar_pos.z];
+		})
+		let angles = [];
+		for (let i = 0; i < sorted_vertices.length; i++) {
+			let a = flat_positions[i];
+			let b = flat_positions[(i+1) % 4];
+			let direction = b.slice().V2_subtract(a);
+			let angle = Math.atan2(direction[1], direction[0]);
+			angles.push(angle);
+		}
+		for (let i = 0; i < sorted_vertices.length; i++) {
+			let a = angles[i];
+			let b = angles[(i+1) % 4];
+			let difference = Math.trimRad(b - a);
+			if (difference > 0) {
+				return sorted_vertices[(i+1) % 4];
+			}
+		}
+		return false;
+	}
 	getEdges() {
 		let vertices = this.getSortedVertices();
 		if (vertices.length == 2) {

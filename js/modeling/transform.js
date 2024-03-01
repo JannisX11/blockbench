@@ -123,6 +123,7 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	updateSelection();
 
 	Undo.finishEdit('Move elements')
+	autoFixMeshEdit()
 }
 //Rotate
 function rotateSelected(axis, steps) {
@@ -223,6 +224,7 @@ function mirrorSelected(axis) {
 		})
 		updateSelection()
 		Undo.finishEdit('Flip selection')
+		autoFixMeshEdit()
 	}
 }
 
@@ -490,6 +492,7 @@ const Vertexsnap = {
 		}
 		Canvas.updateView(update_options);
 		Undo.finishEdit('Use vertex snap');
+		autoFixMeshEdit()
 		Vertexsnap.step1 = true;
 	}
 }
@@ -1039,6 +1042,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element position')
+			autoFixMeshEdit()
 		}
 	}) 
 	new NumSlider('slider_pos_y', {
@@ -1059,6 +1063,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element position')
+			autoFixMeshEdit()
 		}
 	}) 
 	new NumSlider('slider_pos_z', {
@@ -1079,6 +1084,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element position')
+			autoFixMeshEdit()
 		}
 	})
 	let slider_vector_pos = [BarItems.slider_pos_x, BarItems.slider_pos_y, BarItems.slider_pos_z];
@@ -1118,6 +1124,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
+			autoFixMeshEdit()
 		}
 	})
 	new NumSlider('slider_size_y', {
@@ -1142,6 +1149,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
+			autoFixMeshEdit()
 		}
 	})
 	new NumSlider('slider_size_z', {
@@ -1166,6 +1174,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
+			autoFixMeshEdit()
 		}
 	})
 	let slider_vector_size = [BarItems.slider_size_x, BarItems.slider_size_y, BarItems.slider_size_z];

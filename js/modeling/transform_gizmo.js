@@ -1618,6 +1618,7 @@
 								Undo.finishEdit('Move selection')
 							}
 						}
+						autoFixMeshEdit()
 						updateSelection()
 
 					} else if (Modes.id === 'animate' && scope.keyframes && scope.keyframes.length && keep_changes) {
