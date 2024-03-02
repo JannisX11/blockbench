@@ -129,7 +129,7 @@ function addStartScreenSection(id, data) {
 	}
 }
 
-onVueSetup(function() {
+onVueSetup(async function() {
 	StateMemory.init('start_screen_list_type', 'string')
 
 	let slideshow_timer = 0;
@@ -495,8 +495,8 @@ onVueSetup(function() {
 	}
 	
 	//Backup Model
-	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
-		var backup_models = localStorage.getItem('backup_model')
+	let has_backups = await AutoBackup.hasBackups();
+	if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
 
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
@@ -506,18 +506,11 @@ onVueSetup(function() {
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					let parsed_backup_models = JSON.parse(backup_models);
-					for (let uuid in parsed_backup_models) {
-						AutoBackupModels[uuid] = parsed_backup_models[uuid];
-
-						let model = parsed_backup_models[uuid];
-						setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
-						Codecs.project.parse(model, 'backup.bbmodel')
-					}
+					AutoBackup.recoverAllBackups();
 					section.delete();
 				}},
 				{type: 'button', text: tl('dialog.discard'), click: (e) => {
-					localStorage.removeItem('backup_model');
+					AutoBackup.removeAllBackups();
 					section.delete();
 				}}
 			]

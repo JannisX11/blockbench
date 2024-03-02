@@ -127,7 +127,9 @@ class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
+			console.log('get script', path, this.id)
 			$.getScript(path, () => {
+				console.log('got script', path, this.id)
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {

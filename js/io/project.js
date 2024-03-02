@@ -349,8 +349,6 @@ class ModelProject {
 		} catch (err) {
 			console.error(err);
 		}
-		delete AutoBackupModels[this.uuid];
-		localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 		if (this.EditSession) {
 			this.EditSession.quit();
 		}
@@ -431,8 +429,7 @@ class ModelProject {
 			delete ProjectData[this.uuid];
 			Project = 0;
 			
-			delete AutoBackupModels[this.uuid];
-			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
+			await AutoBackup.removeBackup(this.uuid);
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();

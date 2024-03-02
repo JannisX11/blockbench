@@ -655,6 +655,7 @@ async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
+	AutoBackup.removeAllBackups();
 	if (Blockbench.hasFlag('update_downloaded')) {
 		await new Promise(resolve => {
 			Blockbench.showMessageBox({
