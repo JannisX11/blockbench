@@ -1859,9 +1859,10 @@ BARS.defineActions(function() {
 		click: function () {
 			if (!Animation.selected) return;
 			if (!Animation.selected.animators.effects) {
-				var ea = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
+				Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
 			}
-			Animation.selected.animators.effects.select()
+			Animation.selected.animators.effects.select();
+			BarItems.timeline_graph_editor.set(false);
 		}
 	})
 	new Action('timeline_focus', {
