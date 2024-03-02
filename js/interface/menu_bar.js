@@ -489,12 +489,7 @@ const MenuBar = {
 				}},
 				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
-					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
-						localStorage.clear()
-						Blockbench.addFlag('no_localstorage_saving')
-						console.log('Cleared Local Storage')
-						window.location.reload(true)
-					}
+					factoryResetAndReload();
 				}},
 				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
 					ModelProject.all.forEach(project => project.locked = false);
