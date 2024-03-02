@@ -516,6 +516,7 @@
 	"dialog.add_primitive.shape.sphere": "Sphere",
 	"dialog.add_primitive.shape.torus": "Torus",
 	"dialog.add_primitive.shape.cube": "Cuboid",
+	"dialog.add_primitive.shape.rounded_cuboid": "Cuboid with Edges",
 	"dialog.add_primitive.shape.pyramid": "Pyramid",
 	"dialog.add_primitive.shape.plane": "Plane",
 	"dialog.add_primitive.diameter": "Diameter",
@@ -524,6 +525,7 @@
 	"dialog.add_primitive.sides": "Sides",
 	"dialog.add_primitive.minor_diameter": "Thickness",
 	"dialog.add_primitive.minor_sides": "Minor Sides",
+	"dialog.add_primitive.edge_size": "Edge Size",
 
 	"dialog.scale.title": "Scale Model",
 	"dialog.scale.axis": "Axis",

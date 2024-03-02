@@ -486,6 +486,7 @@ BARS.defineActions(function() {
 		form: {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
 				cuboid: 'dialog.add_primitive.shape.cube',
+				rounded_cuboid: 'dialog.add_primitive.shape.rounded_cuboid',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
 				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
@@ -496,11 +497,12 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'pyramid', 'plane'].includes(shape)},
-			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(shape)},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'rounded_cuboid', 'pyramid', 'plane'].includes(shape)},
+			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'rounded_cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
+			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['rounded_cuboid'].includes(shape)},
 		},
 		onConfirm(result) {
 			let original_selection_group = Group.selected && Group.selected.uuid;
@@ -716,6 +718,83 @@ BARS.defineActions(function() {
 						new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ), // North
 					);
 				}
+				if (result.shape == 'rounded_cuboid') {
+					let s = result.edge_size;
+					let rs = result.diameter/2 - s;
+					let r = result.diameter/2;
+					let h = result.height;
+					let hs = result.height - s;
+
+					let up = mesh.addVertices(
+						[rs, h, rs],	// 0
+						[rs, h, -rs],	// 1
+						[-rs, h, rs],	// 2
+						[-rs, h, -rs],	// 3
+					)
+					let down = mesh.addVertices(
+						[rs, 0, rs],	// 4
+						[rs, 0, -rs],	// 5
+						[-rs, 0, rs],	// 6
+						[-rs, 0, -rs],	// 7
+					)
+					let west = mesh.addVertices(
+						[-r, s, rs],	// 8
+						[-r, hs, rs],	// 9
+						[-r, s, -rs],	// 10
+						[-r, hs, -rs],	// 11
+					)
+					let east = mesh.addVertices(
+						[r, s, rs],		// 12
+						[r, hs, rs],	// 13
+						[r, s, -rs],	// 14
+						[r, hs, -rs],	// 15
+					)
+					let north = mesh.addVertices(
+						[rs, s, -r],	// 16
+						[rs, hs, -r],	// 17
+						[-rs, s, -r],	// 18
+						[-rs, hs, -r],	// 19
+					)
+					let south = mesh.addVertices(
+						[rs, s, r],		// 20
+						[rs, hs, r],	// 21
+						[-rs, s, r],	// 22
+						[-rs, hs, r]	// 23
+					)
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [ east[1], east[0], east[3], east[2] ]} ), // East
+						new MeshFace( mesh, {vertices: [ west[0], west[1], west[3], west[2] ]} ), // West
+						new MeshFace( mesh, {vertices: [ up[0], up[1], up[3], up[2] ]} ), // Up
+						new MeshFace( mesh, {vertices: [ down[1], down[0], down[3], down[2] ]} ), // Down
+						new MeshFace( mesh, {vertices: [ south[0], south[1], south[3], south[2] ]} ), // South
+						new MeshFace( mesh, {vertices: [ north[1], north[0], north[3], north[2] ]} ), // North
+					);
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [up[1], up[0], east[1], east[3]]} ), // E Up
+						new MeshFace( mesh, {vertices: [up[2], up[3], west[1], west[3]]} ), // W Up
+						new MeshFace( mesh, {vertices: [up[0], up[2], south[1], south[3]]} ), // S Up
+						new MeshFace( mesh, {vertices: [up[3], up[1], north[1], north[3]]} ), // N Up
+						new MeshFace( mesh, {vertices: [down[0], down[1], east[0], east[2]]} ), // E Down
+						new MeshFace( mesh, {vertices: [down[3], down[2], west[0], west[2]]} ), // W Down
+						new MeshFace( mesh, {vertices: [down[2], down[0], south[0], south[2]]} ), // S Down
+						new MeshFace( mesh, {vertices: [down[1], down[3], north[0], north[2]]} ), // N Down
+
+						new MeshFace( mesh, {vertices: [north[0], north[1], east[2], east[3]]} ), // NE
+						new MeshFace( mesh, {vertices: [south[1], south[0], east[0], east[1]]} ), // SE
+						new MeshFace( mesh, {vertices: [north[3], north[2], west[2], west[3]]} ), // NW
+						new MeshFace( mesh, {vertices: [south[2], south[3], west[0], west[1]]} )  // SW
+					);
+					mesh.addFaces(
+						new MeshFace( mesh, {vertices: [down[0], east[0], south[0]]} ), // Down1
+						new MeshFace( mesh, {vertices: [down[2], south[2], west[0]]} ), // Down2
+						new MeshFace( mesh, {vertices: [down[1], north[0], east[2]]} ), // Down3
+						new MeshFace( mesh, {vertices: [down[3], west[2], north[2]]} ), // Down4
+						new MeshFace( mesh, {vertices: [up[0], south[1], east[1]]} ), // Up1
+						new MeshFace( mesh, {vertices: [up[2], west[1], south[3]]} ), // Up2
+						new MeshFace( mesh, {vertices: [up[1], east[3], north[1]]} ), // Up3
+						new MeshFace( mesh, {vertices: [up[3], north[3], west[3]]} )  // Up4
+					);
+				}
 				if (result.shape == 'pyramid') {
 					let r = result.diameter/2;
 					let h = result.height;
@@ -772,10 +851,11 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'rounded_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
+				edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: result.edge_size, condition: ['rounded_cuboid'].includes(result.shape)},
 			}, form => {
 				Object.assign(result, form);
 				runEdit(true, result);
