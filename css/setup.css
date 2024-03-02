@@ -26,11 +26,13 @@
 	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
+
+	/* SCROLLBARS */
+	/* webkit */
 	::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
-
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -46,10 +48,10 @@
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-accent);
 	}
-	/*Mozilla*/
+	/* Web standard */
 	* {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-selected) var(--color-back);
+		scrollbar-color: var(--color-selected) transparent;
 	}
 
 	::selection {
