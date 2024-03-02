@@ -672,14 +672,27 @@ window.Dialog = class Dialog {
 							break;
 						case 'number':
 							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'range':
-							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.editable_range_label) {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input.range_input_label').val())||0, data.min, data.max);
+							} else {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max);
+							}
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'vector':
 							result[form_id] = [];
 							for (let i = 0; i < (data.dimensions || 3); i++) {
 								let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
+								if (data.force_step && data.step) {
+									num = Math.round(num / data.step) * data.step;
+								}
 								result[form_id].push(num)
 							}
 							break;
