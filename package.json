@@ -109,17 +109,17 @@
 	},
 	"devDependencies": {
 		"blockbench-types": "^4.6.1",
-		"electron": "^26.6.9",
-		"electron-builder": "^23.6.0",
+		"electron": "^29.1.0",
+		"electron-builder": "^24.13.3",
 		"electron-notarize": "^1.0.0",
 		"webpack": "^5.74.0",
 		"webpack-cli": "^4.5.0",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {
-		"@electron/remote": "^2.0.11",
+		"@electron/remote": "^2.1.2",
 		"electron-color-picker": "^0.2.0",
-		"electron-updater": "^6.0.4",
+		"electron-updater": "^6.1.8",
 		"gifenc": "^1.0.3"
 	}
 }
