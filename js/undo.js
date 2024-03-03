@@ -695,7 +695,6 @@ BARS.defineActions(function() {
 		icon: 'undo',
 		category: 'edit',
 		condition: () => Project,
-		work_in_dialog: true,
 		keybind: new Keybind({key: 'z', ctrl: true}),
 		click(e) {
 			Project.undo.undo(e);
@@ -705,7 +704,6 @@ BARS.defineActions(function() {
 		icon: 'redo',
 		category: 'edit',
 		condition: () => Project,
-		work_in_dialog: true,
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {
 			Project.undo.redo(e);
@@ -716,7 +714,6 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => Project,
 		click() {
-
 			let steps = [];
 			Undo.history.forEachReverse((entry, index) => {
 				index++;

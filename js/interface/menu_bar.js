@@ -14,19 +14,23 @@ class BarMenu extends Menu {
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
-			if (open_menu === scope) {
-				scope.hide()
+			if (open_menu === this) {
+				this.hide()
 			} else {
-				scope.open()
+				this.open()
 			}
 		})
 		this.label.addEventListener('mouseenter', (event) => {
-			if (MenuBar.open && MenuBar.open !== scope) {
-				scope.open()
+			if (MenuBar.open && MenuBar.open !== this) {
+				this.open()
 			}
 		})
 		this.structure = structure;
 		this.highlight_action = null;
+	}
+	open(...args) {
+		super.open(...args);
+		Blockbench.dispatchEvent('open_bar_menu', {menu: this});
 	}
 	hide() {
 		super.hide();

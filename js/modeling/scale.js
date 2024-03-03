@@ -51,6 +51,10 @@ const ModelScaler = {
 			this.object.querySelector('#model_scale_z_axis').addEventListener('change', e => {ModelScaler.scaleAll()});
 		},
 		onOpen() {
+			Blockbench.once('open_bar_menu', () => {
+				if (ModelScaler.dialog != Dialog.open) return;
+				ModelScaler.dialog.cancel();
+			});
 			setTimeout(() => {
 				this.object.style.top = Interface.page_wrapper.offsetTop+'px';
 			}, 0);

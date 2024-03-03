@@ -215,9 +215,6 @@ function buildForm(dialog) {
 					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
-					input_element.on('input', () => {
-						dialog.updateFormValues();
-					})
 
 					if (!data.editable_range_label) {
 						let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
@@ -237,14 +234,17 @@ function buildForm(dialog) {
 						});
 						bar.append(display);
 						input_element.on('input', () => {
-							let result = dialog.getFormResult();
-							display.value = result[form_id];
+							let result = parseFloat(input_element.val());
+							display.value = result;
 						})
 						display.addEventListener('input', (e) => {
 							input_element.val(parseFloat(display.value));
 							dialog.updateFormValues();
 						})
 					}
+					input_element.on('input', () => {
+						dialog.updateFormValues();
+					})
 					break;
 
 

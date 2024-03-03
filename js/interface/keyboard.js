@@ -694,7 +694,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
+		if (e.which == 9 && !Dialog.open && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
@@ -781,7 +781,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	//Keybinds
 	if (!input_focus) {
 		Keybinds.actions.forEach(function(action) {
-			if (!open_dialog || action.work_in_dialog) {
+			if (!Dialog.open || action.work_in_dialog) {
 				// Condition for actions is not checked here because tools can be triggered from different modes under certain circumstances, which switches the mode
 				if (action.keybind && typeof action.trigger === 'function' && action.keybind.isTriggered(e)) {
 					if (action.trigger(e)) used = true
@@ -797,7 +797,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				}
 			}
 		})
-		if (!used && !open_dialog) {
+		if (!used && !Dialog.open) {
 			for (let tool of Tool.all) {
 				if (tool.keybind && typeof tool.trigger === 'function' && tool.keybind.isTriggered(e)) {
 					if (tool.switchModeAndSelect(e)) break;
@@ -872,7 +872,7 @@ document.addEventListener('wheel', (e) => {
 	Keybinds.actions.forEach(function(action) {
 		if (
 			action.keybind &&
-			(!open_dialog || action.work_in_dialog) &&
+			(!Dialog.open || action.work_in_dialog) &&
 			typeof action.trigger === 'function' &&
 			action.keybind.isTriggered(e)
 		) {
