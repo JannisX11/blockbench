@@ -1593,7 +1593,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
-		setTimeout(Canvas.updatePaintingGrid, 1);
+		setTimeout(Canvas.updatePixelGrid, 1);
 		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
 			textures: [texture],
 			bitmap: true,
@@ -1714,7 +1714,7 @@ const TextureGenerator = {
 			})
 		}
 		updateSelection()
-		setTimeout(Canvas.updatePaintingGrid, 1);
+		setTimeout(Canvas.updatePixelGrid, 1);
 		Undo.finishEdit('Create template', {
 			textures: [texture],
 			bitmap: true,

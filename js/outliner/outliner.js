@@ -547,7 +547,7 @@ class NodePreviewController extends EventSystem {
 		this.updateGeometry = null;
 		this.updateUV = null;
 		this.updateFaces = null;
-		this.updatePaintingGrid = null;
+		this.updatePixelGrid = null;
 		this.updateHighlight = null;
 
 		Object.assign(this, data);
@@ -585,7 +585,7 @@ class NodePreviewController extends EventSystem {
 		if (this.updateGeometry) this.updateGeometry(element);
 		if (this.updateUV) this.updateUV(element);
 		if (this.updateFaces) this.updateFaces(element);
-		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
+		if (this.updatePixelGrid) this.updatePixelGrid(element);
 
 		this.dispatchEvent('update_all', {element});
 	}

@@ -433,6 +433,7 @@ const MenuBar = {
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
+			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
 			'preview_scene',

@@ -138,8 +138,16 @@ BARS.defineActions(function() {
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format && Format.edit_mode,
+		onSelect: () => {
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
+		},
 		onUnselect: () => {
 			if (Undo) Undo.closeAmendEditMenu();
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
 		}
 	})
 	new Mode('paint', {
@@ -151,7 +159,7 @@ BARS.defineActions(function() {
 				Animator.preview();
 			}
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
 			if (StateMemory.color_picker_rgb) {
@@ -172,7 +180,7 @@ BARS.defineActions(function() {
 		onUnselect: () => {
 			Canvas.updateAllBones()
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
 			UVEditor.vue.setMode('uv');

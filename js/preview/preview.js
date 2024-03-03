@@ -2544,6 +2544,13 @@ BARS.defineActions(function() {
 		linked_setting: 'motion_trails',
 		condition: {modes: ['animate']}
 	})
+	new Toggle('pixel_grid', {
+		icon: 'grid_on',
+		category: 'view',
+		condition: {modes: ['edit']},
+		keybind: new Keybind({key: 'g'}),
+		linked_setting: 'pixel_grid'
+	})
 
 	function getRotatedIcon(key, angle) {
 		let icon_node = Blockbench.getIconNode(key);

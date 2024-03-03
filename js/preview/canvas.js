@@ -800,7 +800,7 @@ const Canvas = {
 					if (controller.updateUV) controller.updateUV(element);
 				}
 				if ((aspects.painting_grid || aspects.geometry || aspects.transform || update_all) && Modes.paint && settings.painting_grid.value) {
-					if (controller.updatePaintingGrid) controller.updatePaintingGrid(element);
+					if (controller.updatePixelGrid) controller.updatePixelGrid(element);
 				}
 				if (aspects.visibility || update_all) {
 					if (controller.updateVisibility) controller.updateVisibility(element);
@@ -1238,10 +1238,10 @@ const Canvas = {
 		// Deprecated
 		return Cube.preview_controller.updateUV(cube, animation);
 	},
-	updatePaintingGrid() {
+	updatePixelGrid() {
 		Outliner.elements.forEach(element => {
-			if (element.preview_controller.updatePaintingGrid) {
-				element.preview_controller.updatePaintingGrid(element);
+			if (element.preview_controller.updatePixelGrid) {
+				element.preview_controller.updatePixelGrid(element);
 			}
 		})
 	},

@@ -2936,7 +2936,7 @@ BARS.defineActions(function() {
 	new Toggle('painting_grid', {
 		icon: 'grid_on',
 		category: 'view',
-		condition: () => Modes.paint,
+		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})

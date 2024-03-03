@@ -913,6 +913,8 @@
 	"settings.large_box.desc": "Show size limit boundaries",
 	"settings.display_grid": "Display Mode Grid",
 	"settings.display_grid.desc": "Show grid in display mode",
+	"settings.pixel_grid": "Pixel Grid",
+	"settings.pixel_grid.desc": "Show texture pixel grid on elements in edit mode",
 	"settings.painting_grid": "Painting Grid",
 	"settings.painting_grid.desc": "Show grid on textured elements in paint mode",
 	"settings.image_editor_grid_size": "Image Editor Grid Size",

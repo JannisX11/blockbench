@@ -1064,6 +1064,8 @@ new NodePreviewController(Cube, {
 			mesh.outline.geometry.setFromPoints(points);
 		}
 
+		this.updatePixelGrid(element);
+
 		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
@@ -1255,6 +1257,8 @@ new NodePreviewController(Cube, {
 
 		this.dispatchEvent('update_uv', {element});
 
+		this.updatePixelGrid(element);
+
 		return mesh.geometry;
 	},
 	updateHighlight(element, hover_cube, force_off) {
@@ -1273,13 +1277,15 @@ new NodePreviewController(Cube, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePaintingGrid(cube) {
+	updatePixelGrid(cube) {
 		var mesh = cube.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
+		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (cube.visibility == false) return;
 
-		if (!Modes.paint || !settings.painting_grid.value) return;
+		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
+		if (!grid_enabled) return;
 
 		var from = cube.from.slice();
 		var to = cube.to.slice();

@@ -884,7 +884,7 @@ class Texture {
 		}
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
-			Canvas.updatePaintingGrid()
+			Canvas.updatePixelGrid()
 		} else if (Format.single_texture && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;

@@ -1050,9 +1050,7 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.computeBoundingSphere();
 		Mesh.preview_controller.updateHighlight(element);
 
-		if (Modes.paint) {
-			Mesh.preview_controller.updatePaintingGrid(element);
-		}
+		Mesh.preview_controller.updatePixelGrid(element);
 
 		this.dispatchEvent('update_geometry', {element});
 	},
@@ -1167,6 +1165,8 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_uv', {element});
 
+		this.updatePixelGrid(element);
+
 		return mesh.geometry;
 	},
 	updateSelection(element) {
@@ -1280,13 +1280,15 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePaintingGrid(element) {
+	updatePixelGrid(element) {
 		var mesh = element.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
+		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (element.visibility == false) return;
 
-		if (!Modes.paint || !settings.painting_grid.value) return;
+		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
+		if (!grid_enabled) return;
 
 		var positions = [];
 
