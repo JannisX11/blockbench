@@ -1851,6 +1851,7 @@ const BARS = {
 			new Tool('stretch_tool', {
 				icon: 'expand',
 				category: 'tools',
+				condition: () => Format.stretch_cubes,
 				selectFace: true,
 				transformerMode: 'stretch',
 				toolbar: 'main_tools',

@@ -961,7 +961,7 @@
 					if (Toolbox.selected.transformerMode === 'translate') {
 						Transformer.rotation_ref = display_area;
 
-					} else if (Toolbox.selected.transformerMode === 'scale' || Toolbox.selected.transformerMode === 'stretch') {
+					} else if (Toolbox.selected.transformerMode === 'scale') {
 						Transformer.rotation_ref = display_base;
 
 					} else if (Toolbox.selected.transformerMode === 'rotate' && display_slot == 'gui') {
@@ -980,7 +980,7 @@
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
 						delete Transformer.rotation_ref;
 
-					} else if (Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id === 'stretch_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
+					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
 						Transformer.rotation_ref = Group.selected.mesh;
 
 					} else {
@@ -1590,7 +1590,7 @@
 							Project.display_settings[display_slot][channel][axisNumber] += difference;
 						}
 
-						if ((event.shiftKey || Pressing.overrides.shift) && (channel === 'scale' || channel === 'stretch')) {
+						if ((event.shiftKey || Pressing.overrides.shift) && channel === 'scale') {
 							var val = Project.display_settings[display_slot][channel][(axisNumber||0)]
 							Project.display_settings[display_slot][channel][((axisNumber||0)+1)%3] = val
 							Project.display_settings[display_slot][channel][((axisNumber||0)+2)%3] = val
@@ -1634,7 +1634,7 @@
 
 					if (Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool') {
 						if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
-							//Scale
+							//Scale and stretch
 							selected.forEach(function(obj) {
 								delete obj.oldScale;
 								delete obj.oldStretch;
@@ -1642,7 +1642,11 @@
 								delete obj.oldUVOffset;
 							})
 							if (scope.hasChanged && keep_changes) {
-								Undo.finishEdit('Resize')
+								if (Toolbox.selected.id === 'resize_tool') {
+									Undo.finishEdit('Resize')
+								} else if (Toolbox.selected.id === 'stretch_tool') {
+									Undo.finishEdit('Stretch')
+								}
 							}
 
 						} else if (scope.axis !== null && scope.hasChanged && keep_changes) {
