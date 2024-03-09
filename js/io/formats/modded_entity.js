@@ -331,7 +331,7 @@ const AnimationTemplates = {
 			`// Save this class in your mod and generate all required imports
 
 			/**
-			 * Made with Blockbench %(bb_version) because sirjain is cool
+			 * Made with Blockbench %(bb_version)
 			 * Exported for Minecraft version 1.19 or later with Yarn mappings
 			 * @author %(author)
 			 */
