@@ -1848,6 +1848,17 @@ const BARS = {
 					}
 				}
 			})
+			new Tool('stretch_tool', {
+				icon: 'expand',
+				category: 'tools',
+				condition: () => Format.stretch_cubes,
+				selectFace: true,
+				transformerMode: 'stretch',
+				toolbar: 'main_tools',
+				alt_tool: 'resize_tool',
+				modes: ['edit'],
+				keybind: new Keybind({key: 's', alt: true}),
+			})
 
 		//File
 			new Action('new_window', {
@@ -2050,6 +2061,7 @@ const BARS = {
 				'rotate_tool',
 				'pivot_tool',
 				'vertex_snap_tool',
+				'stretch_tool',
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',
