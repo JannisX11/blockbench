@@ -325,10 +325,39 @@ const AnimationTemplates = {
 			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
 		},
 	},
+	'fabric': {
+		name: 'Yarn',
+		file:
+			`// Save this class in your mod and generate all required imports
+
+			/**
+			 * Made with Blockbench %(bb_version) because sirjain is cool
+			 * Exported for Minecraft version 1.19 or later with Yarn mappings
+			 * @author %(author)
+			 */
+			public class %(identifier)Animation {
+				%(animations)
+			}`,
+		animation: `public static final AnimationDefinition %(name) = AnimationDefinition.Builder.withLength(%(length))%(looping)%(channels).build();`,
+		looping: `.looping()`,
+		channel: `.addAnimation("%(name)", new AnimationChannel(%(channel_type), %(keyframes)))`,
+		keyframe_rotation: `new Keyframe(%(time), KeyframeAnimations.degreeVec(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_position: `new Keyframe(%(time), KeyframeAnimations.posVec(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_scale: `new Keyframe(%(time), KeyframeAnimations.scaleVec(%(x), %(y), %(z)), %(interpolation))`,
+		channel_types: {
+			rotation: 'AnimationChannel.Targets.ROTATION',
+			position: 'AnimationChannel.Targets.POSITION',
+			scale: 'AnimationChannel.Targets.SCALE',
+		},
+		interpolations: {
+			linear: 'AnimationChannel.Interpolations.LINEAR',
+			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
+		},
+	},
 
 	get(key, version = Project.modded_entity_version) {
 		let mapping = Templates.get('animation_template', version);
-		let temp = AnimationTemplates[mapping || 'mojang'][key];
+		let temp = AnimationTemplates['fabric'][key];
 		if (typeof temp === 'string') temp = temp.replace(/\t\t\t/g, '');
 		return temp;
 	}
