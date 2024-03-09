@@ -1186,6 +1186,7 @@ const UVEditor = {
 				face.getSortedVertices().forEach((vkey, i) => {
 					if (uv_points[i]) face.uv[vkey].replace(uv_points[i]);
 				})
+				face.texture = tag.texture;
 			} else {
 				face.extend(tag);
 			}
