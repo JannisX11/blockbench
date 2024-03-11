@@ -1540,6 +1540,175 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	new Action('solidify_mesh_selection', {
+		icon: 'bottom_panel_open',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length)},
+		click() {
+			function runEdit(amended, extend = 1) {
+				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
+
+				Mesh.selected.forEach(mesh => {
+					let original_vertices = [];
+					let new_vertices;
+					let new_face_keys = [];
+					let selected_face_keys = mesh.getSelectedFaces(true);
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
+					let combined_direction;
+
+					selected_faces.forEach(face => {
+						original_vertices.safePush(...face.vertices);
+					})
+
+					// Calculate direction
+					if (original_vertices.length >= 3 && !selected_faces.length) {
+						let [a, b, c] = original_vertices.slice(0, 3).map(vkey => mesh.vertices[vkey].slice());
+						let normal = new THREE.Vector3().fromArray(a.V3_subtract(c));
+						normal.cross(new THREE.Vector3().fromArray(b.V3_subtract(c))).normalize();
+
+						let face;
+						for (let fkey in mesh.faces) {
+							let face2 = mesh.faces[fkey];
+							let face_selected_vertices = face2.vertices.filter(vkey => original_vertices.includes(vkey));
+							if (face_selected_vertices.length >= 2 && face_selected_vertices.length < face2.vertices.length && face2.vertices.length > 2) {
+								face = face2;
+								break;
+							}
+						}
+						if (face) {
+							let selected_corner = mesh.vertices[face.vertices.find(vkey => original_vertices.includes(vkey))];
+							let opposite_corner = mesh.vertices[face.vertices.find(vkey => !original_vertices.includes(vkey))];
+							let face_geo_dir = opposite_corner.slice().V3_subtract(selected_corner);
+							if (Reusable.vec1.fromArray(face_geo_dir).angleTo(normal) < 1) {
+								normal.negate();
+							}
+						}
+
+						combined_direction = normal.toArray();
+					}
+
+					new_vertices = mesh.addVertices(...original_vertices.map(key => {
+						let vector = mesh.vertices[key].slice();
+						let direction;
+						let count = 0;
+						selected_faces.forEach(face => {
+							if (face.vertices.includes(key)) {
+								count++;
+								if (!direction) {
+									direction = face.getNormal(true);
+								} else {
+									direction.V3_add(face.getNormal(true));
+								}
+							}
+						})
+						if (count > 1) {
+							direction.V3_divide(count);
+						}
+						if (!direction) {
+							let match;
+							let match_level = 0;
+							let match_count = 0;
+							for (let key in mesh.faces) {
+								let face = mesh.faces[key]; 
+								let matches = face.vertices.filter(vkey => original_vertices.includes(vkey));
+								if (match_level < matches.length) {
+									match_level = matches.length;
+									match_count = 1;
+									match = face;
+								} else if (match_level === matches.length) {
+									match_count++;
+								}
+								if (match_level == 3) break;
+							}
+							
+							if (match_level < 3 && match_count > 2 && original_vertices.length > 2) {
+								// If multiple faces connect to the line, there is no point in choosing one for the normal
+								// Instead, construct the normal between the first 2 selected vertices
+								direction = combined_direction;
+
+							} else if (match) {
+								let difference = new THREE.Vector3();
+								let signs_done = [];
+								match.vertices.forEach(vkey => {
+									let sign = original_vertices.includes(vkey) ? 1 : -1;
+									difference.x += mesh.vertices[vkey][0] * sign;
+									difference.y += mesh.vertices[vkey][1] * sign;
+									difference.z += mesh.vertices[vkey][2] * sign;
+									signs_done.push(sign);
+								})
+								direction = difference.normalize().toArray();
+
+							} else if (match) {
+								// perpendicular edge, currently unused
+								direction = match.getNormal(true);
+							} else {
+								direction = [0, 1, 0];
+							}
+						}
+
+						vector.V3_add(direction.map(v => v * extend));
+						return vector;
+					}))
+					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
+
+					// Duplicate faces
+					selected_faces.forEach(face => {
+						// Copy face and invert
+						let face_copy = new MeshFace(mesh, face);
+						let [new_face_key] = mesh.addFaces(face_copy);
+						selected_face_keys.push(new_face_key);
+						face_copy.invert();
+
+						// Move original face to new spot
+						face.vertices.forEach((key, index) => {
+							face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
+							let uv = face.uv[key];
+							delete face.uv[key];
+							face.uv[face.vertices[index]] = uv;
+						})
+					})
+
+					// Create extra quads on sides
+					let remaining_vertices = new_vertices.slice();
+					selected_faces.forEach((face, face_index) => {
+						let vertices = face.getSortedVertices();
+						vertices.forEach((a, i) => {
+							let b = vertices[i+1] || vertices[0];
+							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
+							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
+
+							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
+								vertices: [
+									b,
+									a,
+									original_vertices[new_vertices.indexOf(a)],
+									original_vertices[new_vertices.indexOf(b)],
+								]
+							});
+							let [face_key] = mesh.addFaces(new_face);
+							selected_face_keys.push(face_key);
+							new_face_keys.push(face_key);
+							remaining_vertices.remove(a);
+							remaining_vertices.remove(b);
+						})
+
+						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
+					})
+
+					UVEditor.setAutoSize(null, true, new_face_keys);
+				})
+				Undo.finishEdit('Solidify mesh selection');
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
+			}
+			runEdit();
+
+			Undo.amendEdit({
+				thickness: {type: 'number', value: 1, label: 'edit.solidify_mesh_selection.thickness', interval_type: 'position'},
+			}, form => {
+				runEdit(true, form.thickness);
+			})
+		}
+	})
 	new Action('inset_mesh_selection', {
 		icon: 'fa-compress-arrows-alt',
 		category: 'edit',
