@@ -357,7 +357,7 @@ const AnimationTemplates = {
 
 	get(key, version = Project.modded_entity_version) {
 		let mapping = Templates.get('animation_template', version);
-		let temp = AnimationTemplates['fabric'][key];
+		let temp = AnimationTemplates[mapping || 'mojang'][key];
 		if (typeof temp === 'string') temp = temp.replace(/\t\t\t/g, '');
 		return temp;
 	}
