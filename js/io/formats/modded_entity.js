@@ -338,20 +338,20 @@ const AnimationTemplates = {
 			public class %(identifier)Animation {
 				%(animations)
 			}`,
-		animation: `public static final AnimationDefinition %(name) = AnimationDefinition.Builder.withLength(%(length))%(looping)%(channels).build();`,
+		animation: `public static final Animation %(name) = Animation.Builder.create(%(length))%(looping)%(channels).build();`,
 		looping: `.looping()`,
-		channel: `.addAnimation("%(name)", new AnimationChannel(%(channel_type), %(keyframes)))`,
-		keyframe_rotation: `new Keyframe(%(time), KeyframeAnimations.degreeVec(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_position: `new Keyframe(%(time), KeyframeAnimations.posVec(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_scale: `new Keyframe(%(time), KeyframeAnimations.scaleVec(%(x), %(y), %(z)), %(interpolation))`,
+		channel: `.addBoneAnimation("%(name)", new Transformation(%(channel_type), %(keyframes)))`,
+		keyframe_rotation: `new Keyframe(%(time), AnimationHelper.createRotationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_position: `new Keyframe(%(time), AnimationHelper.createTranslationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_scale: `new Keyframe(%(time), AnimationHelper.createScalingVector(%(x), %(y), %(z)), %(interpolation))`,
 		channel_types: {
-			rotation: 'AnimationChannel.Targets.ROTATION',
-			position: 'AnimationChannel.Targets.POSITION',
-			scale: 'AnimationChannel.Targets.SCALE',
+			rotation: 'Transformation.Targets.ROTATE',
+			position: 'Transformation.Targets.TRANSLATE',
+			scale: 'Transformation.Targets.SCALE',
 		},
 		interpolations: {
-			linear: 'AnimationChannel.Interpolations.LINEAR',
-			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
+			linear: 'Transformation.Interpolations.LINEAR',
+			catmullrom: 'Transformation.Interpolations.CUBIC',
 		},
 	},
 
