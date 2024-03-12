@@ -343,6 +343,7 @@ const MenuBar = {
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
+			'optimize_animation',
 			'bake_ik_animation',
 			'bake_animation_into_model',
 			new MenuSeparator('file'),

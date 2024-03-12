@@ -60,11 +60,13 @@ class UndoSystem {
 		}
 		return entry;
 	}
-	cancelEdit() {
+	cancelEdit(revert_changes = true) {
 		if (!this.current_save) return;
-		Canvas.outlines.children.empty();
 		this.startChange();
-		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		if (revert_changes) {
+			Canvas.outlines.children.empty();
+			this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		}
 		delete this.current_save;
 	}
 	closeAmendEditMenu() {

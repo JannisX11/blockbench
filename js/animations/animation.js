@@ -1221,12 +1221,10 @@ BARS.defineActions(function() {
 					if (speed != previous_speed) {
 						snapping = adjust_snapping ? Math.roundTo(initial_snapping * speed, 2) : initial_snapping
 						dialog.setFormValues({snapping}, false);
-						console.trace('c sp', speed, previous_speed)
 
 					} else if (snapping != previous_snapping) {
 						speed = Math.clamp(Math.roundTo(snapping / initial_snapping, 2), 0.1, 4);
 						dialog.setFormValues({speed}, false);
-						console.trace('c snap', snapping, previous_snapping)
 					}
 					previous_speed = speed;
 					previous_snapping = snapping;
@@ -1236,7 +1234,6 @@ BARS.defineActions(function() {
 						kf.time = Timeline.snapTime(initial_times[kf.uuid] / speed, animation);
 					})
 					animation.setLength(initial_length / speed);
-					console.log(animation.length);
 					TickUpdates.keyframes = true;
 					Animator.preview();
 				},
@@ -1247,6 +1244,153 @@ BARS.defineActions(function() {
 					Undo.cancelEdit();
 				}
 			}).show();
+		}
+	})
+	let optimize_animation_mode = 'selected_animation';
+	new Action('optimize_animation', {
+		icon: 'settings_slow_motion',
+		category: 'animation',
+		condition: {modes: ['animate'], method: () => Animation.selected},
+		click: async function() {
+			let response = await new Promise(resolve => {
+				new Dialog('optimize_animation', {
+					name: 'action.optimize_animation',
+					form: {
+						selection: {label: 'dialog.optimize_animation.selection', type: 'select', value: optimize_animation_mode, options: {
+							selected_keyframes: 'dialog.optimize_animation.selection.selected_keyframes',
+							selected_animation: 'dialog.optimize_animation.selection.selected_animation',
+							all_animations: 'dialog.optimize_animation.selection.all_animations',
+						}},
+						'_1': '_',
+						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
+						'_1': '_',
+						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
+						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
+						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},
+						threshold_scale: {label: 'timeline.scale', type: 'number', value: 0.005, min: 0, max: 1, condition: form => form.advanced},
+					},
+					onConfirm(result) {
+						resolve(result);
+					},
+					onCancel() {
+						resolve(false);
+					}
+				}).show();
+			})
+			if (!response) return;
+
+			optimize_animation_mode = response.selection;
+			let animations = [Animation.selected];
+			if (response.selection == 'all_animations') animations = Animation.all;
+			let thresholds = {
+				rotation: response.threshold_rotation,
+				position: response.threshold_position,
+				scale: response.threshold_scale
+			};
+			let remove_count = 0;
+			Undo.initEdit({animations});
+
+			for (let animation of animations) {
+				for (let id in animation.animators) {
+					let animator = animation.animators[id];
+					for (let channel in animator.channels) {
+						if (!animator[channel]?.length) continue;
+						if (!animator.channels[channel].transform) continue;
+						let first = animator[channel][0];
+						// todo: add data points
+						if (animator[channel].length == 1 && first.data_points.length == 1 && (response.selection != 'selected_keyframes' || first.selected)) {
+							let value = first.getArray();
+							if (!value[0] && !value[1] && !value[2]) {
+								first.remove();
+								continue;
+							}
+						}
+
+						let sorted_keyframes = animator[channel].slice().sort((a, b) => a.time - b.time);
+						let original_keyframes = sorted_keyframes.slice();
+						let prev;
+						let skipped = 0;
+						for (let i = 0; i < original_keyframes.length; i++) {
+							let kf = original_keyframes[i];
+							if (kf.data_points.length != 1 || (!kf.selected && response.selection == 'selected_keyframes')) {
+								prev = kf;
+								continue;
+							}
+							let next = original_keyframes[i+1];
+							let d_kf = kf.getArray();
+							let d_prev = prev && prev.getArray(1);
+							let d_next = next && next.getArray(0);
+							let remove = false;
+
+							// Same values check
+							if (
+								(prev || next) &&
+								(!prev || d_prev[0] == d_kf[0]) && (!next || d_next[0] == d_kf[0]) &&
+								(!prev || d_prev[1] == d_kf[1]) && (!next || d_next[1] == d_kf[1]) &&
+								(!prev || d_prev[2] == d_kf[2]) && (!next || d_next[2] == d_kf[2])
+							) {
+								remove = true;
+							} else if (prev && next) {
+								let alpha = Math.getLerp(prev.time, next.time, kf.time);
+								let axes = ['x', 'y', 'z'];
+								let interpolated_value;
+								if (
+									prev.interpolation === 'linear' &&
+									(next.interpolation === 'linear' || next.interpolation === 'step')
+								) {
+									interpolated_value = axes.map(axis => prev.getLerp(next, axis, alpha));
+
+								} else if (prev.interpolation === 'catmullrom' || next.interpolation === 'catmullrom') {
+
+									let prev_plus = sorted_keyframes[sorted_keyframes.indexOf(prev)-1];
+									let next_plus = sorted_keyframes[sorted_keyframes.indexOf(next)+1];
+									interpolated_value = axes.map(axis => prev.getCatmullromLerp(prev_plus, prev, next, next_plus, axis, alpha));
+
+								} else if (prev.interpolation === 'bezier' || next.interpolation === 'bezier') {
+									// Bezier
+									interpolated_value = axes.map(axis => prev.getBezierLerp(prev, next, axis, alpha));
+								}
+
+								if (interpolated_value) {
+									let threshold = thresholds[channel] ?? thresholds.position;
+									let max_diff = 0.0000001;
+									let all_axes_irrelevant = interpolated_value.allAre((val, axis) => {
+										let diff = Math.abs(val - d_kf[axis]);
+										max_diff = Math.max(max_diff, diff);
+										return diff < threshold;
+									});
+									if (all_axes_irrelevant && skipped < Math.clamp(2 * (threshold / max_diff), 0, 12)) {
+										remove = true;
+									}
+								}
+							} else if (!prev && !next) {
+								if (d_kf.allAre(val => !val)) {
+									remove = true;
+								} else {
+									kf.time = 0;
+								}
+							}
+
+							if (remove) {
+								kf.remove();
+								skipped++;
+								remove_count++;
+							} else {
+								skipped = 0;
+								prev = kf;
+							}
+						}
+					}
+				}
+			}
+			
+			if (remove_count) {
+				Blockbench.showQuickMessage(tl('message.optimize_animation.keyframes_removed', remove_count), 2000);
+				Undo.finishEdit('Optimize animations');
+			} else {
+				Blockbench.showQuickMessage('message.optimize_animation.nothing_to_optimize', 1800);
+				Undo.cancelEdit(false);
+			}
 		}
 	})
 })

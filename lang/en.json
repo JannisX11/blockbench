@@ -16,6 +16,7 @@
 	"dialog.copy_to_clipboard": "Copy to clipboard",
 	"dialog.open_url": "Open URL",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
+	"dialog.advanced": "Advanced",
 
 	"data.cube": "Cube",
 	"data.locator": "Locator",
@@ -373,6 +374,8 @@
 	"message.no_bone_selected": "You have to select a bone to do this",
 	"message.duplicate_groups.title": "Bone Name Duplicate",
 	"message.duplicate_groups.message": "The name of this bone exists on multiple bones. This can cause problems.",
+	"message.optimize_animation.keyframes_removed": "Removed %0 redundant keyframes",
+	"message.optimize_animation.nothing_to_optimize": "Found nothing to optimize!",
 
 	"message.small_face_dimensions.title": "Incompatible Face Dimensions",
 	"message.small_face_dimensions.message": "The selection contains faces that are smaller than 1 unit in one direction. The Box UV mapping system considers any faces below that threshold as 0 pixels wide. The texture on those faces therefore may not work correctly.",
@@ -583,6 +586,11 @@
 
 	"dialog.change_animation_speed.speed": "Speed",
 	"dialog.change_animation_speed.adjust_snapping": "Adjust Snapping",
+	"dialog.optimize_animation.selection": "Selection",
+	"dialog.optimize_animation.selection.selected_keyframes": "Selected Keyframes",
+	"dialog.optimize_animation.selection.selected_animation": "Selected Animation",
+	"dialog.optimize_animation.selection.all_animations": "All Animations",
+	"dialog.optimize_animation.thresholds": "Threshold values",
 
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.type": "Type",
@@ -1712,6 +1720,8 @@
 	"action.save_all_animations.desc": "Save all currently loaded animations",
 	"action.export_animation_file": "Export Animations...",
 	"action.export_animation_file.desc": "Export a selection of animations into a new file",
+	"action.optimize_animation": "Optimize Animation",
+	"action.optimize_animation.desc": "Optimize the current animation and reduce the keyframe count",
 	"action.bake_ik_animation": "Bake Inverse Kinematics",
 	"action.bake_ik_animation.desc": "Bake the rotations applied by inverse kinematics into the selected animation",
 	"action.bake_animation_into_model": "Bake Animation into Model",
