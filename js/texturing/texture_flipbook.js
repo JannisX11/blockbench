@@ -159,16 +159,21 @@ BARS.defineActions(function() {
 		condition: Format.animated_textures && Texture.selected,
 		click() {
 			let texture = Texture.selected;
+			let frametime = 1000/settings.texture_fps.value;
+			if (Format.texture_mcmeta && Texture.getDefault()) {
+				let tex = Texture.getDefault();
+				frametime = Math.max(tex.frame_time, 1) * 50;
+			}
 
 			function splitIntoFrames(stride = texture.display_height) {
 				let frames = [];
 				let gauge = texture.width;
 				for (let i = 0; i < texture.frameCount; i++) {
 					let canvas = document.createElement('canvas');
-					let ctx = copy_canvas.getContext('2d');
+					let ctx = canvas.getContext('2d');
 					canvas.width = texture.width;
 					canvas.height = stride;
-					ctx.drawImage(texture.img, 0, stride * i);
+					ctx.drawImage(texture.canvas, 0, -stride * i);
 					let data_url = canvas.toDataURL();
 					let frame = {
 						uuid: guid(),
@@ -180,33 +185,124 @@ BARS.defineActions(function() {
 				}
 				return frames;
 			}
+			/**
+			 * 
+			
+			Frame context menu
+			buttons below frame list
+				duplicate frame
+				add frame
+				add frames
+				remove frame
+			keybindings in dialog
+				prev/next
+				delete
+				duplicate?
+			reframe
+			save
+
+			 */
 
 			TextureAnimator.editor_dialog = new Dialog('animated_texture_editor', {
 				title: 'action.animated_texture_editor',
+				width: 1000,
 				buttons: ['Apply', 'dialog.cancel'],
 				component: {
 					data() {return {
 						frames: splitIntoFrames(),
 						frame_index: 0,
-						stride: texture.display_height
+						playing: false,
+						stride: texture.display_height,
+						fps: 1000 / frametime,
+						interval: null
 					}},
-
+					methods: {
+						togglePlay() {
+							if (!this.playing) {
+								this.playing = true;
+								let frametime = Math.clamp(1000 / this.fps, 2, 1000);
+								this.interval = setInterval(() => {
+									this.frame_index++;
+									if (this.frame_index == this.frames.length) {
+										this.frame_index = 0;
+									}
+									if (Dialog.open != TextureAnimator.editor_dialog) {
+										this.togglePlay();
+									}
+								}, frametime)
+							} else {
+								this.playing = false;
+								clearInterval(this.interval);
+							}
+						},
+						updateFPS() {
+							if (this.playing) {
+								this.togglePlay();
+								this.togglePlay();
+							}
+						},
+						setFrame(i) {
+							if (this.playing) this.togglePlay();
+							this.frame_index = i;
+						},
+						jumpFrames(number) {
+							if (this.playing) this.togglePlay();
+							this.frame_index = Math.clamp(this.frame_index + number, 0, this.frames.length-1);
+						},
+						reframe() {
+							let new_frames = splitIntoFrames();
+							this.frames.replace(new_frames);
+						},
+						sort(event) {
+							var item = this.frames.splice(event.oldIndex, 1)[0];
+							this.frames.splice(event.newIndex, 0, item);
+						}
+					},
+					mounted() {
+						this.togglePlay();
+					},
 					template: `
-						<div>
-							<div class="frame_timeline">
+						<div id="flipbook_editor">
+							<div class="flipbook_frame_timeline">
 
-								<button>Reframe</button>
+								<button @click="reframe()">Reframe</button>
 								<ul>
-									<li v-for="frame in frames" :key="frame.uuid">
-
+									<li v-for="(frame, i) in frames" :key="frame.uuid"
+										:title="i"
+										v-sortable="{onUpdate: sort, animation: 160, handle: '.frame_drag_handle'}"
+										class="flipbook_frame" :class="{viewing: frame_index == i}"
+										@click="frame_index = i"
+										@dblclick="setFrame(i)"
+									>
+										<label>{{ i }}</label>
+										<img class="checkerboard" :src="frame.data_url" width="120">
 									</li>
 								</ul>
 								<div>
-									<button>+</button>
-									<button>++</button>
+									<div class="tool" @click="">
+										<i class="material-icons">Plus</i>
+									</div>
 								</div>
 							</div>
-							<div class="frame_preview">
+							<div class="flipbook_frame_preview">
+								<div>
+									<img class="checkerboard" v-if="frames[frame_index]" :src="frames[frame_index].data_url" :width="256">
+								</div>
+								<div class="flipbook_controls">
+									<div class="tool" @click="jumpFrames(-1)">
+										<i class="material-icons">navigate_before</i>
+									</div>
+									<div class="tool" @click="togglePlay()">
+										<i class="material-icons">{{ playing ? 'pause' : 'play_arrow' }}</i>
+									</div>
+									<div class="tool" @click="jumpFrames(1)">
+										<i class="material-icons">navigate_next</i>
+									</div>
+								</div>
+								<div class="flipbook_controls">
+									<label>${'FPS'}</label>
+									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+								</div>
 							</div>
 						</div>
 					`

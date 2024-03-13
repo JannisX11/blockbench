@@ -452,6 +452,8 @@
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
 
+	"dialog.animated_texture_editor.title": "Repeat",
+
 	"dialog.export_emission_map.title": "Export Emission Map",
 	"dialog.export_emission_map.format": "Format",
 	"dialog.export_emission_map.format.luminance": "Luminance",
@@ -1504,6 +1506,8 @@
 	"action.rotate_texture_ccw": "Rotate Counter-clockwise",
 	"action.rotate_texture_ccw.desc": "Rotate the texture or layer counter-clockwise",
 	"action.resize_texture": "Resize Texture...",
+	"action.animated_texture_editor": "Flipbook Animation...",
+	"action.animated_texture_editor.desc": "Setup or edit the flipbook animation of the selected texture",
 	"action.crop_texture_to_selection": "Crop Texture to Selection",
 	"action.crop_layer_to_selection": "Crop Layer to Selection",
 

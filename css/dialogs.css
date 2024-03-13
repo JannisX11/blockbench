@@ -1096,9 +1096,9 @@
 	}
 
 /*Bedrock Bindings*/
-dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
-	overflow: visible;
-} 
+	dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
+		overflow: visible;
+	}
 
 /*Keybind Recording*/
 	#overlay_message_box {
@@ -2040,6 +2040,69 @@ dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {
 		top: -6px;
 		cursor: move;
 	}
+/*Flipbook texture editor*/
+	#flipbook_editor {
+		display: flex;
+		flex-direction: row;
+		max-height: calc(100vh - 230px);
+	}
+	.flipbook_frame_preview {
+		width: auto;
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+	.flipbook_frame_preview > div:first-child {
+		display: flex;
+		justify-content: center;
+	}
+	.flipbook_frame_preview > div.flipbook_controls {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.flipbook_frame_preview > div.flipbook_controls > .numeric_input {
+		width: 70px;
+		flex-grow: 0;
+		margin-left: 4px;
+	}
+
+	.flipbook_frame_timeline {
+		width: 160px;
+		flex-grow: 0;
+		flex-shrink: 0;
+	}
+	.flipbook_frame_timeline > ul {
+		overflow-y: scroll;
+		height: calc(100% - 106px);
+		padding-right: 12px;
+	}
+	.flipbook_frame {
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		padding: 2px;
+	}
+	.flipbook_frame:hover {
+		background-color: var(--color-hover);
+		color: var(--color-light);
+	}
+	.flipbook_frame.viewing {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	.flipbook_frame > img {
+		cursor: inherit;
+	}
+	.flipbook_frame > label {
+		cursor: inherit;
+		width: 28px;
+		flex-grow: 1;
+		flex-shrink: 0;
+		text-align: center;
+	}
+
 /* Predicate Overrides */
 	.predicate_override_top_bar {
 		margin-bottom: 22px;

@@ -1779,6 +1779,7 @@ class Texture {
 				}
 			},
 			'resize_texture',
+			'animated_texture_editor',
 			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',
