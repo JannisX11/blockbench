@@ -808,21 +808,16 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	// Menu
 	if (open_menu) {
 		used = open_menu.keyNavigate(e)||used
-		
-	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
-		switch (e.which) {
-			case 37: Painter.selection.x -= 1; break;//<
-			case 38: Painter.selection.y -= 1; break;//UP
-			case 39: Painter.selection.x += 1; break;//>
-			case 40: Painter.selection.y += 1; break;//DOWN
-		}
-		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
-		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-		UVEditor.updatePastingOverlay();
-		e.preventDefault();
 
 	// Dialog
 	} else if (Dialog.open) {
+		let dialog = Dialog.open;
+		for (let id in (dialog.keyboard_actions || {})) {
+			let action = dialog.keyboard_actions[id];
+			if (Condition(action.condition, dialog) && action.keybind.isTriggered(e)) {
+				action.run.call(dialog, e);
+			}
+		}
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				if (input_focus) {
@@ -853,6 +848,18 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			SharedActions.run('unselect_all', e);
 			used = true;
 		}
+	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+		switch (e.which) {
+			case 37: Painter.selection.x -= 1; break;//<
+			case 38: Painter.selection.y -= 1; break;//UP
+			case 39: Painter.selection.x += 1; break;//>
+			case 40: Painter.selection.y += 1; break;//DOWN
+		}
+		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
+		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
+		UVEditor.updatePastingOverlay();
+		e.preventDefault();
+
 	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			TextureLayer.selected.resolveLimbo(false);

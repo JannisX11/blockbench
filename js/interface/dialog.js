@@ -558,6 +558,7 @@ window.Dialog = class Dialog {
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
+		this.keyboard_actions = options.keyboard_actions || {};
 	
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
