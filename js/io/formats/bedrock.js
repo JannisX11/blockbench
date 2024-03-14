@@ -537,7 +537,8 @@ function calculateVisibleBox() {
 						uv: [
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
-						]
+						],
+						rotation: s.uv[key].rotation
 					})
 					if (s.uv[key].uv_size) {
 						face.uv_size = [
@@ -553,7 +554,8 @@ function calculateVisibleBox() {
 					}
 				} else {
 					face.texture = null;
-					face.uv = [0, 0, 0, 0]
+					face.uv = [0, 0, 0, 0],
+					face.rotation = 0;
 				}
 			}
 			
@@ -764,6 +766,9 @@ function calculateVisibleBox() {
 							face.uv_size[1],
 						]
 					});
+					if (face.rotation) {
+						template.uv[key].rotation = face.rotation;
+					}
 					if (face.material_name) {
 						template.uv[key].material_instance = face.material_name;
 					}
@@ -1279,6 +1284,7 @@ var entity_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
+	uv_rotation: true,
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
@@ -1317,6 +1323,7 @@ var block_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
+	uv_rotation: true,
 	single_texture: false,
 	bone_rig: true,
 	centered_grid: true,
