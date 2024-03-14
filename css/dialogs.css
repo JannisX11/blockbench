@@ -2041,10 +2041,18 @@
 		cursor: move;
 	}
 /*Flipbook texture editor*/
+	dialog#animated_texture_editor .dialog_content {
+		margin-bottom: 0;
+	}
 	#flipbook_editor {
 		display: flex;
 		flex-direction: row;
 		max-height: calc(100vh - 230px);
+	}
+	body.is_mobile #flipbook_editor {
+		flex-direction: column-reverse;
+		overflow-y: auto;
+		align-items: center;
 	}
 	.flipbook_frame_preview {
 		width: auto;
@@ -2067,6 +2075,11 @@
 		flex-grow: 0;
 		margin-left: 4px;
 	}
+	.flipbook_frame_preview img {
+		width: 512px;
+		max-width: 100%;
+		max-height: 100%;
+	}
 
 	.flipbook_frame_timeline {
 		width: 160px;
@@ -2075,7 +2088,8 @@
 	}
 	.flipbook_frame_timeline > ul {
 		overflow-y: scroll;
-		height: calc(100% - 106px);
+		height: calc(100% - 64px);
+		min-height: 300px;
 		padding-right: 12px;
 	}
 	.flipbook_frame {
@@ -2094,6 +2108,7 @@
 	}
 	.flipbook_frame > img {
 		cursor: inherit;
+		pointer-events: none;
 	}
 	.flipbook_frame > label {
 		cursor: inherit;

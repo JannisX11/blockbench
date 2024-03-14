@@ -207,6 +207,38 @@ BARS.defineActions(function() {
 				title: 'action.animated_texture_editor',
 				width: 1000,
 				buttons: ['Apply', 'dialog.cancel'],
+				keyboard_actions: {
+					previous_frame: {
+						keybind: new Keybind({key: 37}),
+						run() {
+							this.content_vue.jumpFrames(-1);
+						}
+					},
+					next_frame: {
+						keybind: new Keybind({key: 39}),
+						run() {
+							this.content_vue.jumpFrames(1);
+						}
+					},
+					play: {
+						keybind: new Keybind({key: 32}),
+						run() {
+							this.content_vue.togglePlay();
+						}
+					},
+					duplicate: {
+						keybind: new Keybind({key: 'd', ctrl: true}),
+						run() {
+							this.content_vue.duplicateFrame();
+						}
+					},
+					delete: {
+						keybind: new Keybind({key: 46}),
+						run() {
+							this.content_vue.deleteFrame();
+						}
+					}
+				},
 				component: {
 					data() {return {
 						frames: splitIntoFrames(),
@@ -253,13 +285,25 @@ BARS.defineActions(function() {
 							let new_frames = splitIntoFrames();
 							this.frames.replace(new_frames);
 						},
+						duplicateFrame() {
+							let frame = this.frames[this.frame_index];
+							if (!frame) return;
+							let copy = Object.assign({}, frame);
+							copy.uuid = guid();
+							this.frames.splice(this.frame_index+1, 0, copy);
+							this.frame_index++;
+						},
+						deleteFrame() {
+							let frame = this.frames[this.frame_index];
+							if (!frame) return;
+							this.frames.remove(frame);
+						},
 						sort(event) {
 							var item = this.frames.splice(event.oldIndex, 1)[0];
 							this.frames.splice(event.newIndex, 0, item);
 						}
 					},
 					mounted() {
-						this.togglePlay();
 					},
 					template: `
 						<div id="flipbook_editor">
@@ -279,8 +323,11 @@ BARS.defineActions(function() {
 									</li>
 								</ul>
 								<div>
-									<div class="tool" @click="">
-										<i class="material-icons">Plus</i>
+									<div class="tool" @click="duplicateFrame()" title="${tl('generic.duplicate')}">
+										<i class="material-icons">content_copy</i>
+									</div>
+									<div class="tool" @click="deleteFrame()" title="${tl('generic.delete')}">
+										<i class="material-icons">delete</i>
 									</div>
 								</div>
 							</div>

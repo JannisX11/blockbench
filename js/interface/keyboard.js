@@ -1,4 +1,14 @@
+
 class Keybind {
+	/**
+	 * Create a keybind
+	 * @param {object} keys Set up the default keys that need to be pressed
+	 * @param {number|string} keys.key Main key. Check keycode.info to find out the numeric value, or simply use letters for letter keys
+	 * @param {boolean} keys.ctrl Control key. On MacOS this automatically works for Cmd
+	 * @param {boolean} keys.shift Shift key
+	 * @param {boolean} keys.alt Alt key
+	 * @param {boolean} keys.meta Meta key
+	 */
 	constructor(keys) {
 		this.key 	= -1;
 		this.ctrl 	= false;
