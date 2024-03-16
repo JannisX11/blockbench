@@ -104,6 +104,10 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
+						valid_textures_list = valid_textures_list.filter(entry => {
+							return Texture.all.findIndex(t => t.path == entry) == -1;
+						});
+						if (!valid_textures_list.length) return;
 						let selected_textures = [];
 						var dialog = new Dialog({
 							title: tl('data.texture'),
