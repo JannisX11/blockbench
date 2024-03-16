@@ -149,7 +149,7 @@ class UndoSystem {
 
 			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
 				
-				let toggle = Interface.createElement('input', {type: 'checkbox', checked: !!form_line.value});
+				let toggle = Interface.createElement('input', {type: 'checkbox', checked: form_line.value ? true : undefined});
 				toggle.addEventListener('input', updateValue);
 				line.append(toggle);
 				input_elements[key] = toggle;
