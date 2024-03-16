@@ -929,6 +929,8 @@
 	"settings.image_editor_grid_size.desc": "Size of the large grid in the 2D image editor",
 	"settings.ground_plane": "Ground Plane",
 	"settings.ground_plane.desc": "Show a floor plane below the model",
+	"settings.ground_plane_double_side": "Ground Plane Double-sided",
+	"settings.ground_plane_double_side.desc": "Make the ground plane visible from below",
 
 	"settings.undo_limit": "Undo Limit",
 	"settings.undo_limit.desc": "Number of steps you can undo",

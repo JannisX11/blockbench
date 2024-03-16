@@ -396,7 +396,6 @@ class ModelProject {
 		}
 
 		if (force || Project.saved || await saveWarning()) {
-			console.log(true)
 			try {
 				if (isApp) {
 					updateRecentProjectData();

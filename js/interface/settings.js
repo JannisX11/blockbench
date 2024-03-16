@@ -492,6 +492,9 @@ const Settings = {
 		new Setting('ground_plane',			{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;
 		}});
+		new Setting('ground_plane_double_side',{category: 'grid', value: false, onChange() {
+			Canvas.groundPlaneMaterial.side = this.value ? THREE.DoubleSide : THREE.FrontSide;
+		}});
 		
 		//Snapping
 		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number', min: 1, max: 8192});

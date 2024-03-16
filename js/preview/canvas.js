@@ -693,12 +693,12 @@ const Canvas = {
 		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
 			map: Canvas.emptyMaterials[0].uniforms.map.value,
 			color: CustomTheme.data.colors.back,
-			side: THREE.DoubleSide,
+			side: settings.ground_plane_double_side.value ? THREE.DoubleSide : THREE.FrontSide,
 			alphaTest: 0.2
 		})
 		let size = 4096;
 		Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
-		Canvas.ground_plane.rotation.x = Math.PI/2;
+		Canvas.ground_plane.rotation.x = -Math.PI/2;
 		Canvas.ground_plane.position.y = -0.025;
 		Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
 		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
