@@ -538,7 +538,7 @@ function calculateVisibleBox() {
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
 						],
-						rotation: s.uv[key].rotation
+						rotation: s.uv[key].uv_rotation
 					})
 					if (s.uv[key].uv_size) {
 						face.uv_size = [
@@ -767,7 +767,7 @@ function calculateVisibleBox() {
 						]
 					});
 					if (face.rotation) {
-						template.uv[key].rotation = face.rotation;
+						template.uv[key].uv_rotation = face.rotation;
 					}
 					if (face.material_name) {
 						template.uv[key].material_instance = face.material_name;
