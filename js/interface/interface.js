@@ -668,7 +668,9 @@ function setProjectTitle(title) {
 	}
 	if (Project && !Project.saved) window_title = '● ' + window_title;
 	document.title = window_title;
-	document.getElementById('header_free_bar').innerText = window_title;
+	if (!Blockbench.isMobile) {
+		document.getElementById('header_free_bar').innerText = window_title;
+	}
 }
 //Zoom
 function setZoomLevel(mode) {

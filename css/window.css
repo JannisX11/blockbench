@@ -1,7 +1,7 @@
 
 /*Layout*/
 	#page_wrapper {
-		height: calc(100% - 26px);
+		height: calc(100% - var(--menu-bar-height));
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
@@ -32,6 +32,7 @@
 		background-repeat: no-repeat;
 		background-size: 128px;
 		background-position: center;
+		--menu-bar-height: 26px;
 	}
 	#loading_error_message {
 		height: 100%;
@@ -294,7 +295,7 @@
 		overflow: hidden;
 		display: flex;
 		white-space: nowrap;
-		height: 26px;
+		height: var(--menu-bar-height);
 	}
 	header > * {
 		display: inline-block;
@@ -305,7 +306,7 @@
 	}
 	div#corner_logo {
 		width: auto;
-		height: 26px;
+		height: 100%;
 		padding-right: 8px;
 		padding-left: 6px;
 		margin-left: 4px;
@@ -400,9 +401,6 @@
 		width: 68px;
 		flex-shrink: 0;
 	}
-	header .tool .icon {
-		font-size: 20px;
-	}
 	#settings_profiles_header_menu {
 		width: 24px;
 		text-align: center;
@@ -416,6 +414,9 @@
 	}
 
 /*Mobile*/
+	body.is_mobile {
+		--menu-bar-height: 38px;
+	}
 	body.is_mobile #page_wrapper {
 		border: none;
 	}
@@ -587,9 +588,13 @@
 	}
 	header .tool {
 		height: 100%;
+		width: 42px;
 	}
-	header .tool > i {
-		margin-top: 2px;
+	header .tool > .icon {
+		margin-top: 7px;
+	}
+	header .tool.hidden {
+		display: none;
 	}
 	body.is_mobile.is_landscape #title_bar_undo_controls {
 		display: block;

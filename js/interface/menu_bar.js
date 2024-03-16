@@ -1,7 +1,6 @@
 class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
-		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
@@ -520,17 +519,70 @@ const MenuBar = {
 			]},
 			'about_window'
 		])
-		MenuBar.update()
+		MenuBar.update();
+
+		if (Blockbench.isMobile) {
+			let header = document.querySelector('header');
+			document.getElementById('menu_bar').remove();
+			document.getElementById('header_free_bar').remove();
+			document.getElementById('corner_logo').remove();
+
+			let menu_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('menu'));
+			menu_button.addEventListener('click', event => {
+				MenuBar.openMobile(menu_button, event);
+			})
+			let search_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('search'));
+			search_button.addEventListener('click', event => {
+				ActionControl.select()
+			})
+			let undo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('undo'));
+			undo_button.addEventListener('click', event => {
+				BarItems.undo.trigger()
+			})
+			let redo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('redo'));
+			redo_button.addEventListener('click', event => {
+				BarItems.redo.trigger()
+			})
+			let mode_switcher = Interface.createElement('div', {class: 'tool hidden', style: 'margin-left: auto'}, Blockbench.getIconNode('settings'));
+			mode_switcher.addEventListener('click', event => {
+				Modes.mobileModeMenu(mode_switcher, event);
+			})
+			MenuBar.mode_switcher_button = mode_switcher;
+
+			let buttons = [menu_button, search_button, undo_button, redo_button, mode_switcher];
+			buttons.forEach(button => {
+				header.append(button);
+			})
+		}
+	},
+	openMobile(button, event) {
+		let entries = [];
+		for (let id in MenuBar.menus) {
+			if (id == 'filter') continue;
+			let menu = MenuBar.menus[id];
+			let entry = {
+				id,
+				icon: menu.icon || '',
+				name: menu.name,
+				children: menu.structure,
+				condition: menu.condition,
+			};
+			entries.push(entry);
+		}
+		let menu = new Menu(entries).open(button);
+		return menu;
 	},
 	update() {
-		var bar = $('#menu_bar')
-		bar.children().detach()
-		this.keys = []
-		for (var menu in MenuBar.menus) {
-			if (MenuBar.menus.hasOwnProperty(menu)) {
-				if (MenuBar.menus[menu].conditionMet()) {
-					bar.append(MenuBar.menus[menu].label)
-					this.keys.push(menu)
+		if (!Blockbench.isMobile) {
+			let bar = $(document.getElementById('menu_bar'));
+			bar.children().detach();
+			this.keys = [];
+			for (var menu in MenuBar.menus) {
+				if (MenuBar.menus.hasOwnProperty(menu)) {
+					if (MenuBar.menus[menu].conditionMet()) {
+						bar.append(MenuBar.menus[menu].label)
+						this.keys.push(menu);
+					}
 				}
 			}
 		}

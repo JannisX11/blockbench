@@ -2,6 +2,7 @@ const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
+		MenuBar.mode_switcher_button.classList.add('hidden');
 	}
 };
 

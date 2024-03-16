@@ -9,6 +9,9 @@
 		padding: 36px 0;
 		overflow-y: auto;
 	}
+	body.is_mobile #start_screen {
+		padding: 0;
+	}
 	#start_screen h3 {
 		margin: 0;
 	}
@@ -454,6 +457,7 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
+		line-height: 26px;
 	}
 	.format_target span {
 		padding: 2px 4px;
