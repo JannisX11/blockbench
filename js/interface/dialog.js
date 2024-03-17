@@ -875,6 +875,11 @@ window.Dialog = class Dialog {
 
 		this.focus();
 
+		setTimeout(() => {
+			this.object.style.setProperty('--dialog-height', this.object.clientHeight + 'px');
+			this.object.style.setProperty('--dialog-width', this.object.clientWidth + 'px');
+		}, 1);
+
 		return this;
 	}
 	focus() {

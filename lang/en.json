@@ -452,7 +452,11 @@
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
 
-	"dialog.animated_texture_editor.title": "Repeat",
+	"dialog.animated_texture_editor.reframe": "Reframe",
+	"dialog.animated_texture_editor.stride": "Frame Size",
+	"dialog.animated_texture_editor.frames": "Number of Frames",
+	"dialog.animated_texture_editor.add_frame": "Add Frame",
+	"dialog.animated_texture_editor.apply": "Apply",
 
 	"dialog.export_emission_map.title": "Export Emission Map",
 	"dialog.export_emission_map.format": "Format",

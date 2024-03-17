@@ -2078,17 +2078,22 @@
 	.flipbook_frame_preview img {
 		width: 512px;
 		max-width: 100%;
-		max-height: 100%;
+		max-height: calc(var(--dialog-height) - 156px);
 	}
 
 	.flipbook_frame_timeline {
 		width: 160px;
 		flex-grow: 0;
 		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.flipbook_frame_timeline > button {
+		flex-shrink: 0;
 	}
 	.flipbook_frame_timeline > ul {
 		overflow-y: scroll;
-		height: calc(100% - 64px);
 		min-height: 300px;
 		padding-right: 12px;
 	}
@@ -2116,6 +2121,48 @@
 		flex-grow: 1;
 		flex-shrink: 0;
 		text-align: center;
+	}
+	#flipbook_editor_timeline {
+		display: flex;
+		position: relative;
+		height: 16px;
+		width: calc(100% - 43px);
+		margin-right: auto;
+		margin-left: auto;
+		margin-top: 5px;
+		padding-left: 0px;
+		padding-right: 2px;
+		border-bottom: 2px solid var(--color-border);
+		border-top: 2px solid var(--color-border);
+	}
+	#flipbook_editor_timeline .frame {
+		flex-grow: 1;
+		width: 1px;
+		height: 12px;
+		border-left: 2px solid var(--color-ui);
+		background-color: var(--color-back);
+		pointer-events: none;
+		cursor: ew-resize;
+	}
+	#flipbook_editor_timeline #flipbook_editor_playhead {
+		position: absolute;
+		height: 100%;
+		border-style: solid;
+		border-width: 8px;
+		border-color: transparent;
+		border-top-color: var(--color-accent);
+		border-radius: 3px;
+		margin-left: -7px;
+		margin-top: -2px;
+		pointer-events: none;
+	}
+	#flipbook_editor_timeline #flipbook_editor_playhead::before {
+		position: absolute;
+		content: "";
+		height: 8px;
+		border-left: 2px solid var(--color-accent);
+		top: -2px;
+		left: -1px;
 	}
 
 /* Predicate Overrides */

@@ -167,8 +167,8 @@ BARS.defineActions(function() {
 
 			function splitIntoFrames(stride = texture.display_height) {
 				let frames = [];
-				let gauge = texture.width;
-				for (let i = 0; i < texture.frameCount; i++) {
+				let frame_count = Math.ceil(texture.height / stride);
+				for (let i = 0; i < frame_count; i++) {
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
 					canvas.width = texture.width;
@@ -186,27 +186,14 @@ BARS.defineActions(function() {
 				return frames;
 			}
 			/**
-			 * 
-			
-			Frame context menu
-			buttons below frame list
-				duplicate frame
-				add frame
-				add frames
-				remove frame
-			keybindings in dialog
-				prev/next
-				delete
-				duplicate?
-			reframe
-			save
-
+			 * Other ideas:
+			 * 	frame context menu
 			 */
 
 			TextureAnimator.editor_dialog = new Dialog('animated_texture_editor', {
 				title: 'action.animated_texture_editor',
 				width: 1000,
-				buttons: ['Apply', 'dialog.cancel'],
+				buttons: ['dialog.animated_texture_editor.apply', 'dialog.cancel'],
 				keyboard_actions: {
 					previous_frame: {
 						keybind: new Keybind({key: 37}),
@@ -236,6 +223,18 @@ BARS.defineActions(function() {
 						keybind: new Keybind({key: 46}),
 						run() {
 							this.content_vue.deleteFrame();
+						}
+					},
+					copy: {
+						keybind: new Keybind({key: 'c', ctrl: true}),
+						run() {
+							this.content_vue.copy();
+						}
+					},
+					paste: {
+						keybind: new Keybind({key: 'v', ctrl: true}),
+						run() {
+							this.content_vue.paste();
 						}
 					}
 				},
@@ -281,9 +280,32 @@ BARS.defineActions(function() {
 							if (this.playing) this.togglePlay();
 							this.frame_index = Math.clamp(this.frame_index + number, 0, this.frames.length-1);
 						},
-						reframe() {
-							let new_frames = splitIntoFrames();
-							this.frames.replace(new_frames);
+						async reframe() {
+							let content_vue = this;
+							let last_data = {
+								stride: this.stride,
+								frames: Math.roundTo(texture.height / this.stride, 4)
+							};
+							new Dialog('flipbook_editor_reframe', {
+								title: 'dialog.animated_texture_editor.reframe',
+								form: {
+									stride: {label: 'dialog.animated_texture_editor.stride', type: 'number', value: last_data.stride},
+									frames: {label: 'dialog.animated_texture_editor.frames', type: 'number', value: last_data.frames}
+								},
+								onFormChange(data) {
+									if (last_data.stride != data.stride) {
+										this.setFormValues({frames: Math.roundTo(texture.height / data.stride, 4)}, false);
+
+									} else if (last_data.frames != data.frames) {
+										this.setFormValues({stride: Math.roundTo(texture.height / data.frames, 4)}, false);
+									}
+								},
+								onConfirm(data) {
+									content_vue.stride = Math.clamp(Math.round(data.stride), 1, texture.height);
+									let new_frames = splitIntoFrames(content_vue.stride);
+									content_vue.frames.replace(new_frames);
+								}
+							}).show();
 						},
 						duplicateFrame() {
 							let frame = this.frames[this.frame_index];
@@ -298,9 +320,94 @@ BARS.defineActions(function() {
 							if (!frame) return;
 							this.frames.remove(frame);
 						},
+						createFrame() {
+							let canvas_frame = new CanvasFrame(texture.width, this.stride);
+							let frame = {
+								uuid: guid(),
+								canvas: canvas_frame.canvas,
+								data_url: canvas_frame.canvas.toDataURL(),
+							};
+							this.frame_index++;
+							this.frames.splice(this.frame_index, 0, frame);
+						},
+						copy() {
+							let selected_frame = this.frames[this.frame_index];
+							if (!selected_frame) return;
+							Clipbench.image = {
+								x: 0, y: 0,
+								data: selected_frame.data_url,
+							}
+					
+							if (isApp) {
+								let img = nativeImage.createFromDataURL(Clipbench.image.data);
+								clipboard.writeImage(img);
+							} else {
+								selected_frame.canvas.toBlob(blob => {
+									navigator.clipboard.write([
+										new ClipboardItem({[blob.type]: blob}),
+									]);
+								});
+							}
+						},
+						paste() {
+							let addFrame = (data_url) => {
+								let canvas_frame = new CanvasFrame(texture.width, this.stride);
+								canvas_frame.loadFromURL(data_url);
+								let frame = {
+									uuid: guid(),
+									canvas: canvas_frame.canvas,
+									data_url,
+								};
+								this.frame_index++;
+								this.frames.splice(this.frame_index, 0, frame);
+							}
+						
+							if (isApp) {
+								var image = clipboard.readImage().toDataURL();
+								addFrame(image);
+							} else {
+								navigator.clipboard.read().then(content => {
+									if (content && content[0] && content[0].types.includes('image/png')) {
+										content[0].getType('image/png').then(blob => {
+											let url = URL.createObjectURL(blob);
+											addFrame(url);
+										})
+									}
+								}).catch(() => {})
+							}
+						},
 						sort(event) {
+							let selected = this.frames[this.frame_index];
 							var item = this.frames.splice(event.oldIndex, 1)[0];
 							this.frames.splice(event.newIndex, 0, item);
+							this.frame_index = this.frames.findIndex(frame => frame == selected);
+						},
+						slideTimelinePointer(e1) {
+							let scope = this;
+							if (!this.$refs.timeline) return;
+		
+							let timeline_offset = $(this.$refs.timeline).offset().left + 8;
+							let timeline_width = this.$refs.timeline.clientWidth - 8;
+							let maxFrameCount = this.frames.length;
+		
+							function slide(e2) {
+								convertTouchEvent(e2);
+								let pos = e2.clientX - timeline_offset;
+		
+								scope.frame_index = Math.clamp(Math.round((pos / timeline_width) * maxFrameCount), 0, maxFrameCount-1);
+							}
+							function off(e3) {
+								removeEventListeners(document, 'mousemove touchmove', slide);
+								removeEventListeners(document, 'mouseup touchend', off);
+							}
+							addEventListeners(document, 'mousemove touchmove', slide);
+							addEventListeners(document, 'mouseup touchend', off);
+							slide(e1);
+						},
+						getPlayheadPos() {
+							if (!this.$refs.timeline) return 0;
+							let width = this.$refs.timeline.clientWidth - 2;
+							return Math.clamp((this.frame_index / this.frames.length) * width, 0, width);
 						}
 					},
 					mounted() {
@@ -309,11 +416,10 @@ BARS.defineActions(function() {
 						<div id="flipbook_editor">
 							<div class="flipbook_frame_timeline">
 
-								<button @click="reframe()">Reframe</button>
-								<ul>
+								<button @click="reframe()">${tl('dialog.animated_texture_editor.reframe')}</button>
+								<ul v-sortable="{onUpdate: sort, animation: 160}">
 									<li v-for="(frame, i) in frames" :key="frame.uuid"
 										:title="i"
-										v-sortable="{onUpdate: sort, animation: 160, handle: '.frame_drag_handle'}"
 										class="flipbook_frame" :class="{viewing: frame_index == i}"
 										@click="frame_index = i"
 										@dblclick="setFrame(i)"
@@ -329,11 +435,18 @@ BARS.defineActions(function() {
 									<div class="tool" @click="deleteFrame()" title="${tl('generic.delete')}">
 										<i class="material-icons">delete</i>
 									</div>
+									<div class="tool" @click="createFrame()" title="${tl('dialog.animated_texture_editor.add_frame')}">
+										<i class="material-icons">library_add</i>
+									</div>
 								</div>
 							</div>
 							<div class="flipbook_frame_preview">
 								<div>
 									<img class="checkerboard" v-if="frames[frame_index]" :src="frames[frame_index].data_url" :width="256">
+								</div>
+								<div id="flipbook_editor_timeline" ref="timeline" @mousedown="slideTimelinePointer">
+									<div class="frame" v-for="i in frames.length"></div>
+									<div id="flipbook_editor_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 								</div>
 								<div class="flipbook_controls">
 									<div class="tool" @click="jumpFrames(-1)">
@@ -354,8 +467,29 @@ BARS.defineActions(function() {
 						</div>
 					`
 				},
-				onConfirm() {
+				onConfirm: async function() {
+					let {frames, stride} = this.content_vue;
+					texture.canvas.height = stride * frames.length;
 
+					Undo.initEdit({textures: [texture], bitmap: true});
+					
+					if (texture.layers_enabled) {
+						texture.layers_enabled = false;
+						texture.selected_layer = null;
+						texture.layers.empty();
+						UVEditor.vue.layer = null;
+					}
+					
+					let i = 0;
+					for (let frame of frames) {
+						texture.ctx.drawImage(frame.canvas, 0, i * stride);
+						i++;
+					}
+
+					texture.updateChangesAfterEdit();
+					Undo.finishEdit('Disable layers on texture');
+					updateInterfacePanels();
+					BARS.updateConditions();
 				}
 			}).show();
 		}
