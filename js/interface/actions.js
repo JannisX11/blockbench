@@ -2083,6 +2083,7 @@ const BARS = {
 			children: [
 				'transform_space',
 				'rotation_space',
+				'transform_pivot_space',
 				'selection_mode',
 				'animation_controller_preview_mode',
 				'bedrock_animation_mode',

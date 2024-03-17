@@ -825,11 +825,16 @@
 				var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
 				if (!selected.length && (!Group.selected || !rotation_tool || !Format.bone_rig)) return;
 
-				let input_space = Toolbox.selected == BarItems.rotate_tool ? BarItems.rotation_space.get() : BarItems.transform_space.get()
+				let input_space;
+				switch (Toolbox.selected.id) {
+					case 'rotate_tool': input_space = BarItems.rotation_space.get(); break;
+					case 'pivot_tool': input_space = BarItems.transform_pivot_space.get(); break;
+					case 'move_tool': default: input_space = BarItems.transform_space.get(); break;
+				}
 
 				if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-				if (input_space == 'local' && selected.length && selected[0].rotatable && (!Format.bone_rig || !Group.selected) && Toolbox.selected.id !== 'pivot_tool') {
+				if (input_space == 'local' && selected.length && selected[0].rotatable && (!Format.bone_rig || !Group.selected)) {
 					let is_local = true;
 					if (Format.bone_rig) {
 						for (var el of selected) {
@@ -851,8 +856,8 @@
 					}
 					if (is_local) return 2;
 				}
-				if (input_space === 'local' && Format.bone_rig && Group.selected && Toolbox.selected == BarItems.rotate_tool) {
-					// Local Space
+				if (input_space === 'local' && Format.bone_rig && Group.selected) {
+					// Group local Space
 					return 2;
 				}
 				if (input_space === 'normal' && Mesh.selected.length) {
@@ -979,6 +984,9 @@
 
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
 						delete Transformer.rotation_ref;
+
+					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'local') {
+						Transformer.rotation_ref = Group.selected.mesh;
 
 					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
 						Transformer.rotation_ref = Group.selected.mesh;
@@ -1391,6 +1399,14 @@
 								vec.applyQuaternion(rotation.invert());
 								origin.V3_add(vec.x, vec.y, vec.z);
 
+							} else if (transform_space == 2) {
+								let vec = new THREE.Vector3();
+								var rotation = new THREE.Quaternion();
+								rotation.copy(Transformer.rotation_object.mesh.quaternion);
+								vec[axis] = difference;
+								vec.applyQuaternion(rotation);
+								origin.V3_add(vec.x, vec.y, vec.z);
+
 							} else {
 								origin[axisNumber] += difference;
 							}
@@ -1499,6 +1515,16 @@
 							var rotation = new THREE.Quaternion();
 							mesh.parent.getWorldQuaternion(rotation);
 							offset_vec.applyQuaternion(rotation.invert());
+				
+							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('y', offset_vec.y);
+							scope.keyframes[0].offset('z', offset_vec.z);
+	
+						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'local') {
+
+							let offset_vec = new THREE.Vector3();
+							offset_vec[axis] = difference;
+							offset_vec.applyQuaternion(mesh.quaternion);
 				
 							scope.keyframes[0].offset('x', -offset_vec.x);
 							scope.keyframes[0].offset('y', offset_vec.y);
