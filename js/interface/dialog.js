@@ -558,6 +558,7 @@ window.Dialog = class Dialog {
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
+		this.keyboard_actions = options.keyboard_actions || {};
 	
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
@@ -886,6 +887,11 @@ window.Dialog = class Dialog {
 		}
 
 		this.focus();
+
+		setTimeout(() => {
+			this.object.style.setProperty('--dialog-height', this.object.clientHeight + 'px');
+			this.object.style.setProperty('--dialog-width', this.object.clientWidth + 'px');
+		}, 1);
 
 		return this;
 	}
