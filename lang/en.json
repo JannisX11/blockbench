@@ -345,7 +345,6 @@
 	"message.preset_no_info": "Preset does not contain information for this slot",
 	"message.restart_to_update": "Restart Blockbench to apply changes",
 	"message.save_file": "Saved as %0",
-	"message.save_obj": "Saved as .obj model",
 	"message.untextured": "This surface does not have a texture",
 	"message.sketchfab.name_or_token": "Please enter your Sketchfab token and a name",
 	"message.sketchfab.success": "Uploaded model successfully",
@@ -675,6 +674,10 @@
 	"dialog.input.title": "Input",
 
 	"dialog.view_backups.open_folder": "Open Folder",
+
+	"dialog.import_obj.obj": "OBJ File",
+	"dialog.import_obj.mtl": "MTL File",
+	"dialog.import_obj.scale": "Scale",
 
 	"dialog.sketchfab_uploader.title": "Upload Sketchfab Model",
 	"dialog.sketchfab_uploader.token": "API Token",

@@ -2552,19 +2552,36 @@ BARS.defineActions(function() {
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
+	let import_obj_dialog;
 	new Action('import_obj', {
 		icon: 'fa-gem',
 		category: 'file',
 		condition: {modes: ['edit'], method: () => (Format.meshes)},
 		click: function () {
-
-			
-			Blockbench.import({
-				resource_id: 'obj',
-				extensions: ['obj'],
-				name: 'OBJ Wavefront Model',
-			}, function(files) {
-				let {content} = files[0];
+			function importOBJ(result) {
+				let mtl_materials = {};
+				if (result.mtl) {
+					let mtl_lines = result.mtl.content.split(/[\r\n]+/);
+					let current_material;
+					for (let line of mtl_lines) {
+						let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
+						let cmd = args.shift();
+						switch (cmd) {
+							case 'newmtl': {
+								current_material = mtl_materials[args[0]] = {};
+								break;
+							}
+							case 'map_Kd': {
+								let texture_name = args[0];
+								let texture_path = isApp ? PathModule.join(result.mtl.path, '..', texture_name) : '';
+								let texture = new Texture().fromPath(texture_path).add();
+								current_material.texture = texture;
+							}
+						}
+					}
+				}
+				
+				let {content} = result.obj;
 				let lines = content.split(/[\r\n]+/);
 
 				function toVector(args, length) {
@@ -2579,6 +2596,7 @@ BARS.defineActions(function() {
 				let meshes = [];
 				let vector1 = new THREE.Vector3();
 				let vector2 = new THREE.Vector3();
+				let current_texture;
 
 				Undo.initEdit({outliner: true, elements: meshes, selection: true});
 
@@ -2598,7 +2616,7 @@ BARS.defineActions(function() {
 						meshes.push(mesh);
 					}
 					if (cmd == 'v') {
-						vertices.push(toVector(args, 3).map(v => v * 16));
+						vertices.push(toVector(args, 3).map(v => v * result.scale));
 					}
 					if (cmd == 'vt') {
 						vertex_textures.push(toVector(args, 2))
@@ -2637,7 +2655,8 @@ BARS.defineActions(function() {
 						})
 						let face = new MeshFace(mesh, {
 							vertices: f.vertices,
-							uv
+							uv,
+							texture: current_texture
 						})
 						mesh.addFaces(face);
 
@@ -2651,13 +2670,30 @@ BARS.defineActions(function() {
 							}
 						}
 					}
+					if (cmd == 'usemtl') {
+						current_texture = mtl_materials[args[0]]?.texture;
+					}
 				})
 				meshes.forEach(mesh => {
 					mesh.init();
 				})
 
 				Undo.finishEdit('Import OBJ');
-			})
+			}
+			if (!import_obj_dialog) {
+				import_obj_dialog = new Dialog('import_obj', {
+					title: 'action.import_obj',
+					form: {
+						obj: {type: 'file', label: 'dialog.import_obj.obj', return_as: 'file', extensions: ['obj'], resource_id: 'obj', filetype: 'OBJ Wavefront Model'},
+						mtl: {type: 'file', label: 'dialog.import_obj.mtl', return_as: 'file', extensions: ['mtl'], resource_id: 'obj', filetype: 'OBJ Material File'},
+						scale: {type: 'number', label: 'dialog.import_obj.scale', value: 16},
+					},
+					onConfirm(result) {
+						importOBJ(result);
+					}
+				})
+			}
+			import_obj_dialog.show();
 		}
 	})
 
