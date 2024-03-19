@@ -1229,11 +1229,22 @@ BARS.defineActions(function() {
 				function addFace(direction, vertices) {
 					let cube_face = cube.faces[direction];
 					if (cube_face.texture === null) return;
+					let uv_points = [
+						[cube_face.uv[0], cube_face.uv[1]],
+						[cube_face.uv[2], cube_face.uv[1]],
+						[cube_face.uv[2], cube_face.uv[3]],
+						[cube_face.uv[0], cube_face.uv[3]]
+					];
+					let rotation = cube_face.rotation || 0;
+					while (rotation > 0) {
+						rotation -= 90;
+						uv_points.splice(0, 0, uv_points.pop());
+					}
 					let uv = {
-						[vertices[0]]: [cube_face.uv[2], cube_face.uv[1]],
-						[vertices[1]]: [cube_face.uv[0], cube_face.uv[1]],
-						[vertices[2]]: [cube_face.uv[2], cube_face.uv[3]],
-						[vertices[3]]: [cube_face.uv[0], cube_face.uv[3]],
+						[vertices[0]]: uv_points[1],
+						[vertices[1]]: uv_points[0],
+						[vertices[2]]: uv_points[2],
+						[vertices[3]]: uv_points[3],
 					};
 					mesh.addFaces(
 						new MeshFace( mesh, {
