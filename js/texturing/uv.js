@@ -6,6 +6,11 @@ const UVEditor = {
 	auto_grid: true,
 	panel: null,
 	sliders: {},
+	overlay_canvas: (() => {
+		let canvas = document.createElement('canvas');
+		canvas.classList.add('tile_overlay_canvas');
+		return canvas;
+	})(),
 
 	get vue() {
 		return this.panel.inside_vue;
@@ -56,9 +61,14 @@ const UVEditor = {
 				result.y = Math.floor(result.y);
 			}
 		}
+		console.log()
 		if (tex) {
 			if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
 			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
+			if (BarItems.image_tile_mode.value == 'tiled') {
+				result.x = (tex.width + result.x) % tex.width;
+				result.y = (tex.display_height + result.y) % tex.display_height;
+			}
 		}
 		return result;
 	},
@@ -246,6 +256,21 @@ const UVEditor = {
 			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
 			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
 		}, 100)
+	},
+
+	textureChanged() {
+		if (BarItems.image_tile_mode.value == 'tiled') {
+			let canvas = UVEditor.overlay_canvas;
+			let texture = Texture.selected;
+			let ctx = canvas.getContext('2d');
+			canvas.width = texture.width * 3;
+			canvas.height = texture.display_height * 3;
+			for (let x = 0; x < 3; x++) {
+				for (let y = 0; y < 3; y++) {
+					ctx.drawImage(texture.canvas, x * texture.width, y * texture.display_height);
+				}
+			}
+		}
 	},
 	//Get
 	get width() {
@@ -2188,9 +2213,12 @@ Interface.definePanels(function() {
 
 					Vue.nextTick(() => {
 						let wrapper = this.$refs.texture_canvas_wrapper;
-						if (!wrapper || wrapper.firstChild == this.texture.canvas) return;
-						if (wrapper.firstChild) {
+						if (!wrapper || (wrapper.firstChild == this.texture.canvas && BarItems.image_tile_mode.value != 'tiled')) return;
+						while (wrapper.firstChild) {
 							wrapper.firstChild.remove();
+						}
+						if (UVEditor.overlay_canvas && BarItems.image_tile_mode.value == 'tiled') {
+							wrapper.append(UVEditor.overlay_canvas);
 						}
 						wrapper.append(this.texture.canvas);
 					})

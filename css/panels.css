@@ -1958,6 +1958,12 @@ span.controller_state_section_info {
 		object-fit: cover;
 		object-position: 0 0;
 	}
+	#uv_frame > #texture_canvas_wrapper > canvas.tile_overlay_canvas {
+		width: 300%;
+		height: 300%;
+		margin-left: -100%;
+		margin-top: -100%;
+	}
 	/* Fix in Firefox + iPadOS */
 	#uv_frame_spacer {
 		width: 1px;

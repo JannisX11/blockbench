@@ -2940,6 +2940,16 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
+	new BarSelect('image_tile_mode', { 
+		category: 'uv',
+		value: 'off',
+		options: {
+			off: 'Off',
+			tiled: 'Tiled',
+		},
+		onChange(slider) {
+		}
+	})
 
 	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ((Toolbox.selected.brush?.size == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),

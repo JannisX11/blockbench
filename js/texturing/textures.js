@@ -1670,6 +1670,7 @@ class Texture {
 		return this;
 	}
 	updateLayerChanges(update_data_url) {
+		if (UVEditor.vue.texture == this) UVEditor.textureChanged();
 		if (!this.layers_enabled || this.width == 0) return this;
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
