@@ -71,6 +71,19 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
+	if (Blockbench.platform == 'linux' && (Blockbench.hasFlag('after_update') || Blockbench.hasFlag('after_patch_update'))) {
+		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964
+		let gpu_cache_path = PathModule.join(app.getPath('userData'), 'GPUCache');
+		try {
+			let cache_files = fs.readdirSync(gpu_cache_path);
+			for (let file_name of cache_files) {
+				fs.unlinkSync(PathModule.join(gpu_cache_path, file_name));
+			}
+			console.log(`Cleared ${cache_files.length} GPU-cache files`);
+		} catch (err) {
+			console.error('Attempted and failed to clear GPU cache', err);
+		}
+	}
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
