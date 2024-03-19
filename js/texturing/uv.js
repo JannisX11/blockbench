@@ -304,11 +304,8 @@ const UVEditor = {
 	getReferenceFace() {
 		let el = this.getMappableElements()[0];
 		if (el) {
-			for (let key in el.faces) {
-				if (UVEditor.vue.selected_faces.includes(key)) {
-					return el.faces[key];
-				}
-			}
+			let fkey = UVEditor.vue.selected_faces.find(fkey => el.faces[fkey]);
+			return el.faces[fkey];
 		}
 	},
 	getMappableElements() {

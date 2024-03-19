@@ -1319,6 +1319,10 @@ class Preview {
 							}
 	
 						} else {
+							if (selection_mode != 'object' && !extend_selection) {
+								mesh_selection.faces.empty();
+								UVEditor.vue.selected_faces.empty();
+							}
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
 								let vertices = face.getSortedVertices();
@@ -1343,9 +1347,6 @@ class Preview {
 										mesh_selection.vertices.safePush(...face.vertices);
 										mesh_selection.faces.safePush(fkey);
 										UVEditor.vue.selected_faces.safePush(fkey);
-									} else {
-										mesh_selection.faces.remove(fkey);
-										UVEditor.vue.selected_faces.remove(fkey);
 									}
 								}
 							}
