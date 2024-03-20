@@ -2,8 +2,8 @@ const MirrorModeling = {
 	initial_transformer_position: 0,
 	isCentered(element) {
 		let center = Format.centered_grid ? 0 : 8;
-		if (!element.to && element.origin[0] != center) return false;
-		if (element.rotation[1] || element.rotation[2]) return false;
+		if (!element.to && Math.roundTo(element.origin[0], 3) != center) return false;
+		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		if (element instanceof Cube && !Math.epsilon(element.to[0], MirrorModeling.flipCoord(element.from[0]), 0.01)) return false;
 
 		let checkParent = (parent) => {
