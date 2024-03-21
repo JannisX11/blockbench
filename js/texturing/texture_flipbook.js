@@ -165,6 +165,87 @@ BARS.defineActions(function() {
 				frametime = Math.max(tex.frame_time, 1) * 50;
 			}
 
+			function displayCodeSuggestion(texture, frame_count, fps) {
+				let content, text, file_name, docs;
+				if (Format.id == 'bedrock') {
+					let model_id = Project.model_identifier || 'entity';
+					docs = 'https://wiki.bedrock.dev/visuals/animated-entity-texture.html#materials';
+					file_name = `${model_id}.render_controllers.json`;
+					content = {
+						"format_version": "1.20.0",
+						"render_controllers": {
+							[`controller.render.${model_id}`]: {
+								"geometry": "Geometry.default",
+								"textures": ["Texture.default"],
+								"materials": [
+									{"*": "Material.default"}
+								],
+								"uv_anim": {
+									"scale": [1, `1 / ${frame_count}`],
+									"offset": [0, `Math.mod(Math.floor(query.life_time * ${fps}), ${frame_count}) / ${frame_count}`]
+								}
+							}
+						}
+					};
+					text = compileJSON(content);
+					let material_note = `Make sure to use a material with 'USE_UV_ANIM' enabled, such as 'conduit_wind'!`;
+					text = text.replace('"Material.default"', '"Material.default"' + '	//' + material_note);
+
+				} else if (Format.id == 'bedrock_block') {
+					let file_path = texture.path.replace(/[\7\\]+/g, '/').replace(/(^|.*\/)textures\//, 'textures/').replace(/\.\w*$/, '');
+
+					docs = 'https://wiki.bedrock.dev/blocks/flipbook-textures.html#atlas-index';
+					file_name = 'flipbook_textures.json';
+					content = [
+						{ 
+							"flipbook_texture": file_path,
+							"atlas_tile": pathToName(texture.name, false),
+							"ticks_per_frame": Math.round(20 / fps),
+							"blend_frames": false
+						}
+					];
+					text = compileJSON(content);
+
+				} else if (Format.id == 'java_block') {
+					docs = 'https://minecraft.wiki/w/Resource_pack#Animation';
+					file_name = texture.name + '.mcmeta';
+					content = texture.getMCMetaContent();
+					text = compileJSON(content);
+				}
+				if (!content) return;
+
+				new Dialog('animated_texture_editor_code', {
+					title: 'dialog.animated_texture_editor.code_reference',
+					resizable: true,
+					width: 720,
+					singleButton: true,
+					part_order: ['form', 'component'],
+					form: {
+						about: {type: 'info', text: 'dialog.animated_texture_editor.code_reference.about'},
+						docs: {type: 'info', label: 'dialog.animated_texture_editor.code_reference.docs', text: `[${docs.replace('https://', '').substring(0, 36)}...](${docs})`},
+					},
+					component: {
+						components: {VuePrismEditor},
+						data: {
+							text: text,
+							file_name: file_name
+						},
+						methods: {
+							copyText() {
+								Clipbench.setText(this.text);
+							}
+						},
+						template: `
+							<div>
+								<p class="code_editor_file_title">{{ file_name }}</p>
+								<vue-prism-editor v-model="text" language="json" style="height: 260px;" :line-numbers="true" />
+								<button @click="copyText()" style="width: 100%;">${tl('action.copy')}</button>
+							</div>
+						`
+					}
+				}).show();
+			}
+
 			function splitIntoFrames(stride = texture.display_height) {
 				let frames = [];
 				let frame_count = Math.ceil(texture.height / stride);
@@ -245,7 +326,8 @@ BARS.defineActions(function() {
 						playing: false,
 						stride: texture.display_height,
 						fps: 1000 / frametime,
-						interval: null
+						interval: null,
+						code_available: ['bedrock', 'bedrock_block', 'java_block'].includes(Format.id)
 					}},
 					methods: {
 						togglePlay() {
@@ -382,6 +464,9 @@ BARS.defineActions(function() {
 							this.frames.splice(event.newIndex, 0, item);
 							this.frame_index = this.frames.findIndex(frame => frame == selected);
 						},
+						openCode() {
+							displayCodeSuggestion(texture, this.frames.length, this.fps);
+						},
 						slideTimelinePointer(e1) {
 							let scope = this;
 							if (!this.$refs.timeline) return;
@@ -459,9 +544,10 @@ BARS.defineActions(function() {
 										<i class="material-icons">navigate_next</i>
 									</div>
 								</div>
-								<div class="flipbook_controls">
+								<div class="flipbook_options">
 									<label>${'FPS'}</label>
 									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+									<button @click="openCode()" v-if="code_available">${tl('dialog.animated_texture_editor.code_reference')}</button>
 								</div>
 							</div>
 						</div>

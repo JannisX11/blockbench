@@ -462,6 +462,9 @@
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
 
+	"dialog.animated_texture_editor.code_reference": "Code Reference",
+	"dialog.animated_texture_editor.code_reference.about": "This code to implement the texture animation was generated as a reference and does not necessarily work without modification. Check out the documentation to learn more.",
+	"dialog.animated_texture_editor.code_reference.docs": "Documentation",
 	"dialog.animated_texture_editor.reframe": "Reframe",
 	"dialog.animated_texture_editor.stride": "Frame Size",
 	"dialog.animated_texture_editor.frames": "Number of Frames",
