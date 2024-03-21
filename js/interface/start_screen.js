@@ -507,8 +507,9 @@ onVueSetup(async function() {
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					AutoBackup.recoverAllBackups();
-					section.delete();
+					AutoBackup.recoverAllBackups().then(() => {
+						section.delete();
+					});
 				}},
 				{type: 'button', text: tl('dialog.discard'), click: (e) => {
 					AutoBackup.removeAllBackups();

@@ -292,20 +292,24 @@ const AutoBackup = {
 		})
 	},
 	recoverAllBackups() {
-		let transaction = AutoBackup.db.transaction('projects', 'readonly');
-		let store = transaction.objectStore('projects');
-		let request = store.getAll();
-		request.onsuccess = function() {
-			let projects = request.result;
-			for (let project of projects) {
-				let parsed_content = JSON.parse(project.data);
-				setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
-				Codecs.project.parse(parsed_content, 'backup.bbmodel')
+		return new Promise((resolve, reject) => {
+			let transaction = AutoBackup.db.transaction('projects', 'readonly');
+			let store = transaction.objectStore('projects');
+			let request = store.getAll();
+			request.onsuccess = function() {
+				let projects = request.result;
+				for (let project of projects) {
+					let parsed_content = JSON.parse(project.data);
+					setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
+					Codecs.project.parse(parsed_content, 'backup.bbmodel')
+				}
+				resolve();
 			}
-		}
-		request.onerror = function(e) {
-			console.error(e);
-		}
+			request.onerror = function(e) {
+				console.error(e);
+				reject(e);
+			}
+		})
 		/*var backup_models = localStorage.getItem('backup_model')
 		let parsed_backup_models = JSON.parse(backup_models);
 		for (let uuid in parsed_backup_models) {
