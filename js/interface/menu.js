@@ -54,12 +54,19 @@ class Menu {
 		}
 		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
-		this.node = document.createElement('ul');
-		this.node.classList.add('contextMenu');
 		this.structure = structure;
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
 		this.onClose = this.options.onClose;
+		this.node = document.createElement('ul');
+		this.node.classList.add('contextMenu');
+		if (this.options.class) {
+			if (this.options.class instanceof Array) {
+				this.node.classList.add(...this.options.class);
+			} else {
+				this.node.classList.add(this.options.class);
+			}
+		}
 	}
 	hover(node, event, expand) {
 		if (node.classList.contains('focused') && !expand) return;

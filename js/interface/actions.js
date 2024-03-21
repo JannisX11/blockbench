@@ -1232,7 +1232,7 @@ class BarSelect extends Widget {
 				})()
 			}
 		}
-		let menu = new Menu(this.id, items);
+		let menu = new Menu(this.id, items, {class: 'select_menu'});
 		this.dispatchEvent('open', {menu, items});
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
