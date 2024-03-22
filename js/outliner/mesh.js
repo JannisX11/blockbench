@@ -815,7 +815,7 @@ class Mesh extends OutlinerElement {
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
 		} else if (faces === undefined) {
-			var sides = UVEditor.vue.selected_faces
+			var sides = this.getSelectedFaces()
 		} else {
 			var sides = faces
 		}

@@ -57,7 +57,6 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.mesh_selection = {};
-		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
@@ -202,15 +201,10 @@ class ModelProject {
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
-		UVEditor.vue.selected_vertices = {};
-		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
 		BarItems.edit_mode_uv_overlay.value = this.display_uv == 'all_elements';
 		BarItems.edit_mode_uv_overlay.updateEnabledState();
-		for (let uuid in this.mesh_selection) {
-			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
-		}
 
 		Panels.textures.inside_vue.textures = Texture.all;
 		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
@@ -586,11 +580,6 @@ function selectNoProject() {
 
 	UVEditor.vue.elements = [];
 	UVEditor.vue.all_elements = [];
-	UVEditor.vue.selected_vertices = {};
-	UVEditor.vue.selected_faces = [];
-	for (let uuid in UVEditor.vue.selected_vertices) {
-		delete UVEditor.vue.selected_vertices[uuid];
-	}
 
 	Interface.Panels.textures.inside_vue.textures = [];
 

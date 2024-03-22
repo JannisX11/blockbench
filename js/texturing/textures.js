@@ -1003,10 +1003,11 @@ class Texture {
 		var scope = this;
 		Undo.initEdit({elements: affected})
 
-		affected.forEach(function(obj) {
-			for (var face in obj.faces) {
-				if (all || obj.box_uv || UVEditor.vue.selected_faces.includes(face)) {
-					var f = obj.faces[face]
+		affected.forEach((element) => {
+			let selected_faces = UVEditor.getSelectedFaces(element);
+			for (var face in element.faces) {
+				if (all || element.box_uv || selected_faces.includes(face)) {
+					var f = element.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 						f.texture = scope.uuid
 					}

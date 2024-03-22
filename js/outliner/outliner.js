@@ -425,7 +425,7 @@ class OutlinerElement extends OutlinerNode {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
-		//Shiftv
+		//Shift
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
 			var starting_point;

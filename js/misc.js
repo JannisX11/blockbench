@@ -107,6 +107,9 @@ function updateSelection(options = {}) {
 			obj.selectLow()
 		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
+			if (UVEditor.selected_element_faces[obj.uuid]) {
+				delete UVEditor.selected_element_faces[obj.uuid];
+			}
 		}
 		if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
 			if (!included) {
@@ -159,13 +162,6 @@ function updateSelection(options = {}) {
 		if (!Outliner.selected[0] || Outliner.selected[0].type !== 'cube' || Outliner.selected[0].box_uv) {
 			UVEditor.vue.mode = 'uv';
 		}
-	}
-	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
-		UVEditor.selected_faces.forEachReverse((fkey, i) => {
-			if (!UVEditor.getMappableElements().find(el => el.faces[fkey])) {
-				UVEditor.selected_faces.splice(i, 1);
-			}
-		})
 	}
 	if (Condition(Panels.uv.condition)) {
 		UVEditor.loadData();

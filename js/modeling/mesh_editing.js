@@ -229,6 +229,7 @@ async function autoFixMeshEdit() {
 				let meshes = Mesh.selected.filter(m => concave_faces[m.uuid]);
 				Undo.initEdit({ elements: meshes });
 				for (let mesh of meshes) {
+					let selected_faces = mesh.getSelectedFaces(true);
 					for (let [fkey, concave_vkey] of concave_faces[mesh.uuid]) {
 						let face = mesh.faces[fkey];
 
@@ -263,7 +264,7 @@ async function autoFixMeshEdit() {
 						delete face.uv[off_corners[1]];
 
 						let [face_key] = mesh.addFaces(new_face);
-						UVEditor.selected_faces.push(face_key);
+						selected_faces.safePush(face_key);
 						if (face.getAngleTo(new_face) > 90) {
 							new_face.invert();
 						}
@@ -837,7 +838,6 @@ BARS.defineActions(function() {
 				if (Group.selected) Group.selected.unselect()
 				mesh.select()
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
-				UVEditor.selected_faces.empty();
 				Undo.finishEdit('Add primitive');
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
 
@@ -889,12 +889,13 @@ BARS.defineActions(function() {
 					delete Project.mesh_selection[mesh.uuid];
 				})
 			} else if (value === 'face') {
-				UVEditor.vue.selected_faces.empty();
 				Mesh.selected.forEach(mesh => {
+					let selected_faces = mesh.getSelectedFaces(true);
+					selected_faces.empty();
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
 						if (face.isSelected(fkey)) {
-							UVEditor.vue.selected_faces.safePush(fkey);
+							selected_faces.safePush(fkey);
 						}
 					}
 				})
@@ -906,7 +907,6 @@ BARS.defineActions(function() {
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
 						if (face.vertices.allAre(vkey => vertices.includes(vkey))) {
-							UVEditor.vue.selected_faces.safePush(fkey);
 							faces.safePush(fkey);
 						}
 					}
@@ -1033,8 +1033,9 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: Mesh.selected});
 			let faces_to_autouv = [];
 			Mesh.selected.forEach(mesh => {
-				UVEditor.selected_faces.empty();
 				let selected_vertices = mesh.getSelectedVertices();
+				let selected_faces = mesh.getSelectedFaces(true);
+				selected_faces.empty();
 				if (selected_vertices.length >= 2 && selected_vertices.length <= 4) {
 					let reference_face;
 					let reference_face_strength = 0;
@@ -1075,7 +1076,7 @@ BARS.defineActions(function() {
 							delete reference_face.uv[reference_corner_vertex];
 
 							let [face_key] = mesh.addFaces(new_face);
-							UVEditor.selected_faces.push(face_key);
+							selected_faces.push(face_key);
 
 
 							if (reference_face.getAngleTo(new_face) > 90) {
@@ -1090,7 +1091,7 @@ BARS.defineActions(function() {
 							texture: reference_face?.texture,
 						} );
 						let [face_key] = mesh.addFaces(new_face);
-						UVEditor.selected_faces.push(face_key);
+						selected_faces.push(face_key);
 						faces_to_autouv.push(face_key);
 
 						// Correct direction
@@ -1174,7 +1175,7 @@ BARS.defineActions(function() {
 						vertices.push(face_vertices[0]);
 						let new_face = new MeshFace(mesh, {vertices: face_vertices, texture: reference_face.texture});
 						let [face_key] = mesh.addFaces(new_face);
-						UVEditor.selected_faces.push(face_key);
+						selected_faces.push(face_key);
 
 						if (face_vertices.length < 4) break;
 						start_index += 3;

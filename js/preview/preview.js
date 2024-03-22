@@ -762,11 +762,12 @@ class Preview {
 			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
-				if (Toolbox.selected.selectFace && data.face) {
-					if (data.element instanceof Mesh && select_mode == 'face' && (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
-						UVEditor.vue.selected_faces.safePush(data.face)
+				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
+					let face_selection = UVEditor.getSelectedFaces(data.element, true);
+					if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+						face_selection.safePush(data.face);
 					} else {
-						UVEditor.setFace(data.face, false);
+						face_selection.replace([data.face]);
 					}
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
@@ -828,13 +829,11 @@ class Preview {
 								selected_vertices.empty();
 								selected_edges.empty();
 								selected_faces.empty();
-								UVEditor.vue.selected_faces.empty();
 							}
 
 							processed_faces.forEach(face => {
 								selected_vertices.safePush(...face.vertices);
 								let fkey = face.getFaceKey();
-								UVEditor.vue.selected_faces.push(fkey);
 								selected_faces.push(fkey);
 							});
 						} else {
@@ -850,17 +849,14 @@ class Preview {
 									})
 									if (vkeys_to_remove.length == 0) vkeys_to_remove.push(face_vkeys[0]);
 									selected_vertices.remove(...vkeys_to_remove);
-									UVEditor.vue.selected_faces.remove(data.face);
 									selected_faces.remove(data.face);
 								} else {
 									selected_vertices.safePush(...face_vkeys);
-									UVEditor.vue.selected_faces.safePush(data.face);
 									selected_faces.safePush(data.face);
 								}
 							} else {
 								selected_edges.empty();
 								selected_vertices.replace(face_vkeys);
-								UVEditor.vue.selected_faces.replace([data.face]);
 								selected_faces.replace([data.face]);
 							}
 						}
@@ -881,7 +877,6 @@ class Preview {
 							selected_vertices.empty();
 							selected_edges.empty();
 							selected_faces.empty();
-							UVEditor.vue.selected_faces.empty();
 						}
 							
 						let start_face = mesh.faces[data.face];
@@ -890,7 +885,6 @@ class Preview {
 							if (selected_faces.includes(fkey)) return;
 							
 							selected_faces.push(fkey);
-							UVEditor.vue.selected_faces.push(fkey);
 							selected_vertices.safePush(...face.vertices);
 
 							for (let fkey2 in mesh.faces) {
@@ -1321,7 +1315,6 @@ class Preview {
 						} else {
 							if (selection_mode != 'object' && !extend_selection) {
 								mesh_selection.faces.empty();
-								UVEditor.vue.selected_faces.empty();
 							}
 							for (let fkey in element.faces) {
 								let face = element.faces[fkey];
@@ -1346,7 +1339,6 @@ class Preview {
 									if (face_intersects) {
 										mesh_selection.vertices.safePush(...face.vertices);
 										mesh_selection.faces.safePush(fkey);
-										UVEditor.vue.selected_faces.safePush(fkey);
 									}
 								}
 							}
