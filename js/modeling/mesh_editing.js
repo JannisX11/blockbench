@@ -98,6 +98,54 @@ const ProportionalEdit = {
 	}
 }
 
+class KnifeToolContext {
+	/**
+	 * Click
+	 * Create point
+	 * Snap point to face or edge
+	 * Connect points with lines
+	 * Press something to apply
+	 * 
+	 * Iterate over faces
+	 * Remove former face, refill section between old edges and new edges
+	 */
+	constructor() {
+		this.meshes = [];
+		this.points = [];
+
+		this.points_geo = new THREE.BufferGeometry();
+		let points_material = new THREE.PointsMaterial({size: 7, sizeAttenuation: false, vertexColors: true});
+		this.points_mesh = new THREE.Points(this.points_geo, points_material);
+		this.lines_mesh = new THREE.Points(this.points_geo, points_material);
+
+		outline.add(points);
+	}
+	addPoint(data) {
+		if (data.element instanceof Mesh == false) return;
+		console.log(data);
+		this.meshes.safePush(data.element);
+	}
+	apply() {
+
+		Undo.initEdit({elements: this.meshes});
+
+
+		
+
+
+		Undo.finishEdit('Use knife tool');
+		this.remove();
+	}
+	discard() {
+		this.remove();
+	}
+	remove() {
+		Canvas.scene.remove(this.points_mesh);
+		Canvas.scene.remove(this.lines_mesh);
+		KnifeToolContext.current = null;
+	}
+	static current = null;
+}
 
 async function autoFixMeshEdit() {
 	let meshes = Mesh.selected;
@@ -998,6 +1046,27 @@ BARS.defineActions(function() {
 			BarItems.selection_mode.set('object');
 			BarItems.view_mode.set('textured');
 			BarItems.view_mode.onChange();
+		}
+	})
+	new Tool('knife_tool', {
+		icon: 'surgical',
+		transformerMode: 'hidden',
+		category: 'tools',
+		selectElements: true,
+		modes: ['edit'],
+		condition: () => Modes.edit && Mesh.hasAny(),
+		onCanvasClick(data) {
+			if (!data) return;
+			if (!KnifeToolContext.current) KnifeToolContext.current = new KnifeToolContext();
+			let context = KnifeToolContext.current;
+			context.addPoint(data);
+		},
+		onSelect() {
+		},
+		onUnselect() {
+			if (KnifeToolContext.current) {
+				KnifeToolContext.current.apply();
+			}
 		}
 	})
 	new BarSelect('select_seam', {

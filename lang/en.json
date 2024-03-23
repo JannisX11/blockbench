@@ -1183,6 +1183,8 @@
 	"action.rotate_tool.desc": "Tool to select and rotate elements",
 	"action.pivot_tool": "Pivot Tool",
 	"action.pivot_tool.desc": "Tool to change the pivot point of elements and bones",
+	"action.knife_tool": "Knife Tool",
+	"action.knife_tool.desc": "Tool to cut mesh faces into smaller pieces",
 	"action.seam_tool": "Seam Tool",
 	"action.seam_tool.desc": "Tool to define UV seams on mesh edges",
 	"action.pan_tool": "Pan Tool",

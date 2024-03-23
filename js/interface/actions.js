@@ -2062,6 +2062,7 @@ const BARS = {
 				'pivot_tool',
 				'vertex_snap_tool',
 				'stretch_tool',
+				'knife_tool',
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',
