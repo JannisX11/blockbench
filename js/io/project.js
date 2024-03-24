@@ -453,6 +453,10 @@ new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
 	condition: () => Format.model_identifier
 });
+new Property(ModelProject, 'string', 'modded_entity_entity_class', {
+	label: 'dialog.project.modded_entity_entity_class',
+	condition: {formats: ['modded_entity']},
+});
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
 	default: '1.17',
