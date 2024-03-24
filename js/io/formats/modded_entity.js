@@ -366,6 +366,34 @@ const AnimationTemplates = {
 			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
 		},
 	},
+	'fabric': {
+		name: 'Yarn',
+		file:
+			`// Save this class in your mod and generate all required imports
+			/**
+			 * Made with Blockbench %(bb_version)
+			 * Exported for Minecraft version 1.19 or later with Yarn mappings
+			 * @author %(author)
+			 */
+			public class %(identifier)Animation {
+				%(animations)
+			}`,
+		animation: `public static final Animation %(name) = Animation.Builder.create(%(length))%(looping)%(channels).build();`,
+		looping: `.looping()`,
+		channel: `.addBoneAnimation("%(name)", new Transformation(%(channel_type), %(keyframes)))`,
+		keyframe_rotation: `new Keyframe(%(time), AnimationHelper.createRotationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_position: `new Keyframe(%(time), AnimationHelper.createTranslationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_scale: `new Keyframe(%(time), AnimationHelper.createScalingVector(%(x), %(y), %(z)), %(interpolation))`,
+		channel_types: {
+			rotation: 'Transformation.Targets.ROTATE',
+			position: 'Transformation.Targets.TRANSLATE',
+			scale: 'Transformation.Targets.SCALE',
+		},
+		interpolations: {
+			linear: 'Transformation.Interpolations.LINEAR',
+			catmullrom: 'Transformation.Interpolations.CUBIC',
+		},
+	},
 
 	get(key, version = Project.modded_entity_version) {
 		let mapping = Templates.get('animation_template', version);
