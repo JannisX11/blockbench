@@ -169,7 +169,7 @@ BARS.defineActions(function() {
 				let content, text, file_name, docs;
 				if (Format.id == 'bedrock') {
 					let model_id = Project.model_identifier || 'entity';
-					docs = 'https://wiki.bedrock.dev/visuals/animated-entity-texture.html#materials';
+					docs = 'https://wiki.bedrock.dev/visuals/animated-entity-texture.html';
 					file_name = `${model_id}.render_controllers.json`;
 					content = {
 						"format_version": "1.20.0",
@@ -194,7 +194,7 @@ BARS.defineActions(function() {
 				} else if (Format.id == 'bedrock_block') {
 					let file_path = texture.path.replace(/[\7\\]+/g, '/').replace(/(^|.*\/)textures\//, 'textures/').replace(/\.\w*$/, '');
 
-					docs = 'https://wiki.bedrock.dev/blocks/flipbook-textures.html#atlas-index';
+					docs = 'https://wiki.bedrock.dev/blocks/flipbook-textures.html';
 					file_name = 'flipbook_textures.json';
 					content = [
 						{ 
