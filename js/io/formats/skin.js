@@ -6707,9 +6707,9 @@ skin_presets.wolf = {
 			{
 				"name": "upperBody",
 				"pivot": [-1, 10, 2],
-				"rotation": [-90, 0, 0],
+				"rotation": [90, 0, 0],
 				"cubes": [
-					{"name": "upperBody", "origin": [-5, 2, -2], "size": [8, 6, 7], "uv": [21, 0]}
+					{"name": "upperBody", "origin": [-5, 12, -1], "size": [8, 6, 7], "uv": [21, 0]}
 				]
 			},
 			{
