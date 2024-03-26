@@ -603,6 +603,7 @@ Interface.definePanels(function() {
 	new Panel('layers', {
 		icon: 'layers',
 		growable: true,
+		resizable: true,
 		condition: () => Modes.paint && ((Texture.selected && Texture.selected.layers_enabled) || Format.image_editor),
 		default_position: {
 			slot: 'left_bar',

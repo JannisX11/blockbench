@@ -1424,6 +1424,7 @@ Interface.definePanels(function() {
 	new Panel('animations', {
 		icon: 'movie',
 		growable: true,
+		resizable: true,
 		condition: {modes: ['animate']},
 		default_position: {
 			slot: 'left_bar',
@@ -1779,6 +1780,7 @@ Interface.definePanels(function() {
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
 		growable: true,
+		resizable: true,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [0, 0],

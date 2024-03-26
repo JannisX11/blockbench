@@ -686,6 +686,7 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		growable: true,
+		resizable: true,
 		toolbars: [
 			new Toolbar('timeline', {
 				children: [

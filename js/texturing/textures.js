@@ -2340,6 +2340,7 @@ Interface.definePanels(function() {
 	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
+		resizable: true,
 		condition: {modes: ['edit', 'paint']},
 		default_position: {
 			slot: 'left_bar',
