@@ -183,7 +183,7 @@ function buildSkinnedMesh(root_group, scale) {
 		if (group.export == false) return;
 
 		for (child of group.children) {
-			if (!child.mesh.geometry || child.export == false) continue;
+			if (!child.faces || child.export == false) continue;
 			let {geometry} = child.mesh;
 			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
 			matrix.premultiply(root_counter_matrix);
