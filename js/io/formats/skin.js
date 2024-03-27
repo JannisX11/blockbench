@@ -160,9 +160,10 @@ codec.export = null;
 codec.rebuild = function(model_id, pose) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
-	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset[variant]);
+	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
+	let model = JSON.parse(model_raw);
 	codec.parse(model, undefined, undefined, pose && pose !== 'none');
-	if (pose && pose !== 'none') {
+	if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
 			Panels.skin_pose.inside_vue.setPose(pose);
 		}, 1)
