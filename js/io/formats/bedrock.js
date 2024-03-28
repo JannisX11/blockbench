@@ -597,7 +597,7 @@ function calculateVisibleBox() {
 		}
 		if (b.locators) {
 			for (var key in b.locators) {
-				var coords, rotation, ignore_inherited_scale;
+				let coords, rotation, ignore_inherited_scale;
 				if (b.locators[key] instanceof Array) {
 					coords = b.locators[key];
 				} else {
