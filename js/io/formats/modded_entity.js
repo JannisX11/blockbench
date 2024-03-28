@@ -562,8 +562,9 @@ var codec = new Codec('modded_entity', {
 		this.dispatchEvent('parse', {model});
 
 		var lines = [];
+		model = model.replace(/\/\*[\s\S]*?\*\//gm, '');
 		model.split('\n').forEach(l => {
-			l = l.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '').trim().replace(/;$/, '');
+			l = l.replace(/\/\/.*/g, '').trim().replace(/;$/, '');
 			if (l) {
 				lines.push(l)
 			}
@@ -618,6 +619,12 @@ var codec = new Codec('modded_entity', {
 			match,
 			last_uv;
 
+		var bone_parent = {},
+			bone_childs = {};
+
+		Project.texture_width = 64;
+		Project.texture_height = 32;
+
 		lines.forEach(line => {
 			if (scope == 0) {
 				if (/^public class/.test(line)) {
@@ -637,7 +644,7 @@ var codec = new Codec('modded_entity', {
 				}
 
 			} else if (scope == 2) {
-				line = line.replace(/^this\./, '');
+				line = line.replace(/^this\./, '').replace(/\(this\./, '(');
 				match = undefined;
 				
 				if (line == '}') {
@@ -699,19 +706,11 @@ var codec = new Codec('modded_entity', {
 					}
 				} else
 				
-				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
-					var child = bones[match[1]], parent = bones[match[0]];
-					child.addTo(parent);
-					child.origin.V3_add(parent.origin)
-					child.origin[1] -= 24;
-
-					child.children.forEach(cube => {
-						if (cube instanceof Cube) {
-							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
-							cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
-							cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
-						}
-					})
+				if (parseScheme('$v.addChild($v)', line)) {
+					let child_name = match[1], parent_name = match[0];
+					bone_parent[child_name] = parent_name;
+					if (!bone_childs[parent_name]) bone_childs[parent_name] = [];
+					bone_childs[parent_name].push(child_name);
 				} else
 				
 				//Cubes
@@ -865,6 +864,29 @@ var codec = new Codec('modded_entity', {
 				}
 			}
 		})
+		function addChild(parent_name) {
+			if (!bone_childs[parent_name]) return;
+			let parent = bones[parent_name];
+			bone_childs[parent_name].forEach(child_name => {
+				let child = bones[child_name];
+				child.addTo(parent);
+				child.origin.V3_add(parent.origin)
+				child.origin[1] -= 24;
+		
+				child.children.forEach(cube => {
+					if (cube instanceof Cube) {
+						cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
+						cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
+						cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
+					}
+				})
+
+				addChild(child_name);
+			});
+		}
+		Object.keys(bones).filter(bone => !bone_parent[bone]).forEach(root => {
+			addChild(root);
+		});
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
