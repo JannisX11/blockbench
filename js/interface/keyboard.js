@@ -692,8 +692,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		showShiftTooltip()
 	}
 
-	var used = false;
-	var input_focus = getFocusedTextInput()
+	let used = false;
+	let used_for_input_action;
+	let input_focus = getFocusedTextInput()
 
 	// Fix #1427
 	if (e.code == 'PageUp' || e.code == 'PageDown') {
@@ -744,10 +745,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		if (Blockbench.hasFlag('renaming')) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				stopRenameOutliner()
+				return;
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				stopRenameOutliner(false)
+				return;
 			}
-			return;
 		}
 		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
@@ -755,10 +757,13 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				return;
 			}
 		}
-		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).trigger('click')
 		}
+		used_for_input_action = !e.ctrlKey && !e.metaKey;
+		if ('zyxcva'.includes(e.key) || (e.keyCode >= 37 && e.keyCode <= 40)) used_for_input_action = true;
+
+		if ($('pre.prism-editor__code:focus').length && used_for_input_action) return;
 	}
 	let captured = false;
 	let results = Blockbench.dispatchEvent('press_key', {
@@ -789,7 +794,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		updateSelection();
 	}
 	//Keybinds
-	if (!input_focus) {
+	if (!input_focus || !used_for_input_action) {
 		Keybinds.actions.forEach(function(action) {
 			if (!Dialog.open || action.work_in_dialog) {
 				// Condition for actions is not checked here because tools can be triggered from different modes under certain circumstances, which switches the mode
