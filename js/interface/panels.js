@@ -768,17 +768,19 @@ function updateSidebarOrder() {
 		bar_node.childNodes.forEach(panel_node => panel_node.remove());
 
 		let last_panel;
+		let panel_count = 0;
 		Interface.getModeData()[bar].forEach(panel_id => {
 			let panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
 				panel.node.classList.remove('bottommost_panel');
 				bar_node.append(panel.node);
 				if (Condition(panel.condition)) {
+					panel_count++;
 					last_panel = panel;
 				}
 			}
 		});
-		if (last_panel) {
+		if (last_panel && panel_count > 1) {
 			last_panel.node.classList.add('bottommost_panel');
 		}
 	})

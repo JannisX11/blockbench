@@ -111,6 +111,9 @@
 	.panel.fixed_height {
 		flex-grow: 0;
 	}
+	.panel.bottommost_panel {
+		margin-top: auto;
+	}
 
 	.panel[order]::before {
 		content: '';
