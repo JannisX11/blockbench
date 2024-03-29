@@ -431,7 +431,9 @@ class Tool extends Action {
 		if (this.condition == undefined && this.modes instanceof Array) {
 			this.condition = {modes: this.modes};
 		}
+		this.raycast_options = data.raycast_options;
 		this.onCanvasClick = data.onCanvasClick;
+		this.onCanvasMouseMove = data.onCanvasMouseMove;
 		this.onCanvasRightClick = data.onCanvasRightClick;
 		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;

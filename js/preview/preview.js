@@ -346,7 +346,8 @@ class Preview {
 		}
 		return this;
 	}
-	raycast(event) {
+	raycast(event, options = Toolbox.selected.raycast_options) {
+		if (!options) options = 0;
 		convertTouchEvent(event);
 		var canvas_offset = $(this.canvas).offset()
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
@@ -358,10 +359,10 @@ class Preview {
 			if (element.mesh && element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
-					if (element.mesh.vertex_points && element.mesh.vertex_points.visible) {
+					if (element.mesh.vertex_points && (element.mesh.vertex_points.visible || options.vertices)) {
 						objects.push(element.mesh.vertex_points);
 					}
-					if (element instanceof Mesh && element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') {
+					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
 						objects.push(element.mesh.outline);
 					}
 				}
@@ -382,8 +383,13 @@ class Preview {
 		var intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length == 0) return false;
 
-		let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
-		let intersect = mesh_gizmo || intersects[0];
+		let intersect;
+		if (options.select_parts_by_depth) {
+			intersect = intersects[0];
+		} else {
+			let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
+			intersect = mesh_gizmo || intersects[0];
+		}
 		let intersect_object = intersect.object;
 
 		if (intersect_object.isElement) {
@@ -1026,8 +1032,9 @@ class Preview {
 		}
 	}
 	mousemove(event) {
+		let data;
 		if (Settings.get('highlight_cubes') || Toolbox.selected.brush?.size) {
-			var data = this.raycast(event);
+			data = this.raycast(event);
 			updateCubeHighlights(data && data.element);
 
 			if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
@@ -1108,6 +1115,10 @@ class Preview {
 				
 				Canvas.brush_outline.quaternion.premultiply(world_quaternion);
 			}
+		}
+		if (Toolbox.selected.onCanvasMouseMove) {
+			if (!data) data = this.raycast(event);
+			Toolbox.selected.onCanvasMouseMove(data);
 		}
 	}
 	mouseup(event) {
