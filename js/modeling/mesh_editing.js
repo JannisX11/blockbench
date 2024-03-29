@@ -120,13 +120,19 @@ class KnifeToolContext {
 
 		this.mesh.mesh.add(this.points_mesh);
 		this.mesh.mesh.add(this.lines_mesh);
+		this.toast = Blockbench.showToastNotification({
+			text: 'Using Knife Tool. Click here to apply!',
+			icon: BarItems.knife_tool.icon,
+			click: () => {
+				this.apply();
+			}
+		});
 	}
 	hover(data) {
 
 	}
 	addPoint(data) {
 		if (data.element != this.mesh) return;
-		console.log(data)
 
 		let point = {
 			position: new THREE.Vector3().copy(data.intersects[0].point),
@@ -152,23 +158,36 @@ class KnifeToolContext {
 			point_positions.push(point.position.x, point.position.y, point.position.z);
 		}
 		this.points_geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
-		console.log(point, point_positions)
 	}
 	apply() {
 		Undo.initEdit({elements: [this.mesh]});
 
+		console.log('Apply ----------------');
+		console.log(this.points)
+
 		let {mesh} = this;
+		let old_face_normal = new THREE.Vector3();
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			let face_sorted_vertices = face.getSortedVertices();
-			let old_face_normal = face.getNormal();
-			delete mesh.faces[fkey];
 
 			let all_points = this.points.map(point => {
-				if (point.face == fkey) return point;
+				if (point.fkey == fkey) return point;
 				if (face.vertices.includes(point.attached_vertex)) return point;
-				if (point.attached_line.allAre(vkey => face.vertices.includes(vkey))) return point;
+				if (point.attached_line && point.attached_line.allAre(vkey => face.vertices.includes(vkey))) return point;
 			})
+			let included_points = all_points.filter(point => point);
+			if (included_points.length == 0) {
+				continue;
+			}
+
+			let uv_data = {};
+			let face_sorted_vertices = face.getSortedVertices();
+			old_face_normal.fromArray(face.getNormal(true));
+			delete mesh.faces[fkey];
+			for (let vkey of face_sorted_vertices) {
+				uv_data[vkey] = face.uv[vkey];
+			}
+
 			// Add new points as vertices
 			included_points.forEach(point => {
 				// todo: handle mid points that were clicked twice or more
@@ -177,6 +196,9 @@ class KnifeToolContext {
 					point.vkey = point.attached_vertex;
 				} else {
 					point.vkey = mesh.addVertices(point.position.toArray())[0];
+				}
+				if (!uv_data[point.vkey]) {
+					uv_data[point.vkey] = face.localToUV(point.position);
 				}
 			})
 			let all_new_edges = [];
@@ -187,12 +209,12 @@ class KnifeToolContext {
 					all_new_edges.push([point_a.vkey, point_b.vkey]);
 				}
 			}
-			let included_points = all_points.filter(point => point);
 			let mid_points = included_points.filter(point => point.type == 'face');
 			let perimeter_points = included_points.filter(point => point.type != 'face');
 			let mid_edges = all_new_edges.filter(([vkey1, vkey2]) => {
 				return !perimeter_points.includes(vkey1) || !perimeter_points.includes(vkey2)
 			});
+			let generated_edges = [];
 			let mid_edge_face_connections = {};
 
 
@@ -205,42 +227,105 @@ class KnifeToolContext {
 				perimeter_vertices.push(vkey1);
 				let regular_next = face_sorted_vertices[i+1] || face_sorted_vertices[0];
 				let regular_edge = [vkey1, regular_next];
-				let on_edge_points = perimeter_points.find(point => point.type == 'line' && sameMeshEdge(point.attached_line, regular_edge));
+				let on_edge_points = perimeter_points.filter(point => point.type == 'line' && sameMeshEdge(point.attached_line, regular_edge));
 				if (on_edge_points.length) {
 					let vkey1_vector = new THREE.Vector3().fromArray(mesh.vertices[vkey1]);
 					on_edge_points.sort((a, b) => b.position.distanceToSquared(vkey1_vector) - a.position.distanceToSquared(vkey1_vector));
-					perimeter_vertices.push(...on_edge_points);
+					perimeter_vertices.push(...on_edge_points.map(point => point.vkey));
 				}
 			}
 			for (let i = 0; i < perimeter_vertices.length; i++) {
 				perimeter_edges.push([perimeter_vertices[i], perimeter_vertices[i+1] || perimeter_vertices[0]]);
 			}
 
-			/*function getEdgeKey(edge) {
+			function getEdgeKey(edge) {
 				return edge.slice().sort().join('.');
-			}*/
+			}
+
+			// Utility to check for points in faces
+			let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+				old_face_normal,
+				Reusable.vec3.fromArray(mesh.vertices[face.vertices[0]])
+			)
+			let projection_rot = cameraTargetToRotation([0, 0, 0], old_face_normal.toArray());
+			let projection_euler = new THREE.Euler(Math.degToRad(projection_rot[1] - 90), Math.degToRad(projection_rot[0] + 180), 0);
+			function getFlatPos(vkey) {
+				let coplanar_pos = plane.projectPoint(Reusable.vec4.fromArray(mesh.vertices[vkey]), Reusable.vec5);
+				coplanar_pos.applyEuler(projection_euler);
+				return [coplanar_pos.x, coplanar_pos.z];
+			}
+			function thingsInTri(...vertices) {
+				let flat_positions = vertices.map(getFlatPos);
+				for (let point of mid_points) {
+					if (vertices.includes(point.vkey)) continue;
+					let flat_point = getFlatPos(point.vkey);
+					if (pointInTriangle(flat_point, ...flat_positions)) {
+						return true;
+					}
+				}
+				for (let edge of mid_edges.concat(generated_edges)) {
+					let edge_a = getFlatPos(edge[0]);
+					let edge_b = getFlatPos(edge[1]);
+					if (lineIntersectsTriangle(edge_a, edge_b, ...vertices)) {
+						return true;
+					}
+				}
+				// todo: test edges
+				return false;
+			}
+
 			function tryMakeQuad(vkey1, vkey2, vkey3, vkey4) {
 				// quad conditions: not including points, no edge between opposite points, all points exist
 				let vertices = [vkey1, vkey2, vkey3, vkey4];
 				let face = new MeshFace(mesh, {vertices});
 				if (face.isConcave()) return;
 				let sorted_vertices = face.getSortedVertices();
-
+				let diagonal_1 = [sorted_vertices[0], sorted_vertices[2]];
+				let diagonal_2 = [sorted_vertices[1], sorted_vertices[3]];
+				if (mid_edges.find(edge => sameMeshEdge(edge, diagonal_1) || sameMeshEdge(edge, diagonal_2))) {
+					return;
+				}
+				if (thingsInTri(sorted_vertices[0], sorted_vertices[1], sorted_vertices[2])) return;
+				if (thingsInTri(sorted_vertices[0], sorted_vertices[2], sorted_vertices[3])) return;
 				return face;
-
 			}
 			function tryMakeTri(vkey1, vkey2, vkey3) {
 				// tri condition: not including points
 				let vertices = [vkey1, vkey2, vkey3];
+				if (thingsInTri(vkey1, vkey2, vkey3)) return;
 				let face = new MeshFace(mesh, {vertices});
 				return face;
 			}
+			function initFace(new_face) {
+				if (face.getAngleTo(new_face) > 90) {
+					new_face.invert();
+				}
+				for (let vkey of new_face.vertices) {
+					new_face.uv[vkey] = uv_data[vkey];
+				}
+				new_face.texture = face.texture;
 
+				let vertices = new_face.getSortedVertices();
+				for (let i = 0; i < vertices.length; i++) {
+					let edge = [vertices[i], vertices[i+1]||vertices[0]];
+					if (
+						!mid_edges.find(e2 => sameMeshEdge(edge, e2)) &&
+						!perimeter_edges.find(e2 => sameMeshEdge(edge, e2)) &&
+						!generated_edges.find(e2 => sameMeshEdge(edge, e2))
+					) {
+						generated_edges.push(edge);
+					}
+				}
+
+				return mesh.addFaces(new_face)[0];
+			}
+
+			// Add faces from perimeter inwards
 			for (let edge of perimeter_edges) {
-				let edge_center = Reusable.vec2.set(mesh.vertices[edge[0].vkey].slice().V3_add(mesh.vertices[edge[1].vkey])).divideScalar(2);
+				let edge_center = Reusable.vec2.fromArray(mesh.vertices[edge[0]].slice().V3_add(mesh.vertices[edge[1]])).divideScalar(2);
 				let sortByDistance = (a, b) => {
-					let a_vector = Reusable.vec5.fromArray(mesh.vertices[a]);
-					let b_vector = Reusable.vec6.fromArray(mesh.vertices[b]);
+					let a_vector = Reusable.vec5.fromArray(mesh.vertices[typeof a == 'string' ? a : a.vkey]);
+					let b_vector = Reusable.vec6.fromArray(mesh.vertices[typeof b == 'string' ? b : a.vkey]);
 					return b_vector.distanceToSquared(edge_center) - a_vector.distanceToSquared(edge_center);
 				}
 				let nearest_points = [
@@ -248,23 +333,79 @@ class KnifeToolContext {
 					...perimeter_vertices.sort(sortByDistance)
 				];
 				let new_face = tryMakeQuad(edge[0], edge[1], nearest_points[0], nearest_points[1]);
-				if (new_face) {
-					// Check if outer points are mid edge, if so increase their mid_edge_face_connections value
-				}
+				if (new_face) new_face = tryMakeQuad(edge[0], edge[1], nearest_points[0], nearest_points[2]);
+				if (new_face) new_face = tryMakeQuad(edge[0], edge[1], nearest_points[1], nearest_points[2]);
 				let i = 0;
 				while (!new_face && nearest_points[i]) {
 					new_face = tryMakeTri(edge[0], edge[1], nearest_points[i])
 					i++;
 				}
 				if (new_face) {
-					mesh.addFaces(new_face);
-					// todo: invert of facing wrong way
+					console.log(new_face.vertices.length)
+					initFace(new_face);
+
+					// Count faces per mid edge
+					let sorted_vertices = new_face.getSortedVertices();
+					for (let i = 0; i < sorted_vertices.length; i++) {
+						let edge1 = [sorted_vertices[i], sorted_vertices[i+1] || sorted_vertices[0]];
+						if (sameMeshEdge(edge1, edge)) continue;
+						for (let edge2 of mid_edges) {
+							if (sameMeshEdge(edge1, edge2)) {
+								let edge_key = getEdgeKey(edge1);
+								if (!mid_edge_face_connections[edge_key]) mid_edge_face_connections[edge_key] = 0;
+								mid_edge_face_connections[edge_key] += 1;
+								break;
+							}
+						}
+					}
 				}
 			}
+			// Add missing faces between inner edges
+			for (let edge of mid_edges) {
+				let edge_key = getEdgeKey(edge);
+				/*while (mid_edge_face_connections[edge_key] != 2) {
+					let edge_center = Reusable.vec2.set(mesh.vertices[edge[0]].slice().V3_add(mesh.vertices[edge[1]])).divideScalar(2);
+					let sortByDistance = (a, b) => {
+						let a_vector = Reusable.vec5.fromArray(mesh.vertices[a]);
+						let b_vector = Reusable.vec6.fromArray(mesh.vertices[b]);
+						return b_vector.distanceToSquared(edge_center) - a_vector.distanceToSquared(edge_center);
+					}
+					let nearest_mid_points = 
+					let nearest_points = [
+						...mid_points.map(point => point.vkey).sort(sortByDistance),
+						...perimeter_vertices.sort(sortByDistance)
+					];
+					let new_face = tryMakeQuad(edge[0], edge[1], nearest_points[0], nearest_points[1]);
+					let i = 0;
+					while (!new_face && nearest_points[i]) {
+						new_face = tryMakeTri(edge[0], edge[1], nearest_points[i])
+						i++;
+					}
+					if (new_face) {
+						if (face.getAngleTo(new_face) > 90) {
+							new_face.invert();
+						}
+						mesh.addFaces(new_face);
+	
+						// Count faces per mid edge
+						let sorted_vertices = new_face.getSortedVertices();
+						for (let i = 0; i < sorted_vertices.length; i++) {
+							let edge1 = [sorted_vertices[i], sorted_vertices[i+1] || sorted_vertices[0]];
+							if (sameMeshEdge(edge1, edge)) continue;
+							for (let edge2 of mid_edges) {
+								if (sameMeshEdge(edge1, edge2)) {
+									let edge_key = getEdgeKey(edge1);
+									if (!mid_edge_face_connections[edge_key]) mid_edge_face_connections[edge_key] = 0;
+									mid_edge_face_connections[edge_key] += 1;
+									break;
+								}
+							}
+						}
+					}
+				}*/
+			}
 		}
-		
-
-
+		Canvas.updateView({elements: [mesh], element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
 		Undo.finishEdit('Use knife tool');
 		this.remove();
 	}
@@ -272,9 +413,10 @@ class KnifeToolContext {
 		this.remove();
 	}
 	remove() {
-		this.mesh.remove(this.points_mesh);
-		this.mesh.remove(this.lines_mesh);
+		this.mesh.mesh.remove(this.points_mesh);
+		this.mesh.mesh.remove(this.lines_mesh);
 		delete this.mesh
+		this.toast.delete();
 		KnifeToolContext.current = null;
 	}
 	static current = null;
