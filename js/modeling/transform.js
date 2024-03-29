@@ -688,6 +688,11 @@ function moveElementsInSpace(difference, axis) {
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
+			// dispatches the position_changed event for plugin access.
+			let element = el;
+			let isMoveOnAxis = false;
+			let positionData = {element, difference, axis, isMoveOnAxis};
+			Blockbench.dispatchEvent('position_changed', positionData);
 		}
 	})
 	Canvas.updateView({
@@ -1000,6 +1005,12 @@ BARS.defineActions(function() {
 						Format.cube_size_limiter.move(obj);
 					}
 					obj.mapAutoUV()
+					// dispatches the position_changed event for plugin access.
+					let difference = val - before;
+					let element = obj;
+					let isMoveOnAxis = true;
+					let positionData = {element, difference, axis, isMoveOnAxis};
+					Blockbench.dispatchEvent('position_changed', positionData);
 				}
 				obj.preview_controller.updateTransform(obj);
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
