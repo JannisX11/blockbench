@@ -711,9 +711,12 @@ const TextureGenerator = {
 					let face = element.faces[fkey];
 					let tex = face.getTexture();
 					if (tex !== null) {
-						let face_old_pos_id = faceOldPositionIdentifier(face);
-						if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
-						double_use_faces[face_old_pos_id].push([element, face]);
+						let face_old_pos_id;
+						if (tex instanceof Texture) {
+							face_old_pos_id = faceOldPositionIdentifier(face);
+							if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
+							double_use_faces[face_old_pos_id].push([element, face]);
+						}
 						let x = 0;
 						let y = 0;
 						switch (fkey) {
@@ -734,10 +737,13 @@ const TextureGenerator = {
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
 					if (face.vertices.length < 3) continue;
-
-					let face_old_pos_id = faceOldPositionIdentifier(face);
-					if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
-					double_use_faces[face_old_pos_id].push([element, face]);
+					
+					let face_old_pos_id;
+					if (face.getTexture() instanceof Texture) {
+						face_old_pos_id = faceOldPositionIdentifier(face);
+						if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
+						double_use_faces[face_old_pos_id].push([element, face]);
+					}
 
 					if (makeTexture instanceof Texture && BarItems.selection_mode.value !== 'object' && !face.isSelected(fkey)) continue;
 					face_groups.push({
