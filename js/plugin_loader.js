@@ -399,7 +399,7 @@ class Plugin {
 				this.onuninstall();
 			}
 		} catch (err) {
-			console.log('Error in unload or uninstall method: ', err);
+			console.error(`Error in unload or uninstall method of "${this.id}": `, err);
 		}
 		delete Plugins.registered[this.id];
 		let in_installed = Plugins.installed.find(plugin => plugin.id == this.id);
