@@ -603,7 +603,7 @@ class NullObjectAnimator extends BoneAnimator {
 			source = null_object.parent;
 		}
 		if (!source) return;
-		if (!target.isChildOf(source)) return;
+		if (!target.isChildOf(source) && source != 'root') return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
@@ -612,8 +612,9 @@ class NullObjectAnimator extends BoneAnimator {
 			bones.push(current);
 			current = current.parent;
 		}
-		if (null_object.ik_source)
+		if (null_object.ik_source) {
 			bones.push(source);
+		}
 		if (!bones.length) return;
 		bones.reverse();
 		

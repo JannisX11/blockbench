@@ -36,6 +36,17 @@ class Texture {
 			}
 		});
 
+		if (typeof data === 'object') {
+			this.extend(data);
+			if (this.layers_enabled) {
+				setTimeout(() => {
+					Project.whenNextOpen(() => {
+						this.updateLayerChanges()
+					})
+				}, 40);
+			}
+		}
+
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
@@ -273,16 +284,6 @@ class Texture {
 			}
 		}
 
-		if (typeof data === 'object') {
-			this.extend(data);
-			if (this.layers_enabled) {
-				setTimeout(() => {
-					Project.whenNextOpen(() => {
-						this.updateLayerChanges()
-					})
-				}, 40);
-			}
-		}
 		if (!this.id) {
 			var i = Texture.all.length;
 			while (true) {
