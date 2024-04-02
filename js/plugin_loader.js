@@ -825,7 +825,7 @@ async function loadInstalledPlugins() {
 				if (Plugins.all.find(p => p.id == plugin.id)) {
 					load_counter++;
 					console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`);
-				} else {
+				} else if (Plugins.json instanceof Object && navigator.onLine) {
 					Plugins.installed.remove(plugin);
 				}
 			}
@@ -840,6 +840,7 @@ async function loadInstalledPlugins() {
 	})
 	return await Promise.allSettled(install_promises);
 }
+console.log('.......changed')
 
 BARS.defineActions(function() {
 
