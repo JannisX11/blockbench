@@ -787,6 +787,12 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
 		Transformer.cancelMovement(e, false);
 		updateSelection();
+	} else if (KnifeToolContext.current) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			KnifeToolContext.current.cancel();
+		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			KnifeToolContext.current.apply();
+		}
 	}
 	//Keybinds
 	if (!input_focus) {
