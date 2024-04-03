@@ -606,3 +606,7 @@ function cameraRotationToTarget(position, rotation) {
 	vec.y *= -1;
 	return vec.toArray().V3_add(position);
 }
+
+const NativeGlobals = {
+	Animation
+}
