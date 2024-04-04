@@ -1493,7 +1493,6 @@ BARS.defineActions(function() {
 		raycast_options: {
 			edges: true,
 			vertices: true,
-			select_parts_by_depth: true,
 		},
 		modes: ['edit'],
 		condition: () => Modes.edit && Mesh.hasAny(),

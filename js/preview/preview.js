@@ -380,16 +380,20 @@ class Preview {
 				}
 			})
 		}
-		var intersects = this.raycaster.intersectObjects( objects );
+		let intersects = this.raycaster.intersectObjects( objects );
 		if (intersects.length == 0) return false;
 
-		let intersect;
-		if (options.select_parts_by_depth) {
-			intersect = intersects[0];
-		} else {
-			let mesh_gizmo = intersects.find(intersect => intersect.object.type == 'Points' || intersect.object.type == 'LineSegments');
-			intersect = mesh_gizmo || intersects[0];
+		let depth_offset = Preview.selected.calculateControlScale(intersects[0].point);
+		for (let intersect of intersects) {
+			if (intersect.object.isLine) {
+				intersect.distance -= depth_offset;
+			} else if (intersect.object.isPoints) {
+				intersect.distance -= depth_offset * 1.4;
+			}
 		}
+		intersects.sort((a, b) => a.distance - b.distance);
+
+		let intersect = intersects[0];
 		let intersect_object = intersect.object;
 
 		if (intersect_object.isElement) {
