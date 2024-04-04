@@ -249,6 +249,7 @@
 					}"
 					:title="project.name || project.geometry_name || ''"
 					@dblclick="project.openSettings()"
+					@contextmenu="project.showContextMenu($event)"
 					@mousedown="mouseDown(project, $event)"
 					@mouseup="mouseUp(project, $event)"
 					@mouseenter="mouseEnter(project, $event)"

@@ -469,7 +469,6 @@ function setupInterface() {
 		'open_model_folder',
 		'view_backups',
 		'save',
-		'timelapse',
 		'cancel_gif',
 	])
 	

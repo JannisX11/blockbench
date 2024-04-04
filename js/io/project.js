@@ -289,6 +289,13 @@ class ModelProject {
 		Blockbench.removeFlag('switching_project');
 		return true;
 	}
+	showContextMenu(event) {
+		if (!this.selected) {
+			this.select()
+		}
+		this.menu.open(event, this);
+		return this;
+	}
 	updateThumbnail() {
 		if (!Format.image_editor) {
 			this.thumbnail = Preview.selected.canvas.toDataURL();
@@ -531,10 +538,25 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-
 let Project = 0;
 
 let ProjectData = {};
+
+ModelProject.prototype.menu = new Menu([
+	new MenuSeparator('manage'),
+	'project_window',
+	'open_model_folder',
+	'duplicate_project',
+	'convert_project',
+	'close_project',
+	new MenuSeparator('save'),
+	'save_project',
+	'save_project_as',
+	'export_over',
+	'share_model',
+	new MenuSeparator('overview'),
+	'tab_overview',
+])
 
 // Setup ModelProject for loaded project
 function setupProject(format, uuid) {
@@ -1091,6 +1113,29 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: function () {
 			Project.close();
+		}
+	})
+	new Action('duplicate_project', {
+		icon: 'file_copy',
+		category: 'file',
+		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
+		click: function () {
+			let selected_texture_uuid = Texture.selected?.uuid
+			let model = Codecs.project.compile({raw: true});
+			setupProject(Format)
+			Codecs.project.parse(model);
+
+			function copyfyName(name) {
+				if (!name) return name;
+				let index = name.lastIndexOf('.');
+				if (index == -1) return name;
+				let main = name.substring(0, index);
+				let ext = name.substring(index);
+				return main + ' - Copy' + ext;
+			}
+			Project.name = copyfyName(Project.name);
+
+			Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
 		}
 	})
 	new Action('convert_project', {

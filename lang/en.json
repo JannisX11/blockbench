@@ -1233,6 +1233,8 @@
 	"action.open_model.desc": "Open a model file from your computer",
 	"action.open_from_link": "Open Model from Link...",
 	"action.open_from_link.desc": "Open a model from a blckbn.ch URL",
+	"action.duplicate_project": "Duplicate Project",
+	"action.duplicate_project.desc": "Creates a copy of the open project",
 	"action.convert_project": "Convert Project",
 	"action.convert_project.desc": "Converts the current project to a project for another model format",
 	"action.close_project": "Close Project",
