@@ -563,7 +563,7 @@ const Screencam = {
 						// Direct flicker-free color mapping
 						index = applyPalette(data, palette, format);
 					}
-					gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: interval});
+					gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: interval, transparent: !background_image});
 					i++;
 					Blockbench.setProgress(i / frame_canvases.length);
 					await new Promise(resolve => setTimeout(resolve, 0));
