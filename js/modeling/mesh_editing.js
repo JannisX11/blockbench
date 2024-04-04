@@ -115,8 +115,10 @@ class KnifeToolContext {
 		this.hover_point = null;
 
 		this.points_geo = new THREE.BufferGeometry();
-		let points_material = new THREE.PointsMaterial({size: 7, sizeAttenuation: false, color: 0x32ff44});
+		let points_material = new THREE.PointsMaterial({size: 9, sizeAttenuation: false, vertexColors: true});
 		this.points_mesh = new THREE.Points(this.points_geo, points_material);
+		this.points_mesh.renderOrder = 100;
+		//points_material.depthTest = false
 		this.lines_mesh = new THREE.Line(this.points_geo, Canvas.outlineMaterial);
 		this.points_mesh.frustumCulled = false;
 		this.lines_mesh.frustumCulled = false;
@@ -160,17 +162,24 @@ class KnifeToolContext {
 			let a_p = new THREE.Vector3().copy(point.position).sub(point_a);
 			point.position.copy(point_a).addScaledVector(a_b, a_p.dot(a_b) / a_b.dot(a_b));
 			point.snapped = true;
-		} else {
-			// Snap to existing points?
-			let pos = this.mesh.mesh.localToWorld(Reusable.vec1.copy(point.position));
-			let threshold = Preview.selected.calculateControlScale(pos) * 0.6;
-			let matching_point = this.points.find(other => {
-				return point.position.distanceTo(other.position) < threshold && !other.reuse_of;
-			})
-			if (matching_point) {
-				point.position.copy(matching_point.position);
-				point.reuse_of = matching_point;
-			}
+		}
+		// Snap to existing points?
+		let pos = this.mesh.mesh.localToWorld(Reusable.vec1.copy(point.position));
+		let threshold = Preview.selected.calculateControlScale(pos) * 0.6;
+		let matching_point = this.points.find(other => {
+			return point.position.distanceTo(other.position) < threshold && !other.reuse_of;
+		})
+		if (matching_point) {
+			point.position.copy(matching_point.position);
+			point.reuse_of = matching_point;
+		} else if (data.event && (data.event.ctrlOrCmd || Pressing.overrides.shift) && point.fkey) {
+			let face = this.mesh.faces[point.fkey];
+			let uv = face.localToUV(point.position);
+			let factor = (data.event.shiftKey || Pressing.overrides.shift) ? 4 : 1;
+			uv[0] = Math.round(uv[0] * factor) / factor;
+			uv[1] = Math.round(uv[1] * factor) / factor;
+			let target = face.UVToLocal(uv);
+			point.position.copy(target);
 		}
 		if (this.points.length && point.position.distanceToSquared(this.points.last().position) < 0.001) return;
 
@@ -179,17 +188,31 @@ class KnifeToolContext {
 	}
 	updatePreviewGeometry() {
 		let point_positions = [];
-		for (let point of this.points) {
+		let point_colors = [];
+		let displayed_points = this.points.slice();
+		if (this.hover_point) displayed_points.push(this.hover_point);
+		for (let point of displayed_points) {
 			point_positions.push(point.position.x, point.position.y, point.position.z);
-		}
-		if (this.hover_point) {
-			point_positions.push(this.hover_point.position.x, this.hover_point.position.y, this.hover_point.position.z);
+			if (point.snapped) {
+				point_colors.push(0.1, 0.9, 0.12);
+			} else {
+				point_colors.push(0.2, 0.4, 0.98);
+			}
 		}
 		this.points_geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
+		this.points_geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(point_colors), 3));
 		return this;
 	}
 	addPoint(data) {
 		if (!this.hover_point) this.hover(data);
+		if (!this.hover_point) return;
+
+		let last_point = this.points.last();
+		if (last_point && this.hover_point) {
+			let this_point = this.hover_point;
+			// Todo: Send error message when crossing faces
+			let crossed_faces = (last_point.type == 'face' && this_point.type == 'face' && last_point.fkey != this_point.fkey)
+		}
 
 		this.points.push(this.hover_point);
 		this.hover_point = null;
@@ -200,19 +223,36 @@ class KnifeToolContext {
 			let s2 = [ p4[0] - p3[0],   p4[1] - p3[1] ];
 			let s = (-s1[1] * (p1[0] - p3[0]) + s1[0] * (p1[1] - p3[1])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
 			let t = ( s2[0] * (p1[1] - p3[1]) - s2[1] * (p1[0] - p3[0])) / (-s2[0] * s1[1] + s1[0] * s2[1]);
-			return (s > 0 && s < 1 && t > 0 && t < 1);
+			return (s > 0.00001 && s < 0.99999 && t > 0.00001 && t < 0.99999);
 		}
 		function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
+			if (l1.equals(l2)) return false;
+			let tri = [v1, v2, v3];
+			let l1_in_tri = tri.find(corner => corner.equals(l1));
+			let l2_in_tri = tri.find(corner => corner.equals(l2));
+			if (l1_in_tri && l2_in_tri) {
+				// Line is identical with tri edge
+				return false;
+			}/* else if (l1_in_tri) {
+				// Nudge away from triangle center
+				l1 = [
+					Math.lerp(l1[0], (v1[0] + v2[0] + v3[0]) / 3, -0.001),
+					Math.lerp(l1[1], (v1[1] + v2[1] + v3[1]) / 3, -0.001)
+				]
+			} else if (l2_in_tri) {
+				// Nudge away from triangle center
+				l2 = [
+					Math.lerp(l2[0], (v1[0] + v2[0] + v3[0]) / 3, -0.001),
+					Math.lerp(l2[1], (v1[1] + v2[1] + v3[1]) / 3, -0.001)
+				]
+			}*/
 			return intersectLinesIgnoreTouching(l1, l2, v1, v2)
 				|| intersectLinesIgnoreTouching(l1, l2, v2, v3)
 				|| intersectLinesIgnoreTouching(l1, l2, v3, v1)
 				|| pointInTriangle(l1.map((v, i) => Math.lerp(v, l2[i], 0.5)), v1, v2, v3)
 		}
 
-
 		Undo.initEdit({elements: [this.mesh]});
-
-		console.log('Apply ---------------------');
 
 		let {mesh} = this;
 		let all_new_fkeys = [];
@@ -240,7 +280,6 @@ class KnifeToolContext {
 			for (let vkey of face_sorted_vertices) {
 				uv_data[vkey] = face.uv[vkey];
 			}
-			console.log('------ face ------', fkey, face, face.getNormal())
 
 			// Add new points as vertices
 			included_points.forEach(point => {
@@ -273,12 +312,13 @@ class KnifeToolContext {
 				return !perimeter_points.includes(vkey1) || !perimeter_points.includes(vkey2)
 			});
 			let generated_edges = [];
+			// Track how often each edge is connected, each edge should only be connected to 2 faces
 			let edge_face_connections = {};
-
 
 			let perimeter_vertices = [];
 			let perimeter_edges = [];
 			let covered_perimeter_edges = {};
+			let created_face_edgings = [];
 
 			// Get perimeter edges
 			for (let i = 0; i < face_sorted_vertices.length; i++) {
@@ -347,7 +387,6 @@ class KnifeToolContext {
 			}
 
 			function tryMakeQuad(vkey1, vkey2, vkey3, vkey4) {
-				// quad conditions: not including points, no edge between opposite points, all points exist
 				if (!vkey1 || !vkey2 || !vkey3 || !vkey4) return;
 				let vertices = [vkey1, vkey2, vkey3, vkey4];
 				let face = new MeshFace(mesh, {vertices});
@@ -367,6 +406,11 @@ class KnifeToolContext {
 					if (edge_face_connections[edge_key] >= 2) return true;
 				})
 				if (occupied_edge) return;
+				// Face exists
+				if (created_face_edgings.find(edging => {
+					return edging.allAre(vkey => sorted_vertices.includes(vkey))
+				})) {return;}
+				// Conflicts
 				if (thingsInTri(sorted_vertices[0], sorted_vertices[1], sorted_vertices[2])) return;
 				if (thingsInTri(sorted_vertices[0], sorted_vertices[2], sorted_vertices[3])) return;
 				if (thingsInTri(sorted_vertices[0], sorted_vertices[1], sorted_vertices[3])) return;
@@ -379,9 +423,13 @@ class KnifeToolContext {
 				return face;
 			}
 			function tryMakeTri(vkey1, vkey2, vkey3) {
-				// tri condition: not including points
 				if (!vkey1 || !vkey2 || !vkey3) return;
 				let vertices = [vkey1, vkey2, vkey3];
+				// Face exists
+				if (created_face_edgings.find(edging => {
+					return vertices.allAre(vkey => edging.includes(vkey))
+				})) {return;}
+				// Conflicts
 				if (thingsInTri(vkey1, vkey2, vkey3)) return;
 				// Occupied edges
 				let edges = verticesToEdges(vertices);
@@ -407,6 +455,8 @@ class KnifeToolContext {
 					new_face.uv[vkey] = uv_data[vkey] ? uv_data[vkey].slice() : [0, 0];
 				}
 				new_face.texture = face.texture;
+
+				created_face_edgings.push(new_face.vertices);
 
 				let edges = new_face.getEdges();
 				for (let edge of edges) {
@@ -458,15 +508,8 @@ class KnifeToolContext {
 					let sorted_vertices = new_face.getSortedVertices();
 					for (let i = 0; i < sorted_vertices.length; i++) {
 						let edge1 = [sorted_vertices[i], sorted_vertices[i+1] || sorted_vertices[0]];
-						if (sameMeshEdge(edge1, edge)) continue;
-						/*for (let edge2 of mid_edges) {
-							if (sameMeshEdge(edge1, edge2)) {
-								let edge_key = getEdgeKey(edge1);
-								if (!edge_face_connections[edge_key]) edge_face_connections[edge_key] = 0;
-								edge_face_connections[edge_key] += 1;
-								break;
-							}
-						}*/
+						if (sameMeshEdge(edge1, edge)) continue
+
 						for (let edge2 of perimeter_edges) {
 							if (sameMeshEdge(edge1, edge2)) {
 								covered_perimeter_edges[getEdgeKey(edge1)] = true;
@@ -478,7 +521,6 @@ class KnifeToolContext {
 			// Add missing faces between inner edges
 			for (let edge of mid_edges) {
 				let edge_key = getEdgeKey(edge);
-				// todo
 				let limiter = 0;
 				while (edge_face_connections[edge_key] != 2 && limiter < 5) {
 					let edge_center = Reusable.vec2.fromArray(mesh.vertices[edge[0]].slice().V3_add(mesh.vertices[edge[1]])).divideScalar(2);
@@ -510,11 +552,11 @@ class KnifeToolContext {
 							let is_mid_edge = mid_edges.find(e => sameMeshEdge(e, edge1));
 
 							if (edge1_key != edge_key && !is_mid_edge && !perimeter_edges.find(e => sameMeshEdge(e, edge1))) {
-								console.log('new edge discovered')
 								mid_edges.push(edge1);
 							}
 						}
 					} else {
+						console.error('Knife tool: Failed to find face for edge', edge, nearest_vertices);
 						break;
 					}
 					limiter++;
