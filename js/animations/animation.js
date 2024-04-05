@@ -1199,12 +1199,17 @@ BARS.defineActions(function() {
 			let initial_times = {};
 			let initial_snapping = animation.snapping;
 			let initial_length = animation.length;
+			let initial_bezier_times = {};
 			for (let id in animation.animators) {
 				let animator = animation.animators[id];
 				keyframes.push(...animator.keyframes);
 			}
 			keyframes.forEach(kf => {
 				initial_times[kf.uuid] = kf.time;
+				initial_bezier_times[kf.uuid] = {
+					left: kf.bezier_left_time.slice(),
+					right: kf.bezier_right_time.slice(),
+				};
 			})
 
 			let previous_speed = 1;
@@ -1233,6 +1238,11 @@ BARS.defineActions(function() {
 					animation.snapping = snapping;
 					keyframes.forEach(kf => {
 						kf.time = Timeline.snapTime(initial_times[kf.uuid] / speed, animation);
+						if (kf.interpolation == 'bezier') {
+							let old_bezier_time = initial_bezier_times[kf.uuid];
+							kf.bezier_left_time.V3_set(old_bezier_time.left).V3_divide(speed);
+							kf.bezier_right_time.V3_set(old_bezier_time.right).V3_divide(speed);
+						}
 					})
 					animation.setLength(initial_length / speed);
 					TickUpdates.keyframes = true;
