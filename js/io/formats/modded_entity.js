@@ -493,7 +493,9 @@ var codec = new Codec('modded_entity', {
 			let usesLayerDef = Templates.get('use_layer_definition')
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || (usesLayerDef && group.parent instanceof Group)) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if (group.is_rotation_subgroup) continue;
+				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -602,8 +604,10 @@ var codec = new Codec('modded_entity', {
 				return '';
 
 			let group_snippets = [];
-			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || group.parent instanceof Group) continue;
+			for (let group of all_groups) {
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if (group.is_rotation_subgroup) continue;
+				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let modelPart = snippet
 					.replace(R('bone'), group.name);
 				group_snippets.push(modelPart);
