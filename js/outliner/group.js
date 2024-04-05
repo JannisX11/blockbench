@@ -584,7 +584,8 @@ BARS.defineActions(function() {
 				add_group = Outliner.selected.last()
 			}
 			var base_group = new Group({
-				origin: add_group ? add_group.origin : undefined
+				origin: add_group ? add_group.origin : undefined,
+				name: add_group?.name
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true
