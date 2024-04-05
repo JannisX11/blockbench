@@ -431,7 +431,9 @@ class Tool extends Action {
 		if (this.condition == undefined && this.modes instanceof Array) {
 			this.condition = {modes: this.modes};
 		}
+		this.raycast_options = data.raycast_options;
 		this.onCanvasClick = data.onCanvasClick;
+		this.onCanvasMouseMove = data.onCanvasMouseMove;
 		this.onCanvasRightClick = data.onCanvasRightClick;
 		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;
@@ -2062,6 +2064,7 @@ const BARS = {
 				'pivot_tool',
 				'vertex_snap_tool',
 				'stretch_tool',
+				'knife_tool',
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',

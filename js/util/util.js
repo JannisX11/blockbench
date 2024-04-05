@@ -590,6 +590,9 @@ function pointInTriangle(pt, v1, v2, v3) {
 
 	return !(has_neg && has_pos);
 }
+function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
+	return intersectLines(l1, l2, v1, v2) || intersectLines(l1, l2, v2, v3) || intersectLines(l1, l2, v3, v1);
+}
 
 function cameraTargetToRotation(position, target) {
 	let spherical = new THREE.Spherical();
