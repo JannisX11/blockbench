@@ -881,6 +881,10 @@ class Cube extends OutlinerElement {
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
 				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
+			} else if (axis == 0 && (!negative || bidirectional)) {
+				let difference = before - this.size(axis);
+				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
+				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 			}
 			Canvas.updateUV(this);
 		}
