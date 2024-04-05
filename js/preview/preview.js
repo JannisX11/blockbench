@@ -1036,93 +1036,105 @@ class Preview {
 		}
 	}
 	mousemove(event) {
-		let data;
-		if (Settings.get('highlight_cubes') || Toolbox.selected.brush?.size) {
-			data = this.raycast(event);
+		let data = this.raycast(event);
+		if (Settings.get('highlight_cubes')) {
 			updateCubeHighlights(data && data.element);
-
-			if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
-				if (!data) {
-					scene.remove(Canvas.brush_outline);
-					return;
-				}
-				if (!data.element.faces) return;
-				let face = data.element.faces[data.face];
-				let texture = face.getTexture();
-				if (!texture) {
-					scene.remove(Canvas.brush_outline);
-					return;
-				}
-				scene.add(Canvas.brush_outline);
-
-				let intersect = data.intersects[0];
-				let world_quaternion = intersect.object.getWorldQuaternion(Reusable.quat1)
-				let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
-
-				// UV
-				let uv_factor_x = texture.getUVWidth() / texture.width;
-				let uv_factor_y = texture.getUVHeight() / texture.display_height;
-				let offset = 0;
-				let x = intersect.uv.x * texture.width;
-				let y = (1-intersect.uv.y) * texture.height;
-				if (Condition(Toolbox.selected.brush.floor_coordinates)) {
-					offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
-					x = Math.round(x + offset) - offset;
-					y = Math.round(y + offset) - offset;
-				}
-				// Position
-				let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
-				let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
-				let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
-				brush_coord_difference_x.sub(brush_coord);
-				brush_coord_difference_y.sub(brush_coord);
-				intersect.object.localToWorld(brush_coord);
-				if (!Format.centered_grid) {
-					brush_coord.x += 8;
-					brush_coord.y += 8;
-					brush_coord.z += 8;
-				}
-				Canvas.brush_outline.position.copy(brush_coord);
-
-				// z fighting
-				let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
-				Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
-
-				//size
-				let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_x.length();
-				let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_y.length();
-				Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
-
-				let uv = Canvas.brush_outline.geometry.attributes.uv;
-				if (BarItems.brush_shape.value == 'square') {
-					let view_factor = z_fight_offset * 20;
-					uv.array[0] = uv.array[4] = (1 - (1 / radius_x * view_factor)) / 32;
-					uv.array[5] = uv.array[7] = (1 - (1 / radius_y * view_factor)) / 32;
-					uv.array[2] = uv.array[6] = (31 + (1 / radius_x * view_factor)) / 32;
-					uv.array[1] = uv.array[3] = (31 + (1 / radius_y * view_factor)) / 32;
-					uv.needsUpdate = true;
-
-				} else if (uv.array[0] != 0) {
-					uv.array[0] = uv.array[4] = uv.array[5] = uv.array[7] = 0;
-					uv.array[2] = uv.array[6] = uv.array[1] = uv.array[3] = 1;
-					uv.needsUpdate = true;
-				}
-
-				// rotation
-				Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
-
-				Canvas.brush_outline.rotation.z = 0;
-				let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
-				brush_coord_difference_y.applyQuaternion(inverse);
-				let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
-				Canvas.brush_outline.rotation.z = rotation;
-				
-				Canvas.brush_outline.quaternion.premultiply(world_quaternion);
-			}
 		}
+
+		if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
+			if (!data) {
+				scene.remove(Canvas.brush_outline);
+				return;
+			}
+			if (!data.element.faces) return;
+			let face = data.element.faces[data.face];
+			let texture = face.getTexture();
+			if (!texture) {
+				scene.remove(Canvas.brush_outline);
+				return;
+			}
+			scene.add(Canvas.brush_outline);
+
+			let intersect = data.intersects[0];
+			let world_quaternion = intersect.object.getWorldQuaternion(Reusable.quat1)
+			let world_normal = Reusable.vec1.copy(intersect.face.normal).applyQuaternion(world_quaternion);
+
+			// UV
+			let uv_factor_x = texture.getUVWidth() / texture.width;
+			let uv_factor_y = texture.getUVHeight() / texture.display_height;
+			let offset = 0;
+			let x = intersect.uv.x * texture.width;
+			let y = (1-intersect.uv.y) * texture.height;
+			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
+				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
+				x = Math.round(x + offset) - offset;
+				y = Math.round(y + offset) - offset;
+			}
+			// Position
+			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
+			let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
+			let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
+			brush_coord_difference_x.sub(brush_coord);
+			brush_coord_difference_y.sub(brush_coord);
+			intersect.object.localToWorld(brush_coord);
+			if (!Format.centered_grid) {
+				brush_coord.x += 8;
+				brush_coord.y += 8;
+				brush_coord.z += 8;
+			}
+			Canvas.brush_outline.position.copy(brush_coord);
+
+			// z fighting
+			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
+			Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
+
+			//size
+			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_x.length();
+			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_y.length();
+			Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
+
+			let uv = Canvas.brush_outline.geometry.attributes.uv;
+			if (BarItems.brush_shape.value == 'square') {
+				let view_factor = z_fight_offset * 20;
+				uv.array[0] = uv.array[4] = (1 - (1 / radius_x * view_factor)) / 32;
+				uv.array[5] = uv.array[7] = (1 - (1 / radius_y * view_factor)) / 32;
+				uv.array[2] = uv.array[6] = (31 + (1 / radius_x * view_factor)) / 32;
+				uv.array[1] = uv.array[3] = (31 + (1 / radius_y * view_factor)) / 32;
+				uv.needsUpdate = true;
+
+			} else if (uv.array[0] != 0) {
+				uv.array[0] = uv.array[4] = uv.array[5] = uv.array[7] = 0;
+				uv.array[2] = uv.array[6] = uv.array[1] = uv.array[3] = 1;
+				uv.needsUpdate = true;
+			}
+
+			// rotation
+			Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
+
+			Canvas.brush_outline.rotation.z = 0;
+			let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
+			brush_coord_difference_y.applyQuaternion(inverse);
+			let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
+			Canvas.brush_outline.rotation.z = rotation;
+			
+			Canvas.brush_outline.quaternion.premultiply(world_quaternion);
+		}
+		
 		if (Toolbox.selected.onCanvasMouseMove) {
 			if (!data) data = this.raycast(event);
 			Toolbox.selected.onCanvasMouseMove(data);
+		}
+		if (Condition(BarItems.selection_mode.condition) && Mesh.hasAny() && data && data.element instanceof Mesh) {
+			let selectable;
+			if (BarItems.selection_mode.value == 'edge' && data.type == 'line') selectable = true;
+			if (BarItems.selection_mode.value == 'vertex' && data.type == 'vertex') selectable = true;
+			if (selectable) {
+				this.canvas.classList.add('selectable_cursor');
+			} else {
+				this.canvas.classList.remove('selectable_cursor');
+			}
+		} else {
+			this.canvas.classList.remove('selectable_cursor');
 		}
 	}
 	mouseup(event) {

@@ -1527,6 +1527,7 @@ BARS.defineActions(function() {
 		transformerMode: 'hidden',
 		category: 'tools',
 		selectElements: true,
+		cursor: 'crosshair',
 		raycast_options: {
 			edges: true,
 			vertices: true,

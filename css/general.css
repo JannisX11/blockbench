@@ -151,6 +151,9 @@
 		background-size: cover;
 		width: 30px;
 	}
+	.preview > canvas.selectable_cursor {
+		cursor: copy;
+	}
 	.text_padding {
 		margin-left: 5px;
 		margin-right: 5px;
