@@ -216,7 +216,7 @@ BARS.defineActions(function() {
 
 				new Dialog('animated_texture_editor_code', {
 					title: 'dialog.animated_texture_editor.code_reference',
-					resizable: true,
+					resizable: 'x',
 					width: 720,
 					singleButton: true,
 					part_order: ['form', 'component'],

@@ -551,6 +551,7 @@ window.Dialog = class Dialog {
 
 		this.width = options.width
 		this.draggable = options.draggable
+		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
 		this.cancel_on_click_outside = options.cancel_on_click_outside !== false
 		this.singleButton = options.singleButton
@@ -836,6 +837,52 @@ window.Dialog = class Dialog {
 				containment: '#page_wrapper'
 			})
 			jq_dialog.css('position', 'absolute')
+		}
+		if (this.resizable) {
+			this.object.classList.add('resizable')
+			let resize_handle = Interface.createElement('div', {class: 'dialog_resize_handle'});
+			jq_dialog.append(resize_handle);
+			if (this.resizable == 'x') {
+				resize_handle.style.cursor = 'e-resize';
+			} else if (this.resizable == 'y') {
+				resize_handle.style.cursor = 's-resize';
+			}
+			addEventListeners(resize_handle, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				resize_handle.classList.add('dragging');
+
+				let start_position = [e1.clientX, e1.clientY];
+				if (!this.width) this.width = this.object.clientWidth;
+				let original_width = this.width;
+				let original_left = parseFloat(this.object.style.left);
+				let original_height = parseFloat(this.object.style.height) || this.object.clientHeight;
+
+
+				let move = e2 => {
+					convertTouchEvent(e2);
+					
+					if (this.resizable.includes('x')) {
+						let x_offset = (e2.clientX - start_position[0]);
+						this.width = original_width + x_offset * 2;
+						this.object.style.width = this.width+'px';
+						if (this.draggable !== false) {
+							this.object.style.left = Math.clamp(original_left - (this.object.clientWidth - original_width) / 2, 0, window.innerWidth) + 'px';
+						}
+					}
+					if (this.resizable.includes('y')) {
+						let y_offset = (e2.clientY - start_position[1]);
+						let height = Math.clamp(original_height + y_offset, 80, window.innerHeight);
+						this.object.style.height = height+'px';
+					}
+				}
+				let stop = e2 => {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					resize_handle.classList.remove('dragging');
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
 		}
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {

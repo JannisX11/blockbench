@@ -680,6 +680,7 @@ class Animation extends AnimationItem {
 			id: 'animation_properties',
 			title: this.name,
 			width: 660,
+			resizable: 'x',
 			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},

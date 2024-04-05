@@ -40,6 +40,23 @@
 		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
+	.dialog_resize_handle {
+		--size: 7px;
+		position: absolute;
+		width: var(--size);
+		height: var(--size);
+		bottom: 0;
+		right: 0;
+		border-width: var(--size);
+		border-style: solid;
+		border-color: var(--color-button);
+		border-top-color: transparent !important;
+		border-left-color: transparent !important;
+		cursor: se-resize;
+	}
+	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
+		border-color: var(--color-accent);
+	}
 	.dialog_sidebar_menu_button {
 		height: 100%;
 		width: 34px;
@@ -104,6 +121,8 @@
 		position: fixed;
 		z-index: 21;
 		top: 30px;
+		max-width: 100vw;
+		max-height: calc(100vh - 30px);
 	}
 	.dialog:not(.draggable) {
 		left: 0;
@@ -111,7 +130,7 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
-	.dialog:not(.ui-resizable) {
+	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);
 		max-width: min(960px, 100%);
 	}
