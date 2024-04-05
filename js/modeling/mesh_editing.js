@@ -125,8 +125,10 @@ class KnifeToolContext {
 
 		this.mesh.mesh.add(this.points_mesh);
 		this.mesh.mesh.add(this.lines_mesh);
+	}
+	showToast() {
 		this.toast = Blockbench.showToastNotification({
-			text: 'Using Knife Tool. Click here to apply!',
+			text: tl('message.knife_tool.confirm', [Keybinds.extra.confirm.keybind.label]),
 			icon: BarItems.knife_tool.icon,
 			click: () => {
 				this.apply();
@@ -210,14 +212,49 @@ class KnifeToolContext {
 		let last_point = this.points.last();
 		if (last_point && this.hover_point) {
 			let this_point = this.hover_point;
-			// Todo: Send error message when crossing faces
-			let crossed_faces = (last_point.type == 'face' && this_point.type == 'face' && last_point.fkey != this_point.fkey)
+			let isSupported = (point_1, point_2) => {
+				if (point_1.type == 'face' && point_2.type == 'face') {
+					return point_1.fkey == point_2.fkey;
+				}
+				if (point_1.type == 'face' && point_2.type == 'line') {
+					let face = this.mesh.faces[point_1.fkey];
+					return (face && face.vertices.includes(point_2.attached_line[0]) && face.vertices.includes(point_2.attached_line[1]));
+				}
+				if (point_1.type == 'face' && point_2.type == 'vertex') {
+					let face = this.mesh.faces[point_1.fkey];
+					return (face && face.vertices.includes(point_2.attached_vertex));
+				}
+				if (point_1.type != 'face' && point_2.type != 'face' && (point_1.type != point_2.type || point_1 == last_point)) {
+					let pointInFace = (point, vertices) => {
+						if (point.type == 'line') {
+							return vertices.includes(point.attached_line[0]) && vertices.includes(point.attached_line[1]);
+						} else {
+							return vertices.includes(point.attached_vertex)
+						}
+					}
+					for (let fkey in this.mesh.faces) {
+						let vertices = this.mesh.faces[fkey]?.vertices;
+						if (pointInFace(point_1, vertices) && pointInFace(point_2, vertices)) {
+							return true;
+						}
+					}
+				}
+			}
+			if (!isSupported(last_point, this_point) && !isSupported(this_point, last_point)) {
+				Blockbench.showQuickMessage('message.knife_tool.skipped_face', 2200);
+			}
 		}
 
 		this.points.push(this.hover_point);
 		this.hover_point = null;
+
+		if (this.points.length == 1) this.showToast();
 	}
 	apply() {
+		if (!this.mesh || !this.points.length) {
+			this.cancel();
+			return;
+		}
 		function intersectLinesIgnoreTouching(p1, p2, p3, p4) {
 			let s1 = [ p2[0] - p1[0],   p2[1] - p1[1] ];
 			let s2 = [ p4[0] - p3[0],   p4[1] - p3[1] ];
@@ -556,7 +593,7 @@ class KnifeToolContext {
 							}
 						}
 					} else {
-						console.error('Knife tool: Failed to find face for edge', edge, nearest_vertices);
+						//console.error('Knife tool: Failed to find face for edge', edge, nearest_vertices);
 						break;
 					}
 					limiter++;
@@ -578,7 +615,7 @@ class KnifeToolContext {
 		this.mesh.mesh.remove(this.points_mesh);
 		this.mesh.mesh.remove(this.lines_mesh);
 		delete this.mesh
-		this.toast.delete();
+		if (this.toast) this.toast.delete();
 		KnifeToolContext.current = null;
 	}
 	static current = null;
@@ -1497,13 +1534,18 @@ BARS.defineActions(function() {
 		modes: ['edit'],
 		condition: () => Modes.edit && Mesh.hasAny(),
 		onCanvasMouseMove(data) {
+			if (!KnifeToolContext.current && Mesh.selected[0] && Mesh.selected.length == 1) {
+				KnifeToolContext.current = new KnifeToolContext(Mesh.selected[0]);
+			}
 			if (KnifeToolContext.current) {
 				KnifeToolContext.current.hover(data);
 			}
 		},
 		onCanvasClick(data) {
 			if (!data) return;
-			if (!KnifeToolContext.current) KnifeToolContext.current = new KnifeToolContext(data.element);
+			if (!KnifeToolContext.current && data.element instanceof Mesh) {
+				KnifeToolContext.current = new KnifeToolContext(data.element);
+			}
 			let context = KnifeToolContext.current;
 			context.addPoint(data);
 		},

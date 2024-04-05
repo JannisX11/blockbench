@@ -360,6 +360,8 @@
 	"message.meshes_and_box_uv": "Meshes are not compatible with Box UV. Go to File > Project... and switch to Per-face UV.",
 	"message.no_valid_elements": "No valid elements selected...",
 	"message.palette_locked": "The palette is locked",
+	"message.knife_tool.confirm": "Press %0 or click here to apply Knife Tool",
+	"message.knife_tool.skipped_face": "Cannot cut between different faces. Include the edges or vertices between them!",
 
 	"message.wireframe.enabled": "Wireframe view enabled",
 	"message.wireframe.disabled": "Wireframe view disabled",
