@@ -549,23 +549,24 @@ const Timeline = {
 		Timeline.loop()
 	},
 	loop() {
-		Animator.preview(true);
-		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
+		if (!Animation.selected) return;
 
-			var new_time;
-			if (Animation.selected && Animation.selected.anim_time_update) {
-				var new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
-			}
-			if (new_time == undefined || new_time <= Timeline.time) {
-				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
-			}
-			let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
-			if (Animation.selected.loop == 'hold') {
-				time = Math.clamp(time, 0, Animation.selected.length);
-			}
-			Timeline.last_frame_timecode = Date.now();
+		let max_length = Animation.selected.length || 1e3;
+		let new_time;
+		if (Animation.selected && Animation.selected.anim_time_update) {
+			new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
+		}
+		if (new_time == undefined || new_time <= Timeline.time) {
+			new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
+		}
+		let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
+		if (Animation.selected.loop == 'hold') {
+			time = Math.clamp(time, 0, Animation.selected.length);
+		}
+		Timeline.last_frame_timecode = Date.now();
+
+		if (time < max_length) {
 			Timeline.setTime(time);
-
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
 				Timeline.setTime(0)
@@ -574,9 +575,11 @@ const Timeline = {
 				Animator.preview()
 				Timeline.pause()
 			} else if (Animation.selected.loop == 'hold') {
+				Timeline.setTime(max_length);
 				Timeline.pause()
 			}
 		}
+		Animator.preview(true);
 	},
 	pause() {
 		Animator.preview();

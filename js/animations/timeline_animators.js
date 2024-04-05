@@ -435,6 +435,10 @@ class BoneAnimator extends GeneralAnimator {
 				let before_index = sorted.indexOf(before);
 				let before_plus = sorted[before_index-1];
 				let after_plus = sorted[before_index+2];
+				if (this.animation.loop == 'loop' && sorted.length >= 3) {
+					if (!before_plus) before_plus = sorted.at(-2);
+					if (!after_plus) after_plus = sorted[1];
+				}
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
 
