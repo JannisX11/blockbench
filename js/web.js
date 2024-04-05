@@ -122,6 +122,29 @@ async function loadInfoFromURL() {
 				icon: 'running_with_errors'
 			})
 		})
+	} else if (Blockbench.queries.loadtype) {
+		let file = {
+			content: Blockbench.queries.loaddata,
+			name: Blockbench.queries.loadname || 'file',
+			path: Blockbench.queries.loadname || 'file'
+		};
+		switch (Blockbench.queries.loadtype) {
+			case 'minecraft_skin': {
+				Formats.skin.setup_dialog.show();
+				Formats.skin.setup_dialog.setFormValues({
+					texture: file
+				})
+				break;
+			}
+			case 'image': {
+				loadImages([file]);
+				break;
+			}
+			case 'json': {
+				loadModelFile(file);
+				break;
+			}
+		}
 	}
 }
 
