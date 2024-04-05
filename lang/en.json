@@ -1735,6 +1735,8 @@
 	"action.animation_controller_preview_mode.paused": "Paused",
 	"action.animation_controller_preview_mode.manual": "Manual Preview",
 	"action.animation_controller_preview_mode.play": "Auto Play",
+	"action.slider_animation_controller_speed": "Controller Playback Speed",
+	"action.slider_animation_controller_speed.desc": "The playback speed of animation controllers in percent",
 	"action.load_animation_file": "Import Animations",
 	"action.load_animation_file.desc": "Import an animation file",
 	"action.play_animation": "Play Animation",

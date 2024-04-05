@@ -2089,6 +2089,7 @@ const BARS = {
 				'transform_pivot_space',
 				'selection_mode',
 				'animation_controller_preview_mode',
+				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
