@@ -245,6 +245,7 @@
 	"message.invalid_model.message": "This file does not contain valid model data.",
 	"message.invalid_format.title": "Invalid Format",
 	"message.invalid_format.message": "This model was made in the format '%0', which is not available in your Blockbench installation. You most likely need a specific plugin to open it correctly.",
+	"message.invalid_format.install_plugin": "Install plugin '%0'",
 	"message.cannot_re_import.title": "Model cannot be re-imported",
 	"message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file.",
 	"message.outdated_client.title": "Outdated client",

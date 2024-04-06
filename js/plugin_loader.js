@@ -54,6 +54,7 @@ class Plugin {
 		this.website = '';
 		this.source = 'store';
 		this.creation_date = 0;
+		this.contributes = {};
 		this.await_loading = false;
 		this.details = null;
 		this.about_fetched = false;
@@ -90,6 +91,9 @@ class Plugin {
 		if (data.new_repository_format) this.new_repository_format = true;
 		if (this.min_version != '' && !compareVersions('4.8.0', this.min_version)) {
 			this.new_repository_format = true;
+		}
+		if (typeof data.contributes == 'object') {
+			this.contributes = data.contributes;
 		}
 
 		Merge.function(this, data, 'onload')

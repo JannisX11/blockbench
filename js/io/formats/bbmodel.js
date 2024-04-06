@@ -270,9 +270,26 @@ var codec = new Codec('project', {
 
 		if (model.meta.model_format) {
 			if (!Formats[model.meta.model_format]) {
+				let supported_plugins = Plugins.all.filter(plugin => {
+					return plugin.contributes?.formats?.includes(model.meta.model_format);
+				})
+				let commands = {};
+				for (let plugin of supported_plugins) {
+					commands[plugin.id] = {
+						icon: plugin.icon,
+						text: tl('message.invalid_format.install_plugin', [plugin.title])
+					}
+				}
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_format',
-					message: tl('message.invalid_format.message', [model.meta.model_format])
+					message: tl('message.invalid_format.message', [model.meta.model_format]),
+					commands,
+				}, plugin_id => {
+					let plugin = plugin_id && supported_plugins.find(p => p.id == plugin_id);
+					if (plugin) {
+						BarItems.plugins_window.click();
+						Plugins.dialog.content_vue.selectPlugin(plugin);
+					}
 				})
 			}
 			var format = Formats[model.meta.model_format]||Formats.free;

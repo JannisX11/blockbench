@@ -282,6 +282,7 @@
 	}
 	.dialog_message_box_command > .icon {
 		margin-right: 10px;
+		vertical-align: sub;
 	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
