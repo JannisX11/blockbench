@@ -327,6 +327,9 @@ var codec = new Codec('gltf', {
 
 		let resetMeshBorrowing;
 
+		if (!Modes.edit) {
+			Animator.showDefaultPose();
+		}
 		if (options.armature) {
 			Outliner.root.forEach(node => {
 				if (node instanceof Group) {
@@ -353,9 +356,6 @@ var codec = new Codec('gltf', {
 		}
 		
 		try {
-			if (!Modes.edit) {
-				Animator.showDefaultPose();
-			}
 			if (BarItems.view_mode.value !== 'textured') {
 				BarItems.view_mode.set('textured');
 				BarItems.view_mode.onChange();
