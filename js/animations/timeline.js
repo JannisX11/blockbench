@@ -711,12 +711,16 @@ Interface.definePanels(() => {
 		],
 		onResize() {
 			Timeline.updateSize();
+			if (this.inside_vue.$el) {
+				this.inside_vue.timeline_height = this.inside_vue.$el.clientHeight;
+			}
 		},
 		component: {
 			name: 'panel-timeline',
 			data() {return {
 				size: 300,
 				length: 10,
+				timeline_height: 100,
 				animation_length: 0,
 				scroll_left: 0,
 				scroll_top: 0,
@@ -1453,7 +1457,7 @@ Interface.definePanels(() => {
 				scroll_left() {this.updateTimecodes()},
 			},
 			template: `
-				<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
+				<div id="timeline_vue" :class="{graph_editor: graph_editor_open}" :style="{'--timeline-height': timeline_height + 'px'}">
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>

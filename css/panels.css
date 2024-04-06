@@ -1144,7 +1144,7 @@
 		pointer-events: none;
 		margin-left: -1px;
 		margin-top: -2px;
-		height: 5000px;
+		height: calc(var(--timeline-height) - 24px);
 	}
 	#timeline_onion_skin_point {
 		position: absolute;
