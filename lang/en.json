@@ -378,6 +378,8 @@
 	"message.duplicate_groups.message": "The name of this bone exists on multiple bones. This can cause problems.",
 	"message.optimize_animation.keyframes_removed": "Removed %0 redundant keyframes",
 	"message.optimize_animation.nothing_to_optimize": "Found nothing to optimize!",
+	"message.duplicate_bone_copy_animation.title": "Copy Animation",
+	"message.duplicate_bone_copy_animation.message": "The duplicated bone is animated in %0 animations. Do you want to copy the keyframes over to the new bone?",
 
 	"message.small_face_dimensions.title": "Incompatible Face Dimensions",
 	"message.small_face_dimensions.message": "The selection contains faces that are smaller than 1 unit in one direction. The Box UV mapping system considers any faces below that threshold as 0 pixels wide. The texture on those faces therefore may not work correctly.",

@@ -1019,9 +1019,44 @@ SharedActions.add('duplicate', {
 	run() {
 		let cubes_before = elements.length;
 		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let g = Group.selected.duplicate();
-		g.select();
-		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
+		let original = Group.selected;
+		let all_original = [];
+		Group.selected.forEachChild(g => all_original.push(g), Group, true);
+
+		let new_group = Group.selected.duplicate();
+		let all_new = [];
+		new_group.forEachChild(g => all_new.push(g), Group, true);
+		new_group.select();
+
+		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true});
+
+		if (Animation.all.length) {
+			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
+			if (affected_anims) {
+				Blockbench.showMessageBox({
+					translateKey: 'duplicate_bone_copy_animation',
+					message: tl('message.duplicate_bone_copy_animation.message', [affected_anims.length]),
+					buttons: ['dialog.yes', 'dialog.no'],
+				}, result => {
+					if (result == 1) return;
+
+					Undo.initEdit({animations: affected_anims});
+					for (let animation of affected_anims) {
+						for (let i = 0; i < all_original.length; i++) {
+							let orig_animator = animation.animators[all_original[i].uuid];
+							if (!orig_animator) continue;
+							let new_animator = animation.getBoneAnimator(all_new[i]);
+		
+							new_animator.rotation_global = orig_animator.rotation_global;
+							for (let kf of orig_animator.keyframes) {
+								new_animator.addKeyframe(kf);
+							}
+						}
+					}
+					Undo.finishEdit('Copy animations of duplicated bones');
+				})
+			}
+		}
 	}
 })
 SharedActions.add('duplicate', {
