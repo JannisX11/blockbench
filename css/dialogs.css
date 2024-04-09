@@ -2352,6 +2352,7 @@
 		margin: auto;
 		cursor: inherit;
 		object-fit: contain;
+		image-rendering: auto;
 	}
 	#tab_overview_grid > li label {
 		cursor: inherit;

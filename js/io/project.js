@@ -543,8 +543,9 @@ let Project = 0;
 let ProjectData = {};
 
 ModelProject.prototype.menu = new Menu([
-	new MenuSeparator('manage'),
+	new MenuSeparator('settings'),
 	'project_window',
+	new MenuSeparator('manage'),
 	'open_model_folder',
 	'duplicate_project',
 	'convert_project',
