@@ -804,6 +804,7 @@
 		background-color: var(--color-frame);
 		border: 2px solid var(--color-frame);
 		border-top: none;
+		overflow: hidden;
 	}
 	.custom_thumbnail_preview {
 		position: relative;

@@ -442,15 +442,21 @@ const CustomTheme = {
 			style.textContent = theme.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-		    thumbnailStyles += `.custom_theme_thumbnail_${theme.id} ${rule.selectorText} { ${rule.style.cssText} }\n`;
-		  }
+				const selectors = rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => e.trim())
+				for (const selector of selectors) {
+					thumbnailStyles += `.custom_theme_thumbnail_${theme.id} ${selector} { ${rule.style.cssText} }\n`;
+				}
+			}
 		}
 		if (CustomTheme.data.customized) {
 			style.textContent = CustomTheme.data.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-		    thumbnailStyles += `.custom_theme_thumbnail_${CustomTheme.data.id} ${rule.selectorText} { ${rule.style.cssText} }\n`;
-		  }
+				const selectors = rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => e.trim())
+				for (const selector of selectors) {
+					thumbnailStyles += `.custom_theme_thumbnail_${CustomTheme.data.id} ${selector} { ${rule.style.cssText} }\n`;
+				}
+			}
 		}
 		document.head.removeChild(style);
 		$('style#theme_thumbnail_css').text(thumbnailStyles);
