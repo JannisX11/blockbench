@@ -442,20 +442,16 @@ const CustomTheme = {
 			style.textContent = theme.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				const selectors = rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => e.trim())
-				for (const selector of selectors) {
-					thumbnailStyles += `.custom_theme_thumbnail_${theme.id} ${selector} { ${rule.style.cssText} }\n`;
-				}
+				if (!rule.cssSelectorText || rule.selectorText.startsWith("@")) continue
+				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${theme.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		if (CustomTheme.data.customized) {
 			style.textContent = CustomTheme.data.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				const selectors = rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => e.trim())
-				for (const selector of selectors) {
-					thumbnailStyles += `.custom_theme_thumbnail_${CustomTheme.data.id} ${selector} { ${rule.style.cssText} }\n`;
-				}
+				if (!rule.cssSelectorText || rule.selectorText.startsWith("@")) continue
+				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${CustomTheme.data.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);
