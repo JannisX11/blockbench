@@ -442,7 +442,7 @@ const CustomTheme = {
 			style.textContent = theme.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText || rule.selectorText.startsWith("@")) continue
+				if (!rule.selectorText) continue
 				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${theme.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
@@ -450,7 +450,7 @@ const CustomTheme = {
 			style.textContent = CustomTheme.data.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText || rule.selectorText.startsWith("@")) continue
+				if (!rule.selectorText) continue
 				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${CustomTheme.data.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
