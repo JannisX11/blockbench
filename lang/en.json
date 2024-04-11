@@ -1146,6 +1146,8 @@
 	"action.slider_brush_opacity.desc": "Opacity of the brush from 0 to 255",
 	"action.slider_brush_softness": "Softness",
 	"action.slider_brush_softness.desc": "Softness of the brush in percent",
+	"action.slider_color_select_threshold": "Color Select Threshold",
+	"action.slider_color_select_threshold.desc": "How close the color of a neighboring pixel has to be to get selected by color or wand select",
 	"action.pixel_perfect_drawing": "Pixel Perfect Drawing",
 	"action.pixel_perfect_drawing.desc": "Draw smooth pixel-art lines without double pixels at curves",
 	"action.brush_shape": "Brush Shape",

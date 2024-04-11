@@ -2185,6 +2185,7 @@ const BARS = {
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'slider_color_select_threshold',
 				'_',
 				'brush_shape',
 				'blend_mode',

@@ -1291,6 +1291,7 @@ const Painter = {
 		BarItems.slider_brush_size.update()
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
+		BarItems.slider_color_select_threshold.update()
 	},
 	getBlendModeCompositeOperation(input = BarItems.blend_mode.value) {
 		switch (input) {
@@ -2601,6 +2602,8 @@ BARS.defineActions(function() {
 						selection_tool.setIcon(modes[id].icon);
 						selection_tool.mode = id;
 						selection_tool.select();
+						BARS.updateConditions();
+						BarItems.slider_color_select_threshold.update();
 					}
 				}
 				entries.push(entry);
@@ -2620,6 +2623,7 @@ BARS.defineActions(function() {
 		},
 		onSelect() {
 			UVEditor.vue.updateTexture();
+			BarItems.slider_color_select_threshold.update();
 		},
 		onUnselect() {
 			if (TextureLayer.selected?.in_limbo) {
@@ -2993,5 +2997,16 @@ BARS.defineActions(function() {
 		icon: 'stylus_laser_pointer',
 		category: 'view',
 		condition: () => Toolbox && Toolbox.selected.brush?.pixel_perfect == true,
+	})
+	new NumSlider('slider_color_select_threshold', {
+		category: 'paint',
+		condition: {tools: ['selection_tool'], method: () => ['color', 'wand'].includes(BarItems.selection_tool.mode)},
+		tool_setting: 'color_select_threshold',
+		value: 0,
+		settings: {
+			min: 0, max: 100, default: 0, value: 0,
+			interval: 1,
+			show_bar: true
+		}
 	})
 })

@@ -3346,8 +3346,18 @@ Interface.definePanels(function() {
 							let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
 							let pxcol = [...image_data.data];
 							let map = {};
+							let color_threshold = BarItems.slider_color_select_threshold.get();
+							let pxcol_lab = rgb2lab(pxcol);
+							let colorsWithinThreshold = (color_b) => {
+								if (pxcol.equals(color_b)) return true;
+								if (color_threshold == 0) return false;
+								if (Math.abs(pxcol[3] - color_b[3]) / 2.52 > color_threshold) return false;
+								let color_b_lab = rgb2lab(color_b);
+								let distance = labColorDistance(pxcol_lab, color_b_lab);
+								return distance <= color_threshold;
+							}
 							Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
-								if (pxcol.equals(px)) {
+								if (colorsWithinThreshold(px)) {
 									if (!map[x]) map[x] = {};
 									map[x][y] = true
 								}
