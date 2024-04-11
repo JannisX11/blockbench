@@ -9,8 +9,22 @@ class KeyframeDataPoint {
 		if (data.values) {
 			Object.assign(data, data.values)
 		}
+		let file_value_before = this.file;
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
+		}
+		if (isApp && data.file && !file_value_before) {
+			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
+				Timeline.visualizeAudioFile(this.file);
+			} else if (this.keyframe.channel == 'particle') {
+				try {
+					Blockbench.read([this.file], {}, (files) => {
+						Animator.loadParticleEmitter(this.file, files[0].content);
+					})
+				} catch (err) {
+					console.log('Could not load particle effect for', this.file)
+				}
+			}
 		}
 	}
 	getUndoCopy() {
@@ -112,13 +126,13 @@ class Keyframe {
 	}
 	offset(axis, amount, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
-		var value = this.get(axis)
+		var value = this.get(axis, data_point);
 		if (!value || value === '0') {
-			this.set(axis, amount, data_point)
+			this.set(axis, amount, data_point);
 			return amount;
 		}
 		if (typeof value === 'number') {
-			this.set(axis, value+amount, data_point)
+			this.set(axis, value+amount, data_point);
 			return value+amount
 		}
 		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
@@ -511,6 +525,13 @@ class Keyframe {
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
 		}
+		if (save && this.interpolation != 'bezier') {
+			delete copy.bezier_linked;
+			delete copy.bezier_left_time;
+			delete copy.bezier_left_value;
+			delete copy.bezier_right_time;
+			delete copy.bezier_right_value;
+		}
 		this.data_points.forEach(data_point => {
 			let point_copy = data_point.getUndoCopy();
 			if (options.absolute_paths == false) delete point_copy.file;
@@ -538,9 +559,10 @@ class Keyframe {
 					}
 				}})
 			];
-		}},
+		}},,
 		new MenuSeparator('copypaste'),
 		'copy',
+		'save_animation_preset',
 		'delete',
 	])
 	new Property(Keyframe, 'number', 'time')
@@ -634,20 +656,54 @@ function unselectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function removeSelectedKeyframes() {
-	Undo.initEdit({keyframes: Timeline.selected})
-	var i = Timeline.keyframes.length;
-	while (i > 0) {
-		i--;
-		let kf = Timeline.keyframes[i]
-		if (Timeline.selected.includes(kf)) {
-			kf.remove()
+SharedActions.add('delete', {
+	condition: () => Animator.open && Keyframe.selected.length,
+	priority: -1,
+	run() {
+		Undo.initEdit({keyframes: Timeline.selected})
+		var i = Timeline.keyframes.length;
+		while (i > 0) {
+			i--;
+			let kf = Timeline.keyframes[i]
+			if (Timeline.selected.includes(kf)) {
+				kf.remove()
+			}
 		}
+		updateKeyframeSelection()
+		Animator.preview()
+		Undo.finishEdit('Remove keyframes')
 	}
-	updateKeyframeSelection()
-	Animator.preview()
-	Undo.finishEdit('Remove keyframes')
-}
+})
+SharedActions.add('select_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		selectAllKeyframes()
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		unselectAllKeyframes()
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -1,
+	run() {
+		Timeline.keyframes.forEach((kf) => {
+			if (!kf.selected) {
+				Timeline.selected.push(kf)
+				kf.selected = true;
+			} else {
+				Timeline.selected.remove(kf);
+				kf.selected = false;
+			}
+		})
+		updateKeyframeSelection()
+	}
+})
 
 //Clipbench
 Object.assign(Clipbench, {
@@ -729,6 +785,7 @@ Object.assign(Clipbench, {
 		}
 	}
 })
+
 
 BARS.defineActions(function() {
 	new Action('add_keyframe', {
@@ -1296,7 +1353,7 @@ Interface.definePanels(function() {
 						Timeline.vue.graph_editor_axis = axis;
 					}
 				},
-				slideValue(axis, e1) {
+				slideValue(axis, e1, data_point) {
 					convertTouchEvent(e1);
 					let last_event = e1;
 					let started = false;
@@ -1332,7 +1389,7 @@ Interface.definePanels(function() {
 								}
 							
 								Keyframe.selected.forEach(kf => {
-									kf.offset(axis, difference);
+									kf.offset(axis, difference, data_point);
 								})
 
 								last_val = val;
@@ -1506,7 +1563,7 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event)" @touchstart="slideValue(key, $event)">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input keyframe_input tab_target"

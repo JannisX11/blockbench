@@ -9,7 +9,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'reference_image',
-		{extensions: ['jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		{extensions: ReferenceImage.supported_extensions, propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
 			files.map(file => {
 				return new ReferenceImage({
@@ -75,7 +75,7 @@ function loadModelFile(file) {
 		}
 	}
 
-	// Text
+	// Image
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'image', file.content);
 		if (success) return;
@@ -105,6 +105,7 @@ async function loadImages(files, event) {
 		img.onerror = reject;
 	})
 
+	// Options
 	if (Project && texture_li && texture_li.length) {
 		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
 		if (replace_texture) {
@@ -112,14 +113,26 @@ async function loadImages(files, event) {
 		}
 	}
 	if (Project) {
-		if (Condition(Panels.textures.condition)) {
+		if (!Format.image_editor && Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		options.reference_image = 'data.reference_image';
+		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
+			options.layer = 'data.layer';
+		}
 	}
 	options.edit = 'message.load_images.edit_image';
+	if (Project) {
+		options.reference_image = 'data.reference_image';
+	}
 	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
 		options.minecraft_skin = 'format.skin';
+	}
+	if (Project && Condition(Panels.textures.condition)) {
+		if (Format.image_editor) {
+			options.texture = 'message.load_images.add_image';
+		} else {
+			options.texture = 'action.import_texture';
+		}
 	}
 	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
 		options.extrude_with_cubes = 'dialog.extrude.title';
@@ -129,15 +142,40 @@ async function loadImages(files, event) {
 		if (method == 'texture') {
 			let new_textures = [];
 			Undo.initEdit({textures: new_textures});
-			files.forEach(function(f) {
+			files.forEach(function(f, i) {
 				let tex = new Texture().fromFile(f).add().fillParticle();
 				new_textures.push(tex);
+				if (Format.image_editor && i == 0) {
+					tex.select();
+				}
 			});
 			Undo.finishEdit('Add texture');
 
 		} else if (method == 'replace_texture') {
 			replace_texture.fromFile(files[0])
 			updateSelection();
+			
+		} else if (method == 'layer') {
+			let texture = Texture.getDefault();
+			let frame = new CanvasFrame(img);
+			Undo.initEdit({textures: [texture], bitmap: true});
+			if (!texture.layers_enabled) {
+				texture.activateLayers(false);
+			}
+			let layer = new TextureLayer({name: files[0].name, offset: [0, 0]}, texture);
+			let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
+			layer.setSize(frame.width, frame.height);
+			layer.ctx.putImageData(image_data, 0, 0);
+			texture.layers.push(layer);
+			layer.center();
+			layer.select();
+			layer.setLimbo();
+			texture.updateLayerChanges(true);
+
+			Undo.finishEdit('Add image as layer');
+			updateInterfacePanels();
+			BARS.updateConditions();
+			BarItems.move_layer_tool.select();
 			
 		} else if (method == 'reference_image') {
 			
@@ -155,7 +193,7 @@ async function loadImages(files, event) {
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
 			Formats.skin.setup_dialog.setFormValues({
-				texture: isApp ? files[0].path : files[0].content
+				texture: files[0]
 			})
 
 		} else if (method == 'extrude_with_cubes') {
@@ -169,12 +207,25 @@ async function loadImages(files, event) {
 		doLoadImages(all_methods[0]);
 
 	} else if (all_methods.length) {
+		let icons = {
+			replace_texture: 'file_upload',
+			texture: 'library_add',
+			layer: 'new_window',
+			reference_image: 'wallpaper',
+			edit: 'draw',
+			minecraft_skin: 'icon-player',
+			extrude_with_cubes: 'eject',
+		};
+		let commands = {};
+		for (let id in options) {
+			commands[id] = {text: options[id], icon: icons[id]};
+		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
 		if (files.length > 1) message += ` (${files.length})`;
 		Blockbench.showMessageBox({
 			id: 'load_images',
-			commands: options,
+			commands,
 			title, message,
 			icon: img,
 			buttons: ['dialog.cancel'],
@@ -437,8 +488,8 @@ function compileJSON(object, options = {}) {
 	}
 	function newLine(tabs) {
 		if (options.small === true) {return '';}
-		var s = '\n'
-		for (var i = 0; i < tabs; i++) {
+		let s = '\n';
+		for (let i = 0; i < tabs; i++) {
 			s += indentation;
 		}
 		return s;
@@ -506,7 +557,11 @@ function compileJSON(object, options = {}) {
 		}
 		return out;
 	}
-	return handleVar(object, 1)
+	let file = handleVar(object, 1);
+	if ((settings.final_newline.value && options.final_newline != false) || options.final_newline == true) {
+		file += '\n';
+	}
+	return file;
 }
 function autoParseJSON(data, feedback) {
 	if (data.substr(0, 4) === '<lz>') {
@@ -561,7 +616,7 @@ function autoParseJSON(data, feedback) {
 BARS.defineActions(function() {
 	//Import
 	new Action('open_model', {
-		icon: 'assessment',
+		icon: 'file_open',
 		category: 'file',
 		keybind: new Keybind({key: 'o', ctrl: true}),
 		click: function () {
@@ -577,6 +632,10 @@ BARS.defineActions(function() {
 				resource_id: 'model',
 				extensions: Codec.getAllExtensions(),
 				type: 'Model',
+				readtype: file => {
+					if (typeof file == 'string' && file.search(/\.png$/i) > 0) {
+						return 'image'
+					}},
 				startpath,
 				multiple: true
 			}, function(files) {
@@ -660,7 +719,7 @@ BARS.defineActions(function() {
 									dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 								},
 								buttons: ['dialog.cancel']
-							}, (codec, {dont_show_again}) => {
+							}, (codec, checkboxes = {}) => {
 								if (codec == 'both') {
 									Codecs.project.export();
 									export_codec.export();
@@ -668,7 +727,7 @@ BARS.defineActions(function() {
 								} else if (codec) {
 									Codecs[codec].export();
 								}
-								if (dont_show_again) {
+								if (checkboxes.dont_show_again) {
 									settings.dialog_save_codec.set(false);
 								}
 								resolve();

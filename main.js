@@ -160,6 +160,7 @@ function createWindow(second_instance, options = {}) {
 }
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('ignore-gpu-blocklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
@@ -180,12 +181,6 @@ app.on('open-file', function (event, path) {
 	}
 })
 
-ipcMain.on('change-main-color', (event, arg) => {
-	all_wins.forEach(win => {
-		if (win.isDestroyed() || win.webContents == event.sender.webContents) return;
-		win.webContents.send('set-main-color', arg)
-	})
-})
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })

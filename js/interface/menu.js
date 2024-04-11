@@ -54,25 +54,33 @@ class Menu {
 		}
 		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
-		this.node = document.createElement('ul');
-		this.node.classList.add('contextMenu');
 		this.structure = structure;
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
 		this.onClose = this.options.onClose;
+		this.node = document.createElement('ul');
+		this.node.classList.add('contextMenu');
+		if (this.options.class) {
+			if (this.options.class instanceof Array) {
+				this.node.classList.add(...this.options.class);
+			} else {
+				this.node.classList.add(this.options.class);
+			}
+		}
 	}
 	hover(node, event, expand) {
+		if (node.classList.contains('focused') && !expand) return;
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
 		var obj = $(node)
-		obj.addClass('focused')
+		node.classList.add('focused')
 		obj.parents('li.parent, li.hybrid_parent').addClass('opened')
 
 		if (obj.hasClass('parent') || (expand && obj.hasClass('hybrid_parent'))) {
 			var childlist = obj.find('> ul.contextMenu.sub')
 
-			if (expand) obj.addClass('opened');
+			if (expand) node.classList.add('opened');
 
 			var p_width = obj.outerWidth()
 			childlist.css('left', p_width + 'px')
@@ -152,7 +160,7 @@ class Menu {
 			}
 			used = true;
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-			obj.find('li.focused').click()
+			obj.find('li.focused').trigger('click');
 			if (scope && !this.options.keep_open) {
 				//scope.hide()
 			}
@@ -175,7 +183,7 @@ class Menu {
 		if (open_menu) {
 			open_menu.hide()
 		}
-		$('body').append(ctxmenu)
+		document.body.append(this.node);
 
 		ctxmenu.children().detach()
 
@@ -185,9 +193,10 @@ class Menu {
 			} else if (!list) {
 				list = object.children
 			}
+			node = $(node);
 			node.find('ul.contextMenu.sub').detach();
 			if (list.length) {
-				var childlist = $('<ul class="contextMenu sub"></ul>')
+				var childlist = $(Interface.createElement('ul', {class: 'contextMenu sub'}));
 
 				populateList(list, childlist, object.searchable);
 
@@ -201,7 +210,7 @@ class Menu {
 						})
 						more_button.addEventListener('mouseleave', e => {
 							if (node.is(':hover') && !childlist.is(':hover')) {
-								scope.hover(node, e);
+								scope.hover(node.get(0), e);
 							}
 						})
 					}
@@ -216,6 +225,7 @@ class Menu {
 		function populateList(list, menu_node, searchable) {
 			
 			if (searchable) {
+				let display_limit = 256;
 				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search'), inputmode: 'search'});
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
@@ -224,11 +234,11 @@ class Menu {
 				
 				let object_list = [];
 				list.forEach(function(s2, i) {
-					let jq_node = getEntry(s2, menu_node);
-					if (!jq_node) return;
+					let node = getEntry(s2, menu_node);
+					if (!node) return;
 					object_list.push({
 						object: s2,
-						node: jq_node[0] || jq_node,
+						node: node,
 						id: s2.id,
 						name: s2.name,
 						description: s2.description,
@@ -245,7 +255,9 @@ class Menu {
 					object_list.forEach(item => {
 						$(item.node).detach();
 					})
-					object_list.forEach(item => {
+					let count = 0;
+					for (let item of object_list) {
+						if (count > display_limit) break;
 						if (
 							typeof item.object == 'string' ||
 							item.object.always_show ||
@@ -254,9 +266,11 @@ class Menu {
 							(item.description && item.description.toUpperCase().includes(search_term))
 						) {
 							menu_node.append(item.node);
+							count++;
 						}
-					})
+					}
 				}
+				input.oninput(0);
 				if (menu_node == ctxmenu) {
 					input.focus();
 				}
@@ -271,9 +285,8 @@ class Menu {
 				nodes.last().remove();
 			}
 
-			if (!nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'))) {
-				menu_node.addClass('scrollable');
-			}
+			let is_scrollable = !nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'));
+			menu_node.toggleClass('scrollable', is_scrollable);
 		}
 
 		function getEntry(s, parent) {
@@ -293,7 +306,7 @@ class Menu {
 				entry = s.menu_node;
 				var last = parent.children().last()
 				if (last.length && !last.hasClass('menu_separator')) {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
 				return entry;
 			}
@@ -304,24 +317,14 @@ class Menu {
 
 			if (s instanceof Action) {
 
-				entry = $(s.menu_node)
+				entry = s.menu_node
 
-				entry.removeClass('focused')
-				entry.off('click')
-				entry.off('mouseenter mousedown')
-				entry.on('mouseenter mousedown', function(e) {
-					if (this == e.target) {
-						scope.hover(this, e)
-					}
-				})
+				entry.classList.remove('focused');
+
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
 					createChildList(s, entry)
 				} else {
-					entry.on('click', (e) => {
-						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
-						s.trigger(e)
-					});
 					if (s.side_menu instanceof Menu) {
 						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
@@ -339,7 +342,7 @@ class Menu {
 					}
 				}
 
-				parent.append(entry)
+				parent[0].append(entry)
 
 			} else if (s instanceof BarSelect) {
 				
@@ -348,7 +351,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon)
 
 				//Submenu
@@ -378,10 +381,10 @@ class Menu {
 				let child_count = createChildList({children}, entry)
 
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
-				entry.mouseenter(function(e) {
-					scope.hover(this, e)
+				entry.addEventListener('mouseenter', function(e) {
+					scope.hover(entry, e);
 				})
 
 			/*} else if (s instanceof NumSlider) {
@@ -407,14 +410,14 @@ class Menu {
 				]);
 				entry.prepend(icon);
 
-				parent.append(entry);
+				parent[0].append(entry);
 
 				$(entry).mouseenter(function(e) {
 					scope.hover(this, e)
 				})
 				*/
 			} else if (s instanceof HTMLElement) {
-				parent.append(s);
+				parent[0].append(s);
 
 			} else if (typeof s === 'object') {
 				
@@ -424,7 +427,7 @@ class Menu {
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
+				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
 				if (s.keybind) {
 					let label = document.createElement('label');
@@ -433,8 +436,8 @@ class Menu {
 					entry.append(label);
 				}
 				if (typeof s.click === 'function') {
-					entry.on('click', e => {
-						if (e.target == entry.get(0)) {
+					entry.addEventListener('click', e => {
+						if (e.target == entry) {
 							s.click(scope_context, e)
 						}
 					})
@@ -444,18 +447,19 @@ class Menu {
 					child_count = createChildList(s, entry);
 				}
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent.append(entry)
+					parent[0].append(entry)
 				}
-				entry.mouseenter(function(e) {
-					scope.hover(this, e)
+				addEventListeners(entry, 'mouseenter mouseover', (e) => {
+					if (e.target.classList.contains('menu_separator')) return;
+					scope.hover(entry, e);
 				})
 			}
 			//Highlight
 			if (scope.highlight_action == s && entry) {
 				let obj = entry;
-				while (obj[0] && obj[0].nodeName == 'LI') {
-					obj.addClass('highlighted');
-					obj = obj.parent().parent();
+				while (obj && obj.nodeName == 'LI') {
+					obj.classList.add('highlighted');
+					obj = obj.parentElement.parentElement;
 				}
 			}
 			if (s.context && last_context != context) context = last_context;
@@ -535,9 +539,10 @@ class Menu {
 
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope
-			$(scope.label).addClass('opened')
+			scope.label.classList.add('opened');
 		}
 		open_menu = scope;
+		Menu.open = this;
 		return scope;
 	}
 	show(...args) {
@@ -546,21 +551,21 @@ class Menu {
 	hide() {
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
-		$(this.node).detach()
+		this.node.remove()
 		open_menu = null;
+		Menu.open = null;
 		return this;
 	}
 	conditionMet() {
 		return Condition(this.condition);
 	}
-	addAction(action, path) {
+	addAction(action, path = '') {
 		if (this.structure instanceof Array == false) return;
-		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
 		let track = path.split('.')
 
 		function traverse(arr, layer) {
-			if (track.length === layer || !track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
+			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
 				let index = arr.length;
 				if (track[layer] !== '' && track.length !== layer) {
 					if (track[layer].startsWith('#')) {
@@ -653,4 +658,11 @@ class Menu {
 		traverse(this.structure, 0)
 		rm_item.menus.remove(scope)
 	}
+}
+
+function preventContextMenu() {
+	Blockbench.addFlag('no_context_menu');
+	setTimeout(() => {
+		Blockbench.removeFlag('no_context_menu');
+	}, 20);
 }

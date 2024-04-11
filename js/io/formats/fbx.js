@@ -241,7 +241,7 @@ var codec = new Codec('fbx', {
 					textures.push(tex);
 
 					vertices.forEach(vkey => {
-						uv.push(face.uv[vkey][0] / Project.texture_width, 1 - face.uv[vkey][1] / Project.texture_height);
+						uv.push(face.uv[vkey][0] / Project.getUVWidth(tex), 1 - face.uv[vkey][1] / Project.getUVHeight(tex));
 					})
 
 					normals.push(...face.getNormal(true));
@@ -407,10 +407,10 @@ var codec = new Codec('fbx', {
 				normals.push(...cube_face_normals[fkey]);
 
 				let uv_outputs = [
-					[face.uv[0] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
-					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[0] / Project.getUVWidth(texture), 1 - face.uv[3] / Project.getUVHeight(texture)],
+					[face.uv[2] / Project.getUVWidth(texture), 1 - face.uv[3] / Project.getUVHeight(texture)],
+					[face.uv[2] / Project.getUVWidth(texture), 1 - face.uv[1] / Project.getUVHeight(texture)],
+					[face.uv[0] / Project.getUVWidth(texture), 1 - face.uv[1] / Project.getUVHeight(texture)],
 				];
 				var rot = face.rotation || 0;
 				while (rot > 0) {
@@ -1051,7 +1051,8 @@ var codec = new Codec('fbx', {
 	},
 	async export() {
 		if (Object.keys(this.export_options).length) {
-			await this.promptExportOptions();
+			let result = await this.promptExportOptions();
+			if (result === null) return;
 		}
 		var scope = this;
 		if (isApp) {

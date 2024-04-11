@@ -2,7 +2,9 @@ const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
+	recently_used: [],
 	max_length: 32,
+	max_recently_used: 8,
 	select(input) {
 		ActionControl.open = true;
 		open_interface = ActionControl;
@@ -78,6 +80,9 @@ const ActionControl = {
 		} else {
 			action.trigger(e);
 		}
+		if (action instanceof BarItem) {
+			this.addRecentlyUsed(action);
+		}
 	},
 	click(action, e) {
 		ActionControl.trigger(action, e)
@@ -122,7 +127,20 @@ const ActionControl = {
 			return false;
 		}
 		return true;
+	},
+	addRecentlyUsed(action) {
+		if (action.id == 'action_control') return;
+		ActionControl.recently_used.remove(action.id);
+		ActionControl.recently_used.splice(0, 0, action.id);
+		if (ActionControl.recently_used.length > ActionControl.max_recently_used) {
+			ActionControl.recently_used.pop();
+		}
+		localStorage.setItem('action_control_recently_used', ActionControl.recently_used.join(','));
 	}
+}
+if (localStorage.getItem('action_control_recently_used')) {
+	let recently_used = localStorage.getItem('action_control_recently_used').split(',');
+	ActionControl.recently_used.push(...recently_used.filter(i => i));
 }
 
 
@@ -149,7 +167,7 @@ BARS.defineActions(function() {
 				'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
 				'setting': 	{name: tl('data.setting'), icon: 'settings'},
 				'settings': {name: tl('data.setting'), icon: 'settings'},
-				'profile':	{name: tl('data.settings_profile'), icon: 'settings_applications'},
+				'profile':	{name: tl('data.settings_profile'), icon: 'manage_accounts'},
 				'+plugin': 	{name: tl('action.add_plugin'), icon: 'extension'},
 				'-plugin': 	{name: tl('action.remove_plugin'), icon: 'extension_off'},
 				'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
@@ -193,7 +211,9 @@ BARS.defineActions(function() {
 					}
 				}
 				if (!type) {
-					for (let item of Keybinds.actions) {
+					let recently_used = ActionControl.recently_used.map(id => BarItems[id]).filter(v => v);
+					let all_items = recently_used.concat(Keybinds.actions);
+					for (let item of all_items) {
 						if (
 							search_input.length == 0 ||
 							item.name.toLowerCase().includes(search_input) ||
@@ -277,7 +297,7 @@ BARS.defineActions(function() {
 				if (type == 'profile') {
 					list.push({
 						name: tl('generic.none'),
-						icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+						icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 						type: 'profile'
 					})
 					for (let profile of SettingsProfile.all) {
@@ -288,7 +308,7 @@ BARS.defineActions(function() {
 						) {
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 								color: markerColors[profile.color].standard,
 								uuid: profile.uuid,
 								type: 'profile'
@@ -305,9 +325,15 @@ BARS.defineActions(function() {
 							plugin.name.toLowerCase().includes(search_input) ||
 							plugin.description.toLowerCase().includes(search_input))
 						) {
+							let icon = plugin.icon;
+							if (plugin.hasImageIcon()) {
+								icon = document.createElement('img');
+								icon.classList.add('icon');
+								icon.src = plugin.getIcon();
+							}
 							list.push({
 								name: plugin.name,
-								icon: plugin.icon,
+								icon,
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,
@@ -394,7 +420,7 @@ BARS.defineActions(function() {
 		template: `
 			<dialog id="action_selector" v-if="open">
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
-					<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
+					<dynamic-icon :icon="search_types[search_type] ? search_types[search_type].icon : 'fullscreen'" />
 				</div>
 				<input type="text" v-model="search_input" inputmode="search" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 				<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
@@ -407,7 +433,7 @@ BARS.defineActions(function() {
 							@click="click(item, $event)"
 							@mouseenter="index = i"
 						>
-							<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>
 							<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
 						</li>

@@ -311,11 +311,11 @@ const PredicateOverrideEditor = {
 							<select-input v-model="generator.type" :options="available_predicate_options" @input="updateGeneratorType()" />
 
 							<label>${tl('dialog.predicate_overrides.variants')}</label>
-							<numeric-input v-model.number="generator.variants" class="dark_bordered" min="1" step="1" style="width: 70px;" />
+							<numeric-input v-model.number="generator.variants" :min="1" :step="1" style="width: 70px;" />
 
 							<template v-if="generator.type == 'custom_model_data'">
 								<label>${tl('dialog.predicate_overrides.start_value')}</label>
-								<numeric-input v-model.number="generator.start_value" min="0" step="1" class="dark_bordered" style="width: 45px;" />
+								<numeric-input v-model.number="generator.start_value" :min="0" :step="1" style="width: 45px;" />
 							</template>
 
 							<label>${tl('dialog.predicate_overrides.model')}</label>

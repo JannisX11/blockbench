@@ -24,6 +24,7 @@ class Codec extends EventSystem {
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 	}
 	getExportOptions() {
 		let options = {};
@@ -105,7 +106,8 @@ class Codec extends EventSystem {
 	}
 	async export() {
 		if (Object.keys(this.export_options).length) {
-			await this.promptExportOptions();
+			let result = await this.promptExportOptions();
+			if (result === null) return;
 		}
 		Blockbench.export({
 			resource_id: 'model',

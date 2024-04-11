@@ -151,6 +151,9 @@
 		background-size: cover;
 		width: 30px;
 	}
+	.preview > canvas.selectable_cursor {
+		cursor: copy;
+	}
 	.text_padding {
 		margin-left: 5px;
 		margin-right: 5px;
@@ -185,9 +188,9 @@
 	}
 	.list {
 		background-color: var(--color-back);
-		width: 100%;
 		overflow-y: scroll;
 		flex-grow: 1;
+		clear: both;
 	}
 	.list::-webkit-scrollbar-track {
 		background: var(--color-back);
@@ -216,13 +219,29 @@
 		cursor: default;
 		pointer-events: none;
 	}
-
 	@media (max-device-width: 640px) {
 		#quick_message_box {
 			bottom: 26px;
 			top: unset;
 			padding: 6px;
 		}
+	}
+	#cursor_tooltip {
+		position: absolute;
+		z-index: 101;
+		max-width: 250px;
+		width: fit-content;
+		line-height: 18px;
+		padding: 2px 8px;
+		margin-top: 10px;
+		margin-left: 9px;
+		background-color: var(--color-bright_ui);
+		color: var(--color-bright_ui_text);
+		box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);;
+		overflow-wrap: break-word;
+		white-space: pre-line;
+		cursor: default;
+		pointer-events: none;
 	}
 	.uv_message_box {
 		position: absolute;
@@ -283,9 +302,22 @@
 	@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 	@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 /*Markdown*/
+	.markdown h1 {
+		margin: 8px 0 8px 0;
+	}
+	.markdown h2 {
+		margin: 14px 0 8px 0;
+	}
+	.markdown p {
+		margin: 12px 0;
+	}
 	.markdown li {
 		list-style: initial;
 		cursor: inherit;
+		margin: 8px 0;
+	}
+	.markdown li > p {
+		margin: 0;
 	}
 	.markdown ul {
 		padding-left: 24px;
@@ -312,6 +344,26 @@
 	.markdown pre code {
 		user-select: text;
 		-webkit-user-select: text;
+	}
+	blockquote {
+		border-left: 4px solid var(--color-accent);
+		padding: 4px;
+		padding-left: 16px;
+		background: var(--color-back);
+	}
+	.markdown table {
+		border: 1px solid var(--color-border);
+		background: var(--color-back);
+	}
+	.markdown th {
+		padding: 4px;
+	}
+	.markdown td {
+		padding: 3px 4px;
+		border-top: 1px solid var(--color-border);
+	}
+	.markdown img {
+		max-width: 100%;
 	}
 
 /*Actions*/
@@ -579,7 +631,7 @@
 		margin-top: -4px;
 	}
 	.contextMenu.scrollable {
-		max-height: min(500px, 100vh);
+		max-height: min(800px, 100vh);
 		overflow: auto;
 	}
 	.contextMenu li {
@@ -658,6 +710,9 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
+	.contextMenu .menu_more_button > * {
+		pointer-events: none;
+	}
 	li.menu_separator {
 		height: 2px;
 		width: 100%;
@@ -725,7 +780,8 @@
 	body.theme_borders .dialog_close_button,
 	body.theme_borders #start_screen > content,
 	body.theme_borders #quick_message_box,
-	body.theme_borders action_selector > #action_selector_list
+	body.theme_borders action_selector > #action_selector_list,
+	body.theme_borders .plugins_suggested_row > ul > li
 	{
 		border: 1px solid var(--color-border);
 	}

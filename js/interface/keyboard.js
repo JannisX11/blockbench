@@ -1,4 +1,14 @@
+
 class Keybind {
+	/**
+	 * Create a keybind
+	 * @param {object} keys Set up the default keys that need to be pressed
+	 * @param {number|string} keys.key Main key. Check keycode.info to find out the numeric value, or simply use letters for letter keys
+	 * @param {boolean} keys.ctrl Control key. On MacOS this automatically works for Cmd
+	 * @param {boolean} keys.shift Shift key
+	 * @param {boolean} keys.alt Alt key
+	 * @param {boolean} keys.meta Meta key
+	 */
 	constructor(keys) {
 		this.key 	= -1;
 		this.ctrl 	= false;
@@ -216,7 +226,7 @@ class Keybind {
 			document.removeEventListener('keyup', onActivate)
 			document.removeEventListener('keydown', onActivateDown)
 			overlay.off('mousedown', onActivate)
-			overlay.off('mousewheel', onActivate)
+			overlay.off('wheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
 
@@ -235,8 +245,9 @@ class Keybind {
 
 			scope.stopRecording()
 		}
+		let mac_modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
 		function onActivateDown(event) {
-			if (event.metaKey && event.which != 91) {
+			if (event.metaKey && !mac_modifiers.includes(event.key)) {
 				onActivate(event)
 			}
 		}
@@ -247,7 +258,7 @@ class Keybind {
 		document.addEventListener('keyup', onActivate)
 		document.addEventListener('keydown', onActivateDown)
 		overlay.on('mousedown', onActivate)
-		overlay.on('mousewheel', onActivate)
+		overlay.on('wheel', onActivate)
 
 		overlay.on('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
 		return this;
@@ -314,6 +325,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 		Keybinds.extra.preview_drag.keybind.set({key: 2, shift: true}).save(false);
 		Keybinds.extra.preview_zoom.keybind.set({key: 2, ctrl: true}).save(false);
 		Keybinds.extra.preview_area_select.keybind.set({key: 1}).save(false);
+		Keybinds.extra.paint_secondary_color.keybind.set({key: 3}).save(false);
 	}
 
 	Keybinds.save();
@@ -608,7 +620,7 @@ onVueSetup(function() {
 				</div>`
 		},
 		onButton() {
-			Settings.save();
+			Keybinds.save();
 		},
 		onOpen() {
 			updateKeybindConflicts();
@@ -623,9 +635,14 @@ window.addEventListener('blur', event => {
 			delete Toolbox.original;
 		}
 	}
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = false;
 	Pressing.alt = false;
 	Pressing.ctrl = false;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })
 
 window.addEventListener('focus', event => {
@@ -660,15 +677,24 @@ function getFocusedTextInput() {
 addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
+
+	
+	let modifiers_changed = Pressing.shift != e.shiftKey || Pressing.alt != e.altKey || Pressing.ctrl != e.ctrlKey;
+	let before = modifiers_changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = e.shiftKey;
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
+	if (modifiers_changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
+
 	if (e.which === 16) {
 		showShiftTooltip()
 	}
 
-	var used = false;
-	var input_focus = getFocusedTextInput()
+	let used = false;
+	let used_for_input_action;
+	let input_focus = getFocusedTextInput()
 
 	// Fix #1427
 	if (e.code == 'PageUp' || e.code == 'PageDown') {
@@ -679,7 +705,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
+		if (e.which == 9 && !Dialog.open && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
@@ -719,10 +745,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		if (Blockbench.hasFlag('renaming')) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				stopRenameOutliner()
+				return;
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				stopRenameOutliner(false)
+				return;
 			}
-			return;
 		}
 		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
@@ -730,10 +757,13 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				return;
 			}
 		}
-		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).trigger('click')
 		}
+		used_for_input_action = !e.ctrlKey && !e.metaKey;
+		if ('zyxcva'.includes(e.key) || (e.keyCode >= 37 && e.keyCode <= 40)) used_for_input_action = true;
+
+		if ($('pre.prism-editor__code:focus').length && used_for_input_action) return;
 	}
 	let captured = false;
 	let results = Blockbench.dispatchEvent('press_key', {
@@ -762,11 +792,17 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
 		Transformer.cancelMovement(e, false);
 		updateSelection();
+	} else if (KnifeToolContext.current) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			KnifeToolContext.current.cancel();
+		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			KnifeToolContext.current.apply();
+		}
 	}
 	//Keybinds
-	if (!input_focus) {
+	if (!input_focus || !used_for_input_action) {
 		Keybinds.actions.forEach(function(action) {
-			if (!open_dialog || action.work_in_dialog) {
+			if (!Dialog.open || action.work_in_dialog) {
 				// Condition for actions is not checked here because tools can be triggered from different modes under certain circumstances, which switches the mode
 				if (action.keybind && typeof action.trigger === 'function' && action.keybind.isTriggered(e)) {
 					if (action.trigger(e)) used = true
@@ -782,13 +818,27 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				}
 			}
 		})
+		if (!used && !Dialog.open) {
+			for (let tool of Tool.all) {
+				if (tool.keybind && typeof tool.trigger === 'function' && tool.keybind.isTriggered(e)) {
+					if (tool.switchModeAndSelect(e)) break;
+				}
+			}
+		}
 	}
 	// Menu
 	if (open_menu) {
 		used = open_menu.keyNavigate(e)||used
-		
+
 	// Dialog
 	} else if (Dialog.open) {
+		let dialog = Dialog.open;
+		for (let id in (dialog.keyboard_actions || {})) {
+			let action = dialog.keyboard_actions[id];
+			if (Condition(action.condition, dialog) && action.keybind.isTriggered(e)) {
+				action.run.call(dialog, e);
+			}
+		}
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				if (input_focus) {
@@ -814,6 +864,28 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			ReferenceImageMode.deactivate();
 			used = true;
 		}
+	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected && Texture.selected.selection.is_custom) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			SharedActions.run('unselect_all', e);
+			used = true;
+		}
+	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+		switch (e.which) {
+			case 37: Painter.selection.x -= 1; break;//<
+			case 38: Painter.selection.y -= 1; break;//UP
+			case 39: Painter.selection.x += 1; break;//>
+			case 40: Painter.selection.y += 1; break;//DOWN
+		}
+		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
+		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
+		UVEditor.updatePastingOverlay();
+		e.preventDefault();
+
+	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {
+		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			TextureLayer.selected.resolveLimbo(false);
+			used = true;
+		}
 	}
 	if (ActionControl.open) {
 		used = ActionControl.handleKeys(e) || used
@@ -828,7 +900,7 @@ document.addEventListener('wheel', (e) => {
 	Keybinds.actions.forEach(function(action) {
 		if (
 			action.keybind &&
-			(!open_dialog || action.work_in_dialog) &&
+			(!Dialog.open || action.work_in_dialog) &&
 			typeof action.trigger === 'function' &&
 			action.keybind.isTriggered(e)
 		) {
@@ -847,11 +919,20 @@ $(document).keyup(function(e) {
 	if (Pressing.alt && ActionControl.open) {
 		ActionControl.vue.$forceUpdate()
 	}
+	// Firefox-specific fix for suppressing the menu bar
+	if(e.which == 18) {
+		e.preventDefault();
+	}
 	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
-	Pressing.shift = false;
-	Pressing.alt = false;
-	Pressing.ctrl = false;
+	let changed = Pressing.shift || Pressing.alt || Pressing.ctrl;
+	let before = changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
+	Pressing.shift = e.shiftKey;
+	Pressing.alt = e.altKey;
+	Pressing.ctrl = e.ctrlKey;
+	if (changed) {
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+	}
 })

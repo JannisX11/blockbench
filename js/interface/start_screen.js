@@ -1,5 +1,9 @@
 const StartScreen = {
-	loaders: {}
+	loaders: {},
+	open() {
+		Interface.tab_bar.openNewTab();
+		MenuBar.mode_switcher_button.classList.add('hidden');
+	}
 };
 
 function addStartScreenSection(id, data) {
@@ -126,7 +130,7 @@ function addStartScreenSection(id, data) {
 	}
 }
 
-onVueSetup(function() {
+onVueSetup(async function() {
 	StateMemory.init('start_screen_list_type', 'string')
 
 	let slideshow_timer = 0;
@@ -152,27 +156,19 @@ onVueSetup(function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [NeptuneCoffee](https://twitter.com/Neptune_Coffee) & [Dankbarkeit](https://twitter.com/Dxnkbarkeit)",
+					description: "Splash Art 1st Place by [morange](https://twitter.com/OrangewithMC) & [PeacedoveWum](https://twitter.com/PeacedoveWum)",
 				},
 				{
 					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [MorganFreeguy](https://www.artstation.com/morganfreeguy) & [WOLLAND](https://wolland-services.com/)",
+					description: "Splash Art 2nd Place by [Wackyblocks](https://twitter.com/Wackyblocks)",
 				},
 				{
 					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [RETENEIZER](https://twitter.com/RETENEIZER)",
-				},
-				{
-					source: "./assets/splash_art/4.png",
-					description: "Splash Art 4th Place by [KanekiAkira](https://twitter.com/kaneki_akira) & [Jumi](https://jumi-pf.com)",
-				},
-				{
-					source: "./assets/splash_art/5.png",
-					description: "Splash Art 5th Place by [Azagwen](https://twitter.com/azagwen) & [shroomy](https://twitter.com/ShroomyArts)",
+					description: "Splash Art 3rd Place by [David Grindholmen](https://david_grindholmen.artstation.com/) & [Quinten Bench](https://quintenbench.wixsite.com/quinten-bench)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
-			slideshow_selected: Blockbench.hasFlag('after_update') ? 0 : Math.floor(Math.random()*5),
+			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
 		},
@@ -329,7 +325,7 @@ onVueSetup(function() {
 			this.updateThumbnails();
 
 			setInterval(() => {
-				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.checkVisibility()) {
+				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.offsetParent) {
 					slideshow_timer += 1;
 
 					if (slideshow_timer == 24) {
@@ -500,8 +496,8 @@ onVueSetup(function() {
 	}
 	
 	//Backup Model
-	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
-		var backup_models = localStorage.getItem('backup_model')
+	let has_backups = await AutoBackup.hasBackups();
+	if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
 
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
@@ -511,14 +507,12 @@ onVueSetup(function() {
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					let parsed_backup_models = JSON.parse(backup_models);
-					for (let uuid in parsed_backup_models) {
-						Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
-					}
-					section.delete();
+					AutoBackup.recoverAllBackups().then(() => {
+						section.delete();
+					});
 				}},
 				{type: 'button', text: tl('dialog.discard'), click: (e) => {
-					localStorage.removeItem('backup_model');
+					AutoBackup.removeAllBackups();
 					section.delete();
 				}}
 			]
@@ -538,6 +532,7 @@ class ModelLoader {
 		this.show_on_start_screen = true;
 		this.confidential = options.confidential || false;
 		this.condition = options.condition;
+		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.format_page = options.format_page;
 		this.onFormatPage = options.onFormatPage;

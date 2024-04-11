@@ -21,6 +21,7 @@ class UndoSystem {
 		}
 		this.startChange(amended);
 		this.current_save = new UndoSystem.save(aspects)
+		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
 	finishEdit(action, aspects) {
@@ -59,11 +60,13 @@ class UndoSystem {
 		}
 		return entry;
 	}
-	cancelEdit() {
+	cancelEdit(revert_changes = true) {
 		if (!this.current_save) return;
-		Canvas.outlines.children.empty();
 		this.startChange();
-		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		if (revert_changes) {
+			Canvas.outlines.children.empty();
+			this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		}
 		delete this.current_save;
 	}
 	closeAmendEditMenu() {
@@ -102,6 +105,10 @@ class UndoSystem {
 						form_values[key] = !!input.node.checked;
 					}
 				}
+			}
+			if (Undo.history.length != Undo.index) {
+				console.error('Detected error in amending edit. Skipping this edit.');
+				return;
 			}
 			Undo.undo(null, true);
 			callback(form_values, scope.amend_edit_menu.form);
@@ -142,7 +149,7 @@ class UndoSystem {
 
 			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
 				
-				let toggle = Interface.createElement('input', {type: 'checkbox', checked: !!form_line.value});
+				let toggle = Interface.createElement('input', {type: 'checkbox', checked: form_line.value ? true : undefined});
 				toggle.addEventListener('input', updateValue);
 				line.append(toggle);
 				input_elements[key] = toggle;
@@ -323,11 +330,20 @@ class UndoSystem {
 					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]).updateSource()
+						tex.extend(save.textures[uuid]);
+						if (tex.source_overwritten && save.textures[uuid].image_data) {
+							// If the source file was overwritten by more recent changes, make sure to display the original data
+							tex.convertToInternal(save.textures[uuid].image_data);
+						}
+						if (tex.layers_enabled) {
+							tex.updateLayerChanges(true);
+						}
+						tex.updateSource();
 						tex.keep_size = true;
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
 						}
+						tex.syncToOtherProject();
 					}
 				} else {
 					var tex = new Texture(save.textures[uuid], uuid)
@@ -346,7 +362,35 @@ class UndoSystem {
 					}
 				}
 			}
-			Canvas.updateAllFaces()
+			Canvas.updateAllFaces();
+			updateInterfacePanels();
+			UVEditor.vue.updateTexture();
+		}
+
+		if (save.layers) {
+			let affected_textures = [];
+			for (let uuid in save.layers) {
+				if (reference.layers[uuid]) {
+					let tex = Texture.all.find(tex => tex.uuid == save.layers[uuid].texture);
+					let layer = tex && tex.layers.find(l => l.uuid == uuid);
+					if (layer) {
+						layer.extend(save.layers[uuid]);
+						affected_textures.safePush(tex);
+					}
+				}
+			}
+			affected_textures.forEach(tex => {
+				/*if (tex.source_overwritten && save.layers[uuid].image_data) {
+					// If the source file was overwritten by more recent changes, make sure to display the original data
+					tex.convertToInternal(save.layers[uuid].image_data);
+				}*/
+				tex.updateLayerChanges(true);
+				tex.updateSource();
+				tex.keep_size = true;
+				tex.syncToOtherProject();
+			})
+			Canvas.updateAllFaces();
+			UVEditor.vue.updateTexture();
 		}
 
 		if (save.texture_order) {
@@ -470,15 +514,17 @@ class UndoSystem {
 		}
 
 		if (save.display_slots) {
-			for (var slot in save.display_slots) {
-				var data = save.display_slots[slot]
+			for (let slot in save.display_slots) {
+				let data = save.display_slots[slot]
 
 				if (!Project.display_settings[slot] && data) {
 					Project.display_settings[slot] = new DisplaySlot()
 				} else if (data === null && Project.display_settings[slot]) {
 					Project.display_settings[slot].default()
 				}
-				Project.display_settings[slot].extend(data).update()
+				if (Project.display_settings[slot]) {
+					Project.display_settings[slot].extend(data).update();
+				}
 			}
 		}
 
@@ -537,8 +583,16 @@ UndoSystem.save = class {
 		if (aspects.textures) {
 			this.textures = {}
 			aspects.textures.forEach(t => {
-				var tex = t.getUndoCopy(aspects.bitmap)
+				let tex = t.getUndoCopy(aspects.bitmap)
 				this.textures[t.uuid] = tex
+			})
+		}
+
+		if (aspects.layers) {
+			this.layers = {};
+			aspects.layers.forEach(layer => {
+				let copy = layer.getUndoCopy(aspects.bitmap)
+				this.layers[layer.uuid] = copy;
 			})
 		}
 
@@ -611,6 +665,22 @@ UndoSystem.save = class {
 			this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
 		}
 	}
+	addTextureOrLayer(texture) {
+		if (texture.layers_enabled && texture.layers[0]) {
+			let layer = texture.getActiveLayer();
+			if (!this.aspects.layers) this.aspects.layers = [];
+			if (this.aspects.layers.safePush(layer)) {
+				if (!this.layers) this.layers = {};
+				this.layers[layer.uuid] = layer.getUndoCopy(this.aspects.bitmap);
+			}
+		} else {
+			if (!this.aspects.textures) this.aspects.textures = [];
+			if (this.aspects.textures.safePush(texture)) {
+				if (!this.textures) this.textures = {};
+				this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
+			}
+		}
+	}
 	addElements(elements, aspects = {}) {
 		if (!this.elements) this.elements = {};
 		elements.forEach(el => {
@@ -627,7 +697,6 @@ BARS.defineActions(function() {
 		icon: 'undo',
 		category: 'edit',
 		condition: () => Project,
-		work_in_dialog: true,
 		keybind: new Keybind({key: 'z', ctrl: true}),
 		click(e) {
 			Project.undo.undo(e);
@@ -637,7 +706,6 @@ BARS.defineActions(function() {
 		icon: 'redo',
 		category: 'edit',
 		condition: () => Project,
-		work_in_dialog: true,
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {
 			Project.undo.redo(e);
@@ -648,7 +716,6 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => Project,
 		click() {
-
 			let steps = [];
 			Undo.history.forEachReverse((entry, index) => {
 				index++;

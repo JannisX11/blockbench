@@ -70,7 +70,7 @@ class TextureMesh extends OutlinerElement {
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
-	TextureMesh.prototype.icon = 'fa fa-puzzle-piece';
+	TextureMesh.prototype.icon = 'fa-puzzle-piece';
 	TextureMesh.prototype.movable = true;
 	TextureMesh.prototype.scalable = true;
 	TextureMesh.prototype.rotatable = true;
@@ -78,7 +78,7 @@ class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
-		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
+		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Format.single_texture, click(context) {
 			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
 				Undo.initEdit({elements: TextureMesh.all}),
 				TextureMesh.all.forEach(element => {
@@ -288,7 +288,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 
-		this.dispatchEvent('update_geometry', {element});
+		this.dispatchEvent('update_geometry', {element, texture});
 	},
 	updateFaces(element) {
 		let {mesh} = element;

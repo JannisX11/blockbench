@@ -14,16 +14,24 @@
 			"sizes": "1024x1024"
 		},
 		{
-			"src": "icon_full.png",
+			"src": "icon_maskable.png",
 			"type": "image/png",
 			"sizes": "256x256",
 			"purpose": "maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "content/front_page_app.png",
+			"sizes": "1920x1040",
+			"type": "image/png",
+			"label": "Blockbench Interface"
 		}
 	],
 	"start_url": "./index.html",
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
 	"display": "standalone",
-	"display_override": ["tabbed", "minimal-ui"],
+	"display_override": ["window-controls-overlay"],
 	"orientation": "any"
 }

@@ -1,7 +1,7 @@
 
 /*Layout*/
 	#page_wrapper {
-		height: calc(100% - 26px);
+		height: calc(100% - var(--menu-bar-height));
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
@@ -32,6 +32,7 @@
 		background-repeat: no-repeat;
 		background-size: 128px;
 		background-position: center;
+		--menu-bar-height: 26px;
 	}
 	#loading_error_message {
 		height: 100%;
@@ -94,6 +95,7 @@
 		--color-outline: var(--color-accent);
 		--color-gizmohover: var(--color-outline);
 		--color-ground: var(--color-back);
+		--color-brush-outline: #ffffff;
 		--color-axis-x: #fd3043;
 		--color-axis-y: #26ec45;
 		--color-axis-z: #2d5ee8;
@@ -293,7 +295,7 @@
 		overflow: hidden;
 		display: flex;
 		white-space: nowrap;
-		height: 26px;
+		height: var(--menu-bar-height);
 	}
 	header > * {
 		display: inline-block;
@@ -304,7 +306,7 @@
 	}
 	div#corner_logo {
 		width: auto;
-		height: 26px;
+		height: 100%;
 		padding-right: 8px;
 		padding-left: 6px;
 		margin-left: 4px;
@@ -386,18 +388,18 @@
 		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
-	#windows_window_menu li i:not(.material-icons) {
-		font-size: 10pt;
+	#windows_window_menu svg {
+		margin-top: 4px;
 	}
-	#windows_window_menu i.material-icons {
-		vertical-align: bottom;
+	body:not(.maximized) #windows_window_menu svg.restore {
+		display: none;
+	}
+	body.maximized #windows_window_menu svg.maximize {
+		display: none;
 	}
 	#mac_window_menu {
 		width: 68px;
 		flex-shrink: 0;
-	}
-	header .tool .icon {
-		font-size: 20px;
 	}
 	#settings_profiles_header_menu {
 		width: 24px;
@@ -412,6 +414,9 @@
 	}
 
 /*Mobile*/
+	body.is_mobile {
+		--menu-bar-height: 38px;
+	}
 	body.is_mobile #page_wrapper {
 		border: none;
 	}
@@ -583,16 +588,19 @@
 	}
 	header .tool {
 		height: 100%;
+		width: 42px;
 	}
-	header .tool > i {
-		margin-top: 2px;
+	header .tool > .icon {
+		margin-top: 7px;
+	}
+	header .tool.hidden {
+		display: none;
 	}
 	body.is_mobile.is_landscape #title_bar_undo_controls {
 		display: block;
 	}
 
 	#mode_selector {
-		font-size: 1.1em;
 		height: 30px;
 		margin-left: auto;
 		margin-right: 0;
@@ -603,14 +611,18 @@
 		height: 30px;
 		margin: 0 5px;
 		overflow: hidden;
-    	padding-top: 2px;
-    	font-size: 18px;
+		padding-top: 1px;
+		font-size: 1.2em;
+		cursor: pointer;
 	}
 	#mode_selector li:hover {
 		color: var(--color-light);
 	}
 	#mode_selector li.selected {
 		border-bottom: 3px solid var(--color-accent);
+	}
+	#update_menu {
+		padding-top: 2px;
 	}
 
 /* Tab Bar */
@@ -675,6 +687,9 @@
 	}
 	#tab_bar .project_tab.move_forth {
 		left: var(--tabwidth);
+	}
+	#tab_bar .project_tab > .icon {
+		pointer-events: none;
 	}
 	#tab_bar .project_tab > label {
 		overflow: hidden;
@@ -742,10 +757,8 @@
 		flex-grow: 0;
 		width: auto;
 		color: var(--color-accent);
-	}
-	#tab_bar .project_tab > label.project_tab_session_badge i {
-		margin-right: 2px;
-		margin-left: -4px;
+		flex-shrink: 0;
+		padding-right: 0;
 	}
 	#tab_bar.invisible {
 		visibility: hidden;
@@ -974,7 +987,7 @@
 	.reference_image[reference_layer=float] {
 		z-index: 8;
 	}
-	.reference_image.selected[reference_layer=float] > img {
+	.reference_image.selected[reference_layer=float] > .image_content {
 		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
 	}
 	#work_screen.reference_image_mode .reference_image {
@@ -995,18 +1008,18 @@
 	.reference_image.selected, .reference_image:hover {
 		outline: 1px solid var(--color-accent);
 	}
-	.reference_image > img {
+	.reference_image > .image_content {
 		width: 100%;
 		height: 100%;
 		pointer-events: none;
 	}
-	.reference_image.flip_x > img {
+	.reference_image.flip_x > .image_content {
 		transform: scaleX(-1);
 	}
-	.reference_image.flip_y > img {
+	.reference_image.flip_y > .image_content {
 		transform: scaleY(-1);
 	}
-	.reference_image.flip_y.flip_x > img {
+	.reference_image.flip_y.flip_x > .image_content {
 		transform: scaleX(-1) scaleY(-1);
 	}
 

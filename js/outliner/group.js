@@ -262,7 +262,6 @@ class Group extends OutlinerNode {
 		return array;
 	}
 	showContextMenu(event) {
-		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
 		if (Group.selected != this) this.select(event);
 		this.menu.open(event, this)
@@ -449,6 +448,7 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
+		'apply_animation_preset',
 		'add_locator',
 		new MenuSeparator('manage'),
 		'resolve_group',
@@ -584,7 +584,8 @@ BARS.defineActions(function() {
 				add_group = Outliner.selected.last()
 			}
 			var base_group = new Group({
-				origin: add_group ? add_group.origin : undefined
+				origin: add_group ? add_group.origin : undefined,
+				name: add_group?.name
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true

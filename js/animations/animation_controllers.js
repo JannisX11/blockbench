@@ -178,7 +178,8 @@ class AnimationControllerState {
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
 				let state = this.controller.states.find(s => s.uuid == transition.target);
-				return new oneLiner({[state ? state.name : 'missing_state']: transition.condition})
+				let condition = transition.condition.replace(/\n/g, '');
+				return new oneLiner({[state ? state.name : 'missing_state']: condition})
 			})
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
@@ -216,6 +217,7 @@ class AnimationControllerState {
 			this.sounds.forEach(sound => {
 				if (sound.file && !sound.cooldown) {
 					var media = new Audio(sound.file);
+					media.playbackRate = Math.clamp(AnimationController.playback_speed/100, 0.1, 4.0);
 					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 					media.play().catch(() => {});
 					this.playing_sounds.push(media);
@@ -388,7 +390,8 @@ class AnimationControllerState {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
 	getStateTime() {
-		return this.start_timestamp ? (Date.now() - this.start_timestamp) / 1000 : 0;
+		if (!this.start_timestamp) return 0;
+		return (Date.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
@@ -404,7 +407,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	{
 		id: 'set_as_initial_state',
 		name: 'Initial State',
-		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
+		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'far.fa-dot-circle' : 'far.fa-circle'),
 		click(state) {
 			if (!AnimationController.selected) return;
 			Undo.initEdit({animation_controllers: [AnimationController.selected]});
@@ -648,18 +651,20 @@ class AnimationController extends AnimationItem {
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
-			a.selected = a.playing = false;
+			a.selected = false;
+			if (a.playing == true) a.playing = false;
 		})
 
 		Panels.animation_controllers.inside_vue.controller = this;
 
 		this.selected = true;
-		this.playing = true;
+		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
 
 		if (Modes.animate) {
 			Animator.preview();
 			updateInterface();
+			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
 	}
@@ -822,6 +827,7 @@ class AnimationController extends AnimationItem {
 		})
 		dialog.show();
 	}
+	static playback_speed = 100
 }
 	Object.defineProperty(AnimationController, 'all', {
 		get() {
@@ -870,7 +876,7 @@ class AnimationController extends AnimationItem {
 		},
 		'delete',
 		new MenuSeparator('properties'),
-		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
+		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
@@ -965,9 +971,45 @@ Blockbench.on('finish_edit', event => {
 	}
 })
 
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.rename();
+	}
+})
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.remove(true);
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animations' && AnimationController.selected,
+	run() {
+		let copy = AnimationController.selected.getUndoCopy();
+		let controller = new AnimationController(copy);
+		Property.resetUniqueValues(AnimationController, controller);
+		controller.createUniqueName();
+		AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
+		controller.saved = false;
+		controller.add(true).select();
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		Undo.initEdit({animation_controllers: [AnimationController.selected]});
+		let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+		let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+		AnimationController.selected.states.remove(state);
+		AnimationController.selected.states.splice(index+1, 0, state);
+		Undo.finishEdit('Duplicate animation controller state');
+	}
+})
+
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'cable',
+		icon: 'account_tree',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
@@ -976,6 +1018,7 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		growable: true,
+		resizable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -986,6 +1029,7 @@ Interface.definePanels(() => {
 				controller: null,
 				presets: AnimationController.presets,
 				zoom: 1,
+				playback_speed: 100,
 				connection_wrapper_offset: 0,
 				connecting: false,
 				pickwhip: {
@@ -1014,7 +1058,7 @@ Interface.definePanels(() => {
 					let list = [
 						{
 							name: 'generic.unset',
-							icon: animation.animation == '' ? 'radio_button_checked' : 'radio_button_unchecked',
+							icon: animation.animation == '' ? 'far.fa-dot-circle' : 'far.fa-circle',
 							click: () => {
 								animation.key = '';
 								animation.animation = '';
@@ -1027,7 +1071,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: animation.animation == anim.uuid ? 'radio_button_checked' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: animation.animation == anim.uuid ? 'far.fa-dot-circle' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => apply(anim)
 						})
 					})
@@ -1048,7 +1092,7 @@ Interface.definePanels(() => {
 						if (state2 == state) return;
 						list.push({
 							name: state2.name,
-							icon: transition.target == state2.uuid ? 'radio_button_checked' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: transition.target == state2.uuid ? 'far.fa-dot-circle' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => {
 								transition.target = state2.uuid;
 							}
@@ -1111,7 +1155,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: anim instanceof AnimationController ? 'cable' : 'movie',
+							icon: anim instanceof AnimationController ? 'account_tree' : 'movie',
 							click: () => {
 								state.addAnimation(anim);
 							}
@@ -1489,8 +1533,8 @@ Interface.definePanels(() => {
 			template: `
 				<div id="animation_controllers_wrapper"
 					:class="{connecting_controllers: connecting}"
-					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
-					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
+					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? (controller.last_state.blend_transition / (playback_speed/100)) + 's' : 0}"
+					@click="deselect($event)" @wheel="onMouseWheel($event)"
 				>
 
 					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
@@ -1686,7 +1730,7 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05" />
+										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
@@ -1814,5 +1858,51 @@ BARS.defineActions(function() {
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
 		condition: {modes: ['animate'], selected: {animation_controller: true}}
+	})
+	new NumSlider('slider_animation_controller_speed', {
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation_controller: true}},
+		settings: {
+			default: 100,
+			min: 0,
+			max: 10000
+		},
+		get: function() {
+			return AnimationController.playback_speed;
+		},
+		change: function(modify) {
+			AnimationController.playback_speed = limitNumber(modify(AnimationController.playback_speed), 0, 10000);
+			Panels.animation_controllers.inside_vue.playback_speed = AnimationController.playback_speed;
+		},
+		getInterval: (e) => {
+			var val = BarItems.slider_animation_controller_speed.get()
+			if (e.shiftKey) {
+				if (val < 50) {
+					return 10;
+				} else {
+					return 50;
+				}
+			}
+			if (e.ctrlOrCmd) {
+				if (val < 500) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+			if (val < 10) {
+				return 1;
+			} else if (val < 50) {
+				return 5;
+			} else if (val < 160) {
+				return 10;
+			} else if (val < 300) {
+				return 20;
+			} else if (val < 1000) {
+				return 50;
+			} else {
+				return 500;
+			}
+		}
 	})
 })

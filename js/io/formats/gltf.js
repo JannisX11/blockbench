@@ -172,7 +172,8 @@ function buildSkinnedMesh(root_group, scale) {
 	let indices = [];
 	let geometry = new THREE.BufferGeometry();
 	let bones = [];
-	let material;
+	let materials = [];
+	let face_vertex_counts = [];
 
 	let root_counter_matrix = new THREE.Matrix4().copy(root_group.mesh.matrix).invert();
 
@@ -180,9 +181,10 @@ function buildSkinnedMesh(root_group, scale) {
 	let normal = Reusable.vec2;
 
 	function addGroup(group, parent_bone) {
+		if (group.export == false) return;
 
 		for (child of group.children) {
-			if (!child.mesh.geometry) continue;
+			if (!child.faces || child.export == false) continue;
 			let {geometry} = child.mesh;
 			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
 			matrix.premultiply(root_counter_matrix);
@@ -205,9 +207,23 @@ function buildSkinnedMesh(root_group, scale) {
 
 			indices.push(...geometry.index.array.map(v => index_offset + v));
 
-			
-			material = child.mesh.material;
 
+			for (let key in child.faces) {
+				let face = child.faces[key];
+				if (face.vertices && face.vertices.length < 3) continue;
+				if (face.texture === null) continue;
+				let tex = face.getTexture();
+				if (tex && tex.uuid) {
+					materials.push(Project.materials[tex.uuid])
+				} else {
+					materials.push(Canvas.emptyMaterials[element.color])
+				}
+				if (face.vertices && face.vertices.length == 3) {
+					face_vertex_counts.push(3);
+				} else {
+					face_vertex_counts.push(6);
+				}
+			}
 		}
 		// Bone
 		let bone = new THREE.Bone();
@@ -241,8 +257,39 @@ function buildSkinnedMesh(root_group, scale) {
 	geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
 
 
+	if (materials.allEqual(materials[0])) materials = materials[0];
 
-	let skinned_mesh = new THREE.SkinnedMesh(geometry, material);
+	// Generate material groups
+	if (materials instanceof Array) {
+		let current_mat;
+		let i = 0;
+		let index = 0;
+		let switch_index = 0;
+		let reduced_materials = [];
+
+		geometry.groups.empty();
+
+		for (let material of materials) {
+			if (current_mat != material) {
+				if (index) {
+					geometry.addGroup(switch_index, index - switch_index, reduced_materials.length);
+					reduced_materials.push(current_mat);
+				}
+				current_mat = material;
+				switch_index = index;
+			}
+
+			index += face_vertex_counts[i];
+			i++;
+		}
+		geometry.addGroup(switch_index, index - switch_index, reduced_materials.length);
+		reduced_materials.push(current_mat);
+
+		materials = reduced_materials;
+	}
+
+
+	let skinned_mesh = new THREE.SkinnedMesh(geometry, materials);
 	skinned_mesh.name = root_group.name;
 	let skeleton = new THREE.Skeleton(bones)
 	skeleton.name = root_group.name;
@@ -280,6 +327,9 @@ var codec = new Codec('gltf', {
 
 		let resetMeshBorrowing;
 
+		if (!Modes.edit) {
+			Animator.showDefaultPose();
+		}
 		if (options.armature) {
 			Outliner.root.forEach(node => {
 				if (node instanceof Group) {
@@ -306,9 +356,6 @@ var codec = new Codec('gltf', {
 		}
 		
 		try {
-			if (!Modes.edit) {
-				Animator.showDefaultPose();
-			}
 			if (BarItems.view_mode.value !== 'textured') {
 				BarItems.view_mode.set('textured');
 				BarItems.view_mode.onChange();
@@ -344,7 +391,8 @@ var codec = new Codec('gltf', {
 		}
 	},
 	async export() {
-		await this.promptExportOptions();
+		let options = await this.promptExportOptions();
+		if (options === null) return;
 		let content = await this.compile();
 		await new Promise(r => setTimeout(r, 20));
 		Blockbench.export({

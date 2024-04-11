@@ -215,9 +215,6 @@ function buildForm(dialog) {
 					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
-					input_element.on('input', () => {
-						dialog.updateFormValues();
-					})
 
 					if (!data.editable_range_label) {
 						let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
@@ -237,14 +234,17 @@ function buildForm(dialog) {
 						});
 						bar.append(display);
 						input_element.on('input', () => {
-							let result = dialog.getFormResult();
-							display.value = result[form_id];
+							let result = parseFloat(input_element.val());
+							display.value = result;
 						})
 						display.addEventListener('input', (e) => {
 							input_element.val(parseFloat(display.value));
 							dialog.updateFormValues();
 						})
 					}
+					input_element.on('input', () => {
+						dialog.updateFormValues();
+					})
 					break;
 
 
@@ -295,8 +295,8 @@ function buildForm(dialog) {
 				case 'save':
 					if (data.type == 'folder' && !isApp) break;
 
-					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" disabled>`);
-					input[0].value = data.value || '';
+					let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" style="pointer-events: none;" disabled>`);
+					input[0].value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value || '';
 					let input_wrapper = $('<div class="input_wrapper"></div>');
 					input_wrapper.append(input);
 					bar.append(input_wrapper);
@@ -312,6 +312,8 @@ function buildForm(dialog) {
 					remove_button.on('click', e => {
 						e.stopPropagation();
 						data.value = '';
+						delete data.content;
+						delete data.file;
 						input.val('');
 					})
 
@@ -319,7 +321,8 @@ function buildForm(dialog) {
 						function fileCB(files) {
 							data.value = files[0].path;
 							data.content = files[0].content;
-							input.val(data.value);
+							data.file = files[0];
+							input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 							dialog.updateFormValues()
 						}
 						switch (data.type) {
@@ -345,7 +348,11 @@ function buildForm(dialog) {
 									type: data.filetype,
 									startpath: data.value,
 									custom_writer: () => {},
-								}, fileCB);
+								}, path => {
+									data.value = path;
+									input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
+									dialog.updateFormValues()
+								});
 								break;
 						}
 					})
@@ -361,6 +368,21 @@ function buildForm(dialog) {
 					Blockbench.showQuickMessage(data.description, 3600);
 				}
 				bar.append(icon);
+			}
+			if (data.toggle_enabled) {
+				let toggle = Interface.createElement('input', {
+					type: 'checkbox',
+					class: 'focusable_input form_input_toggle',
+					id: form_id + '_toggle',
+				})
+				toggle.checked = data.toggle_default != false;
+				bar.append(toggle);
+				bar.toggleClass('form_toggle_disabled', !toggle.checked);
+				toggle.addEventListener('input', () => {
+					dialog.updateFormValues();
+					bar.toggleClass('form_toggle_disabled', !toggle.checked);
+				});
+				data.input_toggle = toggle;
 			}
 			dialog_content.append(bar)
 			data.bar = bar;
@@ -399,10 +421,17 @@ function buildLines(dialog) {
 	})
 }
 function buildComponent(dialog) {
-	let dialog_content = $(dialog.object).find('.dialog_content')
-	let mount = $(`<div />`).appendTo(dialog_content)
+	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
+	let mount;
+	// mount_directly, if enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
+	if (dialog.component.mount_directly) {
+		mount = dialog_content;
+	} else {
+		mount = Interface.createElement('div');
+		dialog_content.append(mount);
+	}
 	dialog.component.name = 'dialog-content'
-	dialog.content_vue = new Vue(dialog.component).$mount(mount.get(0));
+	dialog.content_vue = new Vue(dialog.component).$mount(mount);
 }
 function getStringWidth(string, size) {
 	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
@@ -522,6 +551,7 @@ window.Dialog = class Dialog {
 
 		this.width = options.width
 		this.draggable = options.draggable
+		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
 		this.cancel_on_click_outside = options.cancel_on_click_outside !== false
 		this.singleButton = options.singleButton
@@ -529,6 +559,7 @@ window.Dialog = class Dialog {
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
+		this.keyboard_actions = options.keyboard_actions || {};
 	
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
@@ -559,7 +590,7 @@ window.Dialog = class Dialog {
 		}
 		return form_result;
 	}
-	setFormValues(values) {
+	setFormValues(values, update = true) {
 		for (let form_id in this.form) {
 			let data = this.form[form_id];
 			if (values[form_id] != undefined && typeof data == 'object' && data.bar) {
@@ -599,23 +630,29 @@ window.Dialog = class Dialog {
 						data.bar.find('input').prop('checked', value);
 						break;
 					case 'file':
-						if (isApp) {
+						delete data.file;
+						if (data.return_as == 'file' && typeof value == 'object') {
+							data.file = value;
+							data.value = data.file.name;
+						} else if (isApp) {
 							data.value = value;
 						} else {
 							data.content = value;
 						}
-						data.bar.find('input').val(value);
+						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 						break;
 				}
 			}
 		}
-		this.updateFormValues();
+		if (update) this.updateFormValues();
 	}
 	getFormResult() {
 		let result = {}
 		if (this.form) {
 			for (let form_id in this.form) {
-				let data = this.form[form_id]
+				let data = this.form[form_id];
+				if (data && data.input_toggle && data.input_toggle.checked == false) continue;
+
 				if (typeof data === 'object') {
 					switch (data.type) {
 						default:
@@ -637,14 +674,27 @@ window.Dialog = class Dialog {
 							break;
 						case 'number':
 							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'range':
-							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.editable_range_label) {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input.range_input_label').val())||0, data.min, data.max);
+							} else {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max);
+							}
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'vector':
 							result[form_id] = [];
 							for (let i = 0; i < (data.dimensions || 3); i++) {
 								let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
+								if (data.force_step && data.step) {
+									num = Math.round(num / data.step) * data.step;
+								}
 								result[form_id].push(num)
 							}
 							break;
@@ -655,7 +705,11 @@ window.Dialog = class Dialog {
 							result[form_id] = data.bar.find('input#'+form_id).is(':checked')
 							break;
 						case 'file':
-							result[form_id] = isApp ? data.value : data.content;
+							if (data.return_as == 'file') {
+								result[form_id] = data.file;
+							} else {
+								result[form_id] = isApp ? data.value : data.content;
+							}
 							break;
 					}
 				}
@@ -705,7 +759,7 @@ window.Dialog = class Dialog {
 		handle.append(title);
 
 		let jq_dialog = $(this.object);
-		this.max_label_width = 0;
+		this.max_label_width = 140;
 		this.uses_wide_inputs = false;
 
 		let wrapper = document.createElement('div');
@@ -762,7 +816,6 @@ window.Dialog = class Dialog {
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) button_bar.append('&nbsp;')
 				button_bar.append(button)
 			})
 
@@ -784,6 +837,52 @@ window.Dialog = class Dialog {
 				containment: '#page_wrapper'
 			})
 			jq_dialog.css('position', 'absolute')
+		}
+		if (this.resizable) {
+			this.object.classList.add('resizable')
+			let resize_handle = Interface.createElement('div', {class: 'dialog_resize_handle'});
+			jq_dialog.append(resize_handle);
+			if (this.resizable == 'x') {
+				resize_handle.style.cursor = 'e-resize';
+			} else if (this.resizable == 'y') {
+				resize_handle.style.cursor = 's-resize';
+			}
+			addEventListeners(resize_handle, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				resize_handle.classList.add('dragging');
+
+				let start_position = [e1.clientX, e1.clientY];
+				if (!this.width) this.width = this.object.clientWidth;
+				let original_width = this.width;
+				let original_left = parseFloat(this.object.style.left);
+				let original_height = parseFloat(this.object.style.height) || this.object.clientHeight;
+
+
+				let move = e2 => {
+					convertTouchEvent(e2);
+					
+					if (this.resizable.includes('x')) {
+						let x_offset = (e2.clientX - start_position[0]);
+						this.width = original_width + x_offset * 2;
+						this.object.style.width = this.width+'px';
+						if (this.draggable !== false) {
+							this.object.style.left = Math.clamp(original_left - (this.object.clientWidth - original_width) / 2, 0, window.innerWidth) + 'px';
+						}
+					}
+					if (this.resizable.includes('y')) {
+						let y_offset = (e2.clientY - start_position[1]);
+						let height = Math.clamp(original_height + y_offset, 80, window.innerHeight);
+						this.object.style.height = height+'px';
+					}
+				}
+				let stop = e2 => {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					resize_handle.classList.remove('dragging');
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
 		}
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
@@ -836,6 +935,11 @@ window.Dialog = class Dialog {
 
 		this.focus();
 
+		setTimeout(() => {
+			this.object.style.setProperty('--dialog-height', this.object.clientHeight + 'px');
+			this.object.style.setProperty('--dialog-width', this.object.clientWidth + 'px');
+		}, 1);
+
 		return this;
 	}
 	focus() {
@@ -846,6 +950,7 @@ window.Dialog = class Dialog {
 		blackout.style.zIndex = 20 + Dialog.stack.length * 2;
 		this.object.style.zIndex = 21 + Dialog.stack.length * 2;
 
+		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';
 		open_dialog = this.id;
 		open_interface = this;
@@ -859,7 +964,7 @@ window.Dialog = class Dialog {
 		open_interface = false;
 		Dialog.open = null;
 		Dialog.stack.remove(this);
-		Prop.active_panel = undefined;
+		Prop.active_panel = Prop._previous_active_panel;
 		$(this.object).detach();
 		
 		if (Dialog.stack.length) {
@@ -930,7 +1035,10 @@ window.MessageBox = class MessageBox extends Dialog {
 		this.callback = callback;
 	}
 	close(button, result, event) {
-		if (this.callback) this.callback(button, result, event);
+		if (this.callback) {
+			let allow_close = this.callback(button, result, event);
+			if (allow_close === false) return;
+		}
 		this.hide();
 		this.delete();
 	}
@@ -952,12 +1060,14 @@ window.MessageBox = class MessageBox extends Dialog {
 		let jq_dialog = $(this.object);
 
 		if (options.message) {
-			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			content.append($(`<div class="dialog_bar markdown" style="height: auto; margin-bottom: 10px;">`+
 				pureMarked(tl(options.message))+
 			'</div></div>')[0]);
 		}
 		if (options.icon) {
-			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+			let bar = jq_dialog.find('.dialog_bar');
+			bar.prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'));
+			bar.append('<div style="clear:both;"></div>');
 		}
 
 		if (options.commands) {
@@ -966,7 +1076,10 @@ window.MessageBox = class MessageBox extends Dialog {
 				let command = options.commands[id];
 				if (!command || !Condition(command.condition)) continue;
 				let text = tl(typeof command == 'string' ? command : command.text);
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text)
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
+				if (command.icon) {
+					entry.prepend(Blockbench.getIconNode(command.icon));
+				}
 				entry.addEventListener('click', e => {
 					this.close(id, results, e);
 				})
@@ -1012,7 +1125,6 @@ window.MessageBox = class MessageBox extends Dialog {
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				if (i) button_bar.append('&nbsp;')
 				button_bar.append(button)
 			})
 

@@ -104,6 +104,10 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
+						valid_textures_list = valid_textures_list.filter(entry => {
+							return Texture.all.findIndex(t => t.path == entry) == -1;
+						});
+						if (!valid_textures_list.length) return;
 						let selected_textures = [];
 						var dialog = new Dialog({
 							title: tl('data.texture'),
@@ -187,7 +191,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
-		if (this.client_entity && this.client_entity.type == 'attachable') {
+		if (this.client_entity && this.client_entity.type == 'attachable' && Format.id == 'bedrock') {
 			Project.bedrock_animation_mode = 'attachable_first';
 			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
 		}
@@ -779,7 +783,7 @@ function calculateVisibleBox() {
 		return template;
 	}
 	function compileGroup(g) {
-		if (g.type !== 'group') return;
+		if (g.type !== 'group' || g.export == false) return;
 		if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 		//Bone
 		var bone = {}

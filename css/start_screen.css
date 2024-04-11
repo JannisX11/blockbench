@@ -9,6 +9,9 @@
 		padding: 36px 0;
 		overflow-y: auto;
 	}
+	body.is_mobile #start_screen {
+		padding: 0;
+	}
 	#start_screen h3 {
 		margin: 0;
 	}
@@ -115,7 +118,7 @@
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
-		overflow-x: hidden;
+		overflow: hidden;
 		height: 30px;
 		right: 0px;
 		left: 0px;
@@ -124,6 +127,7 @@
 		padding-top: 2px;
 		position: absolute;
 		text-align: center;
+		white-space: nowrap;
 	}
 	#start_screen .recent_project.thumbnail .icon_wrapper {
 		position: absolute;
@@ -251,6 +255,9 @@
 		text-align: center;
 		margin: 7px;
 		padding: 7px;
+	}
+	#start_screen .start_screen_features > li:first-child {
+		width: 100%;
 	}
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
@@ -450,6 +457,7 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
+		line-height: 26px;
 	}
 	.format_target span {
 		padding: 2px 4px;

@@ -54,11 +54,8 @@ class Locator extends OutlinerElement {
 			if (i != axis) this.rotation[i] = -n;
 		})
 		// Name
-		if (axis == 0 && this.name.includes('right')) {
-			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
-		} else if (axis == 0 && this.name.includes('left')) {
-			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
-		}
+		flipNameOnAxis(this, axis);
+
 		this.createUniqueName();
 		this.preview_controller.updateTransform(this);
 		return this;
@@ -80,7 +77,7 @@ class Locator extends OutlinerElement {
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
-	Locator.prototype.icon = 'fa fa-anchor';
+	Locator.prototype.icon = 'fa-anchor';
 	Locator.prototype.name_regex = 'a-z0-9_'
 	Locator.prototype.movable = true;
 	Locator.prototype.rotatable = true;
@@ -168,7 +165,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 18 / Preview.selected.height;
+			let size = 0.4 * Preview.selected.camera.fov / Preview.selected.height;
 			element.mesh.sprite.scale.set(size, size, size);
 		}
 	})

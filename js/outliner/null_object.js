@@ -64,11 +64,7 @@ class NullObject extends OutlinerElement {
 		var offset = this.position[axis] - center
 		this.position[axis] = center - offset;
 		// Name
-		if (axis == 0 && this.name.includes('right')) {
-			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
-		} else if (axis == 0 && this.name.includes('left')) {
-			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
-		}
+		flipNameOnAxis(this, axis);
 		this.createUniqueName();
 		this.preview_controller.updateTransform(this);
 		return this;
@@ -101,7 +97,7 @@ class NullObject extends OutlinerElement {
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
-	NullObject.prototype.icon = 'fa far fa-circle';
+	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
 	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
@@ -190,7 +186,7 @@ class NullObject extends OutlinerElement {
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 17 / Preview.selected.height;
+			let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
 			element.mesh.scale.set(size, size, size);
 		}
 	})

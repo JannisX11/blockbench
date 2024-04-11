@@ -19,6 +19,7 @@ class Property {
 				case 'number': this.default = 0; break;
 				case 'boolean': this.default = false; break;
 				case 'array': this.default = []; break;
+				case 'object': this.default = {}; break;
 				case 'instance': this.default = null; break;
 				case 'vector': this.default = [0, 0, 0]; break;
 				case 'vector2': this.default = [0, 0]; break;
@@ -31,6 +32,7 @@ class Property {
 			case 'number': this.isNumber = true; break;
 			case 'boolean': this.isBoolean = true; break;
 			case 'array': this.isArray = true; break;
+			case 'object': this.isObject = true; break;
 			case 'instance': this.isInstance = true; break;
 			case 'vector': this.isVector = true; break;
 			case 'vector2': this.isVector2 = true; break;
@@ -68,6 +70,10 @@ class Property {
 	getDefault(instance) {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
+		} else if (this.isArray) {
+			return this.default ? this.default.slice() : [];
+		} else if (this.isObject) {
+			return Object.keys(this.default).length ? JSON.parse(JSON.stringify(this.default)) : {};
 		} else {
 			return this.default;
 		}

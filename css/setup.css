@@ -3,10 +3,16 @@
 	* {
 		margin: 0;
 		padding: 0;
-		user-select: none;
-		-webkit-user-select: none;
 		outline: none;
 		outline-color: rgba(0, 0, 0, 0);
+	}
+	body {
+		user-select: none;
+		-webkit-user-select: none;
+	}
+	body.is_mobile * {
+		user-select: none;
+		-webkit-user-select: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -20,11 +26,13 @@
 	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
+
+	/* SCROLLBARS */
+	/* webkit */
 	::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
-
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -40,10 +48,10 @@
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-accent);
 	}
-	/*Mozilla*/
+	/* Web standard */
 	* {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-selected) var(--color-back);
+		scrollbar-color: var(--color-selected) transparent;
 	}
 
 	::selection {
@@ -110,13 +118,12 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
+	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: local('Material Icons'),
-			local('MaterialIcons-Regular'),
-			url(../font/MaterialIcons-Regular.ttf) format('truetype');
+		src: url(../font/material-icons.woff2) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -402,19 +409,21 @@
 	}
 	h1, h2, h3, h4, h5, h6 {
 		font-family: var(--font-headline);
+		margin: 12px 0 8px 0;
+	}
+	h1 {
+		letter-spacing: -0.03em;
 	}
 	h2 {
 		font-weight: lighter;
 		margin: 0;
 	}
 	h3 {
-		display: inline-block;
 		font-size: 1.28em;
 		padding-bottom: 4px;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
-		height: 32px;
 	}
 	h4 {
 		font-size: 1.2em;
@@ -471,7 +480,8 @@
 	}
 	button > i {
 		pointer-events: none;
-		vertical-align: middle;
+		vertical-align: sub;
+		margin-right: 4px;
 	}
 	select {
 		-webkit-appearance: none;
@@ -611,6 +621,9 @@
 		background: var(--color-track);
 		border-radius: 3px;
 	}
+	input[type=text].dark_bordered:read-only {
+		color: var(--color-subtle_text);
+	}
 	input:-webkit-autofill,
 	input:-webkit-autofill:hover, 
 	input:-webkit-autofill:focus, 
@@ -672,15 +685,15 @@
 	}
 	.numeric_input > div.tool {
 		position: absolute;
-		width: 22px;
+		width: 18px;
 		right: 1px;
 		top: 0;
 		color: var(--color-subtle_text);
 		cursor: ew-resize;
 	}
 	.numeric_input > div.tool > i {
-		font-size: 20px;
-		margin-top: 5px;
+		font-size: 18px;
+		margin-top: 6px;
 	}
 
 	div.nslide {

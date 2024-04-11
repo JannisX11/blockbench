@@ -71,6 +71,19 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
+	if (Blockbench.platform == 'linux' && (Blockbench.hasFlag('after_update') || Blockbench.hasFlag('after_patch_update'))) {
+		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964
+		let gpu_cache_path = PathModule.join(app.getPath('userData'), 'GPUCache');
+		try {
+			let cache_files = fs.readdirSync(gpu_cache_path);
+			for (let file_name of cache_files) {
+				fs.unlinkSync(PathModule.join(gpu_cache_path, file_name));
+			}
+			console.log(`Cleared ${cache_files.length} GPU-cache files`);
+		} catch (err) {
+			console.error('Attempted and failed to clear GPU cache', err);
+		}
+	}
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
@@ -175,6 +188,7 @@ function updateRecentProjectData() {
 	if (!project) return;
 	
 	project.name = Project.name;
+	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
 
@@ -294,7 +308,9 @@ function loadDataFromModelMemory() {
 
 //Window Controls
 function updateWindowState(e, type) {
-	$('#header_free_bar').toggleClass('resize_space', !currentwindow.isMaximized());
+	let maximized = currentwindow.isMaximized();
+	$('#header_free_bar').toggleClass('resize_space', !maximized);
+	document.body.classList.toggle('maximized', maximized);
 }
 currentwindow.on('maximize', e => updateWindowState(e, 'maximize'));
 currentwindow.on('unmaximize', e => updateWindowState(e, 'unmaximize'));
@@ -436,7 +452,7 @@ function createBackup(init) {
 			}
 		})
 	}
-	if (init || elements.length === 0) return;
+	if (init || !Project || (elements.length === 0 && Texture.all.length === 0)) return;
 
 	let model = Codecs.project.compile({compressed: true, backup: true});
 	let short_name = Project.name.replace(/[.]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 16);
@@ -506,6 +522,7 @@ BARS.defineActions(() => {
 						},
 						setPage(number) {
 							this.page = number;
+							this.$refs.backups_list.scrollTop = 0;
 						}
 					},
 					computed: {
@@ -532,7 +549,7 @@ BARS.defineActions(() => {
 							<div class="bar">
 								<search-bar v-model="search_term" @input="setPage(0)"></search-bar>
 							</div>
-							<ul id="view_backups_list" class="list">
+							<ul id="view_backups_list" class="list" ref="backups_list">
 								<li v-for="backup in viewed_backups" :key="backup.id" :class="{selected: selected == backup}" @dblclick="open(backup)" @click="select(backup);">
 									<span :title="backup.id">{{ backup.name }}</span>
 									<div class="view_backups_info_field" :title="backup.date_long">{{ backup.date }}</div>
@@ -615,7 +632,7 @@ window.onbeforeunload = function (event) {
 		})
 
 		dialog = new Dialog('close', {
-			title: 'Unsaved Projects',
+			title: 'dialog.unsaved_work.title',
 			lines: [
 				Interface.createElement('p', {}, tl('dialog.unsaved_work.text')),
 				ul
@@ -647,9 +664,20 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-function closeBlockbenchWindow() {
+async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
+	}
+	AutoBackup.removeAllBackups();
+	if (Blockbench.hasFlag('update_downloaded')) {
+		await new Promise(resolve => {
+			Blockbench.showMessageBox({
+				title: 'message.installing_update.title',
+				message: tl('message.installing_update.message', '60'),
+				icon: 'update',
+				width: 534
+			}, resolve);
+		})
 	}
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
@@ -693,11 +721,12 @@ ipcRenderer.on('update-available', (event, arg) => {
 			console.error(err);
 		})
 		ipcRenderer.on('update-downloaded', (event) => {
+			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
-			icon_node.textContent = 'done';
+			icon_node.textContent = 'browser_updated';
 			icon_node.classList.remove('spinning');
-			icon_node.style.color = '#5ef570';
+			icon_node.style.color = 'var(--color-confirm)';
 			click_action = function() {
 				Blockbench.showQuickMessage('message.update_after_restart')
 			}

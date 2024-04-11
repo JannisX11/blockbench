@@ -25,6 +25,18 @@ class ReferenceImage {
 		}
 		this.position.V2_set(window.innerWidth/2, window.innerHeight/2);
 
+		this._modify_nodes = [];
+		this.defaults = data;
+
+		this.dark_background = false;
+		this.image_is_loaded = false;
+		this.auto_aspect_ratio = true;
+
+		// todo: Add video properties: autoplay, animation sync
+		this.is_video = false;
+		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
+			this.is_video = true;
+		}
 		this.node = Interface.createElement('div', {class: 'reference_image'});
 		addEventListeners(this.node, 'mousedown touchstart', event => this.select());
 		this.node.addEventListener('contextmenu', event => {
@@ -32,14 +44,23 @@ class ReferenceImage {
 		})
 		this.img = new Image();
 		this.img.style.display = 'none';
-		this.node.append(this.img);
-		this._modify_nodes = [];
-		this.defaults = data;
+		this.img.className = 'image_content';
+		if (this.is_video) {
+			this.video = Interface.createElement('video', {
+				autoplay: true,
+				loop: true,
+				class: 'image_content'
+			});
+			this.video.muted = 'muted';
+			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
+			this.node.append(this.video);
+			this.image_is_loaded = true;
+		} else {
+			this.node.append(this.img);
+		}
 
-		this.dark_background = false;
-		this.image_is_loaded = false;
-		this.auto_aspect_ratio = true;
-		this.img.onload = () => {
+
+		(this.is_video ? this.video : this.img).onload = () => {
 			let was_image_loaded = this.image_is_loaded;
 			this.image_is_loaded = true;
 
@@ -60,11 +81,13 @@ class ReferenceImage {
 		this.extend(data);
 	}
 	get aspect_ratio() {
-		if (this.img && this.img.naturalWidth && this.img.naturalHeight) {
-			return this.img.naturalWidth / this.img.naturalHeight;
-		} else {
-			return 1;
-		}
+		return this.source_width / this.source_height;
+	}
+	get source_width() {
+		return (this.is_video ? this.video.videoWidth : this.img.naturalWidth) || 16;
+	}
+	get source_height() {
+		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
 	extend(data) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
@@ -100,7 +123,7 @@ class ReferenceImage {
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -108,7 +131,7 @@ class ReferenceImage {
 	}
 	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
-		if (Preview.selected && Preview.selected.isOrtho) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
 		this.scope = 'global';
 		this.update();
 		if (save) this.save();
@@ -193,17 +216,28 @@ class ReferenceImage {
 		
 		this.updateTransform();
 
-		this.img.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
-		this.img.style.opacity = this.opacity;
+		let image_content = this.is_video ? this.video : this.img;
+
+		image_content.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
+		image_content.style.opacity = this.opacity;
 
 		let transforms = [];
 		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
 		if (this.flip_x) transforms.push('scaleX(-1)');
 		if (this.flip_y) transforms.push('scaleY(-1)');
-		this.img.style.transform = transforms.join(' ');
+		image_content.style.transform = transforms.join(' ');
 
-		if (this.img.src.split('?')[0] != this.source) {
-			this.img.src = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
+		let source = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
+		if (this.is_video) {
+			if (this.video.ref_source != source) {
+				this.video.ref_source = source;
+				this.video.firstElementChild.src = source;
+				this.video.load();
+			}
+		} else {
+			if (this.img.src != source) {
+				this.img.src = source;
+			}
 		}
 
 		this.img.style.imageRendering = (this.img.naturalWidth > this.size[0]) ? 'auto' : 'pixelated';
@@ -243,7 +277,7 @@ class ReferenceImage {
 	updateTransform() {
 		if (!this.node.isConnected) return this;
 		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
-		if (preview) {
+		if (preview && preview.node.isConnected) {
 
 			let zoom = this.getZoomLevel();;
 			let pos_x = this.position[0];
@@ -256,7 +290,7 @@ class ReferenceImage {
 			pos_x += preview.width/2;
 			pos_y += preview.height/2;
 
-			if (quad_previews.enabled) {
+			if (Preview.split_screen.enabled) {
 				pos_x += preview.node.parentElement.offsetLeft;
 				pos_y += preview.node.parentElement.offsetTop;
 			}
@@ -404,7 +438,7 @@ class ReferenceImage {
 			let options = Object.keys(layers).map(key => {
 				return {
 					name: layers[key],
-					icon: this.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: this.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click: () => {
 						this.changeLayer(key);
 						this.update().save();
@@ -494,7 +528,8 @@ class ReferenceImage {
 	projectMouseCursor(x, y) {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
-		let rect = this.img.getBoundingClientRect();
+		let image_content = this.is_video ? this.video : this.img;
+		let rect = image_content.getBoundingClientRect();
 		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
 			// Check if not clipped behind UI
 			if (this.layer != 'float') {
@@ -509,8 +544,8 @@ class ReferenceImage {
 			if (this.flip_x) lerp_x = 1 - lerp_x;
 			if (this.flip_y) lerp_y = 1 - lerp_y;
 			return [
-				Math.floor(Math.min(lerp_x, 0.9999) * this.img.naturalWidth),
-				Math.floor(Math.min(lerp_y, 0.9999) * this.img.naturalHeight),
+				Math.floor(Math.min(lerp_x, 0.9999) * this.source_width),
+				Math.floor(Math.min(lerp_y, 0.9999) * this.source_height),
 			]
 		}
 		return false;
@@ -524,12 +559,17 @@ class ReferenceImage {
 	}
 	async delete(force) {
 		if (!force) {
-			let img = new Image();
-			img.src = this.source;
+			let icon;
+			if (this.is_video) {
+				icon = 'theaters';
+			} else {
+				icon = new Image();
+				icon.src = this.source;
+			}
 			let result = await new Promise(resolve => Blockbench.showMessageBox({
 				title: 'data.reference_image',
 				message: 'message.delete_reference_image',
-				icon: img,
+				icon: icon,
 				buttons: ['dialog.confirm', 'dialog.cancel']
 			}, resolve));
 			if (result == 1) return;
@@ -583,7 +623,11 @@ class ReferenceImage {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
-				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && this.source && PathModule.isAbsolute(this.source), value: this.source, extensions: ['png', 'jpg', 'jpeg']},
+				source: {type: 'file', label: 'reference_image.image',
+					condition: () => isApp && this.source && PathModule.isAbsolute(this.source),
+					value: this.source,
+					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
+				},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -623,7 +667,12 @@ class ReferenceImage {
 		}).show();
 		return this;
 	}
+
+	static supported_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif', 'mp4', 'wmv', 'mov'];
+	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
+	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
+ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	{
@@ -669,7 +718,7 @@ ReferenceImage.prototype.menu = new Menu([
 				children.push({
 					id: key,
 					name: layers[key],
-					icon: reference.layer == key ? 'radio_button_checked' : 'radio_button_unchecked',
+					icon: reference.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click() {
 						reference.changeLayer(key);
 						reference.update().save();
@@ -773,6 +822,27 @@ StateMemory.global_reference_images.forEach(template => {
 	new ReferenceImage(template).addAsGlobalReference();
 });
 
+SharedActions.add('delete', {
+	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
+	priority: 1,
+	run() {
+		ReferenceImage.selected.delete();
+	}
+})
+
+let reference_image_playback_cooldown;
+Blockbench.on('display_animation_frame', () => {
+	if (reference_image_playback_cooldown) return;
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility) {
+			ref.video.currentTime = Timeline.time;
+			if (!ref.video.paused) ref.video.pause();
+		}
+	})
+	reference_image_playback_cooldown = setTimeout(() => {
+		reference_image_playback_cooldown = null;
+	}, 30)
+})
 
 const ReferenceImageMode = {
 	active: false,
@@ -813,6 +883,9 @@ const ReferenceImageMode = {
 		})
 		files.forEach(file => {
 			let ref = new ReferenceImage({source: file.content, name: file.name});
+			if (Format.image_editor) {
+				ref.layer = 'viewport';
+			}
 			if (save_mode == 'project') {
 				ref.addAsReference(true);
 			} else {
@@ -849,7 +922,7 @@ BARS.defineActions(function() {
 			}
 			Blockbench.import({
 				resource_id: 'reference_image',
-				extensions: ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'],
+				extensions: ReferenceImage.supported_extensions,
 				type: 'Image',
 				readtype: 'image'
 			}, async function(files) {

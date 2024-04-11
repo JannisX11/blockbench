@@ -107,6 +107,9 @@ function updateSelection(options = {}) {
 			obj.selectLow()
 		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
+			if (UVEditor.selected_element_faces[obj.uuid]) {
+				delete UVEditor.selected_element_faces[obj.uuid];
+			}
 		}
 		if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
 			if (!included) {
@@ -160,13 +163,6 @@ function updateSelection(options = {}) {
 			UVEditor.vue.mode = 'uv';
 		}
 	}
-	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
-		UVEditor.selected_faces.forEachReverse((fkey, i) => {
-			if (!UVEditor.getMappableElements().find(el => el.faces[fkey])) {
-				UVEditor.selected_faces.splice(i, 1);
-			}
-		})
-	}
 	if (Condition(Panels.uv.condition)) {
 		UVEditor.loadData();
 	}
@@ -212,74 +208,7 @@ function updateSelection(options = {}) {
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function selectAll() {
-	if (Modes.animate) {
-		selectAllKeyframes()
-	} else if (Prop.active_panel == 'uv') {
-		UVEditor.selectAll()
-
-	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
-		let selection_mode = BarItems.selection_mode.value;
-		if (selection_mode == 'vertex') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-				}
-			})
-		} else if (selection_mode == 'edge') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-					mesh.getSelectedEdges(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					let edges = mesh.getSelectedEdges(true);
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey];
-						let f_vertices = face.getSortedVertices();
-						f_vertices.forEach((vkey_a, i) => {
-							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
-							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
-							edges.push(edge);
-						})
-					}
-				}
-			})
-		} else {
-			let unselect = Mesh.selected[0].getSelectedFaces().length == Object.keys(Mesh.selected[0].faces).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					delete Project.mesh_selection[mesh.uuid];
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					mesh.getSelectedFaces(true).replace(Object.keys(mesh.faces));
-				}
-			})
-		}
-		updateSelection();
-
-	} else if (Modes.edit || Modes.paint) {
-		let selectable_elements = Outliner.elements.filter(element => !element.locked);
-		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
-			}
-		} else {
-			unselectAll()
-		}
-	}
-	Blockbench.dispatchEvent('select_all')
-}
-function unselectAll() {
+function unselectAllElements() {
 	Project.selected_elements.forEachReverse(obj => obj.unselect())
 	if (Group.selected) Group.selected.unselect()
 	Group.all.forEach(function(s) {
@@ -290,15 +219,137 @@ function unselectAll() {
 	}
 	TickUpdates.selection = true;
 }
+// Legacy functions
+function selectAll() {
+	SharedActions.run('select_all');
+}
+function unselectAll() {
+	SharedActions.run('unselect_all');
+}
+
 //Backup
-const AutoBackupModels = {};
+const AutoBackup = {
+	/**
+	 * IndexedDB Database
+	 * @type {IDBDatabase}
+	 */
+	db: null,
+	initialize() {
+		let request = indexedDB.open('auto_backups', 1);
+		request.onerror = function(e) {
+			console.error('Failed to load backup database', e);
+		}
+		request.onblocked = function(e) {
+			console.error('Another instance of Blockbench is opened, the backup database cannot be upgraded at the moment');
+		}
+		request.onupgradeneeded = function() {
+			let db = request.result;
+			let store = db.createObjectStore('projects', {keyPath: 'uuid'});
+
+			// Legacy system
+			let backup_models = localStorage.getItem('backup_model')
+			if (backup_models) {
+				let parsed_backup_models = JSON.parse(backup_models);
+				for (let uuid in parsed_backup_models) {
+					let model = JSON.stringify(parsed_backup_models[uuid]);
+					store.put({uuid, data: model});
+				}
+				console.log(`Upgraded ${Object.keys(parsed_backup_models).length} project back-ups to indexedDB`);
+			}
+		}
+		request.onsuccess = function() {
+			AutoBackup.db = request.result;
+		}
+	},
+	async backupOpenProject() {
+		if (!Project) return;
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+
+		let model = Codecs.project.compile({compressed: false, backup: true, raw: false});
+		store.put({uuid: Project.uuid, data: model});
+		
+		await new Promise((resolve) => {
+			transaction.oncomplete = resolve;
+		})
+	},
+	async hasBackups() {
+		let transaction = AutoBackup.db.transaction('projects', 'readonly');
+		let store = transaction.objectStore('projects');
+		return await new Promise(resolve => {
+			let request = store.count();
+			request.onsuccess = function() {
+				resolve(!!request.result);
+			}
+			request.onerror = function(e) {
+				console.error(e);
+				resolve(false);
+			}
+		})
+	},
+	recoverAllBackups() {
+		return new Promise((resolve, reject) => {
+			let transaction = AutoBackup.db.transaction('projects', 'readonly');
+			let store = transaction.objectStore('projects');
+			let request = store.getAll();
+			request.onsuccess = function() {
+				let projects = request.result;
+				for (let project of projects) {
+					let parsed_content = JSON.parse(project.data);
+					setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
+					Codecs.project.parse(parsed_content, 'backup.bbmodel')
+				}
+				resolve();
+			}
+			request.onerror = function(e) {
+				console.error(e);
+				reject(e);
+			}
+		})
+		/*var backup_models = localStorage.getItem('backup_model')
+		let parsed_backup_models = JSON.parse(backup_models);
+		for (let uuid in parsed_backup_models) {
+			AutoBackupModels[uuid] = parsed_backup_models[uuid];
+
+			let model = parsed_backup_models[uuid];
+			setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
+			Codecs.project.parse(model, 'backup.bbmodel')
+		}*/
+	},
+	async removeBackup(uuid) {
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+		let request = store.delete(uuid);
+		
+		return await new Promise((resolve, reject) => {
+			request.onsuccess = resolve;
+			request.onerror = function(e) {
+				reject();
+			}
+		});
+	},
+	async removeAllBackups() {
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+		let request = store.clear();
+		
+		return await new Promise((resolve, reject) => {
+			request.onsuccess = resolve;
+			request.onerror = function(e) {
+				console.error(e);
+				reject();
+			}
+		});
+	}
+}
+AutoBackup.initialize();
+
+
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		Validator.validate();
 		try {
-			var model = Codecs.project.compile({compressed: false, backup: true, raw: true});
-			AutoBackupModels[Project.uuid] = model;
-			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
+			AutoBackup.backupOpenProject();
 		} catch (err) {
 			console.error('Unable to create backup. ', err)
 		}
@@ -335,6 +386,17 @@ const TickUpdates = {
 		} catch (err) {
 			console.error(err);
 		}
+	}
+}
+
+function factoryResetAndReload() {
+	let lang_key = 'menu.help.developer.reset_storage.confirm';
+	let result = window.confirm((window.tl && tl(lang_key) != lang_key) ? tl(lang_key) : 'Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.');
+	if (result) {
+		localStorage.clear();
+		Blockbench.addFlag('no_localstorage_saving');
+		console.log('Cleared Local Storage');
+		window.location.reload(true);
 	}
 }
 

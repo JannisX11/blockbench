@@ -1,7 +1,8 @@
 var Toolbars, BarItems, Toolbox;
 //Bars
-class BarItem {
+class BarItem extends EventSystem {
 	constructor(id, data) {
+		super();
 		this.id = id;
 		if (!data.private) {
 			if (this.id && !BarItems[this.id]) {
@@ -30,6 +31,7 @@ class BarItem {
 		this.condition = data.condition;
 		this.nodes = []
 		this.toolbars = []
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 		//Key
 		this.category = data.category ? data.category : 'misc'
 		if (!data.private && this.condition !== false/*Rule out app/web only actions*/) {
@@ -45,7 +47,7 @@ class BarItem {
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
 			this.uses = 0;
-			Keybinds.actions.push(this)
+			Keybinds.actions.push(this);
 		}
 	}
 	conditionMet() {
@@ -161,7 +163,7 @@ class BarItem {
 		var scope = this;
 		if (scope.uniqueNode && scope.toolbars.length) {
 			for (var i = scope.toolbars.length-1; i >= 0; i--) {
-				scope.toolbars[i].remove(scope)
+				scope.toolbars[i].remove(scope, false);
 			}
 		}
 		if (idx !== undefined) {
@@ -189,6 +191,7 @@ class BarItem {
 		this.sub_keybinds[id].keybind.setAction(this.id, id);
 	}
 	delete() {
+		this.dispatchEvent('delete');
 		var scope = this;
 		this.toolbars.forEach(bar => {
 			bar.remove(scope);
@@ -256,7 +259,14 @@ class Action extends BarItem {
 		this.searchable = data.searchable;
 
 		//Node
-		if (!this.click) this.click = data.click
+		if (!this.click && data.click) {
+			this.onClick = data.click;
+			this.click = (...args) => {
+				this.dispatchEvent('use');
+				this.onClick(...args);
+				this.dispatchEvent('used');
+			};
+		}
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.icon_states = data.icon_states;
 		this.node = document.createElement('div');
@@ -270,6 +280,17 @@ class Action extends BarItem {
 			Interface.createElement('span', {}, this.name),
 			Interface.createElement('label', {class: 'keybinding_label'}, this.keybind || '')
 		]);
+		addEventListeners(this.menu_node, 'mouseenter mousedown', event => {
+			if (event.target == this.menu_node) {
+				Menu.open.hover(this.menu_node, event);
+			}
+		});
+		if (!this.children) {
+			this.menu_node.addEventListener('click', event => {
+				if (!(event.target == this.menu_node || event.target.parentElement == this.menu_node)) return;
+				this.trigger(event);
+			});
+		}
 
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
@@ -297,7 +318,9 @@ class Action extends BarItem {
 	}
 	trigger(event) {
 		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		let condition_met = BARS.condition(scope.condition, this);
+		this.dispatchEvent('trigger', {condition_met});
+		if (condition_met) {
 			if (event && event.type === 'click' && event.altKey && scope.keybind) {
 				var record = function() {
 					document.removeEventListener('keyup', record)
@@ -347,16 +370,17 @@ class Action extends BarItem {
 				}
 			}
 		}
+		this.dispatchEvent('get_node', {node: clone});
 		return clone;
 	}
 	setIcon(icon) {
-		var scope = this;
 		this.icon = icon
 		this.icon_node = Blockbench.getIconNode(this.icon)
-		$(this.menu_node).find('.icon').replaceWith(this.icon_node)
+		$(this.menu_node).find('> .icon').replaceWith(this.icon_node)
 
-		this.nodes.forEach(function(n) {
-			$(n).find('.icon').replaceWith($(scope.icon_node).clone())
+		this.nodes.forEach(n => {
+			let old_icon = n.querySelector('.icon:not(.action_more_options)');
+			old_icon.replaceWith(this.icon_node.cloneNode(true));
 		})
 	}
 	setName(name) {
@@ -404,20 +428,24 @@ class Tool extends Action {
 		this.allowed_view_modes = data.allowed_view_modes || null;
 		this.tool_settings = {};
 
-		if (this.condition == undefined) {
-			this.condition = function() {
-				return !scope.modes || scope.modes.includes(Modes.id);
-			}
+		if (this.condition == undefined && this.modes instanceof Array) {
+			this.condition = {modes: this.modes};
 		}
+		this.raycast_options = data.raycast_options;
 		this.onCanvasClick = data.onCanvasClick;
+		this.onCanvasMouseMove = data.onCanvasMouseMove;
+		this.onCanvasRightClick = data.onCanvasRightClick;
+		this.onTextureEditorClick = data.onTextureEditorClick;
 		this.onSelect = data.onSelect;
 		this.onUnselect = data.onUnselect;
 		this.node.onclick = () => {
 			scope.select();
 		}
+		Tool.all.push(this);
 	}
 	select() {
 		if (this === Toolbox.selected) return;
+		let previous_tool = Toolbox.selected;
 		if (Toolbox.selected) {
 			Toolbox.selected.nodes.forEach(node => {
 				node.classList.remove('enabled')
@@ -425,6 +453,9 @@ class Tool extends Action {
 			Toolbox.selected.menu_node.classList.remove('enabled')
 			if (typeof Toolbox.selected.onUnselect == 'function') {
 				Toolbox.selected.onUnselect()
+			}
+			if (Toolbox.selected.brush?.size && !this.brush?.size) {
+				scene.remove(Canvas.brush_outline);
 			}
 			if (Transformer.dragging) {
 				Transformer.cancelMovement({}, true);
@@ -453,6 +484,7 @@ class Tool extends Action {
 		if (typeof this.onSelect == 'function') {
 			this.onSelect()
 		}
+		this.dispatchEvent('select', {previous_tool});
 		Interface.preview.style.cursor = this.cursor ? this.cursor : 'default';
 		this.nodes.forEach(node => {
 			node.classList.add('enabled')
@@ -465,19 +497,28 @@ class Tool extends Action {
 		if (BARS.condition(this.condition, this)) {
 			this.select()
 			return true;
-		} else if (this.modes) {
-			for (var i = 0; i < this.modes.length; i++) {
-				var mode = Modes.options[this.modes[i]]
-				if (mode && Condition(mode.condition)) {
-					mode.select()
-					this.select()
-					return true;
-				}
-			}
+		} else if (this.modes && event instanceof KeyboardEvent == false) {
+			return this.switchModeAndSelect();
 		}
 		return false;
 	}
+	switchModeAndSelect() {
+		for (var i = 0; i < this.modes.length; i++) {
+			var mode = Modes.options[this.modes[i]]
+			if (mode && Condition(mode.condition)) {
+				mode.select()
+				this.select()
+				return true;
+			}
+		}
+	}
+	delete() {
+		super.delete();
+		Tool.all.remove(this);
+	}
 }
+Tool.all = [];
+Tool.selected = null;
 class Toggle extends Action {
 	constructor(id, data) {
 		super(id, data);
@@ -502,6 +543,7 @@ class Toggle extends Action {
 			Settings.saveLocalStorages();
 		}
 		if (this.onChange) this.onChange(this.value);
+		this.dispatchEvent('change', {state: this.value});
 
 		this.updateEnabledState();
 	}
@@ -558,7 +600,12 @@ class NumSlider extends Widget {
 		this.onBefore = data.onBefore;
 		this.onChange = data.onChange;
 		this.onAfter = data.onAfter;
-		if (typeof data.change === 'function') this.change = data.change;
+		if (typeof data.change === 'function') {
+			this.change = (modify, ...args) => {
+				data.change(modify, ...args)
+				this.dispatchEvent('changed', {modify});
+			};
+		}
 		if (data.settings) {
 			this.settings = data.settings;
 			if (this.settings.default) {
@@ -642,9 +689,11 @@ class NumSlider extends Widget {
 			
 			let drag_event = await new Promise((resolve, reject) => {
 				function move(e2) {
-					removeEventListeners(document, 'mousemove touchmove', move);
-					removeEventListeners(document, 'mouseup touchend', stop);
-					resolve(e2);
+					if (!e2.clientX || Math.abs(e2.clientX-event.clientX) > 2) {
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						resolve(e2);
+					}
 				}
 				function stop(e2) {
 					removeEventListeners(document, 'mousemove touchmove', move);
@@ -963,6 +1012,7 @@ class NumSlider extends Widget {
 		if (typeof this.onChange === 'function') {
 			this.onChange(num);
 		}
+		this.dispatchEvent('change', {number: num});
 	}
 	get() {
 		//Solo Sliders only
@@ -981,6 +1031,7 @@ class NumSlider extends Widget {
 		if (isNaN(number) && !this.jq_inner.hasClass('editing') && this.jq_inner[0].textContent) {
 			this.jq_inner.text('')
 		}
+		this.dispatchEvent('update');
 	}
 }
 NumSlider.MolangParser = new Molang()
@@ -1035,6 +1086,7 @@ class BarSlider extends Widget {
 		if (this.onChange) {
 			this.onChange(this, event)
 		}
+		this.dispatchEvent('change', {value: this.value});
 	}
 	set(value) {
 		this.value = value
@@ -1123,7 +1175,7 @@ class BarSelect extends Widget {
 		if (typeof data.onChange === 'function') {
 			this.onChange = data.onChange
 		}
-		$(this.node).on('mousewheel', event => {
+		$(this.node).on('wheel', event => {
 			scope.trigger(event.originalEvent);
 		})
 	}
@@ -1182,14 +1234,17 @@ class BarSelect extends Widget {
 				})()
 			}
 		}
-		let menu = new Menu(this.id, items);
+		let menu = new Menu(this.id, items, {class: 'select_menu'});
+		this.dispatchEvent('open', {menu, items});
 		menu.node.style['min-width'] = this.node.clientWidth+'px';
 		menu.open(event.target, this);
 	}
 	trigger(event) {
 		if (!event) event = 0;
 		var scope = this;
-		if (BARS.condition(scope.condition, scope)) {
+		let condition_met = BARS.condition(this.condition, this);
+		this.dispatchEvent('trigger', {condition_met});
+		if (condition_met) {
 			if (event && event.type === 'click' && event.altKey && scope.keybind) {
 				var record = function() {
 					document.removeEventListener('keyup', record)
@@ -1229,6 +1284,7 @@ class BarSelect extends Widget {
 		if (this.onChange) {
 			this.onChange(this, event);
 		}
+		this.dispatchEvent('change', {value, event});
 		return this;
 	}
 	getNameFor(key) {
@@ -1295,10 +1351,12 @@ class BarText extends Widget {
 		if (typeof this.onUpdate === 'function') {
 			this.onUpdate()
 		}
+		this.dispatchEvent('update');
 		return this;
 	}
 	trigger(event) {
 		if (!Condition(this.condition)) return false;
+		this.dispatchEvent('trigger');
 		Blockbench.showQuickMessage(this.text)
 		return true;
 	}
@@ -1348,6 +1406,7 @@ class ColorPicker extends Widget {
 		if (this.onChange) {
 			this.onChange()
 		}
+		this.dispatchEvent('change', {color});
 	}
 	hide() {
 		this.jq.spectrum('cancel');
@@ -1405,7 +1464,13 @@ class Toolbar {
 			node: toolbar_menu
 		})
 		if (data) {
-			this.build(data)
+			try {
+				this.build(data);
+			} catch (err) {
+				console.error(`Error building toolbar "${this.id}":`, err);
+				delete BARS.stored[this.id];
+				this.build(data);
+			}
 		}
 	}
 	build(data, force) {
@@ -1444,9 +1509,6 @@ class Toolbar {
 
 				if (item) {
 					item.pushToolbar(this);
-					/*if (BARS.condition(item.condition)) {
-						content.append(item.getNode())
-					}*/
 					this.positionLookup[itemPosition] = item;
 				} else {
 					var postloadAction = [items[itemPosition], itemPosition];
@@ -1463,6 +1525,7 @@ class Toolbar {
 		if (data.default_place) {
 			this.toPlace(this.id)
 		}
+		this.condition_cache.empty();
 		return this;
 	}
 	contextmenu(event) {
@@ -1497,14 +1560,14 @@ class Toolbar {
 		this.update().save();
 		return this;
 	}
-	remove(action) {
+	remove(action, update = true) {
 		var i = this.children.length-1;
 		while (i >= 0) {
 			var item = this.children[i]
 			if (item === action || item.id === action) {
 				item.toolbars.remove(this)
 				this.children.splice(i, 1)
-				this.update(true).save();
+				if (update != false) this.update(true).save();
 				return this;
 			}
 			i--;
@@ -1549,7 +1612,6 @@ class Toolbar {
 			}
 		}
 
-		//scope.condition_cache.empty();
 		let needsUpdate = force === true || scope.condition_cache.length !== scope.children.length;
 		scope.condition_cache.length = scope.children.length;
 
@@ -1628,7 +1690,12 @@ class Toolbar {
 		if (arr.equals(this.default_children)) {
 			delete BARS.stored[this.id];
 		}
-		localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
+		// Temporary fix
+		try {
+			localStorage.setItem('toolbars', JSON.stringify(BARS.stored))
+		} catch (err) {
+			localStorage.removeItem('backup_model');
+		}
 		return this;
 	}
 	reset() {
@@ -1757,6 +1824,7 @@ const BARS = {
 				selectElements: true,
 				cursor: 'copy',
 				modes: ['edit'],
+				condition: {modes: ['edit']},
 				keybind: new Keybind({key: 'x'}),
 				onCanvasClick(data) {
 					Vertexsnap.canvasClick(data)
@@ -1781,6 +1849,17 @@ const BARS = {
 						BarItems[Toolbox.selected.alt_tool].select()
 					}
 				}
+			})
+			new Tool('stretch_tool', {
+				icon: 'expand',
+				category: 'tools',
+				condition: () => Format.stretch_cubes,
+				selectFace: true,
+				transformerMode: 'stretch',
+				toolbar: 'main_tools',
+				alt_tool: 'resize_tool',
+				modes: ['edit'],
+				keybind: new Keybind({key: 's', alt: true}),
 			})
 
 		//File
@@ -1812,230 +1891,6 @@ const BARS = {
 			})
 
 		//Edit Generic
-			new Action('rename', {
-				icon: 'text_format',
-				category: 'edit',
-				keybind: new Keybind({key: 113}),
-				click: function () {
-					if (Modes.edit || Modes.paint) {
-						renameOutliner()
-					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
-						AnimationItem.selected.rename();
-					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-						AnimationController.selected?.selected_state.rename();
-					}
-				}
-			})
-			new Action('delete', {
-				icon: 'delete',
-				category: 'edit',
-				keybind: new Keybind({key: 46}),
-				condition: () => !Dialog.open,
-				click() {
-					let mesh_selection = Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid];
-					if (ReferenceImageMode.active && ReferenceImage.selected) {
-						ReferenceImage.selected.delete();
-
-					} else if (Prop.active_panel == 'textures' && Texture.selected) {
-						Texture.selected.remove()
-
-					} else if (Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue._data.open_tab)) {
-						if (StateMemory.color_palette_locked) {
-							Blockbench.showQuickMessage('message.palette_locked');
-							return;
-						}
-						if (ColorPanel.vue._data.palette.includes(ColorPanel.vue._data.main_color)) {
-							ColorPanel.vue._data.palette.remove(ColorPanel.vue._data.main_color)
-						}
-					} else if (Modes.edit && Mesh.selected.length && mesh_selection) {
-
-						let meshes = Mesh.selected.slice();
-						Undo.initEdit({elements: meshes})
-
-						Mesh.selected.forEach(mesh => {
-							let selected_vertices = mesh.getSelectedVertices();
-							let selected_edges = mesh.getSelectedEdges();
-							let selected_faces = mesh.getSelectedFaces();
-
-							if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
-								let affected_vertices = [];
-								selected_faces.forEach(fkey => {
-									affected_vertices.safePush(...mesh.faces[fkey].vertices);
-									delete mesh.faces[fkey];
-								})
-								affected_vertices.forEach(vertex_key => {
-									let used = false;
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (face.vertices.includes(vertex_key)) used = true;
-									}
-									if (!used) {
-										delete mesh.vertices[vertex_key];
-									}
-								})
-							} else if (BarItems.selection_mode.value == 'edge') {
-								for (let key in mesh.faces) {
-									let face = mesh.faces[key];
-									let sorted_vertices = face.getSortedVertices();
-									let has_edge = sorted_vertices.find((vkey_a, i) => {
-										let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
-										let edge = [vkey_a, vkey_b];
-										return selected_edges.find(edge2 => sameMeshEdge(edge, edge2))
-									})
-									if (has_edge) {
-										delete mesh.faces[key];
-									}
-								}
-								selected_edges.forEachReverse(edge => {
-									edge.forEach(vkey => {
-										let used = false;
-										for (let key in mesh.faces) {
-											let face = mesh.faces[key];
-											if (face.vertices.includes(vkey)) used = true;
-										}
-										if (!used) {
-											delete mesh.vertices[vkey];
-											selected_vertices.remove(vkey);
-											selected_edges.remove(edge);
-										}
-									})
-								})
-
-							} else if (BarItems.selection_mode.value == 'vertex' && selected_vertices.length < Object.keys(mesh.vertices).length) {
-								selected_vertices.forEach(vkey => {
-									for (let key in mesh.faces) {
-										let face = mesh.faces[key];
-										if (!face.vertices.includes(vkey)) continue;
-										if (face.vertices.length > 2) {
-											let initial_normal;
-											if (face.vertices.length == 4) {
-												initial_normal = face.getNormal();
-											}
-											face.vertices.remove(vkey);
-											delete face.uv[vkey];
-											
-											if (face.vertices.length == 3 && face.getAngleTo(initial_normal) > 90) {
-												face.invert();
-											}
-											if (face.vertices.length == 2) {
-												for (let fkey2 in mesh.faces) {
-													if (fkey2 != key && !face.vertices.find(vkey => !mesh.faces[fkey2].vertices.includes(vkey))) {
-														delete mesh.faces[key];
-														break;
-													}
-												}
-											}
-										} else {
-											delete mesh.faces[key];
-										}
-									}
-									delete mesh.vertices[vkey];
-								})
-							} else {
-								meshes.remove(mesh);
-								mesh.remove(false);
-							}
-						})
-
-						Undo.finishEdit('Delete mesh part')
-						Canvas.updateView({elements: meshes, selection: true, element_aspects: {geometry: true, faces: true, uv: meshes.length > 0}})
-
-					} else if ((Modes.edit || Modes.paint) && (selected.length || Group.selected)) {
-
-						var array;
-						Undo.initEdit({elements: selected, outliner: true, selection: true})
-						if (Group.selected) {
-							Group.selected.remove(true)
-							return;
-						}
-						if (array == undefined) {
-							array = selected.slice(0)
-						} else if (array.constructor !== Array) {
-							array = [array]
-						} else {
-							array = array.slice(0)
-						}
-						array.forEach(function(s) {
-							s.remove(false)
-						})
-						TickUpdates.selection = true;
-						Undo.finishEdit('Delete elements')
-
-					} else if (Prop.active_panel == 'animations' && AnimationItem.selected) {
-						AnimationItem.selected.remove(true)
-
-					} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-						AnimationController.selected?.selected_state.remove(true);
-
-					} else if (Animator.open) {
-						removeSelectedKeyframes()
-					}
-				}
-			})
-			new Action('duplicate', {
-				icon: 'content_copy',
-				category: 'edit',
-				condition: () => {
-					return (AnimationItem.selected && Modes.animate && ['animations', 'animation_controllers'].includes(Prop.active_panel))
-						|| (Prop.active_panel == 'textures' && Texture.selected)
-						|| (Modes.edit && (selected.length || Group.selected));
-				},
-				keybind: new Keybind({key: 'd', ctrl: true}),
-				click() {
-					if (Modes.animate) {
-						if (Animation.selected && Prop.active_panel == 'animations') {
-							var copy = Animation.selected.getUndoCopy();
-							var animation = new Animation(copy);
-							Property.resetUniqueValues(Animation, animation);
-							animation.createUniqueName();
-							Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
-							animation.saved = false;
-							animation.add(true).select();
-						
-						} else if (AnimationController.selected && Prop.active_panel == 'animations') {
-							var copy = AnimationController.selected.getUndoCopy();
-							var controller = new AnimationController(copy);
-							Property.resetUniqueValues(AnimationController, controller);
-							controller.createUniqueName();
-							AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
-							controller.saved = false;
-							controller.add(true).select();
-
-						} else if (Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state) {
-							Undo.initEdit({animation_controllers: [AnimationController.selected]});
-							let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
-							let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
-							AnimationController.selected.states.remove(state);
-							AnimationController.selected.states.splice(index+1, 0, state);
-							Undo.finishEdit('Duplicate animation controller state');
-
-						}
-					} else if (Prop.active_panel == 'textures' && Texture.selected) {
-						let copy = Texture.selected.getUndoCopy();
-						delete copy.path;
-						copy.mode = 'bitmap';
-						copy.saved = false;
-						copy.source = 'data:image/png;base64,'+Texture.selected.getBase64();
-						new Texture(copy).fillParticle().load().add(true);
-
-					} else if (Group.selected && (Group.selected.matchesSelection() || selected.length === 0)) {
-						var cubes_before = elements.length;
-						Undo.initEdit({outliner: true, elements: [], selection: true});
-						var g = Group.selected.duplicate();
-						g.select();
-						Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true})
-					} else {
-						var added_elements = [];
-						Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-						selected.forEachReverse(function(obj, i) {
-							var copy = obj.duplicate();
-							added_elements.push(copy);
-						})
-						BarItems.move_tool.select();
-						Undo.finishEdit('Duplicate elements')
-					}
-				}
-			})
 			let find_replace_dialog = new Dialog({
 				id: 'find_replace',
 				title: 'action.find_replace',
@@ -2208,6 +2063,8 @@ const BARS = {
 				'rotate_tool',
 				'pivot_tool',
 				'vertex_snap_tool',
+				'stretch_tool',
+				'knife_tool',
 				'seam_tool',
 				'pan_tool',
 				'brush_tool',
@@ -2217,7 +2074,8 @@ const BARS = {
 				'color_picker',
 				'draw_shape_tool',
 				'gradient_tool',
-				'copy_paste_tool'
+				'selection_tool',
+				'move_layer_tool',
 			],
 			vertical: Blockbench.isMobile == true,
 			default_place: true
@@ -2228,8 +2086,10 @@ const BARS = {
 			children: [
 				'transform_space',
 				'rotation_space',
+				'transform_pivot_space',
 				'selection_mode',
 				'animation_controller_preview_mode',
+				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
@@ -2237,6 +2097,8 @@ const BARS = {
 				'loop_cut',
 				'create_face',
 				'invert_face',
+				'_',
+				'mirror_modeling',
 			]
 		})
 
@@ -2318,10 +2180,12 @@ const BARS = {
 				'copy_brush_mode',
 				'draw_shape_type',
 				'copy_paste_tool_mode',
+				'selection_tool_operation_mode',
 				'_',
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'slider_color_select_threshold',
 				'_',
 				'brush_shape',
 				'blend_mode',
@@ -2510,7 +2374,7 @@ const BARS = {
 			
 						<ul class="list" id="bar_item_list">
 							<li v-for="item in searchedBarItems" v-on:click="addItem(item)" :class="{separator_item: item.type == 'separator'}">
-								<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
+								<dynamic-icon :icon="item.icon" :color="item.color" />
 								<div class="icon_wrapper add"><i class="material-icons">add</i></div>
 								{{ item.name }}
 							</li>
