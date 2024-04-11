@@ -610,6 +610,27 @@ function cameraRotationToTarget(position, rotation) {
 	return vec.toArray().V3_add(position);
 }
 
+function getDateDisplay(input_date) {
+	let date = new Date(input_date);
+	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+	let label;
+	if (diff <= 0) {
+		label = tl('dates.today');
+	} else if (diff == 1) {
+		label = tl('dates.yesterday');
+	} else if (diff <= 7) {
+		label = tl('dates.this_week');
+	} else if (diff <= 60) {
+		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
+	} else {
+		label = date.toLocaleDateString();
+	}
+	return {
+		short: label,
+		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+	}
+}
+
 const NativeGlobals = {
 	Animation
 }

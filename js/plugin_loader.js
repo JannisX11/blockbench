@@ -56,8 +56,11 @@ class Plugin {
 		this.creation_date = 0;
 		this.contributes = {};
 		this.await_loading = false;
+		this.has_changelog = false;
+		this.changelog = null;
 		this.details = null;
 		this.about_fetched = false;
+		this.changelog_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
 		this.cache_version = 0;
@@ -83,6 +86,7 @@ class Plugin {
 		Merge.string(this, data, 'repository')
 		Merge.string(this, data, 'bug_tracker')
 		Merge.boolean(this, data, 'await_loading');
+		Merge.boolean(this, data, 'has_changelog');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
@@ -539,6 +543,36 @@ class Plugin {
 			this.about_fetched = true;
 		}
 	}
+	async fetchChangelog(force) {
+		if ((!this.changelog_fetched && !this.changelog) || force) {
+			function reverseOrder(input) {
+				let output = {};
+				Object.keys(input).forEachReverse(key => {
+					output[key] = input[key];
+				})
+				return output;
+			}
+			if (isApp && this.installed && this.source != 'store') {
+				try {
+					let changelog_path = this.path.replace(/\w+\.js$/, 'changelog.json');
+					let content = fs.readFileSync(changelog_path, {encoding: 'utf-8'});
+					this.changelog = reverseOrder(JSON.parse(content));
+					this.changelog_fetched = true;
+					return;
+				} catch (err) {
+					console.error('failed to get changelog for plugin ' + this.id, err);
+				}
+			}
+			let url = `${Plugins.api_path}/${this.id}/changelog.json`;
+			let result = await fetch(url).catch(() => {
+				console.error('changelog.json missing for plugin ' + this.id);
+			});
+			if (result.ok) {
+				this.changelog = reverseOrder(await result.json());
+			}
+			this.changelog_fetched = true;
+		}
+	}
 	getPluginDetails() {
 		if (this.details) return this.details;
 		this.details = {
@@ -558,22 +592,9 @@ class Plugin {
 		};
 
 		let trackDate = (input_date, key) => {
-			let date = new Date(input_date);
-			var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
-			let label;
-			if (diff <= 0) {
-				label = tl('dates.today');
-			} else if (diff == 1) {
-				label = tl('dates.yesterday');
-			} else if (diff <= 7) {
-				label = tl('dates.this_week');
-			} else if (diff <= 60) {
-				label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
-			} else {
-				label = date.toLocaleDateString();
-			}
-			this.details[key] = label;
-			this.details[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+			let date = getDateDisplay(input_date);
+			this.details[key] = date.short;
+			this.details[key + '_full'] = date.full;
 		}
 		if (this.source == 'store') {
 			if (!this.details.bug_tracker) this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
@@ -844,7 +865,6 @@ async function loadInstalledPlugins() {
 	})
 	return await Promise.allSettled(install_promises);
 }
-console.log('.......changed')
 
 BARS.defineActions(function() {
 
@@ -954,6 +974,19 @@ BARS.defineActions(function() {
 					if (!this.selected_plugin.installed && this.page_tab == 'settings') {
 						this.page_tab == 'about';
 					}
+					if (this.page_tab == 'changelog') {
+						if (plugin.has_changelog) {
+							plugin.fetchChangelog();
+						} else {
+							this.page_tab == 'about';
+						}
+					}
+				},
+				setPageTab(tab) {
+					this.page_tab = tab;
+					if (this.page_tab == 'changelog' && this.selected_plugin.has_changelog) {
+						this.selected_plugin.fetchChangelog();
+					}
 				},
 				showDependency(dependency) {
 					let plugin = Plugins.all.find(p => p.id == dependency);
@@ -983,6 +1016,28 @@ BARS.defineActions(function() {
 				},
 				reduceLink(url) {
 					return url.replace('https://', '').substring(0, 50)+'...';
+				},
+				printDate(input_date) {
+					return getDateDisplay(input_date).short;
+				},
+				printDateFull(input_date) {
+					return getDateDisplay(input_date).full;
+				},
+				formatChangelogLine(line) {
+					let content = [];
+					let last_i = 0;
+					for (let match of line.matchAll(/\[.+?\]\(.+?\)/g)) {
+						let split = match[0].search(/\]\(/);
+						let label = match[0].substring(1, split);
+						let href = match[0].substring(split+2, match[0].length-1);
+						let a = Interface.createElement('a', {href, title: href}, label);
+						content.push(line.substring(last_i, match.index));
+						content.push(a);
+						last_i = match.index + match[0].length;
+					}
+					content.push(line.substring(last_i));
+					let node = Interface.createElement('p', {}, content.filter(a => a));
+					return node.innerHTML;
 				},
 
 				// Settings
@@ -1279,10 +1334,11 @@ BARS.defineActions(function() {
 						</div>
 
 						<ul id="plugin_browser_page_tab_bar">
-							<li :class="{selected: page_tab == 'about'}" @click="page_tab = 'about'">About</li>
-							<li :class="{selected: page_tab == 'details'}" @click="page_tab = 'details'">Details</li>
-							<li :class="{selected: page_tab == 'settings'}" @click="page_tab = 'settings'" v-if="selected_plugin.installed">Settings</li>
-							<li :class="{selected: page_tab == 'features'}" @click="page_tab = 'features'" v-if="selected_plugin.installed">Features</li>
+							<li :class="{selected: page_tab == 'about'}" @click="setPageTab('about')">About</li>
+							<li :class="{selected: page_tab == 'details'}" @click="setPageTab('details')">Details</li>
+							<li :class="{selected: page_tab == 'changelog'}" @click="setPageTab('changelog')" v-if="selected_plugin.has_changelog">Changelog</li>
+							<li :class="{selected: page_tab == 'settings'}" @click="setPageTab('settings')" v-if="selected_plugin.installed">Settings</li>
+							<li :class="{selected: page_tab == 'features'}" @click="setPageTab('features')" v-if="selected_plugin.installed">Features</li>
 						</ul>
 
 						<dynamic-icon v-if="page_tab == 'about' && !selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
@@ -1342,6 +1398,25 @@ BARS.defineActions(function() {
 								</tr>
 							</tbody>
 						</table>
+
+						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog">
+							<li v-for="(version, key) in selected_plugin.changelog">
+								<h3>{{ version.title || key }}</h3>
+								<label class="plugin_changelog_author" v-if="version.author">{{ tl('dialog.plugins.author', [version.author]) }}</label>
+								<label class="plugin_changelog_date" v-if="version.date" :title="printDateFull(version.date)">
+									<i class="material-icons icon">calendar_today</i>
+									{{ printDate(version.date) }}
+								</label>
+								<ul>
+									<li v-for="category in version.categories">
+										<h4>{{ category.title || key }}</h4>
+										<ul class="plugin_changelog_features">
+											<li v-for="change in category.list" v-html="formatChangelogLine(change)"></li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
 						
 						<div v-if="page_tab == 'settings'">
 							<ul class="settings_list">
