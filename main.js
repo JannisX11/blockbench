@@ -160,6 +160,7 @@ function createWindow(second_instance, options = {}) {
 }
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('ignore-gpu-blocklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
