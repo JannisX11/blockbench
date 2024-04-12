@@ -1007,6 +1007,16 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	},
 })
 
+function getFormatVersion() {
+	for (let cube of Cube.all) {
+		for (let fkey in cube.faces) {
+			if (cube.faces[fkey].rotation) return '1.21.0';
+		}
+	}
+	if (Group.all.find(group => group.bedrock_binding)) return '1.16.0';
+	return '1.12.0';
+}
+
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
@@ -1060,7 +1070,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
+			format_version: getFormatVersion(),
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -1144,8 +1154,8 @@ var codec = new Codec('bedrock', {
 		}
 		if (data && index !== undefined) {
 
-			if (Group.all.find(group => group.bedrock_binding)) {
-				data.format_version = '1.16.0';
+			if (!data.format_version || compareVersions(getFormatVersion(), data.format_version)) {
+				data.format_version = getFormatVersion();
 			}
 
 			data['minecraft:geometry'].forEach(geo => {
