@@ -1,4 +1,4 @@
-class BillboardFace extends Face {
+class BillboardFace extends CubeFace {
 	constructor(data, billboard) {
 		super();
 		this.texture = false;
@@ -325,7 +325,7 @@ new NodePreviewController(Billboard, {
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform(element);
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
 		this.updateFacingCamera(element);
 
@@ -410,7 +410,66 @@ new NodePreviewController(Billboard, {
 				frame = tex.currentFrame
 			}
 		}
-		Canvas.updateUVFace(mesh.geometry.attributes.uv, 0, element.faces.front, frame, stretch)
+		let face = element.faces.front;
+		if (face.texture === null) return;
+
+		let uv = face.uv;
+		let vertex_uvs = mesh.geometry.attributes.uv;
+		let pw = Project.getUV;
+		let ph = Project.getUV;
+		if (tex && Format.per_texture_uv_size && Project.view_mode !== 'uv') {
+			pw = tex.getUVWidth();
+			ph = tex.getUVHeight();
+		}
+
+		if (tex instanceof Texture && tex.frameCount !== 1) {
+			stretch = tex.frameCount || 1;
+			if (animation === true && tex.currentFrame) {
+				frame = tex.currentFrame;
+			}
+		}
+		stretch *= -1;
+
+		// Box UV fight texture bleeding
+		if (element.box_uv) {
+			uv = uv.slice();
+			for (let si = 0; si < 2; si++) {
+				let margin = 1/64;
+				if (uv[si] > uv[si+2]) {
+					margin = -margin
+				}
+				uv[si] += margin
+				uv[si+2] -= margin
+			}
+		}
+
+		let arr = [
+			[uv[0]/pw, (uv[1]/ph)/stretch+1],
+			[uv[2]/pw, (uv[1]/ph)/stretch+1],
+			[uv[0]/pw, (uv[3]/ph)/stretch+1],
+			[uv[2]/pw, (uv[3]/ph)/stretch+1],
+		]
+		if (frame > 0 && stretch !== -1) {
+			//Animate
+			let offset = (1/stretch) * frame
+			arr[0][1] += offset
+			arr[1][1] += offset
+			arr[2][1] += offset
+			arr[3][1] += offset
+		}
+		let rot = (face.rotation+0)
+		while (rot > 0) {
+			let a = arr[0];
+			arr[0] = arr[2];
+			arr[2] = arr[3];
+			arr[3] = arr[1];
+			arr[1] = a;
+			rot = rot-90;
+		}
+		vertex_uvs.array.set(arr[0], 0);  //0,1
+		vertex_uvs.array.set(arr[1], 2);  //1,1
+		vertex_uvs.array.set(arr[2], 4);  //0,0
+		vertex_uvs.array.set(arr[3], 6);  //1,0
 
 		mesh.geometry.attributes.uv.needsUpdate = true;
 
