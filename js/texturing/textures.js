@@ -1003,7 +1003,14 @@ class Texture {
 	apply(all) {
 		let affected = Outliner.selected.filter(el => el.faces);
 		if (!affected.length) return;
-		var scope = this;
+		if (Format.per_group_texture) {
+			all = true;
+			affected.slice().forEach(element => {
+				element.getParentArray().forEach(child => {
+					if (child.faces) affected.safePush(child);
+				})
+			})
+		}
 		Undo.initEdit({elements: affected})
 
 		affected.forEach((element) => {
@@ -1012,7 +1019,7 @@ class Texture {
 				if (all || element.box_uv || selected_faces.includes(face)) {
 					var f = element.faces[face]
 					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
-						f.texture = scope.uuid
+						f.texture = this.uuid
 					}
 				}
 			}
@@ -1750,13 +1757,13 @@ class Texture {
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
 				click(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
 				click(texture) {texture.apply('blank')}
 			},
 			{
@@ -2092,10 +2099,17 @@ function loadTextureDraggable() {
 							var data = Canvas.raycast(event)
 							if (data.element && data.face) {
 								var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
-								if (tex && elements) {
+								if (Format.per_group_texture) {
+									elements.slice().forEach(element => {
+										element.getParentArray().forEach(child => {
+											if (child.faces) elements.safePush(child);
+										})
+									})
+								}
+								if (tex && elements.length) {
 									Undo.initEdit({elements})
 									elements.forEach(element => {
-										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
+										element.applyTexture(tex, Format.per_group_texture || event.shiftKey || Pressing.overrides.shift || [data.face])
 									})
 									Undo.finishEdit('Apply texture')
 								}
@@ -2130,7 +2144,14 @@ function loadTextureDraggable() {
 									array.push(element);
 								})
 							} else {
-								array = selected.includes(target) ? selected : [target];
+								array = selected.includes(target) ? selected.slice() : [target];
+								if (Format.per_group_texture) {
+									array.slice().forEach(element => {
+										element.getParentArray().forEach(child => {
+											if (child.faces) array.safePush(child);
+										})
+									})
+								}
 							}
 							array = array.filter(element => element.applyTexture);
 

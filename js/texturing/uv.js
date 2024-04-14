@@ -475,9 +475,16 @@ const UVEditor = {
 	},
 	applyTexture(texture) {
 		let elements = this.getMappableElements();
+		if (Format.per_group_texture) {
+			elements.slice().forEach(element => {
+				element.getParentArray().forEach(child => {
+					if (child.faces) elements.safePush(child);
+				})
+			})
+		}
 		Undo.initEdit({elements, uv_only: true})
 		elements.forEach(el => {
-			let faces = el.box_uv ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
+			let faces = (el.box_uv || Format.per_group_texture) ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
 			faces.forEach(face => {
 				if (el.faces[face]) {
 					el.faces[face].texture = texture.uuid;
@@ -485,7 +492,7 @@ const UVEditor = {
 			})
 		})
 		this.loadData()
-		Canvas.updateSelectedFaces()
+		Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 		Undo.finishEdit('Apply texture')
 	},
 	displayTools() {
@@ -1411,15 +1418,23 @@ const UVEditor = {
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Format.single_texture, children: function() {
 			let arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
-					let elements = UVEditor.vue.mappable_elements;
-					Undo.initEdit({elements})
-					elements.forEach((obj) => {
-						UVEditor.getFaces(obj, event).forEach(function(side) {
-							obj.faces[side].texture = false;
+					let elements = UVEditor.vue.mappable_elements.slice();
+					if (Format.per_group_texture) {
+						texture.slice().forEach(element => {
+							element.getParentArray().forEach(child => {
+								if (child.faces) texture.safePush(child);
+							})
 						})
-						obj.preview_controller.updateFaces(obj);
+					}
+					Undo.initEdit({elements, uv_only: true})
+					elements.forEach((obj) => {
+						let faces = Format.per_group_texture ? Object.keys(obj.faces) : UVEditor.getFaces(obj, event);
+						faces.forEach(fkey => {
+							obj.faces[fkey].texture = false;
+						})
 					})
 					UVEditor.loadData()
+					Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 					UVEditor.message('uv_editor.reset')
 					Undo.finishEdit('Apply blank texture')
 				}},

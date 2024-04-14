@@ -376,12 +376,20 @@ class OutlinerElement extends OutlinerNode {
 		this.menu.open(event, this)
 		return this;
 	}
-	forSelected(fc, undo_tag) {
+	forSelected(fc, undo_tag, selection_method) {
 		let selected = this.constructor.selected;
 		if (selected.length <= 1 || !selected.includes(this)) {
 			var edited = [this];
 		} else {
 			var edited = selected;
+		}
+		if (selection_method == 'all_in_group') {
+			edited = edited.slice();
+			edited.slice().forEach(element => {
+				element.getParentArray().forEach(child => {
+					if (child.faces) edited.safePush(child);
+				})
+			})
 		}
 		if (typeof fc === 'function') {
 			if (undo_tag) {
