@@ -527,11 +527,13 @@ class Texture {
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
-			if ((this.folder + this.name).match(/[^a-z0-9._/\\-]/) && !Dialog.open && settings.dialog_invalid_characters.value) {
+			let relevant_path = this.folder ? this.folder + '/' + this.name : this.name;
+			if (relevant_path.match(/[^a-z0-9._/\\-]/) && settings.dialog_invalid_characters.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_characters',
-					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
+					message: tl('message.invalid_characters.message', ['`a-z0-9._-`']) + '\n\n' + tl('data.file_path') + ':  ```' + relevant_path + '```',
 					icon: 'folder_open',
+					width: 436,
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}

@@ -115,6 +115,7 @@
 		-webkit-user-select: text;
 		font-family: var(--font-code);
 		word-break: break-word;
+		padding: 2px 6px;
 	}
 
 	.dialog {
