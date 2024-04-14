@@ -115,7 +115,18 @@ BARS.defineActions(function() {
 							}).show();
 						},
 						error: function(response) {
-							Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
+							let response_types = {
+								[400]: 'Bad Request',
+								[401]: 'Unauthorized',
+								[403]: 'Forbidden',
+								[404]: 'Not Found',
+								[405]: 'Method Not Allowed',
+								[406]: 'Not Acceptable',
+								[407]: 'Proxy Authentication Required',
+								[408]: 'Request Timeout',
+								[415]: 'Unsupported File Type',
+							}
+							Blockbench.showQuickMessage(tl('message.sketchfab.error') + `: Error ${response.status} - ${response_types[response.status]||''}`, 1500)
 							console.error(response);
 						}
 					})
