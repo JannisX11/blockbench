@@ -1059,7 +1059,7 @@ class Texture {
 					buttons: ['dialog.ok', 'dialog.cancel']
 				}, (result) => {
 					if (result == 1) return;
-					selectImageEditorFile(scope)
+					changeImageEditor(scope);
 				})
 			}
 		}

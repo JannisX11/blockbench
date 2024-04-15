@@ -313,6 +313,7 @@
 	"message.image_editor.title": "Select an image editor",
 	"message.image_editor.file": "Select File...",
 	"message.image_editor.exe": "Select image editor executable",
+	"message.image_editor.not_found": "Could not find the selected image editor. Please select a different option.",
 	"message.image_editor_missing.title": "Default Image Editor",
 	"message.image_editor_missing.message": "Select the executable file of your image editor.",
 	"message.image_editor_missing.detail": "Blockbench couldn't find an image editor on your computer. Select the executable file of your preferred image editor.",
