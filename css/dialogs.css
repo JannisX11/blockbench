@@ -1184,6 +1184,7 @@
 	#plugin_browser_page {
 		display: flex;
 		flex-direction: column;
+		position: relative;
 	}
 
 	.bar.next_to_title {
@@ -1468,14 +1469,21 @@
 	}
 	#plugin_page_background_decoration {
 		pointer-events: none;
+		position: absolute;
 		color: black;
 		opacity: 0.1;
 		font-size: 700px;
-		height: 614px;
-		width: 584px;
-		position: absolute;
+		text-align: center;
+		width: auto;
+		height: auto;
+		max-height: 614px;
+		max-width: 584px;
 		bottom: 0;
 		right: 0;
+		top: 0;
+		left: 0;
+		margin-left: auto;
+		margin-top: auto;
 		overflow: hidden;
 		max-width: unset;
 	}

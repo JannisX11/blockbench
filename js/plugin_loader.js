@@ -9,9 +9,10 @@ const Plugins = {
 	currently_loading: '',
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	devReload() {
-		var reloads = 0;
-		for (var i = Plugins.all.length-1; i >= 0; i--) {
-			if (Plugins.all[i].source == 'file') {
+		let reloads = 0;
+		for (let i = Plugins.all.length-1; i >= 0; i--) {
+			let plugin = Plugins.all[i];
+			if (plugin.source == 'file' && plugin.isReloadable()) {
 				Plugins.all[i].reload()
 				reloads++;
 			}
@@ -873,6 +874,7 @@ BARS.defineActions(function() {
 		title: 'dialog.plugins.title',
 		buttons: [],
 		width: 1200,
+		resizable: 'xy',
 		component: {
 			data: {
 				tab: 'installed',
