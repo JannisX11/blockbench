@@ -516,7 +516,6 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
-		cursor: default;
 		resize: none;
 		outline: none;
 		user-select: initial;
@@ -744,6 +743,9 @@
 	}
 	div.nslide_arrow.na_right {
 		margin-left: 16px;
+	}
+	div.nslide.editing {
+		cursor: text;
 	}
 
 	input.toggle_panel {

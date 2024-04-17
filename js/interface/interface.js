@@ -798,7 +798,8 @@ Interface.CustomElements.NumericInput = function(id, data) {
 			convertTouchEvent(e2);
 			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
 			if (difference != last_difference) {
-				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				let value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				input.value = trimFloatNumber(value, 8);
 				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
 				last_difference = difference;
 			}
@@ -809,6 +810,14 @@ Interface.CustomElements.NumericInput = function(id, data) {
 		}
 		addEventListeners(document, 'mousemove touchmove', move);
 		addEventListeners(document, 'mouseup touchend', stop);
+	})
+	Object.defineProperty(this, 'value', {
+		get() {
+			return Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max)
+		},
+		set(value) {
+			input.value = trimFloatNumber(value, 8);
+		}
 	})
 
 	addEventListeners(input, 'focusout dblclick', () => {

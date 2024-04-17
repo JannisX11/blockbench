@@ -669,7 +669,7 @@ class NumSlider extends Widget {
 
 		var scope = this;
 		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool'}, [
-			Interface.createElement('div', {class: 'nslide tab_target', 'n-action': this.id})
+			Interface.createElement('div', {class: 'nslide tab_target', inputmode: 'decimal', 'n-action': this.id})
 		])
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');

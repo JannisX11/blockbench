@@ -162,9 +162,6 @@ class Setting {
 			}
 			new Menu(list).open(e.target);
 
-		} else if (type == 'click') {
-			this.click(e)
-
 		} else {
 			let dialog = new Dialog({
 				id: 'setting_' + this.id,

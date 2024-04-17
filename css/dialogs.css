@@ -2305,10 +2305,8 @@
 	#predicate_override_list .predicate_list > li > bb-select {
 		flex-grow: 1;
 	}
-	#predicate_override_list .predicate_list > li > input {
-		width: 80px;
-    	flex-shrink: 1;
-		text-align: center;
+	#predicate_override_list .predicate_list .numeric_input {
+		max-width: 100px;
 	}
 	#predicate_override_list .predicate_list > li .tool {
 		width: 28px;

@@ -9,9 +9,9 @@ function buildForm(dialog) {
 			dialog_content.append('<hr />')
 			
 		} else {
-			let bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
+			let bar = $(`<div class="dialog_bar bar form_bar form_bar_${form_id}"></div>`)
 			let label;
-			if (data.label) {
+			if (typeof data.label == 'string') {
 				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
 				bar.append(label);
 				if (!data.full_width && data.condition !== false) {
@@ -224,22 +224,19 @@ function buildForm(dialog) {
 							display.textContent = trimFloatNumber(result[form_id]);
 						})
 					} else {
-						let display = Interface.createElement('input', {
-							class: 'range_input_label dark_bordered focusable_input',
-							type: 'number',
-							value: data.value,
-							min: data.min,
-							max: data.max,
-							step: data.step || 1,
+						bar.addClass('slider_input_combo');
+						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_number', {
+							value: data.value ?? 0,
+							min: data.min, max: data.max, step: data.step,
+							onChange() {
+								input_element.val(numeric_input.value);
+								dialog.updateFormValues();
+							}
 						});
-						bar.append(display);
+						bar.append(numeric_input.node);
 						input_element.on('input', () => {
 							let result = parseFloat(input_element.val());
-							display.value = result;
-						})
-						display.addEventListener('input', (e) => {
-							input_element.val(parseFloat(display.value));
-							dialog.updateFormValues();
+							numeric_input.value = result;
 						})
 					}
 					input_element.on('input', () => {
@@ -680,7 +677,7 @@ window.Dialog = class Dialog {
 							break;
 						case 'range':
 							if (data.editable_range_label) {
-								result[form_id] = Math.clamp(parseFloat(data.bar.find('input.range_input_label').val())||0, data.min, data.max);
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id+'_number').val())||0, data.min, data.max);
 							} else {
 								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max);
 							}

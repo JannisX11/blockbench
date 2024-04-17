@@ -1642,14 +1642,14 @@ const Painter = {
 					difference: 'action.blend_mode.difference',
 				}},
 				use_size: {label: 'action.slider_brush_size', description: 'action.slider_brush_size.desc', type: 'checkbox'},
-				size: {label: ' ', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
+				size: {label: '', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
 				use_opacity: {label: 'action.slider_brush_opacity', description: 'action.slider_brush_opacity.desc', type: 'checkbox'},
-				opacity: {label: ' ', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
+				opacity: {label: '', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
 				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
-				softness: {label: ' ', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
+				softness: {label: '', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
 				pixel_perfect: {label: 'action.pixel_perfect_drawing', type: 'checkbox'},
 				use_color: {label: 'data.color', type: 'checkbox'},
-				color: {label: ' ', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
+				color: {label: '', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
 				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
 					dialog.content_vue.removePreset();
 				}}
