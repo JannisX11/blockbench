@@ -410,10 +410,10 @@ const MenuBar = {
 				tools.sort((a, b) => {
 					return (a.modes ? modes.indexOf(a.modes[0]) : -1) - (b.modes ? modes.indexOf(b.modes[0]) : -1);
 				})
-				let mode = tools[0].modes[0];
+				let mode = tools[0].modes?.[0];
 				for (let i = 0; i < tools.length; i++) {
-					if (tools[i].modes[0] !== mode) {
-						mode = tools[i].modes[0];
+					if (tools[i].modes?.[0] !== mode) {
+						mode = tools[i].modes?.[0];
 						tools.splice(i, 0, '_');
 						i++;
 					}

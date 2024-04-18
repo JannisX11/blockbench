@@ -313,7 +313,9 @@ var codec = new Codec('project', {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].merge(Project, model)
 		}
-		if (path) Project.name = pathToName(path, false);
+		if (path && path != 'backup.bbmodel') {
+			Project.name = pathToName(path, false);
+		}
 
 		if (model.overrides) {
 			Project.overrides = model.overrides;

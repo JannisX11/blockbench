@@ -643,6 +643,8 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		margin-right: auto;
+		scrollbar-width: none;
+		scroll-behavior: smooth;
 	}
 	#tab_bar .project_tab {
 		cursor: pointer;

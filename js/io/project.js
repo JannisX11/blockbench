@@ -946,6 +946,12 @@ onVueSetup(() => {
 						delete this.thumbnail_timeout;
 					}, 80)
 				}
+			},
+			mousewheelBar(event) {
+				if (event.deltaY) {
+					event.preventDefault();
+					this.$refs.tab_bar_list.scrollLeft += event.deltaY;
+				}
 			}
 		},
 		watch: {

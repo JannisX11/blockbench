@@ -236,7 +236,7 @@
 		<div id="blackout" class="darken"></div>
 
 		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
-			<div id="tab_bar_list">
+			<div id="tab_bar_list" @wheel="mousewheelBar($event)" ref="tab_bar_list">
 				<div
 					class="project_tab"
 					v-for="(project, index) in tabs" :key="project.uuid"

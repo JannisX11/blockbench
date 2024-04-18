@@ -620,9 +620,11 @@ const UVEditor = {
 	},
 	loadViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport) return;
+		if (!uv_viewport || !Project) return;
 		UVEditor.setZoom(Project.uv_viewport.zoom);
+		let project = Project;
 		Vue.nextTick(() => {
+			if (!Project || project != Project) return;
 			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
 			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
 		})
