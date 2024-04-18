@@ -292,12 +292,17 @@ const AutoBackup = {
 			let transaction = AutoBackup.db.transaction('projects', 'readonly');
 			let store = transaction.objectStore('projects');
 			let request = store.getAll();
-			request.onsuccess = function() {
+			request.onsuccess = async function() {
 				let projects = request.result;
 				for (let project of projects) {
-					let parsed_content = JSON.parse(project.data);
-					setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
-					Codecs.project.parse(parsed_content, 'backup.bbmodel')
+					try {
+						let parsed_content = JSON.parse(project.data);
+						setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
+						Codecs.project.parse(parsed_content, 'backup.bbmodel');
+						await new Promise(r => setTimeout(r, 40));
+					} catch(err) {
+						console.error(err);
+					}
 				}
 				resolve();
 			}
