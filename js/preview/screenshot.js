@@ -640,17 +640,17 @@ const Screencam = {
 		vars.frame.append(vars.frame_label);
 
 		if (options.resolution) {
-			crop.left = crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
-			crop.top = crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
+			vars.crop.left = vars.crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
+			vars.crop.top = vars.crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
 		}
 		function drag(e1) {
-			let crop_original = Object.assign({}, crop);
+			let crop_original = Object.assign({}, vars.crop);
 			function move(e2) {
 				convertTouchEvent(e2);
-				crop.left	= crop_original.left	+ (e2.clientX - e1.clientX);
-				crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
-				crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
-				crop.bottom	= crop_original.bottom	- (e2.clientY - e1.clientY);
+				vars.crop.left	= crop_original.left	+ (e2.clientX - e1.clientX);
+				vars.crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
+				vars.crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
+				vars.crop.bottom= crop_original.bottom	- (e2.clientY - e1.clientY);
 				custom_resolution = false;
 				updateCrop();
 			}
@@ -669,11 +669,11 @@ const Screencam = {
 		let resizer_bottom_left = 	Interface.createElement('div', {style: 'bottom: -2px; left: -2px;', class: 'gif_recording_frame_handle gif_resize_sw'}, Blockbench.getIconNode('arrow_back_ios'));
 
 		function resize(e1, x_value, y_value) {
-			let crop_original = Object.assign({}, crop);
+			let crop_original = Object.assign({}, vars.crop);
 			function move(e2) {
 				convertTouchEvent(e2);
-				crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
-				crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
+				vars.crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
+				vars.crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
 				custom_resolution = false;
 				updateCrop();
 			}

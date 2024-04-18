@@ -461,6 +461,9 @@ class Keyframe {
 	}
 	
 	showInTimeline() {
+		if (!Modes.animate) {
+			Modes.options.animate.select()
+		}
 		if (!this.animator.animation.selected) {
 			this.animator.animation.select();
 		}
