@@ -672,8 +672,22 @@ class ReferenceImage {
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
-ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('media_controls'),
+	{
+		id: 'toggle_playback',
+		name: 'reference_image.toggle_playback',
+		condition: (ref) => ref.is_video,
+		icon: (ref) => ref.video.paused ? 'play_arrow' : 'pause',
+		click(ref) {
+			if (ref.video.paused) {
+				ref.video._loading = false;
+				ref.video.play();
+			} else {
+				ref.video.pause();
+			}
+		}
+	},
 	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
@@ -830,18 +844,18 @@ SharedActions.add('delete', {
 	}
 })
 
-let reference_image_playback_cooldown;
 Blockbench.on('display_animation_frame', () => {
-	if (reference_image_playback_cooldown) return;
 	ReferenceImage.active.forEach(ref => {
-		if (ref.is_video && ref.visibility) {
+		if (ref.is_video && ref.visibility && !ref.video._loading) {
+			ref.video._loading = true;
+			ref.video.ontimeupdate = () => {
+				ref.video._loading = false;
+			}
 			ref.video.currentTime = Timeline.time;
+
 			if (!ref.video.paused) ref.video.pause();
 		}
 	})
-	reference_image_playback_cooldown = setTimeout(() => {
-		reference_image_playback_cooldown = null;
-	}, 30)
 })
 
 const ReferenceImageMode = {
