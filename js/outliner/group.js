@@ -579,13 +579,14 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			var add_group = Group.selected
+			let add_group = Group.selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
-			var base_group = new Group({
+			let new_name = add_group?.name;
+			let base_group = new Group({
 				origin: add_group ? add_group.origin : undefined,
-				name: add_group?.name
+				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true

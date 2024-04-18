@@ -331,7 +331,7 @@ const Clipbench = {
 		if (Clipbench.group) {
 			function iterate(obj, parent) {
 				if (obj.children) {
-					var copy = new Group(obj).addTo(parent).init();
+					let copy = new Group(obj).addTo(parent).init();
 					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
@@ -341,15 +341,17 @@ const Clipbench = {
 							iterate(child, copy)
 						})
 					}
+					return copy;
 				} else if (OutlinerElement.isTypePermitted(obj.type)) {
 					var copy = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
 					copy.createUniqueName();
 					Property.resetUniqueValues(copy.constructor, copy);
 					copy.preview_controller.updateTransform(copy);
+					return copy;
 				}
 			}
-			iterate(Clipbench.group, target)
-			updateSelection()
+			let copy = iterate(Clipbench.group, target);
+			copy.select();
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
