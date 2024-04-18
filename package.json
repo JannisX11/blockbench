@@ -108,6 +108,7 @@
 		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
+		"@electron/notarize": "^2.3.0",
 		"blockbench-types": "^4.6.1",
 		"electron": "^30.0.0",
 		"electron-builder": "^24.13.3",
