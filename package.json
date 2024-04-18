@@ -112,7 +112,6 @@
 		"blockbench-types": "^4.6.1",
 		"electron": "^30.0.0",
 		"electron-builder": "^24.13.3",
-		"electron-notarize": "^1.0.0",
 		"webpack": "^5.74.0",
 		"webpack-cli": "^4.5.0",
 		"workbox-build": "^6.5.3"

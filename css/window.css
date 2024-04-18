@@ -922,7 +922,7 @@
 		text-align: center;
 		font-size: 12px;
 		line-height: 16px;
-		font-family: var(--font-code);
+		font-family: Consolas, Assistant, system-ui;
 	}
 	.orbit_gizmo.mouse_active .orbit_gizmo_side {
 		pointer-events: none;
