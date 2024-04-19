@@ -2733,7 +2733,7 @@ Interface.definePanels(function() {
 									let factor_y = this.texture.height / UVEditor.getUVHeight();
 									for (var fkey in el.faces) {
 										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(eö).includes(fkey) && !el.box_uv) continue;
+										if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
 										if (face.getTexture() !== this.texture) continue;
 										
 										let rect = face.getBoundingRect();

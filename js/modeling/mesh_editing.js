@@ -111,6 +111,7 @@ class KnifeToolContext {
 	 */
 	constructor(mesh) {
 		this.mesh = mesh;
+		this.mesh_3d = mesh.mesh;
 		this.points = [];
 		this.hover_point = null;
 
@@ -123,8 +124,14 @@ class KnifeToolContext {
 		this.points_mesh.frustumCulled = false;
 		this.lines_mesh.frustumCulled = false;
 
-		this.mesh.mesh.add(this.points_mesh);
-		this.mesh.mesh.add(this.lines_mesh);
+		this.mesh_3d.add(this.points_mesh);
+		this.mesh_3d.add(this.lines_mesh);
+
+		this.unselect_listener = Blockbench.on('unselect_project', context => {
+			if (this == KnifeToolContext.current) {
+				this.remove();
+			}
+		})
 	}
 	showToast() {
 		this.toast = Blockbench.showToastNotification({
@@ -171,7 +178,7 @@ class KnifeToolContext {
 			point.snapped = true;
 		}
 		// Snap to existing points?
-		let pos = this.mesh.mesh.localToWorld(Reusable.vec1.copy(point.position));
+		let pos = this.mesh_3d.localToWorld(Reusable.vec1.copy(point.position));
 		let threshold = Preview.selected.calculateControlScale(pos) * 0.6;
 		let matching_point = this.points.find(other => {
 			return point.position.distanceTo(other.position) < threshold && !other.reuse_of;
@@ -259,7 +266,7 @@ class KnifeToolContext {
 		if (this.points.length == 1) this.showToast();
 	}
 	apply() {
-		if (!this.mesh || !this.points.length) {
+		if (!this.mesh || !this.points.length || !Mesh.all.includes(this.mesh)) {
 			this.cancel();
 			return;
 		}
@@ -620,10 +627,14 @@ class KnifeToolContext {
 		this.remove();
 	}
 	remove() {
-		this.mesh.mesh.remove(this.points_mesh);
-		this.mesh.mesh.remove(this.lines_mesh);
-		delete this.mesh
+		if (this.mesh_3d) {
+			this.mesh_3d.remove(this.points_mesh);
+			this.mesh_3d.remove(this.lines_mesh);
+		}
+		delete this.mesh;
+		delete this.mesh_3d;
 		if (this.toast) this.toast.delete();
+		this.unselect_listener.delete();
 		KnifeToolContext.current = null;
 	}
 	static current = null;
