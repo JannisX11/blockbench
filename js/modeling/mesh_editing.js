@@ -152,6 +152,7 @@ class KnifeToolContext {
 			snapped: false,
 			fkey: data.face
 		}
+		data.element.mesh.worldToLocal(point.position);
 		// Snapping
 		if (data.type == 'vertex') {
 			point.position.fromArray(this.mesh.vertices[data.vertex]);
@@ -162,7 +163,11 @@ class KnifeToolContext {
 			let point_b = Reusable.vec2.fromArray(this.mesh.vertices[data.vertices[1]]);
 			let a_b = new THREE.Vector3().copy(point_b).sub(point_a);
 			let a_p = new THREE.Vector3().copy(point.position).sub(point_a);
-			point.position.copy(point_a).addScaledVector(a_b, a_p.dot(a_b) / a_b.dot(a_b));
+			let subline_len = a_p.dot(a_b) / a_b.dot(a_b);
+			if (data.event.shiftKey || Pressing.overrides.shift) {
+				subline_len = Math.round(subline_len * 4) / 4;
+			}
+			point.position.copy(point_a).addScaledVector(a_b, subline_len);
 			point.snapped = true;
 		}
 		// Snap to existing points?
@@ -182,6 +187,9 @@ class KnifeToolContext {
 			uv[1] = Math.round(uv[1] * factor) / factor;
 			let target = face.UVToLocal(uv);
 			point.position.copy(target);
+		} else if (data.event && (data.event.shiftKey || Pressing.overrides.shift) && point.fkey) {
+			let face = this.mesh.faces[point.fkey];
+			point.position.fromArray(face.getCenter());
 		}
 		if (this.points.length && point.position.distanceToSquared(this.points.last().position) < 0.001) return;
 
