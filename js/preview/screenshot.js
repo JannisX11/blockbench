@@ -589,6 +589,8 @@ const Screencam = {
 			}, vars.interval)
 
 			vars.frame.classList.add('recording');
+
+			key_listener.delete();
 		}
 		async function endRecording(render) {
 			if (!vars.recording) return;
@@ -616,6 +618,7 @@ const Screencam = {
 		}
 		function cancel() {
 			vars.frame.remove();
+			key_listener.delete();
 		}
 		function updateCrop() {
 			if (!options.resolution) {
@@ -702,6 +705,19 @@ const Screencam = {
 			startRecording();
 		});
 		controls.append(record_button);
+
+		let key_listener = Blockbench.on('press_key', context => {
+			if (Keybinds.extra.confirm.keybind.isTriggered(context.event)) {
+				context.capture();
+				startRecording();
+				return;
+			}
+			if (Keybinds.extra.cancel.keybind.isTriggered(context.event)) {
+				context.capture();
+				vars.recording ? endRecording(false) : cancel();
+				return;
+			}
+		})
 
 		let stop_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('stop'));
 		stop_button.addEventListener('click', event => {
