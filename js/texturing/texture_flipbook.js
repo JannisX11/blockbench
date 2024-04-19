@@ -401,6 +401,7 @@ BARS.defineActions(function() {
 							let frame = this.frames[this.frame_index];
 							if (!frame) return;
 							this.frames.remove(frame);
+							this.frame_index = Math.min(this.frame_index, this.frames.length-1);
 						},
 						createFrame() {
 							let canvas_frame = new CanvasFrame(texture.width, this.stride);
@@ -555,6 +556,9 @@ BARS.defineActions(function() {
 				},
 				onConfirm: async function() {
 					let {frames, stride} = this.content_vue;
+					if (frames.length == 0) {
+						this.content_vue.createFrame();
+					}
 					texture.canvas.height = stride * frames.length;
 
 					Undo.initEdit({textures: [texture], bitmap: true});

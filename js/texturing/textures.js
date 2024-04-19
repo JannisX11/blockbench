@@ -264,6 +264,7 @@ class Texture {
 
 				if (dimensions_changed) {
 					TextureAnimator.updateButton()
+					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(scope)
 				}
 				if (typeof scope.load_callback === 'function') {
