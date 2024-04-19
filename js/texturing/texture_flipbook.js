@@ -514,7 +514,7 @@ BARS.defineActions(function() {
 									</li>
 								</ul>
 								<div>
-									<div class="tool" @click="duplicateFrame()" title="${tl('generic.duplicate')}">
+									<div class="tool" @click="duplicateFrame()" title="${tl('action.duplicate')}">
 										<i class="material-icons">content_copy</i>
 									</div>
 									<div class="tool" @click="deleteFrame()" title="${tl('generic.delete')}">

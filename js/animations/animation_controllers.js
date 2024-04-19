@@ -1621,7 +1621,7 @@ Interface.definePanels(() => {
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
+											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, particle)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1665,7 +1665,7 @@ Interface.definePanels(() => {
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
+											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, sound)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>

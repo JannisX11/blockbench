@@ -1775,8 +1775,6 @@
 	"action.keyframe_uniform.desc": "Enable uniform scaling on the selected keyframes",
 	"action.keyframe_bezier_linked": "Link Bézier Handles",
 	"action.keyframe_bezier_linked.desc": "Connect the right and left keyframe bézier handle",
-	"action.change_keyframe_file": "Select Keyframe File",
-	"action.change_keyframe_file.desc": "Select an audio or particle file to preview an effect",
 	"action.reset_keyframe": "Reset Keyframe",
 	"action.reset_keyframe.desc": "Reset all values of the selected keyframes",
 	"action.reset_keyframe_handles": "Reset Keyframe Handles",
@@ -1867,6 +1865,8 @@
 	"timeline.pre_effect_script": "Script",
 	"timeline.bind_to_actor": "Bind to Actor",
 	"timeline.amplify": "Amplify",
+	"timeline.select_particle_file": "Select Particle File",
+	"timeline.select_sound_file": "Select Sound File",
 
 	"animation_controllers.select_preset": "Select a controller preset...",
 	"animation_controllers.state.animations": "Animations",
