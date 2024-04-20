@@ -878,9 +878,26 @@ Blockbench.on('display_animation_frame', () => {
 			ref.video.ontimeupdate = () => {
 				ref.video._loading = false;
 			}
-			ref.video.currentTime = Timeline.time;
 
-			if (!ref.video.paused) ref.video.pause();
+			let video_time = Math.max(0, Timeline.time - 0.02) % ref.video.duration;
+			if (Timeline.playing) {
+				ref.video.playbackRate = Timeline.playback_speed/100;
+				if (Math.abs(ref.video.currentTime - video_time + 0.02) > 0.05) {
+					ref.video.currentTime = video_time;
+				}
+				if (ref.video.paused) ref.video.play();
+
+			} else {
+				ref.video.currentTime = video_time;
+				if (!ref.video.paused) ref.video.pause();
+			}
+		}
+	})
+})
+Blockbench.on('timeline_pause', () => {
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video.paused) {
+			ref.video.pause();
 		}
 	})
 })
