@@ -63,7 +63,7 @@ const ScreencamGIFFormats = {
 					// Direct flicker-free color mapping
 					index = applyPalette(data, palette, format);
 				}
-				vars.gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: vars.interval, transparent: true});
+				vars.gif.writeFrame(index, canvas.width, canvas.height, { palette, delay: vars.interval, transparent: !vars.background_image });
 				i++;
 				Blockbench.setProgress(i / vars.frame_canvases.length);
 				await new Promise(resolve => setTimeout(resolve, 0));
@@ -457,7 +457,7 @@ const Screencam = {
 			recording: false,
 			loop: null,
 			crop: Screencam.gif_crop,
-			custom_resolution: options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height),
+			custom_resolution: options.resolution && (options.resolution[0] > Preview.selected.width || options.resolution[1] > Preview.selected.height),
 		}
 		if (options.background_image) {
 			vars.background_image = new Image();
@@ -643,8 +643,8 @@ const Screencam = {
 		vars.frame.append(vars.frame_label);
 
 		if (options.resolution) {
-			vars.crop.left = vars.crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
-			vars.crop.top = vars.crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
+			vars.crop.left = vars.crop.right = (vars.preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
+			vars.crop.top = vars.crop.bottom = (vars.preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
 		}
 		function drag(e1) {
 			let crop_original = Object.assign({}, vars.crop);
@@ -654,7 +654,7 @@ const Screencam = {
 				vars.crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
 				vars.crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
 				vars.crop.bottom= crop_original.bottom	- (e2.clientY - e1.clientY);
-				custom_resolution = false;
+				vars.custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -677,7 +677,7 @@ const Screencam = {
 				convertTouchEvent(e2);
 				vars.crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
 				vars.crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
-				custom_resolution = false;
+				vars.custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
