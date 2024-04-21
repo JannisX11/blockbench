@@ -546,7 +546,9 @@ const MenuBar = {
 			})
 			MenuBar.mode_switcher_button = mode_switcher;
 
-			let buttons = [menu_button, search_button, undo_button, redo_button, mode_switcher];
+			let home_button = document.getElementById('title_bar_home_button');
+
+			let buttons = [menu_button, search_button, home_button, undo_button, redo_button, mode_switcher];
 			buttons.forEach(button => {
 				header.append(button);
 			})

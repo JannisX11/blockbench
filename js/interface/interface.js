@@ -476,6 +476,9 @@ function setupInterface() {
 		setupMobilePanelSelector()
 		Prop.show_right_bar = false;
 		Prop.show_left_bar = false;
+	} else {
+		let panel_selector_bar = document.getElementById('panel_selector_bar');
+		if (panel_selector_bar) panel_selector_bar.remove();
 	}
 
 	for (var key in Interface.Resizers) {

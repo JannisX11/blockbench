@@ -800,61 +800,59 @@ function setActivePanel(panel) {
 }
 
 function setupMobilePanelSelector() {
-	if (Blockbench.isMobile) {
-		Interface.PanelSelectorVue = new Vue({
-			el: '#panel_selector_bar',
-			data: {
-				all_panels: Interface.Panels,
-				selected: null,
-				modifiers: Pressing.overrides
-			},
-			computed: {
-			},
-			methods: {
-				panels() {
-					let arr = [];
-					for (var id in this.all_panels) {
-						let panel = this.all_panels[id];
-						if (Condition(panel.condition) && Condition(panel.display_condition)) {
-							arr.push(panel);
-						}
+	Interface.PanelSelectorVue = new Vue({
+		el: '#panel_selector_bar',
+		data: {
+			all_panels: Interface.Panels,
+			selected: null,
+			modifiers: Pressing.overrides
+		},
+		computed: {
+		},
+		methods: {
+			panels() {
+				let arr = [];
+				for (var id in this.all_panels) {
+					let panel = this.all_panels[id];
+					if (Condition(panel.condition) && Condition(panel.display_condition)) {
+						arr.push(panel);
 					}
-					return arr;
-				},
-				select(panel) {
-					this.selected = panel && panel.id;
-					for (let key in Panels) {
-						let panel_b = Panels[key];
-						if (panel_b.slot == 'bottom') {
-							$(panel_b.node).detach();
-							panel_b.position_data.slot = 'left_bar';
-						}
-					}
-					if (panel) {
-						panel.moveTo('bottom');
-						if (panel.folded) panel.fold();
-					} else {
-						resizeWindow();
-					}
-				},
-				openKeyboardMenu() {
-					openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
-				},
-				Condition,
-				getIconNode: Blockbench.getIconNode
+				}
+				return arr;
 			},
-			template: `
-				<div id="panel_selector_bar">
-					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
-						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
-					</div>
-					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
-						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
-					</div>
-					<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
-						<i class="material-icons">keyboard</i>
-					</div>
-				</div>`
-		})
-	}
+			select(panel) {
+				this.selected = panel && panel.id;
+				for (let key in Panels) {
+					let panel_b = Panels[key];
+					if (panel_b.slot == 'bottom') {
+						$(panel_b.node).detach();
+						panel_b.position_data.slot = 'left_bar';
+					}
+				}
+				if (panel) {
+					panel.moveTo('bottom');
+					if (panel.folded) panel.fold();
+				} else {
+					resizeWindow();
+				}
+			},
+			openKeyboardMenu() {
+				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
+			},
+			Condition,
+			getIconNode: Blockbench.getIconNode
+		},
+		template: `
+			<div id="panel_selector_bar">
+				<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+					<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+				</div>
+				<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
+					<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+				</div>
+				<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<i class="material-icons">keyboard</i>
+				</div>
+			</div>`
+	})
 }
