@@ -18,11 +18,8 @@ const ScreencamGIFFormats = {
 				Screencam.processing_gif = vars.gif;
 			}
 			let i = 0;
-			let format = 'rgba4444';
+			let format = 'rgb565';
 			let prio_color_accuracy = false;
-			if (!vars.has_transparency) {
-				format = 'rgb565';
-			}
 			function quantize(data) {
 				let palette = vars.has_transparency ? [[0, 0, 0]] : [];
 				let counter = vars.has_transparency ? [100] : [];
