@@ -620,6 +620,19 @@ class Cube extends OutlinerElement {
 				this.uv_offset[0] = this.faces.east.uv[0];
 			}
 			this.uv_offset[1] = this.faces.up.uv[3];
+			let texture = Texture.getDefault();
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture) {
+					texture = this.faces[fkey].getTexture();
+				}
+			}
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture === null) {
+					this.faces[fkey].extend({texture: texture || false});
+				}
+			}
+			this.preview_controller.updateFaces(this);
+
 		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
