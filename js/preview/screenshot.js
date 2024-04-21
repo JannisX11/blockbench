@@ -19,8 +19,13 @@ const ScreencamGIFFormats = {
 			}
 			let i = 0;
 			let format = 'rgba4444';
+			let prio_color_accuracy = false;
+			if (!vars.has_transparency) {
+				format = 'rgb565';
+			}
 			function quantize(data) {
-				let palette = [[0, 0, 0]];
+				let palette = vars.has_transparency ? [[0, 0, 0]] : [];
+				let counter = vars.has_transparency ? [100] : [];
 				for (let i = 0; i < data.length; i += 4) {
 					if (data[i+3] < 127) {
 						continue;
@@ -28,11 +33,26 @@ const ScreencamGIFFormats = {
 					let r = data[i];
 					let g = data[i+1];
 					let b = data[i+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
 					if (match == -1) {
 						palette.push([r, g, b])
+						counter.push(1)
+					} else {
+						counter[match] += 1;
 					}
-					if (palette.length > 256) break;
+					if (!prio_color_accuracy && palette.length > 256) break;
+				}
+				let threshold = 4;
+				while (palette.length > 256 && prio_color_accuracy) {
+					counter.forEachReverse((count, index) => {
+						if (index == 0) return;
+						if (count < threshold) {
+							palette.splice(index, 1);
+							counter.splice(index, 1);
+						}
+					});
+					threshold *= 1.5;
+					if (threshold > 50) break;
 				}
 				return palette;
 			}
@@ -45,25 +65,47 @@ const ScreencamGIFFormats = {
 					let r = data[i*4];
 					let g = data[i*4+1];
 					let b = data[i*4+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
-					if (match == -1) {match = 0;}
-					array[i] = match;
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
+					if (match == -1 && prio_color_accuracy) {
+						let closest = palette.filter((color, i) => Math.epsilon(color[0], r, 6) && Math.epsilon(color[1], g, 6) && Math.epsilon(color[2], b, 6) && (i != 0 || !vars.has_transparency));
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 64) && Math.epsilon(color[1], g, 64) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.slice();
+						}
+						closest.sort((color_a, color_b) => {
+							let diff_a = Math.pow(color_a[0] + r, 2) + Math.pow(color_a[1] + g, 2) + Math.pow(color_a[2] + b, 2);
+							let diff_b = Math.pow(color_b[0] + r, 2) + Math.pow(color_b[1] + g, 2) + Math.pow(color_b[2] + b, 2);
+							return diff_a - diff_b;
+						})
+						if (closest[0]) {
+							match = palette.indexOf(closest[0]);
+						}
+					}
+					if (match != -1) array[i] = match;
 				}
 				return array;
 			}
 			for (let canvas of vars.frame_canvases) {
 				let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-				let palette = quantize(data, 256, {format, oneBitAlpha: true});
+				let palette = quantize(data, 256, {format, oneBitAlpha: true, clearAlphaThreshold: 127});
 				let index;
 				if (palette.length > 256) {
 					// Built-in methods
-					palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
+					palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true, clearAlphaThreshold: 127});
 					index = GIFEnc.applyPalette(data, palette, format);
 				} else {
 					// Direct flicker-free color mapping
 					index = applyPalette(data, palette, format);
 				}
-				vars.gif.writeFrame(index, canvas.width, canvas.height, { palette, delay: vars.interval, transparent: !vars.background_image });
+				vars.gif.writeFrame(index, canvas.width, canvas.height, { palette, delay: vars.interval, transparent: vars.has_transparency });
 				i++;
 				Blockbench.setProgress(i / vars.frame_canvases.length);
 				await new Promise(resolve => setTimeout(resolve, 0));
@@ -158,13 +200,13 @@ const Screencam = {
 			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
-			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
+			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#000000', toggle_enabled: true, toggle_default: false},
 			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
 			turnspeed:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
 		},
 		onConfirm(formData) {
-			formData.background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
+			formData.background = (formData.color && formData.color.toHex8String() != '#00000000') ? formData.color.toHexString() : undefined;
 			this.hide();
 			document.getElementById('gif_recording_frame')?.remove();
 			Screencam.createGif(formData)
@@ -458,12 +500,16 @@ const Screencam = {
 			loop: null,
 			crop: Screencam.gif_crop,
 			custom_resolution: options.resolution && (options.resolution[0] > Preview.selected.width || options.resolution[1] > Preview.selected.height),
+			has_transparency: options.background == undefined
 		}
 		if (options.background_image) {
 			vars.background_image = new Image();
 			vars.background_image.src = options.background_image
 			vars.background_image.onerror = () => {
 				vars.background_image = null;
+			}
+			vars.background_image.onload = () => {
+				vars.has_transparency = false;
 			}
 		}
 		if (ScreencamGIFFormats[options.format].interval) {

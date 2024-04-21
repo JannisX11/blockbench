@@ -431,7 +431,7 @@ BARS.defineActions(function() {
 							:class="{selected: i === index}"
 							:title="item.description"
 							@click="click(item, $event)"
-							@mouseenter="index = i"
+							@mousemove="index = i"
 						>
 							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>
