@@ -76,6 +76,9 @@ var codec = new Codec('project', {
 		extensions: ['bbmodel']
 	},
 	load(model, file) {
+		if (!model || !model.meta) {
+			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
+		}
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		Project.name = pathToName(name, false);

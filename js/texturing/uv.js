@@ -2543,9 +2543,10 @@ Interface.definePanels(function() {
 				},
 				selectFace(element, key, event, keep_selection, support_dragging) {
 					let selected_faces = element ? UVEditor.getSelectedFaces(element, true) : [];
+					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
 
-					} else if (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
+					} else if (add_to_list) {
 						if (selected_faces.includes(key)) {
 							selected_faces.remove(key);
 						} else {
@@ -2557,10 +2558,16 @@ Interface.definePanels(function() {
 					if (!element && key) {
 						UVEditor.getMappableElements().forEach(element => {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
-							if (!element.faces[key]) {
-								element_selected_faces.empty();
+							if (add_to_list) {
+								if (element.faces[key]) {
+									element_selected_faces.push(key);
+								}
 							} else {
-								element_selected_faces.replace([key]);
+								if (!element.faces[key]) {
+									element_selected_faces.empty();
+								} else {
+									element_selected_faces.replace([key]);
+								}
 							}
 						})
 					}
