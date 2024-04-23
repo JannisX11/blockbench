@@ -541,7 +541,8 @@ function calculateVisibleBox() {
 						uv: [
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
-						]
+						],
+						rotation: s.uv[key].uv_rotation
 					})
 					if (s.uv[key].uv_size) {
 						face.uv_size = [
@@ -557,7 +558,8 @@ function calculateVisibleBox() {
 					}
 				} else {
 					face.texture = null;
-					face.uv = [0, 0, 0, 0]
+					face.uv = [0, 0, 0, 0],
+					face.rotation = 0;
 				}
 			}
 			
@@ -768,6 +770,9 @@ function calculateVisibleBox() {
 							face.uv_size[1],
 						]
 					});
+					if (face.rotation) {
+						template.uv[key].uv_rotation = face.rotation;
+					}
 					if (face.material_name) {
 						template.uv[key].material_instance = face.material_name;
 					}
@@ -1006,6 +1011,16 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	},
 })
 
+function getFormatVersion() {
+	for (let cube of Cube.all) {
+		for (let fkey in cube.faces) {
+			if (cube.faces[fkey].rotation) return '1.21.0';
+		}
+	}
+	if (Group.all.find(group => group.bedrock_binding)) return '1.16.0';
+	return '1.12.0';
+}
+
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
@@ -1059,7 +1074,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
+			format_version: getFormatVersion(),
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -1143,8 +1158,8 @@ var codec = new Codec('bedrock', {
 		}
 		if (data && index !== undefined) {
 
-			if (Group.all.find(group => group.bedrock_binding)) {
-				data.format_version = '1.16.0';
+			if (!data.format_version || compareVersions(getFormatVersion(), data.format_version)) {
+				data.format_version = getFormatVersion();
 			}
 
 			data['minecraft:geometry'].forEach(geo => {
@@ -1283,6 +1298,7 @@ var entity_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
+	uv_rotation: true,
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
@@ -1321,6 +1337,7 @@ var block_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
+	uv_rotation: true,
 	single_texture: false,
 	bone_rig: true,
 	centered_grid: true,
