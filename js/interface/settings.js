@@ -465,6 +465,10 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
+		new Setting('bedrock_uv_rotations',	{category: 'edit', value: false, name: 'Bedrock UV Rotations (Experimental)', description: 'Enable the experimental bedrock UV rotations feature.', onChange(value) {
+			Formats.bedrock.uv_rotation = value;
+			Formats.bedrock_block.uv_rotation = value;
+		}});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
