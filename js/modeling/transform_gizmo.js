@@ -823,7 +823,7 @@
 
 			this.getTransformSpace = function() {
 				var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
-				if (!selected.length && (!Group.selected || !rotation_tool || !Format.bone_rig)) return;
+				if (!selected.length && (!Group.selected || !Format.bone_rig)) return;
 
 				let input_space;
 				switch (Toolbox.selected.id) {
