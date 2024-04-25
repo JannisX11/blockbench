@@ -539,17 +539,18 @@ const Painter = {
 			})
 			var scan_value = true;
 			if (fill_mode === 'color_connected') {
-				function checkPx(x, y) {
-					if (map[x] && map[x][y]) {
-						map[x][y] = false;
-
-						checkPx(x+1, y)
-						checkPx(x-1, y)
-						checkPx(x, y+1)
-						checkPx(x, y-1)
+				let points = [[x, y]];
+				for (let i = 0; i < 1_000_000; i++) {
+					let current_points = points;
+					points = [];
+					for (let [x, y] of current_points) {
+						if (map[x] && map[x][y]) {
+							map[x][y] = false;
+							points.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+						}
 					}
+					if (points.length == 0) break;
 				}
-				checkPx(x, y, 0, 0);
 				scan_value = false;
 			}
 			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {

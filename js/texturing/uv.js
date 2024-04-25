@@ -3388,27 +3388,18 @@ Interface.definePanels(function() {
 							})
 							var scan_value = true;
 							if (selection_mode == 'wand') {
-								function checkPx(x, y, depth, dir) {
-									if (depth > 5_000) return;
-									if (map[x] && map[x][y]) {
-										map[x][y] = false;
-										
-										if (dir == 0) checkPx(x+1, y, depth+1, 0);
-										if (dir == 2) checkPx(x-1, y, depth+1, 2);
-										if (dir == 1) checkPx(x, y+1, depth+1, 1);
-										if (dir == 3) checkPx(x, y-1, depth+1, 3);
-
-										if (dir != 0 && dir != 2) {
-											checkPx(x+1, y, depth+1, 0);
-											checkPx(x-1, y, depth+1, 2);
-										}
-										if (dir != 1 && dir != 3) {
-											checkPx(x, y+1, depth+1, 1);
-											checkPx(x, y-1, depth+1, 3);
+								let points = [[x - offset[0], y - offset[1]]];
+								for (let i = 0; i < 1_000_000; i++) {
+									let current_points = points;
+									points = [];
+									for (let [x, y] of current_points) {
+										if (map[x] && map[x][y]) {
+											map[x][y] = false;
+											points.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
 										}
 									}
+									if (points.length == 0) break;
 								}
-								checkPx(x - offset[0], y - offset[1], 0, 0)
 								scan_value = false;
 							}
 							let value = op_mode == 'subtract' ? 0 : 1;

@@ -938,10 +938,7 @@
 						let space = Transformer.getTransformSpace();
 						//Rotation
 						if (space >= 2 || Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id == 'stretch_tool') {
-							Transformer.rotation_ref = Group.selected ? Group.selected.mesh : (selected[0] && selected[0].mesh);
-							if (Toolbox.selected.id == 'rotate_tool' && Group.selected) {
-								Transformer.rotation_ref = Group.selected.mesh;
-							}
+							Transformer.rotation_ref = (Group.selected && Format.bone_rig) ? Group.selected.mesh : (selected[0] && selected[0].mesh);
 							if (space === 3 && Mesh.selected[0]) {
 								let rotation = Mesh.selected[0].getSelectionRotation();
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
