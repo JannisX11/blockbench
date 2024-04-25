@@ -522,8 +522,8 @@ const Screencam = {
 			}
 		}
 		function startRecording() {
-			vars.canvas_width = Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000);
-			vars.canvas_height = Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000);
+			vars.canvas_width = Math.round(Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000));
+			vars.canvas_height = Math.round(Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000));
 	
 			if (options.turnspeed) {
 				vars.preview.controls.autoRotate = true;

@@ -1043,8 +1043,13 @@ BARS.defineActions(function() {
 				},
 
 				// Settings
-				saveSettings() {
-					Settings.saveLocalStorages();
+				changePluginSetting(setting) {
+					setTimeout(() => {
+						if (typeof setting.onChange == 'function') {
+							setting.onChange(setting.value);
+						}
+						Settings.saveLocalStorages();
+					}, 20);
 				},
 				settingContextMenu(setting, event) {
 					new Menu([
@@ -1053,7 +1058,7 @@ BARS.defineActions(function() {
 							icon: 'replay',
 							click: () => {
 								setting.ui_value = setting.default_value;
-								this.saveSettings();
+								Settings.saveLocalStorages();
 							}
 						}
 					]).open(event);
@@ -1427,13 +1432,13 @@ BARS.defineActions(function() {
 									@contextmenu="settingContextMenu(setting, $event)"
 								>
 									<template v-if="setting.type === 'number'">
-										<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" v-on:input="saveSettings()" /></div>
+										<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
 									</template>
 									<template v-else-if="setting.type === 'click'">
 										<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 									</template>
 									<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-										<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+										<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
 									</template>
 
 									<div class="setting_label">
@@ -1449,11 +1454,11 @@ BARS.defineActions(function() {
 									</div>
 
 									<template v-if="setting.type === 'text'">
-										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" v-on:input="saveSettings()">
+										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" @input="changePluginSetting(setting)">
 									</template>
 
 									<template v-if="setting.type === 'password'">
-										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" v-on:input="saveSettings()">
+										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" @input="changePluginSetting(setting)">
 										<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
 											<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
 											<i class="fas fa-eye" v-else></i>
@@ -1462,7 +1467,7 @@ BARS.defineActions(function() {
 
 									<template v-else-if="setting.type === 'select'">
 										<div class="bar_select">
-											<select-input v-model="setting.ui_value" :options="setting.options" />
+											<select-input v-model="setting.ui_value" :options="setting.options" @change="changePluginSetting"setting />
 										</div>
 									</template>
 								</li>
