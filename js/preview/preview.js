@@ -1086,6 +1086,10 @@ class Preview {
 
 			// z fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
+			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
+			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
+				world_normal.multiplyScalar(-1);
+			}
 			Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
 
 			//size
