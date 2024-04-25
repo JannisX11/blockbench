@@ -2645,7 +2645,7 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		keybind: new Keybind({key: 'v'}),
+		keybind: new Keybind({shift: true, key: 'v'}),
 		onCanvasClick(data) {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
