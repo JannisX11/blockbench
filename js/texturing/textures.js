@@ -646,6 +646,20 @@ class Texture {
 		}
 		return this;
 	}
+	// Used to load only file content, not generate metadata from path. Used when loading bbmodel files
+	loadContentFromPath(path) {
+		this.path = path
+		this.mode = 'link'
+		this.saved = true;
+		if (path.includes('data:image')) {
+			this.source = path
+		} else {
+			this.source = path.replace(/#/g, '%23') + '?' + tex_version
+		}
+		this.startWatcher()
+		this.load()
+		return this;
+	}
 	fromDataURL(data_url) {
 		this.source = data_url
 		this.internal = true;
@@ -816,7 +830,7 @@ class Texture {
 			var arr = path.split(osfs+'textures'+osfs);
 
 			var arr1 = arr[0].split(osfs);
-			this.namespace = arr1[arr1.length-1];
+			this.namespace = arr1.last();
 
 			var arr2 = arr[arr.length-1].split(osfs);
 			arr2.pop();
