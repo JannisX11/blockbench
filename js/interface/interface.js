@@ -448,6 +448,7 @@ function unselectInterface(event) {
 	) {
 		ReferenceImageMode.deactivate();
 	}
+	Blockbench.dispatchEvent('unselect_interface', {event});
 }
 function setupInterface() {
 

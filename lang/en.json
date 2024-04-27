@@ -2035,8 +2035,9 @@
 	"menu.mirror_painting.texture_frames": "Repeat on Animated Texture Frames",
 	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
 
-	"menu.toolbar.edit": "Customize",
-	"menu.toolbar.reset": "Reset",
+	"menu.toolbar.edit": "Customize Toolbar",
+	"menu.toolbar.reset": "Reset Toolbar",
+	"menu.toolbar.overflow": "Toolbar Overflow",
 
 	"menu.animation.loop": "Loop Mode",
 	"menu.animation.loop.once": "Play Once",
