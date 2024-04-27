@@ -173,7 +173,7 @@ class Texture {
 		});
 		mat.map = tex;
 		mat.name = this.name;
-		Project.materials[this.uuid] = mat;
+		if (Project && !data.standalone) Project.materials[this.uuid] = mat;
 
 		var size_control = {};
 
