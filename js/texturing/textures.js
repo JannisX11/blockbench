@@ -185,7 +185,11 @@ class Texture {
 		});
 		mat.map = tex;
 		mat.name = this.name;
-		Project.materials[this.uuid] = mat;
+		if (!data.standalone) {
+			if (!Project) throw new Error('Attempted to create a Texture without a Project. If this is intentional, set the standalone option to true.');
+			Project.materials[this.uuid] = mat;
+		};
+
 
 		var size_control = {};
 
