@@ -1550,9 +1550,9 @@ function compileASCIIFBXSection(object) {
 		let output = '';
 		for (let key in parent) {
 			if (typeof key == 'string' && key.startsWith('_')) continue;
-			if (parent[key] === undefined) continue;
+			if (parent[key] === undefined || parent[key] === null) continue;
 			let object = parent[key];
-			if (object === null || object._comment) {
+			if (object._comment) {
 				output += `\n${indent()};${object._comment}\n`;
 				continue;
 			}
