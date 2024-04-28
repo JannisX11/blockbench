@@ -1419,7 +1419,7 @@ const UVEditor = {
 		}},
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Format.single_texture, children: function() {
 			let arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements.slice();
 					if (Format.per_group_texture) {
 						texture.slice().forEach(element => {

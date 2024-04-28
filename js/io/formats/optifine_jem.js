@@ -203,6 +203,7 @@ var codec = new Codec('optifine_entity', {
 			} else {
 				texture_path = path.replace(/[\\/][^\\/]+$/, osfs+texture_path);
 			}
+			if (!texture_path.match(/\.\w{3,4}$/)) texture_path = texture_path + '.png';
 			let texture = new Texture().fromPath(texture_path).add(false);
 			imported_textures[string] = texture;
 			if (uv instanceof Array) {

@@ -21,6 +21,9 @@ class CubeFace extends Face {
 		this.uv[2] = arr[0] + this.uv[0];
 		this.uv[3] = arr[1] + this.uv[1];
 	}
+	get element() {
+		return this.cube;
+	}
 	extend(data) {
 		super.extend(data);
 		if (data.uv) {
@@ -936,7 +939,7 @@ class Cube extends OutlinerElement {
 		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
@@ -1127,10 +1130,10 @@ new NodePreviewController(Cube, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
-			var materials = []
+			let materials = [];
 			Canvas.face_order.forEach(function(face) {
 				if (element.faces[face].texture !== null) {
-					var tex = element.faces[face].getTexture()
+					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
@@ -1139,7 +1142,7 @@ new NodePreviewController(Cube, {
 				}
 			})
 			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
+			mesh.material = materials;
 		}
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 

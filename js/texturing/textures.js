@@ -903,7 +903,7 @@ class Texture {
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
 			Canvas.updatePixelGrid()
-		} else if (Format.single_texture && Texture.all.length > 1) {
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
 			TickUpdates.selection = true;
 		}
@@ -938,15 +938,11 @@ class Texture {
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
 
-		if (Format.single_texture && Cube.all.length) {
+		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
 			Canvas.updateAllFaces()
 			if (selected.length) {
 				UVEditor.loadData()
 			}
-		} else if (Format.id == 'bedrock_block' && Cube.all.length && Project.textures.length == 1) {
-			Cube.all.forEach(cube => {
-				cube.applyTexture(this, true);
-			})
 		}
 		TickUpdates.selection = true;
 		
