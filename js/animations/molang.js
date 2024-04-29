@@ -268,10 +268,8 @@ function getProjectMolangVariables(excluded) {
 		if (!expression.value) continue;
 		const matches = expression.value.match(/(v|variable)\.(\w+)/gi)
 		if (!matches) continue;
-		console.log('matches', matches);
 		for (const match of matches) {
 			const name = match.split('.')[1];
-			console.log('name', name)
 			if (!(excluded && excluded.includes(name))) variables.add(name);
 		}
 	}
@@ -288,10 +286,8 @@ function getTemporaryMolangVariables(expression, excluded) {
 	const variables = new Set();
 	const matches = expression.match(/(t|temp)\.(\w+)/gi)
 	if (!matches) return variables;
-	console.log('matches', matches);
 	for (const match of matches) {
 		const name = match.split('.')[1];
-		console.log('name', name)
 		if (!(excluded && excluded.includes(name))) variables.add(name);
 	}
 	return variables;
@@ -418,7 +414,6 @@ function sortAutocompleteResults(results, incomplete) {
 				queries.forEach(query => {
 					if (query.id.startsWith(incomplete)) possibleQueries.push(query)
 				})
-				console.log('queries', queries);
 			})
 			if (recursive && this.inheritedContext) {
 				return [
@@ -594,7 +589,6 @@ function sortAutocompleteResults(results, incomplete) {
 			console.log(`'${text}' => '${start}' '${space}' '${dir}'`);
 
 			const possibleRootTokens = this.getPossibleRootTokens(start);
-			console.log('Possible Root Tokens', possibleRootTokens);
 			possibleRootTokens.forEach(token => {
 				result.push({
 					text: token.arguments ? `${token.id}()` : token.id,
@@ -606,7 +600,6 @@ function sortAutocompleteResults(results, incomplete) {
 			})
 
 			const possibleNamespaces = this.getPossibleNamespaces(space);
-			console.log('Possible Namespaces', possibleNamespaces);
 			switch (possibleNamespaces.length) {
 				default:
 					possibleNamespaces.forEach(ns => {
@@ -625,7 +618,6 @@ function sortAutocompleteResults(results, incomplete) {
 						);
 					}
 					const possibleQueries = namespace.getPossibleQueries(text, dir);
-					console.log('Possible Queries', possibleQueries);
 					switch (possibleQueries.length) {
 						default:
 							return sortAutocompleteResults([
