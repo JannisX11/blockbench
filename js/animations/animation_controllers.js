@@ -1420,7 +1420,7 @@ Interface.definePanels(() => {
 					Locator.updateAutocompleteList();
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'controller');
+					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
 				}
 			},

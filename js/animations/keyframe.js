@@ -1436,7 +1436,7 @@ Interface.definePanels(function() {
 					}
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},
 				tl,
