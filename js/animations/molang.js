@@ -251,6 +251,9 @@ new ValidatorCheck('molang_syntax', {
 	}
 })
 
+/**
+ * Global Molang autocomplete object
+ */
 const MolangAutocomplete = {};
 
 /**
