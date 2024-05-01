@@ -982,7 +982,6 @@ BARS.defineActions(function() {
 			global: 'action.transform_space.global',
 			parent: 'action.transform_space.parent',
 			local: 'action.transform_space.local',
-			normal: {condition: () => Mesh.selected.length, name: true}
 		},
 		onChange() {
 			updateSelection();
