@@ -71,16 +71,9 @@ var codec = new Codec('optifine_entity', {
 				let child_cubes = group.children.filter(obj => obj.export && obj.type === 'cube')
 				let has_different_mirrored_children = !!child_cubes.find(obj => obj.mirror_uv !== child_cubes[0].mirror_uv);
 				let texture = parent_texture;
-				if (child_cubes[0]) {
-					for (let fkey in child_cubes[0].faces) {
-						if (child_cubes[0].faces[fkey].texture) {
-							let match = Texture.all.find(t => t.uuid == child_cubes[0].faces[fkey].texture);
-							if (match) {
-								texture = match;
-								break;
-							}
-						}
-					}
+				if (group.texture) {
+					let match = Texture.all.find(t => t.uuid == group.texture);
+					if (match) texture = match;
 				}
 
 				if (texture && texture != parent_texture) {
@@ -221,6 +214,9 @@ var codec = new Codec('optifine_entity', {
 			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
 		let main_texture = importTexture(model.texture, model.textureSize);
+		if (main_texture) {
+			main_texture.use_as_default = true;
+		}
 		if (typeof model.shadowSize == 'number') Project.shadow_size = model.shadowSize;
 		let empty_face = {uv: [0, 0, 0, 0], texture: null}
 		if (model.models) {
@@ -229,6 +225,7 @@ var codec = new Codec('optifine_entity', {
 				let subcount = 0;
 
 				//Bone
+				let texture = importTexture(b.texture, b.textureSize);
 				let group = new Group({
 					name: b.part,
 					origin: b.translate,
@@ -236,6 +233,7 @@ var codec = new Codec('optifine_entity', {
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
 					cem_animations: b.animations,
 					cem_attach: b.attach,
+					texture: texture ? texture.uuid : undefined,
 				})
 				group.origin.V3_multiply(-1);
 
@@ -252,11 +250,11 @@ var codec = new Codec('optifine_entity', {
 								inflate: box.sizeAdd,
 								mirror_uv: p_group.mirror_uv
 							})
-							if (texture) {
+							/*if (texture) {
 								for (let fkey in base_cube.faces) {
 									base_cube.faces[fkey].texture = texture.uuid;
 								}
-							}
+							}*/
 							if (box.coordinates) {
 								base_cube.extend({
 									from: [
@@ -307,24 +305,23 @@ var codec = new Codec('optifine_entity', {
 								subsub.translate[1] += p_group.origin[1];
 								subsub.translate[2] += p_group.origin[2];
 							}
-							var group = new Group({
+							let sub_texture = importTexture(subsub.texture, subsub.textureSize);
+							let group = new Group({
 								name: subsub.id || `${b.part}_sub_${subcount}`,
 								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
 								rotation: subsub.rotate,
 								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u')),
-								texture: subsub.texture,
-								texture_size: subsub.textureSize,
+								texture: (sub_texture || texture)?.uuid,
 							})
-							let sub_texture = importTexture(subsub.texture, subsub.textureSize) || texture;
 							subcount++;
 							group.addTo(p_group).init()
-							readContent(subsub, group, depth+1, sub_texture)
+							readContent(subsub, group, depth+1, sub_texture || texture)
 						})
 					}
 
 				}
 				group.init().addTo()
-				readContent(b, group, 0, importTexture(b.texture, b.textureSize) || main_texture)
+				readContent(b, group, 0, texture || main_texture)
 			})
 		}
 		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
@@ -355,6 +352,7 @@ var format = new ModelFormat({
 	box_uv: true,
 	optional_box_uv: true,
 	per_group_texture: true,
+	single_texture_default: true,
 	per_texture_uv_size: true,
 	integer_size: true,
 	bone_rig: true,

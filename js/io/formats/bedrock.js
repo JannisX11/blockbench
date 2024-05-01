@@ -451,7 +451,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
 					if (target == '*') {
-						texture.select();
+						texture.use_as_default = true;
 
 					} else {
 						let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
