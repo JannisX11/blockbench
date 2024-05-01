@@ -1871,14 +1871,16 @@ class Face {
 		return this;
 	}
 	getTexture() {
-		if (Format.single_texture && this.texture !== null) {
+		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
+			return Texture.all.findInArray('uuid', this.element.parent.texture);
+		}
+		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && !this.texture))) {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
-		} else {
-			return this.texture;
 		}
+		return this.texture;
 	}
 	reset() {
 		for (var key in Mesh.properties) {

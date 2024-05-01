@@ -346,14 +346,23 @@ window.BedrockBlockManager = class BedrockBlockManager {
 			if (typeof c === 'string') {
 				c = autoParseJSON(c, false);
 				let main = c && c['minecraft:block'];
-				if (main && main.components && typeof main.components['minecraft:geometry'] == 'string') {
-					var geoname = main.components['minecraft:geometry'];
-					geoname = geoname.replace(/^geometry\./, '');
-					if (geoname == this.project.geometry_name) {
-						main.type = 'block';
-						return main;
+				if (!main || !main.components) return;
+
+				let isThisGeo = id => {
+					return typeof id == 'string' && id.replace(/^geometry\./, '') == this.project.geometry_name;
+				}
+				if (isThisGeo(main.components['minecraft:geometry'])) {
+					main.type = 'block';
+					return main;
+				}
+				if (main.permutations instanceof Array) {
+					for (let permutation of main.permutations) {
+						if (permutation.components && isThisGeo(permutation.components['minecraft:geometry'])) {
+							main.type = 'block';
+							return main;
+						}
 					}
-				} 
+				}
 			}
 		} catch (err) {
 			console.log(err);
@@ -379,9 +388,12 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				try {
 					let bp_manifest_path = [...path, dirent.name, 'manifest.json'].join(osfs);
 					let bp_manifest_content = autoParseJSON(fs.readFileSync(bp_manifest_path, 'utf-8'), false);
-					if (bp_manifest_content && bp_manifest_content.dependencies && bp_manifest_content.dependencies[0] && bp_manifest_content.dependencies[0].uuid == rp_uuid) {
-						bp_name = dirent.name;
-						break;
+					if (bp_manifest_content && bp_manifest_content.dependencies instanceof Array) {
+						let matching_dependency = bp_manifest_content.dependencies.find(dep => dep.uuid == rp_uuid);
+						if (matching_dependency) {
+							bp_name = dirent.name;
+							break;
+						}
 					}
 				} catch (err) {}
 			}
@@ -438,20 +450,22 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				])
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
-					let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
+					if (target == '*') {
+						texture.use_as_default = true;
 
-					Cube.all.forEach(cube => {
-						for (let fkey in cube.faces) {
-							let face = cube.faces[fkey];
-							if (face.texture === null) continue;
-							if (
-								(target == '*') ||
-								(face.material_name && face.material_name.match(target_regex))
-							) {
-								face.texture = texture.uuid;
+					} else {
+						let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
+						Cube.all.forEach(cube => {
+							for (let fkey in cube.faces) {
+								let face = cube.faces[fkey];
+								if (face.texture === null) continue;
+								if (face.material_name && face.material_name.match(target_regex)) {
+									face.texture = texture.uuid;
+								}
 							}
-						}
-					})
+						})
+					}
+
 				}
 			}
 			Canvas.updateView({elements: Cube.all, element_aspects: {faces: true}})
@@ -1338,7 +1352,7 @@ var block_format = new ModelFormat({
 	box_uv: false,
 	optional_box_uv: true,
 	uv_rotation: settings.bedrock_uv_rotations.value,
-	single_texture: false,
+	single_texture_default: true,
 	bone_rig: true,
 	centered_grid: true,
 	animated_textures: true,
