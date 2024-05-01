@@ -1077,6 +1077,10 @@ window.MessageBox = class MessageBox extends Dialog {
 				if (command.icon) {
 					entry.prepend(Blockbench.getIconNode(command.icon));
 				}
+				if (command.description) {
+					let label = Interface.createElement('label', {}, tl(command.description));
+					entry.append(label);
+				}
 				entry.addEventListener('click', e => {
 					this.close(id, results, e);
 				})

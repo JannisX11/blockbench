@@ -17,6 +17,7 @@
 	"dialog.open_url": "Open URL",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
 	"dialog.advanced": "Advanced",
+	"dialog.recommended_option": "recommended",
 
 	"data.cube": "Cube",
 	"data.locator": "Locator",
@@ -390,8 +391,8 @@
 	"message.auto_fix_mesh_edit.revert": "Revert Edit",
 	"message.auto_fix_mesh_edit.overlapping_vertices": "Certain vertices have been moved into the same spot. How would you like to proceed?",
 	"message.auto_fix_mesh_edit.concave_quads": "One or more quad faces are now concave, which can cause issues in UV-mapping and rendering. Blockbench can automatically fix it for you:",
-	"message.auto_fix_mesh_edit.merge_vertices": "Merge Vertices (recommended)",
-	"message.auto_fix_mesh_edit.split_quads": "Split Quads (recommended)",
+	"message.auto_fix_mesh_edit.merge_vertices": "Merge Vertices",
+	"message.auto_fix_mesh_edit.split_quads": "Split Quads",
 
 	"message.merged_vertices": "Found and merged %0 vertices in %1 locations",
 

@@ -672,7 +672,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.overlapping_vertices',
 			commands: {
-				merge: 'message.auto_fix_mesh_edit.merge_vertices',
+				merge: {text: 'message.auto_fix_mesh_edit.merge_vertices', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']
@@ -758,7 +758,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.concave_quads',
 			commands: {
-				split: 'message.auto_fix_mesh_edit.split_quads',
+				split: {text: 'message.auto_fix_mesh_edit.split_quads', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']

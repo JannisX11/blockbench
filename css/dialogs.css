@@ -273,7 +273,7 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	.dialog_message_box_command::after {
+	.dialog_message_box_command::before {
 		float: right;
 		content: "\f105";
 		font-family: 'Font Awesome 6 Free';
@@ -284,6 +284,20 @@
 	.dialog_message_box_command > .icon {
 		margin-right: 10px;
 		vertical-align: sub;
+	}
+	.dialog_message_box_command > label {
+		display: block;
+		color: var(--color-subtle_text);
+		font-size: 0.93em;
+		width: fit-content;
+		pointer-events: none;
+		margin-top: -5px;
+	}
+	.dialog_message_box_command:has(.icon) > label {
+		margin-left: 30px;
+	}
+	.dialog_message_box_command:hover > label {
+		color: var(--color-accent_text);
 	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
