@@ -15,7 +15,7 @@ let load_project_data;
 	// Useful for portable installations, and for setting up development environments.
 	const index = process.argv.findIndex(arg => arg === '--userData');
 	if (index !== -1) {
-		if (!process.argv[index + 1]) {
+		if (!process.argv.at(index + 1)) {
 			console.error('No path specified after --userData')
 			process.exit(1)
 		}
