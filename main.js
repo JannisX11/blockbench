@@ -11,7 +11,7 @@ let all_wins = [];
 let load_project_data;
 
 (() => {
-	// Allow the user to specify a custom userData directory.
+	// Allow advanced users to specify a custom userData directory.
 	// Useful for portable installations, and for setting up development environments.
 	const index = process.argv.findIndex(arg => arg === '--userData');
 	if (index !== -1) {
