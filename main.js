@@ -10,8 +10,14 @@ let orig_win;
 let all_wins = [];
 let load_project_data;
 
-let argvIndexUserData = process.argv.findIndex((arg, index) => arg === '--userData' && process.argv[index + 1]);
-if (argvIndexUserData !== -1) app.setPath("userData", process.argv[argvIndexUserData + 1]);
+(() => {
+	// Allow the user to specify a custom userData directory.
+	// Useful for portable installations, and for setting up development environments.
+	const index = process.argv.findIndex(arg => arg === '--userData');
+	if (index !== -1) {
+		app.setPath('userData', process.argv[index + 1]);
+	}
+})()
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
