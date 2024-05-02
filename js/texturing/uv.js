@@ -3253,7 +3253,7 @@ Interface.definePanels(function() {
 				},
 				filterMeshFaces(element) {
 					let keys = Object.keys(element.faces);
-					if (keys.length > 800) {
+					if (keys.length > 2000) {
 						let result = {};
 						element.getSelectedFaces().forEach(key => {
 							result[key] = element.faces[key];
