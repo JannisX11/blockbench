@@ -469,6 +469,7 @@
 	"dialog.resize_texture.fill.transparent": "Transparent",
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
+	"dialog.resize_texture.offset": "Offset",
 
 	"dialog.animated_texture_editor.code_reference": "Code Reference",
 	"dialog.animated_texture_editor.code_reference.about": "This code to implement the texture animation was generated as a reference and does not necessarily work without modification. Check out the documentation to learn more.",
@@ -477,6 +478,7 @@
 	"dialog.animated_texture_editor.stride": "Frame Size",
 	"dialog.animated_texture_editor.frames": "Number of Frames",
 	"dialog.animated_texture_editor.add_frame": "Add Frame",
+	"dialog.animated_texture_editor.resize_frames": "Resize Frames...",
 	"dialog.animated_texture_editor.apply": "Apply",
 
 	"dialog.export_emission_map.title": "Export Emission Map",
