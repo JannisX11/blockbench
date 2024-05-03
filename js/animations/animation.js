@@ -158,7 +158,7 @@ class Animation extends AnimationItem {
 			ani_tag.loop = true;
 		}
 
-		if (this.length) ani_tag.animation_length = this.length;
+		if (this.length) ani_tag.animation_length = Math.roundTo(this.length, 4);
 		if (this.override) ani_tag.override_previous_animation = true;
 		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
 		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');

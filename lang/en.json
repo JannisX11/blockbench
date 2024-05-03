@@ -17,6 +17,7 @@
 	"dialog.open_url": "Open URL",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
 	"dialog.advanced": "Advanced",
+	"dialog.recommended_option": "recommended",
 
 	"data.cube": "Cube",
 	"data.locator": "Locator",
@@ -390,8 +391,8 @@
 	"message.auto_fix_mesh_edit.revert": "Revert Edit",
 	"message.auto_fix_mesh_edit.overlapping_vertices": "Certain vertices have been moved into the same spot. How would you like to proceed?",
 	"message.auto_fix_mesh_edit.concave_quads": "One or more quad faces are now concave, which can cause issues in UV-mapping and rendering. Blockbench can automatically fix it for you:",
-	"message.auto_fix_mesh_edit.merge_vertices": "Merge Vertices (recommended)",
-	"message.auto_fix_mesh_edit.split_quads": "Split Quads (recommended)",
+	"message.auto_fix_mesh_edit.merge_vertices": "Merge Vertices",
+	"message.auto_fix_mesh_edit.split_quads": "Split Quads",
 
 	"message.merged_vertices": "Found and merged %0 vertices in %1 locations",
 
@@ -468,6 +469,7 @@
 	"dialog.resize_texture.fill.transparent": "Transparent",
 	"dialog.resize_texture.fill.color": "Color",
 	"dialog.resize_texture.fill.repeat": "Repeat",
+	"dialog.resize_texture.offset": "Offset",
 
 	"dialog.animated_texture_editor.code_reference": "Code Reference",
 	"dialog.animated_texture_editor.code_reference.about": "This code to implement the texture animation was generated as a reference and does not necessarily work without modification. Check out the documentation to learn more.",
@@ -476,6 +478,7 @@
 	"dialog.animated_texture_editor.stride": "Frame Size",
 	"dialog.animated_texture_editor.frames": "Number of Frames",
 	"dialog.animated_texture_editor.add_frame": "Add Frame",
+	"dialog.animated_texture_editor.resize_frames": "Resize Frames...",
 	"dialog.animated_texture_editor.apply": "Apply",
 
 	"dialog.export_emission_map.title": "Export Emission Map",
@@ -784,6 +787,7 @@
 	"layout.options": "Options",
 	"layout.color": "Color Scheme",
 	"layout.css": "Custom CSS",
+	"layout.thumbnail": "Custom Thumbnail CSS",
 	"layout.documentation": "Documentation",
 	"layout.restore_backup": "Your customized theme \"%0\" was overwritten. Click here to restore it.",
 	"layout.color.back": "Back",
@@ -1451,6 +1455,7 @@
 	"action.transform_space.local": "Local",
 	"action.transform_space.normal": "Normal",
 	"action.rotation_space": "Rotation Space",
+	"action.transform_pivot_space": "Pivot Transform Space",
 	"action.scale": "Scale...",
 	"action.scale.desc": "Scale the selected elements",
 	"action.rotate_cw": "Rotate %0 +90",
@@ -1944,6 +1949,7 @@
 	"menu.cube.texture": "Texture",
 	"menu.cube.texture.transparent": "Transparent",
 	"menu.cube.texture.blank": "Blank",
+	"menu.cube.texture.default": "Default",
 	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
 	"menu.null_object.lock_ik_target_rotation": "Lock IK Target Rotation",
 	"menu.texture_mesh.texture_name": "Texture Name...",
@@ -1987,6 +1993,7 @@
 	"menu.texture.edit_externally": "Edit Externally",
 	"menu.texture.edit_in_blockbench": "Edit in Blockbench",
 	"menu.texture.particle": "Use for Particles",
+	"menu.texture.use_as_default": "Set as Default",
 	"menu.texture.export": "Save As",
 	"menu.texture.save": "Save",
 	"menu.texture.properties": "Properties...",

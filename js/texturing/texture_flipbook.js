@@ -160,6 +160,7 @@ BARS.defineActions(function() {
 		click() {
 			let texture = Texture.selected;
 			let frametime = 1000/settings.texture_fps.value;
+			let gauge = texture.width;
 			if (Format.texture_mcmeta && Texture.getDefault()) {
 				let tex = Texture.getDefault();
 				frametime = Math.max(tex.frame_time, 1) * 50;
@@ -252,7 +253,7 @@ BARS.defineActions(function() {
 				for (let i = 0; i < frame_count; i++) {
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
-					canvas.width = texture.width;
+					canvas.width = gauge;
 					canvas.height = stride;
 					ctx.drawImage(texture.canvas, 0, -stride * i);
 					let data_url = canvas.toDataURL();
@@ -404,7 +405,7 @@ BARS.defineActions(function() {
 							this.frame_index = Math.min(this.frame_index, this.frames.length-1);
 						},
 						createFrame() {
-							let canvas_frame = new CanvasFrame(texture.width, this.stride);
+							let canvas_frame = new CanvasFrame(gauge, this.stride);
 							let frame = {
 								uuid: guid(),
 								canvas: canvas_frame.canvas,
@@ -434,7 +435,7 @@ BARS.defineActions(function() {
 						},
 						paste() {
 							let addFrame = (data_url) => {
-								let canvas_frame = new CanvasFrame(texture.width, this.stride);
+								let canvas_frame = new CanvasFrame(gauge, this.stride);
 								canvas_frame.loadFromURL(data_url);
 								let frame = {
 									uuid: guid(),
@@ -458,6 +459,56 @@ BARS.defineActions(function() {
 									}
 								}).catch(() => {})
 							}
+						},
+						resizeFrames() {
+							let vue = this;
+							let old_resolution = [gauge, this.stride];
+							new Dialog('resize_flipbook_frames', {
+								title: 'dialog.animated_texture_editor.resize_frames',
+								form: {
+									mode: {label: 'dialog.resize_texture.mode', type: 'inline_select', default: 'crop', options: {
+										crop: 'dialog.resize_texture.mode.crop',
+										scale: 'dialog.resize_texture.mode.scale',
+									}},
+									size: {
+										label: 'dialog.project.texture_size',
+										type: 'vector',
+										dimensions: 2,
+										value: old_resolution,
+										min: 1
+									},
+									offset: {
+										label: 'dialog.resize_texture.offset',
+										type: 'vector',
+										dimensions: 2,
+										value: [0, 0]
+									},
+								},
+								onConfirm(result) {
+									gauge = result.size[0];
+									let stride = vue.stride = result.size[1];
+									let copy_canvas = document.createElement('canvas');
+									let copy_ctx = copy_canvas.getContext('2d');
+									copy_canvas.width = gauge;
+									copy_canvas.height = vue.stride;
+
+									for (let frame of vue.frames) {
+										copy_canvas.width = gauge;
+										copy_ctx.imageSmoothingEnabled = false;
+										if (result.mode == 'crop') {
+											copy_ctx.drawImage(frame.canvas, result.offset[0], result.offset[1]);
+										} else {
+											copy_ctx.drawImage(frame.canvas, result.offset[0], result.offset[1], gauge, stride);
+										}
+
+										frame.canvas.width = gauge;
+										frame.canvas.height = stride;
+										frame.ctx.drawImage(copy_canvas, 0, 0);
+										
+										frame.data_url = frame.canvas.toDataURL();
+									}
+								}
+							}).show();
 						},
 						sort(event) {
 							let selected = this.frames[this.frame_index];
@@ -511,7 +562,7 @@ BARS.defineActions(function() {
 										@dblclick="setFrame(i)"
 									>
 										<label>{{ i }}</label>
-										<img class="checkerboard" :src="frame.data_url" width="120">
+										<img class="checkerboard" :src="frame.data_url" width="105">
 									</li>
 								</ul>
 								<div>
@@ -523,6 +574,9 @@ BARS.defineActions(function() {
 									</div>
 									<div class="tool" @click="createFrame()" title="${tl('dialog.animated_texture_editor.add_frame')}">
 										<i class="material-icons">library_add</i>
+									</div>
+									<div class="tool" @click="resizeFrames()" title="${tl('dialog.animated_texture_editor.resize_frames')}">
+										<i class="material-icons">photo_size_select_large</i>
 									</div>
 								</div>
 							</div>
@@ -559,6 +613,7 @@ BARS.defineActions(function() {
 					if (frames.length == 0) {
 						this.content_vue.createFrame();
 					}
+					texture.canvas.width = gauge;
 					texture.canvas.height = stride * frames.length;
 
 					Undo.initEdit({textures: [texture], bitmap: true});

@@ -1129,16 +1129,41 @@ class Preview {
 			Toolbox.selected.onCanvasMouseMove(data);
 		}
 		if (Condition(BarItems.selection_mode.condition) && Mesh.hasAny() && data && data.element instanceof Mesh) {
-			let selectable;
-			if (BarItems.selection_mode.value == 'edge' && data.type == 'line') selectable = true;
-			if (BarItems.selection_mode.value == 'vertex' && data.type == 'vertex') selectable = true;
-			if (selectable) {
-				this.canvas.classList.add('selectable_cursor');
+			if (BarItems.selection_mode.value == 'edge' && data.type == 'line' && data.vertices) {
+				let pos_1 = Reusable.vec1.fromArray(data.element.vertices[data.vertices[0]]);
+				let pos_2 = Reusable.vec2.fromArray(data.element.vertices[data.vertices[1]]);
+				data.element.mesh.localToWorld(pos_1);
+				data.element.mesh.localToWorld(pos_2);
+
+				let z_scalar = Preview.selected.calculateControlScale(pos_1) / 8;
+				let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
+				z_offset.multiplyScalar(-z_scalar);
+				pos_1.add(z_offset);
+				pos_2.add(z_offset);
+
+				let array = pos_1.toArray().concat(pos_2.toArray());
+				Canvas.hover_helper_line.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(array), 3));
+				Canvas.scene.add(Canvas.hover_helper_line);
 			} else {
-				this.canvas.classList.remove('selectable_cursor');
+				if (Canvas.hover_helper_line.parent) Canvas.hover_helper_line.parent.remove(Canvas.hover_helper_line);
+			}
+			if (BarItems.selection_mode.value == 'vertex' && data.type == 'vertex') {
+				let pos = Reusable.vec1.fromArray(data.element.vertices[data.vertex]);
+				data.element.mesh.localToWorld(pos);
+
+				let scale = Preview.selected.calculateControlScale(pos);
+				let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
+				z_offset.multiplyScalar(-scale / 3);
+				pos.add(z_offset);
+				Canvas.hover_helper_vertex.position.copy(pos);
+
+				Canvas.scene.add(Canvas.hover_helper_vertex);
+			} else {
+				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 			}
 		} else {
-			this.canvas.classList.remove('selectable_cursor');
+			if (Canvas.hover_helper_line.parent) Canvas.hover_helper_line.parent.remove(Canvas.hover_helper_line);
+			if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 		}
 	}
 	mouseup(event) {

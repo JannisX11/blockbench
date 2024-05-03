@@ -475,22 +475,32 @@ const UVEditor = {
 	},
 	applyTexture(texture) {
 		let elements = this.getMappableElements();
+
 		if (Format.per_group_texture) {
-			elements.slice().forEach(element => {
-				element.getParentArray().forEach(child => {
+			elements = [];
+			let groups = Group.selected ? [Group.selected] : [];
+			Outliner.selected.forEach(el => {
+				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+			});
+			Undo.initEdit({outliner: true});
+			groups.forEach(group => {
+				group.texture = texture.uuid;
+				group.forEachChild(child => {
 					if (child.faces) elements.safePush(child);
 				})
 			})
-		}
-		Undo.initEdit({elements, uv_only: true})
-		elements.forEach(el => {
-			let faces = (el.box_uv || Format.per_group_texture) ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
-			faces.forEach(face => {
-				if (el.faces[face]) {
-					el.faces[face].texture = texture.uuid;
-				}
+		} else {
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(el => {
+				let faces = (el.box_uv || Format.per_group_texture) ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
+				faces.forEach(face => {
+					if (el.faces[face]) {
+						el.faces[face].texture = texture.uuid;
+					}
+				})
 			})
-		})
+		}
+
 		this.loadData()
 		Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 		Undo.finishEdit('Apply texture')
@@ -1419,22 +1429,30 @@ const UVEditor = {
 		}},
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Format.single_texture, children: function() {
 			let arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(context, event) {
 					let elements = UVEditor.vue.mappable_elements.slice();
+
 					if (Format.per_group_texture) {
-						texture.slice().forEach(element => {
-							element.getParentArray().forEach(child => {
-								if (child.faces) texture.safePush(child);
+						elements = [];
+						let groups = Group.selected ? [Group.selected] : [];
+						Outliner.selected.forEach(el => {
+							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+						});
+						Undo.initEdit({outliner: true});
+						groups.forEach(group => {
+							group.texture = '';
+							group.forEachChild(child => {
+								if (child.faces) elements.safePush(child);
+							})
+						})
+					} else {
+						Undo.initEdit({elements, uv_only: true})
+						elements.forEach((obj) => {
+							UVEditor.getFaces(obj, event).forEach(fkey => {
+								obj.faces[fkey].texture = false;
 							})
 						})
 					}
-					Undo.initEdit({elements, uv_only: true})
-					elements.forEach((obj) => {
-						let faces = Format.per_group_texture ? Object.keys(obj.faces) : UVEditor.getFaces(obj, event);
-						faces.forEach(fkey => {
-							obj.faces[fkey].texture = false;
-						})
-					})
 					UVEditor.loadData()
 					Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 					UVEditor.message('uv_editor.reset')
@@ -3235,7 +3253,7 @@ Interface.definePanels(function() {
 				},
 				filterMeshFaces(element) {
 					let keys = Object.keys(element.faces);
-					if (keys.length > 800) {
+					if (keys.length > 2000) {
 						let result = {};
 						element.getSelectedFaces().forEach(key => {
 							result[key] = element.faces[key];

@@ -561,7 +561,7 @@ const Screencam = {
 
 			vars.recording = true;
 			vars.loop = setInterval(() => {
-				if (vars.animation) {
+				if (vars.animation && options.play) {
 					Timeline.setTime(vars.interval*vars.frames / 1000);
 					Animator.preview(true);
 				}

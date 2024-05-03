@@ -8,6 +8,9 @@ class MeshFace extends Face {
 			this.extend(data);
 		}
 	}
+	get element() {
+		return this.mesh;
+	}
 	extend(data) {
 		super.extend(data);
 		this.vertices.forEach(key => {
@@ -871,7 +874,7 @@ class Mesh extends OutlinerElement {
 		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank')

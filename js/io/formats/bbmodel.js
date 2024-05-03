@@ -334,12 +334,12 @@ var codec = new Codec('project', {
 				if (isApp && tex.relative_path && Project.save_path) {
 					let resolved_path = PathModule.resolve(PathModule.dirname(Project.save_path), tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
-						tex_copy.fromPath(resolved_path)
+						tex_copy.loadContentFromPath(resolved_path)
 						return;
 					}
 				}
 				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-					tex_copy.fromPath(tex.path)
+					tex_copy.loadContentFromPath(tex.path)
 					return;
 				}
 				if (tex.source && tex.source.substr(0, 5) == 'data:') {
@@ -362,7 +362,7 @@ var codec = new Codec('project', {
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null && !Format.single_texture_default) {
 						copy.faces[face].texture = default_texture.uuid
 					}
 				}
@@ -517,13 +517,13 @@ var codec = new Codec('project', {
 				tex_copy.id = c.toString();
 			}
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.fromPath(tex.path)
+				tex_copy.loadContentFromPath(tex.path)
 				return tex_copy;
 			}
 			if (isApp && tex.relative_path && path) {
 				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
-					tex_copy.fromPath(resolved_path)
+					tex_copy.loadContentFromPath(resolved_path)
 					return tex_copy;
 				}
 			}

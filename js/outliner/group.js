@@ -447,6 +447,33 @@ class Group extends OutlinerNode {
 				}
 			}})
 		}},
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
+			let arr = [
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(group) {
+					Undo.initEdit({group: group});
+					group.texture = '';
+					Undo.finishEdit('Unassign texture from group');
+					group.forEachChild(child => {
+						if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+					})
+				}}
+			]
+			Texture.all.forEach(t => {
+				arr.push({
+					name: t.name,
+					icon: (t.mode === 'link' ? t.img : t.source),
+					click(group) {
+						Undo.initEdit({group: group});
+						group.texture = t.uuid;
+						Undo.finishEdit('Apply texture to group');
+						group.forEachChild(child => {
+							if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+						})
+					}
+				})
+			})
+			return arr;
+		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		'apply_animation_preset',
 		'add_locator',
@@ -480,7 +507,7 @@ new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
+//new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
 

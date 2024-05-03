@@ -672,7 +672,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.overlapping_vertices',
 			commands: {
-				merge: 'message.auto_fix_mesh_edit.merge_vertices',
+				merge: {text: 'message.auto_fix_mesh_edit.merge_vertices', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']
@@ -758,7 +758,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.concave_quads',
 			commands: {
-				split: 'message.auto_fix_mesh_edit.split_quads',
+				split: {text: 'message.auto_fix_mesh_edit.split_quads', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']
@@ -817,6 +817,24 @@ async function autoFixMeshEdit() {
 			}
 			resolve();
 		})})
+	}
+}
+
+function cleanupOverlappingMeshFaces(mesh) {
+	for (let fkey in mesh.faces) {
+		let face = mesh.faces[fkey];
+		if (face.vertices.length < 2) {
+			delete mesh.faces[fkey];
+		} else {
+			for (let fkey2 in mesh.faces) {
+				let face2 = mesh.faces[fkey2];
+				if (fkey == fkey2 || !face2) continue;
+				let overlaps = face.vertices.allAre(vkey => face2.vertices.includes(vkey));
+				if (overlaps) {
+					delete mesh.faces[fkey];
+				}
+			}
+		}
 	}
 }
 
@@ -2985,6 +3003,7 @@ BARS.defineActions(function() {
 					result++;
 				}
 			}
+			cleanupOverlappingMeshFaces(mesh);
 		})
 		Undo.finishEdit('Merge vertices')
 		Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})

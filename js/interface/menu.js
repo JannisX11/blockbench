@@ -488,6 +488,7 @@ class Menu {
 				}
 				addEventListeners(entry, 'mouseenter mouseover', (e) => {
 					if (e.target.classList.contains('menu_separator')) return;
+					if (e.target.classList.contains('contextMenu')) return;
 					scope.hover(entry, e);
 				})
 			}
