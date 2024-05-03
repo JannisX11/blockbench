@@ -387,9 +387,46 @@ class Menu {
 					scope.hover(entry, e);
 				})
 
-			/*} else if (s instanceof NumSlider) {
+			} else if (s instanceof NumSlider) {
+				let item = s;
+				let trigger = {
+					name: item.name,
+					description: item.description,
+					icon: 'code',
+					click() {
+						let settings = {};
+						if (item.settings) {
+							settings = {
+								min: item.settings.min,
+								max: item.settings.max,
+								step: item.settings.step
+							}
+							if (typeof item.settings.interval == 'function') {
+								settings.step = item.settings.interval(event);
+							}
+						}
+						new Dialog(item.id, {
+							title: item.name,
+							width: 360,
+							form: {
+								value: {label: item.name, type: 'number', value: item.get(), ...settings}
+							},
+							onConfirm(result) {
+								if (typeof item.onBefore === 'function') {
+									item.onBefore();
+								}
+								item.change(n => result.value);
+								item.update();
+								if (typeof item.onAfter === 'function') {
+									item.onAfter();
+								}
+							}
+						}).show();
+					}
+				}
+				return getEntry(trigger, parent);
 				
-				let icon = Blockbench.getIconNode(s.icon, s.color);
+				/*let icon = Blockbench.getIconNode(s.icon, s.color);
 				let numeric_input = new Interface.CustomElements.NumericInput(s.id, {
 					value: s.get(),
 					min: s.settings?.min, max: s.settings?.max,

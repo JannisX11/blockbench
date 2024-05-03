@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '4.9';
+let FORMATV = '4.10';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -58,6 +58,13 @@ function processCompatibility(model) {
 			iterate(model.outliner)
 		}
 	}
+	if (model.textures) {
+		if (compareVersions('4.10', model.meta.format_version)) {
+			for (let texture of model.textures) {
+				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
+			}
+		}
+	}
 }
 
 var codec = new Codec('project', {
@@ -69,6 +76,9 @@ var codec = new Codec('project', {
 		extensions: ['bbmodel']
 	},
 	load(model, file) {
+		if (!model || !model.meta) {
+			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
+		}
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
 		Project.name = pathToName(name, false);
@@ -169,7 +179,7 @@ var codec = new Codec('project', {
 		Texture.all.forEach(tex => {
 			var t = tex.getSaveCopy();
 			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
-				let relative = PathModule.relative(Project.save_path, tex.path);
+				let relative = PathModule.relative(PathModule.dirname(Project.save_path), tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
@@ -306,6 +316,9 @@ var codec = new Codec('project', {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].merge(Project, model)
 		}
+		if (path && path != 'backup.bbmodel') {
+			Project.name = pathToName(path, false);
+		}
 
 		if (model.overrides) {
 			Project.overrides = model.overrides;
@@ -319,14 +332,14 @@ var codec = new Codec('project', {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
 				if (isApp && tex.relative_path && Project.save_path) {
-					let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
+					let resolved_path = PathModule.resolve(PathModule.dirname(Project.save_path), tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
-						tex_copy.fromPath(resolved_path)
+						tex_copy.loadContentFromPath(resolved_path)
 						return;
 					}
 				}
 				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-					tex_copy.fromPath(tex.path)
+					tex_copy.loadContentFromPath(tex.path)
 					return;
 				}
 				if (tex.source && tex.source.substr(0, 5) == 'data:') {
@@ -349,7 +362,7 @@ var codec = new Codec('project', {
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null && !Format.single_texture_default) {
 						copy.faces[face].texture = default_texture.uuid
 					}
 				}
@@ -479,13 +492,8 @@ var codec = new Codec('project', {
 			animations: Format.animation_mode && new_animations,
 			outliner: true,
 			selection: true,
-			uv_mode: true,
 			display_slots: Format.display_mode && displayReferenceObjects.slots
 		})
-
-		if (Format.optional_box_uv && Project.box_uv && !model.meta.box_uv) {
-			Project.box_uv = false;
-		}
 
 		if (model.overrides instanceof Array && Project.overrides instanceof Array) {
 			Project.overrides.push(...model.overrides);
@@ -509,13 +517,13 @@ var codec = new Codec('project', {
 				tex_copy.id = c.toString();
 			}
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.fromPath(tex.path)
+				tex_copy.loadContentFromPath(tex.path)
 				return tex_copy;
 			}
-			if (isApp && tex.relative_path && Project.save_path) {
-				let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
+			if (isApp && tex.relative_path && path) {
+				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
-					tex_copy.fromPath(resolved_path)
+					tex_copy.loadContentFromPath(resolved_path)
 					return tex_copy;
 				}
 			}

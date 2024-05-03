@@ -6,6 +6,31 @@ const StartScreen = {
 	}
 };
 
+/**
+ * 
+ * @param {string} id Identifier
+ * @param {object} data 
+ * @param {object} data.graphic
+ * @param {'icon'|string} data.graphic.type
+ * @param {string} data.graphic.icon
+ * @param {string} data.graphic.source
+ * @param {number} data.graphic.width
+ * @param {number} data.graphic.height
+ * @param {number} data.graphic.aspect_ratio Section aspect ratio
+ * @param {string} data.graphic.description Markdown string
+ * @param {string} data.graphic.text_color
+ * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {'vertical'|'horizontal'} data.layout
+ * @param {Array} data.features
+ * @param {boolean} data.closable
+ * @param {Function} data.click
+ * @param {string} data.color
+ * @param {string} data.text_color
+ * @param {boolean} data.last
+ * @param {string} data.insert_after
+ * @param {string} data.insert_before
+ * @returns 
+ */
 function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;

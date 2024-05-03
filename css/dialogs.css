@@ -115,6 +115,7 @@
 		-webkit-user-select: text;
 		font-family: var(--font-code);
 		word-break: break-word;
+		padding: 2px 6px;
 	}
 
 	.dialog {
@@ -272,7 +273,7 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	.dialog_message_box_command::after {
+	.dialog_message_box_command::before {
 		float: right;
 		content: "\f105";
 		font-family: 'Font Awesome 6 Free';
@@ -283,6 +284,20 @@
 	.dialog_message_box_command > .icon {
 		margin-right: 10px;
 		vertical-align: sub;
+	}
+	.dialog_message_box_command > label {
+		display: block;
+		color: var(--color-subtle_text);
+		font-size: 0.93em;
+		width: fit-content;
+		pointer-events: none;
+		margin-top: -5px;
+	}
+	.dialog_message_box_command:has(.icon) > label {
+		margin-left: 30px;
+	}
+	.dialog_message_box_command:hover > label {
+		color: var(--color-accent_text);
 	}
 	.dialog_message_box_checkboxes {
 		margin-top: 15px;
@@ -1198,6 +1213,7 @@
 	#plugin_browser_page {
 		display: flex;
 		flex-direction: column;
+		position: relative;
 	}
 
 	.bar.next_to_title {
@@ -1482,14 +1498,21 @@
 	}
 	#plugin_page_background_decoration {
 		pointer-events: none;
+		position: absolute;
 		color: black;
 		opacity: 0.1;
 		font-size: 700px;
-		height: 614px;
-		width: 584px;
-		position: absolute;
+		text-align: center;
+		width: auto;
+		height: auto;
+		max-height: 614px;
+		max-width: 584px;
 		bottom: 0;
 		right: 0;
+		top: 0;
+		left: 0;
+		margin-left: auto;
+		margin-top: auto;
 		overflow: hidden;
 		max-width: unset;
 	}
@@ -1502,6 +1525,45 @@
 	#plugin_browser_details td {
 		padding: 5px 2px;
 		line-height: 20px;
+	}
+	#plugin_browser_changelog {
+		padding: 4px 20px;
+		overflow-y: auto;
+	}
+	#plugin_browser_changelog > li {
+		padding: 7px 8px;
+	}
+	#plugin_browser_changelog h3 {
+		margin-bottom: 2px;
+		font-weight: 600;
+		padding-bottom: 0;
+		margin-bottom: 0;
+	}
+	#plugin_browser_changelog > li > ul {
+		margin-left: 8px;
+	}
+	#plugin_browser_changelog ul.plugin_changelog_features {
+		margin-left: 20px;
+	}
+	#plugin_browser_changelog ul.plugin_changelog_features > li {
+		list-style: circle;
+	}
+	#plugin_browser_changelog h4 {
+		margin-bottom: 2px;
+	}
+	#plugin_browser_changelog label.plugin_changelog_author {
+		color: var(--color-subtle_text);
+		font-size: 0.95em;
+	}
+	#plugin_browser_changelog label.plugin_changelog_date {
+		color: var(--color-subtle_text);
+		font-size: 0.95em;
+		margin-left: 8px;
+	}
+	#plugin_browser_changelog label.plugin_changelog_date > i {
+		vertical-align: sub;
+		font-size: 20px;
+		margin-right: 2px;
 	}
 	#plugin_browser_page .settings_list {
 		padding: 4px 20px;
@@ -2272,10 +2334,8 @@
 	#predicate_override_list .predicate_list > li > bb-select {
 		flex-grow: 1;
 	}
-	#predicate_override_list .predicate_list > li > input {
-		width: 80px;
-		flex-shrink: 1;
-		text-align: center;
+	#predicate_override_list .predicate_list .numeric_input {
+		max-width: 100px;
 	}
 	#predicate_override_list .predicate_list > li .tool {
 		width: 28px;
@@ -2367,6 +2427,7 @@
 		margin: auto;
 		cursor: inherit;
 		object-fit: contain;
+		image-rendering: auto;
 	}
 	#tab_overview_grid > li label {
 		cursor: inherit;

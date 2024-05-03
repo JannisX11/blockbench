@@ -475,17 +475,34 @@ const UVEditor = {
 	},
 	applyTexture(texture) {
 		let elements = this.getMappableElements();
-		Undo.initEdit({elements, uv_only: true})
-		elements.forEach(el => {
-			let faces = el.box_uv ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
-			faces.forEach(face => {
-				if (el.faces[face]) {
-					el.faces[face].texture = texture.uuid;
-				}
+
+		if (Format.per_group_texture) {
+			elements = [];
+			let groups = Group.selected ? [Group.selected] : [];
+			Outliner.selected.forEach(el => {
+				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+			});
+			Undo.initEdit({outliner: true});
+			groups.forEach(group => {
+				group.texture = texture.uuid;
+				group.forEachChild(child => {
+					if (child.faces) elements.safePush(child);
+				})
 			})
-		})
+		} else {
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(el => {
+				let faces = (el.box_uv || Format.per_group_texture) ? UVEditor.cube_faces : UVEditor.getSelectedFaces(el);
+				faces.forEach(face => {
+					if (el.faces[face]) {
+						el.faces[face].texture = texture.uuid;
+					}
+				})
+			})
+		}
+
 		this.loadData()
-		Canvas.updateSelectedFaces()
+		Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 		Undo.finishEdit('Apply texture')
 	},
 	displayTools() {
@@ -613,9 +630,11 @@ const UVEditor = {
 	},
 	loadViewportOffset() {
 		let uv_viewport = this.vue.$refs.viewport;
-		if (!uv_viewport) return;
+		if (!uv_viewport || !Project) return;
 		UVEditor.setZoom(Project.uv_viewport.zoom);
+		let project = Project;
 		Vue.nextTick(() => {
+			if (!Project || project != Project) return;
 			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
 			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
 		})
@@ -1410,16 +1429,32 @@ const UVEditor = {
 		}},
 		{icon: 'collections', name: 'menu.uv.texture', condition: () => UVEditor.getReferenceFace() && !Format.single_texture, children: function() {
 			let arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(context, event) {
-					let elements = UVEditor.vue.mappable_elements;
-					Undo.initEdit({elements})
-					elements.forEach((obj) => {
-						UVEditor.getFaces(obj, event).forEach(function(side) {
-							obj.faces[side].texture = false;
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(context, event) {
+					let elements = UVEditor.vue.mappable_elements.slice();
+
+					if (Format.per_group_texture) {
+						elements = [];
+						let groups = Group.selected ? [Group.selected] : [];
+						Outliner.selected.forEach(el => {
+							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+						});
+						Undo.initEdit({outliner: true});
+						groups.forEach(group => {
+							group.texture = '';
+							group.forEachChild(child => {
+								if (child.faces) elements.safePush(child);
+							})
 						})
-						obj.preview_controller.updateFaces(obj);
-					})
+					} else {
+						Undo.initEdit({elements, uv_only: true})
+						elements.forEach((obj) => {
+							UVEditor.getFaces(obj, event).forEach(fkey => {
+								obj.faces[fkey].texture = false;
+							})
+						})
+					}
 					UVEditor.loadData()
+					Canvas.updateView({elements, element_aspects: {faces: true, uv: true}})
 					UVEditor.message('uv_editor.reset')
 					Undo.finishEdit('Apply blank texture')
 				}},
@@ -2526,9 +2561,10 @@ Interface.definePanels(function() {
 				},
 				selectFace(element, key, event, keep_selection, support_dragging) {
 					let selected_faces = element ? UVEditor.getSelectedFaces(element, true) : [];
+					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
 
-					} else if (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl) {
+					} else if (add_to_list) {
 						if (selected_faces.includes(key)) {
 							selected_faces.remove(key);
 						} else {
@@ -2540,10 +2576,16 @@ Interface.definePanels(function() {
 					if (!element && key) {
 						UVEditor.getMappableElements().forEach(element => {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
-							if (!element.faces[key]) {
-								element_selected_faces.empty();
+							if (add_to_list) {
+								if (element.faces[key]) {
+									element_selected_faces.push(key);
+								}
 							} else {
-								element_selected_faces.replace([key]);
+								if (!element.faces[key]) {
+									element_selected_faces.empty();
+								} else {
+									element_selected_faces.replace([key]);
+								}
 							}
 						})
 					}
@@ -2716,7 +2758,7 @@ Interface.definePanels(function() {
 									let factor_y = this.texture.height / UVEditor.getUVHeight();
 									for (var fkey in el.faces) {
 										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(eö).includes(fkey) && !el.box_uv) continue;
+										if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
 										if (face.getTexture() !== this.texture) continue;
 										
 										let rect = face.getBoundingRect();
@@ -3211,7 +3253,7 @@ Interface.definePanels(function() {
 				},
 				filterMeshFaces(element) {
 					let keys = Object.keys(element.faces);
-					if (keys.length > 800) {
+					if (keys.length > 2000) {
 						let result = {};
 						element.getSelectedFaces().forEach(key => {
 							result[key] = element.faces[key];
@@ -3346,35 +3388,36 @@ Interface.definePanels(function() {
 							let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
 							let pxcol = [...image_data.data];
 							let map = {};
+							let color_threshold = BarItems.slider_color_select_threshold.get();
+							let pxcol_lab = rgb2lab(pxcol);
+							let colorsWithinThreshold = (color_b) => {
+								if (pxcol.equals(color_b)) return true;
+								if (color_threshold == 0) return false;
+								if (Math.abs(pxcol[3] - color_b[3]) / 2.52 > color_threshold) return false;
+								let color_b_lab = rgb2lab(color_b);
+								let distance = labColorDistance(pxcol_lab, color_b_lab);
+								return distance <= color_threshold;
+							}
 							Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
-								if (pxcol.equals(px)) {
+								if (colorsWithinThreshold(px)) {
 									if (!map[x]) map[x] = {};
 									map[x][y] = true
 								}
 							})
 							var scan_value = true;
 							if (selection_mode == 'wand') {
-								function checkPx(x, y, depth, dir) {
-									if (depth > 5_000) return;
-									if (map[x] && map[x][y]) {
-										map[x][y] = false;
-										
-										if (dir == 0) checkPx(x+1, y, depth+1, 0);
-										if (dir == 2) checkPx(x-1, y, depth+1, 2);
-										if (dir == 1) checkPx(x, y+1, depth+1, 1);
-										if (dir == 3) checkPx(x, y-1, depth+1, 3);
-
-										if (dir != 0 && dir != 2) {
-											checkPx(x+1, y, depth+1, 0);
-											checkPx(x-1, y, depth+1, 2);
-										}
-										if (dir != 1 && dir != 3) {
-											checkPx(x, y+1, depth+1, 1);
-											checkPx(x, y-1, depth+1, 3);
+								let points = [[x - offset[0], y - offset[1]]];
+								for (let i = 0; i < 1_000_000; i++) {
+									let current_points = points;
+									points = [];
+									for (let [x, y] of current_points) {
+										if (map[x] && map[x][y]) {
+											map[x][y] = false;
+											points.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
 										}
 									}
+									if (points.length == 0) break;
 								}
-								checkPx(x - offset[0], y - offset[1], 0, 0)
 								scan_value = false;
 							}
 							let value = op_mode == 'subtract' ? 0 : 1;

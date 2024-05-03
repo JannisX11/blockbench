@@ -407,11 +407,13 @@ const MenuBar = {
 					}
 				})
 				let modes = Object.keys(Modes.options);
-				tools.sort((a, b) => modes.indexOf(a.modes[0]) - modes.indexOf(b.modes[0]))
-				let mode = tools[0].modes[0];
+				tools.sort((a, b) => {
+					return (a.modes ? modes.indexOf(a.modes[0]) : -1) - (b.modes ? modes.indexOf(b.modes[0]) : -1);
+				})
+				let mode = tools[0].modes?.[0];
 				for (let i = 0; i < tools.length; i++) {
-					if (tools[i].modes[0] !== mode) {
-						mode = tools[i].modes[0];
+					if (tools[i].modes?.[0] !== mode) {
+						mode = tools[i].modes?.[0];
 						tools.splice(i, 0, '_');
 						i++;
 					}
@@ -544,7 +546,9 @@ const MenuBar = {
 			})
 			MenuBar.mode_switcher_button = mode_switcher;
 
-			let buttons = [menu_button, search_button, undo_button, redo_button, mode_switcher];
+			let home_button = document.getElementById('title_bar_home_button');
+
+			let buttons = [menu_button, search_button, home_button, undo_button, redo_button, mode_switcher];
 			buttons.forEach(button => {
 				header.append(button);
 			})

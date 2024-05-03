@@ -461,6 +461,9 @@ class Keyframe {
 	}
 	
 	showInTimeline() {
+		if (!Modes.animate) {
+			Modes.options.animate.select()
+		}
 		if (!this.animator.animation.selected) {
 			this.animator.animation.select();
 		}
@@ -1053,59 +1056,6 @@ BARS.defineActions(function() {
 			updateKeyframeSelection()
 		}
 	})
-	/*new Action('change_keyframe_file', {
-		icon: 'fa-file',
-		category: 'animation',
-		condition: () => (Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
-		click: function () {
-
-			if (Timeline.selected[0].channel == 'particle') {
-				Blockbench.import({
-					resource_id: 'animation_particle',
-					extensions: ['json'],
-					type: 'Bedrock Particle',
-					startpath: Timeline.selected[0].data_points[0].file
-				}, function(files) {
-
-					let {path} = files[0];
-					Undo.initEdit({keyframes: Timeline.selected})
-					Timeline.selected.forEach((kf) => {
-						if (kf.channel == 'particle') {
-							kf.data_points.forEach(data_point => {
-								data_point.file = path;
-							})
-						}
-					})
-					Animator.loadParticleEmitter(path, files[0].content);
-					Undo.finishEdit('Change keyframe particle file')
-				})	
-			} else {
-				Blockbench.import({
-					resource_id: 'animation_audio',
-					extensions: ['ogg', 'wav', 'mp3'],
-					type: 'Audio File',
-					startpath: Timeline.selected[0].data_points[0].file
-				}, function(files) {
-
-					let path = isApp
-						? files[0].path
-						: URL.createObjectURL(files[0].browser_file);
-
-					Undo.initEdit({keyframes: Timeline.selected})
-					Timeline.selected.forEach((kf) => {
-						if (kf.channel == 'sound') {
-							kf.data_points.forEach(data_point => {
-								data_point.file = path;
-								if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
-							})
-						}
-					})
-					Timeline.visualizeAudioFile(path);
-					Undo.finishEdit('Change keyframe audio file')
-				})
-			}
-		}
-	})*/
 	new Action('reverse_keyframes', {
 		icon: 'swap_horizontal_circle',
 		category: 'animation',
@@ -1299,7 +1249,6 @@ Interface.definePanels(function() {
 					'slider_keyframe_time',
 					'keyframe_interpolation',
 					'keyframe_uniform',
-					'change_keyframe_file',
 					'reset_keyframe'
 				]
 			})
@@ -1584,7 +1533,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
-										<div class="tool" v-if="key == 'effect'" title="${tl('action.change_keyframe_file')}" @click="changeKeyframeFile(data_point, keyframes[0])">
+										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, keyframes[0])">
 											<i class="material-icons">upload_file</i>
 										</div>
 									</div>

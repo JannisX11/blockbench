@@ -11,6 +11,7 @@ class ReferenceImage {
 		this.rotation = 0;
 		this.opacity = 0;
 		this.visibility = true;
+		this.sync_to_timeline = true;
 		this.clear_mode = false;
 		this.attached_side = 0;
 		this.source = '';
@@ -32,7 +33,6 @@ class ReferenceImage {
 		this.image_is_loaded = false;
 		this.auto_aspect_ratio = true;
 
-		// todo: Add video properties: autoplay, animation sync
 		this.is_video = false;
 		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
 			this.is_video = true;
@@ -424,6 +424,20 @@ class ReferenceImage {
 				name: tl(name),
 				node: node
 			})
+			return node;
+		}
+		
+		if (this.is_video) {
+			console.log(this.video, this.video.paused)
+			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
+				if (this.video.paused) {
+					this.video._loading = false;
+					this.video.play();
+				} else {
+					this.video.pause();
+				}
+				toggle.querySelector('.icon').replaceWith(Blockbench.getIconNode(this.video.paused ? 'play_arrow' : 'pause'))
+			});
 		}
 
 		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
@@ -643,6 +657,7 @@ class ReferenceImage {
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
+				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -655,6 +670,7 @@ class ReferenceImage {
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
 					visibility: result.visibility,
+					sync_to_timeline: result.sync_to_timeline,
 					clear_mode: result.clear_mode,
 				});
 				this.changeLayer(result.layer);
@@ -672,8 +688,22 @@ class ReferenceImage {
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
-ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('media_controls'),
+	{
+		id: 'toggle_playback',
+		name: 'reference_image.toggle_playback',
+		condition: (ref) => ref.is_video,
+		icon: (ref) => ref.video.paused ? 'play_arrow' : 'pause',
+		click(ref) {
+			if (ref.video.paused) {
+				ref.video._loading = false;
+				ref.video.play();
+			} else {
+				ref.video.pause();
+			}
+		}
+	},
 	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
@@ -681,6 +711,16 @@ ReferenceImage.prototype.menu = new Menu([
 		icon: (ref) => ref.visibility,
 		click(ref) {
 			ref.visibility = !ref.visibility;
+			ref.update().save();
+		}
+	},
+	{
+		id: 'sync_to_timeline',
+		name: 'reference_image.sync_to_timeline',
+		condition: () => Format.animation_mode,
+		icon: (ref) => ref.sync_to_timeline,
+		click(ref) {
+			ref.sync_to_timeline = !ref.sync_to_timeline;
 			ref.update().save();
 		}
 	},
@@ -788,6 +828,7 @@ new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
+new Property(ReferenceImage, 'boolean', 'sync_to_timeline', {default: true});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
@@ -830,18 +871,35 @@ SharedActions.add('delete', {
 	}
 })
 
-let reference_image_playback_cooldown;
 Blockbench.on('display_animation_frame', () => {
-	if (reference_image_playback_cooldown) return;
 	ReferenceImage.active.forEach(ref => {
-		if (ref.is_video && ref.visibility) {
-			ref.video.currentTime = Timeline.time;
-			if (!ref.video.paused) ref.video.pause();
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video._loading) {
+			ref.video._loading = true;
+			ref.video.ontimeupdate = () => {
+				ref.video._loading = false;
+			}
+
+			let video_time = Math.max(0, Timeline.time - 0.02) % ref.video.duration;
+			if (Timeline.playing) {
+				ref.video.playbackRate = Timeline.playback_speed/100;
+				if (Math.abs(ref.video.currentTime - video_time + 0.02) > 0.05) {
+					ref.video.currentTime = video_time;
+				}
+				if (ref.video.paused) ref.video.play();
+
+			} else {
+				ref.video.currentTime = video_time;
+				if (!ref.video.paused) ref.video.pause();
+			}
 		}
 	})
-	reference_image_playback_cooldown = setTimeout(() => {
-		reference_image_playback_cooldown = null;
-	}, 30)
+})
+Blockbench.on('timeline_pause', () => {
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video.paused) {
+			ref.video.pause();
+		}
+	})
 })
 
 const ReferenceImageMode = {

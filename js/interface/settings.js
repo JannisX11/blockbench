@@ -162,9 +162,6 @@ class Setting {
 			}
 			new Menu(list).open(e.target);
 
-		} else if (type == 'click') {
-			this.click(e)
-
 		} else {
 			let dialog = new Dialog({
 				id: 'setting_' + this.id,
@@ -468,6 +465,10 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
+		new Setting('bedrock_uv_rotations',	{category: 'edit', value: false, name: 'Bedrock UV Rotations (Experimental)', description: 'Enable the experimental bedrock UV rotations feature.', onChange(value) {
+			Formats.bedrock.uv_rotation = value;
+			Formats.bedrock_block.uv_rotation = value;
+		}});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -528,7 +529,7 @@ const Settings = {
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
 		}});
-		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
+		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
 		
 		//Defaults
 		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});

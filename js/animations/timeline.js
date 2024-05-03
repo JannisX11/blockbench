@@ -546,6 +546,7 @@ const Timeline = {
 				}
 			})
 		}
+		Blockbench.dispatchEvent('timeline_play', {});
 		Timeline.loop()
 	},
 	loop() {
@@ -591,6 +592,7 @@ const Timeline = {
 			}
 		})
 		Timeline.playing_sounds.empty();
+		Blockbench.dispatchEvent('timeline_pause', {});
 	},
 
 	waveforms: {},

@@ -270,7 +270,8 @@ class Action extends BarItem {
 		this.icon_node = Blockbench.getIconNode(this.icon, this.color)
 		this.icon_states = data.icon_states;
 		this.node = document.createElement('div');
-		this.node.classList.add('tool', this.id);
+		this.node.classList.add('tool');
+		this.node.setAttribute('toolbar_item', this.id);
 		this.node.append(this.icon_node);
 		this.nodes = [this.node]
 		this.menus = [];
@@ -668,8 +669,8 @@ class NumSlider extends Widget {
 		);
 
 		var scope = this;
-		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool'}, [
-			Interface.createElement('div', {class: 'nslide tab_target', 'n-action': this.id})
+		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool', toolbar_item: this.id}, [
+			Interface.createElement('div', {class: 'nslide tab_target', inputmode: 'decimal', 'n-action': this.id})
 		])
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
@@ -1047,7 +1048,7 @@ class BarSlider extends Widget {
 		this.type = 'slider'
 		this.icon = 'fa-sliders-h'
 		this.value = data.value||0;
-		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+		this.node = Interface.createElement('div', {class: 'tool widget', toolbar_item: this.id}, [
 			Interface.createElement('input', {
 				type: 'range',
 				value: data.value ? data.value : 0,
@@ -1118,8 +1119,7 @@ class BarSelect extends Widget {
 				this.values.push(key);
 			}
 		}
-		this.node = document.createElement('div');
-		this.node.className = 'tool widget bar_select';
+		this.node = Interface.createElement('div', {class: 'tool widget bar_select', toolbar_item: this.id});
 		if (this.icon_mode) {
 			this.node.classList.add('icon_mode');
 			for (let key in data.options) {
@@ -1332,7 +1332,7 @@ class BarText extends Widget {
 		super(id, data);
 		this.type = 'bar_text'
 		this.icon = 'text_format'
-		this.node = Interface.createElement('div', {class: 'tool widget bar_text'}, data.text);
+		this.node = Interface.createElement('div', {class: 'tool widget bar_text', toolbar_item: this.id}, data.text);
 		if (data.right) {
 			this.node.classList.add('f_right');
 		}
@@ -1371,7 +1371,7 @@ class ColorPicker extends Widget {
 		var scope = this;
 		this.type = 'color_picker'
 		this.icon = 'color_lens'
-		this.node = Interface.createElement('div', {class: 'tool widget'}, [
+		this.node = Interface.createElement('div', {class: 'tool widget', toolbar_item: this.id}, [
 			Interface.createElement('input', {class: 'f_left', type: 'text'})
 		]);
 		this.addLabel();
@@ -1446,7 +1446,7 @@ class Toolbar {
 		// and the associated object (action) can effectively be used with indexOf on children
 		this.positionLookup = {};
 
-		this.narrow = !!data.narrow
+		this.no_wrap = !!data.no_wrap
 		this.vertical = !!data.vertical
 		this.default_children = data.children ? data.children.slice() : [];
 		this.previously_enabled = true;
@@ -1463,6 +1463,37 @@ class Toolbar {
 			name: tl('data.toolbar'),
 			node: toolbar_menu
 		})
+		if (this.no_wrap && !this.vertical) {
+			let toolbar_overflow_button = Interface.createElement('div', {
+				class: 'tool toolbar_overflow_button',
+				title: tl('menu.toolbar.overflow')
+			}, Blockbench.getIconNode('expand_more'));
+			toolbar_overflow_button.addEventListener('click', event => {
+
+				let content = this.node.querySelector('.content');
+				if (!content) return;
+				let menu_items = [];
+				for (let tool of content.childNodes) {
+					if (tool.offsetTop) {
+						let item = BarItems[tool.getAttribute('toolbar_item')];
+						if (!item) continue;
+						menu_items.push(item);
+					}
+				}
+				new Menu('toolbar_overflow', menu_items, {class: 'toolbar_overflow_menu'}).show(toolbar_overflow_button);
+			})
+			toolbar_menu.after(toolbar_overflow_button);
+
+			let updateOverflow = () => {
+				if (!this.node.isConnected) return;
+				if (Toolbar.open_overflow_popup) return;
+				let show = this.node.querySelector('.content')?.lastElementChild?.offsetTop;
+				toolbar_overflow_button.style.display = show ? 'block' : 'none';
+			}
+			updateOverflow();
+			new ResizeObserver(updateOverflow).observe(this.node);
+			
+		}
 		if (data) {
 			try {
 				this.build(data);
@@ -1520,7 +1551,7 @@ class Toolbar {
 				}
 			}
 		}
-		$(scope.node).toggleClass('narrow', this.narrow)
+		$(scope.node).toggleClass('no_wrap', this.no_wrap)
 		$(scope.node).toggleClass('vertical', this.vertical)
 		if (data.default_place) {
 			this.toPlace(this.id)
@@ -2077,12 +2108,14 @@ const BARS = {
 				'selection_tool',
 				'move_layer_tool',
 			],
+			no_wrap: true,
 			vertical: Blockbench.isMobile == true,
 			default_place: true
 		})
 		
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
+			no_wrap: true,
 			children: [
 				'transform_space',
 				'rotation_space',
@@ -2175,6 +2208,7 @@ const BARS = {
 		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
+			no_wrap: true,
 			children: [
 				'fill_mode',
 				'copy_brush_mode',
@@ -2185,6 +2219,7 @@ const BARS = {
 				'slider_brush_size',
 				'slider_brush_opacity',
 				'slider_brush_softness',
+				'slider_color_select_threshold',
 				'_',
 				'brush_shape',
 				'blend_mode',
@@ -2196,6 +2231,7 @@ const BARS = {
 		})
 		Toolbars.vertex_snap = new Toolbar({
 			id: 'vertex_snap',
+			no_wrap: true,
 			children: [
 				'vertex_snap_mode',
 				'selection_mode'
@@ -2203,6 +2239,7 @@ const BARS = {
 		})
 		Toolbars.seam_tool = new Toolbar({
 			id: 'seam_tool',
+			no_wrap: true,
 			children: [
 				'select_seam'
 			]

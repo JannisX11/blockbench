@@ -111,6 +111,7 @@ class KnifeToolContext {
 	 */
 	constructor(mesh) {
 		this.mesh = mesh;
+		this.mesh_3d = mesh.mesh;
 		this.points = [];
 		this.hover_point = null;
 
@@ -123,8 +124,14 @@ class KnifeToolContext {
 		this.points_mesh.frustumCulled = false;
 		this.lines_mesh.frustumCulled = false;
 
-		this.mesh.mesh.add(this.points_mesh);
-		this.mesh.mesh.add(this.lines_mesh);
+		this.mesh_3d.add(this.points_mesh);
+		this.mesh_3d.add(this.lines_mesh);
+
+		this.unselect_listener = Blockbench.on('unselect_project', context => {
+			if (this == KnifeToolContext.current) {
+				this.remove();
+			}
+		})
 	}
 	showToast() {
 		this.toast = Blockbench.showToastNotification({
@@ -152,6 +159,7 @@ class KnifeToolContext {
 			snapped: false,
 			fkey: data.face
 		}
+		data.element.mesh.worldToLocal(point.position);
 		// Snapping
 		if (data.type == 'vertex') {
 			point.position.fromArray(this.mesh.vertices[data.vertex]);
@@ -162,11 +170,15 @@ class KnifeToolContext {
 			let point_b = Reusable.vec2.fromArray(this.mesh.vertices[data.vertices[1]]);
 			let a_b = new THREE.Vector3().copy(point_b).sub(point_a);
 			let a_p = new THREE.Vector3().copy(point.position).sub(point_a);
-			point.position.copy(point_a).addScaledVector(a_b, a_p.dot(a_b) / a_b.dot(a_b));
+			let subline_len = a_p.dot(a_b) / a_b.dot(a_b);
+			if (data.event.shiftKey || Pressing.overrides.shift) {
+				subline_len = Math.round(subline_len * 4) / 4;
+			}
+			point.position.copy(point_a).addScaledVector(a_b, subline_len);
 			point.snapped = true;
 		}
 		// Snap to existing points?
-		let pos = this.mesh.mesh.localToWorld(Reusable.vec1.copy(point.position));
+		let pos = this.mesh_3d.localToWorld(Reusable.vec1.copy(point.position));
 		let threshold = Preview.selected.calculateControlScale(pos) * 0.6;
 		let matching_point = this.points.find(other => {
 			return point.position.distanceTo(other.position) < threshold && !other.reuse_of;
@@ -182,6 +194,9 @@ class KnifeToolContext {
 			uv[1] = Math.round(uv[1] * factor) / factor;
 			let target = face.UVToLocal(uv);
 			point.position.copy(target);
+		} else if (data.event && (data.event.shiftKey || Pressing.overrides.shift) && point.fkey) {
+			let face = this.mesh.faces[point.fkey];
+			point.position.fromArray(face.getCenter());
 		}
 		if (this.points.length && point.position.distanceToSquared(this.points.last().position) < 0.001) return;
 
@@ -251,7 +266,7 @@ class KnifeToolContext {
 		if (this.points.length == 1) this.showToast();
 	}
 	apply() {
-		if (!this.mesh || !this.points.length) {
+		if (!this.mesh || !this.points.length || !Mesh.all.includes(this.mesh)) {
 			this.cancel();
 			return;
 		}
@@ -612,10 +627,14 @@ class KnifeToolContext {
 		this.remove();
 	}
 	remove() {
-		this.mesh.mesh.remove(this.points_mesh);
-		this.mesh.mesh.remove(this.lines_mesh);
-		delete this.mesh
+		if (this.mesh_3d) {
+			this.mesh_3d.remove(this.points_mesh);
+			this.mesh_3d.remove(this.lines_mesh);
+		}
+		delete this.mesh;
+		delete this.mesh_3d;
 		if (this.toast) this.toast.delete();
+		this.unselect_listener.delete();
 		KnifeToolContext.current = null;
 	}
 	static current = null;
@@ -653,7 +672,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.overlapping_vertices',
 			commands: {
-				merge: 'message.auto_fix_mesh_edit.merge_vertices',
+				merge: {text: 'message.auto_fix_mesh_edit.merge_vertices', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']
@@ -739,7 +758,7 @@ async function autoFixMeshEdit() {
 			title: 'message.auto_fix_mesh_edit.title',
 			message: 'message.auto_fix_mesh_edit.concave_quads',
 			commands: {
-				split: 'message.auto_fix_mesh_edit.split_quads',
+				split: {text: 'message.auto_fix_mesh_edit.split_quads', description: '('+tl('dialog.recommended_option')+')'},
 				revert: 'message.auto_fix_mesh_edit.revert'
 			},
 			buttons: ['dialog.ignore']
@@ -798,6 +817,24 @@ async function autoFixMeshEdit() {
 			}
 			resolve();
 		})})
+	}
+}
+
+function cleanupOverlappingMeshFaces(mesh) {
+	for (let fkey in mesh.faces) {
+		let face = mesh.faces[fkey];
+		if (face.vertices.length < 2) {
+			delete mesh.faces[fkey];
+		} else {
+			for (let fkey2 in mesh.faces) {
+				let face2 = mesh.faces[fkey2];
+				if (fkey == fkey2 || !face2) continue;
+				let overlaps = face.vertices.allAre(vkey => face2.vertices.includes(vkey));
+				if (overlaps) {
+					delete mesh.faces[fkey];
+				}
+			}
+		}
 	}
 }
 
@@ -2966,6 +3003,7 @@ BARS.defineActions(function() {
 					result++;
 				}
 			}
+			cleanupOverlappingMeshFaces(mesh);
 		})
 		Undo.finishEdit('Merge vertices')
 		Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})

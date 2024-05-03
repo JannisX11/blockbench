@@ -543,8 +543,9 @@ let Project = 0;
 let ProjectData = {};
 
 ModelProject.prototype.menu = new Menu([
-	new MenuSeparator('manage'),
+	new MenuSeparator('settings'),
 	'project_window',
+	new MenuSeparator('manage'),
 	'open_model_folder',
 	'duplicate_project',
 	'convert_project',
@@ -944,6 +945,12 @@ onVueSetup(() => {
 						delete this.thumbnail;
 						delete this.thumbnail_timeout;
 					}, 80)
+				}
+			},
+			mousewheelBar(event) {
+				if (event.deltaY) {
+					event.preventDefault();
+					this.$refs.tab_bar_list.scrollLeft += event.deltaY;
 				}
 			}
 		},

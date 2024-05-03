@@ -414,6 +414,20 @@ const Canvas = {
 	global_light_color: new THREE.Color(0xffffff),
 	global_light_side: 0,
 
+	hover_helper_line: (function() {
+		let material = new THREE.LineBasicMaterial({color: 0xA4A5CA, linewidth: 2});
+		let geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0, 0, 0, 0], 3 ));
+		let line = new THREE.LineSegments(geometry, material);
+		return line;
+	})(),
+	hover_helper_vertex: (function() {
+		let material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: 0x3e90ff})
+		let geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0], 3 ));
+		return new THREE.Points(geometry, material);
+	})(),
+
 	onionSkinEarlierMaterial: new THREE.LineBasicMaterial({color: 0xa3363d}),
 	onionSkinLaterMaterial: new THREE.LineBasicMaterial({color: 0x3995bf}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
@@ -658,6 +672,9 @@ const Canvas = {
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 		Canvas.gizmos.push(Canvas.brush_outline);
+
+		Canvas.gizmos.push(Canvas.hover_helper_line);
+		Canvas.gizmos.push(Canvas.hover_helper_vertex);
 
 		/*
 		// Vertex gizmos

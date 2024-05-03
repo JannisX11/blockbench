@@ -1,5 +1,7 @@
 (function() {
 
+const _FBX_VERSION = 7300;
+
 /**
  * Wraps a number to include the type
  * @param {('I'|'D'|'F'|'L'|'C'|'Y')} type 
@@ -64,11 +66,12 @@ var codec = new Codec('fbx', {
 
 		// FBXHeaderExtension
 		let date = new Date();
+		let dateString = date.toISOString().replace('T', ' ').replace('.', ':').replace('Z', '');
 		let model_url = 'C:\\Users\\Blockbench\\foobar.fbx';
 		model.push({
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
-				FBXVersion: 7300,
+				FBXVersion: _FBX_VERSION,
 				EncryptionType: 0,
 				CreationTimeStamp: {
 					Version: 1000,
@@ -80,12 +83,9 @@ var codec = new Codec('fbx', {
 					Second: date.getSeconds(),
 					Millisecond: date.getMilliseconds()
 				},
-				Creator: 'Blockbench '+Blockbench.version,
-				OtherFlags: {
-					FlagPLE: 0
-				},
+				Creator: 'Blockbench ' + Blockbench.version,
 				SceneInfo: {
-					_values: ["SceneInfo::GlobalInfo", "UserData"],
+					_values: ['SceneInfo::GlobalInfo', "UserData"],
 					Type: "UserData",
 					Version: 100,
 					MetaData:  {
@@ -113,17 +113,17 @@ var codec = new Codec('fbx', {
 						P13: {_key: 'P', _values: ["LastSaved|DateTime_GMT", "DateTime", "", "", "01/01/1970 00:00:00.000"]},
 						P14: {_key: 'P', _values: ["Original|ApplicationNativeFile", "KString", "", "", ""]},
 					}
-				}
+				},
 			},
-			CreationTime: new Date().toISOString().replace('T', ' ').replace('.', ':').replace('Z', ''),
+			FileId: "iVFoobar",
+			CreationTime: dateString,
 			Creator: Settings.get('credit'),
-
 		})
 
 		model.push({
 			GlobalSettings: {
 				Version: 1000,
-				Properties60: {
+				Properties70: {
 					P01: {_key: 'P', _values: ["UpAxis", "int", "Integer", "",1]},
 					P02: {_key: 'P', _values: ["UpAxisSign", "int", "Integer", "",1]},
 					P03: {_key: 'P', _values: ["FrontAxis", "int", "Integer", "",2]},
@@ -141,6 +141,31 @@ var codec = new Codec('fbx', {
 					P17: {_key: 'P', _values: ["TimeSpanStop", "KTime", "Time", "",TNum('L', 46186158000)]},
 					P18: {_key: 'P', _values: ["CustomFrameRate", "double", "Number", "",TNum('D', 24)]},
 				}
+			}
+		});
+
+		// Documents Description
+		model.push(formatFBXComment('Documents Description'));
+		const uuid = BigInt(Math.floor(Math.random() * 2147483647) + 1);
+		model.push({
+			Documents: {
+				Count: 1,
+				Document: {
+					_values: [TNum('L', uuid)],
+					Scene: "Scene",
+					Properties70: {
+						P01: {_key: 'P', _values: ["SourceObject", "object", "", ""]},
+						P02: {_key: 'P', _values: ["ActiveAnimStackName", "KString", "", "", ""]}
+					},
+					RootNode: 0
+				}
+			},
+		})
+
+		// Document References
+		model.push(formatFBXComment('Document References'));
+		model.push({
+			References: {
 			}
 		});
 
@@ -541,6 +566,19 @@ var codec = new Codec('fbx', {
 			DefinitionCounter.texture++;
 			DefinitionCounter.image++;
 
+			let fileContent = null;
+			let fileName = tex.path;
+			let relativeName = tex.name;
+
+			// If no file path, use embedded texture
+			if (tex.path == '') {
+				fileName = '';
+				relativeName = '';
+			}
+			if (options.embed_textures || tex.path == '') {
+				fileContent = tex.getBase64();
+			}
+
 			let unique_name = getUniqueName('texture', tex.uuid, tex.name);
 
 			let mat_object = {
@@ -563,8 +601,8 @@ var codec = new Codec('fbx', {
 				Version: 202,
 				TextureName: `Texture::${unique_name}`,
 				Media: `Video::${unique_name}`,
-				FileName: tex.path,
-				RelativeFilename: tex.name,
+				FileName: fileName,
+				RelativeFilename: relativeName,
 				ModelUVTranslation: [TNum('D',0),TNum('D',0)],
 				ModelUVScaling: [TNum('D',1),TNum('D',1)],
 				Texture_Alpha_Source: "None",
@@ -578,9 +616,9 @@ var codec = new Codec('fbx', {
 					P: ["Path", "KString", "XRefUrl", "", tex.path || tex.name]
 				},
 				UseMipMap: 0,
-				Filename: tex.path,
-				RelativeFilename: tex.name,
-				Content: ['_', tex.getBase64()]
+				Filename: fileName,
+				RelativeFilename: relativeName,
+				Content: fileContent
 			};
 			Objects[tex.uuid+'_m'] = mat_object;
 			Objects[tex.uuid+'_t'] = tex_object;
@@ -992,7 +1030,7 @@ var codec = new Codec('fbx', {
 			Connections: connections
 		});
 
-		// Takes
+		// Takes (Animation)
 		model.push(formatFBXComment('Takes section'));
 		model.push({
 			Takes
@@ -1047,6 +1085,7 @@ var codec = new Codec('fbx', {
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII', binary: 'Binary (Experimental)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
+		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: false},
 		include_animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async export() {
@@ -1251,6 +1290,23 @@ function compileBinaryFBXModel(top_level_object) {
 	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
 	// https://github.com/jskorepa/fbx.js/blob/master/src/lib/index.ts
 
+	let _BLOCK_SENTINEL_DATA;
+	if (_FBX_VERSION < 7500) {
+		_BLOCK_SENTINEL_DATA = new Uint8Array(
+			Array(13).fill(0x00)
+		);
+	}
+	else {
+		_BLOCK_SENTINEL_DATA = new Uint8Array(
+			Array(25).fill(0x00)
+		);
+	}
+
+	// Awful exceptions from Blender: those "classes" of elements seem to need block sentinel even when having no children and some props.
+	_KEYS_IGNORE_BLOCK_SENTINEL = ["AnimationStack", "AnimationLayer"];
+
+	// TODO: if FBX_VERSION >= 7500, use 64-bit offsets (for read_fbx_elem_uint)
+
 	var writer = new BinaryWriter(20, true);
 	// Header
 	writer.WriteRawString('Kaydara FBX Binary  ');
@@ -1258,7 +1314,7 @@ function compileBinaryFBXModel(top_level_object) {
 	writer.WriteUInt8(0x1A);
 	writer.WriteUInt8(0x00);
 	// Version
-	writer.WriteUInt32(7300);
+	writer.WriteUInt32(_FBX_VERSION);
 
 
 	function writeObjectRecursively(key, object) {
@@ -1273,7 +1329,8 @@ function compileBinaryFBXModel(top_level_object) {
 		} else {
 			tuple = [];
 		}
-		let is_data_array = object._values && object.a && object._type != undefined;
+		let is_data_array = object.hasOwnProperty('_values') && object.hasOwnProperty('a') && 
+								object._type != undefined;
 
 		// EndOffset, change later
 		let end_offset_index = writer.cursor;
@@ -1299,8 +1356,22 @@ function compileBinaryFBXModel(top_level_object) {
 			writer.WriteUInt32(array.length);
 			// Encoding (compression, unused by Blockbench)
 			writer.WriteUInt32(0);
-			// Compressed Length
-			writer.WriteUInt32(0);
+			// Compressed Length (but we don't use compression, so it's just the data length)
+			let data_size = 0;
+			switch (type) {
+				case 'f':
+				case 'i':
+					data_size = 4;
+					break;
+				case 'd':
+				case 'l':
+					data_size = 8;
+					break;
+				case 'b':
+					data_size = 1;
+					break;
+			}
+			writer.WriteUInt32(array.length * data_size);
 			// Contents
 			for (let v of array) {
 				switch (type) {
@@ -1322,9 +1393,12 @@ function compileBinaryFBXModel(top_level_object) {
 				}
 				if (type == 'number') {
 					type = value % 1 ? 'D' : 'I';
-					if (!object._type) console.log('default', key, i, 'to', type, object)
+					//if (!object._type) console.log('default', key, i, 'to', type, object)
 				}
 				// handle number types
+				// C: boolean
+				// R: raw binary data
+				// S: string
 				// Y: int16
 				// I: int32
 				// F: Float 32
@@ -1341,6 +1415,16 @@ function compileBinaryFBXModel(top_level_object) {
 					writer.WriteU32Base64(value);
 
 				} else if (type == 'string') {
+					// Replace '::' with 0x00 0x01 and swap the order
+					// E.g. "Geometry::cube" becomes "cube\x00\x01Geometry"
+					// Will this break any normal text that contains those characters? I hope not.
+					if (value.includes('::')) {
+						const hex00 = String.fromCharCode(0x00);
+						const hex01 = String.fromCharCode(0x01);
+						
+						const parts = value.split("::");
+						value = parts[1] + hex00 + hex01 + parts[0];
+					}
 					// string
 					writer.WriteRawString('S');
 					if (value.startsWith('_')) value = value.substring(1);
@@ -1382,18 +1466,16 @@ function compileBinaryFBXModel(top_level_object) {
 				if (typeof key == 'string' && key.startsWith('_')) continue;
 				if (object[key] === undefined) continue;
 				let child = object[key];
-				if (child._comment) continue;
+				if (child === null || child._comment) continue;
 				if (child._key) key = child._key;
 
 				is_nested = true;
 
 				writeObjectRecursively(key, child);
 			}
-			// Null Record, indicating a nested list. Length is 13 in v7.3, 25 in v7.5+
-			if (is_nested) {
-				for (let i = 0; i < 13; i++) {
-					writer.WriteUInt8(0x00);
-				}
+			// Null Record, indicating a nested list.
+			if (is_nested || (Object.keys(object).length === 0 && !(_KEYS_IGNORE_BLOCK_SENTINEL.includes(key)))) {
+				writer.WriteBytes(_BLOCK_SENTINEL_DATA);
 			}
 		}
 		// End Offset
@@ -1404,24 +1486,40 @@ function compileBinaryFBXModel(top_level_object) {
 		writeObjectRecursively(key, top_level_object[key]);
 	}
 
-	// Footer
-	let footer = [
-        0xfa, 0xbc, 0xab, 0x09,
-        0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0xe8, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8, 0x5a, 0x8c, 0x6a,
-        0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
-    ];
-	writer.WriteBytes(new Uint8Array(footer));
+	writer.WriteBytes(_BLOCK_SENTINEL_DATA);
 
-	return writer.array;
+	// Footer
+	//		Write the FOOT ID
+	let footer_id = [
+        0xfa, 0xbc, 0xab, 0x09, 0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e, 
+		0x00, 0x00, 0x00, 0x00];
+	writer.WriteBytes(new Uint8Array(footer_id));
+
+	//		padding for alignment (values between 1 & 16 observed)
+	//		if already aligned to 16, add a full 16 bytes padding.
+	const offset = writer.cursor;
+	let pad = ((offset + 15) & ~15) - offset;
+	if (pad === 0) pad = 16;
+	for (let i = 0; i < pad; i++) {
+		writer.WriteUInt8(0x00);
+	}
+
+	// 		Write the FBX version
+	writer.WriteUInt32(_FBX_VERSION);
+
+	// 		Write some footer magic
+	writer.WriteBytes(new Uint8Array(
+		Array(120).fill(0x00))
+	);
+	let footer_magic = [
+        0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
+    ];
+	writer.WriteBytes(new Uint8Array(footer_magic));
+
+	// Cut the array to the cursor location (because the writer expand method can have added extra bytes)
+	const output = writer.array.subarray(0, writer.cursor);
+
+	return output;
 }
 
 function compileASCIIFBXSection(object) {
@@ -1459,7 +1557,7 @@ function compileASCIIFBXSection(object) {
 		let output = '';
 		for (let key in parent) {
 			if (typeof key == 'string' && key.startsWith('_')) continue;
-			if (parent[key] === undefined) continue;
+			if (parent[key] === undefined || parent[key] === null) continue;
 			let object = parent[key];
 			if (object._comment) {
 				output += `\n${indent()};${object._comment}\n`;

@@ -118,8 +118,12 @@ const TextureGenerator = {
 			mode: 'bitmap',
 			keep_size: true,
 			name: options.name ? options.name : 'texture',
-			folder: options.folder ? options.folder : 'block'
+			folder: options.folder ? options.folder : 'block',
+			use_as_default: Format.single_texture_default && Outliner.selected.length == Outliner.elements.length
 		})
+		if (texture.use_as_default) {
+			Texture.all.forEach(t => t.use_as_default = false);
+		}
 		function makeTexture(dataUrl) {
 			texture.fromDataURL(dataUrl).add(false).select()
 			switch (options.particle) {

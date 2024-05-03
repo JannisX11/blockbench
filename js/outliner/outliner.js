@@ -376,12 +376,20 @@ class OutlinerElement extends OutlinerNode {
 		this.menu.open(event, this)
 		return this;
 	}
-	forSelected(fc, undo_tag) {
+	forSelected(fc, undo_tag, selection_method) {
 		let selected = this.constructor.selected;
 		if (selected.length <= 1 || !selected.includes(this)) {
 			var edited = [this];
 		} else {
 			var edited = selected;
+		}
+		if (selection_method == 'all_in_group') {
+			edited = edited.slice();
+			edited.slice().forEach(element => {
+				element.getParentArray().forEach(child => {
+					if (child.faces) edited.safePush(child);
+				})
+			})
 		}
 		if (typeof fc === 'function') {
 			if (undo_tag) {
@@ -1863,14 +1871,16 @@ class Face {
 		return this;
 	}
 	getTexture() {
-		if (Format.single_texture && this.texture !== null) {
+		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
+			return Texture.all.findInArray('uuid', this.element.parent.texture);
+		}
+		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && !this.texture))) {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
-		} else {
-			return this.texture;
 		}
+		return this.texture;
 	}
 	reset() {
 		for (var key in Mesh.properties) {
@@ -1880,15 +1890,17 @@ class Face {
 		return this;
 	}
 	getSaveCopy(project) {
-		var copy = {
+		let copy = {
 			uv: this.uv,
 		}
-		for (var key in this.constructor.properties) {
+		for (let key in this.constructor.properties) {
 			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
 		}
-		var tex = this.getTexture()
+		let tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
+		} else if (!this.texture) {
+			copy.texture = false;
 		} else if (tex instanceof Texture && project) {
 			copy.texture = Texture.all.indexOf(tex)
 		} else if (tex instanceof Texture) {

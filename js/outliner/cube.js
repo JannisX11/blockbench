@@ -21,6 +21,9 @@ class CubeFace extends Face {
 		this.uv[2] = arr[0] + this.uv[0];
 		this.uv[3] = arr[1] + this.uv[1];
 	}
+	get element() {
+		return this.cube;
+	}
 	extend(data) {
 		super.extend(data);
 		if (data.uv) {
@@ -620,6 +623,19 @@ class Cube extends OutlinerElement {
 				this.uv_offset[0] = this.faces.east.uv[0];
 			}
 			this.uv_offset[1] = this.faces.up.uv[3];
+			let texture = Texture.getDefault();
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture) {
+					texture = this.faces[fkey].getTexture();
+				}
+			}
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture === null) {
+					this.faces[fkey].extend({texture: texture || false});
+				}
+			}
+			this.preview_controller.updateFaces(this);
+
 		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
@@ -636,7 +652,6 @@ class Cube extends OutlinerElement {
 		return this;
 	}
 	applyTexture(texture, faces) {
-		var scope = this;
 		if (faces === true || this.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
@@ -644,15 +659,15 @@ class Cube extends OutlinerElement {
 		} else {
 			var sides = faces
 		}
-		var value = null
+		let value = null;
 		if (texture) {
 			value = texture.uuid
 		} else if (texture === false || texture === null) {
 			value = texture;
 		}
-		sides.forEach(function(side) {
-			if (scope.faces[side].texture !== null) {
-				scope.faces[side].texture = value;
+		sides.forEach((side) => {
+			if (this.faces[side].texture !== null) {
+				this.faces[side].texture = value;
 			}
 		})
 		if (selected.indexOf(this) === 0) {
@@ -922,12 +937,12 @@ class Cube extends OutlinerElement {
 				}
 			}});
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
-					}, 'texture blank')
+					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
 				}}
 			]
 			Texture.all.forEach(function(t) {
@@ -937,7 +952,7 @@ class Cube extends OutlinerElement {
 					click: function(cube) {
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)
-						}, 'apply texture')
+						}, 'apply texture', Format.per_group_texture ? 'all_in_group' : null)
 					}
 				})
 			})
@@ -1115,10 +1130,10 @@ new NodePreviewController(Cube, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
-			var materials = []
+			let materials = [];
 			Canvas.face_order.forEach(function(face) {
 				if (element.faces[face].texture !== null) {
-					var tex = element.faces[face].getTexture()
+					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
@@ -1127,7 +1142,7 @@ new NodePreviewController(Cube, {
 				}
 			})
 			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
+			mesh.material = materials;
 		}
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 
