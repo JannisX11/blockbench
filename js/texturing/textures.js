@@ -2461,7 +2461,8 @@ Interface.definePanels(function() {
 					} else {
 						let message = texture.width + ' x ' + texture.height + 'px';
 						if (!Format.image_editor) {
-							message += ` (${texture.width / texture.getUVWidth() * 16}x)`;
+							let uv_size = texture.width / texture.getUVWidth() * 16;
+							message += ` (${trimFloatNumber(uv_size, 2)}x)`;
 						}
 						if (texture.frameCount > 1) {
 							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
