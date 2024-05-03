@@ -820,6 +820,24 @@ async function autoFixMeshEdit() {
 	}
 }
 
+function cleanupOverlappingMeshFaces(mesh) {
+	for (let fkey in mesh.faces) {
+		let face = mesh.faces[fkey];
+		if (face.vertices.length < 2) {
+			delete mesh.faces[fkey];
+		} else {
+			for (let fkey2 in mesh.faces) {
+				let face2 = mesh.faces[fkey2];
+				if (fkey == fkey2 || !face2) continue;
+				let overlaps = face.vertices.allAre(vkey => face2.vertices.includes(vkey));
+				if (overlaps) {
+					delete mesh.faces[fkey];
+				}
+			}
+		}
+	}
+}
+
 SharedActions.add('delete', {
 	condition: () => Modes.edit && Prop.active_panel == 'preview' && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
 	run() {
@@ -2985,6 +3003,7 @@ BARS.defineActions(function() {
 					result++;
 				}
 			}
+			cleanupOverlappingMeshFaces(mesh);
 		})
 		Undo.finishEdit('Merge vertices')
 		Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
