@@ -362,7 +362,7 @@ var codec = new Codec('project', {
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null && !Format.single_texture_default) {
 						copy.faces[face].texture = default_texture.uuid
 					}
 				}
