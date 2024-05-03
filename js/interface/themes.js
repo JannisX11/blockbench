@@ -227,7 +227,7 @@ const CustomTheme = {
 
 							<div id="theme_list">
 								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)" @contextmenu="openContextMenu(theme, $event)">
-									<div class="theme_preview" :class="{ borders: theme.borders, ['custom_theme_thumbnail_' + theme.id]: true }" :style="getThemeThumbnailStyle(theme)">
+									<div class="theme_preview" :class="{ borders: theme.borders }" :theme_id="theme.id" :style="getThemeThumbnailStyle(theme)">
 										<div class="theme_preview_header">
 											<span class="theme_preview_text" style="width: 20px;" />
 											<div class="theme_preview_menu_header">
@@ -308,7 +308,7 @@ const CustomTheme = {
 
 						<div v-if="open_category == 'thumbnail'">
 							<h2 class="i_b">${tl('layout.thumbnail')}</h2>
-							<div class="theme_preview custom_thumbnail_preview" :class="{ borders: data.borders, ['custom_theme_thumbnail_' + data.id]: true }" :style="getThemeThumbnailStyle(data)">
+							<div class="theme_preview custom_thumbnail_preview" :class="{ borders: data.borders }" :theme_id="data.id" :style="getThemeThumbnailStyle(data)">
 								<div class="theme_preview_header">
 									<span class="theme_preview_text" style="width: 20px;" />
 									<div class="theme_preview_menu_header">
@@ -443,7 +443,7 @@ const CustomTheme = {
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${theme.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		if (CustomTheme.data.customized) {
@@ -451,7 +451,7 @@ const CustomTheme = {
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `.custom_theme_thumbnail_${CustomTheme.data.id} ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);

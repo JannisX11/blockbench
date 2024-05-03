@@ -809,6 +809,7 @@
 	.custom_thumbnail_preview {
 		position: relative;
 		margin-bottom: 20px;
+		max-width: 200px;
 	}
 	.theme_preview_header {
 		height: 20px;
