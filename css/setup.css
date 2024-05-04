@@ -298,6 +298,7 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
+		overflow: hidden;
 	}
 	i.fa_big {
 		font-size: 18px;
