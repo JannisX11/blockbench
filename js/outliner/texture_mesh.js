@@ -14,7 +14,7 @@ class TextureMesh extends OutlinerElement {
 	}
 	getWorldCenter() {
 		let m = this.mesh;
-		let pos = Reusable.vec1.fromArray(this.local_pivot);
+		let pos = new THREE.Vector3().fromArray(this.local_pivot);
 
 		if (m) {
 			let r = m.getWorldQuaternion(Reusable.quat1);

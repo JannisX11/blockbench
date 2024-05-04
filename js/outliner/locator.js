@@ -61,7 +61,7 @@ class Locator extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter() {
-		var pos = Reusable.vec1.set(0, 0, 0);
+		var pos = new THREE.Vector3();
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);

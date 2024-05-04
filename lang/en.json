@@ -1674,6 +1674,8 @@
 	"action.animated_texture_frame.desc": "Set the current frame of the animated texture",
 	"action.origin_to_geometry": "Center Pivot",
 	"action.origin_to_geometry.desc": "Set the pivot point to the center of the selection",
+	"action.center_individual_pivots": "Center Individual Pivots",
+	"action.center_individual_pivots.desc": "Set the pivot point of each selected element to its center",
 	"action.rescale_toggle": "Toggle Rescale",
 	"action.rescale_toggle.desc": "Rescale cubes based on their current rotation",
 	"action.bone_reset_toggle": "Reset Bone",
