@@ -885,13 +885,14 @@ const UVEditor = {
 
 					let min_x = Infinity, min_y = Infinity, max_x = 0, max_y = 0;
 					for (let vkey in vertex_uvs) {
-						vertex_uvs[vkey][0] = vertex_uvs[vkey][0] - (pmin_x % 1) + uv_center[0],
-						vertex_uvs[vkey][1] = vertex_uvs[vkey][1] - (pmin_y % 1) + uv_center[1],
+						vertex_uvs[vkey][0] = vertex_uvs[vkey][0] - ((pmin_x+1000.5) % 1 - 0.5) + uv_center[0],
+						vertex_uvs[vkey][1] = vertex_uvs[vkey][1] - ((pmin_y+1000.5) % 1 - 0.5) + uv_center[1],
 						min_x = Math.min(min_x, vertex_uvs[vkey][0]);
 						min_y = Math.min(min_y, vertex_uvs[vkey][1]);
 						max_x = Math.max(max_x, vertex_uvs[vkey][0]);
 						max_y = Math.max(max_y, vertex_uvs[vkey][1]);
 					}
+					// Prevent overflow
 					let offset = [
 						min_x < 0 ? -min_x : (max_x > UVEditor.getUVWidth() ? Math.round(UVEditor.getUVWidth() - max_x) : 0),
 						min_y < 0 ? -min_y : (max_y > UVEditor.getUVHeight() ? Math.round(UVEditor.getUVHeight() - max_y) : 0),
