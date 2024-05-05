@@ -121,6 +121,7 @@ class Plugin {
 					icon: 'warning',
 					title: this.title,
 					message,
+					cancelIndex: 0,
 					buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway']
 				}, resolve)
 			})
