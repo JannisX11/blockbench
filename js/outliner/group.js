@@ -178,7 +178,13 @@ class Group extends OutlinerNode {
 					elements.push(element)
 				}
 			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true})
+			let animations = [];
+			Animator.animations.forEach(animation => {
+				if (animation.animators && animation.animators[scope.uuid]) {
+					animations.push(animation);
+				}
+			})
+			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
 		}
 		this.unselect()
 		super.remove();
@@ -189,13 +195,13 @@ class Group extends OutlinerNode {
 		}
 		Animator.animations.forEach(animation => {
 			if (animation.animators && animation.animators[scope.uuid]) {
-				delete animation.animators[scope.uuid];
+				animation.removeAnimator(scope.uuid);
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();
 			}
 		})
-		TickUpdates.selection = true
+		TickUpdates.selection = true;
 		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
