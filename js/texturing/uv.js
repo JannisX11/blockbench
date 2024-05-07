@@ -1382,6 +1382,8 @@ const UVEditor = {
 				}}
 			]
 		}},
+		'uv_cycle',
+		'uv_cycle_invert',
 		'uv_turn_mapping',
 		{
 			name: 'menu.uv.flip_x',
@@ -1946,6 +1948,55 @@ BARS.defineActions(function() {
 			})
 			UVEditor.loadData();
 			Undo.finishEdit('Snap UV to pixel grid')
+		}
+	})
+	new Action('uv_cycle', {
+		icon: 'fa-arrows-spin',
+		category: 'uv',
+		condition: () => Mesh.hasSelected(),
+		click(event) {
+			let elements = Mesh.selected;
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(element => {
+				UVEditor.getSelectedFaces(element).forEach(fkey => {
+					let face = element.faces[fkey];
+					if (!face || face.vertices.length < 3) return;
+					let first_uv;
+					let sorted_vertices = face.getSortedVertices();
+					let offset = (event?.shiftKey || Pressing.overrides.shift) ? -1 : 1;
+					sorted_vertices[offset == 1 ? 'forEach' : 'forEachReverse']((vkey, i) => {
+						if (!first_uv) first_uv = face.uv[vkey];
+						let vkey_next = sorted_vertices[i + offset];
+						face.uv[vkey] = vkey_next ? face.uv[vkey_next] : first_uv;
+					})
+				})
+				element.preview_controller.updateUV(element);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Cycle UV')
+		}
+	})
+	new Action('uv_cycle_invert', {
+		icon: 'fa-group-arrows-rotate',
+		category: 'uv',
+		condition: () => Mesh.hasSelected(),
+		click(event) {
+			let elements = Mesh.selected;
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(element => {
+				UVEditor.getSelectedFaces(element).forEach(fkey => {
+					let face = element.faces[fkey];
+					if (!face || face.vertices.length < 3) return;
+					let sorted_vertices = face.getSortedVertices();
+					let last_i = sorted_vertices.length-1;
+					let uv1 = face.uv[sorted_vertices[1]];
+					face.uv[sorted_vertices[1]] = face.uv[sorted_vertices[last_i]];
+					face.uv[sorted_vertices[last_i]] = uv1;
+				})
+				element.preview_controller.updateUV(element);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Cycle reverse UV')
 		}
 	})
 	new Toggle('edit_mode_uv_overlay', {
