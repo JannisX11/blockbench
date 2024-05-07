@@ -180,16 +180,24 @@ onVueSetup(async function() {
 
 			slideshow: [
 				{
-					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [morange](https://twitter.com/OrangewithMC) & [PeacedoveWum](https://twitter.com/PeacedoveWum)",
+					source: "./assets/splash_art/1.webp",
+					description: "Splash Art 1st Place by [skeleton_tiffay](https://twitter.com/Tiffany85635656)",
 				},
 				{
-					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [Wackyblocks](https://twitter.com/Wackyblocks)",
+					source: "./assets/splash_art/2.webp",
+					description: "Splash Art 2nd Place by [AnzSama](https://twitter.com/AnzSamaEr) & [PICASSO](https://twitter.com/Picasso114514)",
 				},
 				{
-					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [David Grindholmen](https://david_grindholmen.artstation.com/) & [Quinten Bench](https://quintenbench.wixsite.com/quinten-bench)",
+					source: "./assets/splash_art/3.webp",
+					description: "Splash Art 3rd Place by [YunGui](https://twitter.com/AmosJea28222061) & [makstutis233](https://x.com/Maks2335770189)",
+				},
+				{
+					source: "./assets/splash_art/4.webp",
+					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999) & NekoGabriel",
+				},
+				{
+					source: "./assets/splash_art/5.webp",
+					description: "Splash Art 5th Place by [🌷Aza🌷](https://twitter.com/azagwen_art) & Shroomy",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
