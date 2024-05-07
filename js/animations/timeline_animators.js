@@ -777,17 +777,16 @@ class EffectAnimator extends GeneralAnimator {
 				}
 			})
 		}
-		
+
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				let diff = this.animation.time - kf.time;
-				if (diff >= 0) {
-					let i = 0;
-					for (let data_point of kf.data_points) {
-						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-						if (particle_effect) {
-
-							let emitter = particle_effect.emitters[kf.uuid + i];
+				let i = 0;
+				for (let data_point of kf.data_points) {
+					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+					if (particle_effect) {
+						let emitter = particle_effect.emitters[kf.uuid + i];
+						if (diff >= 0) {
 							if (!emitter) {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
@@ -818,9 +817,12 @@ class EffectAnimator extends GeneralAnimator {
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
-						} 
-						i++;
-					}
+
+						} else if (emitter && emitter.enabled) {
+							emitter.stop(true);
+						}
+					} 
+					i++;
 				}
 			})
 		}
