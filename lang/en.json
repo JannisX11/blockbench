@@ -1056,6 +1056,8 @@
 	"settings.obj_face_export_mode.both": "Default",
 	"settings.obj_face_export_mode.tris": "Convert to Tris",
 	"settings.obj_face_export_mode.quads": "Convert to Quads",
+	"settings.optifine_save_default_texture": "OptiFine JEM: Export selected texture",
+	"settings.optifine_save_default_texture.desc": "Export the selected texture as the default texture of the model",
 	"settings.animation_sample_rate": "Animation Sample Rate",
 	"settings.animation_sample_rate.desc": "Sample rate in samples per second for curves that the respective format does not support natively",
 	"settings.credit": "Credit Comment",

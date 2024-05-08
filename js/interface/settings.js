@@ -572,6 +572,7 @@ const Settings = {
 			tris: tl('settings.obj_face_export_mode.tris'),
 			quads: tl('settings.obj_face_export_mode.quads'),
 		}});
+		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number', min: 1, max: 640});
 		new Setting('model_export_scale',	{category: 'export', value: 16, type: 'number', min: 0.0001, max: 4096});
 		new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});

@@ -2393,7 +2393,7 @@ span.controller_state_section_info {
 	.bar.uv_editor_sliders {
 		display: flex;
 	}
-	.bar.uv_editor_sliders > .tool {
+	.bar.uv_editor_sliders > .nslide_tool {
 		flex-grow: 1;
 	}
 	.bar.uv_editor_sliders > .edit_mode_uv_overlay {
