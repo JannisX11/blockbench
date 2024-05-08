@@ -616,7 +616,7 @@ BARS.defineActions(function() {
 					texture.canvas.width = gauge;
 					texture.canvas.height = stride * frames.length;
 
-					Undo.initEdit({textures: [texture], bitmap: true});
+					Undo.initEdit({textures: [texture], bitmap: true, uv_mode: !Format.per_texture_uv_size});
 					
 					if (texture.layers_enabled) {
 						texture.layers_enabled = false;
@@ -631,9 +631,16 @@ BARS.defineActions(function() {
 						i++;
 					}
 
+					if (Format.per_texture_uv_size) {
+						texture.uv_height = texture.uv_width * (stride / gauge);
+					} else {
+						Project.texture_height = Project.texture_width * (stride / gauge);
+					}
+
 					texture.updateChangesAfterEdit();
-					Undo.finishEdit('Disable layers on texture');
+					Undo.finishEdit('Apply flipbook animation changes');
 					updateInterfacePanels();
+					UVEditor.vue.updateTexture();
 					BARS.updateConditions();
 				}
 			}).show();
