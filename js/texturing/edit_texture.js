@@ -905,7 +905,6 @@ BARS.defineActions(function() {
 						}
 					}
 				})
-				console.log({elements_to_change, rect, uv_factor, uv_adjust_x})
 				Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
 				Undo.finishEdit('Adjust UV after cropping texture');
 			}
