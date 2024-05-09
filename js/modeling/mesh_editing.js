@@ -1440,7 +1440,7 @@ BARS.defineActions(function() {
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && Mesh.hasAny(),
+		condition: () => Modes.edit && Mesh.hasAny() && Toolbox.selected.id != 'knife_tool',
 		onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
