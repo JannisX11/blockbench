@@ -710,10 +710,12 @@ Interface.definePanels(() => {
 	ColorPanel.generatePalette = function(source, process_colors = true) {
 
 		var options = {};
+		let selected_texture;
 		if (!source) {
 			Texture.all.forEach((tex, i) => {
 				if (!tex.error) {
 					options[i] = tex.name;
+					if (tex.selected) selected_texture = i;
 				}
 			})
 		}
@@ -722,7 +724,7 @@ Interface.definePanels(() => {
 			title: 'action.import_palette',
 			width: 460,
 			form: {
-				texture: {label: 'data.texture', type: 'select', options, condition: !source},
+				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
 				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
 				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
 			},

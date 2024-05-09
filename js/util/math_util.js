@@ -50,6 +50,9 @@ Math.epsilon = function(a, b, epsilon = 0.001) {
 Math.trimDeg = function(a) {
 	return (a+180*15)%360-180
 }
+Math.trimRad = function(a) {
+	return (a+Math.PI*15)%(Math.PI*2)-Math.PI
+}
 Math.isPowerOfTwo = function(x) {
 	return (x > 1) && ((x & (x - 1)) == 0);
 }

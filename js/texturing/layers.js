@@ -99,7 +99,7 @@ class TextureLayer {
 		delete copy.in_limbo;
 		copy.width = this.width;
 		copy.height = this.height;
-		copy.data_url = this.canvas.toDataURL();
+		copy.data_url = this.canvas.toDataURL('image/png', 1);
 		return copy;
 	}
 	setLimbo() {
@@ -603,6 +603,7 @@ Interface.definePanels(function() {
 	new Panel('layers', {
 		icon: 'layers',
 		growable: true,
+		resizable: true,
 		condition: () => Modes.paint && ((Texture.selected && Texture.selected.layers_enabled) || Format.image_editor),
 		default_position: {
 			slot: 'left_bar',

@@ -323,6 +323,8 @@ const Blockbench = {
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
+	} else if (LastVersion != appVersion) {
+		Blockbench.addFlag('after_patch_update');
 	}
 	try {
 		let ui_mode = JSON.parse(localStorage.getItem('settings')).interface_mode.value;

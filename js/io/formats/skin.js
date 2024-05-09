@@ -160,9 +160,10 @@ codec.export = null;
 codec.rebuild = function(model_id, pose) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
-	let model = JSON.parse(preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset[variant]);
+	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
+	let model = JSON.parse(model_raw);
 	codec.parse(model, undefined, undefined, pose && pose !== 'none');
-	if (pose && pose !== 'none') {
+	if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
 			Panels.skin_pose.inside_vue.setPose(pose);
 		}, 1)
@@ -534,6 +535,9 @@ Interface.definePanels(function() {
 	})
 })
 
+// Source: https://github.com/Mojang/bedrock-samples/, licensed under the Minecraft EULA
+// With modifications for usability
+
 skin_presets.steve = {
 	display_name: 'Player - Wide',
 	pose: true,
@@ -875,6 +879,96 @@ skin_presets.allay = {
 				"pivot": [-0.5, 3, 1],
 				"cubes": [
 					{"origin": [-0.5, -2, 1], "size": [0, 5, 8], "uv": [16, 14]}
+				]
+			}
+		]
+	}`
+}
+skin_presets.armadillo = {
+	display_name: 'Armadillo',
+	model: `{
+		"name": "armadillo",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[44, 19, 1, 1],
+			[48, 19, 1, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 3, 4],
+				"cubes": [
+					{"origin": [-4, 2, -6], "size": [8, 8, 12], "inflate": 0.3, "uv": [0, 20]},
+					{"origin": [-4, 2, -6], "size": [8, 8, 12], "uv": [0, 40]}
+				]
+			},
+			{
+				"name": "tail",
+				"parent": "body",
+				"pivot": [0, 6, 5],
+				"rotation": [29, 0, 0],
+				"cubes": [
+					{"origin": [-0.5, 0.08645, 5.09326], "size": [1, 6, 1], "uv": [44, 53]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 5, -7],
+				"cubes": [
+					{"origin": [-1.5, 1, -8], "size": [3, 5, 2], "pivot": [0, 5, -7], "rotation": [-22.5, 0, 0], "uv": [43, 15]}
+				]
+			},
+			{
+				"name": "right_ear",
+				"parent": "head",
+				"pivot": [-1, 6, -7],
+				"cubes": [
+					{"origin": [-3.5, 4, -7.6], "size": [2, 5, 0], "pivot": [-1.5, 6, -7.6], "rotation": [10.80524, -22.13991, -4.11405], "uv": [43, 10]}
+				]
+			},
+			{
+				"name": "left_ear",
+				"parent": "head",
+				"pivot": [1, 7, -7],
+				"cubes": [
+					{"origin": [1.5, 4, -7.6], "size": [2, 5, 0], "pivot": [1.5, 6, -7.6], "rotation": [10.80524, 22.13991, 4.11405], "uv": [47, 10]}
+				]
+			},
+			{
+				"name": "right_hind_leg",
+				"pivot": [-2, 3, 4],
+				"cubes": [
+					{"origin": [-3, 0, 3], "size": [2, 3, 2], "uv": [51, 31]}
+				]
+			},
+			{
+				"name": "left_hind_leg",
+				"pivot": [2, 3, 4],
+				"cubes": [
+					{"origin": [1, 0, 3], "size": [2, 3, 2], "uv": [42, 31]}
+				]
+			},
+			{
+				"name": "right_front_leg",
+				"pivot": [-2, 3, -4],
+				"cubes": [
+					{"origin": [-3, 0, -5], "size": [2, 3, 2], "uv": [51, 43]}
+				]
+			},
+			{
+				"name": "left_front_leg",
+				"pivot": [2, 3, -4],
+				"cubes": [
+					{"origin": [1, 0, -5], "size": [2, 3, 2], "uv": [42, 43]}
+				]
+			},
+			{
+				"name": "body_rolled_up",
+				"pivot": [0, 0, 27],
+				"cubes": [
+					{"origin": [-5, 0, 21], "size": [10, 10, 10], "uv": [0, 0]}
 				]
 			}
 		]
@@ -6707,9 +6801,9 @@ skin_presets.wolf = {
 			{
 				"name": "upperBody",
 				"pivot": [-1, 10, 2],
-				"rotation": [-90, 0, 0],
+				"rotation": [90, 0, 0],
 				"cubes": [
-					{"name": "upperBody", "origin": [-5, 2, -2], "size": [8, 6, 7], "uv": [21, 0]}
+					{"name": "upperBody", "origin": [-5, 12, -1], "size": [8, 6, 7], "uv": [21, 0]}
 				]
 			},
 			{

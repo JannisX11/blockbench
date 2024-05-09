@@ -4,11 +4,11 @@ BARS.defineActions(function() {
 		if (elements.length === 0 || !Format) {
 			return;
 		}
-		let tag_suggestions = ['low-poly', 'pixel-art'];
+		let tag_suggestions = ['low-poly', 'pixel-art', 'NoAI'];
 		if (Format.id !== 'free') tag_suggestions.push('minecraft');
 		if (Format.id === 'skin') tag_suggestions.push('skin');
 		if (!Mesh.all.length) tag_suggestions.push('voxel');
-		let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '')
+		let clean_project_name = Project.name.toLowerCase().replace(/[_.-]+/g, '-').replace(/[^a-z0-9-]+/, '').replace(/-geo/, '');
 		if (Project.name) tag_suggestions.push(clean_project_name);
 		if (clean_project_name.includes('-')) tag_suggestions.safePush(...clean_project_name.split('-').filter(s => s.length > 2 && s != 'geo').reverse());
 	
@@ -115,7 +115,18 @@ BARS.defineActions(function() {
 							}).show();
 						},
 						error: function(response) {
-							Blockbench.showQuickMessage(tl('message.sketchfab.error') + `Error ${response.status}`, 1500)
+							let response_types = {
+								[400]: 'Bad Request',
+								[401]: 'Unauthorized',
+								[403]: 'Forbidden',
+								[404]: 'Not Found',
+								[405]: 'Method Not Allowed',
+								[406]: 'Not Acceptable',
+								[407]: 'Proxy Authentication Required',
+								[408]: 'Request Timeout',
+								[415]: 'Unsupported File Type',
+							}
+							Blockbench.showQuickMessage(tl('message.sketchfab.error') + `: Error ${response.status} - ${response_types[response.status]||''}`, 1500)
 							console.error(response);
 						}
 					})

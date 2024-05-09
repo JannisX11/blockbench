@@ -572,10 +572,11 @@ var codec = new Codec('fbx', {
 
 			// If no file path, use embedded texture
 			if (tex.path == '') {
-				fileContent = tex.getBase64();
 				fileName = '';
 				relativeName = '';
-				console.log('Texture \'' + tex.name + '\' has no external save. Using embedded texture.');
+			}
+			if (options.embed_textures || tex.path == '') {
+				fileContent = tex.getBase64();
 			}
 
 			let unique_name = getUniqueName('texture', tex.uuid, tex.name);
@@ -1084,6 +1085,7 @@ var codec = new Codec('fbx', {
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII', binary: 'Binary (Experimental)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
+		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: false},
 		include_animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async export() {
@@ -1391,7 +1393,7 @@ function compileBinaryFBXModel(top_level_object) {
 				}
 				if (type == 'number') {
 					type = value % 1 ? 'D' : 'I';
-					if (!object._type) console.log('default', key, i, 'to', type, object)
+					//if (!object._type) console.log('default', key, i, 'to', type, object)
 				}
 				// handle number types
 				// C: boolean

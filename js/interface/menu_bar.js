@@ -1,32 +1,35 @@
 class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
-		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
 		this.condition = options.condition
 		this.node = document.createElement('ul');
-		this.node.className = 'contextMenu';
+		this.node.className = 'contextMenu menu_bar_menu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
-			if (open_menu === scope) {
-				scope.hide()
+			if (open_menu === this) {
+				this.hide()
 			} else {
-				scope.open()
+				this.open()
 			}
 		})
 		this.label.addEventListener('mouseenter', (event) => {
-			if (MenuBar.open && MenuBar.open !== scope) {
-				scope.open()
+			if (MenuBar.open && MenuBar.open !== this) {
+				this.open()
 			}
 		})
 		this.structure = structure;
 		this.highlight_action = null;
+	}
+	open(...args) {
+		super.open(...args);
+		Blockbench.dispatchEvent('open_bar_menu', {menu: this});
 	}
 	hide() {
 		super.hide();
@@ -254,6 +257,7 @@ const MenuBar = {
 				'switch_face_crease',
 				'merge_vertices',
 				'dissolve_edges',
+				'solidify_mesh_selection',
 				'apply_mesh_rotation',
 				'split_mesh',
 				'merge_meshes',
@@ -338,6 +342,7 @@ const MenuBar = {
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
+			'optimize_animation',
 			'bake_ik_animation',
 			'bake_animation_into_model',
 			new MenuSeparator('file'),
@@ -402,11 +407,13 @@ const MenuBar = {
 					}
 				})
 				let modes = Object.keys(Modes.options);
-				tools.sort((a, b) => modes.indexOf(a.modes[0]) - modes.indexOf(b.modes[0]))
-				let mode = tools[0].modes[0];
+				tools.sort((a, b) => {
+					return (a.modes ? modes.indexOf(a.modes[0]) : -1) - (b.modes ? modes.indexOf(b.modes[0]) : -1);
+				})
+				let mode = tools[0].modes?.[0];
 				for (let i = 0; i < tools.length; i++) {
-					if (tools[i].modes[0] !== mode) {
-						mode = tools[i].modes[0];
+					if (tools[i].modes?.[0] !== mode) {
+						mode = tools[i].modes?.[0];
 						tools.splice(i, 0, '_');
 						i++;
 					}
@@ -433,6 +440,7 @@ const MenuBar = {
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
+			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
 			'preview_scene',
@@ -508,17 +516,72 @@ const MenuBar = {
 			]},
 			'about_window'
 		])
-		MenuBar.update()
+		MenuBar.update();
+
+		if (Blockbench.isMobile) {
+			let header = document.querySelector('header');
+			document.getElementById('menu_bar').remove();
+			document.getElementById('header_free_bar').remove();
+			document.getElementById('corner_logo').remove();
+
+			let menu_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('menu'));
+			menu_button.addEventListener('click', event => {
+				MenuBar.openMobile(menu_button, event);
+			})
+			let search_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('search'));
+			search_button.addEventListener('click', event => {
+				ActionControl.select()
+			})
+			let undo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('undo'));
+			undo_button.addEventListener('click', event => {
+				BarItems.undo.trigger()
+			})
+			let redo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('redo'));
+			redo_button.addEventListener('click', event => {
+				BarItems.redo.trigger()
+			})
+			let mode_switcher = Interface.createElement('div', {class: 'tool hidden', style: 'margin-left: auto'}, Blockbench.getIconNode('settings'));
+			mode_switcher.addEventListener('click', event => {
+				Modes.mobileModeMenu(mode_switcher, event);
+			})
+			MenuBar.mode_switcher_button = mode_switcher;
+
+			let home_button = document.getElementById('title_bar_home_button');
+
+			let buttons = [menu_button, search_button, home_button, undo_button, redo_button, mode_switcher];
+			buttons.forEach(button => {
+				header.append(button);
+			})
+		}
+	},
+	openMobile(button, event) {
+		let entries = [];
+		for (let id in MenuBar.menus) {
+			if (id == 'filter') continue;
+			let menu = MenuBar.menus[id];
+			let entry = {
+				id,
+				icon: menu.icon || '',
+				name: menu.name,
+				children: menu.structure,
+				condition: menu.condition,
+			};
+			entries.push(entry);
+		}
+		let menu = new Menu(entries).open(button);
+		return menu;
 	},
 	update() {
-		var bar = $('#menu_bar')
-		bar.children().detach()
-		this.keys = []
-		for (var menu in MenuBar.menus) {
-			if (MenuBar.menus.hasOwnProperty(menu)) {
-				if (MenuBar.menus[menu].conditionMet()) {
-					bar.append(MenuBar.menus[menu].label)
-					this.keys.push(menu)
+		if (!Blockbench.isMobile) {
+			let bar = $(document.getElementById('menu_bar'));
+			bar.children().detach();
+			this.keys = [];
+			for (var menu in MenuBar.menus) {
+				if (MenuBar.menus.hasOwnProperty(menu)) {
+					if (MenuBar.menus[menu].conditionMet()) {
+						bar.append(MenuBar.menus[menu].label)
+						this.keys.push(menu);
+					}
 				}
 			}
 		}

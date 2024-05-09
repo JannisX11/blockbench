@@ -9,9 +9,9 @@ function buildForm(dialog) {
 			dialog_content.append('<hr />')
 			
 		} else {
-			let bar = $(`<div class="dialog_bar form_bar form_bar_${form_id}"></div>`)
+			let bar = $(`<div class="dialog_bar bar form_bar form_bar_${form_id}"></div>`)
 			let label;
-			if (data.label) {
+			if (typeof data.label == 'string') {
 				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
 				bar.append(label);
 				if (!data.full_width && data.condition !== false) {
@@ -215,9 +215,6 @@ function buildForm(dialog) {
 					input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
 						value="${parseFloat(data.value)||0}" min="${data.min}" max="${data.max}" step="${data.step||1}">`)
 					bar.append(input_element)
-					input_element.on('input', () => {
-						dialog.updateFormValues();
-					})
 
 					if (!data.editable_range_label) {
 						let display = Interface.createElement('span', {class: 'range_input_label'}, (data.value||0).toString())
@@ -227,24 +224,24 @@ function buildForm(dialog) {
 							display.textContent = trimFloatNumber(result[form_id]);
 						})
 					} else {
-						let display = Interface.createElement('input', {
-							class: 'range_input_label dark_bordered focusable_input',
-							type: 'number',
-							value: data.value,
-							min: data.min,
-							max: data.max,
-							step: data.step || 1,
+						bar.addClass('slider_input_combo');
+						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_number', {
+							value: data.value ?? 0,
+							min: data.min, max: data.max, step: data.step,
+							onChange() {
+								input_element.val(numeric_input.value);
+								dialog.updateFormValues();
+							}
 						});
-						bar.append(display);
+						bar.append(numeric_input.node);
 						input_element.on('input', () => {
-							let result = dialog.getFormResult();
-							display.value = result[form_id];
-						})
-						display.addEventListener('input', (e) => {
-							input_element.val(parseFloat(display.value));
-							dialog.updateFormValues();
+							let result = parseFloat(input_element.val());
+							numeric_input.value = result;
 						})
 					}
+					input_element.on('input', () => {
+						dialog.updateFormValues();
+					})
 					break;
 
 
@@ -551,6 +548,7 @@ window.Dialog = class Dialog {
 
 		this.width = options.width
 		this.draggable = options.draggable
+		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
 		this.cancel_on_click_outside = options.cancel_on_click_outside !== false
 		this.singleButton = options.singleButton
@@ -558,6 +556,7 @@ window.Dialog = class Dialog {
 		this.form_first = options.form_first;
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
+		this.keyboard_actions = options.keyboard_actions || {};
 	
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
@@ -672,14 +671,27 @@ window.Dialog = class Dialog {
 							break;
 						case 'number':
 							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'range':
-							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max)
+							if (data.editable_range_label) {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id+'_number').val())||0, data.min, data.max);
+							} else {
+								result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, data.min, data.max);
+							}
+							if (data.force_step && data.step) {
+								result[form_id] = Math.round(result[form_id] / data.step) * data.step;
+							}
 							break;
 						case 'vector':
 							result[form_id] = [];
 							for (let i = 0; i < (data.dimensions || 3); i++) {
 								let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, data.min, data.max)
+								if (data.force_step && data.step) {
+									num = Math.round(num / data.step) * data.step;
+								}
 								result[form_id].push(num)
 							}
 							break;
@@ -823,6 +835,52 @@ window.Dialog = class Dialog {
 			})
 			jq_dialog.css('position', 'absolute')
 		}
+		if (this.resizable) {
+			this.object.classList.add('resizable')
+			let resize_handle = Interface.createElement('div', {class: 'dialog_resize_handle'});
+			jq_dialog.append(resize_handle);
+			if (this.resizable == 'x') {
+				resize_handle.style.cursor = 'e-resize';
+			} else if (this.resizable == 'y') {
+				resize_handle.style.cursor = 's-resize';
+			}
+			addEventListeners(resize_handle, 'mousedown touchstart', e1 => {
+				convertTouchEvent(e1);
+				resize_handle.classList.add('dragging');
+
+				let start_position = [e1.clientX, e1.clientY];
+				if (!this.width) this.width = this.object.clientWidth;
+				let original_width = this.width;
+				let original_left = parseFloat(this.object.style.left);
+				let original_height = parseFloat(this.object.style.height) || this.object.clientHeight;
+
+
+				let move = e2 => {
+					convertTouchEvent(e2);
+					
+					if (this.resizable.includes('x')) {
+						let x_offset = (e2.clientX - start_position[0]);
+						this.width = original_width + x_offset * 2;
+						this.object.style.width = this.width+'px';
+						if (this.draggable !== false) {
+							this.object.style.left = Math.clamp(original_left - (this.object.clientWidth - original_width) / 2, 0, window.innerWidth) + 'px';
+						}
+					}
+					if (this.resizable.includes('y')) {
+						let y_offset = (e2.clientY - start_position[1]);
+						let height = Math.clamp(original_height + y_offset, 80, window.innerHeight);
+						this.object.style.height = height+'px';
+					}
+				}
+				let stop = e2 => {
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					resize_handle.classList.remove('dragging');
+				}
+				addEventListeners(document, 'mousemove touchmove', move);
+				addEventListeners(document, 'mouseup touchend', stop);
+			})
+		}
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
 				this.object.style.top = Math.max(Interface.page_wrapper.clientHeight - this.object.clientHeight + 26, 26) + 'px';
@@ -873,6 +931,11 @@ window.Dialog = class Dialog {
 		}
 
 		this.focus();
+
+		setTimeout(() => {
+			this.object.style.setProperty('--dialog-height', this.object.clientHeight + 'px');
+			this.object.style.setProperty('--dialog-width', this.object.clientWidth + 'px');
+		}, 1);
 
 		return this;
 	}
@@ -994,12 +1057,14 @@ window.MessageBox = class MessageBox extends Dialog {
 		let jq_dialog = $(this.object);
 
 		if (options.message) {
-			content.append($('<div class="dialog_bar markdown" style="height: auto; min-height: 56px; margin-bottom: 16px;">'+
+			content.append($(`<div class="dialog_bar markdown" style="height: auto; margin-bottom: 10px;">`+
 				pureMarked(tl(options.message))+
 			'</div></div>')[0]);
 		}
 		if (options.icon) {
-			jq_dialog.find('.dialog_bar').prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'))
+			let bar = jq_dialog.find('.dialog_bar');
+			bar.prepend($(Blockbench.getIconNode(options.icon)).addClass('message_box_icon'));
+			bar.append('<div style="clear:both;"></div>');
 		}
 
 		if (options.commands) {
@@ -1011,6 +1076,10 @@ window.MessageBox = class MessageBox extends Dialog {
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
 				if (command.icon) {
 					entry.prepend(Blockbench.getIconNode(command.icon));
+				}
+				if (command.description) {
+					let label = Interface.createElement('label', {}, tl(command.description));
+					entry.append(label);
 				}
 				entry.addEventListener('click', e => {
 					this.close(id, results, e);

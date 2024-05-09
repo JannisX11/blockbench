@@ -26,11 +26,13 @@
 	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
+
+	/* SCROLLBARS */
+	/* webkit */
 	::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
-
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -46,10 +48,10 @@
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-accent);
 	}
-	/*Mozilla*/
+	/* Web standard */
 	* {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-selected) var(--color-back);
+		scrollbar-color: var(--color-selected) transparent;
 	}
 
 	::selection {
@@ -296,6 +298,7 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
+		overflow: hidden;
 	}
 	i.fa_big {
 		font-size: 18px;
@@ -514,7 +517,6 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
-		cursor: default;
 		resize: none;
 		outline: none;
 		user-select: initial;
@@ -618,6 +620,9 @@
 		cursor: pointer;
 		background: var(--color-track);
 		border-radius: 3px;
+	}
+	input[type=text].dark_bordered:read-only {
+		color: var(--color-subtle_text);
 	}
 	input:-webkit-autofill,
 	input:-webkit-autofill:hover, 
@@ -739,6 +744,9 @@
 	}
 	div.nslide_arrow.na_right {
 		margin-left: 16px;
+	}
+	div.nslide.editing {
+		cursor: text;
 	}
 
 	input.toggle_panel {

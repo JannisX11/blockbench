@@ -83,8 +83,8 @@ class ModelFormat {
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		Modes.vue.$forceUpdate()
-		updateInterfacePanels()
+		if (Modes.vue) Modes.vue.$forceUpdate();
+		updateInterfacePanels();
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
@@ -260,8 +260,11 @@ new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'box_uv_float_size');
 new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'single_texture_default');
+new Property(ModelFormat, 'boolean', 'per_group_texture');
 new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
+new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
 new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');

@@ -14,6 +14,7 @@ class Panel extends EventSystem {
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;
+		this.resizable = data.resizable;
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
@@ -28,7 +29,8 @@ class Panel extends EventSystem {
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
-		if (this.position_data.folded == undefined) this.position_data.folded 		= defaultp.folded || false;
+		if (this.position_data.folded == undefined) 		this.position_data.folded 		= defaultp.folded || false;
+		if (this.position_data.fixed_height == undefined) 	this.position_data.fixed_height = defaultp.fixed_height || false;
 
 		for (let mode_id in Interface.data.modes) {
 			let mode_data = Interface.getModeData(mode_id);
@@ -99,32 +101,36 @@ class Panel extends EventSystem {
 
 			let snap_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('drag_handle'))
 			this.handle.append(snap_button);
+			let moveTo = slot => {
+				this.fixed_height = false;
+				this.moveTo(slot);
+			};
 			snap_button.addEventListener('click', (e) => {
 				new Menu([
 					{
 						name: 'Left Sidebar',
 						icon: 'align_horizontal_left',
-						click: () => this.moveTo('left_bar')
+						click: () => moveTo('left_bar')
 					},
 					{
 						name: 'Right Sidebar',
 						icon: 'align_horizontal_right',
-						click: () => this.moveTo('right_bar')
+						click: () => moveTo('right_bar')
 					},
 					{
 						name: 'Top',
 						icon: 'align_vertical_top',
-						click: () => this.moveTo('top')
+						click: () => moveTo('top')
 					},
 					{
 						name: 'Bottom',
 						icon: 'align_vertical_bottom',
-						click: () => this.moveTo('bottom')
+						click: () => moveTo('bottom')
 					},
 					{
 						name: 'Float',
 						icon: 'web_asset',
-						click: () => this.moveTo('float')
+						click: () => moveTo('float')
 					}
 				]).show(snap_button);
 			})
@@ -138,6 +144,40 @@ class Panel extends EventSystem {
 			this.handle.firstElementChild.addEventListener('dblclick', e => {
 				this.fold();
 			})
+
+
+			if (this.resizable) {
+				this.sidebar_resize_handle = Interface.createElement('div', {class: 'panel_sidebar_resize_handle'})
+				this.node.append(this.sidebar_resize_handle);
+				let resize = e1 => {
+					let height_before = this.node.clientHeight;
+					let started = false;
+					let direction = this.node.classList.contains('bottommost_panel') ? -1 : 1;
+
+					let drag = e2 => {
+						convertTouchEvent(e2);
+						if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2)) > 12) {
+							started = true;
+							this.sidebar_resize_handle.classList.add('dragging');
+						}
+						if (!started) return;
+
+						this.position_data.fixed_height = true;
+						this.position_data.height = height_before + (e2.clientY - e1.clientY) * direction;
+						this.update();
+					}
+					let stop = e2 => {
+						convertTouchEvent(e2);
+						
+						removeEventListeners(document, 'mousemove touchmove', drag);
+						removeEventListeners(document, 'mouseup touchend', stop);
+						this.sidebar_resize_handle.classList.remove('dragging');
+					}
+					addEventListeners(document, 'mousemove touchmove', drag);
+					addEventListeners(document, 'mouseup touchend', stop);
+				}
+				addEventListeners(this.sidebar_resize_handle, 'mousedown touchstart', (event) => resize(event));
+			}
 
 
 			addEventListeners(this.handle.firstElementChild, 'mousedown touchstart', e1 => {
@@ -246,6 +286,7 @@ class Panel extends EventSystem {
 					Interface.right_bar.classList.remove('drop_target');
 
 					if (target_slot) {
+						this.fixed_height = false;
 						this.moveTo(target_slot, target_panel, target_before)
 					}
 
@@ -340,6 +381,12 @@ class Panel extends EventSystem {
 	set folded(state) {
 		this.position_data.folded = !!state;
 	}
+	get fixed_height() {
+		return this.position_data.fixed_height;
+	}
+	set fixed_height(state) {
+		this.position_data.fixed_height = !!state;
+	}
 	resetCustomLayout() {
 		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
 		this.position_data = Interface.getModeData().panels[this.id];
@@ -349,7 +396,8 @@ class Panel extends EventSystem {
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
 		if (!this.position_data.height) 		this.position_data.height 			= defaultp.height || 300;
-		if (this.position_data.folded == undefined) this.position_data.folded 	= defaultp.folded || false;
+		if (this.position_data.folded == undefined)			this.position_data.folded 		= defaultp.folded || false;
+		if (this.position_data.fixed_height == undefined) 	this.position_data.fixed_height = defaultp.fixed_height || false;
 
 		for (let mode_id in Interface.data.modes) {
 			let mode_data = Interface.getModeData(mode_id);
@@ -609,6 +657,7 @@ class Panel extends EventSystem {
 				if (this.folded) this.height = this.handle.clientHeight;
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
+				this.node.classList.remove('bottommost_panel');
 			} else {
 				this.node.style.width = this.node.style.height = this.node.style.left = this.node.style.top = null;
 			}
@@ -633,7 +682,17 @@ class Panel extends EventSystem {
 				}
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
+			} else if (this.slot == 'left_bar' || this.slot == 'right_bar') {
+				if (this.fixed_height) {
+					//let other_panels = this.slot == 'left_bar' ? Interface.getLeftPanels() : Interface.getRightPanels();
+					//let available_height = (this.slot == 'left_bar' ? Interface.left_bar : Interface.right_bar).clientHeight;
+					//let min_height = other_panels.reduce((sum, panel) => (panel == this ? sum : (sum - panel.node.clientHeight)), available_height);
+					this.height = Math.clamp(this.position_data.height, 30, Interface.work_screen.clientHeight);
+					this.node.style.height = this.height + 'px';
+					this.node.classList.add('fixed_height');
+				}
 			}
+			if (!this.fixed_height) this.node.classList.remove('fixed_height');
 
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
@@ -708,12 +767,22 @@ function updateSidebarOrder() {
 
 		bar_node.childNodes.forEach(panel_node => panel_node.remove());
 
+		let last_panel;
+		let panel_count = 0;
 		Interface.getModeData()[bar].forEach(panel_id => {
 			let panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
+				panel.node.classList.remove('bottommost_panel');
 				bar_node.append(panel.node);
+				if (Condition(panel.condition)) {
+					panel_count++;
+					last_panel = panel;
+				}
 			}
 		});
+		if (last_panel && panel_count > 1) {
+			last_panel.node.classList.add('bottommost_panel');
+		}
 	})
 }
 function updatePanelSelector() {
@@ -731,61 +800,59 @@ function setActivePanel(panel) {
 }
 
 function setupMobilePanelSelector() {
-	if (Blockbench.isMobile) {
-		Interface.PanelSelectorVue = new Vue({
-			el: '#panel_selector_bar',
-			data: {
-				all_panels: Interface.Panels,
-				selected: null,
-				modifiers: Pressing.overrides
-			},
-			computed: {
-			},
-			methods: {
-				panels() {
-					let arr = [];
-					for (var id in this.all_panels) {
-						let panel = this.all_panels[id];
-						if (Condition(panel.condition) && Condition(panel.display_condition)) {
-							arr.push(panel);
-						}
+	Interface.PanelSelectorVue = new Vue({
+		el: '#panel_selector_bar',
+		data: {
+			all_panels: Interface.Panels,
+			selected: null,
+			modifiers: Pressing.overrides
+		},
+		computed: {
+		},
+		methods: {
+			panels() {
+				let arr = [];
+				for (var id in this.all_panels) {
+					let panel = this.all_panels[id];
+					if (Condition(panel.condition) && Condition(panel.display_condition)) {
+						arr.push(panel);
 					}
-					return arr;
-				},
-				select(panel) {
-					this.selected = panel && panel.id;
-					for (let key in Panels) {
-						let panel_b = Panels[key];
-						if (panel_b.slot == 'bottom') {
-							$(panel_b.node).detach();
-							panel_b.position_data.slot = 'left_bar';
-						}
-					}
-					if (panel) {
-						panel.moveTo('bottom');
-						if (panel.folded) panel.fold();
-					} else {
-						resizeWindow();
-					}
-				},
-				openKeyboardMenu() {
-					openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
-				},
-				Condition,
-				getIconNode: Blockbench.getIconNode
+				}
+				return arr;
 			},
-			template: `
-				<div id="panel_selector_bar">
-					<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
-						<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
-					</div>
-					<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
-						<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
-					</div>
-					<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
-						<i class="material-icons">keyboard</i>
-					</div>
-				</div>`
-		})
-	}
+			select(panel) {
+				this.selected = panel && panel.id;
+				for (let key in Panels) {
+					let panel_b = Panels[key];
+					if (panel_b.slot == 'bottom') {
+						$(panel_b.node).detach();
+						panel_b.position_data.slot = 'left_bar';
+					}
+				}
+				if (panel) {
+					panel.moveTo('bottom');
+					if (panel.folded) panel.fold();
+				} else {
+					resizeWindow();
+				}
+			},
+			openKeyboardMenu() {
+				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
+			},
+			Condition,
+			getIconNode: Blockbench.getIconNode
+		},
+		template: `
+			<div id="panel_selector_bar">
+				<div class="panel_selector" :class="{selected: selected == null}" @click="select(null)">
+					<div class="icon_wrapper"><i class="material-icons icon">3d_rotation</i></div>
+				</div>
+				<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
+					<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+				</div>
+				<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
+					<i class="material-icons">keyboard</i>
+				</div>
+			</div>`
+	})
 }

@@ -162,9 +162,6 @@ class Setting {
 			}
 			new Menu(list).open(e.target);
 
-		} else if (type == 'click') {
-			this.click(e)
-
 		} else {
 			let dialog = new Dialog({
 				id: 'setting_' + this.id,
@@ -468,6 +465,10 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
+		new Setting('bedrock_uv_rotations',	{category: 'edit', value: false, name: 'Bedrock UV Rotations (Experimental)', description: 'Enable the experimental bedrock UV rotations feature.', onChange(value) {
+			Formats.bedrock.uv_rotation = value;
+			Formats.bedrock_block.uv_rotation = value;
+		}});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -477,12 +478,23 @@ const Settings = {
 		new Setting('large_box',			{category: 'grid', value: false});
 		new Setting('large_grid_size',		{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
 		//new Setting('display_grid',		{category: 'grid', value: false});
-		new Setting('painting_grid',		{category: 'grid', value: true, onChange(value) {
-			Canvas.updatePaintingGrid();
+		new Setting('pixel_grid',			{category: 'grid', value: false, onChange(value) {
+			Canvas.updatePixelGrid();
 			UVEditor.vue.pixel_grid = value;
+		}});
+		new Setting('painting_grid',		{category: 'grid', value: true, onChange(value) {
+			Canvas.updatePixelGrid();
+			UVEditor.vue.pixel_grid = value;
+		}});
+		new Setting('image_editor_grid_size',{category: 'grid', type: 'number', value: 16, onChange() {
+			UVEditor.vue.zoom += 0.01;
+			UVEditor.vue.zoom -= 0.01;
 		}});
 		new Setting('ground_plane',			{category: 'grid', value: false, onChange() {
 			Canvas.ground_plane.visible = this.value;
+		}});
+		new Setting('ground_plane_double_side',{category: 'grid', value: false, onChange() {
+			Canvas.groundPlaneMaterial.side = this.value ? THREE.DoubleSide : THREE.FrontSide;
 		}});
 		
 		//Snapping
@@ -517,7 +529,7 @@ const Settings = {
 			'tilt': tl('settings.brush_modifier.tilt'),
 			'none': tl('settings.brush_modifier.none'),
 		}});
-		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null, true) }});
+		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
 		
 		//Defaults
 		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
@@ -555,6 +567,7 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),
 			tris: tl('settings.obj_face_export_mode.tris'),

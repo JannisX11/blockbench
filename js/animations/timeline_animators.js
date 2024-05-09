@@ -435,6 +435,10 @@ class BoneAnimator extends GeneralAnimator {
 				let before_index = sorted.indexOf(before);
 				let before_plus = sorted[before_index-1];
 				let after_plus = sorted[before_index+2];
+				if (this.animation.loop == 'loop' && sorted.length >= 3) {
+					if (!before_plus) before_plus = sorted.at(-2);
+					if (!after_plus) after_plus = sorted[1];
+				}
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
 
@@ -603,7 +607,7 @@ class NullObjectAnimator extends BoneAnimator {
 			source = null_object.parent;
 		}
 		if (!source) return;
-		if (!target.isChildOf(source)) return;
+		if (!target.isChildOf(source) && source != 'root') return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
@@ -612,8 +616,9 @@ class NullObjectAnimator extends BoneAnimator {
 			bones.push(current);
 			current = current.parent;
 		}
-		if (null_object.ik_source)
+		if (null_object.ik_source) {
 			bones.push(source);
+		}
 		if (!bones.length) return;
 		bones.reverse();
 		
@@ -740,10 +745,14 @@ class EffectAnimator extends GeneralAnimator {
 	displayFrame(in_loop) {
 		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
-				var diff = kf.time - this.animation.time;
-				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
+				let diff = this.animation.time - kf.time;
+				if (diff < 0) return;
+
+				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
+				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100) && !media) {
 					if (kf.data_points[0].file && !kf.cooldown) {
-						var media = new Audio(kf.data_points[0].file);
+						media = new Audio(kf.data_points[0].file);
+						media.keyframe_id = kf.uuid;
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
@@ -757,20 +766,27 @@ class EffectAnimator extends GeneralAnimator {
 							delete kf.cooldown;
 						}, 400)
 					} 
+				} else if (diff > 0) {
+					media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
+					if (Math.abs(media.currentTime - diff) > 0.08) {
+						console.log('Resyncing sound')
+						// Resync
+						media.currentTime = diff;
+						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
+					}
 				}
 			})
 		}
-		
+
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				let diff = this.animation.time - kf.time;
-				if (diff >= 0) {
-					let i = 0;
-					for (let data_point of kf.data_points) {
-						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-						if (particle_effect) {
-
-							let emitter = particle_effect.emitters[kf.uuid + i];
+				let i = 0;
+				for (let data_point of kf.data_points) {
+					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+					if (particle_effect) {
+						let emitter = particle_effect.emitters[kf.uuid + i];
+						if (diff >= 0) {
 							if (!emitter) {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
@@ -801,9 +817,12 @@ class EffectAnimator extends GeneralAnimator {
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
-						} 
-						i++;
-					}
+
+						} else if (emitter && emitter.enabled) {
+							emitter.stop(true);
+						}
+					} 
+					i++;
 				}
 			})
 		}
@@ -829,6 +848,7 @@ class EffectAnimator extends GeneralAnimator {
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
+						media.keyframe_id = kf.uuid;
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {

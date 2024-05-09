@@ -36,11 +36,23 @@ class Texture {
 			}
 		});
 
+		if (typeof data === 'object') {
+			this.extend(data);
+			if (this.layers_enabled) {
+				setTimeout(() => {
+					Project.whenNextOpen(() => {
+						this.updateLayerChanges()
+					})
+				}, 40);
+			}
+		}
+
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
 		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
-		let img = this.img = new Image()
+		let img = this.img = new Image();
+		img.setAttribute('pagespeed_no_transform', '');
 		img.src = 'assets/missing.png'
 
 		var tex = new THREE.Texture(this.canvas);
@@ -252,6 +264,7 @@ class Texture {
 
 				if (dimensions_changed) {
 					TextureAnimator.updateButton()
+					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(scope)
 				}
 				if (typeof scope.load_callback === 'function') {
@@ -272,16 +285,6 @@ class Texture {
 			}
 		}
 
-		if (typeof data === 'object') {
-			this.extend(data);
-			if (this.layers_enabled) {
-				setTimeout(() => {
-					Project.whenNextOpen(() => {
-						this.updateLayerChanges()
-					})
-				}, 40);
-			}
-		}
 		if (!this.id) {
 			var i = Texture.all.length;
 			while (true) {
@@ -525,11 +528,13 @@ class Texture {
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
-			if ((this.folder + this.name).match(/[^a-z0-9._/\\-]/) && !Dialog.open && settings.dialog_invalid_characters.value) {
+			let relevant_path = this.folder ? this.folder + '/' + this.name : this.name;
+			if (relevant_path.match(/[^a-z0-9._/\\-]/) && settings.dialog_invalid_characters.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_characters',
-					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
+					message: tl('message.invalid_characters.message', ['`a-z0-9._-`']) + '\n\n' + tl('data.file_path') + ':  ```' + relevant_path + '```',
 					icon: 'folder_open',
+					width: 436,
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
@@ -639,6 +644,20 @@ class Texture {
 		} else {
 			this.load()
 		}
+		return this;
+	}
+	// Used to load only file content, not generate metadata from path. Used when loading bbmodel files
+	loadContentFromPath(path) {
+		this.path = path
+		this.mode = 'link'
+		this.saved = true;
+		if (path.includes('data:image')) {
+			this.source = path
+		} else {
+			this.source = path.replace(/#/g, '%23') + '?' + tex_version
+		}
+		this.startWatcher()
+		this.load()
 		return this;
 	}
 	fromDataURL(data_url) {
@@ -811,7 +830,7 @@ class Texture {
 			var arr = path.split(osfs+'textures'+osfs);
 
 			var arr1 = arr[0].split(osfs);
-			this.namespace = arr1[arr1.length-1];
+			this.namespace = arr1.last();
 
 			var arr2 = arr[arr.length-1].split(osfs);
 			arr2.pop();
@@ -883,10 +902,9 @@ class Texture {
 		}
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
-			Canvas.updatePaintingGrid()
-		} else if (Format.single_texture && Texture.all.length > 1) {
+			Canvas.updatePixelGrid()
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length > 1) {
 			Canvas.updateAllFaces()
-			TickUpdates.selection = true;
 		}
 		updateSelection()
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
@@ -919,15 +937,11 @@ class Texture {
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
 
-		if (Format.single_texture && Cube.all.length) {
+		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
 			Canvas.updateAllFaces()
 			if (selected.length) {
 				UVEditor.loadData()
 			}
-		} else if (Format.id == 'bedrock_block' && Cube.all.length && Project.textures.length == 1) {
-			Cube.all.forEach(cube => {
-				cube.applyTexture(this, true);
-			})
 		}
 		TickUpdates.selection = true;
 		
@@ -984,6 +998,16 @@ class Texture {
 		}
 		return this;
 	}
+	setAsDefaultTexture() {
+		if (Format.single_texture_default) {
+			Texture.all.forEach(tex => tex.use_as_default = false);
+			this.use_as_default = true;
+			if (Texture.all.length > 1) {
+				Canvas.updateAllFaces();
+			}
+		}
+		return this;
+	}
 	fillParticle() {
 		var particle_tex = false
 		Texture.all.forEach(function(t) {
@@ -997,22 +1021,41 @@ class Texture {
 		return this;
 	}
 	apply(all) {
-		let affected = Outliner.selected.filter(el => el.faces);
-		if (!affected.length) return;
-		var scope = this;
-		Undo.initEdit({elements: affected})
-
-		affected.forEach(function(obj) {
-			for (var face in obj.faces) {
-				if (all || obj.box_uv || UVEditor.vue.selected_faces.includes(face)) {
-					var f = obj.faces[face]
-					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
-						f.texture = scope.uuid
+		let affected_elements;
+		if (Format.per_group_texture) {
+			let groups = [Group.selected];
+			Outliner.selected.forEach(el => {
+				if (el.faces) {
+					groups.safePush(el.parent);
+				}
+			});
+			groups = groups.filter(g => g instanceof Group);
+			let affected_elements = [];
+			Undo.initEdit({outliner: true});
+			groups.forEach(group => {
+				group.texture = this.uuid;
+				group.forEachChild(child => {
+					if (child.faces) affected_elements.safePush(child);
+				})
+			})
+		} else {
+			affected_elements = Outliner.selected.filter(el => el.faces);
+			if (!affected_elements.length) return;
+			Undo.initEdit({elements: affected_elements})
+	
+			affected_elements.forEach((element) => {
+				let selected_faces = UVEditor.getSelectedFaces(element);
+				for (var face in element.faces) {
+					if (all || element.box_uv || selected_faces.includes(face)) {
+						var f = element.faces[face]
+						if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
+							f.texture = this.uuid
+						}
 					}
 				}
-			}
-		})
-		Canvas.updateView({elements: affected, element_aspects: {faces: true}})
+			})
+		}
+		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true}})
 		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
@@ -1040,14 +1083,15 @@ class Texture {
 					require('child_process').spawn(settings.image_editor.value, [this.path])
 				}
 			} else {
-				electron.dialog.showMessageBoxSync(currentwindow, {
-					type: 'info',
-					noLink: true,
+				Blockbench.showMessageBox({
+					icon: 'fas.fa-pen-square',
 					title: tl('message.image_editor_missing.title'),
-					message: tl('message.image_editor_missing.message'),
-					detail: tl('message.image_editor_missing.detail')
+					message: tl('message.image_editor_missing.detail'),
+					buttons: ['dialog.ok', 'dialog.cancel']
+				}, (result) => {
+					if (result == 1) return;
+					changeImageEditor(scope);
 				})
-				selectImageEditorFile(scope)
 			}
 		}
 		return this;
@@ -1634,7 +1678,7 @@ class Texture {
 				}
 				ctx.putImageData(data, 0, 0);
 		
-				let dataUrl = canvas.toDataURL('image/png');
+				let dataUrl = canvas.toDataURL('image/png', 1);
 		
 				Blockbench.export({
 					resource_id: 'texture',
@@ -1652,7 +1696,7 @@ class Texture {
 	getDataURL() {
 		var scope = this;
 		if (isApp && !scope.internal) {
-			var dataUrl = this.canvas.toDataURL('image/png');
+			var dataUrl = this.canvas.toDataURL('image/png', 1);
 		} else {
 			var dataUrl = scope.source;
 		}
@@ -1686,7 +1730,7 @@ class Texture {
 		}
 		if (update_data_url) {
 			this.internal = true;
-			this.source = this.canvas.toDataURL();
+			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
 	}
@@ -1698,7 +1742,7 @@ class Texture {
 			if (!Format.image_editor) {
 				this.getMaterial().map.needsUpdate = true;
 			}
-			this.source = this.canvas.toDataURL();
+			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
 		this.saved = false;
@@ -1741,16 +1785,28 @@ class Texture {
 }
 	Texture.prototype.menu = new Menu([
 			new MenuSeparator('apply'),
+			tex => ({
+				icon: 'star',
+				name: tex.use_as_default ? 'menu.texture.use_as_default.clear' : 'menu.texture.use_as_default',
+				condition: {features: ['single_texture_default']},
+				click(texture) {
+					if (texture.use_as_default) {
+						texture.use_as_default = false;
+					} else {
+						texture.setAsDefaultTexture();
+					}
+				}
+			}),
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
 				click(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0},
+				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
 				click(texture) {texture.apply('blank')}
 			},
 			{
@@ -1759,9 +1815,9 @@ class Texture {
 				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply(true)}
 			},
-			{
+			tex => ({
 				icon: 'bubble_chart',
-				name: 'menu.texture.particle',
+				name: tex.particle ? 'menu.texture.particle.clear' : 'menu.texture.particle',
 				condition: {features: ['select_texture_for_particles']},
 				click(texture) {
 					if (texture.particle) {
@@ -1770,7 +1826,7 @@ class Texture {
 						texture.enableParticle()
 					}
 				}
-			},
+			}),
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',
@@ -1803,6 +1859,7 @@ class Texture {
 				}
 			},
 			'resize_texture',
+			'animated_texture_editor',
 			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',
@@ -1972,6 +2029,10 @@ class Texture {
 	])
 	Texture.prototype.offset = [0, 0];
 	Texture.getDefault = function() {
+		if (Format.single_texture_default) {
+			let default_enabled = Texture.all.find(tex => tex.use_as_default);
+			if (default_enabled) return default_enabled;
+		}
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
 			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
 				return Texture.selected;
@@ -1996,6 +2057,7 @@ class Texture {
 	new Property(Texture, 'number', 'uv_width')
 	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
+	new Property(Texture, 'boolean', 'use_as_default')
 	new Property(Texture, 'boolean', 'layers_enabled')
 	new Property(Texture, 'string', 'sync_to_project')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
@@ -2085,13 +2147,27 @@ function loadTextureDraggable() {
 							var data = Canvas.raycast(event)
 							if (data.element && data.face) {
 								var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
-								if (tex && elements) {
+
+								if (Format.per_group_texture) {
+									elements = [];
+									let groups = Group.selected ? [Group.selected] : [];
+									Outliner.selected.forEach(el => {
+										if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+									});
+									Undo.initEdit({outliner: true});
+									groups.forEach(group => {
+										group.texture = '';
+										group.forEachChild(child => {
+											if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+										})
+									})
+								} else {
 									Undo.initEdit({elements})
 									elements.forEach(element => {
 										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
 									})
-									Undo.finishEdit('Apply texture')
 								}
+								Undo.finishEdit('Apply texture')
 							}
 						} else if ($('#texture_list:hover').length > 0) {
 							let index = Texture.all.length-1
@@ -2123,17 +2199,29 @@ function loadTextureDraggable() {
 									array.push(element);
 								})
 							} else {
-								array = selected.includes(target) ? selected : [target];
+								array = selected.includes(target) ? selected.slice() : [target];
 							}
 							array = array.filter(element => element.applyTexture);
 
-							Undo.initEdit({elements: array, uv_only: true})
-							array.forEach(element => {
-								element.applyTexture(tex, true);
-							});
-							Undo.finishEdit('Apply texture')
-		
-							UVEditor.loadData()
+							if (Format.per_group_texture) {
+								let group = target.type === 'group' ? target : null;
+								if (!group) group = target.parent;
+
+								array = [];
+								Undo.initEdit({group});
+								group.texture = tex.uuid;
+								group.forEachChild(child => {
+									if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+								})
+							} else {
+								Undo.initEdit({elements: array, uv_only: true})
+								array.forEach(element => {
+									element.applyTexture(tex, true);
+								});
+							}
+							Undo.finishEdit('Apply texture');
+							UVEditor.loadData();
+
 						} else if ($('#uv_viewport:hover').length) {
 							UVEditor.applyTexture(tex);
 						}
@@ -2223,7 +2311,7 @@ Clipbench.pasteTextures = function() {
 		Clipbench.texture = null;
 
 	} else if (isApp) {
-		var image = clipboard.readImage().toDataURL();
+		var image = clipboard.readImage().toDataURL('image/png', 1);
 		loadFromDataUrl(image);
 	} else {
 		navigator.clipboard.read().then(content => {
@@ -2234,102 +2322,6 @@ Clipbench.pasteTextures = function() {
 				})
 			}
 		}).catch(() => {})
-	}
-}
-
-TextureAnimator = {
-	isPlaying: false,
-	interval: false,
-	frame_total: 0,
-	start() {
-		clearInterval(TextureAnimator.interval)
-		TextureAnimator.isPlaying = true
-		TextureAnimator.frame_total = 0;
-		TextureAnimator.updateButton()
-		let frametime = 1000/settings.texture_fps.value;
-		if (Format.texture_mcmeta && Texture.getDefault()) {
-			let tex = Texture.getDefault();
-			frametime = Math.max(tex.frame_time, 1) * 50;
-		}
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
-	},
-	stop() {
-		TextureAnimator.isPlaying = false
-		clearInterval(TextureAnimator.interval)
-		TextureAnimator.updateButton()
-	},
-	toggle() {
-		if (TextureAnimator.isPlaying) {
-			TextureAnimator.stop()
-		} else {
-			TextureAnimator.start()
-		}
-	},
-	updateSpeed() {
-		if (TextureAnimator.isPlaying) {
-			TextureAnimator.stop()
-			TextureAnimator.start()
-		}
-	},
-	nextFrame() {
-		var animated_textures = []
-		TextureAnimator.frame_total++;
-		Texture.all.forEach(tex => {
-			if (tex.frameCount > 1) {
-				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
-				if (custom_indices) {
-					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
-					tex.currentFrame = Math.clamp(typeof index == 'object' ? index.index : index, 0, tex.frameCount-1);
-
-				} else {
-					if (tex.currentFrame >= tex.frameCount-1) {
-						tex.currentFrame = 0
-					} else {
-						tex.currentFrame++;
-					}
-				}
-				animated_textures.push(tex)
-			}
-		})
-		TextureAnimator.update(animated_textures);
-	},
-	update(animated_textures) {
-		let maxFrame = 0;
-		animated_textures.forEach(tex => {
-			maxFrame = Math.max(maxFrame, tex.currentFrame);
-		})
-		Outliner.elements.forEach(el => {
-			if (!el.faces || !el.preview_controller.updateUV) return;
-			let update = false
-			for (let face in el.faces) {
-				update = update || animated_textures.includes(el.faces[face].getTexture());
-			}
-			if (update) {
-				el.preview_controller.updateUV(el, true);
-			}
-		})
-		BarItems.animated_texture_frame.update();
-		UVEditor.vue.updateTextureCanvas();
-		UVEditor.updateSelectionOutline(true);
-		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
-	},
-	reset() {
-		TextureAnimator.stop();
-		Texture.all.forEach(function(tex, i) {
-			if (tex.frameCount) {
-				tex.currentFrame = 0;
-			} 
-		})
-		UVEditor.img.style.objectPosition = '';
-		Outliner.elements.forEach(el => {
-			if (!el.faces || !el.preview_controller.updateUV) return;
-			el.preview_controller.updateUV(el);
-		})
-		UVEditor.updateSelectionOutline(true)
-		UVEditor.vue.updateTextureCanvas();
-	},
-	updateButton() {
-		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
 	}
 }
 
@@ -2425,58 +2417,6 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-
-	function textureAnimationCondition() {
-		return Format.animated_textures && Texture.all.find(tex => tex.frameCount > 1);
-	}
-	new Action('animated_textures', {
-		icon: 'play_arrow',
-		category: 'textures',
-		condition: textureAnimationCondition,
-		click() {
-			TextureAnimator.toggle()
-		}
-	})
-	function getSliderTexture() {
-		return [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
-	}
-	new NumSlider('animated_texture_frame', {
-		category: 'textures',
-		condition: textureAnimationCondition,
-		getInterval(event) {
-			return 1;
-		},
-		get: function() {
-			let tex = getSliderTexture()
-			return tex ? tex.currentFrame+1 : 0;
-		},
-		change: function(modify) {
-			let slider_tex = getSliderTexture()
-			if (!slider_tex) return;
-			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
-
-			let textures = Texture.all.filter(tex => tex.frameCount > 1);
-			Texture.all.forEach(tex => {
-				tex.currentFrame = (slider_tex.currentFrame % tex.frameCount) || 0;
-			})
-			TextureAnimator.update(textures);
-		}
-	})
-	new Action('animated_texture_fps', {
-		name: 'settings.texture_fps',
-		description: 'settings.texture_fps.desc',
-		icon: 'speed',
-		category: 'textures',
-		condition: textureAnimationCondition,
-		click() {
-			if (Format.texture_mcmeta && Texture.all.length) {
-				Texture.getDefault().openMenu()
-				$('dialog div.form_bar_frame_time input').trigger('focus');
-			} else {
-				settings.texture_fps.trigger();
-			}
-		}
-	})
 })
 
 Interface.definePanels(function() {
@@ -2484,6 +2424,7 @@ Interface.definePanels(function() {
 	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
+		resizable: true,
 		condition: {modes: ['edit', 'paint']},
 		default_position: {
 			slot: 'left_bar',
@@ -2520,7 +2461,8 @@ Interface.definePanels(function() {
 					} else {
 						let message = texture.width + ' x ' + texture.height + 'px';
 						if (!Format.image_editor) {
-							message += ` (${texture.width / texture.getUVWidth() * 16}x)`;
+							let uv_size = texture.width / texture.getUVWidth() * 16;
+							message += ` (${trimFloatNumber(uv_size, 2)}x)`;
 						}
 						if (texture.frameCount > 1) {
 							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
@@ -2579,7 +2521,7 @@ Interface.definePanels(function() {
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
-							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle}"
+							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
 							v-bind:texid="texture.uuid"
 							:key="texture.uuid"
 							class="texture"
@@ -2599,6 +2541,7 @@ Interface.definePanels(function() {
 							<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
 							<template v-else>
 								<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+								<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
 								<i class="material-icons texture_visibility_icon clickable"
 									v-bind:class="{icon_off: !texture.visible}"
 									v-if="texture.render_mode == 'layered'"

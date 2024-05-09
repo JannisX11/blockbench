@@ -1,4 +1,14 @@
+
 class Keybind {
+	/**
+	 * Create a keybind
+	 * @param {object} keys Set up the default keys that need to be pressed
+	 * @param {number|string} keys.key Main key. Check keycode.info to find out the numeric value, or simply use letters for letter keys
+	 * @param {boolean} keys.ctrl Control key. On MacOS this automatically works for Cmd
+	 * @param {boolean} keys.shift Shift key
+	 * @param {boolean} keys.alt Alt key
+	 * @param {boolean} keys.meta Meta key
+	 */
 	constructor(keys) {
 		this.key 	= -1;
 		this.ctrl 	= false;
@@ -682,8 +692,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		showShiftTooltip()
 	}
 
-	var used = false;
-	var input_focus = getFocusedTextInput()
+	let used = false;
+	let used_for_input_action;
+	let input_focus = getFocusedTextInput()
 
 	// Fix #1427
 	if (e.code == 'PageUp' || e.code == 'PageDown') {
@@ -694,7 +705,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//User Editing Anything
 
 		//Tab
-		if (e.which == 9 && !open_dialog && !document.querySelector('.capture_tab_key:focus-within')) {
+		if (e.which == 9 && !Dialog.open && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
 			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
 			all_inputs.forEach(input => {
@@ -734,10 +745,11 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		if (Blockbench.hasFlag('renaming')) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				stopRenameOutliner()
+				return;
 			} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				stopRenameOutliner(false)
+				return;
 			}
-			return;
 		}
 		if ($('input#chat_input:focus').length && Project.EditSession) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
@@ -745,10 +757,13 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				return;
 			}
 		}
-		if ($('pre.prism-editor__code:focus').length) return;
 		if (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			$(document).trigger('click')
 		}
+		used_for_input_action = !e.ctrlKey && !e.metaKey;
+		if ('zyxcva'.includes(e.key) || (e.keyCode >= 37 && e.keyCode <= 40)) used_for_input_action = true;
+
+		if ($('pre.prism-editor__code:focus').length && used_for_input_action) return;
 	}
 	let captured = false;
 	let results = Blockbench.dispatchEvent('press_key', {
@@ -777,11 +792,17 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
 		Transformer.cancelMovement(e, false);
 		updateSelection();
+	} else if (KnifeToolContext.current) {
+		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
+			KnifeToolContext.current.cancel();
+		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
+			KnifeToolContext.current.apply();
+		}
 	}
 	//Keybinds
-	if (!input_focus) {
+	if (!input_focus || !used_for_input_action) {
 		Keybinds.actions.forEach(function(action) {
-			if (!open_dialog || action.work_in_dialog) {
+			if (!Dialog.open || action.work_in_dialog) {
 				// Condition for actions is not checked here because tools can be triggered from different modes under certain circumstances, which switches the mode
 				if (action.keybind && typeof action.trigger === 'function' && action.keybind.isTriggered(e)) {
 					if (action.trigger(e)) used = true
@@ -797,7 +818,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 				}
 			}
 		})
-		if (!used && !open_dialog) {
+		if (!used && !Dialog.open) {
 			for (let tool of Tool.all) {
 				if (tool.keybind && typeof tool.trigger === 'function' && tool.keybind.isTriggered(e)) {
 					if (tool.switchModeAndSelect(e)) break;
@@ -808,21 +829,16 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	// Menu
 	if (open_menu) {
 		used = open_menu.keyNavigate(e)||used
-		
-	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
-		switch (e.which) {
-			case 37: Painter.selection.x -= 1; break;//<
-			case 38: Painter.selection.y -= 1; break;//UP
-			case 39: Painter.selection.x += 1; break;//>
-			case 40: Painter.selection.y += 1; break;//DOWN
-		}
-		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
-		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-		UVEditor.updatePastingOverlay();
-		e.preventDefault();
 
 	// Dialog
 	} else if (Dialog.open) {
+		let dialog = Dialog.open;
+		for (let id in (dialog.keyboard_actions || {})) {
+			let action = dialog.keyboard_actions[id];
+			if (Condition(action.condition, dialog) && action.keybind.isTriggered(e)) {
+				action.run.call(dialog, e);
+			}
+		}
 		if ($('textarea:focus').length === 0) {
 			if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 				if (input_focus) {
@@ -853,6 +869,18 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			SharedActions.run('unselect_all', e);
 			used = true;
 		}
+	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+		switch (e.which) {
+			case 37: Painter.selection.x -= 1; break;//<
+			case 38: Painter.selection.y -= 1; break;//UP
+			case 39: Painter.selection.x += 1; break;//>
+			case 40: Painter.selection.y += 1; break;//DOWN
+		}
+		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
+		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
+		UVEditor.updatePastingOverlay();
+		e.preventDefault();
+
 	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {
 		if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			TextureLayer.selected.resolveLimbo(false);
@@ -872,7 +900,7 @@ document.addEventListener('wheel', (e) => {
 	Keybinds.actions.forEach(function(action) {
 		if (
 			action.keybind &&
-			(!open_dialog || action.work_in_dialog) &&
+			(!Dialog.open || action.work_in_dialog) &&
 			typeof action.trigger === 'function' &&
 			action.keybind.isTriggered(e)
 		) {
