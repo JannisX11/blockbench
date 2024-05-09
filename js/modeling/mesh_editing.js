@@ -1588,8 +1588,12 @@ BARS.defineActions(function() {
 			context.addPoint(data);
 		},
 		onSelect() {
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.snap_to_center');
+			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.snap_to_pixels');
 		},
 		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_to_center');
+			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.snap_to_pixels');
 			if (KnifeToolContext.current) {
 				KnifeToolContext.current.apply();
 			}
