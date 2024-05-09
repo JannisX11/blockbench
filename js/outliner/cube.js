@@ -21,6 +21,9 @@ class CubeFace extends Face {
 		this.uv[2] = arr[0] + this.uv[0];
 		this.uv[3] = arr[1] + this.uv[1];
 	}
+	get element() {
+		return this.cube;
+	}
 	extend(data) {
 		super.extend(data);
 		if (data.uv) {
@@ -568,7 +571,7 @@ class Cube extends OutlinerElement {
 	}
 	getWorldCenter() {
 		var m = this.mesh;
-		var pos = Reusable.vec1.set(
+		var pos = new THREE.Vector3(
 			this.from[0] + this.size(0)/2,
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
@@ -620,6 +623,19 @@ class Cube extends OutlinerElement {
 				this.uv_offset[0] = this.faces.east.uv[0];
 			}
 			this.uv_offset[1] = this.faces.up.uv[3];
+			let texture = Texture.getDefault();
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture) {
+					texture = this.faces[fkey].getTexture();
+				}
+			}
+			for (let fkey in this.faces) {
+				if (this.faces[fkey].texture === null) {
+					this.faces[fkey].extend({texture: texture || false});
+				}
+			}
+			this.preview_controller.updateFaces(this);
+
 		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
@@ -636,7 +652,6 @@ class Cube extends OutlinerElement {
 		return this;
 	}
 	applyTexture(texture, faces) {
-		var scope = this;
 		if (faces === true || this.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
@@ -644,15 +659,15 @@ class Cube extends OutlinerElement {
 		} else {
 			var sides = faces
 		}
-		var value = null
+		let value = null;
 		if (texture) {
 			value = texture.uuid
 		} else if (texture === false || texture === null) {
 			value = texture;
 		}
-		sides.forEach(function(side) {
-			if (scope.faces[side].texture !== null) {
-				scope.faces[side].texture = value;
+		sides.forEach((side) => {
+			if (this.faces[side].texture !== null) {
+				this.faces[side].texture = value;
 			}
 		})
 		if (selected.indexOf(this) === 0) {
@@ -827,9 +842,11 @@ class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		if (before instanceof Array) before = before[axis];
-		var modify = val instanceof Function ? val : n => (n+val)
+		let is_inverted = before < 0;
+		if (is_inverted) negative = !negative;
+		let modify = val instanceof Function ? val : n => (n + val);
 
 		if (bidirectional) {
 
@@ -837,8 +854,8 @@ class Cube extends OutlinerElement {
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
-			var from = center - (before/2) - difference;
-			var to = center + (before/2) + difference;
+			let from = center - (before/2) - difference;
+			let to = center + (before/2) + difference;
 
 			if (Format.integer_size) {
 				from = Math.round(from-this.from[axis])+this.from[axis];
@@ -851,7 +868,7 @@ class Cube extends OutlinerElement {
 			}
 
 		} else if (!negative) {
-			var pos = this.from[axis] + modify(before);
+			let pos = this.from[axis] + modify(before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];
 			}
@@ -861,7 +878,7 @@ class Cube extends OutlinerElement {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			var pos = this.to[axis] + modify(-before);
+			let pos = this.to[axis] + modify(-before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.to[axis])+this.to[axis];
 			}
@@ -881,6 +898,10 @@ class Cube extends OutlinerElement {
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
 				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
+			} else if (axis == 0 && (!negative || bidirectional)) {
+				let difference = before - this.size(axis);
+				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
+				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 			}
 			Canvas.updateUV(this);
 		}
@@ -918,12 +939,12 @@ class Cube extends OutlinerElement {
 				}
 			}});
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
-					}, 'texture blank')
+					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
 				}}
 			]
 			Texture.all.forEach(function(t) {
@@ -933,7 +954,7 @@ class Cube extends OutlinerElement {
 					click: function(cube) {
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)
-						}, 'apply texture')
+						}, 'apply texture', Format.per_group_texture ? 'all_in_group' : null)
 					}
 				})
 			})
@@ -1064,6 +1085,8 @@ new NodePreviewController(Cube, {
 			mesh.outline.geometry.setFromPoints(points);
 		}
 
+		this.updatePixelGrid(element);
+
 		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
@@ -1109,10 +1132,10 @@ new NodePreviewController(Cube, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
-			var materials = []
+			let materials = [];
 			Canvas.face_order.forEach(function(face) {
 				if (element.faces[face].texture !== null) {
-					var tex = element.faces[face].getTexture()
+					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
@@ -1121,7 +1144,7 @@ new NodePreviewController(Cube, {
 				}
 			})
 			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
+			mesh.material = materials;
 		}
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 
@@ -1255,6 +1278,8 @@ new NodePreviewController(Cube, {
 
 		this.dispatchEvent('update_uv', {element});
 
+		this.updatePixelGrid(element);
+
 		return mesh.geometry;
 	},
 	updateHighlight(element, hover_cube, force_off) {
@@ -1273,13 +1298,15 @@ new NodePreviewController(Cube, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePaintingGrid(cube) {
+	updatePixelGrid(cube) {
 		var mesh = cube.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
+		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (cube.visibility == false) return;
 
-		if (!Modes.paint || !settings.painting_grid.value) return;
+		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
+		if (!grid_enabled) return;
 
 		var from = cube.from.slice();
 		var to = cube.to.slice();

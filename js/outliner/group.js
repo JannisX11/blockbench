@@ -178,7 +178,13 @@ class Group extends OutlinerNode {
 					elements.push(element)
 				}
 			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true})
+			let animations = [];
+			Animator.animations.forEach(animation => {
+				if (animation.animators && animation.animators[scope.uuid]) {
+					animations.push(animation);
+				}
+			})
+			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
 		}
 		this.unselect()
 		super.remove();
@@ -189,13 +195,13 @@ class Group extends OutlinerNode {
 		}
 		Animator.animations.forEach(animation => {
 			if (animation.animators && animation.animators[scope.uuid]) {
-				delete animation.animators[scope.uuid];
+				animation.removeAnimator(scope.uuid);
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();
 			}
 		})
-		TickUpdates.selection = true
+		TickUpdates.selection = true;
 		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
@@ -447,6 +453,33 @@ class Group extends OutlinerNode {
 				}
 			}})
 		}},
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
+			let arr = [
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(group) {
+					Undo.initEdit({group: group});
+					group.texture = '';
+					Undo.finishEdit('Unassign texture from group');
+					group.forEachChild(child => {
+						if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+					})
+				}}
+			]
+			Texture.all.forEach(t => {
+				arr.push({
+					name: t.name,
+					icon: (t.mode === 'link' ? t.img : t.source),
+					click(group) {
+						Undo.initEdit({group: group});
+						group.texture = t.uuid;
+						Undo.finishEdit('Apply texture to group');
+						group.forEachChild(child => {
+							if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+						})
+					}
+				})
+			})
+			return arr;
+		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
 		'apply_animation_preset',
 		'add_locator',
@@ -479,8 +512,9 @@ new Property(Group, 'vector', 'rotation');
 new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
+//new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
 
@@ -579,12 +613,14 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			var add_group = Group.selected
+			let add_group = Group.selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
-			var base_group = new Group({
-				origin: add_group ? add_group.origin : undefined
+			let new_name = add_group?.name;
+			let base_group = new Group({
+				origin: add_group ? add_group.origin : undefined,
+				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true

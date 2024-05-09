@@ -11,6 +11,7 @@ class ReferenceImage {
 		this.rotation = 0;
 		this.opacity = 0;
 		this.visibility = true;
+		this.sync_to_timeline = true;
 		this.clear_mode = false;
 		this.attached_side = 0;
 		this.source = '';
@@ -25,6 +26,17 @@ class ReferenceImage {
 		}
 		this.position.V2_set(window.innerWidth/2, window.innerHeight/2);
 
+		this._modify_nodes = [];
+		this.defaults = data;
+
+		this.dark_background = false;
+		this.image_is_loaded = false;
+		this.auto_aspect_ratio = true;
+
+		this.is_video = false;
+		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
+			this.is_video = true;
+		}
 		this.node = Interface.createElement('div', {class: 'reference_image'});
 		addEventListeners(this.node, 'mousedown touchstart', event => this.select());
 		this.node.addEventListener('contextmenu', event => {
@@ -32,14 +44,23 @@ class ReferenceImage {
 		})
 		this.img = new Image();
 		this.img.style.display = 'none';
-		this.node.append(this.img);
-		this._modify_nodes = [];
-		this.defaults = data;
+		this.img.className = 'image_content';
+		if (this.is_video) {
+			this.video = Interface.createElement('video', {
+				autoplay: true,
+				loop: true,
+				class: 'image_content'
+			});
+			this.video.muted = 'muted';
+			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
+			this.node.append(this.video);
+			this.image_is_loaded = true;
+		} else {
+			this.node.append(this.img);
+		}
 
-		this.dark_background = false;
-		this.image_is_loaded = false;
-		this.auto_aspect_ratio = true;
-		this.img.onload = () => {
+
+		(this.is_video ? this.video : this.img).onload = () => {
 			let was_image_loaded = this.image_is_loaded;
 			this.image_is_loaded = true;
 
@@ -60,11 +81,13 @@ class ReferenceImage {
 		this.extend(data);
 	}
 	get aspect_ratio() {
-		if (this.img && this.img.naturalWidth && this.img.naturalHeight) {
-			return this.img.naturalWidth / this.img.naturalHeight;
-		} else {
-			return 1;
-		}
+		return this.source_width / this.source_height;
+	}
+	get source_width() {
+		return (this.is_video ? this.video.videoWidth : this.img.naturalWidth) || 16;
+	}
+	get source_height() {
+		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
 	extend(data) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
@@ -193,17 +216,28 @@ class ReferenceImage {
 		
 		this.updateTransform();
 
-		this.img.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
-		this.img.style.opacity = this.opacity;
+		let image_content = this.is_video ? this.video : this.img;
+
+		image_content.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
+		image_content.style.opacity = this.opacity;
 
 		let transforms = [];
 		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
 		if (this.flip_x) transforms.push('scaleX(-1)');
 		if (this.flip_y) transforms.push('scaleY(-1)');
-		this.img.style.transform = transforms.join(' ');
+		image_content.style.transform = transforms.join(' ');
 
-		if (this.img.src.split('?')[0] != this.source) {
-			this.img.src = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
+		let source = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
+		if (this.is_video) {
+			if (this.video.ref_source != source) {
+				this.video.ref_source = source;
+				this.video.firstElementChild.src = source;
+				this.video.load();
+			}
+		} else {
+			if (this.img.src != source) {
+				this.img.src = source;
+			}
 		}
 
 		this.img.style.imageRendering = (this.img.naturalWidth > this.size[0]) ? 'auto' : 'pixelated';
@@ -390,6 +424,19 @@ class ReferenceImage {
 				name: tl(name),
 				node: node
 			})
+			return node;
+		}
+		
+		if (this.is_video) {
+			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
+				if (this.video.paused) {
+					this.video._loading = false;
+					this.video.play();
+				} else {
+					this.video.pause();
+				}
+				toggle.querySelector('.icon').replaceWith(Blockbench.getIconNode(this.video.paused ? 'play_arrow' : 'pause'))
+			});
 		}
 
 		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
@@ -494,7 +541,8 @@ class ReferenceImage {
 	projectMouseCursor(x, y) {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
-		let rect = this.img.getBoundingClientRect();
+		let image_content = this.is_video ? this.video : this.img;
+		let rect = image_content.getBoundingClientRect();
 		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
 			// Check if not clipped behind UI
 			if (this.layer != 'float') {
@@ -509,8 +557,8 @@ class ReferenceImage {
 			if (this.flip_x) lerp_x = 1 - lerp_x;
 			if (this.flip_y) lerp_y = 1 - lerp_y;
 			return [
-				Math.floor(Math.min(lerp_x, 0.9999) * this.img.naturalWidth),
-				Math.floor(Math.min(lerp_y, 0.9999) * this.img.naturalHeight),
+				Math.floor(Math.min(lerp_x, 0.9999) * this.source_width),
+				Math.floor(Math.min(lerp_y, 0.9999) * this.source_height),
 			]
 		}
 		return false;
@@ -524,12 +572,17 @@ class ReferenceImage {
 	}
 	async delete(force) {
 		if (!force) {
-			let img = new Image();
-			img.src = this.source;
+			let icon;
+			if (this.is_video) {
+				icon = 'theaters';
+			} else {
+				icon = new Image();
+				icon.src = this.source;
+			}
 			let result = await new Promise(resolve => Blockbench.showMessageBox({
 				title: 'data.reference_image',
 				message: 'message.delete_reference_image',
-				icon: img,
+				icon: icon,
 				buttons: ['dialog.confirm', 'dialog.cancel']
 			}, resolve));
 			if (result == 1) return;
@@ -583,7 +636,11 @@ class ReferenceImage {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
-				source: {type: 'file', label: 'reference_image.image', condition: () => isApp && this.source && PathModule.isAbsolute(this.source), value: this.source, extensions: ReferenceImage.supported_extensions},
+				source: {type: 'file', label: 'reference_image.image',
+					condition: () => isApp && this.source && PathModule.isAbsolute(this.source),
+					value: this.source,
+					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
+				},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -599,6 +656,7 @@ class ReferenceImage {
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
+				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -611,6 +669,7 @@ class ReferenceImage {
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
 					visibility: result.visibility,
+					sync_to_timeline: result.sync_to_timeline,
 					clear_mode: result.clear_mode,
 				});
 				this.changeLayer(result.layer);
@@ -623,9 +682,27 @@ class ReferenceImage {
 		}).show();
 		return this;
 	}
+
+	static supported_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif', 'mp4', 'wmv', 'mov'];
+	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
+	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
-ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('media_controls'),
+	{
+		id: 'toggle_playback',
+		name: 'reference_image.toggle_playback',
+		condition: (ref) => ref.is_video,
+		icon: (ref) => ref.video.paused ? 'play_arrow' : 'pause',
+		click(ref) {
+			if (ref.video.paused) {
+				ref.video._loading = false;
+				ref.video.play();
+			} else {
+				ref.video.pause();
+			}
+		}
+	},
 	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
@@ -633,6 +710,16 @@ ReferenceImage.prototype.menu = new Menu([
 		icon: (ref) => ref.visibility,
 		click(ref) {
 			ref.visibility = !ref.visibility;
+			ref.update().save();
+		}
+	},
+	{
+		id: 'sync_to_timeline',
+		name: 'reference_image.sync_to_timeline',
+		condition: () => Format.animation_mode,
+		icon: (ref) => ref.sync_to_timeline,
+		click(ref) {
+			ref.sync_to_timeline = !ref.sync_to_timeline;
 			ref.update().save();
 		}
 	},
@@ -740,6 +827,7 @@ new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
+new Property(ReferenceImage, 'boolean', 'sync_to_timeline', {default: true});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
@@ -780,6 +868,37 @@ SharedActions.add('delete', {
 	run() {
 		ReferenceImage.selected.delete();
 	}
+})
+
+Blockbench.on('display_animation_frame', () => {
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video._loading) {
+			ref.video._loading = true;
+			ref.video.ontimeupdate = () => {
+				ref.video._loading = false;
+			}
+
+			let video_time = Math.max(0, Timeline.time - 0.02) % ref.video.duration;
+			if (Timeline.playing) {
+				ref.video.playbackRate = Timeline.playback_speed/100;
+				if (Math.abs(ref.video.currentTime - video_time + 0.02) > 0.05) {
+					ref.video.currentTime = video_time;
+				}
+				if (ref.video.paused) ref.video.play();
+
+			} else {
+				ref.video.currentTime = video_time;
+				if (!ref.video.paused) ref.video.pause();
+			}
+		}
+	})
+})
+Blockbench.on('timeline_pause', () => {
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video.paused) {
+			ref.video.pause();
+		}
+	})
 })
 
 const ReferenceImageMode = {

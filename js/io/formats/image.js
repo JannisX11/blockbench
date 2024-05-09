@@ -66,16 +66,10 @@ let codec = new Codec('image', {
 		})
 
 		let last = Texture.all.last();
-		Project.name = last?.name || 'image';
+		Project.name = pathToName(last?.name, false) || 'image';
 
 		if (path && isApp && !files[0].no_file ) {
 			loadDataFromModelMemory();
-
-			addRecentProject({
-				name,
-				path: path,
-				icon: Format.icon
-			});
 		}
 	},
 	afterSave() {
@@ -84,7 +78,7 @@ let codec = new Codec('image', {
 		let {path, name} = last;
 
 		Project.export_path = path;
-		Project.name = name;
+		Project.name = pathToName(name, false);
 		Project.saved = true;
 		
 		addRecentProject({
@@ -158,7 +152,6 @@ new ModelFormat('image', {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 			},
 			onFormChange(result) {
-				console.log(result)
 				if (result.size_preset && result.size_preset != previous_size_preset) {
 					let size = result.size_preset.split('x').map(v => parseInt(v));
 					dialog.setFormValues({resolution: size}, false);

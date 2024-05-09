@@ -57,7 +57,6 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.mesh_selection = {};
-		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
@@ -202,15 +201,10 @@ class ModelProject {
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
-		UVEditor.vue.selected_vertices = {};
-		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
 		BarItems.edit_mode_uv_overlay.value = this.display_uv == 'all_elements';
 		BarItems.edit_mode_uv_overlay.updateEnabledState();
-		for (let uuid in this.mesh_selection) {
-			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
-		}
 
 		Panels.textures.inside_vue.textures = Texture.all;
 		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
@@ -295,6 +289,13 @@ class ModelProject {
 		Blockbench.removeFlag('switching_project');
 		return true;
 	}
+	showContextMenu(event) {
+		if (!this.selected) {
+			this.select()
+		}
+		this.menu.open(event, this);
+		return this;
+	}
 	updateThumbnail() {
 		if (!Format.image_editor) {
 			this.thumbnail = Preview.selected.canvas.toDataURL();
@@ -349,8 +350,6 @@ class ModelProject {
 		} catch (err) {
 			console.error(err);
 		}
-		delete AutoBackupModels[this.uuid];
-		localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 		if (this.EditSession) {
 			this.EditSession.quit();
 		}
@@ -366,35 +365,35 @@ class ModelProject {
 		}
 
 		async function saveWarning() {
-			await new Promise(resolve => setTimeout(resolve, 4));
-			if (Project.saved) {
-				return true;
-			} else {
+			return await new Promise((resolve) => {
 				if (isApp) {
-					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
-						type: 'question',
-						buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
-						title: 'Blockbench',
-						message: tl('message.close_warning.message'),
-						noLink: true
-					})
+					shell.beep();
+				}
+				Blockbench.showMessageBox({
+					title: Project.getDisplayName(),
+					message: tl('message.close_warning.message'),
+					buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
+					cancel_on_click_outside: false,
+					width: 472,
+				}, async (answer) => {
 					if (answer === 0) {
 						if (Project.save_path || Project.export_path) {
 							BarItems.save_project.trigger();
 						} else {
 							await BarItems.export_over.click();
 						}
-						return Project.saved;
+						await new Promise(resolve => setTimeout(resolve, 4));
+						resolve(Project.saved);
+					} else if (answer == 1) {
+						resolve(true);
+					} else if (answer == 2) {
+						resolve(false);
 					}
-					return answer !== 2;
-				} else {
-					var answer = confirm(tl('message.close_warning.web'))
-					return answer;
-				}
-			}
+				})
+			});
 		}
 
-		if (force || await saveWarning()) {
+		if (force || Project.saved || await saveWarning()) {
 			try {
 				if (isApp) {
 					updateRecentProjectData();
@@ -427,8 +426,7 @@ class ModelProject {
 			delete ProjectData[this.uuid];
 			Project = 0;
 			
-			delete AutoBackupModels[this.uuid];
-			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
+			await AutoBackup.removeBackup(this.uuid);
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();
@@ -458,6 +456,10 @@ new Property(ModelProject, 'string', 'parent', {
 new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
 	condition: () => Format.model_identifier
+});
+new Property(ModelProject, 'string', 'modded_entity_entity_class', {
+	label: 'dialog.project.modded_entity_entity_class',
+	condition: {formats: ['modded_entity']},
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
@@ -533,10 +535,26 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-
 let Project = 0;
 
 let ProjectData = {};
+
+ModelProject.prototype.menu = new Menu([
+	new MenuSeparator('settings'),
+	'project_window',
+	new MenuSeparator('manage'),
+	'open_model_folder',
+	'duplicate_project',
+	'convert_project',
+	'close_project',
+	new MenuSeparator('save'),
+	'save_project',
+	'save_project_as',
+	'export_over',
+	'share_model',
+	new MenuSeparator('overview'),
+	'tab_overview',
+])
 
 // Setup ModelProject for loaded project
 function setupProject(format, uuid) {
@@ -586,11 +604,6 @@ function selectNoProject() {
 
 	UVEditor.vue.elements = [];
 	UVEditor.vue.all_elements = [];
-	UVEditor.vue.selected_vertices = {};
-	UVEditor.vue.selected_faces = [];
-	for (let uuid in UVEditor.vue.selected_vertices) {
-		delete UVEditor.vue.selected_vertices[uuid];
-	}
 
 	Interface.Panels.textures.inside_vue.textures = [];
 
@@ -930,6 +943,12 @@ onVueSetup(() => {
 						delete this.thumbnail_timeout;
 					}, 80)
 				}
+			},
+			mousewheelBar(event) {
+				if (event.deltaY) {
+					event.preventDefault();
+					this.$refs.tab_bar_list.scrollLeft += event.deltaY;
+				}
 			}
 		},
 		watch: {
@@ -972,6 +991,10 @@ BARS.defineActions(function() {
 					entry.options = typeof property.options == 'function' ? property.options() : property.options;
 					entry.type = 'select';
 				}
+			}
+
+			if (form.name && (Project.save_path || Project.export_path || Format.image_editor) && !Format.legacy_editable_file_name) {
+				delete form.name;
 			}
 
 			form.uv_mode = {
@@ -1094,6 +1117,29 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: function () {
 			Project.close();
+		}
+	})
+	new Action('duplicate_project', {
+		icon: 'file_copy',
+		category: 'file',
+		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
+		click: function () {
+			let selected_texture_uuid = Texture.selected?.uuid
+			let model = Codecs.project.compile({raw: true});
+			setupProject(Format)
+			Codecs.project.parse(model);
+
+			function copyfyName(name) {
+				if (!name) return name;
+				let index = name.lastIndexOf('.');
+				if (index == -1) return name;
+				let main = name.substring(0, index);
+				let ext = name.substring(index);
+				return main + ' - Copy' + ext;
+			}
+			Project.name = copyfyName(Project.name);
+
+			Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
 		}
 	})
 	new Action('convert_project', {

@@ -414,6 +414,20 @@ const Canvas = {
 	global_light_color: new THREE.Color(0xffffff),
 	global_light_side: 0,
 
+	hover_helper_line: (function() {
+		let material = new THREE.LineBasicMaterial({color: 0xA4A5CA, linewidth: 2});
+		let geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0, 0, 0, 0], 3 ));
+		let line = new THREE.LineSegments(geometry, material);
+		return line;
+	})(),
+	hover_helper_vertex: (function() {
+		let material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: 0x3e90ff})
+		let geometry = new THREE.BufferGeometry();
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0], 3 ));
+		return new THREE.Points(geometry, material);
+	})(),
+
 	onionSkinEarlierMaterial: new THREE.LineBasicMaterial({color: 0xa3363d}),
 	onionSkinLaterMaterial: new THREE.LineBasicMaterial({color: 0x3995bf}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
@@ -659,6 +673,9 @@ const Canvas = {
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 		Canvas.gizmos.push(Canvas.brush_outline);
 
+		Canvas.gizmos.push(Canvas.hover_helper_line);
+		Canvas.gizmos.push(Canvas.hover_helper_vertex);
+
 		/*
 		// Vertex gizmos
 		var vertex_img = new Image();
@@ -693,12 +710,12 @@ const Canvas = {
 		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
 			map: Canvas.emptyMaterials[0].uniforms.map.value,
 			color: CustomTheme.data.colors.back,
-			side: THREE.DoubleSide,
+			side: settings.ground_plane_double_side.value ? THREE.DoubleSide : THREE.FrontSide,
 			alphaTest: 0.2
 		})
 		let size = 4096;
 		Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
-		Canvas.ground_plane.rotation.x = Math.PI/2;
+		Canvas.ground_plane.rotation.x = -Math.PI/2;
 		Canvas.ground_plane.position.y = -0.025;
 		Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
 		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
@@ -800,7 +817,7 @@ const Canvas = {
 					if (controller.updateUV) controller.updateUV(element);
 				}
 				if ((aspects.painting_grid || aspects.geometry || aspects.transform || update_all) && Modes.paint && settings.painting_grid.value) {
-					if (controller.updatePaintingGrid) controller.updatePaintingGrid(element);
+					if (controller.updatePixelGrid) controller.updatePixelGrid(element);
 				}
 				if (aspects.visibility || update_all) {
 					if (controller.updateVisibility) controller.updateVisibility(element);
@@ -1238,10 +1255,10 @@ const Canvas = {
 		// Deprecated
 		return Cube.preview_controller.updateUV(cube, animation);
 	},
-	updatePaintingGrid() {
+	updatePixelGrid() {
 		Outliner.elements.forEach(element => {
-			if (element.preview_controller.updatePaintingGrid) {
-				element.preview_controller.updatePaintingGrid(element);
+			if (element.preview_controller.updatePixelGrid) {
+				element.preview_controller.updatePixelGrid(element);
 			}
 		})
 	},

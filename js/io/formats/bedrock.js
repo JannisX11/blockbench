@@ -104,6 +104,10 @@ window.BedrockEntityManager = class BedrockEntityManager {
 
 				} else if (valid_textures_list.length > 1) {
 					setTimeout(() => {this.project.whenNextOpen(() => {
+						valid_textures_list = valid_textures_list.filter(entry => {
+							return Texture.all.findIndex(t => t.path == entry) == -1;
+						});
+						if (!valid_textures_list.length) return;
 						let selected_textures = [];
 						var dialog = new Dialog({
 							title: tl('data.texture'),
@@ -187,7 +191,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		} else {
 			this.findEntityTexture(this.project.geometry_name)
 		}
-		if (this.client_entity && this.client_entity.type == 'attachable') {
+		if (this.client_entity && this.client_entity.type == 'attachable' && Format.id == 'bedrock') {
 			Project.bedrock_animation_mode = 'attachable_first';
 			BarItems.bedrock_animation_mode.set(Project.bedrock_animation_mode);
 		}
@@ -342,14 +346,23 @@ window.BedrockBlockManager = class BedrockBlockManager {
 			if (typeof c === 'string') {
 				c = autoParseJSON(c, false);
 				let main = c && c['minecraft:block'];
-				if (main && main.components && typeof main.components['minecraft:geometry'] == 'string') {
-					var geoname = main.components['minecraft:geometry'];
-					geoname = geoname.replace(/^geometry\./, '');
-					if (geoname == this.project.geometry_name) {
-						main.type = 'block';
-						return main;
+				if (!main || !main.components) return;
+
+				let isThisGeo = id => {
+					return typeof id == 'string' && id.replace(/^geometry\./, '') == this.project.geometry_name;
+				}
+				if (isThisGeo(main.components['minecraft:geometry'])) {
+					main.type = 'block';
+					return main;
+				}
+				if (main.permutations instanceof Array) {
+					for (let permutation of main.permutations) {
+						if (permutation.components && isThisGeo(permutation.components['minecraft:geometry'])) {
+							main.type = 'block';
+							return main;
+						}
 					}
-				} 
+				}
 			}
 		} catch (err) {
 			console.log(err);
@@ -375,9 +388,12 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				try {
 					let bp_manifest_path = [...path, dirent.name, 'manifest.json'].join(osfs);
 					let bp_manifest_content = autoParseJSON(fs.readFileSync(bp_manifest_path, 'utf-8'), false);
-					if (bp_manifest_content && bp_manifest_content.dependencies && bp_manifest_content.dependencies[0] && bp_manifest_content.dependencies[0].uuid == rp_uuid) {
-						bp_name = dirent.name;
-						break;
+					if (bp_manifest_content && bp_manifest_content.dependencies instanceof Array) {
+						let matching_dependency = bp_manifest_content.dependencies.find(dep => dep.uuid == rp_uuid);
+						if (matching_dependency) {
+							bp_name = dirent.name;
+							break;
+						}
 					}
 				} catch (err) {}
 			}
@@ -434,20 +450,22 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				])
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
-					let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
+					if (target == '*') {
+						texture.use_as_default = true;
 
-					Cube.all.forEach(cube => {
-						for (let fkey in cube.faces) {
-							let face = cube.faces[fkey];
-							if (face.texture === null) continue;
-							if (
-								(target == '*') ||
-								(face.material_name && face.material_name.match(target_regex))
-							) {
-								face.texture = texture.uuid;
+					} else {
+						let target_regex = new RegExp('^' + target.replace(/\*/g, '.*') + '$');
+						Cube.all.forEach(cube => {
+							for (let fkey in cube.faces) {
+								let face = cube.faces[fkey];
+								if (face.texture === null) continue;
+								if (face.material_name && face.material_name.match(target_regex)) {
+									face.texture = texture.uuid;
+								}
 							}
-						}
-					})
+						})
+					}
+
 				}
 			}
 			Canvas.updateView({elements: Cube.all, element_aspects: {faces: true}})
@@ -537,7 +555,8 @@ function calculateVisibleBox() {
 						uv: [
 							s.uv[key].uv[0],
 							s.uv[key].uv[1]
-						]
+						],
+						rotation: s.uv[key].uv_rotation
 					})
 					if (s.uv[key].uv_size) {
 						face.uv_size = [
@@ -553,7 +572,8 @@ function calculateVisibleBox() {
 					}
 				} else {
 					face.texture = null;
-					face.uv = [0, 0, 0, 0]
+					face.uv = [0, 0, 0, 0],
+					face.rotation = 0;
 				}
 			}
 			
@@ -596,8 +616,8 @@ function calculateVisibleBox() {
 			})
 		}
 		if (b.locators) {
-			for (var key in b.locators) {
-				var coords, rotation, ignore_inherited_scale;
+			for (let key in b.locators) {
+				let coords, rotation, ignore_inherited_scale;
 				if (b.locators[key] instanceof Array) {
 					coords = b.locators[key];
 				} else {
@@ -764,6 +784,9 @@ function calculateVisibleBox() {
 							face.uv_size[1],
 						]
 					});
+					if (face.rotation) {
+						template.uv[key].uv_rotation = face.rotation;
+					}
 					if (face.material_name) {
 						template.uv[key].material_instance = face.material_name;
 					}
@@ -1002,6 +1025,16 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	},
 })
 
+function getFormatVersion() {
+	for (let cube of Cube.all) {
+		for (let fkey in cube.faces) {
+			if (cube.faces[fkey].rotation) return '1.21.0';
+		}
+	}
+	if (Group.all.find(group => group.bedrock_binding)) return '1.16.0';
+	return '1.12.0';
+}
+
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
@@ -1055,7 +1088,7 @@ var codec = new Codec('bedrock', {
 
 		var entitymodel = {}
 		var main_tag = {
-			format_version: Group.all.find(group => group.bedrock_binding) ? '1.16.0' : '1.12.0',
+			format_version: getFormatVersion(),
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
@@ -1139,8 +1172,8 @@ var codec = new Codec('bedrock', {
 		}
 		if (data && index !== undefined) {
 
-			if (Group.all.find(group => group.bedrock_binding)) {
-				data.format_version = '1.16.0';
+			if (!data.format_version || compareVersions(getFormatVersion(), data.format_version)) {
+				data.format_version = getFormatVersion();
 			}
 
 			data['minecraft:geometry'].forEach(geo => {
@@ -1279,6 +1312,7 @@ var entity_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
+	uv_rotation: settings.bedrock_uv_rotations.value,
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
@@ -1317,7 +1351,8 @@ var block_format = new ModelFormat({
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
-	single_texture: false,
+	uv_rotation: settings.bedrock_uv_rotations.value,
+	single_texture_default: true,
 	bone_rig: true,
 	centered_grid: true,
 	animated_textures: true,

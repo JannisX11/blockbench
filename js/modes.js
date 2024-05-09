@@ -7,6 +7,7 @@ class Mode extends KeybindItem {
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
+		this.icon = data.icon || 'video_label';
 		this.selected = false
 
 		this.default_tool = data.default_tool;
@@ -45,6 +46,12 @@ class Mode extends KeybindItem {
 		if (Project) Project.mode = this.id;
 
 		document.body.setAttribute('mode', this.id);
+
+		if (MenuBar.mode_switcher_button) {
+			let icon = Blockbench.getIconNode(this.icon);
+			MenuBar.mode_switcher_button.firstChild.replaceWith(icon);
+			MenuBar.mode_switcher_button.classList.remove('hidden');
+		}
 
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
@@ -114,35 +121,67 @@ const Modes = {
 	},
 	selected: false,
 	options: {},
+	mobileModeMenu(button, event) {
+		let entries = [];
+		for (let id in Modes.options) {
+			let mode = Modes.options[id];
+			let entry = {
+				id,
+				icon: mode.icon || 'mode',
+				name: mode.name,
+				condition: mode.condition,
+				click: () => {
+					mode.select();
+				},
+			};
+			entries.push(entry);
+		}
+		let menu = new Menu(entries).open(button);
+		return menu;
+	}
 };
 onVueSetup(function() {
-	Modes.vue = new Vue({
-		el: '#mode_selector',
-		data: {
-			options: Modes.options
-		},
-		methods: {
-			showModes() {
-				let count = 0;
-				for (let key in this.options) {
-					if (Condition(this.options[key].condition)) count++;
-				}
-				return count > 1;
+	if (!Blockbench.isMobile) {
+		Modes.vue = new Vue({
+			el: '#mode_selector',
+			data: {
+				options: Modes.options
 			},
-			Condition
-		}
-	})
+			methods: {
+				showModes() {
+					let count = 0;
+					for (let key in this.options) {
+						if (Condition(this.options[key].condition)) count++;
+					}
+					return count > 1;
+				},
+				Condition
+			}
+		})
+	} else {
+		document.getElementById('mode_selector').remove();
+	}
 });
 BARS.defineActions(function() {
 	new Mode('edit', {
+		icon: 'deployed_code',
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format && Format.edit_mode,
+		onSelect: () => {
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
+		},
 		onUnselect: () => {
 			if (Undo) Undo.closeAmendEditMenu();
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
 		}
 	})
 	new Mode('paint', {
+		icon: 'fa-paint-brush',
 		default_tool: 'brush_tool',
 		category: 'navigate',
 		condition: () => Format && Format.paint_mode,
@@ -151,7 +190,7 @@ BARS.defineActions(function() {
 				Animator.preview();
 			}
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
 			if (StateMemory.color_picker_rgb) {
@@ -172,7 +211,7 @@ BARS.defineActions(function() {
 		onUnselect: () => {
 			Canvas.updateAllBones()
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
 			UVEditor.vue.setMode('uv');
@@ -180,11 +219,13 @@ BARS.defineActions(function() {
 		},
 	})
 	new Mode('pose', {
+		icon: 'emoji_people',
 		default_tool: 'rotate_tool',
 		category: 'navigate',
 		condition: () => Format && Format.pose_mode,
 	})
 	new Mode('display', {
+		icon: 'tune',
 		selectElements: false,
 		default_tool: 'move_tool',
 		category: 'navigate',
@@ -197,6 +238,7 @@ BARS.defineActions(function() {
 		},
 	})
 	new Mode('animate', {
+		icon: 'movie',
 		default_tool: 'move_tool',
 		category: 'navigate',
 		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],

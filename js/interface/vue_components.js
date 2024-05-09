@@ -69,7 +69,7 @@ Vue.component('select-input', {
 					}
 				}
 			}
-			let menu = new Menu(this.id, items, {searchable: items.length > 16});
+			let menu = new Menu(this.id, items, {searchable: items.length > 16, class: 'select_menu'});
 			menu.node.style['min-width'] = this.$el.clientWidth+'px';
 			menu.open(event.target, this);
 		}

@@ -546,26 +546,28 @@ const Timeline = {
 				}
 			})
 		}
+		Blockbench.dispatchEvent('timeline_play', {});
 		Timeline.loop()
 	},
 	loop() {
-		Animator.preview(true);
-		if (Animation.selected && Timeline.time < (Animation.selected.length||1e3)) {
+		if (!Animation.selected) return;
 
-			var new_time;
-			if (Animation.selected && Animation.selected.anim_time_update) {
-				var new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
-			}
-			if (new_time == undefined || new_time <= Timeline.time) {
-				var new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
-			}
-			let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
-			if (Animation.selected.loop == 'hold') {
-				time = Math.clamp(time, 0, Animation.selected.length);
-			}
-			Timeline.last_frame_timecode = Date.now();
+		let max_length = Animation.selected.length || 1e3;
+		let new_time;
+		if (Animation.selected && Animation.selected.anim_time_update) {
+			new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
+		}
+		if (new_time == undefined || new_time <= Timeline.time) {
+			new_time = Animator.MolangParser.parse('query.anim_time + query.delta_time')
+		}
+		let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
+		if (Animation.selected.loop == 'hold') {
+			time = Math.clamp(time, 0, Animation.selected.length);
+		}
+		Timeline.last_frame_timecode = Date.now();
+
+		if (time < max_length) {
 			Timeline.setTime(time);
-
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
 				Timeline.setTime(0)
@@ -574,9 +576,11 @@ const Timeline = {
 				Animator.preview()
 				Timeline.pause()
 			} else if (Animation.selected.loop == 'hold') {
+				Timeline.setTime(max_length);
 				Timeline.pause()
 			}
 		}
+		Animator.preview(true);
 	},
 	pause() {
 		Animator.preview();
@@ -588,6 +592,7 @@ const Timeline = {
 			}
 		})
 		Timeline.playing_sounds.empty();
+		Blockbench.dispatchEvent('timeline_pause', {});
 	},
 
 	waveforms: {},
@@ -686,6 +691,7 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		growable: true,
+		resizable: true,
 		toolbars: [
 			new Toolbar('timeline', {
 				children: [
@@ -707,12 +713,16 @@ Interface.definePanels(() => {
 		],
 		onResize() {
 			Timeline.updateSize();
+			if (this.inside_vue.$el) {
+				this.inside_vue.timeline_height = this.inside_vue.$el.clientHeight;
+			}
 		},
 		component: {
 			name: 'panel-timeline',
 			data() {return {
 				size: 300,
 				length: 10,
+				timeline_height: 100,
 				animation_length: 0,
 				scroll_left: 0,
 				scroll_top: 0,
@@ -1006,6 +1016,7 @@ Interface.definePanels(() => {
 					let time_stretching;
 					let values_changed;
 					let is_setup = false;
+					let old_bezier_values = {};
 
 					function setup() {
 						dragging_range = [Infinity, 0];
@@ -1028,6 +1039,10 @@ Interface.definePanels(() => {
 							kf.time_before = kf.time;
 							dragging_range[0] = Math.min(dragging_range[0], kf.time);
 							dragging_range[1] = Math.max(dragging_range[1], kf.time);
+							old_bezier_values[kf.uuid] = {
+								left: kf.bezier_left_time.slice(),
+								right: kf.bezier_right_time.slice(),
+							}
 						}
 
 						if (Timeline.vue.graph_editor_open) {
@@ -1074,12 +1089,13 @@ Interface.definePanels(() => {
 						// Time
 						let difference = 0;
 						let max, min;
+						let time_factor = 1;
 						if ((!e2.ctrlOrCmd && !e2.shiftKey) || time_stretching || !Timeline.vue.graph_editor_open) {
 							difference = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
 							[min, max] = dragging_range;
 							
 							if (time_stretching) {
-								var time_factor = (clicked && clicked.time_before < (min + max) / 2)
+								time_factor = (clicked && clicked.time_before < (min + max) / 2)
 									? ((max-min-difference) / (max-min))
 									: ((max-min+difference) / (max-min));
 								time_factor = Math.roundTo(time_factor, 2);
@@ -1105,7 +1121,7 @@ Interface.definePanels(() => {
 							}
 						}
 		
-						for (var kf of Timeline.selected) {
+						for (let kf of Timeline.selected) {
 							if (time_stretching) {
 								if (clicked && clicked.time_before < (min + max) / 2) {
 									var t = max - (kf.time_before - max) * -time_factor;
@@ -1124,6 +1140,11 @@ Interface.definePanels(() => {
 							}
 							if (old_time !== kf.time) {
 								values_changed = true;
+							}
+							if (time_stretching && kf.interpolation == 'bezier') {
+								let old_bezier = old_bezier_values[kf.uuid];
+								kf.bezier_left_time.V3_set(old_bezier.left).V3_multiply(time_factor);
+								kf.bezier_right_time.V3_set(old_bezier.right).V3_multiply(time_factor);
 							}
 
 							if (Timeline.vue.graph_editor_open && value_diff) {
@@ -1181,14 +1202,16 @@ Interface.definePanels(() => {
 					let is_setup = false;
 					let axis_number = getAxisNumber(this.graph_editor_axis);
 					let old_values = {};
+					let lock_direction;
 
-					function setup() {
+					function setup(offset) {
 
 						if (!clicked.selected && !e1.shiftKey && !Pressing.overrides.shift && Timeline.selected.length != 0) {
 							clicked.select()
 						} else if (clicked && !clicked.selected) {
 							clicked.select({shiftKey: true})
 						}
+						lock_direction = Math.abs(offset[0]) > Math.abs(offset[1]);
 
 						Keyframe.selected.forEach(kf => {
 							if (kf.interpolation == 'bezier') {
@@ -1216,15 +1239,28 @@ Interface.definePanels(() => {
 						]
 						if (!is_setup) {
 							if (Math.pow(offset[0], 2) + Math.pow(offset[1], 2) > 20) {
-								setup();
+								setup(offset);
 							} else {
 								return;
 							}
 						}
-						var difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
-						var difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
+						let difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
+						let difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
+						if (e2.shiftKey || Pressing.overrides.shift) {
+							if (lock_direction) {
+								difference_value = 0;
+							} else {
+								difference_time = 0;
+							}
+						}
+						if (e2.ctrlOrCmd || Pressing.overrides.ctrl) {
+							let time_snap = Timeline.getStep();
+							let val_snap = 0.25;
+							difference_time = Math.round(difference_time / time_snap) * time_snap;
+							difference_value = Math.round(difference_value / val_snap) * val_snap;
+						}
 
-						for (var kf of Timeline.selected) {
+						for (let kf of Timeline.selected) {
 							if (kf.interpolation == 'bezier') {
 
 								kf.bezier_left_time.V3_set(old_values[kf.uuid].bezier_left_time);
@@ -1423,7 +1459,7 @@ Interface.definePanels(() => {
 				scroll_left() {this.updateTimecodes()},
 			},
 			template: `
-				<div id="timeline_vue" :class="{graph_editor: graph_editor_open}">
+				<div id="timeline_vue" :class="{graph_editor: graph_editor_open}" :style="{'--timeline-height': timeline_height + 'px'}">
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>
@@ -1456,10 +1492,12 @@ Interface.definePanels(() => {
 								<div
 									v-for="marker in markers"
 									class="timeline_marker"
-									v-bind:style="{left: (marker.time * size) + 'px', 'border-color': markerColors[marker.color % markerColors.length].standard}"
+									v-bind:style="{left: (marker.time * size) + 'px', '--color': markerColors[marker.color % markerColors.length].standard}"
 									@contextmenu.prevent="marker.showContextMenu($event)"
 									v-on:click="marker.callPlayhead()"
-								></div>
+								>
+									<i class="material-icons icon">sports_score</i>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -1857,9 +1895,10 @@ BARS.defineActions(function() {
 		click: function () {
 			if (!Animation.selected) return;
 			if (!Animation.selected.animators.effects) {
-				var ea = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
+				Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
 			}
-			Animation.selected.animators.effects.select()
+			Animation.selected.animators.effects.select();
+			BarItems.timeline_graph_editor.set(false);
 		}
 	})
 	new Action('timeline_focus', {

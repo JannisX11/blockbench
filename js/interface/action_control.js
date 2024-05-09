@@ -2,7 +2,9 @@ const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
+	recently_used: [],
 	max_length: 32,
+	max_recently_used: 8,
 	select(input) {
 		ActionControl.open = true;
 		open_interface = ActionControl;
@@ -78,6 +80,9 @@ const ActionControl = {
 		} else {
 			action.trigger(e);
 		}
+		if (action instanceof BarItem) {
+			this.addRecentlyUsed(action);
+		}
 	},
 	click(action, e) {
 		ActionControl.trigger(action, e)
@@ -122,7 +127,20 @@ const ActionControl = {
 			return false;
 		}
 		return true;
+	},
+	addRecentlyUsed(action) {
+		if (action.id == 'action_control') return;
+		ActionControl.recently_used.remove(action.id);
+		ActionControl.recently_used.splice(0, 0, action.id);
+		if (ActionControl.recently_used.length > ActionControl.max_recently_used) {
+			ActionControl.recently_used.pop();
+		}
+		localStorage.setItem('action_control_recently_used', ActionControl.recently_used.join(','));
 	}
+}
+if (localStorage.getItem('action_control_recently_used')) {
+	let recently_used = localStorage.getItem('action_control_recently_used').split(',');
+	ActionControl.recently_used.push(...recently_used.filter(i => i));
 }
 
 
@@ -193,7 +211,9 @@ BARS.defineActions(function() {
 					}
 				}
 				if (!type) {
-					for (let item of Keybinds.actions) {
+					let recently_used = ActionControl.recently_used.map(id => BarItems[id]).filter(v => v);
+					let all_items = recently_used.concat(Keybinds.actions);
+					for (let item of all_items) {
 						if (
 							search_input.length == 0 ||
 							item.name.toLowerCase().includes(search_input) ||
@@ -411,7 +431,7 @@ BARS.defineActions(function() {
 							:class="{selected: i === index}"
 							:title="item.description"
 							@click="click(item, $event)"
-							@mouseenter="index = i"
+							@mousemove="index = i"
 						>
 							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>

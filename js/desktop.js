@@ -71,6 +71,19 @@ function initializeDesktopApp() {
 	} else {
 		$('#windows_window_menu').show()
 	}
+	if (Blockbench.platform == 'linux' && (Blockbench.hasFlag('after_update') || Blockbench.hasFlag('after_patch_update'))) {
+		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964
+		let gpu_cache_path = PathModule.join(app.getPath('userData'), 'GPUCache');
+		try {
+			let cache_files = fs.readdirSync(gpu_cache_path);
+			for (let file_name of cache_files) {
+				fs.unlinkSync(PathModule.join(gpu_cache_path, file_name));
+			}
+			console.log(`Cleared ${cache_files.length} GPU-cache files`);
+		} catch (err) {
+			console.error('Attempted and failed to clear GPU cache', err);
+		}
+	}
 }
 //Load Model
 function loadOpenWithBlockbenchFile() {
@@ -174,7 +187,7 @@ function updateRecentProjectData() {
 	let project = Project.getProjectMemory();
 	if (!project) return;
 	
-	project.name = Project.name;
+	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
 
@@ -305,65 +318,61 @@ currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Image Editor
-function changeImageEditor(texture, from_settings) {
-	var dialog = new Dialog({
+function changeImageEditor(texture, not_found) {
+	new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
-		lines: ['<div class="dialog_bar"><select class="input_wide">'+
-				'<option id="ps">Photoshop</option>'+
-				'<option id="gimp">Gimp</option>'+
-				(Blockbench.platform == 'win32' ? '<option id="pdn">Paint.NET</option>' : '')+
-				'<option id="other">'+tl('message.image_editor.file')+'</option>'+
-			'</select></div>'],
-		draggable: true,
-		onConfirm() {
-			var id = $('.dialog#image_editor option:selected').attr('id')
-			var path;
-			if (Blockbench.platform == 'darwin') {
+		form: {
+			not_found_text: {type: 'info', text: 'message.image_editor.not_found', condition: not_found == true},
+			editor: {type: 'select', full_width: true, options: {
+				ps: Blockbench.platform == 'win32' ? 'Photoshop' : undefined,
+				gimp: 'GIMP',
+				pdn: Blockbench.platform == 'win324' ? 'Paint.NET' : undefined,
+				other: 'message.image_editor.file'
+			}},
+			file: {
+				label: 'message.image_editor.file',
+				nocolon: true,
+				type: 'file',
+				file_type: 'Program',
+				extensions: ['exe', 'app', 'desktop', 'appimage'],
+				description: 'message.image_editor.exe',
+				condition: result => result.editor == 'other'
+			}
+		},
+		onConfirm(result) {
+			let id = result.editor;
+			let path;
+			if (id == 'other') {
+				path = result.file;
+
+			} else if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop 2021/Adobe Photoshop 2021.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
+				}
+			} else if (Blockbench.platform == 'linux') {
+				switch (id) {
+					case 'ps':  path = '/usr/share/applications//photoshop.desktop'; break;
+					case 'gimp':path = '/usr/share/applications//gimp.desktop'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2021\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
 			}
-			if (id === 'other') {
-				selectImageEditorFile(texture)
-
-			} else if (path) {
+			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
 				if (texture) {
 					texture.openEditor()
 				}
-			}
-			dialog.hide()
-			if (from_settings) {
-				BarItems.settings_window.click()
+			} else {
+				changeImageEditor(texture, true);
 			}
 		},
-		onCancel() {
-			dialog.hide()
-			if (from_settings) {
-				BarItems.settings_window.click()
-			}
-		}
 	}).show()
-}
-function selectImageEditorFile(texture) {
-	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
-		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop', 'appimage']}]
-	})
-	if (filePaths) {
-		settings.image_editor.value = filePaths[0]
-		if (texture) {
-			texture.openEditor();
-		}
-	}
 }
 //Default Pack
 function openDefaultTexturePath() {
@@ -654,6 +663,7 @@ async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
+	AutoBackup.removeAllBackups();
 	if (Blockbench.hasFlag('update_downloaded')) {
 		await new Promise(resolve => {
 			Blockbench.showMessageBox({
@@ -709,9 +719,9 @@ ipcRenderer.on('update-available', (event, arg) => {
 			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
-			icon_node.textContent = 'done';
+			icon_node.textContent = 'browser_updated';
 			icon_node.classList.remove('spinning');
-			icon_node.style.color = '#5ef570';
+			icon_node.style.color = 'var(--color-confirm)';
 			click_action = function() {
 				Blockbench.showQuickMessage('message.update_after_restart')
 			}
