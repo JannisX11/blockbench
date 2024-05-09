@@ -256,9 +256,6 @@
 		margin: 7px;
 		padding: 7px;
 	}
-	#start_screen .start_screen_features > li:first-child {
-		width: 100%;
-	}
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
 		font-weight: 300;
