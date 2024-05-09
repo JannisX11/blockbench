@@ -23,15 +23,13 @@ var codec = new Codec('optifine_entity', {
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		let default_texture = Texture.getDefault();
-		if (!settings.optifine_save_default_texture.value && !default_texture.use_as_default) {
+		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
 			default_texture = null;
 		}
 		if (default_texture) {
 			let texture = Texture.getDefault();
 			entitymodel.texture = getTexturePath(Texture.getDefault());
 			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
-		} else {
-			entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		}
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
