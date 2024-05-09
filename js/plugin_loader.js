@@ -138,7 +138,7 @@ class Plugin {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
 			$.getScript(path, (content, status, context) => {
-				if (content.length <= 20) {
+				if (!content || content.length <= 20) {
 					console.warn(`Issue loading plugin "${this.id}": Plugin file empty`);
 				}
 				if (cb) cb.bind(scope)()
