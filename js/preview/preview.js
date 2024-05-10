@@ -391,7 +391,14 @@ class Preview {
 				intersect.distance -= depth_offset * 1.4;
 			}
 		}
-		intersects.sort((a, b) => a.distance - b.distance);
+		if (Toolbox.selected.id == 'vertex_snap_tool') {
+			intersects.sort((a, b) => {
+				if (a.object.isPoints != b.object.isPoints) return a.object.isPoints ? -100 : 100;
+				return a.distance - b.distance;
+			});
+		} else {
+			intersects.sort((a, b) => a.distance - b.distance);
+		}
 
 		let intersect = intersects[0];
 		let intersect_object = intersect.object;
