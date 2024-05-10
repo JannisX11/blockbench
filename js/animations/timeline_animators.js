@@ -749,7 +749,7 @@ class EffectAnimator extends GeneralAnimator {
 				if (diff < 0) return;
 
 				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100) && !media) {
+				if (diff >= 0 && diff < (1/30) * (Timeline.playback_speed/100) && !media) {
 					if (kf.data_points[0].file && !kf.cooldown) {
 						media = new Audio(kf.data_points[0].file);
 						media.keyframe_id = kf.uuid;
@@ -766,12 +766,11 @@ class EffectAnimator extends GeneralAnimator {
 							delete kf.cooldown;
 						}, 400)
 					} 
-				} else if (diff > 0) {
-					media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-					if (Math.abs(media.currentTime - diff) > 0.08) {
+				} else if (diff > 0 && media) {
+					if (Math.abs(media.currentTime - diff) > 0.18 && diff < media.duration) {
 						console.log('Resyncing sound')
 						// Resync
-						media.currentTime = diff;
+						media.currentTime = Math.clamp(diff + 0.08, 0, media.duration);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 					}
 				}

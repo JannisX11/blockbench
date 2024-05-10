@@ -621,8 +621,8 @@
 	#mode_selector li.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
-	#update_menu {
-		padding-top: 2px;
+	#update_menu .tool > .icon {
+		margin-top: 3px;
 	}
 
 /* Tab Bar */

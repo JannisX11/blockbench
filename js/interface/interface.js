@@ -789,7 +789,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 Interface.CustomElements.NumericInput = function(id, data) {
-	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'decimal'});
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : ''});
 	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
 	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider

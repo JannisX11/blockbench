@@ -131,7 +131,7 @@ Vue.component('numeric-input', {
 	},
 	template: `
 		<div class="numeric_input">
-			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" inputmode="decimal" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
+			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" :inputmode="min >= 0 ? 'decimal' : ''" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
 			<div class="tool numeric_input_slider" @mousedown="slide($event)" @touchstart="slide($event)"><i class="material-icons">code</i></div>
 		</div>
 	`,
