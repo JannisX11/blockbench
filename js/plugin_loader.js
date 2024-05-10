@@ -451,6 +451,8 @@ class Plugin {
 		this.dependencies.empty();
 		Plugins.all.remove(this);
 		this.details = null;
+		let had_changelog = this.changelog_fetched;
+		this.changelog_fetched = false;
 
 		if (this.source == 'file') {
 			this.loadFromFile({path: this.path}, false)
@@ -460,6 +462,9 @@ class Plugin {
 		}
 
 		this.fetchAbout(true);
+		if (had_changelog && this.has_changelog) {
+			this.fetchChangelog(true);
+		}
 
 		return this;
 	}
