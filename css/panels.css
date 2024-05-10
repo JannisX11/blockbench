@@ -986,7 +986,9 @@
 		padding-top: 3px;
 		width: 34px;
 		text-align: center;
-		height: 0;
+	}
+	#keyframe_bar_effect .tool > i {
+		margin-top: 0;
 	}
 
 	.bar.flex > .prism-editor-component {
