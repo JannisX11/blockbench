@@ -217,6 +217,7 @@ class AnimationControllerState {
 			this.sounds.forEach(sound => {
 				if (sound.file && !sound.cooldown) {
 					var media = new Audio(sound.file);
+					media.playbackRate = Math.clamp(AnimationController.playback_speed/100, 0.1, 4.0);
 					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 					media.play().catch(() => {});
 					this.playing_sounds.push(media);
@@ -389,7 +390,8 @@ class AnimationControllerState {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
 	getStateTime() {
-		return this.start_timestamp ? (Date.now() - this.start_timestamp) / 1000 : 0;
+		if (!this.start_timestamp) return 0;
+		return (Date.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
@@ -662,6 +664,7 @@ class AnimationController extends AnimationItem {
 		if (Modes.animate) {
 			Animator.preview();
 			updateInterface();
+			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
 	}
@@ -824,6 +827,7 @@ class AnimationController extends AnimationItem {
 		})
 		dialog.show();
 	}
+	static playback_speed = 100
 }
 	Object.defineProperty(AnimationController, 'all', {
 		get() {
@@ -1014,6 +1018,7 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		growable: true,
+		resizable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -1024,6 +1029,7 @@ Interface.definePanels(() => {
 				controller: null,
 				presets: AnimationController.presets,
 				zoom: 1,
+				playback_speed: 100,
 				connection_wrapper_offset: 0,
 				connecting: false,
 				pickwhip: {
@@ -1527,7 +1533,7 @@ Interface.definePanels(() => {
 			template: `
 				<div id="animation_controllers_wrapper"
 					:class="{connecting_controllers: connecting}"
-					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
+					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? (controller.last_state.blend_transition / (playback_speed/100)) + 's' : 0}"
 					@click="deselect($event)" @wheel="onMouseWheel($event)"
 				>
 
@@ -1615,7 +1621,7 @@ Interface.definePanels(() => {
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
+											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, particle)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1659,7 +1665,7 @@ Interface.definePanels(() => {
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
+											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, sound)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1852,5 +1858,51 @@ BARS.defineActions(function() {
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
 		condition: {modes: ['animate'], selected: {animation_controller: true}}
+	})
+	new NumSlider('slider_animation_controller_speed', {
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation_controller: true}},
+		settings: {
+			default: 100,
+			min: 0,
+			max: 10000
+		},
+		get: function() {
+			return AnimationController.playback_speed;
+		},
+		change: function(modify) {
+			AnimationController.playback_speed = limitNumber(modify(AnimationController.playback_speed), 0, 10000);
+			Panels.animation_controllers.inside_vue.playback_speed = AnimationController.playback_speed;
+		},
+		getInterval: (e) => {
+			var val = BarItems.slider_animation_controller_speed.get()
+			if (e.shiftKey) {
+				if (val < 50) {
+					return 10;
+				} else {
+					return 50;
+				}
+			}
+			if (e.ctrlOrCmd) {
+				if (val < 500) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+			if (val < 10) {
+				return 1;
+			} else if (val < 50) {
+				return 5;
+			} else if (val < 160) {
+				return 10;
+			} else if (val < 300) {
+				return 20;
+			} else if (val < 1000) {
+				return 50;
+			} else {
+				return 500;
+			}
+		}
 	})
 })

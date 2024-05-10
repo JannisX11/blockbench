@@ -151,6 +151,9 @@
 		background-size: cover;
 		width: 30px;
 	}
+	.preview > canvas.selectable_cursor {
+		cursor: copy;
+	}
 	.text_padding {
 		margin-left: 5px;
 		margin-right: 5px;
@@ -376,16 +379,21 @@
 	div.toolbar_wrapper {
 		float: none;
 	}
-	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar {
+	.toolbar_wrapper.narrow > .toolbar {
+		width: fit-content;
+		display: flex;
+		height: 100%;
+	}
+	.toolbar_wrapper > .toolbar.no_wrap {
 		width: fit-content;
 		display: flex;
 		flex-flow: row-reverse;
+		flex-wrap: nowrap;
 		height: 100%;
 	}
-	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar > .content {
+	.toolbar_wrapper > .toolbar.no_wrap > .content {
 		height: 100%;
-		overflow-x: hidden;
-		overflow-y: auto;
+		overflow: hidden;
 		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
@@ -415,6 +423,19 @@
 		width: auto;
 		margin-right: auto;
 		margin-left: auto;
+	}
+	.toolbar_overflow_popup {
+		background-color: var(--color-ui);
+		position: absolute;
+		display: flex;
+		flex-wrap: wrap;
+		max-width: 180px;
+		z-index: 20;
+		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+	}
+	.toolbar_overflow_dummy {
+		height: 30px;
+		width: 38px;
 	}
 	.tool {
 		height: 30px;

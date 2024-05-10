@@ -2,9 +2,35 @@ const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
+		MenuBar.mode_switcher_button.classList.add('hidden');
 	}
 };
 
+/**
+ * 
+ * @param {string} id Identifier
+ * @param {object} data 
+ * @param {object} data.graphic
+ * @param {'icon'|string} data.graphic.type
+ * @param {string} data.graphic.icon
+ * @param {string} data.graphic.source
+ * @param {number} data.graphic.width
+ * @param {number} data.graphic.height
+ * @param {number} data.graphic.aspect_ratio Section aspect ratio
+ * @param {string} data.graphic.description Markdown string
+ * @param {string} data.graphic.text_color
+ * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {'vertical'|'horizontal'} data.layout
+ * @param {Array} data.features
+ * @param {boolean} data.closable
+ * @param {Function} data.click
+ * @param {string} data.color
+ * @param {string} data.text_color
+ * @param {boolean} data.last
+ * @param {string} data.insert_after
+ * @param {string} data.insert_before
+ * @returns 
+ */
 function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
@@ -129,7 +155,7 @@ function addStartScreenSection(id, data) {
 	}
 }
 
-onVueSetup(function() {
+onVueSetup(async function() {
 	StateMemory.init('start_screen_list_type', 'string')
 
 	let slideshow_timer = 0;
@@ -154,16 +180,24 @@ onVueSetup(function() {
 
 			slideshow: [
 				{
-					source: "./assets/splash_art/1.png",
-					description: "Splash Art 1st Place by [morange](https://twitter.com/OrangewithMC) & [PeacedoveWum](https://twitter.com/PeacedoveWum)",
+					source: "./assets/splash_art/1.webp",
+					description: "Splash Art 1st Place by [skeleton_tiffay](https://twitter.com/Tiffany85635656)",
 				},
 				{
-					source: "./assets/splash_art/2.png",
-					description: "Splash Art 2nd Place by [Wackyblocks](https://twitter.com/Wackyblocks)",
+					source: "./assets/splash_art/2.webp",
+					description: "Splash Art 2nd Place by [AnzSama](https://twitter.com/AnzSamaEr) & [PICASSO](https://twitter.com/Picasso114514)",
 				},
 				{
-					source: "./assets/splash_art/3.png",
-					description: "Splash Art 3rd Place by [David Grindholmen](https://david_grindholmen.artstation.com/) & [Quinten Bench](https://quintenbench.wixsite.com/quinten-bench)",
+					source: "./assets/splash_art/3.webp",
+					description: "Splash Art 3rd Place by [YunGui](https://twitter.com/AmosJea28222061) & [makstutis233](https://x.com/Maks2335770189)",
+				},
+				{
+					source: "./assets/splash_art/4.webp",
+					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999) & NekoGabriel",
+				},
+				{
+					source: "./assets/splash_art/5.webp",
+					description: "Splash Art 5th Place by [🌷Aza🌷](https://twitter.com/azagwen_art) & Shroomy",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -495,8 +529,8 @@ onVueSetup(function() {
 	}
 	
 	//Backup Model
-	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
-		var backup_models = localStorage.getItem('backup_model')
+	let has_backups = await AutoBackup.hasBackups();
+	if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
 
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
@@ -506,18 +540,12 @@ onVueSetup(function() {
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					let parsed_backup_models = JSON.parse(backup_models);
-					for (let uuid in parsed_backup_models) {
-						AutoBackupModels[uuid] = parsed_backup_models[uuid];
-
-						let model = parsed_backup_models[uuid];
-						setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
-						Codecs.project.parse(model, 'backup.bbmodel')
-					}
-					section.delete();
+					AutoBackup.recoverAllBackups().then(() => {
+						section.delete();
+					});
 				}},
 				{type: 'button', text: tl('dialog.discard'), click: (e) => {
-					localStorage.removeItem('backup_model');
+					AutoBackup.removeAllBackups();
 					section.delete();
 				}}
 			]

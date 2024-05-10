@@ -8,6 +8,9 @@ class MeshFace extends Face {
 			this.extend(data);
 		}
 	}
+	get element() {
+		return this.mesh;
+	}
 	extend(data) {
 		super.extend(data);
 		this.vertices.forEach(key => {
@@ -196,6 +199,41 @@ class MeshFace extends Face {
 		}
 		return vertices;
 	}
+	isConcave() {
+		if (this.vertices.length < 4) return false;
+		let {vec1, vec2, vec3, vec4} = Reusable;
+		let normal_vec = vec1.fromArray(this.getNormal(true));
+		let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+			normal_vec,
+			vec2.fromArray(this.mesh.vertices[this.vertices[0]])
+		)
+		let sorted_vertices = this.getSortedVertices();
+		let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+		let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
+		
+		let flat_positions = sorted_vertices.map(vkey => {
+			let coplanar_pos = plane.projectPoint(vec3.fromArray(this.mesh.vertices[vkey]), vec4);
+			coplanar_pos.applyEuler(e);
+			return [coplanar_pos.x, coplanar_pos.z];
+		})
+		let angles = [];
+		for (let i = 0; i < sorted_vertices.length; i++) {
+			let a = flat_positions[i];
+			let b = flat_positions[(i+1) % 4];
+			let direction = b.slice().V2_subtract(a);
+			let angle = Math.atan2(direction[1], direction[0]);
+			angles.push(angle);
+		}
+		for (let i = 0; i < sorted_vertices.length; i++) {
+			let a = angles[i];
+			let b = angles[(i+1) % 4];
+			let difference = Math.trimRad(b - a);
+			if (difference > 0) {
+				return sorted_vertices[(i+1) % 4];
+			}
+		}
+		return false;
+	}
 	getEdges() {
 		let vertices = this.getSortedVertices();
 		if (vertices.length == 2) {
@@ -375,7 +413,7 @@ class Mesh extends OutlinerElement {
 	}
 	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
-		let pos = Reusable.vec1.set(0, 0, 0);
+		let pos = new THREE.Vector3();
 		let vertex_count = 0;
 
 		for (let key in this.vertices) {
@@ -780,7 +818,7 @@ class Mesh extends OutlinerElement {
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
 		} else if (faces === undefined) {
-			var sides = UVEditor.vue.selected_faces
+			var sides = this.getSelectedFaces()
 		} else {
 			var sides = faces
 		}
@@ -836,7 +874,7 @@ class Mesh extends OutlinerElement {
 		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
 					}, 'texture blank')
@@ -1015,9 +1053,7 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.computeBoundingSphere();
 		Mesh.preview_controller.updateHighlight(element);
 
-		if (Modes.paint) {
-			Mesh.preview_controller.updatePaintingGrid(element);
-		}
+		Mesh.preview_controller.updatePixelGrid(element);
 
 		this.dispatchEvent('update_geometry', {element});
 	},
@@ -1132,6 +1168,8 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_uv', {element});
 
+		this.updatePixelGrid(element);
+
 		return mesh.geometry;
 	},
 	updateSelection(element) {
@@ -1206,7 +1244,7 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true;
 		
-		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
+		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool';
 
 		this.dispatchEvent('update_selection', {element});
 	},
@@ -1245,13 +1283,15 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePaintingGrid(element) {
+	updatePixelGrid(element) {
 		var mesh = element.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
+		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (element.visibility == false) return;
 
-		if (!Modes.paint || !settings.painting_grid.value) return;
+		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
+		if (!grid_enabled) return;
 
 		var positions = [];
 

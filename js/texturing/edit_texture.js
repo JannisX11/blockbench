@@ -804,20 +804,22 @@ BARS.defineActions(function() {
 	new Action('resize_texture', {
 		icon: 'photo_size_select_large',
 		category: 'textures',
-		condition: () => Texture.all.length,
+		condition: () => Texture.selected,
 		click() {
-			let texture = Texture.getDefault();
+			let texture = Texture.selected;
 			texture.resizeDialog();
 		}
 	})
 	new Action('crop_texture_to_selection', {
 		icon: 'crop',
 		category: 'textures',
-		condition: () => Texture.all.length,
+		condition: () => Texture.selected,
 		click() {
-			let texture = Texture.getDefault();
+			let texture = Texture.selected;
 			let rect = texture.selection.getBoundingRect();
 			let uv_factor = texture.width / texture.uv_width;
+			let old_width = texture.width;
+			let old_height = texture.height;
 			if (!rect.width || !rect.height) return;
 
 			Undo.initEdit({textures: [texture], bitmap: true});
@@ -844,6 +846,68 @@ BARS.defineActions(function() {
 
 			Undo.finishEdit('Crop texture to selection');
 			setTimeout(updateSelection, 100);
+
+			// Fix UV
+			let elements_to_change = [];
+			Outliner.elements.forEach(element => {
+				if (!element.faces) return;
+				for (let key in element.faces) {
+					if (element.faces[key].getTexture() == texture) {
+						elements_to_change.safePush(element);
+						break;
+					}
+				}
+			})
+			if (elements_to_change.length) {
+				Undo.initEdit({elements: elements_to_change});
+				let uv_adjust_x = 1;
+				let uv_adjust_y = 1;
+				if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
+					if (!Format.per_texture_uv_size) {
+						Undo.current_save.uv_mode = {
+							box_uv: Project.box_uv,
+							width:  Project.texture_width,
+							height: Project.texture_height
+						}
+						Undo.current_save.aspects.uv_mode = true;
+						Project.texture_width = Project.texture_width * (rect.width / old_width);
+						Project.texture_height = Project.texture_height * (rect.height / old_height);
+					}
+
+				} else {
+					uv_adjust_x = rect.width / old_width;
+					uv_adjust_y = rect.height / old_height;
+				}
+				elements_to_change.forEach(element => {
+					if (element instanceof Cube) {
+						for (let key in element.faces) {
+							if (element.faces[key].getTexture() != texture) continue;
+							if (element.box_uv) {
+								element.uv_offset[0] -= (rect.start_x * uv_factor);
+								element.uv_offset[1] -= (rect.start_y * uv_factor);
+							} else {
+								let uv = element.faces[key].uv;
+								uv[0] = uv[0] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[2] = uv[2] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[1] = uv[1] / uv_adjust_y - (rect.start_y * uv_factor);
+								uv[3] = uv[3] / uv_adjust_y - (rect.start_y * uv_factor);
+							}
+							
+						}
+					} else if (element instanceof Mesh) {
+						for (let key in element.faces) {
+							if (element.faces[key].getTexture() != texture) continue;
+							let uv = element.faces[key].uv;
+							for (let vkey in uv) {
+								uv[vkey][0] = uv[vkey][0] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[vkey][1] = uv[vkey][1] / uv_adjust_y - (rect.start_y * uv_factor);
+							}
+						}
+					}
+				})
+				Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
+				Undo.finishEdit('Adjust UV after cropping texture');
+			}
 		}
 	})
 })

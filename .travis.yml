@@ -11,7 +11,7 @@ jobs:
   include:
     - name: "macOS"
       os: osx
-      osx_image: "xcode12.5"
+      osx_image: "xcode14.2"
       script:
         - npm run prepublish
         - electron-builder --publish=always

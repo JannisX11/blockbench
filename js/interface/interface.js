@@ -448,6 +448,7 @@ function unselectInterface(event) {
 	) {
 		ReferenceImageMode.deactivate();
 	}
+	Blockbench.dispatchEvent('unselect_interface', {event});
 }
 function setupInterface() {
 
@@ -469,7 +470,6 @@ function setupInterface() {
 		'open_model_folder',
 		'view_backups',
 		'save',
-		'timelapse',
 		'cancel_gif',
 	])
 	
@@ -477,6 +477,9 @@ function setupInterface() {
 		setupMobilePanelSelector()
 		Prop.show_right_bar = false;
 		Prop.show_left_bar = false;
+	} else {
+		let panel_selector_bar = document.getElementById('panel_selector_bar');
+		if (panel_selector_bar) panel_selector_bar.remove();
 	}
 
 	for (var key in Interface.Resizers) {
@@ -668,7 +671,9 @@ function setProjectTitle(title) {
 	}
 	if (Project && !Project.saved) window_title = '● ' + window_title;
 	document.title = window_title;
-	document.getElementById('header_free_bar').innerText = window_title;
+	if (!Blockbench.isMobile) {
+		document.getElementById('header_free_bar').innerText = window_title;
+	}
 }
 //Zoom
 function setZoomLevel(mode) {
@@ -797,7 +802,8 @@ Interface.CustomElements.NumericInput = function(id, data) {
 			convertTouchEvent(e2);
 			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
 			if (difference != last_difference) {
-				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				let value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				input.value = trimFloatNumber(value, 8);
 				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
 				last_difference = difference;
 			}
@@ -808,6 +814,14 @@ Interface.CustomElements.NumericInput = function(id, data) {
 		}
 		addEventListeners(document, 'mousemove touchmove', move);
 		addEventListeners(document, 'mouseup touchend', stop);
+	})
+	Object.defineProperty(this, 'value', {
+		get() {
+			return Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max)
+		},
+		set(value) {
+			input.value = trimFloatNumber(value, 8);
+		}
 	})
 
 	addEventListeners(input, 'focusout dblclick', () => {

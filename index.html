@@ -5,6 +5,7 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#181a1f">
+	<meta name="color-scheme" content="dark">
 	<meta name="robots" content="noindex">
 	<link rel="manifest" href="manifest.webmanifest">
 	<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
@@ -21,6 +22,7 @@
 	<link rel="stylesheet" href="css/panels.css">
 	<link rel="stylesheet" href="css/dialogs.css">
 	<style type="text/css" id="theme_css"></style>
+	<style type="text/css" id="theme_thumbnail_css"></style>
 </head>
 <body spellcheck="false" class="maximized">
 	<script>
@@ -49,6 +51,7 @@
 		<div>An error occurred while loading Blockbench</div>
 		<div id="loading_error_detail" style="color: var(--color-subtle_text);"></div>
 		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
+		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
 	<script>
@@ -143,6 +146,7 @@
 		<script src="js/modeling/mirror_modeling.js"></script>
 		<script src="js/texturing/layers.js"></script>
 		<script src="js/texturing/textures.js"></script>
+		<script src="js/texturing/texture_flipbook.js"></script>
 		<script src="js/texturing/uv.js"></script>
 		<script src="js/texturing/painter.js"></script>
 		<script src="js/texturing/texture_generator.js"></script>
@@ -187,7 +191,7 @@
 
 	<div id="overlay_message_box" style="display: none;">
 		<div>
-			<h3><i class="material-icons">keyboard</i><span class="tl">keybindings.recording</span></h3>
+			<h3><i class="material-icons icon">keyboard</i><span class="tl">keybindings.recording</span></h3>
 			<p class="tl">keybindings.press</p>
 			<button class="tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
 			<button class="tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
@@ -203,15 +207,11 @@
 			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
-		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons">home</i></div>
-		<div id="title_bar_undo_controls" hidden>
-			<div class="tool" onclick="BarItems.undo.trigger()"><i class="material-icons">undo</i></div>
-			<div class="tool" onclick="BarItems.redo.trigger()"><i class="material-icons">redo</i></div>
-		</div>
+		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons icon">home</i></div>
 		<div class="app-drag-region" id="header_free_bar"></div>
 		<div id="update_menu"></div>
 		<div id="settings_profiles_header_menu" class="hidden">
-			<i class="material-icons">manage_accounts</i>
+			<i class="material-icons icon">manage_accounts</i>
 		</div>
 		<ul id="windows_window_menu" hidden>
 			<li onclick="currentwindow.minimize()">
@@ -227,7 +227,7 @@
 		</ul>
 		<button id="web_download_button" hidden><a href="https://blockbench.net/downloads">
 			<span class="tl">web.download_app</span>
-			<i class="material-icons">system_update</i>
+			<i class="material-icons icon">system_update</i>
 		</a></button>
 	</header>
 	
@@ -237,7 +237,7 @@
 		<div id="blackout" class="darken"></div>
 
 		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
-			<div id="tab_bar_list">
+			<div id="tab_bar_list" @wheel="mousewheelBar($event)" ref="tab_bar_list">
 				<div
 					class="project_tab"
 					v-for="(project, index) in tabs" :key="project.uuid"
@@ -250,6 +250,7 @@
 					}"
 					:title="project.name || project.geometry_name || ''"
 					@dblclick="project.openSettings()"
+					@contextmenu="project.showContextMenu($event)"
 					@mousedown="mouseDown(project, $event)"
 					@mouseup="mouseUp(project, $event)"
 					@mouseenter="mouseEnter(project, $event)"

@@ -5,30 +5,20 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.9", "type": "h2"},
-			{"text": "The Image Editor Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.9.0)!"}
+			{"text": "Welcome to Blockbench 4.10", "type": "h2"},
+			{"text": "The Knife Tool Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.10.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/layers.png",
-				"title": "Layers & Selection Tools",
-				"text": "The 2D Image Editor now features selection tools, layers, secondary color, and more!"
+				"image": "https://web.blockbench.net/content/flipbook_editor.png",
+				"title": "Flipbook Animation Editor",
+				"text": "Setup animated textures, preview them, add, remove, rearrange, or resize frames in this new convenient editor!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/onion_skin.png",
-				"title": "Animation Onion Skinning",
-				"text": "Display different points in time of your animation as reference!"
-			},
-			{
-				"image": "https://web.blockbench.net/content/animation_presets.png",
-				"title": "Animation Presets",
-				"text": "Select from a list of 20 built-in animation presets, or create your own, to make an animation in no time!"
-			},
-			{
-				"image": "https://web.blockbench.net/content/plugin_info.png",
-				"title": "Plugin Info & Settings",
-				"text": "View details and features of a plugin, and change settings, directly from the plugin menu"
+				"image": "https://web.blockbench.net/content/knife_tool.png",
+				"title": "Knife Tool",
+				"text": "Cut your mesh to create new details, edges, and faces and shape your mesh in new ways!"
 			}
 		]
 	}
