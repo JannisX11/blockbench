@@ -2198,9 +2198,10 @@ const BARS = {
 				Toolbars.element_origin,
 				Toolbars.element_rotation
 			].forEach(toolbar => {
-				Toolbars.main_tools.children.forEach(child => {
+				for (let child of Toolbars.main_tools.children) {
+					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
-				})
+				}
 			})
 		}
 		Blockbench.onUpdateTo('4.4.0-beta.0', () => {

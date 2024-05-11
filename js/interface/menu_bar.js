@@ -10,6 +10,7 @@ class BarMenu extends Menu {
 		this.node.className = 'contextMenu menu_bar_menu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
+		this.icon = options.icon;
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
@@ -37,6 +38,7 @@ class BarMenu extends Menu {
 		MenuBar.open = undefined;
 		this.highlight_action = null;
 		this.label.classList.remove('highlighted');
+		if (MenuBar.last_opened == this) document.getElementById('mobile_menu_bar')?.remove();
 		return this;
 	}
 	highlight(action) {
@@ -48,6 +50,7 @@ class BarMenu extends Menu {
 const MenuBar = {
 	menus: {},
 	open: undefined,
+	last_opened: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
@@ -228,7 +231,7 @@ const MenuBar = {
 			]},
 			'plugins_window',
 			'edit_session'
-		])
+		], {icon: 'draft'})
 		new BarMenu('edit', [
 			new MenuSeparator('undo'),
 			'undo',
@@ -270,7 +273,7 @@ const MenuBar = {
 			'select_all',
 			'unselect_all',
 			'invert_selection'
-		])
+		], {icon: 'icon-gizmo'})
 		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
@@ -302,7 +305,8 @@ const MenuBar = {
 			]}
 
 		], {
-			condition: {modes: ['edit']}
+			icon: 'open_with',
+			condition: {modes: ['edit']},
 		})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
@@ -310,7 +314,7 @@ const MenuBar = {
 			onOpen() {
 				setActivePanel('uv');
 			}
-		})
+		}, {icon: 'photo_size_select_large'})
 
 		new BarMenu('image', [
 			new MenuSeparator('adjustment'),
@@ -330,6 +334,7 @@ const MenuBar = {
 			'resize_texture',
 			'crop_texture_to_selection'
 		], {
+			icon: 'image',
 			condition: {modes: ['paint']}
 		})
 
@@ -350,6 +355,7 @@ const MenuBar = {
 			'save_all_animations',
 			'export_animation_file'
 		], {
+			icon: 'movie',
 			condition: {modes: ['animate']}
 		})
 
@@ -373,6 +379,7 @@ const MenuBar = {
 			'resolve_keyframe_expressions',
 			'delete',
 		], {
+			icon: 'icon-keyframe',
 			condition: {modes: ['animate']}
 		})
 
@@ -382,7 +389,7 @@ const MenuBar = {
 			onOpen() {
 				setActivePanel('timeline');
 			}
-		})
+		}, {icon: 'timeline'})
 
 		new BarMenu('display', [
 			new MenuSeparator('copypaste'),
@@ -392,6 +399,7 @@ const MenuBar = {
 			'add_display_preset',
 			'apply_display_preset'
 		], {
+			icon: 'tune',
 			condition: {modes: ['display']}
 		})
 		
@@ -427,7 +435,7 @@ const MenuBar = {
 			'convert_to_mesh',
 			'auto_set_cullfaces',
 			'remove_blank_faces',
-		])
+		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('view', [
@@ -458,7 +466,7 @@ const MenuBar = {
 			'advanced_screenshot',
 			'record_model_gif',
 			'timelapse',
-		])
+		], {icon: 'visibility'})
 		new BarMenu('help', [
 			new MenuSeparator('search'),
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
@@ -515,7 +523,7 @@ const MenuBar = {
 				'reload',
 			]},
 			'about_window'
-		])
+		], {icon: 'help'})
 		MenuBar.update();
 
 		if (Blockbench.isMobile) {
@@ -555,21 +563,43 @@ const MenuBar = {
 		}
 	},
 	openMobile(button, event) {
-		let entries = [];
-		for (let id in MenuBar.menus) {
-			if (id == 'filter') continue;
-			let menu = MenuBar.menus[id];
-			let entry = {
-				id,
-				icon: menu.icon || '',
-				name: menu.name,
-				children: menu.structure,
-				condition: menu.condition,
-			};
-			entries.push(entry);
+		if (document.getElementById('mobile_menu_bar')) {
+			document.getElementById('mobile_menu_bar').remove();
+			return;
 		}
-		let menu = new Menu(entries).open(button);
-		return menu;
+		let bar = Interface.createElement('div', {id: 'mobile_menu_bar'});
+		let menu_button_nodes = [];
+		let menu_position;
+		let setSelected = node => {
+			menu_button_nodes.forEach(n => n.classList.remove('selected'))
+			node.classList.add('selected');
+		}
+		for (let id in MenuBar.menus) {
+			let menu = MenuBar.menus[id];
+			if (id == 'filter') continue;
+			if (!Condition(menu.condition)) continue;
+
+			let node = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode(menu.icon));
+			addEventListeners(node, 'pointerdown touchmove', event => {
+				if (MenuBar.last_opened == menu) return;
+				MenuBar.last_opened = MenuBar.open = menu;
+				menu.open(menu_position);
+				setSelected(node);
+			})
+			menu_button_nodes.push(node);
+			bar.append(node);
+			if (MenuBar.last_opened == menu) {
+				setTimeout(() => {
+					menu.open(menu_position);
+					setSelected(node);
+				}, 1)
+			}
+		}
+		document.body.append(bar);
+		menu_position = {
+			clientX: bar.offsetLeft + 7,
+			clientY: bar.offsetTop + bar.clientHeight - 1
+		}
 	},
 	update() {
 		if (!Blockbench.isMobile) {
