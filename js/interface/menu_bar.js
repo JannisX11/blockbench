@@ -273,7 +273,7 @@ const MenuBar = {
 			'select_all',
 			'unselect_all',
 			'invert_selection'
-		], {icon: 'icon-gizmo'})
+		], {icon: 'edit'})
 		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
@@ -568,12 +568,14 @@ const MenuBar = {
 			document.getElementById('mobile_menu_bar').remove();
 			return;
 		}
-		let bar = Interface.createElement('div', {id: 'mobile_menu_bar'});
+		let label = Interface.createElement('label', {});
+		let bar = Interface.createElement('div', {id: 'mobile_menu_bar'}, label);
 		let menu_button_nodes = [];
 		let menu_position;
-		let setSelected = node => {
+		let setSelected = (node, menu) => {
 			menu_button_nodes.forEach(n => n.classList.remove('selected'))
 			node.classList.add('selected');
+			label.innerText = menu.name;
 		}
 		for (let id in MenuBar.menus) {
 			let menu = MenuBar.menus[id];
@@ -585,14 +587,15 @@ const MenuBar = {
 				if (MenuBar.last_opened == menu) return;
 				MenuBar.last_opened = MenuBar.open = menu;
 				menu.open(menu_position);
-				setSelected(node);
+				setSelected(node, menu);
 			})
 			menu_button_nodes.push(node);
 			bar.append(node);
-			if (MenuBar.last_opened == menu) {
+			if (MenuBar.last_opened == menu || (!MenuBar.last_opened && id == 'file')) {
 				setTimeout(() => {
+					MenuBar.last_opened = menu;
 					menu.open(menu_position);
-					setSelected(node);
+					setSelected(node, menu);
 				}, 1)
 			}
 		}

@@ -638,7 +638,7 @@
 		justify-content: space-around;
 		background-color: var(--color-bright_ui);
 		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
-		border-radius: 5px;
+		border-radius: 4px;
 		padding: 0 5px;
 		z-index: 30;
 	}
@@ -651,6 +651,14 @@
 	#mobile_menu_bar > .tool.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
+	}
+	#mobile_menu_bar > label {
+		height: 20px;
+		width: 0;
+		flex-basis: 100%;
+		text-align: center;
+		color: var(--color-bright_ui_text);
+		opacity: 0.8;
 	}
 
 /* Tab Bar */
