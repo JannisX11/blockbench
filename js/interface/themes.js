@@ -435,6 +435,13 @@ const CustomTheme = {
 		CustomTheme.updateColors();
 	},
 	loadThumbnailStyles() {
+		let split_regex;
+		try {
+			// Soft fail for iOS 16.3 and older
+			split_regex = eval('/(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")/g')
+		} catch (err) {
+			return;
+		}
 		let thumbnailStyles = '\n';
 		const style = document.createElement('style');
 		document.head.appendChild(style);
@@ -443,7 +450,7 @@ const CustomTheme = {
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		if (CustomTheme.data.customized) {
@@ -451,7 +458,7 @@ const CustomTheme = {
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(/(?<!\[[^\]]*),(?![^\[]*\])|(?<!"[^"]*),(?![^"]*")/g).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);
