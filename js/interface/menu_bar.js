@@ -311,10 +311,11 @@ const MenuBar = {
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
+			icon: 'photo_size_select_large',
 			onOpen() {
 				setActivePanel('uv');
 			}
-		}, {icon: 'photo_size_select_large'})
+		})
 
 		new BarMenu('image', [
 			new MenuSeparator('adjustment'),
