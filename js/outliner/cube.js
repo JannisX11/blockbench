@@ -1122,10 +1122,7 @@ new NodePreviewController(Cube, {
 		mesh.geometry.setIndex(indices)
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
-		
-		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
+			mesh.material = Canvas.solidMaterial
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
