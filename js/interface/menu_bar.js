@@ -595,7 +595,7 @@ const MenuBar = {
 						bar.style.marginTop = '0';
 						convertTouchEvent(e2);
 						let y_diff = e2.clientY - e1.clientY;
-						if (y_diff < initial) {
+						if (y_diff < initial && MenuBar.open) {
 							MenuBar.open.hide()
 						}
 					}
