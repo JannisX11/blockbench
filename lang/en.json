@@ -539,7 +539,7 @@
 	"dialog.add_primitive.shape.sphere": "Sphere",
 	"dialog.add_primitive.shape.torus": "Torus",
 	"dialog.add_primitive.shape.cube": "Cuboid",
-	"dialog.add_primitive.shape.rounded_cuboid": "Cuboid with Edges",
+	"dialog.add_primitive.shape.beveled_cuboid": "Beveled Cuboid",
 	"dialog.add_primitive.shape.pyramid": "Pyramid",
 	"dialog.add_primitive.shape.plane": "Plane",
 	"dialog.add_primitive.diameter": "Diameter",
