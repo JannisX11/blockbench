@@ -1199,7 +1199,6 @@
 	"action.view_mode.desc": "Change le mode d'affichage du modèle",
 	"action.view_mode.textured": "Texturé",
 	"action.view_mode.solid": "Solide",
-	"action.view_mode.colored_solid": "Solide avec Couleur des marqueurs",
 	"action.view_mode.wireframe": "Squelette",
 	"action.toggle_sidebars": "Activer/désactiver les barres latérales",
 	"action.toggle_sidebars.desc": "Active/désactive les bandes sur les côtés",
