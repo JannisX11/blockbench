@@ -459,6 +459,7 @@ new Property(ModelProject, 'string', 'model_identifier', {
 });
 new Property(ModelProject, 'string', 'modded_entity_entity_class', {
 	label: 'dialog.project.modded_entity_entity_class',
+	placeholder: 'Entity',
 	condition: {formats: ['modded_entity']},
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {

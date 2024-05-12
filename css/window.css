@@ -401,7 +401,7 @@
 		width: 68px;
 		flex-shrink: 0;
 	}
-	#settings_profiles_header_menu {
+	body:not(.is_mobile) #settings_profiles_header_menu {
 		width: 24px;
 		text-align: center;
 		padding-top: 2px;
@@ -586,18 +586,18 @@
 	li.menu_bar_point.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
 	}
-	header .tool {
+	body.is_mobile header .tool {
 		height: 100%;
 		width: 42px;
 	}
-	header .tool > .icon {
+	body.is_mobile header .tool > .icon {
 		margin-top: 7px;
+	}
+	body:not(.is_mobile) header .tool > .icon {
+		margin-top: 2px;
 	}
 	header .tool.hidden {
 		display: none;
-	}
-	body.is_mobile.is_landscape #title_bar_undo_controls {
-		display: block;
 	}
 
 	#mode_selector {
@@ -623,6 +623,42 @@
 	}
 	#update_menu .tool > .icon {
 		margin-top: 3px;
+	}
+
+	#mobile_menu_bar {
+		position: absolute;
+		margin: auto;
+		top: 50px;
+		left: 0;
+		right: 0;
+		width: fit-content;
+		max-width: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-around;
+		background-color: var(--color-bright_ui);
+		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+		border-radius: 4px;
+		padding: 0 5px;
+		z-index: 30;
+	}
+	#mobile_menu_bar > .tool {
+		color: var(--color-bright_ui_text);
+		width: 42px;
+		height: 36px;
+		padding-top: 3px;
+	}
+	#mobile_menu_bar > .tool.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#mobile_menu_bar > label {
+		height: 20px;
+		width: 0;
+		flex-basis: 100%;
+		text-align: center;
+		color: var(--color-bright_ui_text);
+		opacity: 0.8;
 	}
 
 /* Tab Bar */
