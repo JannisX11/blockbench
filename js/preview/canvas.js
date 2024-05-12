@@ -130,22 +130,6 @@ const Canvas = {
 	wireframeMaterial: new THREE.MeshBasicMaterial({
 		wireframe: true
 	}),
-	coloredSolidMaterials:[],
-	createColoredSolidMaterials() {
-		markerColors.forEach(function(color, i) {
-			if (Canvas.coloredSolidMaterials[i]) return;
-			Canvas.coloredSolidMaterials[i] = new THREE.ShaderMaterial({
-				uniforms: {
-					SHADE: {type: 'bool', value: settings.shading.value},
-					BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
-					base: {value: new THREE.Color().set(color.pastel)}
-				},
-				vertexShader: SolidMaterialShaders.vertShader,
-				fragmentShader: SolidMaterialShaders.fragShader,
-				side: THREE.DoubleSide
-			});
-		})
-	},
 	monochromaticSolidMaterial: (function() {
 		return new THREE.ShaderMaterial({
 			uniforms: {
@@ -336,6 +320,7 @@ const Canvas = {
 		})
 	})(),
 	emptyMaterials: [],
+	coloredSolidMaterials:[],
 	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -419,17 +404,32 @@ const Canvas = {
 		
 		markerColors.forEach(function(color, i) {
 			if (Canvas.emptyMaterials[i]) return;
+
+			// Define uniforms that all marker colored shaders share
+			let commonUniforms = {
+				SHADE: {type: 'bool', value: settings.shading.value},
+				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				base: {value: new THREE.Color().set(color.pastel)}
+			}
+
+			// Empty texture materials
 			Canvas.emptyMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: {
 					map: {type: 't', value: tex},
-					SHADE: {type: 'bool', value: settings.shading.value},
-					BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
-					base: {value: new THREE.Color().set(color.pastel)}
+					...commonUniforms
 				},
 				vertexShader: vertShader,
 				fragmentShader: fragShader,
 				side: THREE.DoubleSide,
 			})
+
+			// Colored solid materials
+			Canvas.coloredSolidMaterials[i] = new THREE.ShaderMaterial({
+				uniforms: commonUniforms,
+				vertexShader: SolidMaterialShaders.vertShader,
+				fragmentShader: SolidMaterialShaders.fragShader,
+				side: THREE.DoubleSide
+			});
 		})
 	},
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
@@ -612,7 +612,6 @@ const Canvas = {
 
 	setup() {
 		Canvas.updateMarkerColorMaterials();
-		Canvas.createColoredSolidMaterials();
 
 		//Light
 		Sun = new THREE.AmbientLight( 0xffffff );
