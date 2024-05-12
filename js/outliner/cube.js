@@ -939,6 +939,15 @@ class Cube extends OutlinerElement {
 				}
 			}});
 		}},
+		{name: 'action.cube.random_color', icon: 'fa-swatchbook', click(cube) {
+				cube.forSelected(function(obj){
+					let lastColor = obj.color
+					// Ensure chosen color is never equal to the previous color
+					do obj.setColor(Math.floor(Math.random() * markerColors.length))
+					while (obj.color === lastColor)
+				}, 'change color')
+			}
+		},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(cube) {
@@ -1113,7 +1122,10 @@ new NodePreviewController(Cube, {
 		mesh.geometry.setIndex(indices)
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.solidMaterial
+			mesh.material = Canvas.monochromaticSolidMaterial
+		
+		} else if (Project.view_mode === 'colored_solid') {
+			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
