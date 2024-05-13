@@ -538,7 +538,11 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
+			let elements_before = Outliner.elements.slice();
 			Codecs.skin_model.rebuild(model.skin_model);
+			for (let element of Outliner.elements) {
+				if (!elements_before.includes(element)) new_elements.push(element);
+			}
 		}
 		let adjust_uv = !Format.per_texture_uv_size || !imported_format?.per_texture_uv_size;
 		if (model.elements) {
