@@ -782,8 +782,8 @@ Interface.CustomElements.SelectInput = function(id, data) {
 					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
 					color: val.color,
 					condition: val.condition,
-					click: (e) => {
-						setKey(key, options, e);
+					click: (context, event) => {
+						setKey(key, options, event || 1);
 					}
 				})
 			}
