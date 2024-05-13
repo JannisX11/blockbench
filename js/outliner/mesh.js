@@ -817,7 +817,7 @@ class Mesh extends OutlinerElement {
 		var scope = this;
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
-		} else if (faces === undefined) {
+		} else if (!faces) {
 			var sides = this.getSelectedFaces()
 		} else {
 			var sides = faces
@@ -872,21 +872,23 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
 			var arr = [
-				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture(false, true)
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(mesh) {
+					let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
+					mesh.forSelected((obj) => {
+						obj.applyTexture(false, all_faces)
 					}, 'texture blank')
 				}}
 			]
-			Texture.all.forEach(function(t) {
+			Texture.all.forEach((t) => {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					click: function(cube) {
-						cube.forSelected(function(obj) {
-							obj.applyTexture(t, true)
+					click(mesh) {
+						let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
+						mesh.forSelected((obj) => {
+							obj.applyTexture(t, all_faces)
 						}, 'apply texture')
 					}
 				})
@@ -1153,12 +1155,19 @@ new NodePreviewController(Mesh, {
 				? [tex.getUVWidth(), tex.getUVHeight()]
 				: [Project.texture_width, Project.texture_height];
 
+			let first_values;
 			face.vertices.forEach((key, i) => {
 				let u = (face.uv[key] ? face.uv[key][0] : 0) / uv_size[0];
 				let v = (face.uv[key] ? face.uv[key][1] : 0) / uv_size[1];
 				if (stretch > 1) {
 					v = (v + frame) / stretch;
 				}
+				// Fix grainy visuals when UV all in one point
+				if (!first_values) {
+					first_values = [u, v];
+				} else if (first_values[0] == u && first_values[1] == v) {
+					i < 2 ? u += 0.00005 : v += 0.00005;
+				} 
 				uv_array.push(u, 1-v);
 			})
 		}

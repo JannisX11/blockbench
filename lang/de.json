@@ -2081,7 +2081,7 @@
 	"dialog.animated_texture_editor.add_frame": "Einzelbild hinzufügen",
 	"dialog.animated_texture_editor.resize_frames": "Bildgröße ändern...",
 	"dialog.animated_texture_editor.apply": "Anwenden",
-	"dialog.add_primitive.shape.rounded_cuboid": "Quader mit Kanten",
+	"dialog.add_primitive.shape.beveled_cuboid": "Beveled Cuboid",
 	"dialog.add_primitive.edge_size": "Kantenbreite",
 	"dialog.change_animation_speed.speed": "Geschwindigkeit",
 	"dialog.change_animation_speed.adjust_snapping": "Einrastintervall anpassen",

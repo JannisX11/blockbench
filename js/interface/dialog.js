@@ -128,7 +128,7 @@ function buildForm(dialog) {
 					let select_input = new Interface.CustomElements.SelectInput(form_id, {
 						options: data.options,
 						value: data.value || data.default,
-						onChange() {
+						onInput() {
 							dialog.updateFormValues();
 						}
 					});

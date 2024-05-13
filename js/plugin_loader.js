@@ -1023,7 +1023,12 @@ BARS.defineActions(function() {
 					return pureMarked(about);
 				},
 				reduceLink(url) {
-					return url.replace('https://', '').substring(0, 50)+'...';
+					url = url.replace('https://', '').replace(/\/$/, '');
+					if (url.length > 50) {
+						return url.substring(0, 50)+'...';
+					} else {
+						return url;
+					}
 				},
 				printDate(input_date) {
 					return getDateDisplay(input_date).short;

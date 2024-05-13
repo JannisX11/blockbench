@@ -1030,7 +1030,7 @@ class Texture {
 				}
 			});
 			groups = groups.filter(g => g instanceof Group);
-			let affected_elements = [];
+			affected_elements = [];
 			Undo.initEdit({outliner: true});
 			groups.forEach(group => {
 				group.texture = this.uuid;

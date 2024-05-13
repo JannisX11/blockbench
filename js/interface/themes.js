@@ -435,13 +435,8 @@ const CustomTheme = {
 		CustomTheme.updateColors();
 	},
 	loadThumbnailStyles() {
-		let split_regex;
-		try {
-			// Soft fail for iOS 16.3 and older
-			split_regex = eval('/(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")/g')
-		} catch (err) {
-			return;
-		}
+		let split_regex = (isApp || window.chrome) ? new RegExp('(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")', 'g') : null;
+		if (!split_regex) return;
 		let thumbnailStyles = '\n';
 		const style = document.createElement('style');
 		document.head.appendChild(style);
@@ -497,7 +492,7 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
-		theme.thumbnail ??= '';
+		if (!theme.thumbnail) theme.thumbnail = '';
 		Merge.string(app, theme, 'thumbnail');
 		this.updateColors();
 		this.updateSettings();

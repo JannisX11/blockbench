@@ -16,10 +16,14 @@ function handleMenuOverflow(node) {
 	function offset(amount) {
 		let top = parseInt(node.style.top);
 		let offset = top - $(node).offset().top;
+		let top_gap = 26;
+		if (Blockbench.isMobile && Menu.open instanceof BarMenu) {
+			top_gap = window.innerHeight > 400 ? 106 : 56;
+		}
 		top = Math.clamp(
 			top + amount,
 			window.innerHeight - node.clientHeight + offset,
-			offset + 26
+			offset + top_gap
 		);
 		node.style.top = `${top}px`;
 	}
@@ -100,17 +104,21 @@ class Menu {
 				}
 			}
 
-			let window_height = window.innerHeight - 26;
+			let top_gap = 26;
+			if (Blockbench.isMobile && this instanceof BarMenu) {
+				top_gap = window.innerHeight > 400 ? 106 : 56;
+			}
+			let window_height = window.innerHeight - top_gap;
 
 			if (el_height > window_height) {
 				childlist.css('margin-top', '0').css('top', '0')
-				childlist.css('top', (-childlist.offset().top + 26) + 'px')
+				childlist.css('top', (-childlist.offset().top + top_gap) + 'px')
 				handleMenuOverflow(childlist);
 
 			} else if (offset.top + el_height > window_height) {
-				childlist.css('margin-top', 26-childlist.height() + 'px')
-				if (childlist.offset().top < 26) {
-					childlist.offset({top: 26})
+				childlist.css('margin-top', top_gap-childlist.height() + 'px')
+				if (childlist.offset().top < top_gap) {
+					childlist.offset({top: top_gap})
 				}
 			}
 		}
@@ -510,9 +518,13 @@ class Menu {
 		let content_list = typeof this.structure == 'function' ? this.structure(context) : this.structure;
 		populateList(content_list, ctxmenu, this.options.searchable);
 
-		var el_width = ctxmenu.width()
-		var el_height = ctxmenu.height()
-		let window_height = window.innerHeight - 26;
+		let el_width = ctxmenu.width()
+		let el_height = ctxmenu.height()
+		let top_gap = 26;
+		if (Blockbench.isMobile && this instanceof BarMenu) {
+			top_gap = window.innerHeight > 400 ? 106 : 56;
+		}
+		let window_height = window.innerHeight - top_gap;
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
@@ -553,7 +565,7 @@ class Menu {
 				offset_top = window_height - el_height;
 			}
 		}
-		offset_top = Math.max(offset_top, 26);
+		offset_top = Math.max(offset_top, top_gap);
 
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
