@@ -59,7 +59,7 @@ function processCompatibility(model) {
 		}
 	}
 	if (model.textures) {
-		if (compareVersions('4.10', model.meta.format_version)) {
+		if (isApp && compareVersions('4.10', model.meta.format_version)) {
 			for (let texture of model.textures) {
 				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
 			}

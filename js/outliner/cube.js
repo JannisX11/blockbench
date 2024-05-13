@@ -571,7 +571,7 @@ class Cube extends OutlinerElement {
 	}
 	getWorldCenter() {
 		var m = this.mesh;
-		var pos = Reusable.vec1.set(
+		var pos = new THREE.Vector3(
 			this.from[0] + this.size(0)/2,
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
@@ -842,9 +842,11 @@ class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		if (before instanceof Array) before = before[axis];
-		var modify = val instanceof Function ? val : n => (n+val)
+		let is_inverted = before < 0;
+		if (is_inverted) negative = !negative;
+		let modify = val instanceof Function ? val : n => (n + val);
 
 		if (bidirectional) {
 
@@ -852,8 +854,8 @@ class Cube extends OutlinerElement {
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
-			var from = center - (before/2) - difference;
-			var to = center + (before/2) + difference;
+			let from = center - (before/2) - difference;
+			let to = center + (before/2) + difference;
 
 			if (Format.integer_size) {
 				from = Math.round(from-this.from[axis])+this.from[axis];
@@ -866,7 +868,7 @@ class Cube extends OutlinerElement {
 			}
 
 		} else if (!negative) {
-			var pos = this.from[axis] + modify(before);
+			let pos = this.from[axis] + modify(before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];
 			}
@@ -876,7 +878,7 @@ class Cube extends OutlinerElement {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			var pos = this.to[axis] + modify(-before);
+			let pos = this.to[axis] + modify(-before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.to[axis])+this.to[axis];
 			}

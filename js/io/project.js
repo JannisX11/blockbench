@@ -383,13 +383,10 @@ class ModelProject {
 							await BarItems.export_over.click();
 						}
 						await new Promise(resolve => setTimeout(resolve, 4));
-						console.log(Project.saved)
 						resolve(Project.saved);
 					} else if (answer == 1) {
-						console.log(true)
 						resolve(true);
 					} else if (answer == 2) {
-						console.log(false)
 						resolve(false);
 					}
 				})
@@ -462,6 +459,7 @@ new Property(ModelProject, 'string', 'model_identifier', {
 });
 new Property(ModelProject, 'string', 'modded_entity_entity_class', {
 	label: 'dialog.project.modded_entity_entity_class',
+	placeholder: 'Entity',
 	condition: {formats: ['modded_entity']},
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {

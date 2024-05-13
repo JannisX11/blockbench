@@ -22,7 +22,11 @@ var codec = new Codec('optifine_entity', {
 			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
-		if (Texture.getDefault()) {
+		let default_texture = Texture.getDefault();
+		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
+			default_texture = null;
+		}
+		if (default_texture) {
 			let texture = Texture.getDefault();
 			entitymodel.texture = getTexturePath(Texture.getDefault());
 			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
@@ -62,6 +66,9 @@ var codec = new Codec('optifine_entity', {
 			if (g.cem_attach) {
 				bone.attach = true;
 			}
+			if (g.cem_scale) {
+				bone.scale = g.cem_scale;
+			}
 
 			function populate(p_model, group, depth, parent_texture) {
 
@@ -78,7 +85,7 @@ var codec = new Codec('optifine_entity', {
 
 				if (texture && texture != parent_texture) {
 					p_model.texture = getTexturePath(texture);
-					if (texture.uv_width != parent_texture.uv_width || texture.uv_height != parent_texture.uv_height) {
+					if (!parent_texture || texture.uv_width != parent_texture.uv_width || texture.uv_height != parent_texture.uv_height) {
 						p_model.textureSize = [texture.uv_width, texture.uv_height];
 					}
 				}
@@ -165,7 +172,7 @@ var codec = new Codec('optifine_entity', {
 					} 
 				})
 			}
-			populate(bone, g, 0, Texture.getDefault())
+			populate(bone, g, 0, default_texture)
 
 			if (g.cem_animations && g.cem_animations.length) {
 				bone.animations = g.cem_animations;
@@ -191,7 +198,7 @@ var codec = new Codec('optifine_entity', {
 			if (imported_textures[string]) return imported_textures[string];
 
 			let texture_path = string.replace(/[\\/]/g, osfs);
-			if (texture_path.match(/^textures/)) {
+			if (texture_path.match(/^textures/) && path.includes('optifine')) {
 				texture_path = path.replace(/[\\/]optifine[\\/].+$/i, osfs+texture_path);
 			} else {
 				texture_path = path.replace(/[\\/][^\\/]+$/, osfs+texture_path);
@@ -233,6 +240,7 @@ var codec = new Codec('optifine_entity', {
 					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
 					cem_animations: b.animations,
 					cem_attach: b.attach,
+					cem_scale: b.scale,
 					texture: texture ? texture.uuid : undefined,
 				})
 				group.origin.V3_multiply(-1);

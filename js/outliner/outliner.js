@@ -1000,12 +1000,12 @@ SharedActions.add('delete', {
 	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.selected)),
 	priority: -1,
 	run() {
-		var array;
-		Undo.initEdit({elements: selected, outliner: true, selection: true})
 		if (Group.selected) {
 			Group.selected.remove(true)
 			return;
 		}
+		let array;
+		Undo.initEdit({elements: selected, outliner: true, selection: true})
 		if (array == undefined) {
 			array = selected.slice(0)
 		} else if (array.constructor !== Array) {

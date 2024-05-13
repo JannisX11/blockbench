@@ -424,7 +424,11 @@ Interface.definePanels = function(callback) {
 
 //Misc
 function unselectInterface(event) {
-	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
+	if (
+		open_menu && $('.contextMenu').find(event.target).length === 0 &&
+		$('.menu_bar_point.opened:hover').length === 0 &&
+		!document.getElementById('mobile_menu_bar')?.contains(event.target)
+	) {
 		Menu.closed_in_this_click = open_menu.id;
 		open_menu.hide();
 
@@ -789,7 +793,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 Interface.CustomElements.NumericInput = function(id, data) {
-	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'decimal'});
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : ''});
 	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
 	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider

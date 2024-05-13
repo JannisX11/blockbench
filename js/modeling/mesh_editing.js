@@ -1046,7 +1046,7 @@ BARS.defineActions(function() {
 		form: {
 			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
 				cuboid: 'dialog.add_primitive.shape.cube',
-				rounded_cuboid: 'dialog.add_primitive.shape.rounded_cuboid',
+				beveled_cuboid: 'dialog.add_primitive.shape.beveled_cuboid',
 				pyramid: 'dialog.add_primitive.shape.pyramid',
 				plane: 'dialog.add_primitive.shape.plane',
 				circle: 'dialog.add_primitive.shape.circle',
@@ -1057,12 +1057,12 @@ BARS.defineActions(function() {
 				torus: 'dialog.add_primitive.shape.torus',
 			}},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
-			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'rounded_cuboid', 'pyramid', 'plane'].includes(shape)},
-			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'rounded_cuboid', 'pyramid', 'tube'].includes(shape)},
+			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'beveled_cuboid', 'pyramid', 'plane'].includes(shape)},
+			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
 			minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: 4, condition: ({shape}) => ['torus', 'tube'].includes(shape)},
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
-			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['rounded_cuboid'].includes(shape)},
+			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['beveled_cuboid'].includes(shape)},
 		},
 		onConfirm(result) {
 			let original_selection_group = Group.selected && Group.selected.uuid;
@@ -1278,7 +1278,7 @@ BARS.defineActions(function() {
 						new MeshFace( mesh, {vertices: [vertex_keys[1], vertex_keys[3], vertex_keys[5], vertex_keys[7]]} ), // North
 					);
 				}
-				if (result.shape == 'rounded_cuboid') {
+				if (result.shape == 'beveled_cuboid') {
 					let s = result.edge_size;
 					let rs = result.diameter/2 - s;
 					let r = result.diameter/2;
@@ -1410,11 +1410,11 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'rounded_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
 				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
-				edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: result.edge_size, condition: ['rounded_cuboid'].includes(result.shape)},
+				edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: result.edge_size, condition: ['beveled_cuboid'].includes(result.shape)},
 			}, form => {
 				Object.assign(result, form);
 				runEdit(true, result);
@@ -1440,7 +1440,7 @@ BARS.defineActions(function() {
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && Mesh.hasAny(),
+		condition: () => Modes.edit && Mesh.hasAny() && Toolbox.selected.id != 'knife_tool',
 		onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
@@ -1588,8 +1588,12 @@ BARS.defineActions(function() {
 			context.addPoint(data);
 		},
 		onSelect() {
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.snap_to_center');
+			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.snap_to_pixels');
 		},
 		onUnselect() {
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_to_center');
+			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.snap_to_pixels');
 			if (KnifeToolContext.current) {
 				KnifeToolContext.current.apply();
 			}

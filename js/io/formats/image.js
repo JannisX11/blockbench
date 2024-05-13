@@ -152,7 +152,6 @@ new ModelFormat('image', {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 			},
 			onFormChange(result) {
-				console.log(result)
 				if (result.size_preset && result.size_preset != previous_size_preset) {
 					let size = result.size_preset.split('x').map(v => parseInt(v));
 					dialog.setFormValues({resolution: size}, false);

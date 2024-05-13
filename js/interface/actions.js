@@ -670,7 +670,7 @@ class NumSlider extends Widget {
 
 		var scope = this;
 		this.node = Interface.createElement('div', {class: 'tool wide widget nslide_tool', toolbar_item: this.id}, [
-			Interface.createElement('div', {class: 'nslide tab_target', inputmode: 'decimal', 'n-action': this.id})
+			Interface.createElement('div', {class: 'nslide tab_target', inputmode: this.settings?.min >= 0 ? 'decimal' : '', 'n-action': this.id})
 		])
 		this.jq_outer = $(this.node)
 		this.jq_inner = this.jq_outer.find('.nslide');
@@ -2198,9 +2198,10 @@ const BARS = {
 				Toolbars.element_origin,
 				Toolbars.element_rotation
 			].forEach(toolbar => {
-				Toolbars.main_tools.children.forEach(child => {
+				for (let child of Toolbars.main_tools.children) {
+					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
-				})
+				}
 			})
 		}
 		Blockbench.onUpdateTo('4.4.0-beta.0', () => {

@@ -569,13 +569,21 @@ class Animation extends AnimationItem {
 				) {
 					match = animator;
 					match.uuid = group.uuid;
-					delete this.animators[uuid2];
+					this.removeAnimator(uuid2);
 					break;
 				}
 			}
 			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
+	}
+	removeAnimator(id) {
+		Timeline.animators.remove(this.animators[id]);
+		if (Timeline.selected_animator == this.animators[id]) {
+			Timeline.selected_animator = null;
+		}
+		delete this.animators[id];
+		return this;
 	}
 	add(undo) {
 		if (undo) {

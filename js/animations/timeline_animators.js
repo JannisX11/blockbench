@@ -749,7 +749,7 @@ class EffectAnimator extends GeneralAnimator {
 				if (diff < 0) return;
 
 				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100) && !media) {
+				if (diff >= 0 && diff < (1/30) * (Timeline.playback_speed/100) && !media) {
 					if (kf.data_points[0].file && !kf.cooldown) {
 						media = new Audio(kf.data_points[0].file);
 						media.keyframe_id = kf.uuid;
@@ -766,28 +766,26 @@ class EffectAnimator extends GeneralAnimator {
 							delete kf.cooldown;
 						}, 400)
 					} 
-				} else if (diff > 0) {
-					media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-					if (Math.abs(media.currentTime - diff) > 0.08) {
+				} else if (diff > 0 && media) {
+					if (Math.abs(media.currentTime - diff) > 0.18 && diff < media.duration) {
 						console.log('Resyncing sound')
 						// Resync
-						media.currentTime = diff;
+						media.currentTime = Math.clamp(diff + 0.08, 0, media.duration);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 					}
 				}
 			})
 		}
-		
+
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				let diff = this.animation.time - kf.time;
-				if (diff >= 0) {
-					let i = 0;
-					for (let data_point of kf.data_points) {
-						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-						if (particle_effect) {
-
-							let emitter = particle_effect.emitters[kf.uuid + i];
+				let i = 0;
+				for (let data_point of kf.data_points) {
+					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+					if (particle_effect) {
+						let emitter = particle_effect.emitters[kf.uuid + i];
+						if (diff >= 0) {
 							if (!emitter) {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
@@ -818,9 +816,12 @@ class EffectAnimator extends GeneralAnimator {
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
-						} 
-						i++;
-					}
+
+						} else if (emitter && emitter.enabled) {
+							emitter.stop(true);
+						}
+					} 
+					i++;
 				}
 			})
 		}

@@ -1785,9 +1785,9 @@ class Texture {
 }
 	Texture.prototype.menu = new Menu([
 			new MenuSeparator('apply'),
-			{
+			tex => ({
 				icon: 'star',
-				name: 'menu.texture.use_as_default',
+				name: tex.use_as_default ? 'menu.texture.use_as_default.clear' : 'menu.texture.use_as_default',
 				condition: {features: ['single_texture_default']},
 				click(texture) {
 					if (texture.use_as_default) {
@@ -1796,7 +1796,7 @@ class Texture {
 						texture.setAsDefaultTexture();
 					}
 				}
-			},
+			}),
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
@@ -1815,9 +1815,9 @@ class Texture {
 				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply(true)}
 			},
-			{
+			tex => ({
 				icon: 'bubble_chart',
-				name: 'menu.texture.particle',
+				name: tex.particle ? 'menu.texture.particle.clear' : 'menu.texture.particle',
 				condition: {features: ['select_texture_for_particles']},
 				click(texture) {
 					if (texture.particle) {
@@ -1826,7 +1826,7 @@ class Texture {
 						texture.enableParticle()
 					}
 				}
-			},
+			}),
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',

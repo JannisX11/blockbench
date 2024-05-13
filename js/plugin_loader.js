@@ -121,6 +121,7 @@ class Plugin {
 					icon: 'warning',
 					title: this.title,
 					message,
+					cancelIndex: 0,
 					buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway']
 				}, resolve)
 			})
@@ -137,7 +138,7 @@ class Plugin {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
 			$.getScript(path, (content, status, context) => {
-				if (content.length <= 20) {
+				if (!content || content.length <= 20) {
 					console.warn(`Issue loading plugin "${this.id}": Plugin file empty`);
 				}
 				if (cb) cb.bind(scope)()
@@ -450,6 +451,8 @@ class Plugin {
 		this.dependencies.empty();
 		Plugins.all.remove(this);
 		this.details = null;
+		let had_changelog = this.changelog_fetched;
+		this.changelog_fetched = false;
 
 		if (this.source == 'file') {
 			this.loadFromFile({path: this.path}, false)
@@ -459,6 +462,9 @@ class Plugin {
 		}
 
 		this.fetchAbout(true);
+		if (had_changelog && this.has_changelog) {
+			this.fetchChangelog(true);
+		}
 
 		return this;
 	}

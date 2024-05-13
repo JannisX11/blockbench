@@ -658,6 +658,8 @@ UndoSystem.save = class {
 		if (aspects.exploded_view !== undefined) {
 			this.exploded_view = !!aspects.exploded_view;
 		}
+
+		Blockbench.dispatchEvent('create_undo_save', {save: this, aspects})
 	}
 	addTexture(texture) {
 		if (!this.textures) return;

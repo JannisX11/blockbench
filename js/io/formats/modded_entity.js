@@ -242,7 +242,7 @@ const Templates = {
 			// Paste this class into your mod and generate all required imports
 
 
-			public class %(identifier)<T extends %(entity)> extends EntityModel<%(entity)> {
+			public class %(identifier)<T extends %(entity)> extends EntityModel<T> {
 				// This layer location should be baked with EntityRendererProvider.Context in the entity renderer and passed into this model's constructor
 				public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("modid", "%(identifier_rl)"), "main");
 				%(fields)
@@ -483,7 +483,7 @@ var codec = new Codec('modded_entity', {
 		let model = Templates.get('file');
 
 		model = model.replace(R('bb_version'), Blockbench.version);
-		model = model.replace(R('entity'), Project.modded_entity_entity_class || '');
+		model = model.replace(R('entity'), Project.modded_entity_entity_class || 'Entity');
 		model = model.replace(R('identifier'), identifier);
 		model = model.replace(R('identifier_rl'), identifier.toLowerCase().replace(' ', '_'));
 		model = model.replace(R('texture_width'), Project.texture_width);

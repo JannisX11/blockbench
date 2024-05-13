@@ -885,13 +885,14 @@ const UVEditor = {
 
 					let min_x = Infinity, min_y = Infinity, max_x = 0, max_y = 0;
 					for (let vkey in vertex_uvs) {
-						vertex_uvs[vkey][0] = vertex_uvs[vkey][0] - (pmin_x % 1) + uv_center[0],
-						vertex_uvs[vkey][1] = vertex_uvs[vkey][1] - (pmin_y % 1) + uv_center[1],
+						vertex_uvs[vkey][0] = vertex_uvs[vkey][0] - ((pmin_x+1000.5) % 1 - 0.5) + uv_center[0],
+						vertex_uvs[vkey][1] = vertex_uvs[vkey][1] - ((pmin_y+1000.5) % 1 - 0.5) + uv_center[1],
 						min_x = Math.min(min_x, vertex_uvs[vkey][0]);
 						min_y = Math.min(min_y, vertex_uvs[vkey][1]);
 						max_x = Math.max(max_x, vertex_uvs[vkey][0]);
 						max_y = Math.max(max_y, vertex_uvs[vkey][1]);
 					}
+					// Prevent overflow
 					let offset = [
 						min_x < 0 ? -min_x : (max_x > UVEditor.getUVWidth() ? Math.round(UVEditor.getUVWidth() - max_x) : 0),
 						min_y < 0 ? -min_y : (max_y > UVEditor.getUVHeight() ? Math.round(UVEditor.getUVHeight() - max_y) : 0),
@@ -1381,6 +1382,8 @@ const UVEditor = {
 				}}
 			]
 		}},
+		'uv_cycle',
+		'uv_cycle_invert',
 		'uv_turn_mapping',
 		{
 			name: 'menu.uv.flip_x',
@@ -1945,6 +1948,55 @@ BARS.defineActions(function() {
 			})
 			UVEditor.loadData();
 			Undo.finishEdit('Snap UV to pixel grid')
+		}
+	})
+	new Action('uv_cycle', {
+		icon: 'fa-arrows-spin',
+		category: 'uv',
+		condition: () => Mesh.hasSelected(),
+		click(event) {
+			let elements = Mesh.selected;
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(element => {
+				UVEditor.getSelectedFaces(element).forEach(fkey => {
+					let face = element.faces[fkey];
+					if (!face || face.vertices.length < 3) return;
+					let first_uv;
+					let sorted_vertices = face.getSortedVertices();
+					let offset = (event?.shiftKey || Pressing.overrides.shift) ? -1 : 1;
+					sorted_vertices[offset == 1 ? 'forEach' : 'forEachReverse']((vkey, i) => {
+						if (!first_uv) first_uv = face.uv[vkey];
+						let vkey_next = sorted_vertices[i + offset];
+						face.uv[vkey] = vkey_next ? face.uv[vkey_next] : first_uv;
+					})
+				})
+				element.preview_controller.updateUV(element);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Cycle UV')
+		}
+	})
+	new Action('uv_cycle_invert', {
+		icon: 'fa-group-arrows-rotate',
+		category: 'uv',
+		condition: () => Mesh.hasSelected(),
+		click(event) {
+			let elements = Mesh.selected;
+			Undo.initEdit({elements, uv_only: true})
+			elements.forEach(element => {
+				UVEditor.getSelectedFaces(element).forEach(fkey => {
+					let face = element.faces[fkey];
+					if (!face || face.vertices.length < 3) return;
+					let sorted_vertices = face.getSortedVertices();
+					let last_i = sorted_vertices.length-1;
+					let uv1 = face.uv[sorted_vertices[1]];
+					face.uv[sorted_vertices[1]] = face.uv[sorted_vertices[last_i]];
+					face.uv[sorted_vertices[last_i]] = uv1;
+				})
+				element.preview_controller.updateUV(element);
+			})
+			UVEditor.loadData();
+			Undo.finishEdit('Cycle reverse UV')
 		}
 	})
 	new Toggle('edit_mode_uv_overlay', {

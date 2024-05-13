@@ -413,7 +413,7 @@ class Mesh extends OutlinerElement {
 	}
 	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
-		let pos = Reusable.vec1.set(0, 0, 0);
+		let pos = new THREE.Vector3();
 		let vertex_count = 0;
 
 		for (let key in this.vertices) {

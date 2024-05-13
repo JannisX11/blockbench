@@ -391,7 +391,14 @@ class Preview {
 				intersect.distance -= depth_offset * 1.4;
 			}
 		}
-		intersects.sort((a, b) => a.distance - b.distance);
+		if (Toolbox.selected.id == 'vertex_snap_tool') {
+			intersects.sort((a, b) => {
+				if (a.object.isPoints != b.object.isPoints) return a.object.isPoints ? -100 : 100;
+				return a.distance - b.distance;
+			});
+		} else {
+			intersects.sort((a, b) => a.distance - b.distance);
+		}
 
 		let intersect = intersects[0];
 		let intersect_object = intersect.object;
@@ -771,7 +778,7 @@ class Preview {
 				select_mode = 'object';
 			}
 
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && data.type === 'element') {
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
 					if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
@@ -951,7 +958,7 @@ class Preview {
 						edges.push(data.vertices);
 						vertices.safePush(...data.vertices);
 					}
-				} else {
+				} else if (data.vertices) {
 					faces.empty();
 					edges.splice(0, Infinity, data.vertices);
 					vertices.replace(data.vertices);

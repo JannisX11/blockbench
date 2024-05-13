@@ -428,7 +428,6 @@ class ReferenceImage {
 		}
 		
 		if (this.is_video) {
-			console.log(this.video, this.video.paused)
 			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
 				if (this.video.paused) {
 					this.video._loading = false;
