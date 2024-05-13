@@ -492,7 +492,7 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
-		theme.thumbnail ??= '';
+		if (!theme.thumbnail) theme.thumbnail = '';
 		Merge.string(app, theme, 'thumbnail');
 		this.updateColors();
 		this.updateSettings();
