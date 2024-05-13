@@ -539,6 +539,9 @@ class UndoSystem {
 		if ((save.outliner || save.group) && Format.bone_rig) {
 			Canvas.updateAllBones();
 		}
+		if (save.outliner && Format.per_group_texture) {
+			Canvas.updateAllFaces();
+		}
 		if (Modes.animate) {
 			Animator.preview();
 		}
