@@ -1153,12 +1153,19 @@ new NodePreviewController(Mesh, {
 				? [tex.getUVWidth(), tex.getUVHeight()]
 				: [Project.texture_width, Project.texture_height];
 
+			let first_values;
 			face.vertices.forEach((key, i) => {
 				let u = (face.uv[key] ? face.uv[key][0] : 0) / uv_size[0];
 				let v = (face.uv[key] ? face.uv[key][1] : 0) / uv_size[1];
 				if (stretch > 1) {
 					v = (v + frame) / stretch;
 				}
+				// Fix grainy visuals when UV all in one point
+				if (!first_values) {
+					first_values = [u, v];
+				} else if (first_values[0] == u && first_values[1] == v) {
+					i < 2 ? u += 0.00005 : v += 0.00005;
+				} 
 				uv_array.push(u, 1-v);
 			})
 		}
