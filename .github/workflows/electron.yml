@@ -97,7 +97,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/ThematicBench-win.zip
-          asset_name: ThematicBench-windows.zip
+          asset_name: ThematicBench-win.zip
           asset_content_type: application/zip
 
       - name: Upload macOS Artifact
@@ -107,5 +107,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/ThematicBench-mac.zip
-          asset_name: ThematicBench-macos.zip
+          asset_name: ThematicBench-mac.zip
           asset_content_type: application/zip
