@@ -1,5 +1,5 @@
 appId: bond.thematic.blockbench
-productName: Blockbench
+productName: ThematicBench
 files:
   - from: .
     filter:
@@ -11,6 +11,11 @@ mac:
   target:
     - dmg
     - zip
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  entitlements: null
+  entitlementsInherit: null
+  identity: null
 win:
   target:
     - nsis
