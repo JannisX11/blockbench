@@ -27,9 +27,8 @@ jobs:
       - name: Build Electron app for Windows
         run: |
           $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
-          $env:CSC_LINK='npx electron-builder'
-          npm install
-          npx electron-builder -- --win --x64
+          npm install electron-builder
+          npx electron-builder --config /mnt/data/electron.yml --win --x64
         shell: pwsh
 
       - name: Upload Artifacts
@@ -56,9 +55,8 @@ jobs:
       - name: Build Electron app for macOS ARM64
         run: |
           export CSC_IDENTITY_AUTO_DISCOVERY=false
-          export CSC_LINK=npx electron-builder
-          npm install
-          npx electron-builder -- --mac --arm64
+          npm install electron-builder
+          npx electron-builder --config /mnt/data/electron.yml --mac --arm64
 
       - name: Locally sign the file
         run: codesign --deep --force --verbose --sign ./dist/mac-arm64/Blockbench.app
