@@ -28,7 +28,7 @@ jobs:
         run: |
           $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
           npm install electron-builder
-          npx electron-builder --config /mnt/data/electron.yml --win --x64
+          npx electron-builder --config .github/workflows/electron.yml --win --x64
         shell: pwsh
 
       - name: Upload Artifacts
@@ -56,7 +56,7 @@ jobs:
         run: |
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           npm install electron-builder
-          npx electron-builder --config /mnt/data/electron.yml --mac --arm64
+          npx electron-builder --config .github/workflows/electron.yml --mac --arm64
 
       - name: Locally sign the file
         run: codesign --deep --force --verbose --sign ./dist/mac-arm64/Blockbench.app
