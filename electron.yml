@@ -16,7 +16,7 @@ mac:
   entitlements: null
   entitlementsInherit: null
   identity: null  
-  artifactName: ThematicBench-arm64-mac.${ext}
+  artifactName: ThematicBench-mac.${ext}
 win:
   target:
     - nsis

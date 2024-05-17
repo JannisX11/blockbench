@@ -96,7 +96,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/ThematicBench-*-win.zip
+          asset_path: dist/ThematicBench-win.zip
           asset_name: ThematicBench-windows.zip
           asset_content_type: application/zip
 
@@ -106,6 +106,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/ThematicBench-*-mac.zip
+          asset_path: dist/ThematicBench-mac.zip
           asset_name: ThematicBench-macos.zip
           asset_content_type: application/zip
