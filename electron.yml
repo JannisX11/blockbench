@@ -1,0 +1,16 @@
+appId: bond.thematic.blockbench
+productName: Blockbench
+files:
+  - dist/
+mac:
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+    - zip
+linux:
+  target:
+    - AppImage
+    - deb
