@@ -1,7 +1,12 @@
 appId: bond.thematic.blockbench
 productName: Blockbench
 files:
-  - dist/
+  - from: .
+    filter:
+      - 'package.json'
+      - 'main.js'
+      - 'index.html'
+      - 'dist/**/*'
 mac:
   target:
     - dmg
