@@ -19,13 +19,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '18'
+
+      - name: Clean up dist and node_modules
+        run: Remove-Item -Recurse -Force dist, node_modules
+        shell: pwsh
 
       - name: Install dependencies
         run: npm install
 
       - name: Build Electron app for Windows
-        run: npm run build-win64 -- --win --x64
+        run: |
+          npm install
+          CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --win --x64
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
@@ -43,13 +49,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '18'
+
+      - name: Clean up dist and node_modules
+        run: rm -rf dist node_modules
 
       - name: Install dependencies
         run: npm install
 
       - name: Build Electron app for macOS ARM64
-        run: npm run build-mac-arm64 -- --mac --arm64
+        run: |
+          npm install
+          CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --mac --arm64
+
+      - name: Locally sign the file
+        run: codesign --deep --force --verbose --sign ./dist/mac-arm64/Blockbench.app
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
