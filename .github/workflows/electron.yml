@@ -21,14 +21,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Clean up dist and node_modules if they exist
-        run: |
-          if (Test-Path -Path dist) { Remove-Item -Recurse -Force dist }
-          if (Test-Path -Path node_modules) { Remove-Item -Recurse -Force node_modules }
-        shell: pwsh
-
       - name: Install dependencies
         run: npm install
+
+      - name: Ensure electron-builder is installed
+        run: npm install electron-builder
 
       - name: Build Electron app for Windows
         run: |
@@ -52,11 +49,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Clean up dist and node_modules
-        run: rm -rf dist node_modules
-
       - name: Install dependencies
         run: npm install
+
+      - name: Ensure electron-builder is installed
+        run: npm install electron-builder
 
       - name: Build Electron app for macOS ARM64
         run: |
