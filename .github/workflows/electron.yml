@@ -21,8 +21,10 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Clean up dist and node_modules
-        run: Remove-Item -Recurse -Force dist, node_modules
+      - name: Clean up dist and node_modules if they exist
+        run: |
+          if (Test-Path -Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path -Path node_modules) { Remove-Item -Recurse -Force node_modules }
         shell: pwsh
 
       - name: Install dependencies
@@ -30,7 +32,6 @@ jobs:
 
       - name: Build Electron app for Windows
         run: |
-          npm install
           CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --win --x64
 
       - name: Upload Artifacts
@@ -59,7 +60,6 @@ jobs:
 
       - name: Build Electron app for macOS ARM64
         run: |
-          npm install
           CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --mac --arm64
 
       - name: Locally sign the file
