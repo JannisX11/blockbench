@@ -15,7 +15,8 @@ mac:
   gatekeeperAssess: false
   entitlements: null
   entitlementsInherit: null
-  identity: null
+  identity: null  
+  artifactName: ThematicBench-arm64-mac.${ext}
 win:
   target:
     - nsis
@@ -24,3 +25,4 @@ linux:
   target:
     - AppImage
     - deb
+  artifactName: ThematicBench-win.${ext}
