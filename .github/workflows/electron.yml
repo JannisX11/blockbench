@@ -24,12 +24,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Ensure electron-builder is installed
-        run: npm install electron-builder
-
       - name: Build Electron app for Windows
         run: |
-          CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --win --x64
+          $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
+          $env:CSC_LINK='npx electron-builder'
+          npm install
+          npx electron-builder -- --win --x64
+        shell: pwsh
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
@@ -52,12 +53,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Ensure electron-builder is installed
-        run: npm install electron-builder
-
       - name: Build Electron app for macOS ARM64
         run: |
-          CSC_IDENTITY_AUTO_DISCOVERY=false CSC_LINK=npx electron-builder -- --mac --arm64
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          export CSC_LINK=npx electron-builder
+          npm install
+          npx electron-builder -- --mac --arm64
 
       - name: Locally sign the file
         run: codesign --deep --force --verbose --sign ./dist/mac-arm64/Blockbench.app
