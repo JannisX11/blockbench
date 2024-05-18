@@ -3,25 +3,26 @@ class UndoSystem {
 		this.index = 0;
 		this.history = [];
 	}
-	startChange(amended) {
-		/*if (this.current_save && Painter.painting) {
-			throw 'Canceled edit: Cannot perform edits while painting'
-		}*/
-		/*if (this.current_save && Transformer.dragging) {
-			throw 'Canceled edit: Cannot perform other edits while transforming elements'
-		}*/
-		if (!amended && this.amend_edit_menu) {
-			this.closeAmendEditMenu();
-		}
-	}
 	initEdit(aspects, amended = false) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
 		}
-		this.startChange(amended);
+		/*
+		if (
+			aspects && this.current_save &&
+			Objector.equalKeys(aspects, this.current_save.aspects) &&
+			aspects.elements !== selected &&
+			this.history.length == this.index
+		) {
+			return;
+		}
+		- This still causes issues, for example with different texture selections
+		*/
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		this.current_save = new UndoSystem.save(aspects)
-		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
 	finishEdit(action, aspects) {
@@ -42,8 +43,8 @@ class UndoSystem {
 		this.current_save = entry.post
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
+			delete this.current_save;
 		}
-		delete this.current_save;
 	 
 		this.history.push(entry)
 
@@ -60,13 +61,13 @@ class UndoSystem {
 		}
 		return entry;
 	}
-	cancelEdit(revert_changes = true) {
+	cancelEdit() {
 		if (!this.current_save) return;
-		this.startChange();
-		if (revert_changes) {
-			Canvas.outlines.children.empty();
-			this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
+		Canvas.outlines.children.empty();
+		if (this.amend_edit_menu) {
+			this.closeAmendEditMenu();
 		}
+		this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		delete this.current_save;
 	}
 	closeAmendEditMenu() {
@@ -101,14 +102,8 @@ class UndoSystem {
 				if (input) {
 					if (input.type == 'number') {
 						form_values[key] = input.slider.get();
-					} else if (input.type == 'checkbox') {
-						form_values[key] = !!input.node.checked;
 					}
 				}
-			}
-			if (Undo.history.length != Undo.index) {
-				console.error('Detected error in amending edit. Skipping this edit.');
-				return;
 			}
 			Undo.undo(null, true);
 			callback(form_values, scope.amend_edit_menu.form);
@@ -146,14 +141,6 @@ class UndoSystem {
 				input_elements[key] = slider;
 				this.amend_edit_menu.form[key].slider = slider
 				slider.update();
-
-			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
-				
-				let toggle = Interface.createElement('input', {type: 'checkbox', checked: form_line.value ? true : undefined});
-				toggle.addEventListener('input', updateValue);
-				line.append(toggle);
-				input_elements[key] = toggle;
-				this.amend_edit_menu.form[key].node = toggle;
 			}
 
 			let label = document.createElement('label');
@@ -177,7 +164,9 @@ class UndoSystem {
 		})
 	}
 	undo(remote, amended) {
-		this.startChange(amended);
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0 || this.index < 1) return;
 
 		Project.saved = false;
@@ -191,7 +180,9 @@ class UndoSystem {
 		Blockbench.dispatchEvent('undo', {entry})
 	}
 	redo(remote, amended) {
-		this.startChange(amended);
+		if (!amended && this.amend_edit_menu) {
+			this.closeAmendEditMenu();
+		}
 		if (this.history.length <= 0) return;
 		if (this.index >= this.history.length) {
 			return;
@@ -330,20 +321,11 @@ class UndoSystem {
 					var tex = Texture.all.find(tex => tex.uuid == uuid)
 					if (tex) {
 						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]);
-						if (tex.source_overwritten && save.textures[uuid].image_data) {
-							// If the source file was overwritten by more recent changes, make sure to display the original data
-							tex.convertToInternal(save.textures[uuid].image_data);
-						}
-						if (tex.layers_enabled) {
-							tex.updateLayerChanges(true);
-						}
-						tex.updateSource();
+						tex.extend(save.textures[uuid]).updateSource()
 						tex.keep_size = true;
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
 						}
-						tex.syncToOtherProject();
 					}
 				} else {
 					var tex = new Texture(save.textures[uuid], uuid)
@@ -358,39 +340,10 @@ class UndoSystem {
 					}
 					if (Texture.selected == tex) {
 						Texture.selected = undefined;
-						Blockbench.dispatchEvent('update_texture_selection');
 					}
 				}
 			}
-			Canvas.updateAllFaces();
-			updateInterfacePanels();
-			UVEditor.vue.updateTexture();
-		}
-
-		if (save.layers) {
-			let affected_textures = [];
-			for (let uuid in save.layers) {
-				if (reference.layers[uuid]) {
-					let tex = Texture.all.find(tex => tex.uuid == save.layers[uuid].texture);
-					let layer = tex && tex.layers.find(l => l.uuid == uuid);
-					if (layer) {
-						layer.extend(save.layers[uuid]);
-						affected_textures.safePush(tex);
-					}
-				}
-			}
-			affected_textures.forEach(tex => {
-				/*if (tex.source_overwritten && save.layers[uuid].image_data) {
-					// If the source file was overwritten by more recent changes, make sure to display the original data
-					tex.convertToInternal(save.layers[uuid].image_data);
-				}*/
-				tex.updateLayerChanges(true);
-				tex.updateSource();
-				tex.keep_size = true;
-				tex.syncToOtherProject();
-			})
-			Canvas.updateAllFaces();
-			UVEditor.vue.updateTexture();
+			Canvas.updateAllFaces()
 		}
 
 		if (save.texture_order) {
@@ -514,17 +467,15 @@ class UndoSystem {
 		}
 
 		if (save.display_slots) {
-			for (let slot in save.display_slots) {
-				let data = save.display_slots[slot]
+			for (var slot in save.display_slots) {
+				var data = save.display_slots[slot]
 
 				if (!Project.display_settings[slot] && data) {
 					Project.display_settings[slot] = new DisplaySlot()
 				} else if (data === null && Project.display_settings[slot]) {
 					Project.display_settings[slot].default()
 				}
-				if (Project.display_settings[slot]) {
-					Project.display_settings[slot].extend(data).update();
-				}
+				Project.display_settings[slot].extend(data).update()
 			}
 		}
 
@@ -538,9 +489,6 @@ class UndoSystem {
 		updateSelection()
 		if ((save.outliner || save.group) && Format.bone_rig) {
 			Canvas.updateAllBones();
-		}
-		if (save.outliner && Format.per_group_texture) {
-			Canvas.updateAllFaces();
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -586,16 +534,8 @@ UndoSystem.save = class {
 		if (aspects.textures) {
 			this.textures = {}
 			aspects.textures.forEach(t => {
-				let tex = t.getUndoCopy(aspects.bitmap)
+				var tex = t.getUndoCopy(aspects.bitmap)
 				this.textures[t.uuid] = tex
-			})
-		}
-
-		if (aspects.layers) {
-			this.layers = {};
-			aspects.layers.forEach(layer => {
-				let copy = layer.getUndoCopy(aspects.bitmap)
-				this.layers[layer.uuid] = copy;
 			})
 		}
 
@@ -661,29 +601,11 @@ UndoSystem.save = class {
 		if (aspects.exploded_view !== undefined) {
 			this.exploded_view = !!aspects.exploded_view;
 		}
-
-		Blockbench.dispatchEvent('create_undo_save', {save: this, aspects})
 	}
 	addTexture(texture) {
 		if (!this.textures) return;
 		if (this.aspects.textures.safePush(texture)) {
 			this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
-		}
-	}
-	addTextureOrLayer(texture) {
-		if (texture.layers_enabled && texture.layers[0]) {
-			let layer = texture.getActiveLayer();
-			if (!this.aspects.layers) this.aspects.layers = [];
-			if (this.aspects.layers.safePush(layer)) {
-				if (!this.layers) this.layers = {};
-				this.layers[layer.uuid] = layer.getUndoCopy(this.aspects.bitmap);
-			}
-		} else {
-			if (!this.aspects.textures) this.aspects.textures = [];
-			if (this.aspects.textures.safePush(texture)) {
-				if (!this.textures) this.textures = {};
-				this.textures[texture.uuid] = texture.getUndoCopy(this.aspects.bitmap)
-			}
 		}
 	}
 	addElements(elements, aspects = {}) {
@@ -702,6 +624,7 @@ BARS.defineActions(function() {
 		icon: 'undo',
 		category: 'edit',
 		condition: () => Project,
+		work_in_dialog: true,
 		keybind: new Keybind({key: 'z', ctrl: true}),
 		click(e) {
 			Project.undo.undo(e);
@@ -711,6 +634,7 @@ BARS.defineActions(function() {
 		icon: 'redo',
 		category: 'edit',
 		condition: () => Project,
+		work_in_dialog: true,
 		keybind: new Keybind({key: 'y', ctrl: true}),
 		click(e) {
 			Project.undo.redo(e);
@@ -721,6 +645,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: () => Project,
 		click() {
+
 			let steps = [];
 			Undo.history.forEachReverse((entry, index) => {
 				index++;

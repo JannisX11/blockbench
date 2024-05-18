@@ -3,14 +3,13 @@ BARS.defineActions(function() {
 
 	function getTextures() {
 		if (Texture.selected) {
-			return Texture.all.filter(t => t.selected || t.multi_selected);
+			return [Texture.selected];
 		} else {
 			return Texture.all;
 		}
 	}
 	let show_preview = true;
 
-	// Adjustments
 	new Action('invert_colors', {
 		icon: 'invert_colors',
 		category: 'textures',
@@ -22,11 +21,9 @@ BARS.defineActions(function() {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
-					texture.selection.maskCanvas(ctx);
 					ctx.clearRect(0, 0, texture.width, texture.height);
 					ctx.filter = 'invert(1)';
 					ctx.drawImage(texture.img, 0, 0);
-					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -51,7 +48,6 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
-						preview_changes: true,
 						brightness: 100,
 						contrast: 100,
 						textures
@@ -61,15 +57,9 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									if (this.preview_changes) {
-										ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
-									} else {
-										ctx.filter = `brightness(1.0) contrast(1.0)`;
-									}
+									ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									ctx.drawImage(original_imgs[i], 0, 0);
-									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -89,16 +79,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
-								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
+								<input type="range" class="tool" min="0" max="200" step="1" v-model="brightness" @input="change()">
+								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
-								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
-							</div>
-							<div class="bar button_bar_checkbox">
-								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
-								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+								<input type="range" class="tool" min="0" max="200" step="1" v-model="contrast" @input="change()">
+								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
 							</div>
 						</div>
 					`,
@@ -111,13 +97,6 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
-					if (!this.content_vue.preview_changes) {
-						this.content_vue.preview_changes = true;
-						this.content_vue.change();
-					}
-					textures.forEach((texture, i) => {
-						texture.updateChangesAfterEdit();
-					})
 					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
@@ -144,7 +123,6 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
-						preview_changes: true,
 						saturation: 100,
 						hue: 0,
 						textures
@@ -154,15 +132,9 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									if (this.preview_changes) {
-										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
-									} else {
-										ctx.filter = `brightness(1.0)`;
-									}
+									ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									ctx.drawImage(original_imgs[i], 0, 0);
-									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -182,16 +154,12 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
-								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
+								<input type="range" class="tool" min="0" max="200" step="1" v-model="saturation" @input="change()">
+								<input lang="en" type="number" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
 							</div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
-								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
-							</div>
-							<div class="bar button_bar_checkbox">
-								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
-								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+								<input type="range" class="tool" min="-180" max="180" step="1" v-model="hue" @input="change()">
+								<input lang="en" type="number" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 							</div>
 						</div>
 					`,
@@ -204,13 +172,6 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
-					if (!this.content_vue.preview_changes) {
-						this.content_vue.preview_changes = true;
-						this.content_vue.change();
-					}
-					textures.forEach((texture, i) => {
-						texture.updateChangesAfterEdit();
-					})
 					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
@@ -306,7 +267,6 @@ BARS.defineActions(function() {
 				width: 460,
 				component: {
 					data() {return {
-						preview_changes: true,
 						light_data: '',
 						graph: 'rgb',
 						graphs: {
@@ -342,36 +302,25 @@ BARS.defineActions(function() {
 									let ctx = canvas.getContext('2d');
 									let image_data = original_image_data[i];
 
-									if (this.preview_changes) {
-										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
-											
-											let R = image_data.original_data[i+0]
-											let G = image_data.original_data[i+1]
-											let B = image_data.original_data[i+2]
-											let A = image_data.original_data[i+3]
-											let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
+									for (let i = 0; i < image_data.data.length; i += 4) {
 
-											let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
-											let r = !curves.r ? Math.max(brightness, 1) : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
-											let g = !curves.g ? Math.max(brightness, 1) : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
-											let b = !curves.b ? Math.max(brightness, 1) : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
-											let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
-											brightness = Math.max(brightness, 1);
-										
-											image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
-											image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
-											image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
-											image_data.data[i+3] = a;
-										}
-									} else {
-										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
-											image_data.data[i+0] = image_data.original_data[i+0];
-											image_data.data[i+1] = image_data.original_data[i+1];
-											image_data.data[i+2] = image_data.original_data[i+2];
-											image_data.data[i+3] = image_data.original_data[i+3];
-										}
+										let R = image_data.original_data[i+0]
+										let G = image_data.original_data[i+1]
+										let B = image_data.original_data[i+2]
+										let A = image_data.original_data[i+3]
+										let brightness = Math.round(0.2126*R + 0.7152*G + 0.0722*B);
+
+										let rgb = !curves.rgb ? brightness : (values.rgb[brightness] !== undefined ? values.rgb[brightness] : values.rgb[brightness] = curves.rgb.getPointAt(brightness / 255).y * 255);
+										let r = !curves.r ? Math.max(brightness, 1) : (values.r[brightness] !== undefined ? values.r[brightness] : values.r[brightness] = curves.r.getPointAt(brightness / 255).y * 255);
+										let g = !curves.g ? Math.max(brightness, 1) : (values.g[brightness] !== undefined ? values.g[brightness] : values.g[brightness] = curves.g.getPointAt(brightness / 255).y * 255);
+										let b = !curves.b ? Math.max(brightness, 1) : (values.b[brightness] !== undefined ? values.b[brightness] : values.b[brightness] = curves.b.getPointAt(brightness / 255).y * 255);
+										let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
+										brightness = Math.max(brightness, 1);
+									
+										image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
+										image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
+										image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
+										image_data.data[i+3] = a;
 									}
 									ctx.putImageData(image_data, 0, 0);
 
@@ -467,10 +416,6 @@ BARS.defineActions(function() {
 									@contextmenu="contextMenu(point, $event)"
 								></div>
 							</div>
-							<div class="bar button_bar_checkbox">
-								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
-								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
-							</div>
 						</div>
 					`,
 					mounted() {
@@ -486,14 +431,7 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
-					if (!this.content_vue.preview_changes) {
-						this.content_vue.preview_changes = true;
-						this.content_vue.change();
-					}
-					textures.forEach((texture, i) => {
-						texture.updateChangesAfterEdit();
-					})
-					Undo.finishEdit('Adjust curves');
+					Undo.finishEdit('Invert colors');
 				},
 				onCancel() {
 					Undo.cancelEdit();
@@ -519,7 +457,6 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						show_preview,
-						preview_changes: true,
 						opacity: 100,
 						textures
 					}},
@@ -528,21 +465,13 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas) => {
 									let ctx = canvas.getContext('2d');
-									ctx.save();
-									texture.selection.maskCanvas(ctx);
 									ctx.clearRect(0, 0, texture.width, texture.height);
-									if (this.preview_changes) {
-										ctx.filter = `opacity(${this.opacity}%)`;
-										ctx.drawImage(original_imgs[i], 0, 0);
-										if (this.opacity > 100 && this.preview_changes) {
-											ctx.filter = `opacity(${this.opacity-100}%)`;
-											ctx.drawImage(original_imgs[i], 0, 0);
-										}
-									} else {
-										ctx.filter = `opacity(100%)`;
+									ctx.filter = `opacity(${this.opacity}%)`;
+									ctx.drawImage(original_imgs[i], 0, 0);
+									if (this.opacity > 100) {
+										ctx.filter = `opacity(${this.opacity-100}%)`;
 										ctx.drawImage(original_imgs[i], 0, 0);
 									}
-									ctx.restore();
 
 									let ref_ctx = this.$refs.canvas[i].getContext('2d');
 									ref_ctx.clearRect(0, 0, texture.width, texture.height);
@@ -562,12 +491,8 @@ BARS.defineActions(function() {
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
 							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
-								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
-							</div>
-							<div class="bar button_bar_checkbox">
-								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
-								<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model="opacity" @input="change()">
+								<input lang="en" type="number" class="tool" style="width: 64px;" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
 							</div>
 						</div>
 					`,
@@ -580,13 +505,6 @@ BARS.defineActions(function() {
 					}
 				},
 				onConfirm() {
-					if (!this.content_vue.preview_changes) {
-						this.content_vue.preview_changes = true;
-						this.content_vue.change();
-					}
-					textures.forEach((texture, i) => {
-						texture.updateChangesAfterEdit();
-					})
 					Undo.finishEdit('Adjust opacity');
 				},
 				onCancel() {
@@ -596,127 +514,20 @@ BARS.defineActions(function() {
 		}
 	})
 
-	// Effects
-	new Action('limit_to_palette', {
-		icon: 'blur_linear',
-		category: 'textures',
-		condition: {modes: ['paint'], method: () => Texture.all.length},
-		click() {
-			let textures = getTextures();
-			Undo.initEdit({textures, bitmap: true});
-			textures.forEach(texture => {
-				texture.edit((canvas) => {
-					let ctx = canvas.getContext('2d');
-					var palette = {};
-					ColorPanel.palette.forEach(color => {
-						palette[color] = tinycolor(color);
-					})
-					Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, pixel) => {
-						if (!texture.selection.allow(x, y)) return;
-						if (pixel[3] < 4) return;
-						let smallest_distance = Infinity;
-						let nearest_color = null;
-						let pixel_color = {_r: pixel[0], _g: pixel[1], _b: pixel[2]};
-						for (let key in palette) {
-							let color = palette[key];
-							let distance = colorDistance(color, pixel_color);
-							if (distance < smallest_distance) {
-								smallest_distance = distance;
-								nearest_color = color;
-							}
-						}
-						if (!nearest_color) return;
-						pixel[0] = nearest_color._r;
-						pixel[1] = nearest_color._g;
-						pixel[2] = nearest_color._b;
-						return pixel;
-					})
-
-				}, {no_undo: true});
-			})
-			Undo.finishEdit('Limit texture to palette')
-		}
-	})
-	new Action('clear_unused_texture_space', {
-		icon: 'cleaning_services',
-		category: 'textures',
-		condition: {modes: ['paint', 'edit'], features: ['edit_mode'], method: () => Texture.all.length},
-		click() {
-			let textures = getTextures();
-			Undo.initEdit({textures, bitmap: true});
-			textures.forEach(texture => {
-				texture.edit((canvas) => {
-					let frame_count = texture.frameCount || 1;
-					let ctx = canvas.getContext('2d');
-					ctx.clearRect(0, 0, canvas.width, canvas.height);
-					ctx.beginPath();
-
-					for (let frame = 0; frame < frame_count; frame++) {
-						let y_offset = (frame * texture.display_height) || 0;
-						Outliner.elements.forEach(el => {
-							if (el instanceof Mesh) {
-								for (var fkey in el.faces) {
-									var face = el.faces[fkey];
-									if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-									
-									let matrix = face.getOccupationMatrix(true, [0, 0]);
-									for (let x in matrix) {
-										for (let y in matrix[x]) {
-											if (!matrix[x][y]) continue;
-											x = parseInt(x); y = parseInt(y);
-											ctx.rect(x, y + y_offset, 1, 1);
-										}
-									}
-								}
-							} else if (el instanceof Cube) {
-								let factor_x = texture.width  / Project.texture_width;
-								let factor_y = texture.display_height / Project.texture_height;
-								for (var fkey in el.faces) {
-									var face = el.faces[fkey];
-									if (face.getTexture() !== texture) continue;
-									
-									let rect = face.getBoundingRect();
-									let canvasRect = [
-										Math.floor(rect.ax * factor_x),
-										Math.floor(rect.ay * factor_y) + y_offset,
-										Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
-										Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
-									]
-									ctx.rect(...canvasRect);
-								}
-							}
-						})
-					}
-
-					ctx.clip();
-					ctx.drawImage(texture.img, 0, 0);
-				}, {no_undo: true});
-			})
-			Undo.finishEdit('Clear unused texture space')
-		}
-	})
-
-	// Transform
 	new Action('flip_texture_x', {
 		icon: 'icon-mirror_x',
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.flip(0, true);
-				return;
-			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
-					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(-1, 1);
 					ctx.drawImage(texture.img, -canvas.width, 0);
-					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -728,21 +539,15 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.flip(1, true);
-				return;
-			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
-					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(1, -1);
 					ctx.drawImage(texture.img, 0, -canvas.height);
-					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -754,21 +559,15 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.rotate(90, true);
-				return;
-			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
-					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(Math.PI/2);
 					ctx.drawImage(texture.img, 0, -canvas.height);
-					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -780,21 +579,15 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.rotate(-90, true);
-				return;
-			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
-					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(-Math.PI/2);
 					ctx.drawImage(texture.img, -canvas.width, 0);
-					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -804,110 +597,10 @@ BARS.defineActions(function() {
 	new Action('resize_texture', {
 		icon: 'photo_size_select_large',
 		category: 'textures',
-		condition: () => Texture.selected,
+		condition: () => Texture.all.length,
 		click() {
-			let texture = Texture.selected;
+			let texture = Texture.getDefault();
 			texture.resizeDialog();
-		}
-	})
-	new Action('crop_texture_to_selection', {
-		icon: 'crop',
-		category: 'textures',
-		condition: () => Texture.selected,
-		click() {
-			let texture = Texture.selected;
-			let rect = texture.selection.getBoundingRect();
-			let uv_factor = texture.width / texture.uv_width;
-			let old_width = texture.width;
-			let old_height = texture.height;
-			if (!rect.width || !rect.height) return;
-
-			Undo.initEdit({textures: [texture], bitmap: true});
-
-			if (!texture.layers_enabled) {
-				texture.width = texture.canvas.width = rect.width;
-				texture.height = texture.canvas.height = rect.height;
-				texture.ctx.imageSmoothingEnabled = false;
-				texture.ctx.drawImage(texture.img, -rect.start_x, -rect.start_y);
-			} else {
-				texture.width = texture.canvas.width = rect.width;
-				texture.height = texture.canvas.height = rect.height;
-				texture.layers.forEach(layer => {
-					layer.offset[0] -= rect.start_x;
-					layer.offset[1] -= rect.start_y;
-				})
-			}
-			texture.uv_width = texture.canvas.width * uv_factor;
-			texture.uv_height = texture.canvas.height * uv_factor;
-
-			texture.updateChangesAfterEdit();
-			texture.selection.clear();
-			UVEditor.updateSelectionOutline();
-
-			Undo.finishEdit('Crop texture to selection');
-			setTimeout(updateSelection, 100);
-
-			// Fix UV
-			let elements_to_change = [];
-			Outliner.elements.forEach(element => {
-				if (!element.faces) return;
-				for (let key in element.faces) {
-					if (element.faces[key].getTexture() == texture) {
-						elements_to_change.safePush(element);
-						break;
-					}
-				}
-			})
-			if (elements_to_change.length) {
-				Undo.initEdit({elements: elements_to_change});
-				let uv_adjust_x = 1;
-				let uv_adjust_y = 1;
-				if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
-					if (!Format.per_texture_uv_size) {
-						Undo.current_save.uv_mode = {
-							box_uv: Project.box_uv,
-							width:  Project.texture_width,
-							height: Project.texture_height
-						}
-						Undo.current_save.aspects.uv_mode = true;
-						Project.texture_width = Project.texture_width * (rect.width / old_width);
-						Project.texture_height = Project.texture_height * (rect.height / old_height);
-					}
-
-				} else {
-					uv_adjust_x = rect.width / old_width;
-					uv_adjust_y = rect.height / old_height;
-				}
-				elements_to_change.forEach(element => {
-					if (element instanceof Cube) {
-						for (let key in element.faces) {
-							if (element.faces[key].getTexture() != texture) continue;
-							if (element.box_uv) {
-								element.uv_offset[0] -= (rect.start_x * uv_factor);
-								element.uv_offset[1] -= (rect.start_y * uv_factor);
-							} else {
-								let uv = element.faces[key].uv;
-								uv[0] = uv[0] / uv_adjust_x - (rect.start_x * uv_factor);
-								uv[2] = uv[2] / uv_adjust_x - (rect.start_x * uv_factor);
-								uv[1] = uv[1] / uv_adjust_y - (rect.start_y * uv_factor);
-								uv[3] = uv[3] / uv_adjust_y - (rect.start_y * uv_factor);
-							}
-							
-						}
-					} else if (element instanceof Mesh) {
-						for (let key in element.faces) {
-							if (element.faces[key].getTexture() != texture) continue;
-							let uv = element.faces[key].uv;
-							for (let vkey in uv) {
-								uv[vkey][0] = uv[vkey][0] / uv_adjust_x - (rect.start_x * uv_factor);
-								uv[vkey][1] = uv[vkey][1] / uv_adjust_y - (rect.start_y * uv_factor);
-							}
-						}
-					}
-				})
-				Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
-				Undo.finishEdit('Adjust UV after cropping texture');
-			}
 		}
 	})
 })

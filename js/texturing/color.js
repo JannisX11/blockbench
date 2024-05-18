@@ -51,19 +51,6 @@ var palettes = {
 }
 
 
-SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue.open_tab),
-	run() {
-		if (StateMemory.color_palette_locked) {
-			Blockbench.showQuickMessage('message.palette_locked');
-			return;
-		}
-		if (ColorPanel.vue.palette.includes(ColorPanel.vue.selected_color)) {
-			ColorPanel.vue.palette.remove(ColorPanel.vue.selected_color)
-		}
-	}
-})
-
 Interface.definePanels(() => {
 	var saved_colors = localStorage.getItem('colors');
 	if (saved_colors) {
@@ -74,8 +61,7 @@ Interface.definePanels(() => {
 		}
 	}
 	StateMemory.init('color_picker_tab', 'string')
-	StateMemory.init('color_picker_rgb', 'boolean')
-	StateMemory.init('color_palette_locked', 'boolean')
+	StateMemory.init('color_picker_rgb_mode', 'boolean')
 
 	ColorPanel = new Panel('color', {
 		icon: 'palette',
@@ -86,45 +72,19 @@ Interface.definePanels(() => {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: [
-			new Toolbar('color_picker', {
-				children: [
-					'slider_color_h',
-					'slider_color_s',
-					'slider_color_v',
-					'slider_color_red',
-					'slider_color_green',
-					'slider_color_blue',
-					'add_to_palette',
-					'pick_screen_color'
-				]
-			}),
-			new Toolbar('palette', {
-				children: [
-					'import_palette',
-					'export_palette',
-					'generate_palette',
-					'sort_palette',
-					'save_palette',
-					'load_palette',
-				]
-			})
-		],
+		toolbars: {
+			color_picker: Toolbars.color_picker,
+			palette: Toolbars.palette
+		},
 		onResize() {
-			Panels.color.vue.width = 0;
+			Interface.Panels.color.vue.width = 0;
 			Vue.nextTick(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
 				this.vue.$refs.square_picker.style.display = 'none';
-				Panels.color.vue.width = Math.clamp(this.width, 100, 1000);
-				if (!this.isInSidebar()) {
-					if (this.vue.picker_type == 'box') {
-						let height = this.height - this.vue.$el.clientHeight - this.handle.clientHeight - 6;
-						Panels.color.vue.picker_height = Math.clamp(height, 100, 1000);
-					} else {
-						let max = Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
-						Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
-					}
-				}
+				let max = this.isInSidebar()
+					? 1000
+					: Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
+				Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
 					$('#main_colorpicker').spectrum('reflow');
@@ -134,22 +94,15 @@ Interface.definePanels(() => {
 		component: {
 			data: {
 				width: 100,
-				picker_height: 100,
 				open_tab: StateMemory.color_picker_tab || 'picker',
 				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
-				main_color: '#ffffff',
-				second_color: '#000000',
+				main_color: '#000000',
 				hover_color: '',
-				second_color_selected: false,
-				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
+				get color_code() {return this.hover_color || this.main_color},
 				set color_code(color) {
-					if (this.second_color_selected == false) {
-						this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
-					} else {
-						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
-					}
+					this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
 				},
-				text_input: '#ffffff',
+				text_input: '#000000',
 				hsv: {
 					h: 0,
 					s: 0,
@@ -159,6 +112,10 @@ Interface.definePanels(() => {
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
 			},
 			methods: {
+				togglePickerType() {
+					settings.color_wheel.set(!settings.color_wheel.value);
+					Panels.color.onResize();
+				},
 				colorPickerMenu(event) {
 					new Menu('color_picker_menu', [
 						{
@@ -166,13 +123,11 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.picker_type',
 							icon: 'palette',
 							children: [
-								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
+								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
 									settings.color_wheel.set(false);
-									Panels.color.onResize();
 								}},
-								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
 									settings.color_wheel.set(true);
-									Panels.color.onResize();
 								}}
 							]
 						},
@@ -181,26 +136,17 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.slider_mode',
 							icon: 'tune',
 							children: [
-								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
+								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'radio_button_unchecked' : 'radio_button_checked', click: () => {
 									StateMemory.set('color_picker_rgb', false);
 									BARS.updateConditions();
 									this.updateSliders();
 								}},
-								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'radio_button_checked' : 'radio_button_unchecked', click: () => {
 									StateMemory.set('color_picker_rgb', true);
 									BARS.updateConditions();
 									this.updateSliders();
 								}}
 							]
-						},
-						{
-							id: 'lock_palette',
-							name: 'menu.palette.lock_palette',
-							icon: () => StateMemory.color_palette_locked,
-							click() {
-								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
-								StateMemory.save('color_palette_locked');
-							}
 						}
 						// slider
 					]).open(event.target);
@@ -215,7 +161,6 @@ Interface.definePanels(() => {
 						BarItems.slider_color_s.update();
 						BarItems.slider_color_v.update();
 					}
-					BarItems.slider_palette_color.update();
 				},
 				onMouseWheel(event) {
 					if (!event.target) return;
@@ -225,42 +170,14 @@ Interface.definePanels(() => {
 						BarItems.slider_color_h.change(v => v+sign);
 					}
 				},
-				sortChoose() {
-					if (StateMemory.color_palette_locked) {
-						Blockbench.showQuickMessage('message.palette_locked');
-					}
-				},
-				sortMove() {
-					if (StateMemory.color_palette_locked) {
-						return false;
-					}
-				},
 				sort(event) {
 					var item = this.palette.splice(event.oldIndex, 1)[0];
 					this.palette.splice(event.newIndex, 0, item);
 				},
 				drop(event) {
 				},
-				setColor(color, second_color = this.second_color_selected) {
-					ColorPanel.set(color, second_color);
-				},
-				changeColor(color, secondary = this.second_color_selected) {
-					this[secondary ? 'second_color' : 'main_color'] = color;
-				},
-				swapColors() {
-					BarItems.swap_colors.click();
-				},
-				getSwapColorsTooltip() {
-					return `${BarItems.swap_colors.name} (${BarItems.swap_colors.keybind})`
-				},
-				selectMainOrSecondary(secondary) {
-					if (this.second_color_selected != secondary) {
-						this.second_color_selected = !!secondary;
-						Object.assign(this.hsv, ColorPanel.hexToHsv(this.selected_color));
-						this.updateSliders();
-						$('#main_colorpicker').spectrum('set', this.selected_color);
-						this.text_input = this.selected_color;
-					}
+				setColor(color) {
+					ColorPanel.set(color);
 				},
 				validateMainColor() {
 					var color = this.main_color;
@@ -277,31 +194,14 @@ Interface.definePanels(() => {
 				},
 				tl
 			},
-			computed: {
-				selected_color() {
-					return this.second_color_selected ? this.second_color : this.main_color;
-				}
-			},
 			watch: {
 				main_color: function(value) {
 					this.hover_color = '';
-					if (!this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
-						this.text_input = value;
-					}
+					Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+					this.updateSliders()
+					$('#main_colorpicker').spectrum('set', value);
+					this.text_input = value;
 					Blockbench.dispatchEvent('change_color', {color: value})
-				},
-				second_color: function(value) {
-					this.hover_color = '';
-					if (this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
-						this.text_input = value;
-					}
-					Blockbench.dispatchEvent('change_color', {color: value, secondary: true})
 				},
 				open_tab(tab) {
 					StateMemory.color_picker_tab = tab;
@@ -314,22 +214,15 @@ Interface.definePanels(() => {
 			template: `
 				<div id="color_panel_wrapper" class="panel_inside">
 					<div id="color_panel_head">
-						<div class="chosen">
-							<div class="secondary" :class="{selected: second_color_selected}" :style="{'background-color': (second_color_selected && hover_color) || second_color}" @click="selectMainOrSecondary(true)"></div>
-							<div class="main" :class="{selected: !second_color_selected}" :style="{'background-color': (!second_color_selected && hover_color) || main_color}" @click="selectMainOrSecondary(false)"></div>
-							<div class="tool switcher" @click="swapColors()" :title="getSwapColorsTooltip()">
-								<i class="material-icons icon">swap_vert</i>
-							</div>
-						</div>
+						<div class="main" v-bind:style="{'background-color': hover_color || main_color}"></div>
 						<div class="side">
 							<input type="text" v-model="color_code" @focusout="validateMainColor()">
 							<div id="color_history">
 								<li
 									v-for="(color, i) in history" v-if="i || color != main_color"
 									:key="color"
-									:style="{'background-color': color}"
-									:title="color"
-									@click="setColor(color)" @contextmenu="setColor(color, true)"
+									v-bind:style="{'background-color': color}"
+									v-bind:title="color" @click="setColor(color)"
 								></li>
 							</div>
 						</div>
@@ -351,24 +244,25 @@ Interface.definePanels(() => {
 						</div>
 
 					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
-						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
+					<div v-show="open_tab == 'picker' || open_tab == 'both'" @mousewheel="onMouseWheel($event)">
+						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px'}">
 							<input id="main_colorpicker">
 						</div>
-						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
+						<color-wheel v-if="picker_type == 'wheel' && width" v-model="main_color" :width="width" :height="width"></color-wheel>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
 					<div v-show="open_tab == 'palette' || open_tab == 'both'">
 						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
 							<li
 								class="color" v-for="color in palette"
 								:title="color" :key="color"
-								:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
+								:class="{selected: color == main_color, contrast: isDarkColor(color)}"
 								@click="setColor(color)"
-								@contextmenu.stop="setColor(color, true)"
+								@mouseenter="hover_color = color"
+								@mouseleave="hover_color = ''"
 							>
-								<div class="color_inner" :style="{'background-color': color}"></div>
+								<div class="color_inner" v-bind:style="{'background-color': color}"></div>
 							</li>
 						</ul>
 					</div>
@@ -380,27 +274,16 @@ Interface.definePanels(() => {
 					color: 'ffffff',
 					flat: true,
 					localStorageKey: 'brush_color_palette',
-					move: (c) => {
-						ColorPanel.change(c, this.second_color_selected);
+					move: function(c) {
+						ColorPanel.change(c)
 					}
 				})
 			}
 		},
 		menu: new Menu([
-			new MenuSeparator('options'),
-			{
-				id: 'lock_palette',
-				name: 'menu.palette.lock_palette',
-				icon: () => StateMemory.color_palette_locked,
-				click() {
-					StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
-					StateMemory.save('color_palette_locked');
-				}
-			},
-			new MenuSeparator('file'),
 			'sort_palette',
 			'save_palette',
-			'load_palette',
+			'load_palette'
 		])
 	})
 	ColorPanel.updateFromHsv = function() {
@@ -432,18 +315,20 @@ Interface.definePanels(() => {
 			ColorPanel.saveLocalStorages();
 		}
 	}
-	ColorPanel.change = function(color, secondary) {
+	ColorPanel.change = function(color) {
 		var value = new tinycolor(color)
-		ColorPanel.vue[secondary ? 'second_color' : 'main_color'] = value.toHexString();
+		ColorPanel.vue._data.main_color = value.toHexString();
 	}
-	ColorPanel.set = function(color, secondary, no_sync) {
-		ColorPanel.change(color, secondary);
-		ColorPanel.addToHistory(ColorPanel.vue.main_color)
+	ColorPanel.set = function(color, no_sync) {
+		ColorPanel.change(color)
+		ColorPanel.addToHistory(ColorPanel.vue._data.main_color)
+		if (!no_sync && isApp && settings.sync_color.value) {
+			ipcRenderer.send('change-main-color', ColorPanel.vue._data.main_color);
+		}
 	}
-	ColorPanel.get = function(secondary) {
-		let color = secondary ? ColorPanel.vue.second_color : ColorPanel.vue.main_color;
-		ColorPanel.addToHistory(color);
-		return color;
+	ColorPanel.get = function() {
+		ColorPanel.addToHistory(ColorPanel.vue._data.main_color);
+		return ColorPanel.vue._data.main_color;
 	}
 	ColorPanel.saveLocalStorages = function() {
 		localStorage.setItem('colors', JSON.stringify({
@@ -452,14 +337,14 @@ Interface.definePanels(() => {
 		}))
 	}
 
-	$('#color_history').on('wheel', function(e) {
+	$('#color_history').on('mousewheel', function(e) {
 		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
 		this.scrollLeft += delta;
 	})
 
 	if (isApp) {
 		ipcRenderer.on('set-main-color', (event, arg) => {
-			ColorPanel.set(arg);
+			ColorPanel.set(arg, true);
 		})
 	}	
 
@@ -710,12 +595,10 @@ Interface.definePanels(() => {
 	ColorPanel.generatePalette = function(source, process_colors = true) {
 
 		var options = {};
-		let selected_texture;
 		if (!source) {
 			Texture.all.forEach((tex, i) => {
 				if (!tex.error) {
 					options[i] = tex.name;
-					if (tex.selected) selected_texture = i;
 				}
 			})
 		}
@@ -724,7 +607,7 @@ Interface.definePanels(() => {
 			title: 'action.import_palette',
 			width: 460,
 			form: {
-				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
+				texture: {label: 'data.texture', type: 'select', options, condition: !source},
 				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
 				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
 			},
@@ -847,26 +730,12 @@ BARS.defineActions(function() {
 		icon: 'add',
 		category: 'color',
 		click: function () {
-			let color = ColorPanel.get();
-			if (StateMemory.color_palette_locked) {
-				Blockbench.showQuickMessage('message.palette_locked');
-
-			} else if (!ColorPanel.palette.includes(color)) {
+			var color = ColorPanel.get();
+			if (!ColorPanel.palette.includes(color)) {
 				ColorPanel.palette.push(color);
 				ColorPanel.saveLocalStorages();
 				Blockbench.showQuickMessage('message.add_to_palette');
 			}
-		}
-	})
-	new Action('swap_colors', {
-		icon: 'swap_vert',
-		category: 'color',
-		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 'x'}),
-		click() {
-			let color = ColorPanel.vue.main_color;
-			ColorPanel.vue.main_color = ColorPanel.vue.second_color;
-			ColorPanel.vue.second_color = color;
 		}
 	})
 	new Action('import_palette', {
@@ -967,7 +836,6 @@ BARS.defineActions(function() {
 	new Action('load_palette', {
 		icon: 'fa-tasks',
 		category: 'color',
-		condition: {modes: ['paint']},
 		click: function (e) {
 			new Menu(this.children()).open(e.target)
 		},
@@ -1020,7 +888,6 @@ BARS.defineActions(function() {
 
 	new Action('save_palette', {
 		icon: 'playlist_add',
-		condition: {modes: ['paint']},
 		click(event) {	
 			let dialog = new Dialog({
 				id: 'save_palette',
@@ -1049,13 +916,13 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_h', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
-		sensitivity: 15,
 		settings: {
 			min: 0, max: 360, default: 0, show_bar: true
 		},
 		getInterval(e) {
-			if (e.shiftKey || Pressing.overrides.shift) return 4;
-			return 1
+			if (e.shiftKey || Pressing.overrides.shift) return 12.5;
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
+			return 4
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.h);
@@ -1069,13 +936,13 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_s', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
-		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 0, show_bar: true
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;
-			return 1
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
+			return 2
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.s);
@@ -1089,13 +956,13 @@ BARS.defineActions(function() {
 	new NumSlider('slider_color_v', {
 		condition: () => Modes.paint && !StateMemory.color_picker_rgb,
 		category: 'color',
-		sensitivity: 20,
 		settings: {
 			min: 0, max: 100, default: 100, show_bar: true
 		},
 		getInterval(e) {
 			if (e.shiftKey || Pressing.overrides.shift) return 10;
-			return 1
+			if (e.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
+			return 2
 		},
 		get: function() {
 			return Math.round(ColorPanel.vue._data.hsv.v);
@@ -1164,21 +1031,6 @@ BARS.defineActions(function() {
 	slider_vector_rgb.forEach(slider => slider.slider_vector = slider_vector_rgb);
 
 
-	new NumSlider('slider_palette_color', {
-		condition: {modes: ['paint']},
-		category: 'color',
-		invert_scroll_direction: true,
-		get() {
-			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
-		},
-		getInterval() {return 1},
-		change(modify) {
-			let value = Math.clamp(modify(this.get()), 1, ColorPanel.palette.length);
-			let color = ColorPanel.palette[value-1];
-			ColorPanel.set(color);
-		}
-	})
-
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',
@@ -1186,7 +1038,7 @@ BARS.defineActions(function() {
 		click: async function () {
 			if (Blockbench.platform == 'win32') {
 				// workaround for https://github.com/electron/electron/issues/27980
-				ipcRenderer.send('request-color-picker', {sync: false});
+				ipcRenderer.send('request-color-picker', {sync: settings.sync_color.value});
 
 			} else if (typeof EyeDropper == 'function') {
 				let dropper = new EyeDropper();

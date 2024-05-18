@@ -30,7 +30,7 @@ const Validator = {
 					console.error(error);
 				}
 			})
-		}, 40)
+		}, 400)
 	},
 	openDialog() {
 		if (!Validator.dialog) {
@@ -52,14 +52,14 @@ const Validator = {
 					},
 					methods: {
 						getIconNode: Blockbench.getIconNode,
-						pureMarked
+						marked
 					},
 					template: `
 						<template>
 							<ul>
 								<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
 									<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
-									<span class="markdown" v-html="pureMarked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
+									<span class="markdown" v-html="marked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
 									<template v-if="problem.buttons">
 										<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
 											<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
@@ -96,8 +96,6 @@ class ValidatorCheck {
 		this.run = options.run;
 		this.errors = [];
 		this.warnings = [];
-		this._timeout = null;
-		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		Validator.checks.push(this);
 		Validator.updateCashedTriggers();
@@ -117,26 +115,6 @@ class ValidatorCheck {
 		} catch (error) {
 			console.error(error);
 		}
-	}
-	validate() {
-		if (this._timeout) {
-			clearTimeout(this._timeout);
-			this._timeout = null;
-		}
-
-		this._timeout = setTimeout(() => {
-			this._timeout = null;
-
-			this.update();
-
-			Validator.warnings.empty();
-			Validator.errors.empty();
-
-			Validator.checks.forEach(check => {
-				Validator.warnings.push(...check.warnings);
-				Validator.errors.push(...check.errors);
-			})
-		}, 40)
 	}
 	warn(...warnings) {
 		this.warnings.push(...warnings);
@@ -189,7 +167,7 @@ new ValidatorCheck('box_uv', {
 		Cube.all.forEach(cube => {
 			if (!cube.box_uv) return;
 			let size = cube.size();
-			let invalid_size_axes = size.filter((value, axis) => value < 0.999 && (value+cube.inflate*2) * cube.stretch[axis] > 0.005);
+			let invalid_size_axes = size.filter(value => value < 0.999 && (value+cube.inflate*2) > 0.005);
 			if (invalid_size_axes.length) {
 				let buttons = [
 					{
@@ -208,10 +186,15 @@ new ValidatorCheck('box_uv', {
 						click() {
 							Validator.dialog.hide();
 							
-							Undo.initEdit({elements: [cube], uv_only: true});
-							cube.setUVMode(false);
-							Undo.finishEdit('Change UV mode')
-							updateSelection();
+							save = Undo.initEdit({uv_mode: true})
+							Project.box_uv = false;
+							Canvas.updateAllUVs()
+							updateSelection()
+							Undo.finishEdit('Change project UV settings')
+							BARS.updateConditions()
+							if (Project.EditSession) {
+								Project.EditSession.sendAll('change_project_meta', JSON.stringify({box_uv: false}));
+							}
 						}
 					})
 				}
@@ -229,11 +212,10 @@ new ValidatorCheck('texture_names', {
 	update_triggers: ['add_texture', 'change_texture_path'],
 	run() {
 		Texture.all.forEach(texture => {
-			let used_path = texture.folder ? (texture.folder + '/' + texture.name) : texture.name;
-			let characters = used_path.replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
+			let characters = (texture.folder + texture.name).replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
 			if (characters) {
 				this.warn({
-					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
+					message: `Texture "${texture.name}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
 					buttons: [
 						{
 							name: 'Select Texture',

@@ -104,7 +104,7 @@ class AnimationControllerState {
 		// From Bedrock
 		if (data.particle_effects instanceof Array) {
 			this.particles.empty();
-			data.particle_effects.forEach(effect => {
+			data.particles.forEach(effect => {
 				let particle = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -118,7 +118,7 @@ class AnimationControllerState {
 		}
 		if (data.sound_effects instanceof Array) {
 			this.sounds.empty();
-			data.sound_effects.forEach(effect => {
+			data.sounds.forEach(effect => {
 				let sound = {
 					uuid: guid(),
 					effect: effect.effect || '',
@@ -178,13 +178,11 @@ class AnimationControllerState {
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
 				let state = this.controller.states.find(s => s.uuid == transition.target);
-				let condition = transition.condition.replace(/\n/g, '');
-				return new oneLiner({[state ? state.name : 'missing_state']: condition})
+				return new oneLiner({[state ? state.name : 'missing_state']: transition.condition})
 			})
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
-		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
@@ -210,14 +208,13 @@ class AnimationControllerState {
 				media.pause();
 			}
 		})
-		this.playing_sounds.empty();
+		this.playing_sounds.empty();1
 	}
 	playEffects() {
 		if (!this.muted.sound) {
 			this.sounds.forEach(sound => {
 				if (sound.file && !sound.cooldown) {
 					var media = new Audio(sound.file);
-					media.playbackRate = Math.clamp(AnimationController.playback_speed/100, 0.1, 4.0);
 					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 					media.play().catch(() => {});
 					this.playing_sounds.push(media);
@@ -390,8 +387,7 @@ class AnimationControllerState {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
 	getStateTime() {
-		if (!this.start_timestamp) return 0;
-		return (Date.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
+		return this.start_timestamp ? (Date.now() - this.start_timestamp) / 1000 : 0;
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
@@ -407,7 +403,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	{
 		id: 'set_as_initial_state',
 		name: 'Initial State',
-		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'far.fa-dot-circle' : 'far.fa-circle'),
+		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
 		click(state) {
 			if (!AnimationController.selected) return;
 			Undo.initEdit({animation_controllers: [AnimationController.selected]});
@@ -415,7 +411,7 @@ AnimationControllerState.prototype.menu = new Menu([
 			Undo.finishEdit('Change animation controller initial state');
 		}
 	},
-	new MenuSeparator('manage'),
+	'_',
 	'duplicate',
 	'rename',
 	'delete',
@@ -514,8 +510,6 @@ class AnimationController extends AnimationItem {
 		this.states.forEach(state => {
 			object.states[state.name] = state.compileForBedrock();
 		})
-
-		Blockbench.dispatchEvent('compile_bedrock_animation_controller', {animation_controller: this, json: object});
 
 		return object;
 	}
@@ -651,32 +645,29 @@ class AnimationController extends AnimationItem {
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
-			a.selected = false;
-			if (a.playing == true) a.playing = false;
+			a.selected = a.playing = false;
 		})
 
 		Panels.animation_controllers.inside_vue.controller = this;
 
 		this.selected = true;
-		if (this.playing == false) this.playing = true;
+		this.playing = true;
 		AnimationItem.selected = this;
 
 		if (Modes.animate) {
 			Animator.preview();
 			updateInterface();
-			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
 	}
 	createUniqueName(arr) {
 		var scope = this;
-		var others = AnimationController.all.slice();
+		var others = AnimationController.all;
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
 			})
 		}
-		others = others.filter(a => a.path == this.path);
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -729,6 +720,7 @@ class AnimationController extends AnimationItem {
 			this.playing = state !== undefined ? state : !this.playing;
 			Animator.preview();
 		} else {
+			Timeline.start();
 		}
 		return this.playing;
 	}
@@ -744,7 +736,6 @@ class AnimationController extends AnimationItem {
 		if (!AnimationController.all.includes(this)) {
 			AnimationController.all.push(this)
 		}
-		this.createUniqueName();
 		if (undo) {
 			this.select()
 			Undo.finishEdit('Add animation controller', {animation_controllers: [this]})
@@ -813,10 +804,10 @@ class AnimationController extends AnimationItem {
 					Undo.initEdit({animation_controllers: [this]});
 
 					this.name = form_data.name;
-					if (isApp) this.path = form_data.path;
 					this.createUniqueName();
+					if (isApp) this.path = form_data.path;
 
-					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controllers: [this]})
+					Blockbench.dispatchEvent('edit_animation_controller_properties', {animation_controller: this})
 
 					Undo.finishEdit('Edit animation controller properties');
 				}
@@ -827,7 +818,6 @@ class AnimationController extends AnimationItem {
 		})
 		dialog.show();
 	}
-	static playback_speed = 100
 }
 	Object.defineProperty(AnimationController, 'all', {
 		get() {
@@ -839,11 +829,10 @@ class AnimationController extends AnimationItem {
 	})
 	AnimationController.selected = null;
 	AnimationController.prototype.menu = new Menu([
-		new MenuSeparator('copypaste'),
 		'copy',
 		'paste',
 		'duplicate',
-		new MenuSeparator('manage'),
+		'_',
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -875,8 +864,8 @@ class AnimationController extends AnimationItem {
 			}
 		},
 		'delete',
-		new MenuSeparator('properties'),
-		{name: 'menu.animation.properties', icon: 'list', click(animation) {
+		'_',
+		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
@@ -961,7 +950,7 @@ Blockbench.on('finish_edit', event => {
 	if (!Format.animation_controllers) return;
 	if (event.aspects.animation_controllers) {
 		event.aspects.animation_controllers.forEach(controller => {
-			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(controller)) {
+			if (Undo.current_save && Undo.current_save.aspects.animation_controllers instanceof Array && Undo.current_save.aspects.animation_controllers.includes(animation)) {
 				controller.saved = false;
 			}
 		})
@@ -971,45 +960,9 @@ Blockbench.on('finish_edit', event => {
 	}
 })
 
-SharedActions.add('rename', {
-	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
-	run() {
-		AnimationController.selected?.selected_state.rename();
-	}
-})
-SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
-	run() {
-		AnimationController.selected?.selected_state.remove(true);
-	}
-})
-SharedActions.add('duplicate', {
-	condition: () => Prop.active_panel == 'animations' && AnimationController.selected,
-	run() {
-		let copy = AnimationController.selected.getUndoCopy();
-		let controller = new AnimationController(copy);
-		Property.resetUniqueValues(AnimationController, controller);
-		controller.createUniqueName();
-		AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
-		controller.saved = false;
-		controller.add(true).select();
-	}
-})
-SharedActions.add('duplicate', {
-	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
-	run() {
-		Undo.initEdit({animation_controllers: [AnimationController.selected]});
-		let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
-		let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
-		AnimationController.selected.states.remove(state);
-		AnimationController.selected.states.splice(index+1, 0, state);
-		Undo.finishEdit('Duplicate animation controller state');
-	}
-})
-
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'account_tree',
+		icon: 'cable',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
@@ -1017,8 +970,7 @@ Interface.definePanels(() => {
 			float_size: [600, 300],
 			height: 260,
 		},
-		growable: true,
-		resizable: true,
+		grow: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -1029,7 +981,6 @@ Interface.definePanels(() => {
 				controller: null,
 				presets: AnimationController.presets,
 				zoom: 1,
-				playback_speed: 100,
 				connection_wrapper_offset: 0,
 				connecting: false,
 				pickwhip: {
@@ -1058,7 +1009,7 @@ Interface.definePanels(() => {
 					let list = [
 						{
 							name: 'generic.unset',
-							icon: animation.animation == '' ? 'far.fa-dot-circle' : 'far.fa-circle',
+							icon: animation.animation == '' ? 'radio_button_checked' : 'radio_button_unchecked',
 							click: () => {
 								animation.key = '';
 								animation.animation = '';
@@ -1071,7 +1022,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: animation.animation == anim.uuid ? 'far.fa-dot-circle' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'far.fa-circle'),
+							icon: animation.animation == anim.uuid ? 'radio_button_checked' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'radio_button_unchecked'),
 							click: () => apply(anim)
 						})
 					})
@@ -1092,7 +1043,7 @@ Interface.definePanels(() => {
 						if (state2 == state) return;
 						list.push({
 							name: state2.name,
-							icon: transition.target == state2.uuid ? 'far.fa-dot-circle' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'far.fa-circle'),
+							icon: transition.target == state2.uuid ? 'radio_button_checked' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'radio_button_unchecked'),
 							click: () => {
 								transition.target = state2.uuid;
 							}
@@ -1109,8 +1060,7 @@ Interface.definePanels(() => {
 					let menu = new Menu('controller_state_transitions', list, {searchable: list.length > 9});
 					menu.open(event.target);
 				},
-				openParticleMenu(state, particle, event) {
-					if (getFocusedTextInput()) return;
+				openParticleMenu(state, particle) {
 					new Menu('controller_state_particle', [
 						{
 							name: 'generic.remove',
@@ -1121,11 +1071,9 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove particle from controller state');
 							}
 						}
-					]).open(event);
-					event.stopPropagation();
+					])
 				},
-				openSoundMenu(state, sound, event) {
-					if (getFocusedTextInput()) return;
+				openSoundMenu(state, sound) {
 					new Menu('controller_state_sound', [
 						{
 							name: 'generic.remove',
@@ -1136,8 +1084,7 @@ Interface.definePanels(() => {
 								Undo.finishEdit('Remove sound from controller state');
 							}
 						}
-					]).open(event);
-					event.stopPropagation();
+					])
 				},
 				addAnimationButton(state, event) {
 					state.select();
@@ -1155,7 +1102,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: anim instanceof AnimationController ? 'account_tree' : 'movie',
+							icon: anim instanceof AnimationController ? 'cable' : 'movie',
 							click: () => {
 								state.addAnimation(anim);
 							}
@@ -1363,29 +1310,7 @@ Interface.definePanels(() => {
 						delete effect.config.preview_texture;
 						Undo.finishEdit('Change animation controller particle file');
 
-						if (!isApp) {
-							Blockbench.showMessageBox({
-								title: 'message.import_particle_texture.import',
-								message: 'message.import_particle_texture.message',
-								buttons: ['dialog.cancel'],
-								commands: {
-									import: 'message.import_particle_texture.import'
-								}
-							}, result => {
-								if (result != 'import') return;
-
-								Blockbench.import({
-									extensions: ['png'],
-									type: 'Particle Texture',
-									readtype: 'image',
-									startpath: effect.config.preview_texture || path
-								}, function(files) {
-									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-									effect.config.updateTexture();
-								})
-							})
-
-						} else if (effect.config.texture.image.src.startsWith('data:')) {
+						if (!isApp || effect.config.texture.image.src.startsWith('data:')) {
 							Blockbench.import({
 								extensions: ['png'],
 								type: 'Particle Texture',
@@ -1393,7 +1318,7 @@ Interface.definePanels(() => {
 								startpath: effect.config.preview_texture || path
 							}, (files) => {
 								effect.config.preview_texture = isApp ? files[0].path : files[0].content;
-								effect.config.updateTexture();
+								if (isApp) effect.config.updateTexture();
 							})
 						}
 					})
@@ -1436,23 +1361,7 @@ Interface.definePanels(() => {
 					};
 					if (!this.controller) return connections;
 					let {states, selected_state} = this.controller;
-
-					// Count incoming plugs
 					let incoming_plugs = {};
-					let total_incoming_plugs = {};
-					states.forEach((state, state_index) => {
-						total_incoming_plugs[state.uuid] = {top: 0, bottom: 0};
-						states.forEach((origin_state, origin_state_index) => {
-							if (state === origin_state) return;
-							origin_state.transitions.forEach(t => {
-								if (t.target === state.uuid) {
-									state_index < origin_state_index
-										? total_incoming_plugs[state.uuid].top++
-										: total_incoming_plugs[state.uuid].bottom++;
-								}
-							});
-						});
-					});
 
 					let plug_gap = 16;
 
@@ -1499,17 +1408,15 @@ Interface.definePanels(() => {
 							}
 
 							if (back) {// Top
-								let incoming_gap_width = Math.min(plug_gap, 260 / total_incoming_plugs[target.uuid].top);
 								connections.max_layer_top = Math.max(connections.max_layer_top, layer);
 								con.end_x = state_index * 312 + 150 + start_plug_offset;
-								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * incoming_gap_width);
+								con.start_x = target_index * 312 + (300 - 25 - incoming_plugs[target.uuid].top * plug_gap);
 								incoming_plugs[target.uuid].top++;
 
 							} else {// Bottom
-								let incoming_gap_width = Math.min(plug_gap, 260 / total_incoming_plugs[target.uuid].bottom);
 								connections.max_layer_bottom = Math.max(connections.max_layer_bottom, layer);
 								con.start_x = state_index * 312 + 150 - start_plug_offset;
-								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * incoming_gap_width;
+								con.end_x = target_index * 312 + 25 + incoming_plugs[target.uuid].bottom * plug_gap;
 								incoming_plugs[target.uuid].bottom++;
 							}
 
@@ -1533,11 +1440,11 @@ Interface.definePanels(() => {
 			template: `
 				<div id="animation_controllers_wrapper"
 					:class="{connecting_controllers: connecting}"
-					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? (controller.last_state.blend_transition / (playback_speed/100)) + 's' : 0}"
-					@click="deselect($event)" @wheel="onMouseWheel($event)"
+					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
+					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
 				>
 
-					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
+					<div style="position: relative;" id="animation_controllers_pickwhip_anchor" style="height: 0px;">
 						<div id="animation_controllers_pickwhip"
 							v-if="connecting"
 							:style="{left: pickwhip.start_x + 'px', top: pickwhip.start_y + 'px', width: pickwhip.length + 'px', rotate: pickwhip.angle + 'deg'}"
@@ -1617,11 +1524,11 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle, $event)">
+									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
-											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, particle)">
+											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1661,11 +1568,11 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound, $event)">
+									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
 											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
-											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, sound)">
+											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1730,11 +1637,11 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
+										<input type="number" class="dark_bordered" style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05">
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
-										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.blend_via_shortest_path">
+										<input type="checkbox" :id="state.uuid + '_shortest_path'" v-model="state.shortest_path">
 									</div>
 								</template>
 
@@ -1829,8 +1736,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate'], features: ['animation_controllers']},
 		click() {
 			let controller = new AnimationController({
-				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new',
-				saved: false
+				name: 'controller.animation.' + (Project.geometry_name||'model') + '.new'
 			}).add(true).propertiesDialog();
 			Blockbench.dispatchEvent('add_animation_controller', {animation_controller: controller})
 		}
@@ -1858,51 +1764,5 @@ BARS.defineActions(function() {
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
 		condition: {modes: ['animate'], selected: {animation_controller: true}}
-	})
-	new NumSlider('slider_animation_controller_speed', {
-		category: 'animation',
-		condition: {modes: ['animate'], selected: {animation_controller: true}},
-		settings: {
-			default: 100,
-			min: 0,
-			max: 10000
-		},
-		get: function() {
-			return AnimationController.playback_speed;
-		},
-		change: function(modify) {
-			AnimationController.playback_speed = limitNumber(modify(AnimationController.playback_speed), 0, 10000);
-			Panels.animation_controllers.inside_vue.playback_speed = AnimationController.playback_speed;
-		},
-		getInterval: (e) => {
-			var val = BarItems.slider_animation_controller_speed.get()
-			if (e.shiftKey) {
-				if (val < 50) {
-					return 10;
-				} else {
-					return 50;
-				}
-			}
-			if (e.ctrlOrCmd) {
-				if (val < 500) {
-					return 1;
-				} else {
-					return 10;
-				}
-			}
-			if (val < 10) {
-				return 1;
-			} else if (val < 50) {
-				return 5;
-			} else if (val < 160) {
-				return 10;
-			} else if (val < 300) {
-				return 20;
-			} else if (val < 1000) {
-				return 50;
-			} else {
-				return 500;
-			}
-		}
 	})
 })

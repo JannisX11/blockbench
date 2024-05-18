@@ -242,7 +242,7 @@ const Templates = {
 			// Paste this class into your mod and generate all required imports
 
 
-			public class %(identifier)<T extends %(entity)> extends EntityModel<T> {
+			public class %(identifier)<T extends Entity> extends EntityModel<T> {
 				// This layer location should be baked with EntityRendererProvider.Context in the entity renderer and passed into this model's constructor
 				public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("modid", "%(identifier_rl)"), "main");
 				%(fields)
@@ -261,7 +261,7 @@ const Templates = {
 				}
 
 				@Override
-				public void setupAnim(%(entity) entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+				public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
 
 				}
 
@@ -280,48 +280,6 @@ const Templates = {
 			?(has_no_rotation)%(remove_n), PartPose.offset(%(x), %(y), %(z)));`,
 		renderer: `%(bone).render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);`,
 		cube: `.texOffs(%(uv_x), %(uv_y)){?(has_mirror).mirror()}.addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), new CubeDeformation(%(inflate))){?(has_mirror).mirror(false)}`,
-		animation_template: 'mojang'
-	},
-
-	'1.17_yarn': {
-		// Template contributed by SebaSphere
-		name: 'Fabric 1.17+ (Yarn)',
-		remember: false,
-		integer_size: false,
-		file:
-			`// Made with Blockbench %(bb_version)
-			// Exported for Minecraft version 1.17+ for Yarn
-			// Paste this class into your mod and generate all required imports
-			public class %(identifier) extends EntityModel<%(entity)> {
-				%(fields)
-				public %(identifier)(ModelPart root) {
-					%(model_parts)
-				}
-				public static TexturedModelData getTexturedModelData() {
-					ModelData modelData = new ModelData();
-					ModelPartData modelPartData = modelData.getRoot();
-					%(content)
-					return TexturedModelData.of(modelData, %(texture_width), %(texture_height));
-				}
-				@Override
-				public void setAngles(%(entity) entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
-				}
-				@Override
-				public void render(MatrixStack matrices, VertexConsumer vertexConsumer, int light, int overlay, float red, float green, float blue, float alpha) {
-					%(renderers)
-				}
-			}`,
-		field: `private final ModelPart %(bone);`,
-		model_part: `this.%(bone) = root.getChild("%(bone)");`,
-		bone:
-			`?(has_no_parent)ModelPartData %(bone) = modelPartData.addChild("%(bone)", ModelPartBuilder.create()
-			?(has_parent)ModelPartData %(bone) = %(parent).addChild("%(bone)", ModelPartBuilder.create()
-			%(remove_n)%(cubes)
-			?(has_rotation)%(remove_n), ModelTransform.of(%(x), %(y), %(z), %(rx), %(ry), %(rz)));
-			?(has_no_rotation)%(remove_n), ModelTransform.pivot(%(x), %(y), %(z)));`,
-		renderer: `%(bone).render(matrices, vertexConsumer, light, overlay, red, green, blue, alpha);`,
-		cube: `.uv(%(uv_x), %(uv_y)){?(has_mirror).mirrored()}.cuboid(%(x), %(y), %(z), %(dx), %(dy), %(dz), new Dilation(%(inflate))){?(has_mirror).mirrored(false)}`,
-		animation_template: 'fabric'
 	},
 
 	get(key, version = Project.modded_entity_version) {
@@ -336,75 +294,9 @@ const Templates = {
 		return new RegExp(`%\\(${name}\\)`, 'g');
 	}
 }
-const AnimationTemplates = {
-	'mojang': {
-		name: 'Mojmaps',
-		file:
-			`// Save this class in your mod and generate all required imports
-
-			/**
-			 * Made with Blockbench %(bb_version)
-			 * Exported for Minecraft version 1.19 or later with Mojang mappings
-			 * @author %(author)
-			 */
-			public class %(identifier)Animation {
-				%(animations)
-			}`,
-		animation: `public static final AnimationDefinition %(name) = AnimationDefinition.Builder.withLength(%(length))%(looping)%(channels).build();`,
-		looping: `.looping()`,
-		channel: `.addAnimation("%(name)", new AnimationChannel(%(channel_type), %(keyframes)))`,
-		keyframe_rotation: `new Keyframe(%(time), KeyframeAnimations.degreeVec(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_position: `new Keyframe(%(time), KeyframeAnimations.posVec(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_scale: `new Keyframe(%(time), KeyframeAnimations.scaleVec(%(x), %(y), %(z)), %(interpolation))`,
-		channel_types: {
-			rotation: 'AnimationChannel.Targets.ROTATION',
-			position: 'AnimationChannel.Targets.POSITION',
-			scale: 'AnimationChannel.Targets.SCALE',
-		},
-		interpolations: {
-			linear: 'AnimationChannel.Interpolations.LINEAR',
-			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
-		},
-	},
-	'fabric': {
-		name: 'Yarn',
-		file:
-			`// Save this class in your mod and generate all required imports
-			/**
-			 * Made with Blockbench %(bb_version)
-			 * Exported for Minecraft version 1.19 or later with Yarn mappings
-			 * @author %(author)
-			 */
-			public class %(identifier)Animation {
-				%(animations)
-			}`,
-		animation: `public static final Animation %(name) = Animation.Builder.create(%(length))%(looping)%(channels).build();`,
-		looping: `.looping()`,
-		channel: `.addBoneAnimation("%(name)", new Transformation(%(channel_type), %(keyframes)))`,
-		keyframe_rotation: `new Keyframe(%(time), AnimationHelper.createRotationalVector(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_position: `new Keyframe(%(time), AnimationHelper.createTranslationalVector(%(x), %(y), %(z)), %(interpolation))`,
-		keyframe_scale: `new Keyframe(%(time), AnimationHelper.createScalingVector(%(x), %(y), %(z)), %(interpolation))`,
-		channel_types: {
-			rotation: 'Transformation.Targets.ROTATE',
-			position: 'Transformation.Targets.TRANSLATE',
-			scale: 'Transformation.Targets.SCALE',
-		},
-		interpolations: {
-			linear: 'Transformation.Interpolations.LINEAR',
-			catmullrom: 'Transformation.Interpolations.CUBIC',
-		},
-	},
-
-	get(key, version = Project.modded_entity_version) {
-		let mapping = Templates.get('animation_template', version);
-		let temp = AnimationTemplates[mapping || 'mojang'][key];
-		if (typeof temp === 'string') temp = temp.replace(/\t\t\t/g, '');
-		return temp;
-	}
-};
 
 function getIdentifier() {
-	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || Project.name || 'CustomModel';
+	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || 'custom_model';
 }
 
 function askToSaveProject() {
@@ -483,7 +375,6 @@ var codec = new Codec('modded_entity', {
 		let model = Templates.get('file');
 
 		model = model.replace(R('bb_version'), Blockbench.version);
-		model = model.replace(R('entity'), Project.modded_entity_entity_class || 'Entity');
 		model = model.replace(R('identifier'), identifier);
 		model = model.replace(R('identifier_rl'), identifier.toLowerCase().replace(' ', '_'));
 		model = model.replace(R('texture_width'), Project.texture_width);
@@ -493,9 +384,7 @@ var codec = new Codec('modded_entity', {
 			let usesLayerDef = Templates.get('use_layer_definition')
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
-				if (group.is_rotation_subgroup) continue;
-				//if (usesLayerDef && group.parent instanceof Group) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || (usesLayerDef && group.parent instanceof Group)) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -582,9 +471,9 @@ var codec = new Codec('modded_entity', {
 
 							} else {
 								c_snippet = c_snippet
-									.replace(R('dx'), F(cube.size(0, false)) )
-									.replace(R('dy'), F(cube.size(1, false)) )
-									.replace(R('dz'), F(cube.size(2, false)) )
+									.replace(R('dx'), F(cube.size(0, true)) )
+									.replace(R('dy'), F(cube.size(1, true)) )
+									.replace(R('dz'), F(cube.size(2, true)) )
 							}
 
 							cube_snippets.push(c_snippet);
@@ -604,10 +493,8 @@ var codec = new Codec('modded_entity', {
 				return '';
 
 			let group_snippets = [];
-			for (let group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
-				if (group.is_rotation_subgroup) continue;
-				//if (usesLayerDef && group.parent instanceof Group) continue;
+			for (var group of all_groups) {
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || group.parent instanceof Group) continue;
 				let modelPart = snippet
 					.replace(R('bone'), group.name);
 				group_snippets.push(modelPart);
@@ -976,76 +863,11 @@ var codec = new Codec('modded_entity', {
 	}
 })
 codec.templates = Templates;
-codec.animation_templates = AnimationTemplates;
 Object.defineProperty(codec, 'remember', {
 	get() {
 		return !!Codecs.modded_entity.templates[Project.modded_entity_version].remember
 	}
 })
-
-codec.compileAnimations = function(animations = Animation.all) {
-	let R = Templates.getVariableRegex;
-	let identifier = getIdentifier();
-	let interpolations = AnimationTemplates.get('interpolations');
-
-	let file = AnimationTemplates.get('file');
-	file = file.replace(R('bb_version'), Blockbench.version);
-	file = file.replace(R('author'), Settings.get('username') || 'Author');
-	file = file.replace(R('identifier'), identifier);
-
-	let anim_strings = [];
-	animations.forEach(animation => {
-		let anim_string = AnimationTemplates.get('animation');
-		anim_string = anim_string.replace(R('name'), animation.name);
-		anim_string = anim_string.replace(R('length'), F(animation.length));
-		anim_string = anim_string.replace(R('looping'), animation.loop == 'loop' ? AnimationTemplates.get('looping') : '');
-
-		let channel_strings = [];
-		let channel_types = AnimationTemplates.get('channel_types');
-		for (let id in animation.animators) {
-			let animator = animation.animators[id];
-			if (animator instanceof BoneAnimator == false) continue;
-			
-			for (let channel_id in channel_types) {
-				if (!(animator[channel_id] && animator[channel_id].length)) continue;
-				let keyframes = animator[channel_id].slice().sort((a, b) => a.time - b.time);
-				let keyframe_strings = [];
-				function addKeyframe(time, x, y, z, interpolation) {
-					let kf_string = AnimationTemplates.get('keyframe_'+channel_id);
-					kf_string = kf_string.replace(R('time'), F(time));
-					kf_string = kf_string.replace(R('x'), F(x));
-					kf_string = kf_string.replace(R('y'), F(y));
-					kf_string = kf_string.replace(R('z'), F(z));
-					kf_string = kf_string.replace(R('interpolation'), interpolations[interpolation] || interpolations.linear);
-					keyframe_strings.push(kf_string);
-				}
-				
-				keyframes.forEach((kf, i) => {
-					addKeyframe(kf.time, kf.calc('x'), kf.calc('y'), kf.calc('z'), kf.interpolation);
-					if (kf.data_points[1]) {
-						addKeyframe(kf.time+0.001, kf.calc('x', 1), kf.calc('y', 1), kf.calc('z', 1), kf.interpolation);
-					} else if (kf.interpolation == 'step' && keyframes[i+1]) {
-						let next = keyframes[i+1];
-						addKeyframe(next.time-0.001, kf.calc('x'), kf.calc('y'), kf.calc('z'), 'linear');
-					}
-				})
-
-				let channel_string = AnimationTemplates.get('channel');
-				channel_string = channel_string.replace(R('name'), animator.name);
-				channel_string = channel_string.replace(R('channel_type'), channel_types[channel_id]);
-				channel_string = channel_string.replace(R('keyframes'), '\n\t\t\t' + keyframe_strings.join(',\n\t\t\t') + '\n\t\t');
-
-				channel_strings.push(channel_string);
-			}
-		}
-
-		anim_string = anim_string.replace(R('channels'), '\n\t\t' + channel_strings.join('\n\t\t') + '\n\t\t');
-
-		anim_strings.push(anim_string);
-	})
-	file = file.replace(R('animations'), anim_strings.join('\n\n\t'));
-	return file;
-}
 
 var format = new ModelFormat({
 	id: 'modded_entity',
@@ -1062,15 +884,13 @@ var format = new ModelFormat({
 	},
 	codec,
 	box_uv: true,
-	box_uv_float_size: true,
 	single_texture: true,
 	bone_rig: true,
 	centered_grid: true,
 	rotate_cubes: true,
-	integer_size: true,
-	animation_mode: true,
+	integer_size: true
 })
-Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size') || settings.modded_entity_integer_size.value});
+//Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size')})
 codec.format = format;
 
 
@@ -1082,50 +902,6 @@ BARS.defineActions(function() {
 		condition: () => Format == format,
 		click: function () {
 			codec.export()
-		}
-	})
-	new Action('export_modded_animations', {
-		icon: 'free_breakfast',
-		category: 'file',
-		condition: () => Format == format,
-		click() {
-			let form = {};
-			let keys = [];
-			let animations = Animation.all.slice();
-			if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode());
-			animations.forEach(animation => {
-				let key = animation.name;
-				keys.push(key)
-				form[key.hashCode()] = {label: key, type: 'checkbox', value: true};
-			})
-			let dialog = new Dialog({
-				id: 'animation_export',
-				title: 'dialog.animation_export.title',
-				form,
-				onConfirm(form_result) {
-					dialog.hide();
-					keys = keys.filter(key => form_result[key.hashCode()]);
-					let animations = keys.map(k => Animation.all.find(anim => anim.name == k));
-					let content = Codecs.modded_entity.compileAnimations(animations);
-					Blockbench.export({
-						resource_id: 'modded_animation',
-						type: 'Modded Entity Animation',
-						extensions: ['java'],
-						name: (Project.geometry_name||'model'),
-						content,
-					})
-				}
-			})
-			form.select_all_none = {
-				type: 'buttons',
-				buttons: ['generic.select_all', 'generic.select_none'],
-				click(index) {
-					let values = {};
-					keys.forEach(key => values[key.hashCode()] = (index == 0));
-					dialog.setFormValues(values);
-				}
-			}
-			dialog.show();
 		}
 	})
 })

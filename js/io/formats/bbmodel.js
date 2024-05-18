@@ -1,6 +1,6 @@
 (function() {
 
-let FORMATV = '4.10';
+let FORMATV = '4.5';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -58,13 +58,6 @@ function processCompatibility(model) {
 			iterate(model.outliner)
 		}
 	}
-	if (model.textures) {
-		if (isApp && compareVersions('4.10', model.meta.format_version)) {
-			for (let texture of model.textures) {
-				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
-			}
-		}
-	}
 }
 
 var codec = new Codec('project', {
@@ -75,16 +68,14 @@ var codec = new Codec('project', {
 		type: 'json',
 		extensions: ['bbmodel']
 	},
-	load(model, file) {
-		if (!model || !model.meta) {
-			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
-		}
+	load(model, file, add) {
+
 		setupProject(Formats[model.meta.model_format] || Formats.free);
 		var name = pathToName(file.path, true);
-		Project.name = pathToName(name, false);
 		if (file.path && isApp && !file.no_file ) {
 			let project = Project;
 			Project.save_path = file.path;
+			Project.name = pathToName(name, false);
 			addRecentProject({
 				name,
 				path: file.path,
@@ -95,10 +86,6 @@ var codec = new Codec('project', {
 			}, 200)
 		}
 		this.parse(model, file.path)
-
-		if (Modes.animate && !AnimationItem.selected && AnimationItem.all[0]) {
-			AnimationItem.all[0].select();
-		}
 	},
 	export() {
 		Blockbench.export({
@@ -111,7 +98,6 @@ var codec = new Codec('project', {
 			custom_writer: isApp ? (content, path) => {
 				// Path needs to be changed before compiling for relative resource paths
 				Project.save_path = path;
-				Project.name = pathToName(path, false);
 				content = this.compile();
 				this.write(content, path);
 			} : null,
@@ -162,6 +148,7 @@ var codec = new Codec('project', {
 				selected_elements: Project.selected_elements.map(e => e.uuid),
 				selected_group: Project.selected_group?.uuid,
 				mesh_selection: JSON.parse(JSON.stringify(Project.mesh_selection)),
+				selected_faces: Project.selected_faces,
 				selected_texture: Project.selected_texture?.uuid,
 			};
 		}
@@ -177,14 +164,15 @@ var codec = new Codec('project', {
 
 		model.textures = [];
 		Texture.all.forEach(tex => {
-			var t = tex.getSaveCopy();
-			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
-				let relative = PathModule.relative(PathModule.dirname(Project.save_path), tex.path);
+			var t = tex.getUndoCopy();
+			delete t.selected;
+			if (isApp && Project.save_path && tex.path) {
+				let relative = PathModule.relative(Project.save_path, tex.path);
 				t.relative_path = relative.replace(/\\/g, '/');
 			}
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
-				t.source = tex.getDataURL()
-				t.internal = true;
+				t.source = 'data:image/png;base64,'+tex.getBase64()
+				t.mode = 'bitmap'
 			}
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
@@ -221,24 +209,18 @@ var codec = new Codec('project', {
 			}
 		}
 
-		if (!options.backup && options.reference_images != false) {
-			// Reference Images
-			const reference_images = [];
+		if (!options.backup) {
+			// Backgrounds
+			const backgrounds = {};
 
-			for (let reference of Project.reference_images) {
-				reference_images.push(reference.getSaveCopy());
-			}
-			if (reference_images.length) {
-				model.reference_images = reference_images;
-			}
-		}
-
-		if (Object.keys(Project.export_options).length) {
-			model.export_options = {};
-			for (let codec_id in Project.export_options) {
-				if (Object.keys(Project.export_options[codec_id]).length) {
-					model.export_options[codec_id] = Object.assign({}, Project.export_options[codec_id]);
+			for (var key in Project.backgrounds) {
+				let scene = Project.backgrounds[key];
+				if (scene.image) {
+					backgrounds[key] = scene.getSaveCopy();
 				}
+			}
+			if (Object.keys(backgrounds).length) {
+				model.backgrounds = backgrounds;
 			}
 		}
 
@@ -280,26 +262,9 @@ var codec = new Codec('project', {
 
 		if (model.meta.model_format) {
 			if (!Formats[model.meta.model_format]) {
-				let supported_plugins = Plugins.all.filter(plugin => {
-					return plugin.contributes?.formats?.includes(model.meta.model_format);
-				})
-				let commands = {};
-				for (let plugin of supported_plugins) {
-					commands[plugin.id] = {
-						icon: plugin.icon,
-						text: tl('message.invalid_format.install_plugin', [plugin.title])
-					}
-				}
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_format',
-					message: tl('message.invalid_format.message', [model.meta.model_format]),
-					commands,
-				}, plugin_id => {
-					let plugin = plugin_id && supported_plugins.find(p => p.id == plugin_id);
-					if (plugin) {
-						BarItems.plugins_window.click();
-						Plugins.dialog.content_vue.selectPlugin(plugin);
-					}
+					message: tl('message.invalid_format.message', [model.meta.model_format])
 				})
 			}
 			var format = Formats[model.meta.model_format]||Formats.free;
@@ -316,9 +281,6 @@ var codec = new Codec('project', {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].merge(Project, model)
 		}
-		if (path && path != 'backup.bbmodel') {
-			Project.name = pathToName(path, false);
-		}
 
 		if (model.overrides) {
 			Project.overrides = model.overrides;
@@ -332,14 +294,14 @@ var codec = new Codec('project', {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
 				if (isApp && tex.relative_path && Project.save_path) {
-					let resolved_path = PathModule.resolve(PathModule.dirname(Project.save_path), tex.relative_path);
+					let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 					if (fs.existsSync(resolved_path)) {
-						tex_copy.loadContentFromPath(resolved_path)
+						tex_copy.fromPath(resolved_path)
 						return;
 					}
 				}
 				if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-					tex_copy.loadContentFromPath(tex.path)
+					tex_copy.fromPath(tex.path)
 					return;
 				}
 				if (tex.source && tex.source.substr(0, 5) == 'data:') {
@@ -353,20 +315,21 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(template) {
+			model.elements.forEach(function(element) {
 
-				let copy = OutlinerElement.fromSave(template, true)
-				for (let face in copy.faces) {
-					if (!Format.single_texture && template.faces) {
-						let texture = template.faces[face].texture !== null && Texture.all[template.faces[face].texture]
+				var copy = OutlinerElement.fromSave(element, true)
+				for (var face in copy.faces) {
+					if (!Format.single_texture && element.faces) {
+						var texture = element.faces[face].texture !== null && Texture.all[element.faces[face].texture]
 						if (texture) {
 							copy.faces[face].texture = texture.uuid
 						}
-					} else if (default_texture && copy.faces && copy.faces[face].texture !== null && !Format.single_texture_default) {
+					} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
 						copy.faces[face].texture = default_texture.uuid
 					}
 				}
 				copy.init()
+				
 			})
 		}
 		if (model.outliner) {
@@ -399,16 +362,8 @@ var codec = new Codec('project', {
 			DisplayMode.loadJSON(model.display)
 		}
 		if (model.backgrounds) {
-			for (let key in model.backgrounds) {
-				let template = model.backgrounds[key];
-				let reference = new ReferenceImage({
-					position: [template.x, template.y + template.size/2],
-					size: [template.size/2, template.size/2],
-					layer: template.lock ? 'blueprint' : 'background',
-					source: template.image,
-					name: (template.image && !template.image.startsWith('data:')) ? template.image.split([/[/\\]/]).last() : 'Reference'
-				}).addAsReference();
-				/*if (Project.backgrounds.hasOwnProperty(key)) {
+			for (var key in model.backgrounds) {
+				if (Project.backgrounds.hasOwnProperty(key)) {
 
 					let store = model.backgrounds[key]
 					let real = Project.backgrounds[key]
@@ -418,18 +373,13 @@ var codec = new Codec('project', {
 					if (store.x		!== undefined) {real.x = store.x}
 					if (store.y		!== undefined) {real.y = store.y}
 					if (store.lock	!== undefined) {real.lock = store.lock}
-				}*/
+				}
 			}
-		}
-		if (model.reference_images) {
-			model.reference_images.forEach(template => {
-				new ReferenceImage(template).addAsReference();
+			Preview.all.forEach(p => {
+				if (p.canvas.isConnected) {
+					p.loadBackground();
+				}
 			})
-		}
-		if (model.export_options) {
-			for (let codec_id in model.export_options) {
-				Project.export_options[codec_id] = Object.assign({}, model.export_options[codec_id]);
-			}
 		}
 		if (model.history) {
 			Undo.history = model.history.slice()
@@ -437,8 +387,6 @@ var codec = new Codec('project', {
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
-		Canvas.updateAllFaces()
-		ReferenceImage.updateAll();
 		Validator.validate()
 		this.dispatchEvent('parsed', {model})
 
@@ -466,6 +414,10 @@ var codec = new Codec('project', {
 				Project.selected_elements.push(el);
 			})
 			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
+			for (let key in state.selected_vertices) {
+				Project.mesh_selection[key] = state.mesh_selection[key];
+			}
+			Project.selected_faces.replace(state.selected_faces);
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
 
 			Project.loadEditorState();
@@ -485,15 +437,19 @@ var codec = new Codec('project', {
 		let new_elements = [];
 		let new_textures = [];
 		let new_animations = [];
-		let imported_format = Formats[model.meta.model_format];
 		Undo.initEdit({
 			elements: new_elements,
 			textures: new_textures,
 			animations: Format.animation_mode && new_animations,
 			outliner: true,
 			selection: true,
+			uv_mode: true,
 			display_slots: Format.display_mode && displayReferenceObjects.slots
 		})
+
+		if (Format.optional_box_uv && Project.box_uv && !model.meta.box_uv) {
+			Project.box_uv = false;
+		}
 
 		if (model.overrides instanceof Array && Project.overrides instanceof Array) {
 			Project.overrides.push(...model.overrides);
@@ -517,13 +473,13 @@ var codec = new Codec('project', {
 				tex_copy.id = c.toString();
 			}
 			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.loadContentFromPath(tex.path)
+				tex_copy.fromPath(tex.path)
 				return tex_copy;
 			}
-			if (isApp && tex.relative_path && path) {
-				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
+			if (isApp && tex.relative_path && Project.save_path) {
+				let resolved_path = PathModule.resolve(Project.save_path, tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
-					tex_copy.loadContentFromPath(resolved_path)
+					tex_copy.fromPath(resolved_path)
 					return tex_copy;
 				}
 			}
@@ -538,13 +494,8 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
-			let elements_before = Outliner.elements.slice();
 			Codecs.skin_model.rebuild(model.skin_model);
-			for (let element of Outliner.elements) {
-				if (!elements_before.includes(element)) new_elements.push(element);
-			}
 		}
-		let adjust_uv = !Format.per_texture_uv_size || !imported_format?.per_texture_uv_size;
 		if (model.elements) {
 			let default_texture = new_textures[0] || Texture.getDefault();
 			let format = Formats[model.meta.model_format] || Format
@@ -567,16 +518,11 @@ var codec = new Codec('project', {
 						} else if (default_texture && copy.faces && copy.faces[face].texture !== null) {
 							copy.faces[face].texture = default_texture.uuid
 						}
-						if (!copy.box_uv && adjust_uv) {
-							let tex = copy.faces[face].getTexture();
-							if (tex && imported_format?.per_texture_uv_size) {
-								width = tex.uv_width;
-								height = tex.uv_height;
-							}
-							copy.faces[face].uv[0] *= (Project.getUVWidth(tex)) / width;
-							copy.faces[face].uv[2] *= (Project.getUVWidth(tex)) / width;
-							copy.faces[face].uv[1] *= (Project.getUVHeight(tex)) / height;
-							copy.faces[face].uv[3] *= (Project.getUVHeight(tex)) / height;
+						if (!copy.box_uv) {
+							copy.faces[face].uv[0] *= Project.texture_width / width;
+							copy.faces[face].uv[2] *= Project.texture_width / width;
+							copy.faces[face].uv[1] *= Project.texture_height / height;
+							copy.faces[face].uv[3] *= Project.texture_height / height;
 						}
 					}
 				} else if (copy instanceof Mesh) {
@@ -589,16 +535,9 @@ var codec = new Codec('project', {
 						} else if (default_texture && copy.faces && copy.faces[fkey].texture !== null) {
 							copy.faces[fkey].texture = default_texture.uuid
 						}
-						if (adjust_uv) {
-							for (let vkey in copy.faces[fkey].uv) {
-								let tex = copy.faces[fkey].getTexture();
-								if (tex && imported_format?.per_texture_uv_size) {
-									width = tex.uv_width;
-									height = tex.uv_height;
-								}
-								copy.faces[fkey].uv[vkey][0] *= Project.getUVWidth(tex) / width;
-								copy.faces[fkey].uv[vkey][1] *= Project.getUVHeight(tex) / height;
-							}
+						for (let vkey in copy.faces[fkey].uv) {
+							copy.faces[fkey].uv[vkey][0] *= Project.texture_width / width;
+							copy.faces[fkey].uv[vkey][1] *= Project.texture_height / height;
 						}
 					}
 				}
@@ -635,10 +574,10 @@ var codec = new Codec('project', {
 					ani.uuid = guid();
 				}
 				if (base_ani.animators) {
-					for (let key in base_ani.animators) {
+					for (let key in animators) {
 						if (uuid_map[key]) {
-							base_ani.animators[uuid_map[key]] = base_ani.animators[key];
-							delete base_ani.animators[key];
+							animators[uuid_map[key]] = animators[key];
+							delete animators[key];
 						}
 					}
 				}
@@ -677,8 +616,6 @@ var codec = new Codec('project', {
 		Undo.finishEdit('Merge project')
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
-		Canvas.updateAllFaces()
-		ReferenceImage.updateAll();
 		this.dispatchEvent('parsed', {model})
 	}
 })
@@ -689,7 +626,6 @@ BARS.defineActions(function() {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true, alt: true}),
-		condition: () => Project,
 		click: function () {
 			saveTextures(true)
 			if (isApp && Project.save_path) {
@@ -704,7 +640,6 @@ BARS.defineActions(function() {
 		icon: 'save',
 		category: 'file',
 		keybind: new Keybind({key: 's', ctrl: true, alt: true, shift: true}),
-		condition: () => Project,
 		click: function () {
 			saveTextures(true)
 			codec.export()

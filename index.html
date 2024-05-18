@@ -5,7 +5,6 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#181a1f">
-	<meta name="color-scheme" content="dark">
 	<meta name="robots" content="noindex">
 	<link rel="manifest" href="manifest.webmanifest">
 	<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
@@ -22,9 +21,8 @@
 	<link rel="stylesheet" href="css/panels.css">
 	<link rel="stylesheet" href="css/dialogs.css">
 	<style type="text/css" id="theme_css"></style>
-	<style type="text/css" id="theme_thumbnail_css"></style>
 </head>
-<body spellcheck="false" class="maximized">
+<body spellcheck="false">
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
 		const isApp = typeof require !== 'undefined';
@@ -51,15 +49,13 @@
 		<div>An error occurred while loading Blockbench</div>
 		<div id="loading_error_detail" style="color: var(--color-subtle_text);"></div>
 		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
-		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
 	<script>
 		// Browser compatibility check
 		try {
-			eval('window?.document ?? 2');
+			eval('window?.document');
 		} catch (err) {
-			console.error(err);
 			let error_element = document.querySelector('#loading_error_detail')
 			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
 		}
@@ -78,7 +74,6 @@
 		<script src="lib/lzutf8.js"></script>
 		<script src="lib/peer.min.js"></script>
 		<script src="lib/marked.min.js"></script>
-		<script src="lib/purify.min.js"></script>
 		<script src="lib/spectrum.js"></script>
 		<script src="lib/color-picker.min.js"></script>
 		<script src="lib/three.min.js"></script>
@@ -90,17 +85,13 @@
 		<script src="lib/molang.umd.js"></script>
 		<script src="lib/wintersky.umd.js"></script>
 		
-		<script src="bundle.js"></script>
+		<script src="js/webpack/bundle.js"></script>
 		<script src="js/preview/OrbitControls.js"></script>
-		<script src="js/util/util.js"></script>
-		<script src="js/util/math_util.js"></script>
-		<script src="js/util/array_util.js"></script>
-		<script src="js/util/event_system.js"></script>
-		<script src="js/util/property.js"></script>
+		<script src="js/util.js"></script>
+		<script src="js/property.js"></script>
 		<script src="js/interface/menu.js"></script>
 		<script src="js/interface/actions.js"></script>
 		<script src="js/interface/themes.js"></script>
-		<script src="js/interface/shared_actions.js"></script>
 		<script src="js/misc.js"></script>
 		<script src="js/modes.js"></script>
 		<script src="js/api.js"></script>
@@ -136,24 +127,19 @@
 		<script src="js/outliner/locator.js"></script>
 		<script src="js/outliner/null_object.js"></script>
 		<script src="js/preview/preview.js"></script>
-		<script src="js/preview/reference_images.js"></script>
 		<script src="js/preview/screenshot.js"></script>
 		<script src="js/preview/canvas.js"></script>
 		<script src="js/modeling/transform_gizmo.js"></script>
 		<script src="js/modeling/transform.js"></script>
 		<script src="js/modeling/scale.js"></script>
 		<script src="js/modeling/mesh_editing.js"></script>
-		<script src="js/modeling/mirror_modeling.js"></script>
-		<script src="js/texturing/layers.js"></script>
 		<script src="js/texturing/textures.js"></script>
-		<script src="js/texturing/texture_flipbook.js"></script>
 		<script src="js/texturing/uv.js"></script>
 		<script src="js/texturing/painter.js"></script>
 		<script src="js/texturing/texture_generator.js"></script>
 		<script src="js/texturing/color.js"></script>
 		<script src="js/texturing/edit_texture.js"></script>
 		<script src="js/display_mode.js"></script>
-		<script src="js/animations/animation_mode.js"></script>
 		<script src="js/animations/animation.js"></script>
 		<script src="js/animations/molang.js"></script>
 		<script src="js/animations/timeline_animators.js"></script>
@@ -168,7 +154,6 @@
 		<script src="js/io/format.js"></script>
 		<script src="js/io/project.js"></script>
 		<script src="js/io/io.js"></script>
-		<script src="js/io/share.js"></script>
 		<script src="js/io/formats/generic.js"></script>
 		<script src="js/io/formats/bbmodel.js"></script>
 		<script src="js/io/formats/java_block.js"></script>
@@ -191,7 +176,7 @@
 
 	<div id="overlay_message_box" style="display: none;">
 		<div>
-			<h3><i class="material-icons icon">keyboard</i><span class="tl">keybindings.recording</span></h3>
+			<h3><i class="material-icons">keyboard</i><span class="tl">keybindings.recording</span></h3>
 			<p class="tl">keybindings.press</p>
 			<button class="tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
 			<button class="tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
@@ -207,27 +192,24 @@
 			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
-		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons icon">home</i></div>
+		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons">home</i></div>
+		<div id="title_bar_undo_controls" hidden>
+			<div class="tool" onclick="BarItems.undo.trigger()"><i class="material-icons">undo</i></div>
+			<div class="tool" onclick="BarItems.redo.trigger()"><i class="material-icons">redo</i></div>
+		</div>
 		<div class="app-drag-region" id="header_free_bar"></div>
 		<div id="update_menu"></div>
-		<div id="settings_profiles_header_menu" class="hidden tool">
-			<i class="material-icons icon">manage_accounts</i>
+		<div id="settings_profiles_header_menu" class="hidden">
+			<i class="material-icons">settings_applications</i>
 		</div>
 		<ul id="windows_window_menu" hidden>
-			<li onclick="currentwindow.minimize()">
-				<svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M14 8v1H3V8h11z"/></svg>
-			</li>
-			<li onclick="currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()">
-				<svg class="restore" width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M3 5v9h9V5H3zm8 8H4V6h7v7z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M5 5h1V4h7v7h-1v1h2V3H5v2z"/></svg>
-				<svg class="maximize" width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M3 3v10h10V3H3zm9 9H4V4h8v8z"/></svg>
-			</li>
-			<li class="wwm_r" onclick="currentwindow.close()">
-				<svg width="18" height="18" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.116 8l-4.558 4.558.884.884L8 8.884l4.558 4.558.884-.884L8.884 8l4.558-4.558-.884-.884L8 7.116 3.442 2.558l-.884.884L7.116 8z"/></svg>
-			</li>
+			<li onclick="currentwindow.minimize()"><i class="material-icons" style="margin-top: 4px;">remove</i></li>
+			<li onclick="currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()"><i class="material-icons">crop_square</i><!--🗖--></li>
+			<li class="wwm_r" onclick="currentwindow.close()"><i class="material-icons">clear</i></li>
 		</ul>
 		<button id="web_download_button" hidden><a href="https://blockbench.net/downloads">
 			<span class="tl">web.download_app</span>
-			<i class="material-icons icon">system_update</i>
+			<i class="material-icons">system_update</i>
 		</a></button>
 	</header>
 	
@@ -237,7 +219,7 @@
 		<div id="blackout" class="darken"></div>
 
 		<div id="tab_bar" :class="{drag_mode: drag_target_index !== null}">
-			<div id="tab_bar_list" @wheel="mousewheelBar($event)" ref="tab_bar_list">
+			<div id="tab_bar_list">
 				<div
 					class="project_tab"
 					v-for="(project, index) in tabs" :key="project.uuid"
@@ -250,13 +232,11 @@
 					}"
 					:title="project.name || project.geometry_name || ''"
 					@dblclick="project.openSettings()"
-					@contextmenu="project.showContextMenu($event)"
 					@mousedown="mouseDown(project, $event)"
 					@mouseup="mouseUp(project, $event)"
 					@mouseenter="mouseEnter(project, $event)"
 					@mouseleave="mouseLeave(project, $event)"
 				>
-					<dynamic-icon :icon="project.format ? project.format.icon : 'home'"></dynamic-icon>
 					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
 					<label>{{ project.getDisplayName() }}</label>
 					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
@@ -303,7 +283,6 @@
 
 				<div id="top_slot"></div>
 				<div id="preview">
-					<div class="clamped_reference_images"></div>
 				</div>
 				<div id="bottom_slot"></div>
 

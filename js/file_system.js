@@ -11,9 +11,9 @@ Object.assign(Blockbench, {
 			//resource_id
 
 		if (isApp) {
-			let properties = [];
+			var properties = []
 			if (options.multiple) {
-				properties.push('openFile', 'multiSelections')
+				properties.push('multiSelections')
 			}
 			if (options.extensions[0] === 'image/*') {
 				options.type = 'Images'
@@ -32,7 +32,7 @@ Object.assign(Blockbench, {
 						name: options.type ? options.type : options.extensions[0],
 						extensions: options.extensions
 					}],
-					properties: properties.length ? properties : undefined,
+					properties: (properties.length && Blockbench.platform !== 'darwin')?properties:undefined,
 					defaultPath: settings.streamer_mode.value
 						? app.getPath('desktop')
 						: options.startpath
@@ -180,9 +180,7 @@ Object.assign(Blockbench, {
 							if (!errant && options.errorbox !== false) {
 								Blockbench.showMessageBox({
 									translateKey: 'file_not_found',
-									message: tl('message.file_not_found.message') + '\n\n```' + file.replace(/[`"<>]/g, '') + '```',
-									icon: 'error_outline',
-									width: 520
+									icon: 'error_outline'
 								})
 							}
 							errant = true;
@@ -378,81 +376,10 @@ Object.assign(Blockbench, {
 
 		} else {
 			//text or binary
-			let content = options.content;
-			if (content instanceof ArrayBuffer) {
-				content = Buffer.from(content);
-			}
-			fs.writeFileSync(file_path, content)
+			fs.writeFileSync(file_path, options.content)
 			if (cb) {
 				cb(file_path)
 			}
-		}
-	},
-	//Find
-	/**
-	 * @callback checkFileCallback
-	 * @param {{name: string, path: string, content: (string|object)}} x - test
-	 */
-	/**
-	 * Find a file in a directory based on content within the file, optionally optimized via file name match
-	 * @param {string[]} base_directories List of base directory paths to search in
-	 * @param {{recursive: boolean, filter_regex: RegExp, priority_regex: RegExp, json: boolean}} options 
-	 * @param {checkFileCallback} check_file 
-	 */
-	findFileFromContent(base_directories, options, check_file) {
-		let deprioritized_files = [];
-
-		function checkFile(path) {
-			try {
-				let content;
-				if (options.read_file !== false) content = fs.readFileSync(path, 'utf-8');
-				
-				return check_file(path, options.json ? autoParseJSON(content, false) : content);
-
-			} catch (err) {
-				console.error(err);
-				return false;
-			}
-		}
-
-		let searchFolder = (path) => {
-			let files;
-			try {
-				files = fs.readdirSync(path, {withFileTypes: true});
-			} catch (err) {
-				files = [];
-			}
-			for (let dirent of files) {
-				if (dirent.isDirectory()) continue;
-
-				if (!options.filter_regex || options.filter_regex.exec(dirent.name)) {
-					let new_path = path + osfs + dirent.name;
-					if (!options.priority_regex || options.priority_regex.exec(dirent.name)) {
-						// priority checking
-						let result = checkFile(new_path);
-						if (result) return result;
-					} else {
-						deprioritized_files.push(new_path);
-					}
-				}
-			}
-			if (options.recursive !== false) {
-				for (let dirent of files) {
-					if (!dirent.isDirectory()) continue;
-
-					let result = searchFolder(path + osfs + dirent.name);
-					if (result) return result;
-				}
-			}
-		}
-		for (let directory of base_directories) {
-			let result = searchFolder(directory);
-			if (result) return result;
-		}
-
-		for (let path of deprioritized_files) {
-			let result = checkFile(path);
-			if (result) return result;
 		}
 	},
 	//File Drag

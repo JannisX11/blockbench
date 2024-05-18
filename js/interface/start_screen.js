@@ -1,36 +1,7 @@
 const StartScreen = {
-	loaders: {},
-	open() {
-		Interface.tab_bar.openNewTab();
-		MenuBar.mode_switcher_button.classList.add('hidden');
-	}
+	loaders: {}
 };
 
-/**
- * 
- * @param {string} id Identifier
- * @param {object} data 
- * @param {object} data.graphic
- * @param {'icon'|string} data.graphic.type
- * @param {string} data.graphic.icon
- * @param {string} data.graphic.source
- * @param {number} data.graphic.width
- * @param {number} data.graphic.height
- * @param {number} data.graphic.aspect_ratio Section aspect ratio
- * @param {string} data.graphic.description Markdown string
- * @param {string} data.graphic.text_color
- * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
- * @param {'vertical'|'horizontal'} data.layout
- * @param {Array} data.features
- * @param {boolean} data.closable
- * @param {Function} data.click
- * @param {string} data.color
- * @param {string} data.text_color
- * @param {boolean} data.last
- * @param {string} data.insert_after
- * @param {string} data.insert_before
- * @returns 
- */
 function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
@@ -64,7 +35,7 @@ function addStartScreenSection(id, data) {
 			if (data.graphic.aspect_ratio) left.css('aspect-ratio', data.graphic.aspect_ratio);
 		}
 		if (data.graphic.description) {
-			let content = $(pureMarked(data.graphic.description));
+			let content = $(marked(data.graphic.description));
 			content.addClass('start_screen_graphic_description')
 			content.css({
 				'color': data.graphic.text_color || '#ffffff',
@@ -76,7 +47,7 @@ function addStartScreenSection(id, data) {
 		var right = $('<div class="start_screen_right"></div>')
 		obj.append(right)
 		data.text.forEach(line => {
-			var content = line.text ? pureMarked(tl(line.text)) : '';
+			var content = line.text ? marked(tl(line.text)) : '';
 			switch (line.type) {
 				case 'h1': var tag = 'h1'; break;
 				case 'h2': var tag = 'h3'; break;
@@ -84,7 +55,7 @@ function addStartScreenSection(id, data) {
 				case 'list':
 					var tag = 'ul class="list_style"';
 					line.list.forEach(string => {
-						content += `<li>${pureMarked(tl(string))}</li>`;
+						content += `<li>${marked(tl(string))}</li>`;
 					})
 					break;
 				case 'button': var tag = 'button'; break;
@@ -155,10 +126,8 @@ function addStartScreenSection(id, data) {
 	}
 }
 
-onVueSetup(async function() {
+onVueSetup(function() {
 	StateMemory.init('start_screen_list_type', 'string')
-
-	let slideshow_timer = 0;
 
 	StartScreen.vue = new Vue({
 		el: '#start_screen',
@@ -167,7 +136,6 @@ onVueSetup(async function() {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
-			viewed_format: null,
 			recent: isApp ? recent_projects : [],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
@@ -176,34 +144,7 @@ onVueSetup(async function() {
 			isApp,
 			mobile_layout: Blockbench.isMobile,
 			thumbnails: {},
-			getIconNode: Blockbench.getIconNode,
-
-			slideshow: [
-				{
-					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [skeleton_tiffay](https://twitter.com/Tiffany85635656)",
-				},
-				{
-					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [AnzSama](https://twitter.com/AnzSamaEr) & [PICASSO](https://twitter.com/Picasso114514)",
-				},
-				{
-					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [YunGui](https://twitter.com/AmosJea28222061) & [makstutis233](https://x.com/Maks2335770189)",
-				},
-				{
-					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999) & NekoGabriel",
-				},
-				{
-					source: "./assets/splash_art/5.webp",
-					description: "Splash Art 5th Place by [🌷Aza🌷](https://twitter.com/azagwen_art) & Shroomy",
-				}
-			],
-			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
-			slideshow_selected: 0,
-			slideshow_last: null,
-			slideshow_autoplay: true
+			getIconNode: Blockbench.getIconNode
 		},
 		methods: {
 			getDate(p) {
@@ -325,21 +266,9 @@ onVueSetup(async function() {
 				if (format_entry.onStart) format_entry.onStart();
 				if (typeof format_entry.new == 'function') format_entry.new();
 			},
-
-			getBackground(url) {
-				return `url("${url}")`
-			},
-			setSlide(index) {
-				this.slideshow_last = this.slideshow_selected;
-				this.slideshow_selected = index;
-				setTimeout(() => this.slideshow_last = null, 500);
-				slideshow_timer = 0;
-			},
-
 			openLink(link) {
 				Blockbench.openLink(link);
 			},
-			pureMarked,
 			tl
 		},
 		computed: {
@@ -356,36 +285,10 @@ onVueSetup(async function() {
 		},
 		mounted() {
 			this.updateThumbnails();
-
-			setInterval(() => {
-				if (this.show_splash_screen && this.slideshow_autoplay && this.$el.offsetParent) {
-					slideshow_timer += 1;
-
-					if (slideshow_timer == 24) {
-						this.setSlide((this.slideshow_selected+1) % this.slideshow.length);
-					}
-				}
-			}, 1000);
-
-			if (settings.always_show_splash_art.value && !Blockbench.hasFlag('after_update') && !Blockbench.isMobile) {
-				document.getElementById('start_screen').scrollTop = 100;
-			}
 		},
 		template: `
 			<div id="start_screen">
 				<content>
-					<section id="splash_screen" v-if="show_splash_screen">
-						<div class="splash_art_slideshow_image" :style="{backgroundImage: getBackground(slideshow[slideshow_selected].source)}">
-							<p v-if="slideshow[slideshow_selected].description" class="start_screen_graphic_description" v-html="pureMarked(slideshow[slideshow_selected].description)"></p>
-						</div>
-						<div class="splash_art_slideshow_image slideshow_previous" v-if="typeof slideshow_last == 'number'" :style="{backgroundImage: getBackground(slideshow[slideshow_last].source)}">
-						</div>
-						<ul class="splash_art_slideshow_points">
-							<li v-for="(image, index) in slideshow" :key="index" :class="{selected: index == slideshow_selected}" @click="setSlide(index)"></li>
-						</ul>
-						<i class="material-icons start_screen_close_button" @click="show_splash_screen = false">clear</i>
-					</section>
-
 					<section id="start_files">
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
@@ -396,7 +299,7 @@ onVueSetup(async function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry instanceof ModelFormat ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
@@ -448,11 +351,11 @@ onVueSetup(async function() {
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
-										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
-										<label v-else-if="item.type == 'label'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else class="markdown" v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" class="markdown" v-html="marked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else class="markdown" v-html="marked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 
@@ -485,7 +388,7 @@ onVueSetup(async function() {
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
 									</div>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
@@ -504,7 +407,7 @@ onVueSetup(async function() {
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
-										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')" />
+										<i :class="'fa_big icon fa-star ' + (project.favorite ? 'fas' : 'far')">
 									</div>
 								</li>
 							</ul>
@@ -527,25 +430,41 @@ onVueSetup(async function() {
 	if (settings.streamer_mode.value) {
 		updateStreamerModeNotification()
 	}
+	addStartScreenSection('splash_screen', {
+		"text_color": '#000000',
+		"graphic": {
+			"type": "image",
+			"source": "./assets/splash_art.png?46",
+			"width": 1000,
+			"aspect_ratio": "64/27",
+			"description": "Splash Art by [Wacky](https://twitter.com/wackyblocks)",
+			"text_color": '#cfcfcf'
+		}
+	})
+	if (!Blockbench.hasFlag('after_update')) {
+		document.getElementById('start_screen').scrollTop = 100;
+	}
 	
 	//Backup Model
-	let has_backups = await AutoBackup.hasBackups();
-	if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
+	if (localStorage.getItem('backup_model') && (!isApp || !currentwindow.webContents.second_instance) && localStorage.getItem('backup_model').length > 40) {
+		var backup_models = localStorage.getItem('backup_model')
 
 		let section = addStartScreenSection({
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'fa-archive'},
-			insert_before: 'start_files',
+			insert_after: 'splash_screen',
 			text: [
 				{type: 'h2', text: tl('message.recover_backup.title')},
 				{text: tl('message.recover_backup.message')},
 				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					AutoBackup.recoverAllBackups().then(() => {
-						section.delete();
-					});
+					let parsed_backup_models = JSON.parse(backup_models);
+					for (let uuid in parsed_backup_models) {
+						Codecs.project.load(parsed_backup_models[uuid], {path: 'backup.bbmodel', no_file: true})
+					}
+					section.delete();
 				}},
 				{type: 'button', text: tl('dialog.discard'), click: (e) => {
-					AutoBackup.removeAllBackups();
+					localStorage.removeItem('backup_model');
 					section.delete();
 				}}
 			]
@@ -565,7 +484,6 @@ class ModelLoader {
 		this.show_on_start_screen = true;
 		this.confidential = options.confidential || false;
 		this.condition = options.condition;
-		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.format_page = options.format_page;
 		this.onFormatPage = options.onFormatPage;

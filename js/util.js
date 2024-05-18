@@ -93,17 +93,6 @@ Condition.mutuallyExclusive = function(a, b) {
 	return false;
 }
 
-async function wait(delay) {
-	await new Promise((resolve) => {
-		setTimeout(resolve, delay);
-	})
-}
-
-function pureMarked(input) {
-	let dom = marked(input);
-	return DOMPurify.sanitize(dom);
-}
-
 class oneLiner {
 	constructor(data) {
 		if (data !== undefined) {
@@ -166,12 +155,139 @@ function removeEventListeners(el, events, func, option) {
 	})
 }
 
-function patchedAtob(base64) {
-	return (typeof Buffer == 'function')
-		? Buffer.from(base64, 'base64').toString()
-		: atob(base64);
+//Jquery
+$.fn.deepest = function() {
+	if (!this.length) return this;
+	var opts = []
+	this.each((i, node) => {
+		var i = 0;
+		var obj = $(node)
+		while (obj.parent().get(0) instanceof HTMLBodyElement === false) {
+			obj = obj.parent()
+			i++;
+		}
+		opts.push({depth: i, o: node})
+	})
+	opts.sort((a, b) => (a.depth < b.depth));
+	return $(opts[0].o)
 }
 
+//Math
+function guid() {
+	function s4() {
+		return Math.floor((1 + Math.random()) * 0x10000)
+			.toString(16)
+			.substring(1);
+	}
+	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+		s4() + '-' + s4() + s4() + s4();
+}
+function isUUID(s) {
+	return (s.length === 36 && s.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/))
+}
+function bbuid(l) {
+	l = l || 1
+	let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	var s = '';
+	while (l > 0) {
+		var n = Math.floor(Math.random()*62)
+		if (n > 9) {
+			n = chars[n-10]
+		}
+		s += n
+		l--;
+	}
+	return s;
+}
+Math.radToDeg = function(rad) {
+	return rad / Math.PI * 180
+}
+Math.degToRad = function(deg) {
+	return Math.PI / (180 /deg)
+}
+Math.roundTo = function(num, digits) {
+	var d = Math.pow(10,digits)
+	return Math.round(num * d) / d
+}
+Math.getLerp = function(a,b,m) {
+	return (m-a) / (b-a)
+}
+Math.lerp = function(a, b, m) {
+	return a + (b-a) * m
+}
+Math.isBetween = function(number, limit1, limit2) {
+   return (number - limit1) * (number - limit2) <= 0
+}
+Math.epsilon = function(a, b, epsilon = 0.001) {
+	return Math.abs(b - a) < epsilon
+}
+Math.trimDeg = function(a) {
+	return (a+180*15)%360-180
+}
+Math.isPowerOfTwo = function(x) {
+	return (x > 1) && ((x & (x - 1)) == 0);
+}
+Math._numbertype = 'number';
+Math.isNumber = function(x) {
+	return typeof x == Math._numbertype;
+}
+Math.randomab = function(a, b) {
+	return a + Math.random()*(b-a);
+}
+Math.randomInteger = function(a, b) {
+	a = Math.ceil(a);
+	b = Math.floor(b);
+	return a + Math.floor(Math.random() * (b - a + 1));
+}
+Math.areMultiples = function(n1, n2) {
+	return (
+		(n1/n2)%1 === 0 ||
+		(n2/n1)%1 === 0
+	)
+}
+Math.getNextPower = function(num, min) {
+	var i = min ? min : 2
+	while (i < num && i < 4000) {
+		i *= 2
+	}
+	return i;
+}
+Math.snapToValues = function(val, snap_points, epsilon = 12) {
+	let snaps = snap_points.slice().sort((a, b) => {
+		return Math.abs(val-a) - Math.abs(val-b)
+	})
+	if (Math.abs(snaps[0] - val) < epsilon) {
+		return snaps[0]
+	} else {
+		return val
+	}
+}
+function trimFloatNumber(val, max_digits = 4) {
+	if (val == '') return val;
+	var string = val.toFixed(max_digits)
+	string = string.replace(/0+$/g, '').replace(/\.$/g, '')
+	if (string == -0) return 0;
+	return string;
+}
+function getAxisLetter(number) {
+	switch (number) {
+		case 0: return 'x'; break;
+		case 1: return 'y'; break;
+		case 2: return 'z'; break;
+	}
+}
+function getAxisNumber(letter) {
+	switch (letter.toLowerCase()) {
+		case 'x': return 0; break;
+		case 'y': return 1; break;
+		case 'z': return 2; break;
+	}
+}
+function limitNumber(number, min, max) {
+	if (number > max) number = max;
+	if (number < min || isNaN(number)) number = min;
+	return number;
+}
 function highestInObject(obj, inverse) {
 	var n = inverse ? Infinity : -Infinity;
 	var result;
@@ -183,68 +299,7 @@ function highestInObject(obj, inverse) {
 	}
 	return result;
 }
-
-class Rectangle {
-	constructor(start_x = 0, start_y = 0, width = 0, height = 0) {
-		this.start_x = start_x;
-		this.start_y = start_y;
-		this.width = width;
-		this.height = height;
-	}
-	get start() {
-		return [this.x, this.y];
-	}
-	get w() {
-		return this.width;
-	}
-	get h() {
-		return this.width;
-	}
-	get end_x() {
-		return this.start_x + this.width;
-	}
-	get end_y() {
-		return this.start_y + this.height;
-	}
-	set end_x(val) {
-		return this.width = val - this.start_x;
-	}
-	set end_y(val) {
-		return this.height = val - this.start_y;
-	}
-	get area() {
-		return this.width * this.height;
-	}
-	fromCoords(x1, y1, x2, y2) {
-		this.start_x = x1;
-		this.width = x2 - x1;
-		this.start_y = y1;
-		this.height = y2 - y1;
-	}
-	fromUnorderedCoords(x1, y1, x2, y2) {
-		if (x1 < x2) {
-			this.start_x = x1;
-			this.width = x2 - x1;
-		} else {
-			this.start_x = x2;
-			this.width = x1 - x2;
-		}
-		if (y1 < y2) {
-			this.start_y = y1;
-			this.height = y2 - y1;
-		} else {
-			this.start_y = y2;
-			this.height = y1 - y2;
-		}
-	}
-	expandTo(x, y) {
-		if (x < this.start_x) this.start_x = x;
-		else if (x > this.end_x) this.end_x = x;
-
-		if (y < this.start_y) this.start_y = y;
-		else if (y > this.end_y) this.end_y = y;
-	}
-}
+Math.clamp = limitNumber;
 function getRectangle(a, b, c, d) {
 	var rect = {};
 	if (!b && typeof a === 'object') {
@@ -315,8 +370,194 @@ Date.prototype.dayOfYear = function() {
 
 }
 
+//Array
+Array.prototype.safePush = function(...items) {
+	let included = false;
+	for (var item of items) {
+		if (!this.includes(item)) {
+			this.push(item);
+			included = true;
+		}
+	}
+	return included;
+}
+Array.prototype.equals = function (array) {
+	if (!array)
+			return false;
+
+	if (this.length != array.length)
+			return false;
+
+	for (var i = 0, l=this.length; i < l; i++) {
+			if (this[i] instanceof Array && array[i] instanceof Array) {
+					if (!this[i].equals(array[i]))
+							return false;			 
+			}					 
+			else if (this[i] != array[i]) { 
+					return false;	 
+			}					 
+	}			 
+	return true;
+}
+Array.prototype.remove = function (...items) {
+	items.forEach(item => {
+		var index = this.indexOf(item)
+		if (index > -1) {
+			this.splice(index, 1)
+		}
+	})		
+}
+Array.prototype.empty = function() {
+	this.splice(0, this.length);
+	return this;
+}
+Array.prototype.purge = function() {
+	this.splice(0, this.length);
+	return this;
+}
+Array.prototype.replace = function(items) {
+	this.splice(0, this.length, ...items);
+	return this;
+}
+Array.prototype.allAre = function(cb) {
+	return this.findIndex((item, index) => {
+		return !cb(item, index);
+	}) === -1;
+}
+Array.prototype.findInArray = function(key, value) {
+	for (var i = 0; i < this.length; i++) {
+		if (this[i][key] === value) return this[i]
+	}
+	return false;
+}
+Array.prototype.last = function() {
+	return this[this.length-1];
+}
+Array.prototype.positiveItems = function() {
+	var x = 0, i = 0;
+	while (i < this.length) {
+		if (this[i]) x++;
+		i++;
+	}
+	return x;
+}
+Array.prototype.allEqual = function(s) {
+	var i = 0;
+	while (i < this.length) {
+		if (this[i] !== s) {
+			return false;
+		}
+		i++;
+	}
+	return true;
+}
+Array.prototype.random = function() {
+	return this[Math.floor(Math.random()*this.length)]
+}
+Array.prototype.forEachReverse = function(cb) {
+	var i = this.length;
+	for (var i = this.length-1; i >= 0; i--) {
+		cb(this[i], i);
+	}
+}
+Array.prototype.overlap = function(arr2) {
+	var count = 0;
+	for (var item of this) {
+		if (arr2.includes(item)) count++;
+	}
+	return count;
+}
+Array.prototype.toggle = function(item, state = !this.includes(item)) {
+	if (state) {
+		this.safePush(item);
+	} else {
+		this.remove(item);
+	}
+}
+
+//Array Vector
+Array.prototype.V3_set = function(x, y, z) {
+	if (x instanceof Array) return this.V3_set(...x);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] = parseFloat(x)||0;
+	this[1] = parseFloat(y)||0;
+	this[2] = parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_add = function(x, y, z) {
+	if (x instanceof Array) return this.V3_add(...x);
+	if (x instanceof THREE.Vector3) return this.V3_add(x.x, x.y, x.z);
+	this[0] += parseFloat(x)||0;
+	this[1] += parseFloat(y)||0;
+	this[2] += parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_subtract = function(x, y, z) {
+	if (x instanceof Array) return this.V3_subtract(...x);
+	if (x instanceof THREE.Vector3) return this.V3_subtract(x.x, x.y, x.z);
+	this[0] -= parseFloat(x)||0;
+	this[1] -= parseFloat(y)||0;
+	this[2] -= parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_multiply = function(x, y, z) {
+	if (x instanceof Array) return this.V3_multiply(...x);
+	if (x instanceof THREE.Vector3) return this.V3_multiply(x.x, x.y, x.z);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] *= parseFloat(x)||0;
+	this[1] *= parseFloat(y)||0;
+	this[2] *= parseFloat(z)||0;
+	return this;
+}
+Array.prototype.V3_divide = function(x, y, z) {
+	if (x instanceof Array) return this.V3_divide(...x);
+	if (x instanceof THREE.Vector3) return this.V3_divide(x.x, x.y, x.z);
+	if (y === undefined && z === undefined) z = y = x;
+	this[0] /= parseFloat(x)||1;
+	this[1] /= parseFloat(y)||1;
+	this[2] /= parseFloat(z)||1;
+	return this;
+}
+Array.prototype.V3_toThree = function() {
+	return new THREE.Vector3(this[0], this[1], this[2]);
+}
+Array.prototype.V2_set = function(x, y) {
+	if (x instanceof Array) return this.V2_set(...x);
+	if (y === undefined) y = x;
+	this[0] = parseFloat(x)||0;
+	this[1] = parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_add = function(x, y) {
+	if (x instanceof Array) return this.V2_add(...x);
+	this[0] += parseFloat(x)||0;
+	this[1] += parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_subtract = function(x, y) {
+	if (x instanceof Array) return this.V2_subtract(...x);
+	this[0] -= parseFloat(x)||0;
+	this[1] -= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_multiply = function(x, y) {
+	if (x instanceof Array) return this.V2_multiply(...x);
+	if (y === undefined) y = x;
+	this[0] *= parseFloat(x)||0;
+	this[1] *= parseFloat(y)||0;
+	return this;
+}
+Array.prototype.V2_divide = function(x, y) {
+	if (x instanceof Array) return this.V2_divide(...x);
+	if (y === undefined) y = x;
+	this[0] /= parseFloat(x)||1;
+	this[1] /= parseFloat(y)||1;
+	return this;
+}
 
 //Object
+Object.defineProperty(Array.prototype, "equals", {enumerable: false});
+
 function omitKeys(obj, keys, dual_level) {
 	var dup = {};
 	for (key in obj) {
@@ -372,7 +613,7 @@ var Objector = {
 }
 
 var Merge = {
-	number(obj, source, index) {
+	number: function(obj, source, index) {
 		if (source[index] !== undefined) {
 			var val = source[index]
 			if (typeof val === 'number' && !isNaN(val)) {
@@ -385,7 +626,7 @@ var Merge = {
 			}
 		}
 	},
-	string(obj, source, index, validate) {
+	string: function(obj, source, index, validate) {
 		if (source[index] || typeof source[index] === 'string') {
 			var val = source[index]
 			if (typeof val !== 'string') val = val.toString();
@@ -394,33 +635,33 @@ var Merge = {
 			}
 		}
 	},
-	molang(obj, source, index) {
+	molang: function(obj, source, index) {
 		if (['string', 'number'].includes(typeof source[index])) {
 			obj[index] = source[index];
 		}
 	},
-	boolean(obj, source, index, validate) {
+	boolean: function(obj, source, index, validate) {
 		if (source[index] !== undefined) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index] = source[index]
 			}
 		}
 	},
-	function(obj, source, index, validate) {
+	function: function(obj, source, index, validate) {
 		if (typeof source[index] === 'function') {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index] = source[index]
 			}
 		}
 	},
-	arrayVector(obj, source, index, validate) {
+	arrayVector: function(obj, source, index, validate) {
 		if (source[index] instanceof Array) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index].V3_set(source[index]);
 			}
 		}
 	},
-	arrayVector2(obj, source, index, validate) {
+	arrayVector2: function(obj, source, index, validate) {
 		if (source[index] instanceof Array) {
 			if (validate instanceof Function === false || validate(source[index])) {
 				obj[index].replace(source[index]);
@@ -546,47 +787,6 @@ function getAverageRGB(imgEl, blockSize) {
 	
 	return rgb;	
 }
-// Source: https://github.com/antimatter15/rgb-lab/
-function rgb2lab(rgb){
-	var r = rgb[0] / 255,
-		g = rgb[1] / 255,
-		b = rgb[2] / 255,
-		x, y, z;
-  
-	r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-	g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-	b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
-  
-	x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
-	y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
-	z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
-  
-	x = (x > 0.008856) ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
-	y = (y > 0.008856) ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
-	z = (z > 0.008856) ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
-  
-	return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)]
-}
-
-// calculate the perceptual distance between colors in CIELAB
-// https://github.com/THEjoezack/ColorMine/blob/master/ColorMine/ColorSpaces/Comparisons/Cie94Comparison.cs
-
-function labColorDistance(labA, labB){
-	var deltaL = labA[0] - labB[0];
-	var deltaA = labA[1] - labB[1];
-	var deltaB = labA[2] - labB[2];
-	var c1 = Math.sqrt(labA[1] * labA[1] + labA[2] * labA[2]);
-	var c2 = Math.sqrt(labB[1] * labB[1] + labB[2] * labB[2]);
-	var deltaC = c1 - c2;
-	var deltaH = deltaA * deltaA + deltaB * deltaB - deltaC * deltaC;
-	deltaH = deltaH < 0 ? 0 : Math.sqrt(deltaH);
-	var sc = 1.0 + 0.045 * c1;
-	var sh = 1.0 + 0.015 * c1;
-	var deltaLKlsl = deltaL / (1.0);
-	var deltaCkcsc = deltaC / (sc);
-	var deltaHkhsh = deltaH / (sh);
-	var i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
-	return i < 0 ? 0 : Math.sqrt(i);}
 
 function stringifyLargeInt(int) {
 	let string = int.toString();
@@ -618,22 +818,6 @@ function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_end[0], rect_start[1]])
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
 }
-function pointInTriangle(pt, v1, v2, v3) {
-	function sign(p1, p2, p3) {
-		return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
-	}
-	let d1 = sign(pt, v1, v2);
-	let d2 = sign(pt, v2, v3);
-	let d3 = sign(pt, v3, v1);
-
-	let has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-	let has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-	return !(has_neg && has_pos);
-}
-function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
-	return intersectLines(l1, l2, v1, v2) || intersectLines(l1, l2, v2, v3) || intersectLines(l1, l2, v3, v1);
-}
 
 function cameraTargetToRotation(position, target) {
 	let spherical = new THREE.Spherical();
@@ -649,29 +833,4 @@ function cameraRotationToTarget(position, rotation) {
 	vec.z *= -1;
 	vec.y *= -1;
 	return vec.toArray().V3_add(position);
-}
-
-function getDateDisplay(input_date) {
-	let date = new Date(input_date);
-	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
-	let label;
-	if (diff <= 0) {
-		label = tl('dates.today');
-	} else if (diff == 1) {
-		label = tl('dates.yesterday');
-	} else if (diff <= 7) {
-		label = tl('dates.this_week');
-	} else if (diff <= 60) {
-		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
-	} else {
-		label = date.toLocaleDateString();
-	}
-	return {
-		short: label,
-		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
-	}
-}
-
-const NativeGlobals = {
-	Animation
 }

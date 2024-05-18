@@ -18,11 +18,11 @@ function initializeWebApp() {
 		window.open(event.currentTarget.href, '_blank');
 	});
 	if (location.host == 'blockbench-dev.netlify.app') {
-		let button = $(`<a href="https://www.netlify.com/" style="padding: 10px; color: white; cursor: pointer; text-decoration: none; display: block;" target="_blank" rel="noopener">
+		let button = $(`<a href="https://www.netlify.com/" style="padding: 3px 8px; color: white; cursor: pointer; text-decoration: none;" target="_blank" rel="noopener">
 				Hosted by
 				<img src="https://www.blockbench.net/_nuxt/74d4819838c06fa271394f626e8c4b16.svg" height="20px" style="vertical-align: text-top;">
 			</div>`);
-		button.insertBefore('#start_files');
+		button.insertBefore('#web_download_button');
 	}
 	if (!Blockbench.isTouch && !Blockbench.isPWA) {
 		$('#web_download_button').show()
@@ -80,7 +80,7 @@ async function loadInfoFromURL() {
 	if (Blockbench.queries.plugins) {
 		let plugin_ids = Blockbench.queries.plugins.split(/,/);
 		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
-								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
+								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable());
 		if (plugins.length) {
 			await new Promise(resolve => {
 				let form = {
@@ -113,38 +113,9 @@ async function loadInfoFromURL() {
 	}
 
 	if (Blockbench.queries.m) {
-		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model, b) => {
+		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model) => {
 			Codecs.project.load(model, {path: ''});
-		}).fail(() => {
-			Blockbench.showMessageBox({
-				title: 'message.invalid_link',
-				message: tl('message.invalid_link.message', ['`'+Blockbench.queries.m+'`']),
-				icon: 'running_with_errors'
-			})
 		})
-	} else if (Blockbench.queries.loadtype) {
-		let file = {
-			content: Blockbench.queries.loaddata,
-			name: Blockbench.queries.loadname || 'file',
-			path: Blockbench.queries.loadname || 'file'
-		};
-		switch (Blockbench.queries.loadtype) {
-			case 'minecraft_skin': {
-				Formats.skin.setup_dialog.show();
-				Formats.skin.setup_dialog.setFormValues({
-					texture: file
-				})
-				break;
-			}
-			case 'image': {
-				loadImages([file]);
-				break;
-			}
-			case 'json': {
-				loadModelFile(file);
-				break;
-			}
-		}
 	}
 }
 

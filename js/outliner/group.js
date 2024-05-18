@@ -58,6 +58,9 @@ class Group extends OutlinerNode {
 	init() {
 		super.init();
 		Project.groups.push(this);
+		if (typeof this.parent !== 'object') {
+			this.addTo();
+		}
 		if (!this.mesh || !this.mesh.parent) {
 			this.constructor.preview_controller.setup(this);
 		}
@@ -178,13 +181,7 @@ class Group extends OutlinerNode {
 					elements.push(element)
 				}
 			})
-			let animations = [];
-			Animator.animations.forEach(animation => {
-				if (animation.animators && animation.animators[scope.uuid]) {
-					animations.push(animation);
-				}
-			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
+			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
 		super.remove();
@@ -195,13 +192,13 @@ class Group extends OutlinerNode {
 		}
 		Animator.animations.forEach(animation => {
 			if (animation.animators && animation.animators[scope.uuid]) {
-				animation.removeAnimator(scope.uuid);
+				delete animation.animators[scope.uuid];
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();
 			}
 		})
-		TickUpdates.selection = true;
+		TickUpdates.selection = true
 		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
@@ -268,6 +265,7 @@ class Group extends OutlinerNode {
 		return array;
 	}
 	showContextMenu(event) {
+		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
 		if (Group.selected != this) this.select(event);
 		this.menu.open(event, this)
@@ -441,7 +439,10 @@ class Group extends OutlinerNode {
 	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		new MenuSeparator('settings'),
+		'_',
+		'add_locator',
+		'_',
+		'rename',
 		'edit_bedrock_binding',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
@@ -453,38 +454,8 @@ class Group extends OutlinerNode {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
-			function applyTexture(texture_value, undo_message) {
-				let affected_groups = Group.all.filter(g => g.selected);
-				Undo.initEdit({outliner: true});
-				for (let group of affected_groups) {
-					group.texture = texture_value;
-				}
-				Undo.finishEdit(undo_message);
-				Canvas.updateAllFaces();
-			}
-			let arr = [
-				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(group) {
-					applyTexture('', 'Unassign texture from group');
-				}}
-			]
-			Texture.all.forEach(t => {
-				arr.push({
-					name: t.name,
-					icon: (t.mode === 'link' ? t.img : t.source),
-					click(group) {
-						applyTexture(t.uuid, 'Apply texture to group');
-					}
-				})
-			})
-			return arr;
-		}},
 		{icon: 'sort_by_alpha', name: 'menu.group.sort', condition: {modes: ['edit']}, click: function(group) {group.sortContent()}},
-		'apply_animation_preset',
-		'add_locator',
-		new MenuSeparator('manage'),
 		'resolve_group',
-		'rename',
 		'delete'
 	]);
 	Object.defineProperty(Group, 'all', {
@@ -511,9 +482,8 @@ new Property(Group, 'vector', 'rotation');
 new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
-//new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
 
@@ -612,14 +582,12 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			let add_group = Group.selected
+			var add_group = Group.selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
-			let new_name = add_group?.name;
-			let base_group = new Group({
-				origin: add_group ? add_group.origin : undefined,
-				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name
+			var base_group = new Group({
+				origin: add_group ? add_group.origin : undefined
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true
@@ -686,38 +654,10 @@ BARS.defineActions(function() {
 						showPresetMenu(event) {
 							new Menu([
 								{
-									name: 'Main Hand',
+									name: 'Item',
 									icon: 'build',
 									click: () => {
 										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
-									}
-								},
-								{
-									name: 'Right Hand',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'rightitem\'';
-									}
-								},
-								{
-									name: 'Left Hand',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'leftitem\'';
-									}
-								},
-								{
-									name: 'Body',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'body\'';
-									}
-								},
-								{
-									name: 'Head',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'head\'';
 									}
 								}
 							]).show(event.target);

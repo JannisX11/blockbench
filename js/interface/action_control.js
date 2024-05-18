@@ -2,9 +2,7 @@ const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
-	recently_used: [],
 	max_length: 32,
-	max_recently_used: 8,
 	select(input) {
 		ActionControl.open = true;
 		open_interface = ActionControl;
@@ -50,10 +48,7 @@ const ActionControl = {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
-		if (action instanceof BarSelect) {
-			action.open({target: ActionControl.vue.$el.childNodes[2]});
-
-		} else if (action.type == 'recent_project') {
+		if (action.type == 'recent_project') {
 			Blockbench.read([action.description], {}, files => {
 				loadModelFile(files[0]);
 			})
@@ -74,14 +69,11 @@ const ActionControl = {
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
-				plugin.install();
+				plugin.download(true);
 			}
 
 		} else {
 			action.trigger(e);
-		}
-		if (action instanceof BarItem) {
-			this.addRecentlyUsed(action);
 		}
 	},
 	click(action, e) {
@@ -127,20 +119,7 @@ const ActionControl = {
 			return false;
 		}
 		return true;
-	},
-	addRecentlyUsed(action) {
-		if (action.id == 'action_control') return;
-		ActionControl.recently_used.remove(action.id);
-		ActionControl.recently_used.splice(0, 0, action.id);
-		if (ActionControl.recently_used.length > ActionControl.max_recently_used) {
-			ActionControl.recently_used.pop();
-		}
-		localStorage.setItem('action_control_recently_used', ActionControl.recently_used.join(','));
 	}
-}
-if (localStorage.getItem('action_control_recently_used')) {
-	let recently_used = localStorage.getItem('action_control_recently_used').split(',');
-	ActionControl.recently_used.push(...recently_used.filter(i => i));
 }
 
 
@@ -167,7 +146,7 @@ BARS.defineActions(function() {
 				'': 		{name: tl('action.action_control'), icon: 'play_arrow'},
 				'setting': 	{name: tl('data.setting'), icon: 'settings'},
 				'settings': {name: tl('data.setting'), icon: 'settings'},
-				'profile':	{name: tl('data.settings_profile'), icon: 'manage_accounts'},
+				'profile':	{name: tl('data.settings_profile'), icon: 'settings_applications'},
 				'+plugin': 	{name: tl('action.add_plugin'), icon: 'extension'},
 				'-plugin': 	{name: tl('action.remove_plugin'), icon: 'extension_off'},
 				'recent': 	{name: tl('menu.file.recent'), icon: 'history'},
@@ -211,15 +190,14 @@ BARS.defineActions(function() {
 					}
 				}
 				if (!type) {
-					let recently_used = ActionControl.recently_used.map(id => BarItems[id]).filter(v => v);
-					let all_items = recently_used.concat(Keybinds.actions);
-					for (let item of all_items) {
+					for (var i = 0; i < Keybinds.actions.length; i++) {
+						var item = Keybinds.actions[i];
 						if (
 							search_input.length == 0 ||
 							item.name.toLowerCase().includes(search_input) ||
 							item.id.toLowerCase().includes(search_input)
 						) {
-							if ((item instanceof Action || item instanceof BarSelect) && Condition(item.condition) && !item.linked_setting) {
+							if (item instanceof Action && Condition(item.condition) && !item.linked_setting) {
 								list.safePush(item)
 								if (list.length > ActionControl.max_length) break;
 							}
@@ -297,7 +275,7 @@ BARS.defineActions(function() {
 				if (type == 'profile') {
 					list.push({
 						name: tl('generic.none'),
-						icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
+						icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
 						type: 'profile'
 					})
 					for (let profile of SettingsProfile.all) {
@@ -308,7 +286,7 @@ BARS.defineActions(function() {
 						) {
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
+								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
 								color: markerColors[profile.color].standard,
 								uuid: profile.uuid,
 								type: 'profile'
@@ -325,15 +303,9 @@ BARS.defineActions(function() {
 							plugin.name.toLowerCase().includes(search_input) ||
 							plugin.description.toLowerCase().includes(search_input))
 						) {
-							let icon = plugin.icon;
-							if (plugin.hasImageIcon()) {
-								icon = document.createElement('img');
-								icon.classList.add('icon');
-								icon.src = plugin.getIcon();
-							}
 							list.push({
 								name: plugin.name,
-								icon,
+								icon: plugin.icon,
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,
@@ -420,9 +392,9 @@ BARS.defineActions(function() {
 		template: `
 			<dialog id="action_selector" v-if="open">
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
-					<dynamic-icon :icon="search_types[search_type] ? search_types[search_type].icon : 'fullscreen'" />
+					<div class="icon_wrapper normal" v-html="getIconNode(search_types[search_type] ? search_types[search_type].icon : 'fullscreen').outerHTML"></div>	
 				</div>
-				<input type="text" v-model="search_input" inputmode="search" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
+				<input type="text" v-model="search_input" @input="e => search_input = e.target.value" autocomplete="off" autosave="off" autocorrect="off" spellcheck="false" autocapitalize="off">
 				<i class="material-icons" id="action_search_bar_icon" @click="search_input = ''">{{ search_input ? 'clear' : 'search' }}</i>
 				<div v-if="search_type" class="action_selector_type_overlay">{{ search_type }}:</div>
 				<div id="action_selector_list">
@@ -431,9 +403,9 @@ BARS.defineActions(function() {
 							:class="{selected: i === index}"
 							:title="item.description"
 							@click="click(item, $event)"
-							@mousemove="index = i"
+							@mouseenter="index = i"
 						>
-							<dynamic-icon :icon="item.icon" :color="item.color" />
+							<div class="icon_wrapper normal" v-html="getIconNode(item.icon, item.color).outerHTML"></div>
 							<span>{{ item.name }}</span>
 							<label class="keybinding_label">{{ item.keybind_label || (item.keybind ? item.keybind.label : '') }}</label>
 						</li>

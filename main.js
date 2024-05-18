@@ -10,19 +10,6 @@ let orig_win;
 let all_wins = [];
 let load_project_data;
 
-(() => {
-	// Allow advanced users to specify a custom userData directory.
-	// Useful for portable installations, and for setting up development environments.
-	const index = process.argv.findIndex(arg => arg === '--userData');
-	if (index !== -1) {
-		if (!process.argv.at(index + 1)) {
-			console.error('No path specified after --userData')
-			process.exit(1)
-		}
-		app.setPath('userData', process.argv[index + 1]);
-	}
-})()
-
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
 	settings: {},
@@ -173,7 +160,6 @@ function createWindow(second_instance, options = {}) {
 }
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
-app.commandLine.appendSwitch('ignore-gpu-blocklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
@@ -194,6 +180,12 @@ app.on('open-file', function (event, path) {
 	}
 })
 
+ipcMain.on('change-main-color', (event, arg) => {
+	all_wins.forEach(win => {
+		if (win.isDestroyed() || win.webContents == event.sender.webContents) return;
+		win.webContents.send('set-main-color', arg)
+	})
+})
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })
@@ -284,19 +276,19 @@ app.on('ready', () => {
 				ipcMain.on('allow-auto-update', () => {
 					autoUpdater.downloadUpdate()
 				})
-				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-available', a);
+				orig_win.webContents.send('update-available', a);
 			})
 			autoUpdater.on('update-downloaded', (a) => {
 				console.log('update-downloaded', a)
-				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-downloaded', a)
+				orig_win.webContents.send('update-downloaded', a)
 			})
 			autoUpdater.on('error', (a) => {
 				console.log('update-error', a)
-				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-error', a)
+				orig_win.webContents.send('update-error', a)
 			})
 			autoUpdater.on('download-progress', (a) => {
 				console.log('update-progress', a)
-				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-progress', a)
+				orig_win.webContents.send('update-progress', a)
 			})
 			autoUpdater.checkForUpdates().catch(err => {})
 		}

@@ -1,29 +1,15 @@
 var open_menu = null;
-class MenuSeparator {
-	constructor(id, label) {
-		this.id = id || '';
-		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
-		if (label) {
-			label = tl(label);
-			this.menu_node.append(Interface.createElement('label', {}, label));
-			this.menu_node.classList.add('has_label');
-		}
-	}
-}
+
 function handleMenuOverflow(node) {
 	node = node.get(0);
 	if (!node) return;
 	function offset(amount) {
 		let top = parseInt(node.style.top);
 		let offset = top - $(node).offset().top;
-		let top_gap = 26;
-		if (Blockbench.isMobile && Menu.open instanceof BarMenu) {
-			top_gap = window.innerHeight > 400 ? 106 : 56;
-		}
 		top = Math.clamp(
 			top + amount,
 			window.innerHeight - node.clientHeight + offset,
-			offset + top_gap
+			offset + 26
 		);
 		node.style.top = `${top}px`;
 	}
@@ -58,33 +44,25 @@ class Menu {
 		}
 		this.id = typeof id == 'string' ? id : '';
 		this.children = [];
+		this.node = document.createElement('ul');
+		this.node.classList.add('contextMenu');
 		this.structure = structure;
 		this.options = options || {};
 		this.onOpen = this.options.onOpen;
 		this.onClose = this.options.onClose;
-		this.node = document.createElement('ul');
-		this.node.classList.add('contextMenu');
-		if (this.options.class) {
-			if (this.options.class instanceof Array) {
-				this.node.classList.add(...this.options.class);
-			} else {
-				this.node.classList.add(this.options.class);
-			}
-		}
 	}
 	hover(node, event, expand) {
-		if (node.classList.contains('focused') && !expand) return;
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
 		var obj = $(node)
-		node.classList.add('focused')
+		obj.addClass('focused')
 		obj.parents('li.parent, li.hybrid_parent').addClass('opened')
 
 		if (obj.hasClass('parent') || (expand && obj.hasClass('hybrid_parent'))) {
 			var childlist = obj.find('> ul.contextMenu.sub')
 
-			if (expand) node.classList.add('opened');
+			if (expand) obj.addClass('opened');
 
 			var p_width = obj.outerWidth()
 			childlist.css('left', p_width + 'px')
@@ -104,21 +82,17 @@ class Menu {
 				}
 			}
 
-			let top_gap = 26;
-			if (Blockbench.isMobile && this instanceof BarMenu) {
-				top_gap = window.innerHeight > 400 ? 106 : 56;
-			}
-			let window_height = window.innerHeight - top_gap;
+			let window_height = window.innerHeight - 26;
 
 			if (el_height > window_height) {
 				childlist.css('margin-top', '0').css('top', '0')
-				childlist.css('top', (-childlist.offset().top + top_gap) + 'px')
+				childlist.css('top', (-childlist.offset().top + 26) + 'px')
 				handleMenuOverflow(childlist);
 
 			} else if (offset.top + el_height > window_height) {
-				childlist.css('margin-top', top_gap-childlist.height() + 'px')
-				if (childlist.offset().top < top_gap) {
-					childlist.offset({top: top_gap})
+				childlist.css('margin-top', 26-childlist.height() + 'px')
+				if (childlist.offset().top < 26) {
+					childlist.offset({top: 26})
 				}
 			}
 		}
@@ -168,7 +142,7 @@ class Menu {
 			}
 			used = true;
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
-			obj.find('li.focused').trigger('click');
+			obj.find('li.focused').click()
 			if (scope && !this.options.keep_open) {
 				//scope.hide()
 			}
@@ -185,13 +159,12 @@ class Menu {
 		if (position && position.changedTouches) {
 			convertTouchEvent(position);
 		}
-		let last_context = context;
 		var scope = this;
 		var ctxmenu = $(this.node)
 		if (open_menu) {
 			open_menu.hide()
 		}
-		document.body.append(this.node);
+		$('body').append(ctxmenu)
 
 		ctxmenu.children().detach()
 
@@ -201,10 +174,9 @@ class Menu {
 			} else if (!list) {
 				list = object.children
 			}
-			node = $(node);
 			node.find('ul.contextMenu.sub').detach();
 			if (list.length) {
-				var childlist = $(Interface.createElement('ul', {class: 'contextMenu sub'}));
+				var childlist = $('<ul class="contextMenu sub"></ul>')
 
 				populateList(list, childlist, object.searchable);
 
@@ -213,13 +185,8 @@ class Menu {
 						node.addClass('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
 						node.append(more_button);
-						more_button.addEventListener('mouseenter', e => {
+						$(more_button).mouseenter(e => {
 							scope.hover(node.get(0), e, true);
-						})
-						more_button.addEventListener('mouseleave', e => {
-							if (node.is(':hover') && !childlist.is(':hover')) {
-								scope.hover(node.get(0), e);
-							}
 						})
 					}
 				} else {
@@ -233,8 +200,7 @@ class Menu {
 		function populateList(list, menu_node, searchable) {
 			
 			if (searchable) {
-				let display_limit = 256;
-				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search'), inputmode: 'search'});
+				let input = Interface.createElement('input', {type: 'text', placeholder: tl('generic.search')});
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
 				menu_node.append(search_bar);
@@ -242,11 +208,11 @@ class Menu {
 				
 				let object_list = [];
 				list.forEach(function(s2, i) {
-					let node = getEntry(s2, menu_node);
-					if (!node) return;
+					let jq_node = getEntry(s2, menu_node);
+					if (!jq_node) return;
 					object_list.push({
 						object: s2,
-						node: node,
+						node: jq_node[0] || jq_node,
 						id: s2.id,
 						name: s2.name,
 						description: s2.description,
@@ -263,9 +229,7 @@ class Menu {
 					object_list.forEach(item => {
 						$(item.node).detach();
 					})
-					let count = 0;
-					for (let item of object_list) {
-						if (count > display_limit) break;
+					object_list.forEach(item => {
 						if (
 							typeof item.object == 'string' ||
 							item.object.always_show ||
@@ -274,11 +238,9 @@ class Menu {
 							(item.description && item.description.toUpperCase().includes(search_term))
 						) {
 							menu_node.append(item.node);
-							count++;
 						}
-					}
+					})
 				}
-				input.oninput(0);
 				if (menu_node == ctxmenu) {
 					input.focus();
 				}
@@ -288,81 +250,64 @@ class Menu {
 					getEntry(object, menu_node);
 				})
 			}
-			let nodes = menu_node.children();
-			if (nodes.length && nodes.last().hasClass('menu_separator')) {
-				nodes.last().remove();
+			var last = menu_node.children().last();
+			if (last.length && last.hasClass('menu_separator')) {
+				last.remove()
 			}
-
-			let is_scrollable = !nodes.toArray().find(node => node.classList.contains('parent') || node.classList.contains('hybrid_parent'));
-			menu_node.toggleClass('scrollable', is_scrollable);
 		}
 
 		function getEntry(s, parent) {
 
-			if (s.context) {
-				last_context = context;
-				context = s.context;
-			}
-			let scope_context = context;
 			var entry;
 			if (s === '_') {
-				s = new MenuSeparator();
-			} else if (typeof s == 'string' && s.startsWith('#')) {
-				s = new MenuSeparator(s.substring(1));
-			}
-			if (s instanceof MenuSeparator) {
-				entry = s.menu_node;
+				entry = new MenuSeparator().menu_node
 				var last = parent.children().last()
 				if (last.length && !last.hasClass('menu_separator')) {
-					parent[0].append(entry)
+					parent.append(entry)
 				}
 				return entry;
 			}
 			if (typeof s == 'string' && BarItems[s]) {
 				s = BarItems[s];
 			}
-			if (typeof s === 'function') {
-				s = s(scope_context);
-			}
-			if (!Condition(s.condition, scope_context)) return;
+			if (!Condition(s.condition, context)) return;
 
 			if (s instanceof Action) {
 
-				entry = s.menu_node
+				entry = $(s.menu_node)
 
-				entry.classList.remove('focused');
-
+				entry.removeClass('focused')
+				entry.off('click')
+				entry.off('mouseenter mousedown')
+				entry.on('mouseenter mousedown', function(e) {
+					if (this == e.target) {
+						scope.hover(this, e)
+					}
+				})
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
 					createChildList(s, entry)
 				} else {
-					if (s.side_menu instanceof Menu) {
-						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
+					entry.on('click', (e) => {
+						if (!(e.target == entry[0] || e.target.parentElement == entry[0])) return;
+						s.trigger(e)
+					});
+					if (s.side_menu) {
+						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(context) : s.side_menu.structure;
 						createChildList(s, entry, content_list);
-
-					} else if (s.side_menu instanceof Dialog) {
-						createChildList(s, entry, [
-							{
-								name: 'menu.options',
-								icon: 'web_asset',
-								click() {
-									s.side_menu.show();
-								}
-							}
-						]);
 					}
 				}
 
-				parent[0].append(entry)
+				parent.append(entry)
 
 			} else if (s instanceof BarSelect) {
 				
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
+				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
 				entry.prepend(icon)
 
 				//Submenu
@@ -392,90 +337,24 @@ class Menu {
 				let child_count = createChildList({children}, entry)
 
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent[0].append(entry)
+					parent.append(entry)
 				}
-				entry.addEventListener('mouseenter', function(e) {
-					scope.hover(entry, e);
-				})
-
-			} else if (s instanceof NumSlider) {
-				let item = s;
-				let trigger = {
-					name: item.name,
-					description: item.description,
-					icon: 'code',
-					click() {
-						let settings = {};
-						if (item.settings) {
-							settings = {
-								min: item.settings.min,
-								max: item.settings.max,
-								step: item.settings.step
-							}
-							if (typeof item.settings.interval == 'function') {
-								settings.step = item.settings.interval(event);
-							}
-						}
-						new Dialog(item.id, {
-							title: item.name,
-							width: 360,
-							form: {
-								value: {label: item.name, type: 'number', value: item.get(), ...settings}
-							},
-							onConfirm(result) {
-								if (typeof item.onBefore === 'function') {
-									item.onBefore();
-								}
-								item.change(n => result.value);
-								item.update();
-								if (typeof item.onAfter === 'function') {
-									item.onAfter();
-								}
-							}
-						}).show();
-					}
-				}
-				return getEntry(trigger, parent);
-				
-				/*let icon = Blockbench.getIconNode(s.icon, s.color);
-				let numeric_input = new Interface.CustomElements.NumericInput(s.id, {
-					value: s.get(),
-					min: s.settings?.min, max: s.settings?.max,
-					onChange(value) {
-						if (typeof s.onBefore === 'function') {
-							s.onBefore()
-						}
-						s.change(() => value);
-						if (typeof s.onAfter === 'function') {
-							s.onAfter()
-						}
-						s.update();
-					}
-				});
-				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, [
-					Interface.createElement('span', {}, tl(s.name)),
-					numeric_input.node
-				]);
-				entry.prepend(icon);
-
-				parent[0].append(entry);
-
-				$(entry).mouseenter(function(e) {
+				entry.mouseenter(function(e) {
 					scope.hover(this, e)
 				})
-				*/
+
 			} else if (s instanceof HTMLElement) {
-				parent[0].append(s);
+				parent.append(s);
 
 			} else if (typeof s === 'object') {
 				
 				let child_count;
 				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
+					var icon = Blockbench.getIconNode(s.icon(context), s.color)
 				} else {
 					var icon = Blockbench.getIconNode(s.icon, s.color)
 				}
-				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
+				entry = $(Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name))));
 				entry.prepend(icon);
 				if (s.keybind) {
 					let label = document.createElement('label');
@@ -484,9 +363,9 @@ class Menu {
 					entry.append(label);
 				}
 				if (typeof s.click === 'function') {
-					entry.addEventListener('click', e => {
-						if (e.target == entry) {
-							s.click(scope_context, e)
+					entry.on('click', e => {
+						if (e.target == entry.get(0)) {
+							s.click(context, e)
 						}
 					})
 				}
@@ -495,36 +374,29 @@ class Menu {
 					child_count = createChildList(s, entry);
 				}
 				if (child_count !== 0 || typeof s.click === 'function') {
-					parent[0].append(entry)
+					parent.append(entry)
 				}
-				addEventListeners(entry, 'mouseenter mouseover', (e) => {
-					if (e.target.classList.contains('menu_separator')) return;
-					if (e.target.classList.contains('contextMenu')) return;
-					scope.hover(entry, e);
+				entry.mouseenter(function(e) {
+					scope.hover(this, e)
 				})
 			}
 			//Highlight
 			if (scope.highlight_action == s && entry) {
 				let obj = entry;
-				while (obj && obj.nodeName == 'LI') {
-					obj.classList.add('highlighted');
-					obj = obj.parentElement.parentElement;
+				while (obj[0] && obj[0].nodeName == 'LI') {
+					obj.addClass('highlighted');
+					obj = obj.parent().parent();
 				}
 			}
-			if (s.context && last_context != context) context = last_context;
 			return entry;
 		}
 
 		let content_list = typeof this.structure == 'function' ? this.structure(context) : this.structure;
 		populateList(content_list, ctxmenu, this.options.searchable);
 
-		let el_width = ctxmenu.width()
-		let el_height = ctxmenu.height()
-		let top_gap = 26;
-		if (Blockbench.isMobile && this instanceof BarMenu) {
-			top_gap = window.innerHeight > 400 ? 106 : 56;
-		}
-		let window_height = window.innerHeight - top_gap;
+		var el_width = ctxmenu.width()
+		var el_height = ctxmenu.height()
+		let window_height = window.innerHeight - 26;
 
 		if (position && position.clientX !== undefined) {
 			var offset_left = position.clientX
@@ -553,19 +425,13 @@ class Menu {
 			if (position && position.clientWidth) offset_left += position.clientWidth;
 			if (offset_left < 0) offset_left = 0;
 		}
-		if (offset_top > window_height - el_height ) {
-			if (el_height < offset_top - 50) {
-				// Snap to element top
-				offset_top -= el_height;
-				if (position instanceof HTMLElement) {
-					offset_top -= position.clientHeight;
-				}
-			} else {
-				// Move up
-				offset_top = window_height - el_height;
+		if (offset_top  > window_height - el_height ) {
+			offset_top -= el_height;
+			if (position instanceof HTMLElement) {
+				offset_top -= position.clientHeight;
 			}
 		}
-		offset_top = Math.max(offset_top, top_gap);
+		offset_top = Math.clamp(offset_top, 26)
 
 		ctxmenu.css('left', offset_left+'px')
 		ctxmenu.css('top',  offset_top +'px')
@@ -592,61 +458,43 @@ class Menu {
 
 		if (scope.type === 'bar_menu') {
 			MenuBar.open = scope
-			scope.label.classList.add('opened');
+			$(scope.label).addClass('opened')
 		}
 		open_menu = scope;
-		Menu.open = this;
 		return scope;
 	}
-	show(...args) {
-		return this.open(...args);
+	show(position) {
+		return this.open(position);
 	}
 	hide() {
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
-		this.node.remove()
+		$(this.node).detach()
 		open_menu = null;
-		Menu.open = null;
 		return this;
 	}
 	conditionMet() {
 		return Condition(this.condition);
 	}
-	addAction(action, path = '') {
+	addAction(action, path) {
 		if (this.structure instanceof Array == false) return;
+		if (path === undefined) path = '';
 		if (typeof path !== 'string') path = path.toString();
-		let track = path.split('.')
+		var track = path.split('.')
 
 		function traverse(arr, layer) {
-			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer])) || (track[layer][0] == '#')) {
-				let index = arr.length;
+			if (track.length === layer || track[layer] === '' || !isNaN(parseInt(track[layer]))) {
+				var index = arr.length;
 				if (track[layer] !== '' && track.length !== layer) {
-					if (track[layer].startsWith('#')) {
-						// Group Anchor
-						let group = track[layer].substring(1);
-						let group_match = false;
-						index = 0;
-						for (let item of arr) {
-							if (item instanceof MenuSeparator) {
-								if (item.id == group) {
-									group_match = true;
-								} else if (group_match && item.id != group) {
-									break;
-								}
-							}
-							index++;
-						}
-					} else {
-						index = parseInt(track[layer])
-					}
+					index = parseInt(track[layer])
 				}
 				arr.splice(index, 0, action)
 			} else {
-				for (let i = 0; i < arr.length; i++) {
-					let item = arr[i]
-					if (item.children instanceof Array && item.id === track[layer] && layer < 20) {
-						traverse(item.children, layer+1);
-						break;
+				for (var i = 0; i < arr.length; i++) {
+					var item = arr[i]
+					if (item.children && item.children.length > 0 && item.id === track[layer] && layer < 20) {
+						traverse(item.children, layer+1)
+						i = 1000
 					}
 				}
 			}
@@ -711,11 +559,4 @@ class Menu {
 		traverse(this.structure, 0)
 		rm_item.menus.remove(scope)
 	}
-}
-
-function preventContextMenu() {
-	Blockbench.addFlag('no_context_menu');
-	setTimeout(() => {
-		Blockbench.removeFlag('no_context_menu');
-	}, 20);
 }

@@ -17,7 +17,7 @@ License: MIT
     overflow: hidden; 
 }
 .sp-container:not(.sp-flat) {
-    z-index: 42;
+    z-index: 22;
 }
 .sp-container.sp-flat {
     position: relative;

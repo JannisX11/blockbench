@@ -64,13 +64,17 @@ class NullObject extends OutlinerElement {
 		var offset = this.position[axis] - center
 		this.position[axis] = center - offset;
 		// Name
-		flipNameOnAxis(this, axis);
+		if (axis == 0 && this.name.includes('right')) {
+			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
+		} else if (axis == 0 && this.name.includes('left')) {
+			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
+		}
 		this.createUniqueName();
 		this.preview_controller.updateTransform(this);
 		return this;
 	}
 	getWorldCenter(with_animation) {
-		var pos = new THREE.Vector3();
+		var pos = Reusable.vec1.set(0, 0, 0);
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
@@ -97,7 +101,7 @@ class NullObject extends OutlinerElement {
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
-	NullObject.prototype.icon = 'far.fa-circle';
+	NullObject.prototype.icon = 'fa far fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
 	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
@@ -108,9 +112,7 @@ class NullObject extends OutlinerElement {
 	];
 	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
-			new MenuSeparator('ik'),
 			'set_ik_target',
-			'set_ik_source',
 			{
 				id: 'lock_ik_target_rotation',
 				name: 'menu.null_object.lock_ik_target_rotation',
@@ -126,8 +128,9 @@ class NullObject extends OutlinerElement {
 					if (Modes.animate) Animator.preview();
 				}
 			},
+			'_',
 			...Outliner.control_menu_group,
-			new MenuSeparator('manage'),
+			'_',
 			'rename',
 			'delete'
 		])
@@ -135,7 +138,6 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'position')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
@@ -168,7 +170,7 @@ class NullObject extends OutlinerElement {
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform.call(this, element);
+			NodePreviewController.prototype.updateTransform(element);
 
 			element.mesh.fix_position.copy(element.mesh.position);
 
@@ -186,7 +188,7 @@ class NullObject extends OutlinerElement {
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
+			let size = 17 / Preview.selected.height;
 			element.mesh.scale.set(size, size, size);
 		}
 	})
@@ -254,46 +256,5 @@ BARS.defineActions(function() {
 		click(event) {
 			new Menu('set_ik_target', this.children(this), {searchable: true}).show(event.target, this);
 		}
-	})
-
-	new Action('set_ik_source', {
-		icon: 'fa-link',
-		category: 'edit',
-		condition() {
-			let action = BarItems.set_ik_source;
-			return NullObject.selected.length && action.children(action).length
-		},
-		searchable: true,
-		children() {
-			let nodes = [];
-			iterate(Outliner.root)
-
-			function iterate(arr) {
-				arr.forEach(node => {
-					if (node instanceof Group) {
-						nodes.push(node);
-						iterate(node.children)
-					}
-				})
-			}
-			return nodes.map(node => {
-				return {
-					name: node.name + (node.uuid == NullObject.selected[0].ik_source ? ' (✔)' : ''),
-					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
-					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
-					click() {
-						Undo.initEdit({elements: NullObject.selected});
-						NullObject.selected.forEach(null_object => {
-							null_object.ik_source = node.uuid;
-						})
-						Undo.finishEdit('Set IK source');
-					}
-				}
-			})
-		},
-		click(event) {
-			new Menu('set_ik_source', this.children(this), {searchable: true}).show(event.target, this);
-		}
-
 	})
 })

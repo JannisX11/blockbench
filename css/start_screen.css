@@ -9,9 +9,6 @@
 		padding: 36px 0;
 		overflow-y: auto;
 	}
-	body.is_mobile #start_screen {
-		padding: 0;
-	}
 	#start_screen h3 {
 		margin: 0;
 	}
@@ -118,7 +115,7 @@
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
-		overflow: hidden;
+		overflow-x: hidden;
 		height: 30px;
 		right: 0px;
 		left: 0px;
@@ -127,7 +124,6 @@
 		padding-top: 2px;
 		position: absolute;
 		text-align: center;
-		white-space: nowrap;
 	}
 	#start_screen .recent_project.thumbnail .icon_wrapper {
 		position: absolute;
@@ -217,7 +213,6 @@
 		padding-right: 15px;
 		padding-left: 100px;
 		background: linear-gradient(90deg, rgba(3,86,112,0) 0%, rgba(0,10,22,0.63) 34%, rgba(0,9,20,0.72) 45%);
-		position: absolute;
 	}
 	#start_screen div.start_screen_right {
 		flex-grow: 1;
@@ -296,71 +291,6 @@
 		}
 	}
 
-
-	#splash_screen {
-		aspect-ratio: 21/9;
-		width: 100%;
-		min-height: 100px;
-	}
-	#splash_screen .splash_art_slideshow_image {
-		width: 100%;
-		height: 100%;
-		background-size: cover;
-		background-position: center;
-	}
-	#splash_screen .splash_art_slideshow_image.slideshow_previous {
-		position: absolute;
-		top: 0;
-		bottom: 0;
-		animation: fade_out_slideshow 500ms forwards;
-	}
-	@keyframes fade_out_slideshow {
-		0% {
-			opacity: 1;
-		}
-		100% {
-			opacity: 0;
-		}
-	}
-	.splash_art_slideshow_points {
-		position: absolute;
-		bottom: 10px;
-		left: 0;
-		right: 0;
-		margin: auto;
-		width: fit-content;
-		height: 24px;
-		display: flex;
-		opacity: 0;
-		transition: opacity 300ms ease-in-out;
-	}
-	#splash_screen:hover .splash_art_slideshow_points {
-		opacity: 1;
-	}
-	.splash_art_slideshow_points > li {
-		color: var(--color-text);
-		cursor: pointer;
-		width: 24px;
-		height: 24px;
-		text-align: center;
-	}
-	.splash_art_slideshow_points > li::after {
-		content: "";
-		display: block;
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		margin: auto;
-		margin-top: 9px;
-		background-color: var(--color-text);
-		opacity: 0.8;
-	}
-	.splash_art_slideshow_points > li:hover::after {
-		background-color: var(--color-light);
-	}
-	.splash_art_slideshow_points > li.selected::after {
-		background-color: var(--color-accent);
-	}
 
 
 	#start_files div.start_screen_left {
@@ -454,7 +384,6 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
-		line-height: 26px;
 	}
 	.format_target span {
 		padding: 2px 4px;
@@ -574,4 +503,39 @@
 	.quick_setup_theme:hover > div,
 	.quick_setup_theme.selected > div {
 		border-color: var(--color-accent);
+	}
+
+
+	#amend_edit_menu {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding-right: 30px;
+		margin: auto;
+		width: fit-content;
+	}
+	#amend_edit_menu > div.amend_edit_line {
+		background-color: var(--color-ui);
+		padding: 0px 8px;
+		height: 30px;
+		display: flex;
+	}
+	#amend_edit_menu > div.amend_edit_line .nslide_tool {
+		float: none;
+	}
+	#amend_edit_menu > div.amend_edit_line > label {
+		padding: 4px 6px;
+	}
+	.amend_edit_close_button {
+		position: absolute;
+		right: 0px;
+		top: 0px;
+		height: 30px;
+		width: 30px;
+		padding: 4px;
+		cursor: pointer;
+	}
+	.amend_edit_close_button:hover {
+		color: var(--color-light);
 	}

@@ -151,9 +151,6 @@
 		background-size: cover;
 		width: 30px;
 	}
-	.preview > canvas.selectable_cursor {
-		cursor: copy;
-	}
 	.text_padding {
 		margin-left: 5px;
 		margin-right: 5px;
@@ -188,9 +185,9 @@
 	}
 	.list {
 		background-color: var(--color-back);
+		width: 100%;
 		overflow-y: scroll;
 		flex-grow: 1;
-		clear: both;
 	}
 	.list::-webkit-scrollbar-track {
 		background: var(--color-back);
@@ -219,29 +216,13 @@
 		cursor: default;
 		pointer-events: none;
 	}
+
 	@media (max-device-width: 640px) {
 		#quick_message_box {
 			bottom: 26px;
 			top: unset;
 			padding: 6px;
 		}
-	}
-	#cursor_tooltip {
-		position: absolute;
-		z-index: 101;
-		max-width: 250px;
-		width: fit-content;
-		line-height: 18px;
-		padding: 2px 8px;
-		margin-top: 10px;
-		margin-left: 9px;
-		background-color: var(--color-bright_ui);
-		color: var(--color-bright_ui_text);
-		box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);;
-		overflow-wrap: break-word;
-		white-space: pre-line;
-		cursor: default;
-		pointer-events: none;
 	}
 	.uv_message_box {
 		position: absolute;
@@ -302,22 +283,9 @@
 	@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 	@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
 /*Markdown*/
-	.markdown h1 {
-		margin: 8px 0 8px 0;
-	}
-	.markdown h2 {
-		margin: 14px 0 8px 0;
-	}
-	.markdown p {
-		margin: 12px 0;
-	}
 	.markdown li {
 		list-style: initial;
 		cursor: inherit;
-		margin: 8px 0;
-	}
-	.markdown li > p {
-		margin: 0;
 	}
 	.markdown ul {
 		padding-left: 24px;
@@ -330,40 +298,6 @@
 	}
 	.markdown a {
 		cursor: pointer;
-	}
-	.markdown pre {
-		border: 1px solid var(--color-border);
-		background: var(--color-back);
-		font-family: var(--font-code);
-		padding: 6px 10px;
-		clear: both;
-		cursor: text;
-		user-select: text;
-		-webkit-user-select: text;
-	}
-	.markdown pre code {
-		user-select: text;
-		-webkit-user-select: text;
-	}
-	blockquote {
-		border-left: 4px solid var(--color-accent);
-		padding: 4px;
-		padding-left: 16px;
-		background: var(--color-back);
-	}
-	.markdown table {
-		border: 1px solid var(--color-border);
-		background: var(--color-back);
-	}
-	.markdown th {
-		padding: 4px;
-	}
-	.markdown td {
-		padding: 3px 4px;
-		border-top: 1px solid var(--color-border);
-	}
-	.markdown img {
-		max-width: 100%;
 	}
 
 /*Actions*/
@@ -379,21 +313,16 @@
 	div.toolbar_wrapper {
 		float: none;
 	}
-	.toolbar_wrapper.narrow > .toolbar {
-		width: fit-content;
-		display: flex;
-		height: 100%;
-	}
-	.toolbar_wrapper > .toolbar.no_wrap {
+	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar {
 		width: fit-content;
 		display: flex;
 		flex-flow: row-reverse;
-		flex-wrap: nowrap;
 		height: 100%;
 	}
-	.toolbar_wrapper > .toolbar.no_wrap > .content {
+	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar > .content {
 		height: 100%;
-		overflow: hidden;
+		overflow-x: hidden;
+		overflow-y: auto;
 		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
@@ -423,19 +352,6 @@
 		width: auto;
 		margin-right: auto;
 		margin-left: auto;
-	}
-	.toolbar_overflow_popup {
-		background-color: var(--color-ui);
-		position: absolute;
-		display: flex;
-		flex-wrap: wrap;
-		max-width: 180px;
-		z-index: 20;
-		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
-	}
-	.toolbar_overflow_dummy {
-		height: 30px;
-		width: 38px;
 	}
 	.tool {
 		height: 30px;
@@ -648,10 +564,6 @@
 		display: none;
 		margin-top: -4px;
 	}
-	.contextMenu.scrollable {
-		max-height: min(800px, 100vh);
-		overflow: auto;
-	}
 	.contextMenu li {
 		display: flex;
 		height: 30px;
@@ -682,7 +594,6 @@
 	.contextMenu li.focused,
 	.contextMenu li.parent.opened {
 		background-color: var(--color-accent);
-		color: var(--color-accent_text);
 	}
 	.contextMenu li.hybrid_parent.opened {
 		background-color: transparent;
@@ -728,26 +639,11 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	.contextMenu .menu_more_button > * {
-		pointer-events: none;
-	}
 	li.menu_separator {
 		height: 2px;
 		width: 100%;
 		padding: 0;
 		background-color: var(--color-menu_separator);
-	}
-	li.menu_separator.has_label {
-		margin-top: 12px;
-		margin-bottom: 6px;
-	}
-	li.menu_separator.has_label > label {
-		background-color: var(--color-bright_ui);
-		color: color-mix(in srgb, var(--color-bright_ui_text) 70%, transparent);
-		margin-top: -12px;
-		margin-left: 12px;
-		padding: 0 5px;
-		height: 20px;
 	}
 	.contextMenu li.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
@@ -767,18 +663,18 @@
 		padding: 0;
 		display: flex;
 	}
-	.menu_search_bar > input {
+	.contextMenu .menu_search_bar input {
 		color: inherit;
 		padding: 6px;
 		flex-grow: 1;
 		height: auto;
 	}
-	.menu_search_bar > div {
+	.contextMenu .menu_search_bar div {
 		width: 30px;
 		text-align: center;
 		padding-top: 2px;
 	}
-	.menu_search_bar > div > * {
+	.contextMenu .menu_search_bar div > * {
 		pointer-events: none;
 		vertical-align: middle;
 	}
@@ -798,8 +694,7 @@
 	body.theme_borders .dialog_close_button,
 	body.theme_borders #start_screen > content,
 	body.theme_borders #quick_message_box,
-	body.theme_borders action_selector > #action_selector_list,
-	body.theme_borders .plugins_suggested_row > ul > li
+	body.theme_borders action_selector > #action_selector_list
 	{
 		border: 1px solid var(--color-border);
 	}

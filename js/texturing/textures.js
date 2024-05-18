@@ -10,56 +10,54 @@ class Texture {
 		//meta
 		this.source = ''
 		this.selected = false
-		this.multi_selected = false
 		this.show_icon = true
 		this.error = 0;
 		this.visible = true;
-		this.source_overwritten = false;
+		this.display_canvas = false;
 		//Data
 		this.img = 0;
 		this.width = 0;
 		this.height = 0;
-		this.uv_width = Project ? Project.texture_width : 16;
-		this.uv_height = Project ? Project.texture_height : 16;
 		this.currentFrame = 0;
 		this.saved = true;
-		this.layers = [];
-		this.layers_enabled = false;
-		this.selected_layer = null;
-		this.internal = !isApp;
-		this.uuid = uuid || guid()
-		this.flags = new Set();
 
-		this._static = Object.freeze({
-			properties: {
-				selection: new IntMatrix(0, 0)
-			}
-		});
+		this.mode = isApp ? 'link' : 'bitmap';
+		this.uuid = uuid || guid()
 
 		if (typeof data === 'object') {
-			this.extend(data);
-			if (this.layers_enabled) {
-				setTimeout(() => {
-					Project.whenNextOpen(() => {
-						this.updateLayerChanges()
-					})
-				}, 40);
+			this.extend(data)
+		}
+		if (!this.id) {
+			var i = Texture.all.length;
+			while (true) {
+				var c = 0
+				var duplicates = false;
+				while (c < Texture.all.length) {
+					if (Texture.all[c].id == i) {
+						duplicates = true;
+					}
+					c++;
+				}
+				if (duplicates === true) {
+					i++;
+				} else {
+					this.id = i.toString();
+					break;
+				}
 			}
 		}
 
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
-		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
-		let img = this.img = new Image();
-		img.setAttribute('pagespeed_no_transform', '');
+		var img = this.img = new Image()
 		img.src = 'assets/missing.png'
 
-		var tex = new THREE.Texture(this.canvas);
-		tex.magFilter = THREE.NearestFilter
-		tex.minFilter = THREE.NearestFilter
-		tex.name = this.name;
+		var tex = new THREE.Texture(img)
 		img.tex = tex;
+		img.tex.magFilter = THREE.NearestFilter
+		img.tex.minFilter = THREE.NearestFilter
+		img.tex.name = this.name;
 
 		var vertShader = `
 			attribute float highlight;
@@ -180,7 +178,7 @@ class Texture {
 			vertexShader: vertShader,
 			fragmentShader: fragShader,
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
-			side: Canvas.getRenderSide(this),
+			side: this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide),
 			transparent: true,
 		});
 		mat.map = tex;
@@ -189,30 +187,11 @@ class Texture {
 
 		var size_control = {};
 
-		this.img.onload = () => {
-			tex.needsUpdate = true;
+		this.img.onload = function() {
+			this.tex.needsUpdate = true;
 			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
 			scope.width = img.naturalWidth;
 			scope.height = img.naturalHeight;
-			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
-			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
-				scope.error = 2;
-			}
-			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
-
-			if (img.update_from_canvas) {
-				delete img.update_from_canvas;
-			} else if (!scope.layers_enabled) {
-				scope.canvas.width = scope.width;
-				scope.canvas.height = scope.height;
-				scope.ctx.drawImage(img, 0, 0);
-			}
-
-			if (this.flags.has('update_uv_size_from_resolution')) {
-				this.flags.delete('update_uv_size_from_resolution');
-				this.uv_width = scope.width;
-				this.uv_height = scope.display_height;
-			}
 
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
@@ -225,8 +204,8 @@ class Texture {
 				if (Project.box_uv && Format.single_texture && !scope.error) {
 
 					if (!scope.keep_size) {
-						let pw = scope.getUVWidth();
-						let ph = scope.getUVHeight();
+						let pw = Project.texture_width;
+						let ph = Project.texture_height;
 						let nw = img.naturalWidth;
 						let nh = img.naturalHeight;
 
@@ -264,7 +243,6 @@ class Texture {
 
 				if (dimensions_changed) {
 					TextureAnimator.updateButton()
-					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(scope)
 				}
 				if (typeof scope.load_callback === 'function') {
@@ -273,7 +251,7 @@ class Texture {
 				}
 			})
 		}
-		this.img.onerror = (error) => {
+		this.img.onerror = function(error) {
 			if (isApp &&
 				!scope.isDefault &&
 				scope.mode !== 'bitmap' &&
@@ -284,30 +262,10 @@ class Texture {
 				scope.loadEmpty()
 			}
 		}
-
-		if (!this.id) {
-			var i = Texture.all.length;
-			while (true) {
-				var c = 0
-				var duplicates = false;
-				while (c < Texture.all.length) {
-					if (Texture.all[c].id == i) {
-						duplicates = true;
-					}
-					c++;
-				}
-				if (duplicates === true) {
-					i++;
-				} else {
-					this.id = i.toString();
-					break;
-				}
-			}
-		}
 	}
 	get frameCount() {
-		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (this.getUVWidth() / this.getUVHeight()) && 1/this.ratio % 1 === 0) {
-			return (this.getUVWidth() / this.getUVHeight()) / this.ratio
+		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (Project.texture_width / Project.texture_height) && 1/this.ratio % 1 === 0) {
+			return (Project.texture_width / Project.texture_height) / this.ratio
 		}
 	}
 	get display_height() {
@@ -316,76 +274,31 @@ class Texture {
 	get ratio() {
 		return this.width / this.height;
 	}
-	// Legacy support
-	get mode() {
-		return this.internal ? 'bitmap' : 'link';
-	}
-	set mode(mode) {
-		this.internal = mode == 'bitmap';
-	}
-	get selection() {
-		return this._static.properties.selection;
-	}
-	getUVWidth() {
-		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
-	}
-	getUVHeight() {
-		return Format.per_texture_uv_size ? this.uv_height : Project.texture_height;
-	}
 	getErrorMessage() {
 		switch (this.error) {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
-			case 2: return tl('texture.error.too_large', ['16384']); break;
 			//case 1: return tl('texture.error.invalid'); break;
 			//case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
 		}
 	}
 	getUndoCopy(bitmap) {
-		var copy = {};
+		var copy = {}
+		if (this.display_canvas && bitmap) {
+			this.updateSource(this.canvas.toDataURL());
+		}
 		for (var key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
 		copy.visible = this.visible;
 		copy.selected = this.selected;
-		copy.internal = this.internal;
+		copy.mode = this.mode;
 		copy.saved = this.saved;
 		copy.uuid = this.uuid;
 		copy.old_width = this.old_width;
 		copy.old_height = this.old_height;
-
-		if (this.layers_enabled) {
-			copy.layers = this.layers.map(layer => {
-				return layer.getUndoCopy(bitmap);
-			})
-			copy.selected_layer = this.selected_layer?.uuid;
-		}
-		if (bitmap || this.internal) {
-			copy.source = this.source
-			if (!this.layers_enabled) {
-				copy.image_data = this.getDataURL();
-			}
-		}
-		return copy
-	}
-	getSaveCopy(bitmap) {
-		var copy = {};
-		for (var key in Texture.properties) {
-			Texture.properties[key].copy(this, copy)
-		}
-		copy.visible = this.visible;
-		copy.internal = this.internal;
-		copy.saved = this.saved;
-		copy.uuid = this.uuid;
-		delete copy.selected;
-
-		if (this.layers_enabled) {
-			copy.layers = this.layers.map(layer => {
-				return layer.getSaveCopy();
-			})
-		}
-		if (bitmap || this.internal) {
+		if (bitmap || this.mode === 'bitmap') {
 			copy.source = this.source
 		}
 		return copy
@@ -397,34 +310,8 @@ class Texture {
 		Merge.boolean(this, data, 'visible')
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
-		Merge.boolean(this, data, 'internal')
 		Merge.boolean(this, data, 'keep_size')
-
-		if (data.layers instanceof Array) {
-			let old_layers = this.layers.slice();
-			this.layers.empty();
-			data.layers.forEach(layer_template => {
-				let layer = old_layers.find(l => l.uuid == layer_template.uuid);
-				if (layer)  {
-					layer.extend(layer_template);
-					old_layers.remove(layer);
-				} else {
-					layer = new TextureLayer(layer_template, this, layer_template.uuid);
-				}
-				this.layers.push(layer);
-			})
-
-		} else if (!data.layers_enabled) {
-			this.layers.empty();
-		}
-		if (data.selected_layer) {
-			let layer = this.layers.find(l => l.uuid == data.selected_layer);
-			if (layer) layer.select();
-		} else if (this.selected_layer && (this.layers_enabled == false || !this.layers.find(this.selected_layer))) {
-			delete this.selected_layer;
-		}
-
-		if (this.mode === 'bitmap' || !isApp) {
+		if (this.mode === 'bitmap') {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
 			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
@@ -528,18 +415,16 @@ class Texture {
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
-			let relevant_path = this.folder ? this.folder + '/' + this.name : this.name;
-			if (relevant_path.match(/[^a-z0-9._/\\-]/) && settings.dialog_invalid_characters.value) {
+			if ((this.folder + this.name).match(/[^a-z0-9._/\\-]/) && !Dialog.open && settings.dialog_invalid_characters.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'invalid_characters',
-					message: tl('message.invalid_characters.message', ['`a-z0-9._-`']) + '\n\n' + tl('data.file_path') + ':  ```' + relevant_path + '```',
+					message: tl('message.invalid_characters.message', ['a-z0-9._-']),
 					icon: 'folder_open',
-					width: 436,
-					checkboxes: {
-						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
-					}
-				}, (button, checkboxes = {}) => {
-					if (checkboxes.dont_show_again) {
+					buttons: [tl('dialog.ok'), tl('dialog.dontshowagain')],
+					confirm: 0,
+					cancel: 0
+				}, result => {
+					if (result === 1) {
 						settings.dialog_invalid_characters.set(false);
 					}
 				})
@@ -601,7 +486,7 @@ class Texture {
 		}
 
 		let duplicate = Texture.all.find(tex => (tex !== this && tex.path === this.path && tex.saved));
-		if (duplicate && isApp && this.path && PathModule.isAbsolute(this.path)) {
+		if (duplicate && isApp) {
 			if (!Format.single_texture) {
 				let affected_elements = Outliner.elements.filter(el => {
 					if (typeof el.faces !== 'object') return false;
@@ -646,25 +531,11 @@ class Texture {
 		}
 		return this;
 	}
-	// Used to load only file content, not generate metadata from path. Used when loading bbmodel files
-	loadContentFromPath(path) {
-		this.path = path
-		this.mode = 'link'
-		this.saved = true;
-		if (path.includes('data:image')) {
-			this.source = path
-		} else {
-			this.source = path.replace(/#/g, '%23') + '?' + tex_version
-		}
-		this.startWatcher()
-		this.load()
-		return this;
-	}
 	fromDataURL(data_url) {
 		this.source = data_url
-		this.internal = true;
+		this.mode = 'bitmap'
 		this.saved = false;
-		this.load();
+		this.load()
 		return this;
 	}
 	fromDefaultPack() {
@@ -709,7 +580,16 @@ class Texture {
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
 		this.img.src = dataUrl;
+		this.display_canvas = false;
 		this.updateMaterial();
+		if (open_dialog == 'UVEditor') {
+			for (var key in UVEditor.editors) {
+				var editor = UVEditor.editors[key];
+				if (this == editor.texture) {
+					editor.img.src = dataUrl;
+				}
+			}
+		}
 		return this;
 	}
 	updateMaterial() {
@@ -722,6 +602,9 @@ class Texture {
 		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
 
 		// Map
+		mat.map.image = this.img;
+		mat.map.name = this.name;
+		mat.map.image.src = this.source;
 		mat.map.needsUpdate = true;
 		return this;
 	}
@@ -761,7 +644,7 @@ class Texture {
 		}
 	}
 	refresh(single) {
-		if (this.internal) {
+		if (this.mode === 'bitmap') {
 			return false;
 		}
 		if (single) {
@@ -784,12 +667,10 @@ class Texture {
 		this.stopWatcher();
 
 		let timeout;
-		this._static.properties.watcher = fs.watch(scope.path, (eventType) => {
-			if (this.flags.has('file_just_changed')) return;
+		this.watcher = fs.watch(scope.path, (eventType) => {
 			if (eventType == 'change') {
 				if (timeout) clearTimeout(timeout)
 				timeout = setTimeout(() => {
-					if (scope.layers_enabled || scope.internal) return;
 					if (Texture.all.includes(scope)) {
 						scope.reloadTexture();
 					} else {
@@ -805,8 +686,8 @@ class Texture {
 		})
 	}
 	stopWatcher() {
-		if (isApp && this._static.properties.watcher) {
-			this._static.properties.watcher.close()
+		if (isApp && this.watcher) {
+			this.watcher.close()
 		}
 		return this;
 	}
@@ -830,7 +711,7 @@ class Texture {
 			var arr = path.split(osfs+'textures'+osfs);
 
 			var arr1 = arr[0].split(osfs);
-			this.namespace = arr1.last();
+			this.namespace = arr1[arr1.length-1];
 
 			var arr2 = arr[arr.length-1].split(osfs);
 			arr2.pop();
@@ -853,15 +734,14 @@ class Texture {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('dialog.ok'), tl('message.loose_texture.change')],
-					checkboxes: {
-						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
-					}
-				}, (result, checkboxes = {}) => {
-					if (result === 1) {
+					buttons: [tl('message.loose_texture.change'), tl('dialog.ok'), tl('dialog.dontshowagain')],
+					confirm: 0,
+					cancel: 1
+				}, result => {
+					if (result === 0) {
 						this.reopen()
 					}
-					if (checkboxes.dont_show_again) {
+					if (result === 2) {
 						settings.dialog_loose_texture.set(false);
 					}
 				})
@@ -874,59 +754,40 @@ class Texture {
 	}
 	//Management
 	select(event) {
-		if (event instanceof Event) {
-			Prop.active_panel = 'textures';
-		}
-		if (event && (event.shiftKey || event.ctrlKey)) {
-			this.multi_selected = true;
-			if (event.shiftKey) {
-				let start_i = Texture.last_selected;
-				let end_i = Texture.all.indexOf(this);
-				if (start_i > end_i) [start_i, end_i] = [end_i, start_i];
-				for (let i = start_i+1; i < end_i; i++) {
-					Texture.all[i].multi_selected = true;
-				}
-			}
-			Texture.last_selected = Texture.all.indexOf(this);
-			return;
-		}
 		Texture.all.forEach(s => {
 			if (s.selected) s.selected = false;
-			if (s.multi_selected) s.multi_selected = false;
 		})
-		this.selected = true;
+		if (event) {
+			Prop.active_panel = 'textures'
+		}
+		this.selected = true
 		Texture.selected = this;
-		Texture.last_selected = Texture.all.indexOf(this);
-		if (this.layers_enabled && !this.selected_layer && this.layers[0]) {
-			this.layers[0].select();
-		}
 		this.scrollTo();
-		if (this.render_mode == 'layered') {
-			Canvas.updatePixelGrid()
-		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length > 1) {
-			Canvas.updateAllFaces()
+		if (Format.image_editor) {
+			Project.texture_height = this.display_height;
+			Project.texture_width = this.width;
 		}
-		updateSelection()
+		if (this.render_mode == 'layered') {
+			Canvas.updatePaintingGrid()
+			updateSelection()
+		} else if (Format.single_texture && Texture.all.length > 1) {
+			Canvas.updateAllFaces()
+			TickUpdates.selection = true;
+		}
 		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
 			UVEditor.vue.updateTexture();
 		}
-		Panels.layers.inside_vue.layers = this.layers;
-		updateInterfacePanels();
-		Blockbench.dispatchEvent('select_texture', {texture: this});
-		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
 	add(undo) {
+		var scope = this;
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
-				if (tex.path === this.path) return tex;
+				if (tex.path === scope.path) return tex;
 			}
 		}
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
-		}
-		if (Format.per_texture_uv_size && undo) {
-			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
 			Undo.initEdit({textures: []})
@@ -937,7 +798,7 @@ class Texture {
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 		loadTextureDraggable()
 
-		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
+		if (Format.single_texture && Cube.all.length) {
 			Canvas.updateAllFaces()
 			if (selected.length) {
 				UVEditor.loadData()
@@ -960,7 +821,6 @@ class Texture {
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		delete Project.materials[this.uuid];
-		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
@@ -998,16 +858,6 @@ class Texture {
 		}
 		return this;
 	}
-	setAsDefaultTexture() {
-		if (Format.single_texture_default) {
-			Texture.all.forEach(tex => tex.use_as_default = false);
-			this.use_as_default = true;
-			if (Texture.all.length > 1) {
-				Canvas.updateAllFaces();
-			}
-		}
-		return this;
-	}
 	fillParticle() {
 		var particle_tex = false
 		Texture.all.forEach(function(t) {
@@ -1021,41 +871,22 @@ class Texture {
 		return this;
 	}
 	apply(all) {
-		let affected_elements;
-		if (Format.per_group_texture) {
-			let groups = [Group.selected];
-			Outliner.selected.forEach(el => {
-				if (el.faces) {
-					groups.safePush(el.parent);
-				}
-			});
-			groups = groups.filter(g => g instanceof Group);
-			affected_elements = [];
-			Undo.initEdit({outliner: true});
-			groups.forEach(group => {
-				group.texture = this.uuid;
-				group.forEachChild(child => {
-					if (child.faces) affected_elements.safePush(child);
-				})
-			})
-		} else {
-			affected_elements = Outliner.selected.filter(el => el.faces);
-			if (!affected_elements.length) return;
-			Undo.initEdit({elements: affected_elements})
-	
-			affected_elements.forEach((element) => {
-				let selected_faces = UVEditor.getSelectedFaces(element);
-				for (var face in element.faces) {
-					if (all || element.box_uv || selected_faces.includes(face)) {
-						var f = element.faces[face]
-						if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
-							f.texture = this.uuid
-						}
+		let affected = Outliner.selected.filter(el => el.faces);
+		if (!affected.length) return;
+		var scope = this;
+		Undo.initEdit({elements: affected})
+
+		affected.forEach(function(obj) {
+			for (var face in obj.faces) {
+				if (all || obj.box_uv || UVEditor.vue.selected_faces.includes(face)) {
+					var f = obj.faces[face]
+					if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
+						f.texture = scope.uuid
 					}
 				}
-			})
-		}
-		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true}})
+			}
+		})
+		Canvas.updateView({elements: affected, element_aspects: {faces: true}})
 		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
@@ -1083,15 +914,14 @@ class Texture {
 					require('child_process').spawn(settings.image_editor.value, [this.path])
 				}
 			} else {
-				Blockbench.showMessageBox({
-					icon: 'fas.fa-pen-square',
+				electron.dialog.showMessageBoxSync(currentwindow, {
+					type: 'info',
+					noLink: true,
 					title: tl('message.image_editor_missing.title'),
-					message: tl('message.image_editor_missing.detail'),
-					buttons: ['dialog.ok', 'dialog.cancel']
-				}, (result) => {
-					if (result == 1) return;
-					changeImageEditor(scope);
+					message: tl('message.image_editor_missing.message'),
+					detail: tl('message.image_editor_missing.detail')
 				})
+				selectImageEditorFile(scope)
 			}
 		}
 		return this;
@@ -1139,9 +969,6 @@ class Texture {
 				}},
 			});
 		}
-		if (Format.per_texture_uv_size) {
-			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1};
-		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
 				'texture_mcmeta': '_',
@@ -1186,13 +1013,6 @@ class Texture {
 				if (results.namespace !== undefined) this.namespace = results.namespace;
 				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
-				
-				if (Format.per_texture_uv_size) {
-					let changed = this.uv_width != results.uv_size[0] || this.uv_height != results.uv_size[1];
-					this.uv_width = results.uv_size[0];
-					this.uv_height = results.uv_size[1];
-					if (changed) Canvas.updateAllUVs();
-				}
 
 				if (this.render_mode == 'layered' && old_render_mode !== this.render_mode) {
 					Texture.all.forEach((tex, i) => {
@@ -1203,7 +1023,6 @@ class Texture {
 				}
 
 				this.updateMaterial();
-				UVEditor.loadData();
 
 				if (Format.texture_mcmeta) {
 					if (['frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => this[key] !== results[key])) {
@@ -1227,15 +1046,11 @@ class Texture {
 			id: 'resize_texture',
 			title: 'action.resize_texture',
 			form: {
-				mode: {label: 'dialog.resize_texture.mode', type: 'inline_select', default: 'crop', options: {
-					crop: 'dialog.resize_texture.mode.crop',
-					scale: 'dialog.resize_texture.mode.scale',
-				}},
 				size: {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
 					dimensions: 2,
-					value: [this.width, this.display_height],
+					value: [this.width, this.height],
 					min: 1
 				},
 				frames: {
@@ -1247,10 +1062,11 @@ class Texture {
 					max: 2048,
 					step: 1,
 				},
-				fill: {label: 'dialog.resize_texture.fill', type: 'select', condition: form => form.mode == 'crop', default: 'transparent', options: {
+				fill: {label: 'dialog.resize_texture.fill', type: 'select', default: 'transparent', options: {
 					transparent: 'dialog.resize_texture.fill.transparent',
 					color: 'dialog.resize_texture.fill.color',
 					repeat: 'dialog.resize_texture.fill.repeat',
+					stretch: 'dialog.resize_texture.fill.stretch'
 				}}
 			},
 			onFormChange(formResult) {
@@ -1264,7 +1080,7 @@ class Texture {
 				let old_width = scope.width;
 				let old_height = scope.height;
 				let elements_to_change = null;
-				if (formResult.mode === 'crop' && Texture.length >= 2 && !Format.single_texture) {
+				if (formResult.fill !== 'stretch' && Texture.length >= 2 && !Format.single_texture) {
 					let elements = [...Cube.all, ...Mesh.all].filter(el => {
 						for (let fkey in el.faces) {
 							if (el.faces[fkey].texture == scope.uuid) return true;
@@ -1273,7 +1089,7 @@ class Texture {
 					if (elements.length) elements_to_change = elements;
 				}
 				if (Format.animated_textures && formResult.frames > 1) {
-					formResult.size[1] *= formResult.frames;
+					formResult.size[1] *= formResult.frames / (scope.frameCount || 1);
 				}
 
 				Undo.initEdit({
@@ -1284,86 +1100,50 @@ class Texture {
 				})
 
 				scope.edit((canvas) => {
-					let temp_canvas = document.createElement('canvas');
-					let temp_ctx = temp_canvas.getContext('2d');
-					let resizeCanvas = (ctx) => {
-						temp_canvas.width = ctx.canvas.width;
-						temp_canvas.height = ctx.canvas.height;
-						temp_ctx.drawImage(ctx.canvas, 0, 0);
 
-						if (ctx.canvas.width == scope.canvas.width && ctx.canvas.height == scope.canvas.height) {
-							ctx.canvas.width = formResult.size[0];
-							ctx.canvas.height = formResult.size[1];
-						} else if (formResult.mode == 'scale') {
-							ctx.canvas.width = Math.round(ctx.canvas.width * (formResult.size[0] / scope.canvas.width));
-							ctx.canvas.height = Math.round(ctx.canvas.height * (formResult.size[1] / scope.canvas.height));
-						}
-						ctx.imageSmoothingEnabled = false;
-	
-						if (formResult.mode == 'crop') {
-							switch (formResult.fill) {
-								case 'transparent':
-									ctx.drawImage(temp_canvas, 0, 0, temp_canvas.width, temp_canvas.height);
-									break;
-								case 'color':
-									ctx.fillStyle = ColorPanel.get();
-									ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
-									ctx.clearRect(0, 0, temp_canvas.width, temp_canvas.height)
-									ctx.drawImage(temp_canvas, 0, 0, temp_canvas.width, temp_canvas.height);
-									break;
-								case 'repeat':
-									for (var x = 0; x < formResult.size[0]; x += temp_canvas.width) {		
-										for (var y = 0; y < formResult.size[1]; y += temp_canvas.height) {
-											ctx.drawImage(temp_canvas, x, y, temp_canvas.width, temp_canvas.height);
-										}
-									}
-									break;
+					canvas.width = formResult.size[0];
+					canvas.height = formResult.size[1];
+					let new_ctx = canvas.getContext('2d');
+					new_ctx.imageSmoothingEnabled = false;
+
+					switch (formResult.fill) {
+						case 'transparent':
+							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
+							break;
+						case 'color':
+							new_ctx.fillStyle = ColorPanel.get();
+							new_ctx.fillRect(0, 0, formResult.size[0], formResult.size[1])
+							new_ctx.clearRect(0, 0, scope.width, scope.height)
+							new_ctx.drawImage(scope.img, 0, 0, scope.width, scope.height);
+							break;
+						case 'repeat':
+							for (var x = 0; x < formResult.size[0]; x += scope.width) {		
+								for (var y = 0; y < formResult.size[1]; y += scope.height) {
+									new_ctx.drawImage(scope.img, x, y, scope.width, scope.height);
+								}
 							}
-						} else {
-							ctx.drawImage(temp_canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
-						}
+							break;
+						case 'stretch':
+							new_ctx.drawImage(scope.img, 0, 0, formResult.size[0], formResult.size[1]);
+							break;
 					}
-
-					if (scope.layers_enabled && scope.layers.length) {
-						for (let layer of scope.layers) {
-							resizeCanvas(layer.ctx);
-							if (formResult.mode == 'scale') {
-								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
-								layer.offset[1] = Math.round(layer.offset[1] * (formResult.size[1] / scope.height));
-							}
-						}
-					} else {
-						resizeCanvas(scope.ctx);
-					}
-
-					scope.width = formResult.size[0];
-					scope.height = formResult.size[1];
 
 					scope.keep_size = true;
-					if (formResult.mode == 'scale') {
-						// Nothing
-					} else if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
+					if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
 						// Animated
-					} else if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
-
-						if (Format.per_texture_uv_size) {
-							scope.uv_width = scope.uv_width * (formResult.size[0] / old_width);
-							scope.uv_height = scope.uv_height * (formResult.size[1] / old_height);
-							Project.texture_width = scope.uv_width;
-							Project.texture_height = scope.uv_height;
-						} else {
-							Undo.current_save.uv_mode = {
-								box_uv: Project.box_uv,
-								width:  Project.texture_width,
-								height: Project.texture_height
-							}
-							Undo.current_save.aspects.uv_mode = true;
-							Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
-							Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
+					} else if (formResult.fill !== 'stretch' && (Format.single_texture || Texture.all.length == 1)) {
+						Undo.current_save.uv_mode = {
+							box_uv: Project.box_uv,
+							width:  Project.texture_width,
+							height: Project.texture_height
 						}
+						Undo.current_save.aspects.uv_mode = true;
+
+						Project.texture_width = Project.texture_width * (formResult.size[0] / old_width);
+						Project.texture_height = Project.texture_height * (formResult.size[1] / old_height);
 						Canvas.updateAllUVs()
 
-					} else if (Texture.length >= 2 && elements_to_change) {
+					} else if (formResult.fill !== 'stretch' && Texture.length >= 2 && elements_to_change) {
 						elements_to_change.forEach(element => {
 							if (element instanceof Cube) {
 								for (var key in element.faces) {
@@ -1392,7 +1172,6 @@ class Texture {
 
 				Undo.finishEdit('Resize texture');
 
-				UVEditor.vue.updateTexture();
 				setTimeout(updateSelection, 100);
 			}
 		})
@@ -1415,74 +1194,6 @@ class Texture {
 			scrollTop: scroll_amount
 		}, 200);
 	}
-	//Layers
-	getActiveLayer() {
-		if (this.layers_enabled) {
-			return this.selected_layer || this.layers[0];
-		}
-	}
-	activateLayers(undo) {
-		if (undo) Undo.initEdit({textures: [this], bitmap: true});
-		this.layers_enabled = true;
-		if (!this.layers.length) {
-			let layer = new TextureLayer({
-			}, this);
-			let image_data = this.ctx.getImageData(0, 0, this.width, this.height);
-			layer.setSize(this.width, this.height);
-			layer.ctx.putImageData(image_data, 0, 0);
-			layer.addForEditing();
-		}
-		if (undo) Undo.finishEdit('Enable layers on texture');
-		updateInterfacePanels();
-		BARS.updateConditions();
-	}
-	selectionToLayer(undo, clone) {
-		let texture = this;
-		let selection = texture.selection;
-
-		if (undo) Undo.initEdit({textures: [texture], bitmap: true});
-		if (!texture.layers_enabled) {
-			texture.flags.add('temporary_layers');
-			texture.activateLayers(false);
-		}
-
-		let {canvas, ctx, offset} = texture.getActiveCanvas();
-		let new_offset = [0, 0];
-		let copy_canvas = canvas;
-
-		if (selection.is_custom)  {
-			let rect = selection.getBoundingRect();
-			copy_canvas = document.createElement('canvas');
-			let copy_ctx = copy_canvas.getContext('2d');
-			copy_canvas.width = rect.width;
-			copy_canvas.height = rect.height;
-			new_offset = [rect.start_x, rect.start_y];
-			selection.maskCanvas(copy_ctx, new_offset);
-			copy_ctx.drawImage(canvas, -rect.start_x + offset[0], -rect.start_y + offset[1]);
-		}
-
-		if (!texture.internal) {
-			texture.convertToInternal();
-		}
-		if (!clone) {
-			let boxes = selection.toBoxes();
-			boxes.forEach(box => {
-				ctx.clearRect(box[0] - offset[0], box[1] - offset[1], box[2], box[3]);
-			})
-		}
-
-		let new_layer = new TextureLayer({name: 'selection', offset: new_offset}, texture);
-		new_layer.setSize(copy_canvas.width, copy_canvas.height);
-		new_layer.ctx.drawImage(copy_canvas, 0, 0);
-		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
-		new_layer.select();
-		new_layer.setLimbo();
-
-		texture.updateLayerChanges(true);
-		if (undo) Undo.finishEdit('Texture selection to layer');
-		updateInterfacePanels();
-		BARS.updateConditions();
-	}
 	//Export
 	javaTextureLink() {
 		var link = this.name.replace(/\.png$/, '')
@@ -1501,9 +1212,9 @@ class Texture {
 				frametime: this.frame_time
 			}
 
-			if (this.getUVWidth() != this.getUVHeight()) {
-				animation.width = this.getUVWidth();
-				animation.height = this.getUVHeight();
+			if (Project.texture_width != Project.texture_height) {
+				animation.width = Project.texture_width;
+				animation.height = Project.texture_height;
 			}
 
 			if (this.frame_interpolate) animation.interpolate = true;
@@ -1546,11 +1257,10 @@ class Texture {
 
 		if (isApp) {
 			//overwrite path
-			let image;
 			if (scope.mode === 'link') {
-				image = nativeImage.createFromPath(scope.path).toPNG()
+				var image = nativeImage.createFromPath(scope.source.replace(/\?\d+$/, '')).toPNG()
 			} else {
-				image = nativeImage.createFromDataURL(scope.source).toPNG()
+				var image = nativeImage.createFromDataURL(scope.source).toPNG()
 			}
 			tex_version++;
 
@@ -1562,14 +1272,11 @@ class Texture {
 			}
 
 			if (!as && this.path && fs.existsSync(this.path)) {
-				this.flags.add('file_just_changed');
-				setTimeout(() => {this.flags.delete('file_just_changed')}, 100);
 				fs.writeFileSync(this.path, image);
 				postSave(this.path);
-				this.mode = 'link';
+				this.mode = 'link'
 				this.saved = true;
-				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
-				this.source_overwritten = true;
+				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version
 
 			} else {
 				var find_path;
@@ -1678,7 +1385,7 @@ class Texture {
 				}
 				ctx.putImageData(data, 0, 0);
 		
-				let dataUrl = canvas.toDataURL('image/png', 1);
+				let dataUrl = canvas.toDataURL('image/png');
 		
 				Blockbench.export({
 					resource_id: 'texture',
@@ -1692,132 +1399,56 @@ class Texture {
 			}
 		}).show();
 	}
-	// Editing
-	getDataURL() {
-		var scope = this;
-		if (isApp && !scope.internal) {
-			var dataUrl = this.canvas.toDataURL('image/png', 1);
-		} else {
-			var dataUrl = scope.source;
-		}
-		return dataUrl;
-	}
 	getBase64() {
-		return this.getDataURL().replace('data:image/png;base64,', '');
-	}
-	convertToInternal(data_url = this.getDataURL()) {
-		this.internal = true;
-		this.source = data_url;
-		this.saved = false;
-		return this;
-	}
-	updateLayerChanges(update_data_url) {
-		if (!this.layers_enabled || this.width == 0) return this;
-		this.canvas.width = this.width;
-		this.canvas.height = this.height;
-		for (let layer of this.layers) {
-			if (layer.visible == false || layer.opacity == 0) continue;
-			this.ctx.filter = `opacity(${layer.opacity / 100})`;
-			this.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(layer.blend_mode);
-			this.ctx.imageSmoothingEnabled = false;
-			this.ctx.drawImage(layer.canvas, layer.offset[0], layer.offset[1], layer.scaled_width, layer.scaled_height);
-		}
-		this.ctx.filter = '';
-		this.ctx.globalCompositeOperation = 'source-over';
-
-		if (!Format.image_editor && this.getMaterial()) {
-			this.getMaterial().map.needsUpdate = true;
-		}
-		if (update_data_url) {
-			this.internal = true;
-			this.source = this.canvas.toDataURL('image/png', 1);
-			this.updateImageFromCanvas();
-		}
-	}
-	updateChangesAfterEdit() {
-		if (this.layers_enabled) {
-			this.updateLayerChanges(true);
+		var scope = this;
+		if (isApp && scope.mode === 'link') {
+			var canvas = document.createElement('canvas')
+			canvas.width = scope.img.naturalWidth;
+			canvas.height = scope.img.naturalHeight;
+			var ctx = canvas.getContext('2d');
+			ctx.drawImage(scope.img, 0, 0)
+			var dataUrl = canvas.toDataURL('image/png')
 		} else {
-			if (!this.internal) this.convertToInternal();
-			if (!Format.image_editor) {
-				this.getMaterial().map.needsUpdate = true;
-			}
-			this.source = this.canvas.toDataURL('image/png', 1);
-			this.updateImageFromCanvas();
+			var dataUrl = scope.source
 		}
-		this.saved = false;
-		this.syncToOtherProject();
+		return dataUrl.replace('data:image/png;base64,', '')
 	}
-	updateImageFromCanvas() {
-		this.img.update_from_canvas = true;
-		this.img.src = this.source;
-	}
-	getActiveCanvas() {
-		let layer = this.layers_enabled && this.getActiveLayer();
-		return layer ? layer : this;
-	}
-	syncToOtherProject() {
-		if (!this.sync_to_project) return this;
-		let project = ModelProject.all.find(p => p.uuid == this.sync_to_project);
-		if (!project) return this;
-		let other_texture = project.textures.find(tex => tex.uuid == this.uuid && tex != this);
-		if (!other_texture) return this;
+	edit(cb, options) {
+		var scope = this;
+		if (!options) options = false;
 
-		let copy = this.getUndoCopy(true);
-		delete copy.sync_to_project;
-		other_texture.extend(copy);
-		if (other_texture.layers_enabled) {
-			other_texture.updateLayerChanges(true);
-		} else {
-			other_texture.updateSource(other_texture.source);
-		}
-		return this;
-	}
-	edit(cb, options = 0) {
 		if (cb) {
-			Painter.edit(this, cb, options);
+			Painter.edit(scope, cb, options);
 
-		} else if (this.mode === 'link') {
-			this.convertToInternal();
+		} else if (scope.mode === 'link') {
+			scope.source = 'data:image/png;base64,' + scope.getBase64();
+			scope.mode = 'bitmap';
 		}
-		this.saved = false;
+		scope.saved = false;
 	}
 }
 	Texture.prototype.menu = new Menu([
-			new MenuSeparator('apply'),
-			tex => ({
-				icon: 'star',
-				name: tex.use_as_default ? 'menu.texture.use_as_default.clear' : 'menu.texture.use_as_default',
-				condition: {features: ['single_texture_default']},
-				click(texture) {
-					if (texture.use_as_default) {
-						texture.use_as_default = false;
-					} else {
-						texture.setAsDefaultTexture();
-					}
-				}
-			}),
 			{
 				icon: 'crop_original',
 				name: 'menu.texture.face', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply()}
 			},
 			{
 				icon: 'texture',
 				name: 'menu.texture.blank', 
-				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply('blank')}
 			},
 			{
 				icon: 'fa-cube',
 				name: 'menu.texture.elements',
-				condition() {return !Format.single_texture && Outliner.selected.length > 0},
+				condition() {return !Project.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply(true)}
 			},
-			tex => ({
+			{
 				icon: 'bubble_chart',
-				name: tex.particle ? 'menu.texture.particle.clear' : 'menu.texture.particle',
+				name: 'menu.texture.particle',
 				condition: {features: ['select_texture_for_particles']},
 				click(texture) {
 					if (texture.particle) {
@@ -1826,8 +1457,8 @@ class Texture {
 						texture.enableParticle()
 					}
 				}
-			}),
-			new MenuSeparator('settings'),
+			},
+			'_',
 			{
 				icon: 'list',
 				name: 'menu.texture.render_mode',
@@ -1851,15 +1482,14 @@ class Texture {
 						Undo.finishEdit('Change texture view mode');
 					}
 					return [
-						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('default')}},
-						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('emissive')}},
-						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('additive')}},
-						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('layered')}, condition: () => Format.single_texture},
+						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('default')}},
+						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('emissive')}},
+						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('additive')}},
+						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'radio_button_checked' : 'radio_button_unchecked', click() {setViewMode('layered')}, condition: () => Format.single_texture},
 					]
 				}
 			},
 			'resize_texture',
-			'animated_texture_editor',
 			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',
@@ -1869,17 +1499,15 @@ class Texture {
 					let target = Texture.all[Texture.all.indexOf(texture)-1];
 					Undo.initEdit({textures: [target], bitmap: true});
 
-					target.edit((canvas, {ctx}) => {
+					target.edit(canvas => {
+						let ctx = canvas.getContext('2d');
 						ctx.drawImage(texture.img, 0, 0);
 					}, {no_undo: true})
 
 					Undo.finishEdit('Merged textures')
 				}
 			},
-			new MenuSeparator('copypaste'),
-			'copy',
-			'duplicate',
-			new MenuSeparator('edit'),
+			'_',
 			{
 				icon: 'edit',
 				name: 'menu.texture.edit_externally',
@@ -1889,28 +1517,17 @@ class Texture {
 			{
 				icon: 'draw',
 				name: 'menu.texture.edit_in_blockbench',
-				condition: (texture) => !Format.image_editor,
+				condition: (texture) => !Format.image_editor && texture.path,
 				click(texture) {
-					let existing_tab, tex2;
-					for (let project of ModelProject.all) {
-						if (!project.format.image_editor) continue;
-						tex2 = project.textures.find(t => t.uuid == texture.uuid || (t.path && t.path == texture.path));
-						if (tex2) {
-							existing_tab = project;
-							break;
-						}
-					}
+					let existing_tab = ModelProject.all.find(project => project.format.image_editor && project.textures.find(t => t.path && t.path == texture.path));
 					if (existing_tab) {
+						let tex2 = existing_tab.textures.find(t => t.path && t.path == texture.path);
 						existing_tab.select();
 						tex2.select();
-					} else {
-						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy();
-						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
-						// Sync
-						texture.sync_to_project = Project.uuid;
-						if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
+						return;
 					}
+					let copy = texture.getUndoCopy();
+					Codecs.image.load(copy, texture.path, [texture.naturalWidth, texture.naturalHeight]);
 				}
 			},
 			{
@@ -1918,26 +1535,18 @@ class Texture {
 				name: 'menu.texture.edit',
 				condition: {modes: ['paint']},
 				children: [
-					new MenuSeparator('adjustment'),
 					'adjust_brightness_contrast',
 					'adjust_saturation_hue',
 					'adjust_opacity',
 					'invert_colors',
 					'adjust_curves',
-					new MenuSeparator('filters'),
-					'limit_to_palette',
-					'clear_unused_texture_space',
-					new MenuSeparator('transform'),
+					'_',
 					'flip_texture_x',
 					'flip_texture_y',
 					'rotate_texture_cw',
-					'rotate_texture_ccw',
-					'crop_texture_to_selection'
+					'rotate_texture_ccw'
 				]
 			},
-			'enable_texture_layers',
-			'disable_texture_layers',
-			new MenuSeparator('file'),
 			{
 				icon: 'folder',
 				name: 'menu.texture.folder',
@@ -1961,58 +1570,12 @@ class Texture {
 				condition: tex => tex.render_mode == 'emissive',
 				click(texture) {texture.exportEmissionMap()}
 			},
-			new MenuSeparator('manage'),
+			'_',
 			{
 				icon: 'refresh',
 				name: 'menu.texture.refresh',
 				condition: function(texture) {return texture.mode == 'link'},
-				click(texture) {
-					if (texture.layers_enabled) {
-						Blockbench.showMessageBox({
-							translateKey: 'texture_refresh_conflict',
-							icon: 'priority_high',
-							commands: {
-								keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
-								keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
-							},
-							buttons: ['dialog.cancel'],
-						}, (choice) => {
-							if (choice == 'keep_theirs') {
-								Undo.initEdit({textures: [texture], bitmap: true});
-								UVEditor.vue.layer = null;
-								texture.layers_enabled = false;
-								texture.selected_layer = null;
-								texture.layers.empty();
-								texture.refresh(true)
-								Undo.finishEdit('Disable layers on texture');
-								updateInterfacePanels();
-								BARS.updateConditions();
-							}
-						})
-					} else {
-						texture.reloadTexture()
-					}
-				}
-			},
-			{
-				name: 'menu.texture.discard_changes',
-				description: 'menu.texture.discard_changes.desc',
-				icon: 'delete_sweep',
-				condition: (texture) => texture.internal && texture.path && isApp,
-				click(texture) {
-					Undo.initEdit({textures: [texture], bitmap: true});
-					UVEditor.vue.layer = null;
-					texture.layers_enabled = false;
-					texture.selected_layer = null;
-					texture.layers.empty();
-					texture.internal = false;
-					texture.saved = true;
-					texture.source = texture.path.replace(/#/g, '%23') + '?' + tex_version;
-					Texture.selected.reloadTexture();
-					Undo.finishEdit('Discard texture changes');
-					updateInterfacePanels();
-					BARS.updateConditions();
-				}
+				click(texture) {texture.reloadTexture()}
 			},
 			{
 				icon: 'file_upload',
@@ -2020,30 +1583,26 @@ class Texture {
 				click(texture) { texture.reopen()}
 			},
 			'delete',
-			new MenuSeparator('properties'),
+			'_',
 			{
 				icon: 'list',
 				name: 'menu.texture.properties',
 				click(texture) { texture.openMenu()}
 			}
 	])
-	Texture.prototype.offset = [0, 0];
 	Texture.getDefault = function() {
-		if (Format.single_texture_default) {
-			let default_enabled = Texture.all.find(tex => tex.use_as_default);
-			if (default_enabled) return default_enabled;
-		}
 		if (Texture.selected && Texture.all.includes(Texture.selected)) {
-			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
-				return Texture.selected;
-			} else {
-				return Texture.all.findLast(tex => tex.visible);
-			}
+			return Texture.selected;
 		} else if (Texture.selected) {
 			Texture.selected = undefined;
 		}
 		if (Texture.all.length > 1 && Texture.all.find(t => t.render_mode == 'layered')) {
-			return Texture.all.findLast(tex => tex.visible);
+			var i = 0;
+			for (var i = Texture.all.length-1; i >= 0; i--) {
+				if (Texture.all[i].visible) {
+					return Texture.all[i]
+				}
+			}
 		}
 		return Texture.all[0]
 	}
@@ -2052,19 +1611,12 @@ class Texture {
 	new Property(Texture, 'string', 'folder')
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
-	new Property(Texture, 'number', 'width')
-	new Property(Texture, 'number', 'height')
-	new Property(Texture, 'number', 'uv_width')
-	new Property(Texture, 'number', 'uv_height')
 	new Property(Texture, 'boolean', 'particle')
-	new Property(Texture, 'boolean', 'use_as_default')
-	new Property(Texture, 'boolean', 'layers_enabled')
-	new Property(Texture, 'string', 'sync_to_project')
-	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
-	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'string', 'render_mode', {default: 'default'})
+	new Property(Texture, 'string', 'render_sides', {default: 'auto'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
-	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
+	new Property(Texture, 'string', 'frame_order_type', {default: 'loop'})
 	new Property(Texture, 'string', 'frame_order')
 	new Property(Texture, 'boolean', 'frame_interpolate')
 
@@ -2147,27 +1699,13 @@ function loadTextureDraggable() {
 							var data = Canvas.raycast(event)
 							if (data.element && data.face) {
 								var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
-
-								if (Format.per_group_texture) {
-									elements = [];
-									let groups = Group.selected ? [Group.selected] : [];
-									Outliner.selected.forEach(el => {
-										if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
-									});
-									Undo.initEdit({outliner: true});
-									groups.forEach(group => {
-										group.texture = '';
-										group.forEachChild(child => {
-											if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-										})
-									})
-								} else {
+								if (tex && elements) {
 									Undo.initEdit({elements})
 									elements.forEach(element => {
 										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
 									})
+									Undo.finishEdit('Apply texture')
 								}
-								Undo.finishEdit('Apply texture')
 							}
 						} else if ($('#texture_list:hover').length > 0) {
 							let index = Texture.all.length-1
@@ -2187,41 +1725,31 @@ function loadTextureDraggable() {
 							Undo.finishEdit('Reorder textures')
 						} else if ($('#cubes_list:hover').length) {
 
-							let target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
+							var target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
 							$('.drag_hover').removeClass('drag_hover');
 							if (!target_node) return;
 							let uuid = target_node.id;
-							let target = OutlinerNode.uuids[uuid];
-							
-							let array = [];
+							var target = OutlinerNode.uuids[uuid];
+
+							var array = [];
+		
 							if (target.type === 'group') {
-								target.forEachChild((element) => {
-									array.push(element);
-								})
+								target.forEachChild(function(cube) {
+									array.push(cube)
+								}, [Cube, Mesh])
 							} else {
-								array = selected.includes(target) ? selected.slice() : [target];
+								array = selected.includes(target) ? selected : [target];
 							}
-							array = array.filter(element => element.applyTexture);
-
-							if (Format.per_group_texture) {
-								let group = target.type === 'group' ? target : null;
-								if (!group) group = target.parent;
-
-								array = [];
-								Undo.initEdit({group});
-								group.texture = tex.uuid;
-								group.forEachChild(child => {
-									if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-								})
-							} else {
-								Undo.initEdit({elements: array, uv_only: true})
-								array.forEach(element => {
-									element.applyTexture(tex, true);
-								});
-							}
-							Undo.finishEdit('Apply texture');
-							UVEditor.loadData();
-
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(function(cube) {
+								for (var face in cube.faces) {
+									cube.faces[face].texture = tex.uuid;
+								}
+							})
+							Undo.finishEdit('Drop texture')
+		
+							UVEditor.loadData()
+							Canvas.updateAllFaces()
 						} else if ($('#uv_viewport:hover').length) {
 							UVEditor.applyTexture(tex);
 						}
@@ -2236,53 +1764,22 @@ function unselectTextures() {
 		s.selected = false;
 	})
 	Texture.selected = undefined;
-	Canvas.updateLayeredTextures();
-	updateInterfacePanels();
-	Panels.layers.inside_vue.layers = [];
-	Blockbench.dispatchEvent('update_texture_selection');
+	Canvas.updateLayeredTextures()
 }
 function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(Texture.all, function(e) {return e.id == id});
 }
-
-SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'textures' && Texture.selected,
-	run() {
-		let textures = Texture.all.filter(texture => {
-			return texture.selected || texture.multi_selected;
-		})
-		Undo.initEdit({textures});
-		textures.forEach(texture => {
-			texture.remove(true);
-		})
-		Canvas.updateAllFaces();
-		TextureAnimator.updateButton();
-		UVEditor.vue.updateTexture();
-		BARS.updateConditions();
-		Undo.finishEdit('Remove texture', {textures: []})
-	}
-})
-SharedActions.add('duplicate', {
-	condition: () => Prop.active_panel == 'textures' && Texture.selected,
-	run() {
-		let copy = Texture.selected.getSaveCopy();
-		delete copy.path;
-		let new_tex = new Texture(copy).fillParticle();
-		new_tex.convertToInternal(Texture.selected.getDataURL());
-		new_tex.load().add(true);
-	}
-})
 Clipbench.setTexture = function(texture) {
 	//Sets the raw image of the texture
 	if (!isApp) return;
 
-	Clipbench.texture = texture.getSaveCopy();
+	Clipbench.texture = texture.getUndoCopy();
 	delete Clipbench.texture.path;
-	Clipbench.texture.internal = true;
+	Clipbench.texture.mode = 'bitmap';
 	Clipbench.texture.saved = false;
-	Clipbench.texture.source = texture.getDataURL();
+	Clipbench.texture.source = 'data:image/png;base64,'+texture.getBase64();
 
 	if (isApp) {
 		if (texture.mode === 'bitmap') {
@@ -2296,22 +1793,21 @@ Clipbench.setTexture = function(texture) {
 Clipbench.pasteTextures = function() {
 	function loadFromDataUrl(dataUrl) {
 		if (!dataUrl || dataUrl.length < 32) return;
-		var texture = new Texture({name: 'pasted', folder: 'block' }).fillParticle().convertToInternal(dataUrl)
-		texture.load().add(true);
+		var texture = new Texture({name: 'pasted', folder: 'block' }).fromDataURL(dataUrl).fillParticle().add(true);
 		setTimeout(function() {
 			texture.openMenu();
 		}, 40)
 	}
 
 	if (Clipbench.texture) {
-		var texture = new Texture(Clipbench.texture).convertToInternal(Clipbench.texture.source).fillParticle().load().add(true);
+		var texture = new Texture(Clipbench.texture).fillParticle().load().add(true);
 		setTimeout(function() {
 			texture.openMenu();
 		}, 40)
 		Clipbench.texture = null;
 
 	} else if (isApp) {
-		var image = clipboard.readImage().toDataURL('image/png', 1);
+		var image = clipboard.readImage().toDataURL();
 		loadFromDataUrl(image);
 	} else {
 		navigator.clipboard.read().then(content => {
@@ -2322,6 +1818,97 @@ Clipbench.pasteTextures = function() {
 				})
 			}
 		}).catch(() => {})
+	}
+}
+
+TextureAnimator = {
+	isPlaying: false,
+	interval: false,
+	frame_total: 0,
+	start() {
+		clearInterval(TextureAnimator.interval)
+		TextureAnimator.isPlaying = true
+		TextureAnimator.frame_total = 0;
+		TextureAnimator.updateButton()
+		let frametime = 1000/settings.texture_fps.value;
+		if (Format.texture_mcmeta && Texture.getDefault()) {
+			let tex = Texture.getDefault();
+			frametime = Math.max(tex.frame_time, 1) * 50;
+		}
+		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
+	},
+	stop() {
+		TextureAnimator.isPlaying = false
+		clearInterval(TextureAnimator.interval)
+		TextureAnimator.updateButton()
+	},
+	toggle() {
+		if (TextureAnimator.isPlaying) {
+			TextureAnimator.stop()
+		} else {
+			TextureAnimator.start()
+		}
+	},
+	updateSpeed() {
+		if (TextureAnimator.isPlaying) {
+			TextureAnimator.stop()
+			TextureAnimator.start()
+		}
+	},
+	nextFrame() {
+		var animated_textures = []
+		TextureAnimator.frame_total++;
+		Texture.all.forEach(tex => {
+			if (tex.frameCount > 1) {
+				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
+				if (custom_indices) {
+					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
+					tex.currentFrame = Math.clamp(typeof index == 'object' ? index.index : index, 0, tex.frameCount-1);
+
+				} else {
+					if (tex.currentFrame >= tex.frameCount-1) {
+						tex.currentFrame = 0
+					} else {
+						tex.currentFrame++;
+					}
+				}
+				animated_textures.push(tex)
+			}
+		})
+		TextureAnimator.update(animated_textures);
+	},
+	update(animated_textures) {
+		let maxFrame = 0;
+		animated_textures.forEach(tex => {
+			maxFrame = Math.max(maxFrame, tex.currentFrame);
+		})
+		Cube.all.forEach(cube => {
+			var update = false
+			for (var face in cube.faces) {
+				update = update || animated_textures.includes(cube.faces[face].getTexture());
+			}
+			if (update) {
+				Canvas.updateUV(cube, true)
+			}
+		})
+		BarItems.animated_texture_frame.update();
+		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
+	},
+	reset() {
+		TextureAnimator.stop();
+		Texture.all.forEach(function(tex, i) {
+			if (tex.frameCount) {
+				tex.currentFrame = 0;
+			} 
+		})
+		UVEditor.img.style.objectPosition = '';
+		while (i < elements.length) {
+			Canvas.updateUV(elements[i], true)
+			i++;
+		}
+	},
+	updateButton() {
+		BarItems.animated_textures.setIcon( TextureAnimator.isPlaying ? 'pause' : 'play_arrow' )
 	}
 }
 
@@ -2417,6 +2004,58 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+
+	function textureAnimationCondition() {
+		return Format.animated_textures && Texture.all.find(tex => tex.frameCount > 1);
+	}
+	new Action('animated_textures', {
+		icon: 'play_arrow',
+		category: 'textures',
+		condition: textureAnimationCondition,
+		click() {
+			TextureAnimator.toggle()
+		}
+	})
+	function getSliderTexture() {
+		return [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
+	}
+	new NumSlider('animated_texture_frame', {
+		category: 'textures',
+		condition: textureAnimationCondition,
+		getInterval(event) {
+			return 1;
+		},
+		get: function() {
+			let tex = getSliderTexture()
+			return tex ? tex.currentFrame+1 : 0;
+		},
+		change: function(modify) {
+			let slider_tex = getSliderTexture()
+			if (!slider_tex) return;
+			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
+
+			let textures = Texture.all.filter(tex => tex.frameCount > 1);
+			Texture.all.forEach(tex => {
+				tex.currentFrame = (slider_tex.currentFrame % tex.frameCount) || 0;
+			})
+			TextureAnimator.update(textures);
+		}
+	})
+	new Action('animated_texture_fps', {
+		name: 'settings.texture_fps',
+		description: 'settings.texture_fps.desc',
+		icon: 'speed',
+		category: 'textures',
+		condition: textureAnimationCondition,
+		click() {
+			if (Format.texture_mcmeta && Texture.all.length) {
+				Texture.getDefault().openMenu()
+				$('dialog div.form_bar_frame_time input').trigger('focus');
+			} else {
+				settings.texture_fps.trigger();
+			}
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -2424,7 +2063,6 @@ Interface.definePanels(function() {
 	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
-		resizable: true,
 		condition: {modes: ['edit', 'paint']},
 		default_position: {
 			slot: 'left_bar',
@@ -2432,15 +2070,9 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: [
-			new Toolbar('texturelist', {
-				children: [
-					'import_texture',
-					'create_texture',
-					'append_to_template',
-				]
-			})
-		],
+		toolbars: {
+			head: Toolbars.texturelist
+		},
 		onResize() {
 			this.inside_vue._data.currentFrame += 1;
 			this.inside_vue._data.currentFrame -= 1;
@@ -2460,10 +2092,6 @@ Interface.definePanels(function() {
 						return texture.getErrorMessage()
 					} else {
 						let message = texture.width + ' x ' + texture.height + 'px';
-						if (!Format.image_editor) {
-							let uv_size = texture.width / texture.getUVWidth() * 16;
-							message += ` (${trimFloatNumber(uv_size, 2)}x)`;
-						}
 						if (texture.frameCount > 1) {
 							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
 						}
@@ -2521,7 +2149,7 @@ Interface.definePanels(function() {
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
 							v-for="texture in textures"
-							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
+							v-bind:class="{ selected: texture.selected, particle: texture.particle}"
 							v-bind:texid="texture.uuid"
 							:key="texture.uuid"
 							class="texture"
@@ -2538,23 +2166,19 @@ Interface.definePanels(function() {
 								<div class="texture_name">{{ texture.name }}</div>
 								<div class="texture_res">{{ getDescription(texture) }}</div>
 							</div>
-							<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
-							<template v-else>
-								<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
-								<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
-								<i class="material-icons texture_visibility_icon clickable"
-									v-bind:class="{icon_off: !texture.visible}"
-									v-if="texture.render_mode == 'layered'"
-									@click.stop="texture.toggleVisibility()"
-									@dblclick.stop
-								>
-									{{ texture.visible ? 'visibility' : 'visibility_off' }}
-								</i>
-								<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-									<template v-if="texture.saved">check_circle</template>
-									<template v-else>save</template>
-								</i>
-							</template>
+							<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+							<i class="material-icons texture_visibility_icon clickable"
+								v-bind:class="{icon_off: !texture.visible}"
+								v-if="texture.render_mode == 'layered'"
+								@click.stop="texture.toggleVisibility()"
+								@dblclick.stop
+							>
+								{{ texture.visible ? 'visibility' : 'visibility_off' }}
+							</i>
+							<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
+								<template v-if="texture.saved">check_circle</template>
+								<template v-else>save</template>
+							</i>
 						</li>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
@@ -2574,9 +2198,7 @@ Interface.definePanels(function() {
 			}
 		},
 		menu: new Menu([
-			new MenuSeparator('copypaste'),
 			'paste',
-			new MenuSeparator('file'),
 			'import_texture',
 			'create_texture',
 			'change_textures_folder',

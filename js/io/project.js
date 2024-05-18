@@ -1,18 +1,12 @@
 class ModelProject {
-	constructor(options = {}, uuid) {
+	constructor(options = {}) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
 		}
-		this.uuid = uuid || guid();
+		this.uuid = guid();
 		this.selected = false;
 		this.locked = false;
 		this.thumbnail = '';
-
-		this._static = Object.freeze({
-			properties: {
-				undo: new UndoSystem()
-			}
-		})
 
 		this.box_uv = options.format ? options.format.box_uv : false;
 		this._texture_width = 16;
@@ -23,16 +17,15 @@ class ModelProject {
 
 		this.save_path = '';
 		this.export_path = '';
-		this.export_options = {};
 		this.added_models = 0;
 
+		this.undo = new UndoSystem();
 		this.format = options.format instanceof ModelFormat ? options.format : Formats.free;
 		this.mode = 'edit';
 		this.tool = '';
 		this.view_mode = 'textured';
 		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
 		this.exploded_view = false;
-		this.mirror_modeling_enabled = false;
 		this.previews = {};
 		this.uv_viewport = {
 			zoom: 1,
@@ -40,16 +33,15 @@ class ModelProject {
 		};
 		this.EditSession = null;
 
-		/*this.backgrounds = {
-			normal: 		new ReferenceImage({name: 'menu.preview.perspective.normal', lock: null}),
-			ortho_top: 		new ReferenceImage({name: 'direction.top', lock: true}),
-			ortho_bottom: 	new ReferenceImage({name: 'direction.bottom', lock: true}),
-			ortho_south: 	new ReferenceImage({name: 'direction.south', lock: true}),
-			ortho_north: 	new ReferenceImage({name: 'direction.north', lock: true}),
-			ortho_east: 	new ReferenceImage({name: 'direction.east', lock: true}),
-			ortho_west: 	new ReferenceImage({name: 'direction.west', lock: true}),
-		}*/
-		this.reference_images = [];
+		this.backgrounds = {
+			normal: 		new PreviewBackground({name: 'menu.preview.perspective.normal', lock: null}),
+			ortho_top: 		new PreviewBackground({name: 'direction.top', lock: true}),
+			ortho_bottom: 	new PreviewBackground({name: 'direction.bottom', lock: true}),
+			ortho_south: 	new PreviewBackground({name: 'direction.south', lock: true}),
+			ortho_north: 	new PreviewBackground({name: 'direction.north', lock: true}),
+			ortho_east: 	new PreviewBackground({name: 'direction.east', lock: true}),
+			ortho_west: 	new PreviewBackground({name: 'direction.west', lock: true}),
+		}
 
 		// Data
 		this.elements = [];
@@ -57,6 +49,7 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.mesh_selection = {};
+		this.selected_faces = [];
 		this.textures = [];
 		this.selected_texture = null;
 		this.outliner = [];
@@ -106,9 +99,6 @@ class ModelProject {
 			setProjectTitle(name);
 		}
 	}
-	get undo() {
-		return this._static.properties.undo;
-	}
 	get saved() {
 		return this._saved;
 	}
@@ -147,12 +137,6 @@ class ModelProject {
 		let path = this.export_path || this.save_path;
 		let data = recent_projects.find(p => p.path == path);
 		return data;
-	}
-	getUVWidth(texture = 0) {
-		return (texture && Format.per_texture_uv_size) ? texture.uv_width : this.texture_width;
-	}
-	getUVHeight(texture = 0) {
-		return (texture && Format.per_texture_uv_size) ? texture.uv_height : this.texture_height;
 	}
 	openSettings() {
 		if (this.selected) BarItems.project_window.click();
@@ -197,17 +181,19 @@ class ModelProject {
 			OutlinerNode.uuids[group.uuid] = group;
 		})
 		Outliner.root = this.outliner;
-		Panels.outliner.inside_vue.root = this.outliner;
+		Interface.Panels.outliner.inside_vue.root = this.outliner;
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
+		UVEditor.vue.selected_vertices = {};
+		UVEditor.vue.selected_faces = this.selected_faces;
 		UVEditor.vue.box_uv = this.box_uv;
 		UVEditor.vue.display_uv = this.display_uv;
-		BarItems.edit_mode_uv_overlay.value = this.display_uv == 'all_elements';
-		BarItems.edit_mode_uv_overlay.updateEnabledState();
+		for (let uuid in this.mesh_selection) {
+			UVEditor.vue.selected_vertices[uuid] = this.mesh_selection[uuid].vertices;
+		}
 
-		Panels.textures.inside_vue.textures = Texture.all;
-		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
+		Interface.Panels.textures.inside_vue.textures = Texture.all;
 		scene.add(this.model_3d);
 
 		Panels.animations.inside_vue.animations = this.animations;
@@ -219,12 +205,20 @@ class ModelProject {
 		if (selected_anim) selected_anim.select();
 		Timeline.animators = Timeline.vue.animators = this.timeline_animators;
 
-		Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
-		Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
+		Interface.Panels.variable_placeholders.inside_vue.text = this.variable_placeholders.toString();
+		Interface.Panels.variable_placeholders.inside_vue.buttons.replace(this.variable_placeholder_buttons);
 
-		Panels.skin_pose.inside_vue.pose = this.skin_pose;
+		Interface.Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
+
+		Modes.options[this.mode].select();
+		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
+			BarItems[this.tool].select();
+		}
+
+		BarItems.lock_motion_trail.value = !!Project.motion_trail_lock;
+		BarItems.lock_motion_trail.updateEnabledState();
 		
 		Preview.all.forEach(preview => {
 			let data = this.previews[preview.id];
@@ -238,15 +232,6 @@ class ModelProject {
 				preview.loadAnglePreset(preview.default_angle);
 			}
 		})
-
-		Modes.options[this.mode].select();
-		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
-			BarItems[this.tool].select();
-		}
-
-		BarItems.lock_motion_trail.set(!!Project.motion_trail_lock);
-
-		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;
@@ -271,11 +256,13 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('select_project', {project: this});
 
+		Preview.all.forEach(p => {
+			if (p.canvas.isConnected) p.loadBackground()
+		})
 		if (Preview.selected) Preview.selected.occupyTransformer();
 		setProjectTitle(this.name);
 		setStartScreen(!Project);
 		updateInterface();
-		ReferenceImage.updateAll();
 		updateProjectResolution();
 		Validator.validate();
 		Vue.nextTick(() => {
@@ -288,13 +275,6 @@ class ModelProject {
 		})
 		Blockbench.removeFlag('switching_project');
 		return true;
-	}
-	showContextMenu(event) {
-		if (!this.selected) {
-			this.select()
-		}
-		this.menu.open(event, this);
-		return this;
 	}
 	updateThumbnail() {
 		if (!Format.image_editor) {
@@ -316,15 +296,14 @@ class ModelProject {
 		}
 
 		this.undo.closeAmendEditMenu();
-		this.reference_images.forEach(reference => reference.detach());
-		if (ReferenceImageMode.active) ReferenceImageMode.deactivate();
+		Preview.all.forEach(preview => {
+			if (preview.movingBackground) preview.stopMovingBackground();
+		})
 		if (TextureAnimator.isPlaying) TextureAnimator.stop();
 		this.selected = false;
 		Painter.current = {};
-		Animator.MolangParser.context = {};
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
-		MirrorModeling.cached_elements = {};
 		Format = 0;
 		Project = 0;
 		Undo = 0;
@@ -340,20 +319,6 @@ class ModelProject {
 
 		Blockbench.dispatchEvent('unselect_project', {project: this});
 	}
-	closeOnQuit() {
-		try {
-			if (isApp) {
-				updateRecentProjectData();
-			}
-			Blockbench.dispatchEvent('close_project', {on_quit: true});
-
-		} catch (err) {
-			console.error(err);
-		}
-		if (this.EditSession) {
-			this.EditSession.quit();
-		}
-	}
 	async close(force) {
 		if (this.locked) return false;
 		let last_selected = Project;
@@ -365,39 +330,35 @@ class ModelProject {
 		}
 
 		async function saveWarning() {
-			return await new Promise((resolve) => {
+			await new Promise(resolve => setTimeout(resolve, 4));
+			if (Project.saved) {
+				return true;
+			} else {
 				if (isApp) {
-					shell.beep();
-				}
-				Blockbench.showMessageBox({
-					title: Project.getDisplayName(),
-					message: tl('message.close_warning.message'),
-					buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
-					cancel_on_click_outside: false,
-					width: 472,
-				}, async (answer) => {
+					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+						type: 'question',
+						buttons: [tl('dialog.save'), tl('dialog.discard'), tl('dialog.cancel')],
+						title: 'Blockbench',
+						message: tl('message.close_warning.message'),
+						noLink: true
+					})
 					if (answer === 0) {
-						if (Project.save_path || Project.export_path) {
-							BarItems.save_project.trigger();
-						} else {
-							await BarItems.export_over.click();
-						}
-						await new Promise(resolve => setTimeout(resolve, 4));
-						resolve(Project.saved);
-					} else if (answer == 1) {
-						resolve(true);
-					} else if (answer == 2) {
-						resolve(false);
+						BarItems.save_project.trigger();
 					}
-				})
-			});
+					return answer !== 2;
+				} else {
+					var answer = confirm(tl('message.close_warning.web'))
+					return answer;
+				}
+			}
 		}
 
-		if (force || Project.saved || await saveWarning()) {
+		if (force || await saveWarning()) {
 			try {
 				if (isApp) {
 					updateRecentProjectData();
 				}
+	
 				Blockbench.dispatchEvent('close_project');
 
 			} catch (err) {
@@ -411,22 +372,13 @@ class ModelProject {
 			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
 
-			// Clear memory
-			for (let uuid in ProjectData[this.uuid].nodes_3d) {
-				let node_3d = ProjectData[this.uuid].nodes_3d[uuid];
-				if (node_3d.parent) node_3d.parent.remove(node_3d);
-				if (node_3d.geometry) node_3d.geometry.dispose();
-				if (node_3d.outline && node_3d.outline.geometry) {
-					node_3d.outline.geometry.dispose();
-				}
-			}
-
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
 			Project = 0;
 			
-			await AutoBackup.removeBackup(this.uuid);
+			delete AutoBackupModels[this.uuid];
+			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
 
 			if (last_selected && last_selected !== this) {
 				last_selected.select();
@@ -456,11 +408,6 @@ new Property(ModelProject, 'string', 'parent', {
 new Property(ModelProject, 'string', 'model_identifier', {
 	label: 'dialog.project.geoname',
 	condition: () => Format.model_identifier
-});
-new Property(ModelProject, 'string', 'modded_entity_entity_class', {
-	label: 'dialog.project.modded_entity_entity_class',
-	placeholder: 'Entity',
-	condition: {formats: ['modded_entity']},
 });
 new Property(ModelProject, 'string', 'modded_entity_version', {
 	label: 'dialog.project.modded_entity_version',
@@ -519,49 +466,27 @@ new Property(ModelProject, 'string', 'skin_pose', {
 	condition: {formats: ['skin']},
 	default: 'none'
 });
-new Property(ModelProject, 'enum', 'bedrock_animation_mode', {
-	exposed: false,
-	values: ['entity', 'attachable_first'],
-	condition: {formats: ['bedrock']},
-	default: 'entity'
-});
 new Property(ModelProject, 'array', 'timeline_setups', {
 	exposed: false,
 	condition: () => Format.animation_mode,
 });
 new Property(ModelProject, 'object', 'unhandled_root_fields', {
-	exposed: false
+	exposed: false,
+	default: {}
 });
 
 
 ModelProject.all = [];
 
+
 let Project = 0;
 
 let ProjectData = {};
 
-ModelProject.prototype.menu = new Menu([
-	new MenuSeparator('settings'),
-	'project_window',
-	new MenuSeparator('manage'),
-	'open_model_folder',
-	'duplicate_project',
-	'convert_project',
-	'close_project',
-	new MenuSeparator('save'),
-	'save_project',
-	'save_project_as',
-	'export_over',
-	'share_model',
-	new MenuSeparator('overview'),
-	'tab_overview',
-])
-
 // Setup ModelProject for loaded project
-function setupProject(format, uuid) {
+function setupProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
-	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
-	new ModelProject({format}, uuid).select();
+	new ModelProject({format}).select();
 
 	if (format.edit_mode) {
 		Modes.options.edit.select();
@@ -605,6 +530,11 @@ function selectNoProject() {
 
 	UVEditor.vue.elements = [];
 	UVEditor.vue.all_elements = [];
+	UVEditor.vue.selected_vertices = {};
+	UVEditor.vue.selected_faces = [];
+	for (let uuid in UVEditor.vue.selected_vertices) {
+		delete UVEditor.vue.selected_vertices[uuid];
+	}
 
 	Interface.Panels.textures.inside_vue.textures = [];
 
@@ -634,9 +564,7 @@ function setProjectResolution(width, height, modify_uv) {
 		modify_uv = false;
 	}
 
-	let textures = Format.per_texture_uv_size ? Texture.all : undefined;
-
-	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true, textures});
+	Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true})
 
 	let old_res = {
 		x: Project.texture_width,
@@ -680,11 +608,6 @@ function setProjectResolution(width, height, modify_uv) {
 			Outliner.elements.forEach(element => shiftElement(element, 1));
 		}
 	}
-	textures && textures.forEach(tex => {
-		tex.uv_width = Project.texture_width;
-		tex.uv_height = Project.texture_height;
-	});
-
 	Undo.finishEdit('Changed project resolution')
 	Canvas.updateAllUVs()
 	if (selected.length) {
@@ -692,18 +615,16 @@ function setProjectResolution(width, height, modify_uv) {
 	}
 }
 function updateProjectResolution() {
-	if (!Format.per_texture_uv_size) {
-		if (Interface.Panels.uv) {
-			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
-			UVEditor.vue.updateSize()
-		}
-		if (Texture.selected) {
-			// Update animated textures
-			Texture.selected.height++;
-			Texture.selected.height--;
-		}
+	if (Interface.Panels.uv) {
+		UVEditor.vue.project_resolution.replace([Project.texture_width, Project.texture_height]);
+		UVEditor.vue.updateSize()
 	}
 	Canvas.uvHelperMaterial.uniforms.DENSITY.value = Project.texture_width / 32;
+	if (Texture.selected) {
+		// Update animated textures
+		Texture.selected.height++;
+		Texture.selected.height--;
+	}
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
@@ -944,12 +865,6 @@ onVueSetup(() => {
 						delete this.thumbnail_timeout;
 					}, 80)
 				}
-			},
-			mousewheelBar(event) {
-				if (event.deltaY) {
-					event.preventDefault();
-					this.$refs.tab_bar_list.scrollLeft += event.deltaY;
-				}
 			}
 		},
 		watch: {
@@ -983,7 +898,6 @@ BARS.defineActions(function() {
 					label: property.label,
 					description: property.description,
 					value: Project[property.name],
-					placeholder: property.placeholder,
 					type: property.type
 				}
 				if (property.type == 'boolean') entry.type = 'checkbox';
@@ -994,13 +908,8 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (form.name && (Project.save_path || Project.export_path || Format.image_editor) && !Format.legacy_editable_file_name) {
-				delete form.name;
-			}
-
 			form.uv_mode = {
-				label: 'dialog.project.default_uv_mode',
-				description: 'dialog.project.default_uv_mode.description',
+				label: 'dialog.project.uv_mode',
 				type: 'select',
 				condition: Format.optional_box_uv,
 				options: {
@@ -1034,7 +943,7 @@ BARS.defineActions(function() {
 						Project.texture_height != texture_height
 					) {
 						// Adjust UV Mapping if resolution changed
-						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
+						if (!Project.box_uv && !box_uv &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
@@ -1120,29 +1029,6 @@ BARS.defineActions(function() {
 			Project.close();
 		}
 	})
-	new Action('duplicate_project', {
-		icon: 'file_copy',
-		category: 'file',
-		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
-		click: function () {
-			let selected_texture_uuid = Texture.selected?.uuid
-			let model = Codecs.project.compile({raw: true});
-			setupProject(Format)
-			Codecs.project.parse(model);
-
-			function copyfyName(name) {
-				if (!name) return name;
-				let index = name.lastIndexOf('.');
-				if (index == -1) return name;
-				let main = name.substring(0, index);
-				let ext = name.substring(index);
-				return main + ' - Copy' + ext;
-			}
-			Project.name = copyfyName(Project.name);
-
-			Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
-		}
-	})
 	new Action('convert_project', {
 		icon: 'fas.fa-file-import',
 		category: 'file',
@@ -1162,11 +1048,9 @@ BARS.defineActions(function() {
 				title: 'dialog.convert_project.title',
 				width: 540,
 				form: {
-					text1:		{type: 'info', text: 'dialog.convert_project.text1'},
-					text2:		{type: 'info', text: 'dialog.convert_project.text2'},
-					text3:		{type: 'info', text: 'dialog.convert_project.text3'},
-					current: 	{type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
-					format:  	{
+					text:    {type: 'info', text: 'dialog.convert_project.text'},
+					current: {type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
+					format:  {
 						label: 'data.format',
 						type: 'select',
 						options,
@@ -1178,12 +1062,10 @@ BARS.defineActions(function() {
 					if (!format || format == Format) return;
 					
 					if (formResult.create_copy) {
-						let selected_texture_uuid = Texture.selected?.uuid
 						let model = Codecs.project.compile({raw: true});
 						setupProject(Format)
 						Codecs.project.parse(model);
-						if (Project.name) Project.name += ' - Converted';
-						Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
+						if (Project.name) Project.name += ' - Converted'
 					}
 					
 					format.convertTo()

@@ -414,30 +414,13 @@ const Canvas = {
 	global_light_color: new THREE.Color(0xffffff),
 	global_light_side: 0,
 
-	hover_helper_line: (function() {
-		let material = new THREE.LineBasicMaterial({color: 0xA4A5CA, linewidth: 2});
-		let geometry = new THREE.BufferGeometry();
-		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0, 0, 0, 0], 3 ));
-		let line = new THREE.LineSegments(geometry, material);
-		return line;
-	})(),
-	hover_helper_vertex: (function() {
-		let material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: 0x3e90ff})
-		let geometry = new THREE.BufferGeometry();
-		geometry.setAttribute('position', new THREE.Float32BufferAttribute( [0, 0, 0], 3 ));
-		return new THREE.Points(geometry, material);
-	})(),
-
-	onionSkinEarlierMaterial: new THREE.LineBasicMaterial({color: 0xa3363d}),
-	onionSkinLaterMaterial: new THREE.LineBasicMaterial({color: 0x3995bf}),
 	gridMaterial: new THREE.LineBasicMaterial({color: gizmo_colors.grid}),
 	buildGrid() {
-		three_grid.children.empty();
+		three_grid.children.length = 0;
 		if (Canvas.side_grids) {
-			Canvas.side_grids.x.children.empty();
-			Canvas.side_grids.z.children.empty();
+			Canvas.side_grids.x.children.length = 0;
+			Canvas.side_grids.z.children.length = 0;
 		}
-		if (!settings.grids.value) return;
 		if (Modes.display) return;
 
 		three_grid.name = 'grid_group'
@@ -605,7 +588,7 @@ const Canvas = {
 		lights.top.position.set(0, 100, 0)
 		lights.add(lights.top);
 		
-		lights.top.intensity = 0.46
+		lights.top.intensity = 0.41
 		
 		lights.bottom = new THREE.DirectionalLight();
 		lights.bottom.name = 'light_bottom'
@@ -656,26 +639,6 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 
-		let brush_img = new Image();
-		brush_img.src = 'assets/brush_outline.png';
-		brush_img.tex = new THREE.Texture(brush_img);
-		brush_img.tex.magFilter = THREE.NearestFilter;
-		brush_img.tex.minFilter = THREE.NearestFilter;
-		brush_img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
-		let brush_outline_material = new THREE.MeshBasicMaterial({
-			map: brush_img.tex,
-			transparent: true,
-			side: THREE.DoubleSide,
-			alphaTest: 0.2
-		})
-		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
-		Canvas.gizmos.push(Canvas.brush_outline);
-
-		Canvas.gizmos.push(Canvas.hover_helper_line);
-		Canvas.gizmos.push(Canvas.hover_helper_vertex);
-
 		/*
 		// Vertex gizmos
 		var vertex_img = new Image();
@@ -710,12 +673,12 @@ const Canvas = {
 		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
 			map: Canvas.emptyMaterials[0].uniforms.map.value,
 			color: CustomTheme.data.colors.back,
-			side: settings.ground_plane_double_side.value ? THREE.DoubleSide : THREE.FrontSide,
+			side: THREE.DoubleSide,
 			alphaTest: 0.2
 		})
 		let size = 4096;
 		Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
-		Canvas.ground_plane.rotation.x = -Math.PI/2;
+		Canvas.ground_plane.rotation.x = Math.PI/2;
 		Canvas.ground_plane.position.y = -0.025;
 		Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
 		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
@@ -745,14 +708,12 @@ const Canvas = {
 				edit(object);
 			})
 			edit(three_grid)
-			if (Canvas.side_grids) edit(Canvas.side_grids.x)
-			if (Canvas.side_grids) edit(Canvas.side_grids.z)
+			edit(Canvas.side_grids.x)
+			edit(Canvas.side_grids.z)
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
 				if (mesh.grid_box) edit(mesh.grid_box);
-				if (element instanceof Locator) edit(mesh.children[0]);
-				if (element instanceof NullObject) edit(mesh);
 			})
 		}
 		editVis(obj => {
@@ -760,7 +721,7 @@ const Canvas = {
 			obj.visible = false
 		})
 		var ground_anim_before = ground_animation
-		if (Modes.display && ground_animation) {
+		if (display_mode && ground_animation) {
 			ground_animation = false
 		}
 		updateCubeHighlights(null, true);
@@ -775,7 +736,7 @@ const Canvas = {
 			obj.visible = obj.was_visible
 			delete obj.was_visible
 		})
-		if (Modes.display && ground_anim_before) {
+		if (display_mode && ground_anim_before) {
 			ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();
@@ -817,7 +778,7 @@ const Canvas = {
 					if (controller.updateUV) controller.updateUV(element);
 				}
 				if ((aspects.painting_grid || aspects.geometry || aspects.transform || update_all) && Modes.paint && settings.painting_grid.value) {
-					if (controller.updatePixelGrid) controller.updatePixelGrid(element);
+					if (controller.updatePaintingGrid) controller.updatePaintingGrid(element);
 				}
 				if (aspects.visibility || update_all) {
 					if (controller.updateVisibility) controller.updateVisibility(element);
@@ -904,11 +865,7 @@ const Canvas = {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true}});
 		return;
 	},
-	getRenderSide(texture) {
-		if (texture instanceof Texture) {
-			if (texture.render_sides == 'front') return THREE.FrontSide;
-			if (texture.render_sides == 'double') return THREE.DoubleSide;
-		}
+	getRenderSide() {
 		if (settings.render_sides.value == 'auto') {
 			if (Format && Format.render_sides) {
 				let value = typeof Format.render_sides == 'function' ? Format.render_sides() : Format.render_sides;
@@ -924,12 +881,13 @@ const Canvas = {
 		}
 	},
 	updateRenderSides() {
-		let side = Canvas.getRenderSide();
+		var side = Canvas.getRenderSide();
 		ModelProject.all.forEach(project => {
-			project.textures.forEach((tex) => {
-				var mat = project.materials[tex.uuid];
-				if (!mat) return;
-				mat.side = Canvas.getRenderSide(tex);
+			project.textures.forEach(function(t) {
+				var mat = project.materials[t.uuid]
+				if (mat) {
+					mat.side = side
+				}
 			})
 		})
 		if (Canvas.layered_material) {
@@ -1037,8 +995,8 @@ const Canvas = {
 				if (Group.selected.visibility) {
 					Group.selected.mesh.add(Canvas.pivot_marker)
 				}
-			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
-				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];
+			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length) {
+				let selected_elements = [...Cube.selected, ...Mesh.selected];
 				if (selected_elements.length === 1) {
 					let mesh = selected_elements[0].mesh
 					if (mesh) {
@@ -1253,12 +1211,144 @@ const Canvas = {
 	},
 	updateUV(cube, animation = true) {
 		// Deprecated
-		return Cube.preview_controller.updateUV(cube, animation);
+		var mesh = cube.mesh
+		if (mesh === undefined || !mesh.geometry) return;
+
+		if (cube.box_uv) {
+
+			var size = cube.size(undefined, true)
+			
+			var face_list = [   
+				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
+				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
+				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
+				{face: 'down',	from: [size[2]+size[0]*2, 0],		 	size: [-size[0], size[2]]},
+				{face: 'south',	from: [size[2]*2 + size[0], size[2]], 	size: [size[0],  size[1]]},
+				{face: 'north',	from: [size[2], size[2]],			 	size: [size[0],  size[1]]},
+			]
+
+			if (cube.mirror_uv) {
+				face_list.forEach(function(f) {
+					f.from[0] += f.size[0]
+					f.size[0] *= -1
+				})
+				//East+West
+				
+				var p = {}
+
+				p.from = face_list[0].from.slice()
+				p.size = face_list[0].size.slice()
+
+				face_list[0].from = face_list[1].from.slice()
+				face_list[0].size = face_list[1].size.slice()
+
+				face_list[1].from = p.from.slice()
+				face_list[1].size = p.size.slice()
+
+			}
+			face_list.forEach(function(f, fIndex) {
+
+				if (cube.faces[f.face].texture === null) return;
+
+				var uv= [
+					f.from[0]			 +  cube.uv_offset[0],
+					f.from[1]			 +  cube.uv_offset[1],
+					f.from[0] + f.size[0] + cube.uv_offset[0],
+					f.from[1] + f.size[1] + cube.uv_offset[1]
+				]
+				uv.forEach(function(s, si) {
+					uv[si] *= 1
+				})
+
+				cube.faces[f.face].uv[0] = uv[0]
+				cube.faces[f.face].uv[1] = uv[1]
+				cube.faces[f.face].uv[2] = uv[2]
+				cube.faces[f.face].uv[3] = uv[3]
+
+				//Fight Bleeding
+				for (var si = 0; si < 2; si++) {
+					let margin = 1/64;
+					if (uv[si] > uv[si+2]) {
+						margin = -margin
+					}
+					uv[si] += margin
+					uv[si+2] -= margin
+				}
+
+				stretch = 1;
+				frame = 0;
+				let tex = cube.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
+
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
+			})
+
+		} else {
+		
+			var stretch = 1
+			var frame = 0
+
+			Canvas.face_order.forEach((face, fIndex) => {
+
+				if (cube.faces[face].texture === null) return;
+
+				stretch = 1;
+				frame = 0;
+				let tex = cube.faces[face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, cube.faces[face], frame, stretch)
+			})
+
+		}
+		mesh.geometry.attributes.uv.needsUpdate = true;
+		return mesh.geometry
 	},
-	updatePixelGrid() {
+	updateUVFace(vertex_uvs, index, face, frame = 0, stretch = 1) {
+		stretch *= -1;
+		var pw = Project.texture_width;
+		var ph = Project.texture_height;
+		var arr = [
+			[face.uv[0]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[1]/ph)/stretch+1],
+			[face.uv[0]/pw, (face.uv[3]/ph)/stretch+1],
+			[face.uv[2]/pw, (face.uv[3]/ph)/stretch+1],
+		]
+		if (frame > 0 && stretch !== -1) {
+			//Animate
+			var offset = (1/stretch) * frame
+			arr[0][1] += offset
+			arr[1][1] += offset
+			arr[2][1] += offset
+			arr[3][1] += offset
+		}
+		var rot = (face.rotation+0)
+		while (rot > 0) {
+			let a = arr[0];
+			arr[0] = arr[2];
+			arr[2] = arr[3];
+			arr[3] = arr[1];
+			arr[1] = a;
+			rot = rot-90;
+		}
+		vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
+		vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
+		vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
+		vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
+	},
+	updatePaintingGrid() {
 		Outliner.elements.forEach(element => {
-			if (element.preview_controller.updatePixelGrid) {
-				element.preview_controller.updatePixelGrid(element);
+			if (element.preview_controller.updatePaintingGrid) {
+				element.preview_controller.updatePaintingGrid(element);
 			}
 		})
 	},

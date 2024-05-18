@@ -14,7 +14,7 @@ class TextureMesh extends OutlinerElement {
 	}
 	getWorldCenter() {
 		let m = this.mesh;
-		let pos = new THREE.Vector3().fromArray(this.local_pivot);
+		let pos = Reusable.vec1.fromArray(this.local_pivot);
 
 		if (m) {
 			let r = m.getWorldQuaternion(Reusable.quat1);
@@ -70,15 +70,16 @@ class TextureMesh extends OutlinerElement {
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
-	TextureMesh.prototype.icon = 'fa-puzzle-piece';
+	TextureMesh.prototype.icon = 'fa fa-puzzle-piece';
 	TextureMesh.prototype.movable = true;
 	TextureMesh.prototype.scalable = true;
 	TextureMesh.prototype.rotatable = true;
 	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		new MenuSeparator('settings'),
-		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Format.single_texture, click(context) {
+		'_',
+		'rename',
+		{name: 'menu.texture_mesh.texture_name', icon: 'collections', condition: () => !Project.single_texture, click(context) {
 			Blockbench.textPrompt('menu.texture_mesh.texture_name', context.texture_name, value => {
 				Undo.initEdit({elements: TextureMesh.all}),
 				TextureMesh.all.forEach(element => {
@@ -87,8 +88,6 @@ class TextureMesh extends OutlinerElement {
 				Undo.finishEdit('Change texture mesh texture name')
 			})
 		}},
-		new MenuSeparator('manage'),
-		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -288,7 +287,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 
-		this.dispatchEvent('update_geometry', {element, texture});
+		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -314,7 +313,7 @@ new NodePreviewController(TextureMesh, {
 	},
 	updateTransform(element) {
 		let {mesh} = element;
-		NodePreviewController.prototype.updateTransform.call(this, element);
+		NodePreviewController.prototype.updateTransform(element);
 		mesh.scale.set(1, 1, 1);
 
 		this.dispatchEvent('update_transform', {element});

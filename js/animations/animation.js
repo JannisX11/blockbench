@@ -158,7 +158,7 @@ class Animation extends AnimationItem {
 			ani_tag.loop = true;
 		}
 
-		if (this.length) ani_tag.animation_length = Math.roundTo(this.length, 4);
+		if (this.length) ani_tag.animation_length = this.length;
 		if (this.override) ani_tag.override_previous_animation = true;
 		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
 		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
@@ -208,7 +208,7 @@ class Animation extends AnimationItem {
 						}
 						// Bake bezier keyframe curve
 						let next_keyframe = sorted_keyframes[i+1];
-						if (next_keyframe && (kf.interpolation === 'bezier' || next_keyframe.interpolation === 'bezier')) {
+						if (next_keyframe && kf.interpolation === 'bezier' && next_keyframe.interpolation === 'bezier') {
 							let interval = 1 / this.snapping;
 							let interpolated_values = {};
 							for (let time = kf.time + interval; time < next_keyframe.time + (interval/2); time += interval) {
@@ -250,12 +250,12 @@ class Animation extends AnimationItem {
 					if (timecodes.length === 1 && animator[channel][0].data_points.length == 1 && animator[channel][0].interpolation != 'catmullrom') {
 						bone_tag[channel] = bone_tag[channel][timecodes[0]]
 						if (channel == 'scale' &&
-							bone_tag[channel] instanceof Array &&
-							bone_tag[channel].allEqual(bone_tag[channel][0])
+							bone_tag[channel][timecodes[0]] instanceof Array &&
+							bone_tag[channel][timecodes[0]].allEqual(bone_tag[channel][timecodes[0]][0])
 						) {
-							bone_tag[channel] = bone_tag[channel][0];
+							bone_tag[channel] = bone_tag[channel][timecodes[0]][0];
 						}
-					} 
+					}
 				}
 			}
 		}
@@ -277,7 +277,6 @@ class Animation extends AnimationItem {
 		if (Object.keys(ani_tag.bones).length == 0) {
 			delete ani_tag.bones;
 		}
-		Blockbench.dispatchEvent('compile_bedrock_animation', {animation: this, json: ani_tag});
 		return ani_tag;
 	}
 	sampleIK(sample_rate = settings.animation_sample_rate.value) {
@@ -438,8 +437,7 @@ class Animation extends AnimationItem {
 		if (this == Animation.selected) return;
 		var selected_bone = Group.selected;
 		AnimationItem.all.forEach((a) => {
-			a.selected = false;
-			if (a.playing == true) a.playing = false;
+			a.selected = a.playing = false;
 		})
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
@@ -447,9 +445,9 @@ class Animation extends AnimationItem {
 		Timeline.setTime(Timeline.time % this.length);
 		Animator.MolangParser.resetVariables();
 		this.selected = true;
-		if (this.playing == false) this.playing = true;
+		this.playing = true;
 		AnimationItem.selected = this;
-		unselectAllElements();
+		unselectAll();
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
@@ -478,23 +476,16 @@ class Animation extends AnimationItem {
 		}
 	}
 	get time() {
-		if (!this.length || this.loop == 'once') {
-			return Timeline.time;
-		} else if (this.loop === 'loop') {
-			return ((Timeline.time - 0.001) % this.length) + 0.001;
-		} else if (this.loop === 'hold') {
-			return Math.min(Timeline.time, this.length);
-		}
+		return (this.length && this.loop === 'loop') ? ((Timeline.time - 0.001) % this.length) + 0.001 : Timeline.time;
 	}
 	createUniqueName(arr) {
 		var scope = this;
-		var others = Animator.animations.slice();
+		var others = Animator.animations;
 		if (arr && arr.length) {
 			arr.forEach(g => {
 				others.safePush(g)
 			})
 		}
-		others = others.filter(a => a.path == this.path);
 		var name = this.name.replace(/\d+$/, '');
 		function check(n) {
 			for (var i = 0; i < others.length; i++) {
@@ -527,18 +518,8 @@ class Animation extends AnimationItem {
 	}
 	togglePlayingState(state) {
 		if (!this.selected) {
-			if (state !== undefined) {
-				this.playing = state;
-			} else if (this.playing == false) {
-				this.playing = true;
-			} else if (this.playing == true) {
-				this.playing = 'locked';
-			} else {
-				this.playing = false;
-			}
+			this.playing = state !== undefined ? state : !this.playing;
 			Animator.preview();
-		} else if (this.playing == 'locked') {
-			this.playing = true;
 		} else {
 			Timeline.start();
 		}
@@ -569,21 +550,13 @@ class Animation extends AnimationItem {
 				) {
 					match = animator;
 					match.uuid = group.uuid;
-					this.removeAnimator(uuid2);
+					delete this.animators[uuid2];
 					break;
 				}
 			}
 			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
-	}
-	removeAnimator(id) {
-		Timeline.animators.remove(this.animators[id]);
-		if (Timeline.selected_animator == this.animators[id]) {
-			Timeline.selected_animator = null;
-		}
-		delete this.animators[id];
-		return this;
 	}
 	add(undo) {
 		if (undo) {
@@ -592,7 +565,6 @@ class Animation extends AnimationItem {
 		if (!Animator.animations.includes(this)) {
 			Animator.animations.push(this)
 		}
-		this.createUniqueName();
 		if (undo) {
 			this.select()
 			Undo.finishEdit('Add animation', {animations: [this]})
@@ -607,7 +579,7 @@ class Animation extends AnimationItem {
 		if (undo) {
 			Undo.finishEdit('Remove animation', {animations: []})
 
-			if (isApp && Format.animation_files && remove_from_file && this.path && fs.existsSync(this.path)) {
+			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -688,7 +660,6 @@ class Animation extends AnimationItem {
 			id: 'animation_properties',
 			title: this.name,
 			width: 660,
-			resizable: 'x',
 			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},
@@ -702,7 +673,7 @@ class Animation extends AnimationItem {
 				},
 				loop: {
 					label: 'menu.animation.loop',
-					type: 'inline_select',
+					type: 'select',
 					value: this.loop,
 					options: {
 						once: 'menu.animation.loop.once',
@@ -777,8 +748,8 @@ class Animation extends AnimationItem {
 						start_delay: dialog.component.data.start_delay.trim().replace(/\n/g, ''),
 						loop_delay: dialog.component.data.loop_delay.trim().replace(/\n/g, ''),
 					})
-					if (isApp) this.path = form_data.path;
 					this.createUniqueName();
+					if (isApp) this.path = form_data.path;
 
 					Blockbench.dispatchEvent('edit_animation_properties', {animation: this})
 
@@ -805,14 +776,13 @@ class Animation extends AnimationItem {
 		'copy',
 		'paste',
 		'duplicate',
-		new MenuSeparator('settings'),
+		'_',
 		{name: 'menu.animation.loop', icon: 'loop', children: [
-			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('once', true)}},
-			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('hold', true)}},
-			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'far.fa-dot-circle' : 'far.fa-circle'), click(animation) {animation.setLoop('loop', true)}},
+			{name: 'menu.animation.loop.once', icon: animation => (animation.loop == 'once' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('once', true)}},
+			{name: 'menu.animation.loop.hold', icon: animation => (animation.loop == 'hold' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('hold', true)}},
+			{name: 'menu.animation.loop.loop', icon: animation => (animation.loop == 'loop' ? 'radio_button_checked' : 'radio_button_unchecked'), click(animation) {animation.setLoop('loop', true)}},
 		]},
-		'change_animation_speed',
-		new MenuSeparator('manage'),
+		'_',
 		{
 			name: 'menu.animation.save',
 			id: 'save',
@@ -844,13 +814,13 @@ class Animation extends AnimationItem {
 			}
 		},
 		'delete',
-		new MenuSeparator('properties'),
+		'_',
 		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
 	Animation.prototype.file_menu = new Menu([
-		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
+		{name: 'menu.animation_file.unload', icon: 'clear_all', click(id) {
 			let animations_to_remove = [];
 			let controllers_to_remove = [];
 			AnimationItem.all.forEach(animation => {
@@ -900,6 +870,820 @@ Blockbench.on('finish_edit', event => {
 })
 
 
+const WinterskyScene = new Wintersky.Scene({
+	fetchTexture: isApp && function(config) {
+		if (config.preview_texture) {
+			return config.preview_texture;
+		}
+		if (config.file_path && config.particle_texture_path) {
+			let path_arr = config.file_path.split(PathModule.sep);
+			let particle_index = path_arr.indexOf('particles')
+			path_arr.splice(particle_index)
+			let filePath = PathModule.join(path_arr.join(PathModule.sep), config.particle_texture_path.replace(/\.png$/, '')+'.png')
+
+			if (fs.existsSync(filePath)) {
+				config.preview_texture = filePath;
+				return filePath;
+			}
+		}
+	}
+});
+WinterskyScene.global_options.scale = 16;
+WinterskyScene.global_options.loop_mode = 'auto';
+WinterskyScene.global_options.parent_mode = 'entity';
+
+Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
+
+const Animator = {
+	get possible_channels() {
+		let obj = {};
+		Object.assign(obj, BoneAnimator.prototype.channels, EffectAnimator.prototype.channels);
+		return obj;
+	},
+	open: false,
+	get animations() {return Animation.all},
+	get selected() {return Animation.selected},
+	MolangParser: new Molang(),
+	motion_trail: new THREE.Object3D(),
+	motion_trail_lock: false,
+	_last_values: {},
+	resetLastValues() {
+		for (let channel in BoneAnimator.prototype.channels) {
+			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
+		}
+	},
+	join() {
+		if (isApp && (Format.id == 'bedrock' || Format.id == 'bedrock_old') && !Project.BedrockEntityManager.initialized_animations) {
+			Project.BedrockEntityManager.initAnimations();
+		}
+		if (isApp && Project.memory_animation_files_to_load) {
+			let paths = Project.memory_animation_files_to_load.filter(path => !Animation.all.find(a => a.path == path));
+			if (paths.length) {
+				Blockbench.read(paths, {}, files => {
+					files.forEach(file => {
+						Animator.importFile(file);
+					})
+				})
+			}
+		}
+
+		Animator.open = true;
+		Canvas.updateAllBones();
+		Animator.MolangParser.resetVariables();
+
+		scene.add(WinterskyScene.space);
+		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
+		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
+		Animator.motion_trail.no_export = true;
+
+		if (!Animator.timeline_node) {
+			Animator.timeline_node = Panels.timeline.node;
+		}
+		updateInterface()
+		if (Panels.element) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
+		if (!Timeline.is_setup) {
+			Timeline.setup()
+		}
+		if (Canvas.outlines.children.length) {
+			Canvas.outlines.children.empty()
+			Canvas.updateAllPositions()
+		}
+		if (Animation.all.length && !Animation.all.includes(Animation.selected)) {
+			Animation.all[0].select();
+		} else if (!Animation.all.length) {
+			Timeline.selected.empty();
+		}
+		if (Group.selected) {
+			Group.selected.select();
+		}
+		BarItems.slider_animation_length.update();
+		Animator.preview();
+	},
+	leave() {
+		Timeline.pause()
+		Animator.open = false;
+
+		scene.remove(WinterskyScene.space);
+		scene.remove(Animator.motion_trail);
+		Animator.resetParticles(true);
+
+		three_grid.position.z = three_grid.position.x;
+		Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+		Animator.showDefaultPose();
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
+
+		if (Panels.element) {
+			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+			if (anchor) anchor.before(Toolbars.element_origin.node);
+		}
+	},
+	showDefaultPose(no_matrix_update) {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
+			var mesh = node.mesh;
+			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
+			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
+			if (node.constructor.animator.prototype.channels && node.constructor.animator.prototype.channels.scale) {
+				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+			}
+		})
+		if (!no_matrix_update) scene.updateMatrixWorld()
+	},
+	resetParticles(optimized) {
+		for (var path in Animator.particle_effects) {
+			let {emitters} = Animator.particle_effects[path];
+
+			for (var uuid in emitters) {
+				let emitter = emitters[uuid];
+				if (emitter.tick_interval !== undefined) continue;
+				if (emitter.local_space.parent) emitter.local_space.parent.remove(emitter.local_space);
+				if (emitter.global_space.parent) emitter.global_space.parent.remove(emitter.global_space);
+			}
+		}
+	},
+	showMotionTrail(target) {
+		if (!target) {
+			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
+			if (!target) {
+				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+			}
+		}
+		if (!target) return;
+		let animation = Animation.selected;
+		let currentTime = Timeline.time;
+		let step = Timeline.getStep();
+		let max_time = Math.max(Timeline.time, animation.getMaxLength());
+		if (!max_time) max_time = 1;
+		let start_time = 0;
+		if (max_time > 20) {
+			start_time = Math.clamp(currentTime - 8, 0, Infinity);
+			max_time = Math.min(max_time, currentTime + 8);
+		}
+		let geometry = new THREE.BufferGeometry();
+		let bone_stack = [];
+		let iterate = g => {
+			bone_stack.push(g);
+			if (g.parent instanceof Group) iterate(g.parent);
+		}
+		iterate(target)
+		
+		let keyframes = {};
+		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+		if (keyframe_source) {
+			let ba = Animation.selected.getBoneAnimator(keyframe_source);
+			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
+			channel.forEach(kf => {
+				keyframes[Math.round(kf.time / step)] = kf;
+			})
+		}
+
+		function displayTime(time) {
+			Timeline.time = time;
+			let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+
+			bone_stack.forEach(node => {
+				let mesh = node.mesh;
+				let ba = animation.getBoneAnimator(node)
+
+				if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation)
+				if (mesh.fix_position) mesh.position.copy(mesh.fix_position)
+
+				if (node instanceof NullObject) {
+					if (!ba.muted.position) ba.displayPosition(ba.interpolate('position'), multiplier);
+				} else {
+					mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+					ba.displayFrame(multiplier);
+				}
+			})
+			target.mesh.updateWorldMatrix(true, false)
+		}
+
+		let line_positions = [];
+		let point_positions = [];
+		let keyframe_positions = []
+		let keyframeUUIDs = []
+		let i = 0;
+		for (var time = start_time; time <= max_time; time += step) {
+			displayTime(time);
+			let position = target instanceof Group
+						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
+						 : target.getWorldCenter(true);
+			position = position.toArray();
+			line_positions.push(...position);
+
+			let keyframe = keyframes[i];
+			if (keyframe) {
+				keyframe_positions.push(...position);
+				keyframeUUIDs.push(keyframe.uuid);
+			} else {
+				point_positions.push(...position);
+			}
+			i++;
+		}
+		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_positions), 3));
+		
+		Timeline.time = currentTime;
+		Animator.preview();
+
+		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
+		line.no_export = true;
+		Animator.motion_trail.children.forEachReverse(child => {
+			Animator.motion_trail.remove(child);
+		})
+		Animator.motion_trail.add(line);
+
+		let point_material = new THREE.PointsMaterial({size: 4, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let point_geometry = new THREE.BufferGeometry();
+		point_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
+		let points = new THREE.Points(point_geometry, point_material);
+		Animator.motion_trail.add(points);
+
+		let keyframe_material = new THREE.PointsMaterial({size: 10, sizeAttenuation: false, color: Canvas.outlineMaterial.color})
+		let keyframe_geometry = new THREE.BufferGeometry();
+		keyframe_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(keyframe_positions), 3));
+		let keyframe_points = new THREE.Points(keyframe_geometry, keyframe_material);
+		keyframe_points.isKeyframe = true;
+		keyframe_points.keyframeUUIDs = keyframeUUIDs;
+		Animator.motion_trail.add(keyframe_points);
+	},
+	stackAnimations(animations, in_loop, controller_blend_values = 0) {
+		[...Group.all, ...Outliner.elements].forEach(node => {
+			if (!node.constructor.animator) return;
+			Animator.resetLastValues();
+			animations.forEach(animation => {
+				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
+				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
+				animation.getBoneAnimator(node).displayFrame(multiplier);
+			})
+		})
+
+		Animator.resetLastValues();
+		scene.updateMatrixWorld();
+
+		// Effects
+		Animator.resetParticles(true);
+		animations.forEach(animation => {
+			if (animation.animators.effects) {
+				animation.animators.effects.displayFrame(in_loop);
+			}
+		})
+	},
+	preview(in_loop) {
+		// Reset
+		Animator.showDefaultPose(true);
+
+		// Controller
+		if (AnimationController.selected?.selected_state) {
+			let controller_blend_values, animations_to_play;
+			let controller = AnimationController.selected;
+			let {selected_state, last_state} = controller;
+			let state_time = selected_state.getStateTime();
+			let blend_progress = (selected_state.blend_transition && last_state) ? Math.clamp(state_time / selected_state.blend_transition, 0, 1) : 1;
+
+			// Active State
+			Timeline.time = state_time;
+			controller_blend_values = {};
+			animations_to_play = [];
+
+			selected_state.animations.forEach(a => {
+				let animation = Animation.all.find(anim => a.animation == anim.uuid);
+				if (!animation) return;
+				let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				animations_to_play.push(animation);
+			})
+			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+
+			// Last State
+			if (blend_progress < 1 && last_state) {
+				Timeline.time = last_state.getStateTime();
+				controller_blend_values = {};
+				animations_to_play = [];
+
+				last_state.animations.forEach(a => {
+					let animation = Animation.all.find(anim => a.animation == anim.uuid);
+					if (!animation) return;
+					let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
+					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					animations_to_play.push(animation);
+				})
+				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
+			}
+		} else {
+			Animator.stackAnimations(Animation.all.filter(a => a.playing), in_loop);
+		}
+
+
+		// Shift ground
+		if (Canvas.ground_plane.visible && Animation.selected && Animation.selected.anim_time_update.includes('modified_distance_moved')) {
+			let value = Animator.MolangParser.parse(Animation.selected.anim_time_update, {'query.modified_distance_moved': Timeline.time});
+			value = (Timeline.time / value) * Timeline.time * 3;
+			value = (value % 64) || 0;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x + value;
+			three_grid.position.z = three_grid.position.x + value;
+		} else {
+			three_grid.position.z = three_grid.position.x;
+			Canvas.ground_plane.position.z = Canvas.ground_plane.position.x;
+		}
+
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
+			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
+			let texture = Texture.all[tex_index % Texture.all.length];
+			if (texture) texture.select();
+		}
+		if (Project) Project.model_3d.scale.set(1, 1, 1);
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scale');
+			Project.model_3d.scale.x = Project.model_3d.scale.y = Project.model_3d.scale.z = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalex\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalex');
+			Project.model_3d.scale.x = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scaley\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scaley');
+			Project.model_3d.scale.y = scale;
+		}
+		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scalez\s*=/mi)) {
+			let scale = Animator.MolangParser.variableHandler('preview.scalez');
+			Project.model_3d.scale.z = scale;
+		}
+
+		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+			Transformer.updateSelection()
+		}
+		Blockbench.dispatchEvent('display_animation_frame')
+	},
+	particle_effects: {},
+	loadParticleEmitter(path, content) {
+		let json_content = autoParseJSON(content);
+		if (!json_content || !json_content.particle_effect) return;
+
+		if (Animator.particle_effects[path]) {
+			Animator.particle_effects[path].config
+				.reset()
+				.set('file_path', path)
+				.setFromJSON(json_content, {path});
+			for (var uuid in Animator.particle_effects[path].emitters) {
+				let emitter = Animator.particle_effects[path].emitters[uuid];
+				emitter.updateConfig();
+			}
+		} else {
+			Animator.particle_effects[path] = {
+				config: new Wintersky.Config(WinterskyScene, json_content, {path}),
+				emitters: {}
+			};
+			if (isApp) {
+				let timeout;
+				this.watcher = fs.watch(path, (eventType) => {
+					if (eventType == 'change') {
+						if (timeout) clearTimeout(timeout)
+						timeout = setTimeout(() => {
+							Blockbench.read(path, {errorbox: false}, (files) => {
+								Animator.loadParticleEmitter(path, files[0].content);
+							})
+						}, 60)
+					}
+				})
+			}
+		}
+		return Animator.particle_effects[path];
+	},
+	loadFile(file, animation_filter) {
+		var json = file.json || autoParseJSON(file.content);
+		let path = file.path;
+		let new_animations = [];
+		function multilinify(string) {
+			return typeof string == 'string'
+						? string.replace(/;(?!$)/, ';\n')
+						: string
+		}
+		if (!json) return new_animations;
+		if (typeof json.animations === 'object') {
+			for (let ani_name in json.animations) {
+				if (animation_filter && !animation_filter.includes(ani_name)) continue;
+				//Animation
+				var a = json.animations[ani_name]
+				var animation = new Animation({
+					name: ani_name,
+					saved_name: ani_name,
+					path,
+					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
+					override: a.override_previous_animation,
+					anim_time_update: multilinify(a.anim_time_update),
+					blend_weight: multilinify(a.blend_weight),
+					start_delay: multilinify(a.start_delay),
+					loop_delay: multilinify(a.loop_delay),
+					length: a.animation_length
+				}).add()
+				//Bones
+				if (a.bones) {
+					let existing_variables = [
+						'query.anim_time',
+						'query.life_time',
+						'query.time_stamp',
+						'query.delta_time',
+						'query.camera_rotation',
+						'query.rotation_to_camera',
+						'query.distance_from_camera',
+						'query.lod_index',
+						'query.camera_distance_range_lerp',
+					];
+					function processPlaceholderVariables(text) {
+						if (typeof text !== 'string') return;
+						text = text.replace(/v\./, 'variable.').replace(/q\./, 'query.').replace(/t\./, 'temp.').replace(/c\./, 'context.').toLowerCase();
+						let matches = text.match(/(query|variable|context|temp)\.\w+/gi);
+						if (!matches) return;
+						matches.forEach(match => {
+							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
+							if (existing_variables.includes(match)) return;
+							if (panel_vue.text.split('\n').find(line => line.substr(0, match.length) == match)) return;
+
+							let [space, name] = match.split(/\./);
+							if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+
+							if (name == 'modified_distance_moved') {
+								panel_vue.text += `${match} = time * 8`;
+							} else if (name.match(/is_|has_|can_|blocking/)) {
+								panel_vue.text += `${match} = toggle('${name}')`;
+							} else {
+								panel_vue.text += `${match} = slider('${name}')`;
+							}
+						})
+					}
+					function getKeyframeDataPoints(source) {
+						if (source instanceof Array) {
+							source.forEach(processPlaceholderVariables);
+							return [{
+								x: source[0],
+								y: source[1],
+								z: source[2],
+							}]
+						} else if (['number', 'string'].includes(typeof source)) {
+							processPlaceholderVariables(source);
+							return [{
+								x: source, y: source, z: source
+							}]
+						} else if (typeof source == 'object') {
+							let points = [];
+							if (source.pre) {
+								points.push(getKeyframeDataPoints(source.pre)[0])
+							}
+							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
+								points.push(getKeyframeDataPoints(source.post)[0])
+							}
+							return points;
+						}
+					}
+					for (var bone_name in a.bones) {
+						var b = a.bones[bone_name]
+						let lowercase_bone_name = bone_name.toLowerCase();
+						var group = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)
+						let uuid = group ? group.uuid : guid();
+
+						var ba = new BoneAnimator(uuid, animation, bone_name);
+						animation.animators[uuid] = ba;
+						//Channels
+						for (var channel in b) {
+							if (!BoneAnimator.prototype.channels[channel]) continue;
+							if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
+								ba.addKeyframe({
+									time: 0,
+									channel,
+									uniform: !(b[channel] instanceof Array),
+									data_points: getKeyframeDataPoints(b[channel]),
+								})
+							} else if (typeof b[channel] === 'object' && b[channel].post) {
+								ba.addKeyframe({
+									time: 0,
+									channel,
+									interpolation: b[channel].lerp_mode,
+									uniform: !(b[channel].post instanceof Array),
+									data_points: getKeyframeDataPoints(b[channel]),
+								});
+							} else if (typeof b[channel] === 'object') {
+								for (var timestamp in b[channel]) {
+									ba.addKeyframe({
+										time: parseFloat(timestamp),
+										channel,
+										interpolation: b[channel][timestamp].lerp_mode,
+										uniform: !(b[channel][timestamp] instanceof Array),
+										data_points: getKeyframeDataPoints(b[channel][timestamp]),
+									});
+								}
+							}
+							// Set step interpolation
+							let sorted_keyframes = ba[channel].slice().sort((a, b) => a.time - b.time);
+							let last_kf_was_step = false;
+							sorted_keyframes.forEach((kf, i) => {
+								let next = sorted_keyframes[i+1];
+								if (next && next.data_points.length == 2 && kf.getArray(1).equals(next.getArray(0))) {
+									next.data_points.splice(0, 1);
+									kf.interpolation = 'step';
+									last_kf_was_step = true;
+								} else if (!next && last_kf_was_step) {
+									kf.interpolation = 'step';
+								}
+							})
+						}
+						if (b.relative_to && b.relative_to.rotation == 'entity') {
+							ba.rotation_global = true;
+						}
+					}
+				}
+				if (a.sound_effects) {
+					if (!animation.animators.effects) {
+						animation.animators.effects = new EffectAnimator(animation);
+					}
+					for (var timestamp in a.sound_effects) {
+						var sounds = a.sound_effects[timestamp];
+						if (sounds instanceof Array === false) sounds = [sounds];
+						animation.animators.effects.addKeyframe({
+							channel: 'sound',
+							time: parseFloat(timestamp),
+							data_points: sounds
+						})
+					}
+				}
+				if (a.particle_effects) {
+					if (!animation.animators.effects) {
+						animation.animators.effects = new EffectAnimator(animation);
+					}
+					for (var timestamp in a.particle_effects) {
+						var particles = a.particle_effects[timestamp];
+						if (particles instanceof Array === false) particles = [particles];
+						particles.forEach(particle => {
+							if (particle) particle.script = particle.pre_effect_script;
+						})
+						animation.animators.effects.addKeyframe({
+							channel: 'particle',
+							time: parseFloat(timestamp),
+							data_points: particles
+						})
+					}
+				}
+				if (a.timeline) {
+					if (!animation.animators.effects) {
+						animation.animators.effects = new EffectAnimator(animation);
+					}
+					for (var timestamp in a.timeline) {
+						var entry = a.timeline[timestamp];
+						var script = entry instanceof Array ? entry.join('\n') : entry;
+						
+						if (typeof script == 'string') {
+							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
+							let tex_variables = script.match(/(v|variable)\.texture\w*\s*=/);
+							if (tex_variables && !panel_vue.text.includes('preview.texture =')) {
+								if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+								panel_vue.text += `preview.texture = ${tex_variables[0].replace(/\s*=$/, '')}`
+							}
+						}
+						animation.animators.effects.addKeyframe({
+							channel: 'timeline',
+							time: parseFloat(timestamp),
+							data_points: [{script}]
+						})
+					}
+				}
+				animation.calculateSnappingFromKeyframes();
+				if (!Animation.selected && Animator.open) {
+					animation.select()
+				}
+				new_animations.push(animation)
+			}
+		} else if (typeof json.animation_controllers === 'object') {
+			for (let ani_name in json.animation_controllers) {
+				if (animation_filter && !animation_filter.includes(ani_name)) continue;
+				//Animation
+				let a = json.animation_controllers[ani_name];
+				let controller = new AnimationController({
+					name: ani_name,
+					saved_name: ani_name,
+					path,
+					states: a.states,
+					initial_state: a.initial_state || (a.states?.default ? 'default' : undefined)
+				}).add()
+				if (!Animation.selected && !AnimationController.selected && Animator.open) {
+					controller.select();
+				}
+				new_animations.push(controller)
+			}
+		}
+		return new_animations
+	},
+	buildFile(path_filter, name_filter) {
+		var animations = {}
+		Animator.animations.forEach(function(a) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+				let ani_tag = a.compileBedrockAnimation();
+				animations[a.name] = ani_tag;
+			}
+		})
+		return {
+			format_version: '1.8.0',
+			animations: animations
+		}
+	},
+	buildController(path_filter, name_filter) {
+		var controllers = {}
+		AnimationController.all.forEach(function(a) {
+			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
+				let ani_tag = a.compileForBedrock();
+				controllers[a.name] = ani_tag;
+			}
+		})
+		return {
+			format_version: '1.19.0',
+			animation_controllers: controllers
+		}
+	},
+	importFile(file) {
+		let form = {};
+		let json = autoParseJSON(file.content)
+		let keys = [];
+		let is_controller = !!json.animation_controllers;
+		let entries = json.animations || json.animation_controllers;
+		for (var key in entries) {
+			// Test if already loaded
+			if (isApp && file.path) {
+				let is_already_loaded = false
+				for (var anim of is_controller ? AnimationController.all : Animation.all) {
+					if (anim.path == file.path && anim.name == key) {
+						is_already_loaded = true;
+						break;
+					}
+				}
+				if (is_already_loaded) continue;
+			}
+			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			keys.push(key);
+		}
+		file.json = json;
+		if (keys.length == 0) {
+			Blockbench.showQuickMessage('message.no_animation_to_import');
+
+		} else if (keys.length == 1) {
+			Undo.initEdit({animations: []})
+			let new_animations = Animator.loadFile(file, keys);
+			Undo.finishEdit('Import animations', {animations: new_animations})
+
+		} else {
+			return new Promise(resolve => {
+				let dialog = new Dialog({
+					id: 'animation_import',
+					title: 'dialog.animation_import.title',
+					form,
+					onConfirm(form_result) {
+						this.hide();
+						let names = [];
+						for (var key of keys) {
+							if (form_result[key.hashCode()]) {
+								names.push(key);
+							}
+						}
+						Undo.initEdit({animations: []})
+						let new_animations = Animator.loadFile(file, names);
+						Undo.finishEdit('Import animations', {animations: new_animations})
+						resolve();
+					},
+					onCancel() {
+						resolve();
+					}
+				});
+				form.select_all_none = {
+					type: 'buttons',
+					buttons: ['generic.select_all', 'generic.select_none'],
+					click(index) {
+						let values = {};
+						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						dialog.setFormValues(values);
+					}
+				}
+				dialog.show();
+			});
+		}
+	},
+	exportAnimationFile(path) {
+		let filter_path = path || '';
+
+		if (isApp && !path) {
+			path = Project.export_path
+			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
+			var m_index = path.search(exp)
+			if (m_index > 3) {
+				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Project.export_path, true)
+			}
+			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
+		}
+
+		if (isApp && path && fs.existsSync(path)) {
+			Animator.animations.forEach(function(a) {
+				if (a.path == filter_path && !a.saved) {
+					a.save();
+				}
+			})
+		} else {
+			let content = Animator.buildFile(filter_path, true);
+			Blockbench.export({
+				resource_id: 'animation',
+				type: 'JSON Animation',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation',
+				startpath: path,
+				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path, cb) => {
+					if (new_path && fs.existsSync(new_path)) {
+						Animator.animations.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(new_path, {content})
+						cb(new_path);
+					}
+				})
+			}, new_path => {
+				Animator.animations.forEach(function(a) {
+					if (a.path == filter_path) {
+						a.path = new_path;
+						a.saved = true;
+					}
+				})
+			})
+		}
+	},
+	exportAnimationControllerFile(path) {
+		let filter_path = path || '';
+
+		if (isApp && !path) {
+			path = Project.export_path
+			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
+			var m_index = path.search(exp)
+			if (m_index > 3) {
+				path = path.substr(0, m_index) + osfs + 'animation_controllers' + osfs +  pathToName(Project.export_path, true)
+			}
+			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
+		}
+
+		if (isApp && path && fs.existsSync(path)) {
+			AnimationController.all.forEach(function(a) {
+				if (a.path == filter_path && !a.saved) {
+					a.save();
+				}
+			})
+		} else {
+			let content = Animator.buildController(filter_path, true);
+			Blockbench.export({
+				resource_id: 'animation_controller',
+				type: 'JSON Animation Controller',
+				extensions: ['json'],
+				name: (Project.geometry_name||'model')+'.animation_controllers',
+				startpath: path,
+				content: autoStringify(content),
+				custom_writer: isApp && ((content, new_path, cb) => {
+					if (new_path && fs.existsSync(new_path)) {
+						AnimationController.all.forEach(function(a) {
+							if (a.path == filter_path && !a.saved) {
+								a.path = new_path;
+								a.save();
+							}
+						})
+					} else {
+						Blockbench.writeFile(new_path, {content})
+						cb(new_path);
+					}
+				})
+			}, new_path => {
+				AnimationController.all.forEach(function(a) {
+					if (a.path == filter_path) {
+						a.path = new_path;
+						a.saved = true;
+					}
+				})
+			})
+		}
+	}
+}
+Canvas.gizmos.push(Animator.motion_trail);
+Blockbench.on('reset_project', () => {
+	for (let path in Animator.particle_effects) {
+		let effect = Animator.particle_effects[path];
+		if (isApp && effect.watcher) {
+			effect.watcher.close()
+		}
+		for (let uuid in effect.emitters) {
+			effect.emitters[uuid].delete();
+			delete effect.emitters[uuid];
+		}
+		delete Animator.particle_effects[path];
+	}
+})
+
 Clipbench.setAnimation = function() {
 	if (!Animation.selected && !AnimationController.selected) return;
 	Clipbench.animation = AnimationItem.selected.getUndoCopy();
@@ -940,30 +1724,6 @@ Clipbench.pasteAnimation = function() {
 	}
 }
 
-SharedActions.add('rename', {
-	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
-	run() {
-		AnimationItem.selected.rename();
-	}
-})
-SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'animations' && AnimationItem.selected,
-	run() {
-		AnimationItem.selected.remove(true);
-	}
-})
-SharedActions.add('duplicate', {
-	condition: () => Prop.active_panel == 'animations' && Animation.selected,
-	run() {
-		let copy = Animation.selected.getUndoCopy();
-		let animation = new Animation(copy);
-		Property.resetUniqueValues(Animation, animation);
-		animation.createUniqueName();
-		Animator.animations.splice(Animator.animations.indexOf(Animation.selected)+1, 0, animation)
-		animation.saved = false;
-		animation.add(true).select();
-	}
-})
 
 Blockbench.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
@@ -974,7 +1734,6 @@ Blockbench.addDragHandler('animation', {
 		await Animator.importFile(file);
 	}
 })
-
 
 BARS.defineActions(function() {
 	new NumSlider('slider_animation_length', {
@@ -1014,8 +1773,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			new Animation({
-				name: Format.animation_files ? 'animation.' + (Project.geometry_name||'model') + '.new' : 'animation',
-				saved: false
+				name: 'animation.' + (Project.geometry_name||'model') + '.new'
 			}).add(true).propertiesDialog()
 
 		}
@@ -1096,56 +1854,30 @@ BARS.defineActions(function() {
 		condition: () => Format.animation_files,
 		click: function () {
 			let paths = [];
-			let controller_paths = [];
 			Animation.all.forEach(animation => {
 				paths.safePush(animation.path);
-			})
-			AnimationController.all.forEach(controller => {
-				controller_paths.safePush(controller.path);
 			})
 			paths.forEach(path => {
 				Animator.exportAnimationFile(path);
 			})
-			controller_paths.forEach(path => {
-				Animator.exportAnimationControllerFile(path);
-			})
 		}
 	})
 
-	new Action('bake_ik_animation', {
-		icon: 'precision_manufacturing',
+	// Motion Trail
+	new Toggle('lock_motion_trail', {
+		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Modes.animate && NullObject.all.findIndex(n => n.ik_target) != -1,
-		click() {
-			let animation = Animation.selected;
-			let ik_samples = animation.sampleIK(animation.snapping);
-
-			let keyframes = [];
-			Undo.initEdit({keyframes});
-			
-			for (let uuid in ik_samples) {
-				let animator = animation.animators[uuid];
-				ik_samples[uuid].forEach(({array}) => {
-					array[0] = Math.roundTo(array[0], 4);
-					array[1] = Math.roundTo(array[1], 4);
-					array[2] = Math.roundTo(array[2], 4);
-				})
-				ik_samples[uuid].forEach(({array}, i) => {
-					let before = ik_samples[uuid][i-1];
-					let after = ik_samples[uuid][i+1];
-					if ((!before || before.array.equals(array)) && (!after || after.array.equals(array))) return;
-
-					let time = Timeline.snapTime(i / animation.snapping, animation);
-					let values = {x: array[0], y: array[1], z: array[2]};
-					let kf = animator.createKeyframe(values, time, 'rotation', false, false);
-					keyframes.push(kf);
-				})
-				animator.addToTimeline();
+		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
+		onChange(value) {
+			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
+			} else {
+				Project.motion_trail_lock = false;
+				Animator.showMotionTrail();
 			}
-			
-			Undo.finishEdit('Bake IK rotations');
 		}
 	})
+
 	new Action('bake_animation_into_model', {
 		icon: 'directions_run',
 		category: 'animation',
@@ -1191,229 +1923,11 @@ BARS.defineActions(function() {
 				offset(node);
 			});
 
-			Modes.options.edit.select();
-			Canvas.updateAllBones();
+			Modes.options.edit.select()
 			Undo.finishEdit('Bake animation into model')
 		}
 	})
-	new Action('change_animation_speed', {
-		icon: 'av_timer',
-		category: 'animation',
-		condition: {modes: ['animate'], method: () => Animation.selected},
-		click() {
-			let animation = Animation.selected;
-			Undo.initEdit({animations: [animation]});
-			let keyframes = [];
-			let initial_times = {};
-			let initial_snapping = animation.snapping;
-			let initial_length = animation.length;
-			let initial_bezier_times = {};
-			for (let id in animation.animators) {
-				let animator = animation.animators[id];
-				keyframes.push(...animator.keyframes);
-			}
-			keyframes.forEach(kf => {
-				initial_times[kf.uuid] = kf.time;
-				initial_bezier_times[kf.uuid] = {
-					left: kf.bezier_left_time.slice(),
-					right: kf.bezier_right_time.slice(),
-				};
-			})
-
-			let previous_speed = 1;
-			let previous_snapping = initial_snapping;
-			let dialog = new Dialog({
-				id: 'change_animation_speed',
-				title: 'action.change_animation_speed',
-				darken: false,
-				form: {
-					speed: {label: 'dialog.change_animation_speed.speed', type: 'range', value: 1, min: 0.1, max: 4, step: 0.01, editable_range_label: true, full_width: true},
-					adjust_snapping: {label: 'dialog.change_animation_speed.adjust_snapping', type: 'checkbox', value: true},
-					snapping: {label: 'menu.animation.snapping', type: 'number', value: initial_snapping, min: 1, max: 500, condition: result => result.adjust_snapping},
-				},
-				onFormChange({speed, adjust_snapping, snapping}) {
-					if (speed != previous_speed) {
-						snapping = adjust_snapping ? Math.roundTo(initial_snapping * speed, 2) : initial_snapping
-						dialog.setFormValues({snapping}, false);
-
-					} else if (snapping != previous_snapping) {
-						speed = Math.clamp(Math.roundTo(snapping / initial_snapping, 2), 0.1, 4);
-						dialog.setFormValues({speed}, false);
-					}
-					previous_speed = speed;
-					previous_snapping = snapping;
-
-					animation.snapping = snapping;
-					keyframes.forEach(kf => {
-						kf.time = Timeline.snapTime(initial_times[kf.uuid] / speed, animation);
-						if (kf.interpolation == 'bezier') {
-							let old_bezier_time = initial_bezier_times[kf.uuid];
-							kf.bezier_left_time.V3_set(old_bezier_time.left).V3_divide(speed);
-							kf.bezier_right_time.V3_set(old_bezier_time.right).V3_divide(speed);
-						}
-					})
-					animation.setLength(initial_length / speed);
-					TickUpdates.keyframes = true;
-					Animator.preview();
-				},
-				onConfirm(result) {
-					Undo.finishEdit('Change animation speed');
-				},
-				onCancel() {
-					Undo.cancelEdit();
-				}
-			}).show();
-		}
-	})
-	let optimize_animation_mode = 'selected_animation';
-	new Action('optimize_animation', {
-		icon: 'settings_slow_motion',
-		category: 'animation',
-		condition: {modes: ['animate'], method: () => Animation.selected},
-		click: async function() {
-			let response = await new Promise(resolve => {
-				new Dialog('optimize_animation', {
-					name: 'action.optimize_animation',
-					form: {
-						selection: {label: 'dialog.optimize_animation.selection', type: 'select', value: optimize_animation_mode, options: {
-							selected_keyframes: 'dialog.optimize_animation.selection.selected_keyframes',
-							selected_animation: 'dialog.optimize_animation.selection.selected_animation',
-							all_animations: 'dialog.optimize_animation.selection.all_animations',
-						}},
-						'_1': '_',
-						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
-						'_1': '_',
-						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
-						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
-						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},
-						threshold_scale: {label: 'timeline.scale', type: 'number', value: 0.005, min: 0, max: 1, condition: form => form.advanced},
-					},
-					onConfirm(result) {
-						resolve(result);
-					},
-					onCancel() {
-						resolve(false);
-					}
-				}).show();
-			})
-			if (!response) return;
-
-			optimize_animation_mode = response.selection;
-			let animations = [Animation.selected];
-			if (response.selection == 'all_animations') animations = Animation.all;
-			let thresholds = {
-				rotation: response.threshold_rotation,
-				position: response.threshold_position,
-				scale: response.threshold_scale
-			};
-			let remove_count = 0;
-			Undo.initEdit({animations});
-
-			for (let animation of animations) {
-				for (let id in animation.animators) {
-					let animator = animation.animators[id];
-					for (let channel in animator.channels) {
-						if (!animator[channel]?.length) continue;
-						if (!animator.channels[channel].transform) continue;
-						let first = animator[channel][0];
-						// todo: add data points
-						if (animator[channel].length == 1 && first.data_points.length == 1 && (response.selection != 'selected_keyframes' || first.selected)) {
-							let value = first.getArray();
-							if (!value[0] && !value[1] && !value[2]) {
-								first.remove();
-								continue;
-							}
-						}
-
-						let sorted_keyframes = animator[channel].slice().sort((a, b) => a.time - b.time);
-						let original_keyframes = sorted_keyframes.slice();
-						let prev;
-						let skipped = 0;
-						for (let i = 0; i < original_keyframes.length; i++) {
-							let kf = original_keyframes[i];
-							if (kf.data_points.length != 1 || (!kf.selected && response.selection == 'selected_keyframes')) {
-								prev = kf;
-								continue;
-							}
-							let next = original_keyframes[i+1];
-							let d_kf = kf.getArray();
-							let d_prev = prev && prev.getArray(1);
-							let d_next = next && next.getArray(0);
-							let remove = false;
-
-							// Same values check
-							if (
-								(prev || next) &&
-								(!prev || d_prev[0] == d_kf[0]) && (!next || d_next[0] == d_kf[0]) &&
-								(!prev || d_prev[1] == d_kf[1]) && (!next || d_next[1] == d_kf[1]) &&
-								(!prev || d_prev[2] == d_kf[2]) && (!next || d_next[2] == d_kf[2])
-							) {
-								remove = true;
-							} else if (prev && next) {
-								let alpha = Math.getLerp(prev.time, next.time, kf.time);
-								let axes = ['x', 'y', 'z'];
-								let interpolated_value;
-								if (
-									prev.interpolation === 'linear' &&
-									(next.interpolation === 'linear' || next.interpolation === 'step')
-								) {
-									interpolated_value = axes.map(axis => prev.getLerp(next, axis, alpha));
-
-								} else if (prev.interpolation === 'catmullrom' || next.interpolation === 'catmullrom') {
-
-									let prev_plus = sorted_keyframes[sorted_keyframes.indexOf(prev)-1];
-									let next_plus = sorted_keyframes[sorted_keyframes.indexOf(next)+1];
-									interpolated_value = axes.map(axis => prev.getCatmullromLerp(prev_plus, prev, next, next_plus, axis, alpha));
-
-								} else if (prev.interpolation === 'bezier' || next.interpolation === 'bezier') {
-									// Bezier
-									interpolated_value = axes.map(axis => prev.getBezierLerp(prev, next, axis, alpha));
-								}
-
-								if (interpolated_value) {
-									let threshold = thresholds[channel] ?? thresholds.position;
-									let max_diff = 0.0000001;
-									let all_axes_irrelevant = interpolated_value.allAre((val, axis) => {
-										let diff = Math.abs(val - d_kf[axis]);
-										max_diff = Math.max(max_diff, diff);
-										return diff < threshold;
-									});
-									if (all_axes_irrelevant && skipped < Math.clamp(2 * (threshold / max_diff), 0, 12)) {
-										remove = true;
-									}
-								}
-							} else if (!prev && !next) {
-								if (d_kf.allAre(val => !val)) {
-									remove = true;
-								} else {
-									kf.time = 0;
-								}
-							}
-
-							if (remove) {
-								kf.remove();
-								skipped++;
-								remove_count++;
-							} else {
-								skipped = 0;
-								prev = kf;
-							}
-						}
-					}
-				}
-			}
-			
-			if (remove_count) {
-				Blockbench.showQuickMessage(tl('message.optimize_animation.keyframes_removed', remove_count), 2000);
-				Undo.finishEdit('Optimize animations');
-			} else {
-				Blockbench.showQuickMessage('message.optimize_animation.nothing_to_optimize', 1800);
-				Undo.cancelEdit(false);
-			}
-		}
-	})
 })
-
 
 Interface.definePanels(function() {
 
@@ -1428,7 +1942,7 @@ Interface.definePanels(function() {
 				return [];
 			}
 		}
-		return [AnimationItem.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
+		return [Animation.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {
@@ -1443,7 +1957,6 @@ Interface.definePanels(function() {
 	new Panel('animations', {
 		icon: 'movie',
 		growable: true,
-		resizable: true,
 		condition: {modes: ['animate']},
 		default_position: {
 			slot: 'left_bar',
@@ -1451,17 +1964,9 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: [
-			new Toolbar('animations', {
-				children: [
-					'add_animation',
-					'add_animation_controller',
-					'load_animation_file',
-					'slider_animation_length',
-					'export_modded_animations',
-				]
-			})
-		],
+		toolbars: {
+			head: Toolbars.animations
+		},
 		component: {
 			name: 'panel-animations',
 			data() { return {
@@ -1478,26 +1983,20 @@ Interface.definePanels(function() {
 					this.files_folded[key] = !this.files_folded[key];
 					this.$forceUpdate();
 				},
-				saveFile(path, file) {
-					if (file.type == 'animation') {
-						Animator.exportAnimationFile(path);
-					} else {
-						Animator.exportAnimationControllerFile(path);
-					}
+				saveFile(path) {
+					Animator.exportAnimationFile(path)
 				},
 				addAnimation(path) {
 					let other_animation = AnimationItem.all.find(a => a.path == path);
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
-							saved: false
+							path
 						}).add(true).propertiesDialog()
 					} else {
 						new AnimationController({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
-							saved: false
+							path
 						}).add(true);
 					}
 				},
@@ -1586,38 +2085,18 @@ Interface.definePanels(function() {
 							[target_anim] = eventTargetToAnim(target);
 							if (!target_anim || target_anim == anim ) return;
 
-							if (anim instanceof AnimationController) {
-								let index = AnimationController.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
-								if (AnimationController.all.indexOf(anim) < index) index--;
-								if (order == 1) index++;
-								if (AnimationController.all[index] == anim && anim.path == target_anim.path) return;
-								
-								Undo.initEdit({animation_controllers: [anim]});
-	
-								anim.path = target_anim.path;
-								AnimationController.all.remove(anim);
-								AnimationController.all.splice(index, 0, anim);
-								anim.createUniqueName();
-	
-								Undo.finishEdit('Reorder animation controllers');
+							let index = Animation.all.indexOf(target_anim);
+							if (Animation.all.indexOf(anim) < index) index--;
+							if (order == 1) index++;
+							if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+							
+							Undo.initEdit({animations: [anim]});
 
-							} else {
-								let index = Animation.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
-								if (Animation.all.indexOf(anim) < index) index--;
-								if (order == 1) index++;
-								if (Animation.all[index] == anim && anim.path == target_anim.path) return;
-								
-								Undo.initEdit({animations: [anim]});
-	
-								anim.path = target_anim.path;
-								Animation.all.remove(anim);
-								Animation.all.splice(index, 0, anim);
-								anim.createUniqueName();
-	
-								Undo.finishEdit('Reorder animations');
-							}
+							anim.path = target_anim.path;
+							Animation.all.remove(anim);
+							Animation.all.splice(index, 0, anim);
+
+							Undo.finishEdit('Reorder animations');
 						}
 					}
 
@@ -1637,7 +2116,7 @@ Interface.definePanels(function() {
 					if (!this.animation_files_enabled) {
 						return {
 							'': {
-								animations: this.animations.concat(this.animation_controllers),
+								animations: this.animations,
 								name: '',
 								hide_head: true
 							}
@@ -1649,7 +2128,6 @@ Interface.definePanels(function() {
 						if (!files[key]) files[key] = {
 							animations: [],
 							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
-							type: 'animation',
 							saved: true
 						};
 						if (!animation.saved) files[key].saved = false;
@@ -1660,7 +2138,6 @@ Interface.definePanels(function() {
 						if (!files[key]) files[key] = {
 							animations: [],
 							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
-							type: 'animation_controller',
 							saved: true
 						};
 						if (!controller.saved) files[key].saved = false;
@@ -1775,9 +2252,8 @@ Interface.definePanels(function() {
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
-								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()">
-									<i v-if="animation.playing == 'locked'" class="fa_big fas fa-lock"></i>
-									<i v-else-if="animation.playing" class="fa_big far fa-play-circle"></i>
+								<div class="in_list_button" v-on:click.stop="animation.togglePlayingState()">
+									<i v-if="animation.playing" class="fa_big far fa-play-circle"></i>
 									<i v-else class="fa_big far fa-circle"></i>
 								</div>
 							</li>
@@ -1799,12 +2275,13 @@ Interface.definePanels(function() {
 		icon: 'fas.fa-stream',
 		condition: {modes: ['animate']},
 		growable: true,
-		resizable: true,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400
+		},
+		toolbars: {
 		},
 		component: {
 			name: 'panel-placeholders',
@@ -1949,7 +2426,7 @@ Interface.definePanels(function() {
 						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}" @click="button.type == 'impulse' && changeButtonValue(button, $event)" :buttontype="button.type">
 							<i v-if="button.type == 'impulse'" class="material-icons">play_arrow</i>
 							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<numeric-input v-if="button.type == 'slider'" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)" />
+							<input v-if="button.type == 'slider'" type="number" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)">
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>
@@ -1958,7 +2435,7 @@ Interface.definePanels(function() {
 
 					<vue-prism-editor
 						id="var_placeholder_area"
-						class="molang_input tab_target capture_tab_key"
+						class="molang_input tab_target"
 						v-model="text"
 						language="molang"
 						:autocomplete="autocomplete"

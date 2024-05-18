@@ -15,10 +15,7 @@ Blockbench.NodePreviewController = NodePreviewController;
 
 Blockbench.Animator = Animator;
 Blockbench.Timeline = Timeline;
-Blockbench.AnimationItem = AnimationItem;
 Blockbench.Animation = Animation;
-Blockbench.AnimationController = AnimationController;
-Blockbench.AnimationControllerState = AnimationControllerState;
 Blockbench.Keyframe = Keyframe;
 Blockbench.KeyframeDataPoint = KeyframeDataPoint;
 Blockbench.BoneAnimator = BoneAnimator;
@@ -29,7 +26,6 @@ Blockbench.TimelineMarker = TimelineMarker;
 Blockbench.Panel = Panel;
 Blockbench.Mode = Mode;
 Blockbench.Dialog = Dialog;
-Blockbench.ShapelessDialog = ShapelessDialog;
 Blockbench.Setting = Setting;
 Blockbench.Plugin = Plugin;
 Blockbench.Preview = Preview;
@@ -66,5 +62,3 @@ Blockbench.DisplaySlot = DisplaySlot;
 Blockbench.Reusable = Reusable;
 
 Blockbench.Texture = Texture;
-Blockbench.TextureLayer = TextureLayer;
-Blockbench.SharedActions = SharedActions;

@@ -37,7 +37,6 @@ class GeneralAnimator {
 			if (!this[channel]) this[channel] = [];
 		}
 		if (!this.expanded) this.expanded = true;
-		TickUpdates.keyframe_selection = true;
 		return this;
 	}
 	addKeyframe(data, uuid) {
@@ -81,9 +80,7 @@ class GeneralAnimator {
 		var deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
-		if (deleted.length && Undo.current_save) {
-			Undo.addKeyframeCasualties(deleted);
-		}
+		Undo.addKeyframeCasualties(deleted);
 		Animation.selected.setLength();
 
 		if (undo) {
@@ -94,22 +91,14 @@ class GeneralAnimator {
 	getOrMakeKeyframe(channel) {
 		let before, result;
 		let epsilon = Timeline.getStep()/2 || 0.01;
-		let has_before = false;
 
 		for (let kf of this[channel]) {
 			if (Math.abs(kf.time - Timeline.time) <= epsilon) {
 				before = kf;
 			}
-			if (kf.time < Timeline.time) {
-				has_before = true;
-			}
 		}
 		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
-		let new_keyframe;
-		if (settings.auto_keyframe.value && Timeline.snapTime(Timeline.time) != 0 && !before && !has_before) {
-			new_keyframe = this.createKeyframe({}, 0, channel, false, false);
-		}
-		return {before, result, new_keyframe};
+		return {before, result};
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'timeline'
@@ -193,7 +182,7 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	select(group_is_selected) {
 		if (!this.getGroup()) {
-			unselectAllElements();
+			unselectAll();
 			return this;
 		}
 		if (this.group.locked) return;
@@ -418,31 +407,24 @@ class BoneAnimator extends GeneralAnimator {
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
 			let alpha = Math.getLerp(before.time, after.time, time)
-			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
+			
 
-			if (no_interpolations || (
-				before.interpolation === linear &&
-				(after.interpolation === linear || after.interpolation === step)
-			)) {
+			if (no_interpolations || (before.interpolation === Keyframe.interpolation.linear && after.interpolation === Keyframe.interpolation.linear)) {
 				if (no_interpolations) {
 					alpha = Math.round(alpha)
 				}
 				return mapAxes(axis => before.getLerp(after, axis, alpha, allow_expression));
 
-			} else if (before.interpolation === catmullrom || after.interpolation === catmullrom) {
+			} else if (before.interpolation === Keyframe.interpolation.catmullrom || after.interpolation === Keyframe.interpolation.catmullrom) {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
 				let before_index = sorted.indexOf(before);
 				let before_plus = sorted[before_index-1];
 				let after_plus = sorted[before_index+2];
-				if (this.animation.loop == 'loop' && sorted.length >= 3) {
-					if (!before_plus) before_plus = sorted.at(-2);
-					if (!after_plus) after_plus = sorted[1];
-				}
 
 				return mapAxes(axis => before.getCatmullromLerp(before_plus, before, after, after_plus, axis, alpha));
 
-			} else if (before.interpolation === bezier || after.interpolation === bezier) {
+			} else if (before.interpolation === Keyframe.interpolation.bezier || after.interpolation === Keyframe.interpolation.bezier) {
 				// Bezier
 				return mapAxes(axis => before.getBezierLerp(before, after, axis, alpha));
 			}
@@ -459,45 +441,10 @@ class BoneAnimator extends GeneralAnimator {
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getGroup()
-		Animator.MolangParser.context.animation = this.animation;
 
 		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
-	}
-	applyAnimationPreset(preset) {
-		let keyframes = [];
-		Undo.initEdit({keyframes});
-		let current_time = Timeline.snapTime(Timeline.time);
-		for (let channel in this.channels) {
-			let timeline = preset[channel];
-			for (let timecode in timeline) {
-				let data = {};
-				let value = timeline[timecode];
-				if (value instanceof Array) {
-					data = {x: value[0], y: value[1], z: value[2]};
-				} else if (value.pre) {
-					data = {data_points: [
-						{x: value.pre[0], y: value.pre[1], z: value.pre[2]},
-						{x: value.post[0], y: value.post[1], z: value.post[2]},
-					]}
-				} else {
-					data = {
-						x: value.post[0], y: value.post[1], z: value.post[2],
-						interpolation: value.lerp_mode
-					};
-				}
-				let kf = this.createKeyframe(data, current_time + parseFloat(timecode), channel, false, false);
-				keyframes.push(kf);
-			}
-		}
-		if (preset.length) {
-			this.animation.setLength(current_time + preset.length);
-		}
-		keyframes[0].select();
-		Undo.finishEdit('Apply animation preset');
-		Animator.preview();
-		return this;
 	}
 }
 	BoneAnimator.prototype.type = 'bone';
@@ -508,7 +455,6 @@ class BoneAnimator extends GeneralAnimator {
 	}
 	Group.animator = BoneAnimator;
 	BoneAnimator.prototype.menu = new Menu('bone_animator', [
-		new MenuSeparator('settings'),
 		{
 			id: 'rotation_global',
 			name: 'menu.animator.rotation_global',
@@ -520,9 +466,7 @@ class BoneAnimator extends GeneralAnimator {
 				Undo.finishEdit('Toggle rotation in global space');
 				Animator.preview();
 			}
-		},
-		new MenuSeparator('presets'),
-		'apply_animation_preset'
+		}
 	])
 
 class NullObjectAnimator extends BoneAnimator {
@@ -550,7 +494,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	select(element_is_selected) {
 		if (!this.getElement()) {
-			unselectAllElements();
+			unselectAll();
 			return this;
 		}
 		if (this.getElement().locked) return;
@@ -600,24 +544,13 @@ class NullObjectAnimator extends BoneAnimator {
 		let bone_references = [];
 		let current = target.parent;
 
-		let source;
-		if (null_object.ik_source) {
-			source = [...Group.all].find(node => node.uuid == null_object.ik_source);
-		} else {
-			source = null_object.parent;
-		}
-		if (!source) return;
-		if (!target.isChildOf(source) && source != 'root') return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
 			target instanceof Group &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
-		while (current !== source) {
+		while (current !== null_object.parent) {
 			bones.push(current);
 			current = current.parent;
-		}
-		if (null_object.ik_source) {
-			bones.push(source);
 		}
 		if (!bones.length) return;
 		bones.reverse();
@@ -745,14 +678,10 @@ class EffectAnimator extends GeneralAnimator {
 	displayFrame(in_loop) {
 		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
-				let diff = this.animation.time - kf.time;
-				if (diff < 0) return;
-
-				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-				if (diff >= 0 && diff < (1/30) * (Timeline.playback_speed/100) && !media) {
+				var diff = kf.time - this.animation.time;
+				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
 					if (kf.data_points[0].file && !kf.cooldown) {
-						media = new Audio(kf.data_points[0].file);
-						media.keyframe_id = kf.uuid;
+						var media = new Audio(kf.data_points[0].file);
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
@@ -766,26 +695,20 @@ class EffectAnimator extends GeneralAnimator {
 							delete kf.cooldown;
 						}, 400)
 					} 
-				} else if (diff > 0 && media) {
-					if (Math.abs(media.currentTime - diff) > 0.18 && diff < media.duration) {
-						console.log('Resyncing sound')
-						// Resync
-						media.currentTime = Math.clamp(diff + 0.08, 0, media.duration);
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
-					}
 				}
 			})
 		}
-
+		
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				let diff = this.animation.time - kf.time;
-				let i = 0;
-				for (let data_point of kf.data_points) {
-					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-					if (particle_effect) {
-						let emitter = particle_effect.emitters[kf.uuid + i];
-						if (diff >= 0) {
+				if (diff >= 0) {
+					let i = 0;
+					for (let data_point of kf.data_points) {
+						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+						if (particle_effect) {
+
+							let emitter = particle_effect.emitters[kf.uuid + i];
 							if (!emitter) {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
@@ -816,12 +739,9 @@ class EffectAnimator extends GeneralAnimator {
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
-
-						} else if (emitter && emitter.enabled) {
-							emitter.stop(true);
-						}
-					} 
-					i++;
+						} 
+						i++;
+					}
 				}
 			})
 		}
@@ -847,7 +767,6 @@ class EffectAnimator extends GeneralAnimator {
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
-						media.keyframe_id = kf.uuid;
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
@@ -870,90 +789,3 @@ class EffectAnimator extends GeneralAnimator {
 		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
 		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
 	}
-
-StateMemory.init('animation_presets', 'array');
-
-BARS.defineActions(() => {
-	new Action('apply_animation_preset', {
-		condition: () => Modes.animate && Timeline.selected_animator && Timeline.selected_animator.applyAnimationPreset,
-		icon: 'library_books',
-		click: function (e) {
-			new Menu('apply_animation_preset', this.children(), {searchable: true}).open(e.target);
-		},
-		children() {
-			let animator = Timeline.selected_animator;
-			let entries = [];
-			for (let id in Animator.animation_presets) {
-				let preset = Animator.animation_presets[id];
-				let entry = {
-					name: preset.name,
-					icon: 'fast_forward',
-					click: () => {
-						animator.applyAnimationPreset(preset);
-					}
-				}
-				entries.push(entry);
-			}
-			if (StateMemory.animation_presets.length) entries.push('_');
-			for (let preset of StateMemory.animation_presets) {
-				let entry = {
-					name: preset.name,
-					icon: 'fast_forward',
-					click: () => {
-						animator.applyAnimationPreset(preset);
-					},
-					children: [
-						{icon: 'delete', name: 'generic.delete', click: () => {
-							Blockbench.showMessageBox({
-								title: 'generic.delete',
-								message: 'generic.confirm_delete',
-								buttons: ['dialog.confirm', 'dialog.cancel'],
-							}, result => {
-								if (result == 1) return;
-								StateMemory.animation_presets.remove(preset);
-								StateMemory.save('animation_presets');
-							})
-						}}
-					]
-				}
-				entries.push(entry);
-			}
-			return entries;
-		}
-	})
-	new Action('save_animation_preset', {
-		icon: 'playlist_add',
-		condition: () => Modes.animate && Keyframe.selected.length && Keyframe.selected.allAre(kf => kf.animator == Keyframe.selected[0].animator),
-		click(event) {	
-			let dialog = new Dialog({
-				id: 'save_animation_preset',
-				title: 'action.save_animation_preset',
-				width: 540,
-				form: {
-					name: {label: 'generic.name'},
-				},
-				onConfirm: function(formResult) {
-					if (!formResult.name) return;
-	
-					let preset = {
-						uuid: guid(),
-						name: formResult.name,
-					}
-					let keyframes = Keyframe.selected.slice().sort((a, b) => a.time - b.time);
-					let start_time = keyframes[0].time;
-					for (let kf of keyframes) {
-						if (!kf.transform) continue;
-						if (!preset[kf.channel]) preset[kf.channel] = {};
-						let data = kf.compileBedrockKeyframe();
-						let timecode = trimFloatNumber(Timeline.snapTime(kf.time - start_time)).toString();
-						preset[kf.channel][timecode] = data;
-					}
-
-					StateMemory.animation_presets.push(preset);
-					StateMemory.save('animation_presets');
-				}
-			})
-			dialog.show()
-		}
-	})
-})

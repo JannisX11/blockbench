@@ -54,14 +54,17 @@ class Locator extends OutlinerElement {
 			if (i != axis) this.rotation[i] = -n;
 		})
 		// Name
-		flipNameOnAxis(this, axis);
-
+		if (axis == 0 && this.name.includes('right')) {
+			this.name = this.name.replace(/right/g, 'left').replace(/2$/, '');
+		} else if (axis == 0 && this.name.includes('left')) {
+			this.name = this.name.replace(/left/g, 'right').replace(/2$/, '');
+		}
 		this.createUniqueName();
 		this.preview_controller.updateTransform(this);
 		return this;
 	}
 	getWorldCenter() {
-		var pos = new THREE.Vector3();
+		var pos = Reusable.vec1.set(0, 0, 0);
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
@@ -77,7 +80,7 @@ class Locator extends OutlinerElement {
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
-	Locator.prototype.icon = 'fa-anchor';
+	Locator.prototype.icon = 'fa fa-anchor';
 	Locator.prototype.name_regex = 'a-z0-9_'
 	Locator.prototype.movable = true;
 	Locator.prototype.rotatable = true;
@@ -89,8 +92,6 @@ class Locator extends OutlinerElement {
 	];
 	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
-			...Outliner.control_menu_group,
-			new MenuSeparator('settings'),
 			{
 				id: 'ignore_inherited_scale',
 				name: 'menu.locator.ignore_inherited_scale',
@@ -105,9 +106,14 @@ class Locator extends OutlinerElement {
 					Undo.finishEdit('Change locator ignore inherit scale option');
 				}
 			},
-			new MenuSeparator('manage'),
+			'_',
+			...Outliner.control_menu_group,
+			'_',
+			'copy',
+			'paste',
+			'duplicate',
+			'_',
 			'rename',
-			'toggle_visibility',
 			'delete'
 		])
 	
@@ -152,7 +158,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('setup', {element});
 		},
 		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform.call(this, element);
+			NodePreviewController.prototype.updateTransform(element);
 			this.updateWindowSize(element);
 		},
 		updateSelection(element) {
@@ -165,7 +171,7 @@ OutlinerElement.registerType(Locator, 'locator');
 			this.dispatchEvent('update_selection', {element});
 		},
 		updateWindowSize(element) {
-			let size = 0.4 * Preview.selected.camera.fov / Preview.selected.height;
+			let size = 18 / Preview.selected.height;
 			element.mesh.sprite.scale.set(size, size, size);
 		}
 	})

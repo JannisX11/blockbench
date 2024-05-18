@@ -16,7 +16,12 @@ Website and download: [blockbench.net](https://www.blockbench.net)
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.MD)
 
-Check out the [Contribution Guidelines](CONTRIBUTING.md).
+If you are contributing to Blockbench in any way, you must adhere to the [Code of Conduct](https://github.com/JannisX11/blockbench/blob/master/CODE_OF_CONDUCT.MD).
+
+* To submit a suggestion or report a bug, please [open an issue](https://github.com/JannisX11/blockbench/issues/new).
+* Localizations are handled on an external platform. If you want to contribute Blockbench translations, you can visit [blockbench.net/translations](https://blockbench.net/translations/). Thank you!
+* If you want to contribute to the Blockbench code, please contact me (@Jannis) on [Discord](https://discord.gg/sGkj78W) before to discuss whether a change is necessary and how it can be approached.
+* By contributing to the Blockbench source, you agree that the changes are in accordance with the applicable [GPL-3.0 license](LICENSE.MD).
 
 
 

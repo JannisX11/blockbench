@@ -8,9 +8,6 @@ class MeshFace extends Face {
 			this.extend(data);
 		}
 	}
-	get element() {
-		return this.mesh;
-	}
 	extend(data) {
 		super.extend(data);
 		this.vertices.forEach(key => {
@@ -52,11 +49,7 @@ class MeshFace extends Face {
 		}
 	}
 	getBoundingRect() {
-		let texture = Format.per_texture_uv_size && this.getTexture();
-		let min_x = texture ? texture.getUVWidth() : Project.texture_width,
-			min_y = texture ? texture.getUVHeight() : Project.texture_height,
-			max_x = 0,
-			max_y = 0;
+		let min_x = Project.texture_width, min_y = Project.texture_height, max_x = 0, max_y = 0;
 		this.vertices.forEach(vkey => {
 			min_x = Math.min(min_x, this.uv[vkey][0]); max_x = Math.max(max_x, this.uv[vkey][0]);
 			min_y = Math.min(min_y, this.uv[vkey][1]); max_y = Math.max(max_y, this.uv[vkey][1]);
@@ -68,8 +61,8 @@ class MeshFace extends Face {
 		let rect = this.getBoundingRect();
 		let texture = texture_space && this.getTexture();
 		let sorted_vertices = this.getSortedVertices();
-		let factor_x = texture ? (texture.width  / texture.getUVWidth()) : 1;
-		let factor_y = texture ? (texture.display_height / texture.getUVHeight()) : 1;
+		let factor_x = texture ? (texture.width  / Project.texture_width) : 1;
+		let factor_y = texture ? (texture.height / Project.texture_height) : 1;
 
 		if (texture_space && texture) {
 			rect.ax *= factor_x;
@@ -137,15 +130,14 @@ class MeshFace extends Face {
 		}
 		return matrix;
 	}
-	getUVIsland(max_depth = 4096) {
+	getUVIsland() {
 		let keys = [this.getFaceKey()];
-		let epsilon = 0.2;
-		function crawl(face, depth) {
-			if (depth >= max_depth) return;
+		function crawl(face) {
 			for (let i = 0; i < face.vertices.length; i++) {
 				let adjacent = face.getAdjacentFace(i);
 				if (!adjacent) continue;
 				if (keys.includes(adjacent.key)) continue;
+				let epsilon = 0.2;
 				let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
 				let uv_a2 = face.uv[adjacent.edge[0]];
 				if (!Math.epsilon(uv_a1[0], uv_a2[0], epsilon) || !Math.epsilon(uv_a1[1], uv_a2[1], epsilon)) continue;
@@ -153,23 +145,23 @@ class MeshFace extends Face {
 				let uv_b2 = face.uv[adjacent.edge[1]];
 				if (!Math.epsilon(uv_b1[0], uv_b2[0], epsilon) || !Math.epsilon(uv_b1[1], uv_b2[1], epsilon)) continue;
 				keys.push(adjacent.key);
-				crawl(adjacent.face, depth+1);
+				crawl(adjacent.face);
 			}
 		}
-		crawl(this, 0);
+		crawl(this);
 		return keys;
 	}
-	getAngleTo(other) {
+	getAngleTo(other_face) {
 		let a = new THREE.Vector3().fromArray(this.getNormal());
-		let b = new THREE.Vector3().fromArray(other instanceof Array ? other : other.getNormal());
+		let b = new THREE.Vector3().fromArray(other_face.getNormal());
 		return Math.radToDeg(a.angleTo(b));
 	}
 	invert() {
 		if (this.vertices.length < 3) return this;
 		[this.vertices[0], this.vertices[1]] = [this.vertices[1], this.vertices[0]];
 	}
-	isSelected(fkey) {
-		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(fkey || this.getFaceKey());
+	isSelected() {
+		return !!Project.mesh_selection[this.mesh.uuid] && Project.mesh_selection[this.mesh.uuid].faces.includes(this.getFaceKey());
 	}
 	getSortedVertices() {
 		if (this.vertices.length < 4) return this.vertices;
@@ -198,54 +190,6 @@ class MeshFace extends Face {
 			return [vertices[0], vertices[2], vertices[1], vertices[3]];
 		}
 		return vertices;
-	}
-	isConcave() {
-		if (this.vertices.length < 4) return false;
-		let {vec1, vec2, vec3, vec4} = Reusable;
-		let normal_vec = vec1.fromArray(this.getNormal(true));
-		let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
-			normal_vec,
-			vec2.fromArray(this.mesh.vertices[this.vertices[0]])
-		)
-		let sorted_vertices = this.getSortedVertices();
-		let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
-		let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
-		
-		let flat_positions = sorted_vertices.map(vkey => {
-			let coplanar_pos = plane.projectPoint(vec3.fromArray(this.mesh.vertices[vkey]), vec4);
-			coplanar_pos.applyEuler(e);
-			return [coplanar_pos.x, coplanar_pos.z];
-		})
-		let angles = [];
-		for (let i = 0; i < sorted_vertices.length; i++) {
-			let a = flat_positions[i];
-			let b = flat_positions[(i+1) % 4];
-			let direction = b.slice().V2_subtract(a);
-			let angle = Math.atan2(direction[1], direction[0]);
-			angles.push(angle);
-		}
-		for (let i = 0; i < sorted_vertices.length; i++) {
-			let a = angles[i];
-			let b = angles[(i+1) % 4];
-			let difference = Math.trimRad(b - a);
-			if (difference > 0) {
-				return sorted_vertices[(i+1) % 4];
-			}
-		}
-		return false;
-	}
-	getEdges() {
-		let vertices = this.getSortedVertices();
-		if (vertices.length == 2) {
-			return vertices;
-		} else if (vertices.length > 2) {
-			return vertices.map((vkey1, i) => {
-				let vkey2 = vertices[i+1] || vertices[0];
-				return [vkey1, vkey2];
-			})
-		} else {
-			return [];
-		}
 	}
 	getAdjacentFace(side_index = 0) {
 		let vertices = this.getSortedVertices();
@@ -278,27 +222,14 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	UVToLocal(uv, vertices = this.getSortedVertices()) {
-		let vert_a = vertices[0];
-		let vert_b = vertices[1];
-		let vert_c = vertices[2];
+	UVToLocal(uv) {
+		let p0 = this.uv[this.vertices[0]];
+		let p1 = this.uv[this.vertices[1]];
+		let p2 = this.uv[this.vertices[2]];
 
-		if (vertices[3]) {
-			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
-
-			if (!is_in_tri) {
-				vert_a = vertices[0];
-				vert_b = vertices[2];
-				vert_c = vertices[3];
-			}
-		}
-		let p0 = this.uv[vert_a];
-		let p1 = this.uv[vert_b];
-		let p2 = this.uv[vert_c];
-
-		let vertexa = this.mesh.vertices[vert_a];
-		let vertexb = this.mesh.vertices[vert_b];
-		let vertexc = this.mesh.vertices[vert_c];
+		let vertexa = this.mesh.vertices[this.vertices[0]];
+		let vertexb = this.mesh.vertices[this.vertices[1]];
+		let vertexc = this.mesh.vertices[this.vertices[2]];
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
 		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
@@ -312,14 +243,14 @@ class MeshFace extends Face {
 		)
 		return local_space;	
 	}
-	localToUV(vector, vertices = this.vertices) {
-		let va = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[0]]);
-		let vb = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[1]]);
-		let vc = new THREE.Vector3().fromArray(this.mesh.vertices[vertices[2]]);
+	localToUV(vector) {
+		let va = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[0]]);
+		let vb = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[1]]);
+		let vc = new THREE.Vector3().fromArray(this.mesh.vertices[this.vertices[2]]);
 
-		let uva = new THREE.Vector2().fromArray(this.uv[vertices[0]]);
-		let uvb = new THREE.Vector2().fromArray(this.uv[vertices[1]]);
-		let uvc = new THREE.Vector2().fromArray(this.uv[vertices[2]]);
+		let uva = new THREE.Vector2().fromArray(this.uv[this.vertices[0]]);
+		let uvb = new THREE.Vector2().fromArray(this.uv[this.vertices[1]]);
+		let uvc = new THREE.Vector2().fromArray(this.uv[this.vertices[2]]);
 
 		let uv = THREE.Triangle.getUV(vector, va, vb, vc, uva, uvb, uvc, new THREE.Vector2());
 		return uv.toArray();
@@ -334,21 +265,16 @@ class MeshFace extends Face {
 		return center;
 	}
 }
-new Property(MeshFace, 'array', 'vertices');
+new Property(MeshFace, 'array', 'vertices', {default: 0});
 
 
 class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
-		this._static = {
-			properties: {
-				vertices: {},
-				faces: {},
-				seams: {},
-			}
-		}
-		Object.freeze(this._static);
+		this.vertices = {};
+		this.faces = {};
+		this.seams = {};
 
 		if (!data.vertices) {
 			this.addVertices([2, 4, 2], [2, 4, -2], [2, 0, 2], [2, 0, -2], [-2, 4, 2], [-2, 4, -2], [-2, 0, 2], [-2, 0, -2]);
@@ -375,24 +301,6 @@ class Mesh extends OutlinerElement {
 			this.extend(data)
 		}
 	}
-	get vertices() {
-		return this._static.properties.vertices;
-	}
-	get faces() {
-		return this._static.properties.faces;
-	}
-	get seams() {
-		return this._static.properties.seams;
-	}
-	set vertices(v) {
-		this._static.properties.vertices = v;
-	}
-	set faces(v) {
-		this._static.properties.faces = v;
-	}
-	set seams(v) {
-		this._static.properties.seams = v;
-	}
 	get position() {
 		return this.origin;
 	}
@@ -413,8 +321,8 @@ class Mesh extends OutlinerElement {
 	}
 	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
-		let pos = new THREE.Vector3();
-		let vertex_count = 0;
+		let pos = Reusable.vec1.set(0, 0, 0);
+		let vertice_count = 0;
 
 		for (let key in this.vertices) {
 			if (ignore_mesh_selection || !Project.mesh_selection[this.uuid] || (Project.mesh_selection[this.uuid] && Project.mesh_selection[this.uuid].vertices.includes(key))) {
@@ -422,14 +330,12 @@ class Mesh extends OutlinerElement {
 				pos.x += vector[0];
 				pos.y += vector[1];
 				pos.z += vector[2];
-				vertex_count++;
+				vertice_count++;
 			}
 		}
-		if (vertex_count) {
-			pos.x /= vertex_count;
-			pos.y /= vertex_count;
-			pos.z /= vertex_count;
-		}
+		pos.x /= vertice_count;
+		pos.y /= vertice_count;
+		pos.z /= vertice_count;
 
 		if (m) {
 			let r = m.getWorldQuaternion(Reusable.quat1);
@@ -491,54 +397,28 @@ class Mesh extends OutlinerElement {
 				}
 			}
 		}
-		if (typeof object.seams == 'object') {
-			this.seams = {};
-			for (let key in object.seams) {
-				this.seams[key] = object.seams[key];
-			}
-		}
 		this.sanitizeName();
 		return this;
 	}
 	getUndoCopy(aspects = {}) {
-		let el = {};
-
-		if (!aspects.uv_only) {
-			for (var key in Mesh.properties) {
-				Mesh.properties[key].copy(this, el)
-			}
-			if (Object.keys(this.seams).length) {
-				el.seams = {};
-				for (let key in this.seams) {
-					el.seams[key] = this.seams[key];
-				}
-			}
-
-			el.vertices = {};
-			for (let key in this.vertices) {
-				el.vertices[key] = this.vertices[key].slice();
+		var copy = new Mesh(this)
+		if (aspects.uv_only) {
+			copy = {
+				faces: copy.faces,
 			}
 		}
-
-		el.faces = {};
-		for (let key in this.faces) {
-			el.faces[key] = this.faces[key].getUndoCopy();
+		copy.uuid = this.uuid;
+		copy.type = this.type;
+		delete copy.parent;
+		for (let fkey in copy.faces) {
+			delete copy.faces[fkey].mesh;
 		}
-
-		el.type = 'mesh';
-		el.uuid = this.uuid
-		return el;
+		return copy;
 	}
 	getSaveCopy(project) {
 		var el = {}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
-		}
-		if (Object.keys(this.seams).length) {
-			el.seams = {};
-			for (let key in this.seams) {
-				el.seams[key] = this.seams[key];
-			}
 		}
 
 		el.vertices = {};
@@ -613,28 +493,6 @@ class Mesh extends OutlinerElement {
 			return this.mesh.localToWorld(Reusable.vec1.set(...center)).toArray();
 		} else {
 			return center;
-		}
-	}
-	getSize(axis, selection_only) {
-		if (selection_only) {
-			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
-			if (!selected_vertices.length) return 0;
-			let range = [Infinity, -Infinity];
-			let {vec1, vec2} = Reusable;
-			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
-			selected_vertices.forEach(key => {
-				vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
-				range[0] = Math.min(range[0], vec1.getComponent(axis));
-				range[1] = Math.max(range[1], vec1.getComponent(axis));
-			})
-			return range[1] - range[0];
-		} else {
-			let range = [Infinity, -Infinity];
-			for (let vkey in this.vertices) {
-				range[0] = Math.min(range[0], this.vertices[vkey][axis]);
-				range[1] = Math.max(range[1], this.vertices[vkey][axis]);
-			}
-			return range[1] - range[0];
 		}
 	}
 	forAllFaces(cb) {
@@ -717,28 +575,7 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flip(axis, center) {
-		for (let vkey in this.vertices) {
-			this.vertices[vkey][axis] *= -1;
-		}
-		for (let key in this.faces) {
-			this.faces[key].invert();
-		}
-
-		this.origin[axis] *= -1;
-		this.rotation.forEach((n, i) => {
-			if (i != axis) this.rotation[i] = -n;
-		})
-
-		flipNameOnAxis(this, axis);
-
-		this.preview_controller.updateTransform(this);
-
-		this.preview_controller.updateGeometry(this);
-		this.preview_controller.updateUV(this);
-		return this;
-	}
-	flipSelection(axis, center) {
-		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.selected;
+		let object_mode = BarItems.selection_mode.value == 'object';
 		let selected_vertices = this.getSelectedVertices();
 		for (let vkey in this.vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
@@ -746,9 +583,8 @@ class Mesh extends OutlinerElement {
 			}
 		}
 		for (let key in this.faces) {
-			let face = this.faces[key];
-			if (object_mode || face.isSelected(key) || face.vertices.allAre(vkey => selected_vertices.includes(vkey))) {
-				face.invert();
+			if (object_mode || this.faces[key].isSelected()) {
+				this.faces[key].invert();
 			}
 		}
 
@@ -758,8 +594,6 @@ class Mesh extends OutlinerElement {
 				if (i != axis) this.rotation[i] = -n;
 			})
 			this.preview_controller.updateTransform(this);
-
-			flipNameOnAxis(this, axis);
 		}
 
 		this.preview_controller.updateGeometry(this);
@@ -783,29 +617,24 @@ class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
 		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
 		selected_vertices.forEach(key => {
-			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
 			range[0] = Math.min(range[0], vec1.getComponent(axis));
 			range[1] = Math.max(range[1], vec1.getComponent(axis));
 		})
 		
 		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
 		let size = Math.abs(range[1] - range[0]);
-		if (typeof val !== 'number') {
-			val = val(size) - size;
-			if (bidirectional) val /= 2;
-		}
 		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
 		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
 		if (scale < 0 && !allow_negative) scale = 0;
 		
 		selected_vertices.forEach(key => {
-			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+			vec1.fromArray(this.oldVertices[key]).applyEuler(rotation_inverted);
 			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
 			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
 			vec2.applyEuler(Transformer.rotation_selection);
@@ -817,8 +646,8 @@ class Mesh extends OutlinerElement {
 		var scope = this;
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
-		} else if (!faces) {
-			var sides = this.getSelectedFaces()
+		} else if (faces === undefined) {
+			var sides = UVEditor.vue.selected_faces
 		} else {
 			var sides = faces
 		}
@@ -838,28 +667,25 @@ class Mesh extends OutlinerElement {
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
-	Mesh.prototype.icon = 'far.fa-gem';
+	Mesh.prototype.icon = 'fa far fa-gem';
 	Mesh.prototype.movable = true;
 	Mesh.prototype.resizable = true;
 	Mesh.prototype.rotatable = true;
 	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
-		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
 		'inset_mesh_selection',
 		'loop_cut',
 		'create_face',
 		'invert_face',
-		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'apply_mesh_rotation',
-		new MenuSeparator('mesh_combination'),
+		'_',
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
-		new MenuSeparator('settings'),
-		'allow_element_mirror_modeling',
+		'_',
+		'rename',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -872,32 +698,27 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(mesh) {
-					let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
-					mesh.forSelected((obj) => {
-						obj.applyTexture(false, all_faces)
+				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
+					cube.forSelected(function(obj) {
+						obj.applyTexture(false, true)
 					}, 'texture blank')
 				}}
 			]
-			Texture.all.forEach((t) => {
+			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					click(mesh) {
-						let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
-						mesh.forSelected((obj) => {
-							obj.applyTexture(t, all_faces)
+					click: function(cube) {
+						cube.forSelected(function(obj) {
+							obj.applyTexture(t, true)
 						}, 'apply texture')
 					}
 				})
 			})
 			return arr;
 		}},
-		'element_render_order',
-		new MenuSeparator('manage'),
-		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -908,13 +729,11 @@ class Mesh extends OutlinerElement {
 	];
 
 new Property(Mesh, 'string', 'name', {default: 'mesh'})
-new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
+new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*8)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
-new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
-new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
@@ -952,7 +771,6 @@ new NodePreviewController(Mesh, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
-		this.updateRenderOrder(element);
 		mesh.visible = element.visibility;
 
 		this.dispatchEvent('setup', {element});
@@ -966,15 +784,14 @@ new NodePreviewController(Mesh, {
 		let indices = [];
 		let outline_positions = [];
 		mesh.outline.vertex_order.empty();
-		let {vertices, faces} = element;
 
-		for (let key in vertices) {
-			let vector = vertices[key];
+		for (let key in element.vertices) {
+			let vector = element.vertices[key];
 			point_position_array.push(...vector);
 		}
 
-		for (let key in faces) {
-			let face = faces[key];
+		for (let key in element.faces) {
+			let face = element.faces[key];
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -985,7 +802,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					indices.push(position_array.length / 3);
-					position_array.push(...vertices[key])
+					position_array.push(...element.vertices[key])
 				})
 				let normal = face.getNormal();
 				normal_array.push(...normal, ...normal, ...normal);
@@ -1004,12 +821,9 @@ new NodePreviewController(Mesh, {
 
 				let index_offset = position_array.length / 3;
 				let face_indices = {};
-				face.vertices.forEach((vkey, i) => {
-					if (!vertices[vkey]) {
-						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
-					}
-					position_array.push(...vertices[vkey])
-					face_indices[vkey] = index_offset + i;
+				face.vertices.forEach((key, i) => {
+					position_array.push(...element.vertices[key])
+					face_indices[key] = index_offset + i;
 				})
 
 				let normal = face.getNormal(true);
@@ -1035,7 +849,7 @@ new NodePreviewController(Mesh, {
 		}
 
 		mesh.outline.vertex_order.forEach(key => {
-			outline_positions.push(...vertices[key]);
+			outline_positions.push(...element.vertices[key]);
 		})
 
 		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
@@ -1053,9 +867,11 @@ new NodePreviewController(Mesh, {
 
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
-		Mesh.preview_controller.updateHighlight(element);
+		updateCubeHighlights()
 
-		Mesh.preview_controller.updatePixelGrid(element);
+		if (Modes.paint) {
+			Mesh.preview_controller.updatePaintingGrid(element);
+		}
 
 		this.dispatchEvent('update_geometry', {element});
 	},
@@ -1082,11 +898,10 @@ new NodePreviewController(Mesh, {
 			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
-			let faces = element.faces;
 			var materials = []
-			for (let key in faces) {
-				if (faces[key].vertices.length < 3) continue;
-				var tex = faces[key].getTexture()
+			for (let key in element.faces) {
+				if (element.faces[key].vertices.length < 3) continue;
+				var tex = element.faces[key].getTexture()
 				if (tex && tex.uuid) {
 					materials.push(Project.materials[tex.uuid])
 				} else {
@@ -1105,9 +920,9 @@ new NodePreviewController(Mesh, {
 				let switch_index = 0;
 				let reduced_materials = [];
 
-				for (let key in faces) {
-					if (faces[key].vertices.length < 3) continue;
-					let face = faces[key];
+				for (let key in element.faces) {
+					if (element.faces[key].vertices.length < 3) continue;
+					let face = element.faces[key];
 					let material = materials[i];
 
 					if (current_mat != material) {
@@ -1135,40 +950,20 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_faces', {element});
 	},
-	updateUV(element) {
-		let {mesh, faces} = element;
+	updateUV(element, animation = true) {
+		var {mesh} = element;
 		if (mesh === undefined || !mesh.geometry) return;
 		let uv_array = [];
 
-		for (let key in faces) {
-			let face = faces[key];
+		for (let key in element.faces) {
+			let face = element.faces[key];
 			if (face.vertices.length <= 2) continue;
-			
-			let stretch = 1;
-			let frame = 0;
-			let tex = face.getTexture();
-			if (tex instanceof Texture && tex.frameCount > 1) {
-				stretch = tex.frameCount
-				frame = tex.currentFrame || 0;
-			}
-			let uv_size = (tex && Project.view_mode !== 'uv')
-				? [tex.getUVWidth(), tex.getUVHeight()]
-				: [Project.texture_width, Project.texture_height];
 
-			let first_values;
 			face.vertices.forEach((key, i) => {
-				let u = (face.uv[key] ? face.uv[key][0] : 0) / uv_size[0];
-				let v = (face.uv[key] ? face.uv[key][1] : 0) / uv_size[1];
-				if (stretch > 1) {
-					v = (v + frame) / stretch;
-				}
-				// Fix grainy visuals when UV all in one point
-				if (!first_values) {
-					first_values = [u, v];
-				} else if (first_values[0] == u && first_values[1] == v) {
-					i < 2 ? u += 0.00005 : v += 0.00005;
-				} 
-				uv_array.push(u, 1-v);
+				uv_array.push(
+					  ((face.uv[key] ? face.uv[key][0] : 0) / Project.texture_width),
+					1-((face.uv[key] ? face.uv[key][1] : 0) / Project.texture_height)
+				)
 			})
 		}
 
@@ -1177,12 +972,10 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_uv', {element});
 
-		this.updatePixelGrid(element);
-
 		return mesh.geometry;
 	},
 	updateSelection(element) {
-		NodePreviewController.prototype.updateSelection.call(this, element);
+		NodePreviewController.prototype.updateSelection(element);
 	
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
@@ -1209,19 +1002,6 @@ new NodePreviewController(Mesh, {
 			mesh.outline.geometry.needsUpdate = true;
 		}
 
-		let face_outlines = {};
-		let faces = element.faces;
-		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
-			selected_faces.forEach(fkey => {
-				let face = faces[fkey];
-				face.vertices.forEach(vkey => {
-					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
-					face.vertices.forEach(vkey2 => {
-						if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
-					})
-				})
-			})
-		}
 		let line_colors = [];
 		mesh.outline.vertex_order.forEach((key, i) => {
 			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
@@ -1232,7 +1012,7 @@ new NodePreviewController(Mesh, {
 			} else if (BarItems.selection_mode.value == 'edge' && selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
 				color = white;
 				selected = true;
-			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && face_outlines[key] && face_outlines[key].has(key_b)) {
+			} else if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.find(fkey => element.faces[fkey].vertices.includes(key) && element.faces[fkey].vertices.includes(key_b))) {
 				color = white;
 				selected = true;
 			} else {
@@ -1253,7 +1033,7 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true;
 		
-		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool';
+		mesh.vertex_points.visible = Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex';
 
 		this.dispatchEvent('update_selection', {element});
 	},
@@ -1268,15 +1048,13 @@ new NodePreviewController(Mesh, {
 
 		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
 		let selection_mode = BarItems.selection_mode.value;
-		let selected_faces = element.getSelectedFaces();
 		
 		if (!force_off && element.selected && Modes.edit) {
 			let i = 0;
-			let faces = element.faces;
-			for (let fkey in faces) {
-				let face = faces[fkey];
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
 				if (face.vertices.length < 3) continue;
-				if (selected_faces.indexOf(fkey) != -1 && (selection_mode == 'face' || selection_mode == 'cluster')) {
+				if (face.isSelected() && (selection_mode == 'face' || selection_mode == 'cluster')) {
 					for (let j = 0; j < face.vertices.length; j++) {
 						array[i] = 2;
 						i++;
@@ -1292,15 +1070,13 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePixelGrid(element) {
+	updatePaintingGrid(element) {
 		var mesh = element.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
-		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (element.visibility == false) return;
 
-		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
-		if (!grid_enabled) return;
+		if (!Modes.paint || !settings.painting_grid.value) return;
 
 		var positions = [];
 
@@ -1308,48 +1084,43 @@ new NodePreviewController(Mesh, {
 			let face = element.faces[fkey];
 			if (face.vertices.length <= 2) continue;
 			let offset = face.getNormal(true).V3_multiply(0.01);
+			let x_memory = {};
+			let y_memory = {};
 			let texture = face.getTexture();
-			var psize_x = texture ? texture.getUVWidth() / texture.width : 1;
-			var psize_y = texture ? texture.getUVHeight() / texture.display_height : 1;
-
+			var psize_x = texture ? Project.texture_width / texture.width : 1;
+			var psize_y = texture ? Project.texture_height / texture.height : 1;
 			let vertices = face.getSortedVertices();
-			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];
-			tris.forEach(tri_vertices => {
-				let x_memory = {};
-				let y_memory = {};
-				
-				tri_vertices.forEach((vkey1, i) => {
-					let vkey2 = tri_vertices[i+1] || tri_vertices[0];
-					let uv1 = face.uv[vkey1].slice();
-					let uv2 = face.uv[vkey2].slice();
-					let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
-					let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
+			vertices.forEach((vkey1, i) => {
+				let vkey2 = vertices[i+1] || vertices[0];
+				let uv1 = face.uv[vkey1].slice();
+				let uv2 = face.uv[vkey2].slice();
+				let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
+				let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
 
-					for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
-						if (!x_memory[x]) x_memory[x] = [];
-						let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
-						x_memory[x].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
-					}
-					for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
-						if (!y_memory[y]) y_memory[y] = [];
-						let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
-						y_memory[y].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
-					}
-				})
-
-				for (let key in x_memory) {
-					let points = x_memory[key];
-					if (points.length == 2) {
-						positions.push(...points[0], ...points[1]);
-					}
+				for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
+					if (!x_memory[x]) x_memory[x] = [];
+					let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
+					x_memory[x].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
 				}
-				for (let key in y_memory) {
-					let points = y_memory[key];
-					if (points.length == 2) {
-						positions.push(...points[0], ...points[1]);
-					}
+				for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
+					if (!y_memory[y]) y_memory[y] = [];
+					let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
+					y_memory[y].push(face.UVToLocal([x, y]).toArray().V3_add(offset));
 				}
 			})
+
+			for (let key in x_memory) {
+				let points = x_memory[key];
+				if (points.length == 2) {
+					positions.push(...points[0], ...points[1]);
+				}
+			}
+			for (let key in y_memory) {
+				let points = y_memory[key];
+				if (points.length == 2) {
+					positions.push(...points[0], ...points[1]);
+				}
+			}
 		}
 
 		var geometry = new THREE.BufferGeometry();

@@ -160,9 +160,9 @@ const PredicateOverrideEditor = {
 						if (data.type == 'checkbox') {
 							override.predicate[key] = event.target.checked ? 1 : 0;
 						} else if (data.type == 'int') {
-							override.predicate[key] = typeof event == 'number' ? Math.floor(event) : parseInt(event.target.value);
+							override.predicate[key] = parseInt(event.target.value);
 						} else {
-							override.predicate[key] = typeof event == 'number' ? event : parseFloat(event.target.value);
+							override.predicate[key] = parseFloat(event.target.value);
 						}
 					},
 					removePredicate(override, key) {
@@ -270,12 +270,13 @@ const PredicateOverrideEditor = {
 
 										<select-input :value="key" @input="changePredicateType(override, $event, value, key)" :options="available_predicate_options" />
 										<input type="checkbox" :checked="value > 0" @input="changePredicateValue(override, key, $event)" v-if="predicate_options[key] && predicate_options[key].type == 'checkbox'">
-										<numeric-input v-else
-											:min="0"
+										<input type="number" v-else
+											min="0"
 											:max="predicate_options[key] && predicate_options[key].type == 'peronetage' ? 1 : undefined"
 											:step="predicate_options[key] && predicate_options[key].type == 'int' ? 1 : undefined"
 											:value="value" @input="changePredicateValue(override, key, $event)"
-										/>
+											class="dark_bordered"
+										>
 
 									</li>
 									<div class="tool" @click="addPredicate(override)" v-if="hasMultiplePredicates(override)">
@@ -311,11 +312,11 @@ const PredicateOverrideEditor = {
 							<select-input v-model="generator.type" :options="available_predicate_options" @input="updateGeneratorType()" />
 
 							<label>${tl('dialog.predicate_overrides.variants')}</label>
-							<numeric-input v-model.number="generator.variants" :min="1" :step="1" style="width: 70px;" />
+							<input type="number" v-model.number="generator.variants" class="dark_bordered" min="1" step="1" style="width: 70px;">
 
 							<template v-if="generator.type == 'custom_model_data'">
 								<label>${tl('dialog.predicate_overrides.start_value')}</label>
-								<numeric-input v-model.number="generator.start_value" :min="0" :step="1" style="width: 45px;" />
+								<input type="number" v-model.number="generator.start_value" min="0" step="1" class="dark_bordered" style="width: 45px;">
 							</template>
 
 							<label>${tl('dialog.predicate_overrides.model')}</label>

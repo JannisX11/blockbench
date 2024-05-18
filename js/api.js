@@ -47,7 +47,7 @@ const Blockbench = {
 		if (icon === undefined) {
 			//Missing
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'notranslate', 'icon');
+			node.classList.add('material-icons', 'icon');
 			node.innerText = 'help_outline';
 		} else if (icon instanceof HTMLElement) {
 			//Node
@@ -55,7 +55,7 @@ const Blockbench = {
 		} else if (icon === true || icon === false) {
 			//Boolean
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'notranslate', 'icon');
+			node.classList.add('material-icons', 'icon');
 			node.innerText = icon ? 'check_box' : 'check_box_outline_blank';
 
 		} else if (icon === null) {
@@ -84,7 +84,7 @@ const Blockbench = {
 		} else {
 			//Material Icon
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'notranslate', 'icon');
+			node.classList.add('material-icons', 'icon');
 			node.innerText = icon;
 		}
 		if (color) {
@@ -167,22 +167,6 @@ const Blockbench = {
 		}
 		return new deletableToast(notification);
 	},
-	setCursorTooltip(text) {
-		if (!Interface.cursor_tooltip) {
-			Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
-		}
-		if (text) {
-			Interface.cursor_tooltip.textContent = text;
-			if (!Interface.cursor_tooltip.parentNode) {
-				document.body.append(Interface.cursor_tooltip);
-				Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
-				Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
-			}
-		} else {
-			Interface.cursor_tooltip.textContent = '';
-			Interface.cursor_tooltip.remove();
-		}
-	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
 		setTimeout(function() {
@@ -207,7 +191,7 @@ const Blockbench = {
 		}
 	},
 	showMessageBox(options = 0, cb) {
-		return new MessageBox(options, cb).show();
+		new MessageBox(options, cb).show();
 	},
 	async textPrompt(title, value, callback, placeholder = null) {
 		let answer = await new Promise((resolve) => {
@@ -218,7 +202,7 @@ const Blockbench = {
 					text: {full_width: true, placeholder, value}
 				},
 				onConfirm({text}) {
-					if (callback) callback(text);
+					callback(text);
 					resolve(text);
 				},
 				onOpen() {
@@ -262,8 +246,8 @@ const Blockbench = {
 	//CSS
 	addCSS(css) {
 		let style_node = document.createElement('style');
-		style_node.type ='text/css';
-		style_node.appendChild(document.createTextNode(css));
+        style_node.type ='text/css';
+        style_node.appendChild(document.createTextNode(css));
 		document.getElementsByTagName('head')[0].appendChild(style_node);
 		function deletableStyle(node) {
 			this.delete = function() {
@@ -300,19 +284,22 @@ const Blockbench = {
 		}
 		return results;
 	},
+	addListener(event_names, cb) {
+		event_names.split(' ').forEach(event_name => {
+			if (!this.events[event_name]) {
+				this.events[event_name] = [];
+			}
+			this.events[event_name].safePush(cb);
+		})
+		return Blockbench;
+	},
 	on(event_name, cb) {
-		return EventSystem.prototype.on.call(this, event_name, cb);
-	},
-	once(event_name, cb) {
-		return EventSystem.prototype.once.call(this, event_name, cb);
-	},
-	addListener(event_name, cb) {
-		return EventSystem.prototype.addListener.call(this, event_name, cb);
+		return Blockbench.addListener(event_name, cb) 
 	},
 	removeListener(event_name, cb) {
-		return EventSystem.prototype.removeListener.call(this, event_name, cb);
+		if (!this.events[event_name]) return;
+		this.events[event_name].remove(cb);
 	},
-	// Update
 	onUpdateTo(version, callback) {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
@@ -323,8 +310,6 @@ const Blockbench = {
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
-	} else if (LastVersion != appVersion) {
-		Blockbench.addFlag('after_patch_update');
 	}
 	try {
 		let ui_mode = JSON.parse(localStorage.getItem('settings')).interface_mode.value;
@@ -346,11 +331,6 @@ if (isApp) {
 
 
 const StateMemory = {
-	/**
-	 * Initialize a memorized property
-	 * @param {string} key 
-	 * @param {'string'|'number'|'boolean'|'object'|'array'} type 
-	 */
 	init(key, type) {
 		let saved = localStorage.getItem(`StateMemory.${key}`)
 		if (typeof saved == 'string') {

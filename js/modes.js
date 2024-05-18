@@ -7,7 +7,6 @@ class Mode extends KeybindItem {
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
-		this.icon = data.icon || 'video_label';
 		this.selected = false
 
 		this.default_tool = data.default_tool;
@@ -47,12 +46,6 @@ class Mode extends KeybindItem {
 
 		document.body.setAttribute('mode', this.id);
 
-		if (MenuBar.mode_switcher_button) {
-			let icon = Blockbench.getIconNode(this.icon);
-			MenuBar.mode_switcher_button.firstChild.replaceWith(icon);
-			MenuBar.mode_switcher_button.classList.remove('hidden');
-		}
-
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
 
@@ -62,23 +55,9 @@ class Mode extends KeybindItem {
 			this.onSelect()
 		}
 		updatePanelSelector();
-		ReferenceImage.updateAll();
 
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';
-		}
-		
-		UVEditor.beforeMoving();
-		if (!Blockbench.isMobile) {
-			for (let id in Panels) {
-				let old_pos_data = Panels[id].position_data;
-				Panels[id].position_data = Interface.getModeData().panels[id];
-				if (!Panels[id].position_data) {
-					Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
-				}
-				Panels[id].updateSlot();
-			}
-			updateSidebarOrder();
 		}
 
 		Canvas.updateRenderSides()
@@ -121,67 +100,35 @@ const Modes = {
 	},
 	selected: false,
 	options: {},
-	mobileModeMenu(button, event) {
-		let entries = [];
-		for (let id in Modes.options) {
-			let mode = Modes.options[id];
-			let entry = {
-				id,
-				icon: mode.icon || 'mode',
-				name: mode.name,
-				condition: mode.condition,
-				click: () => {
-					mode.select();
-				},
-			};
-			entries.push(entry);
-		}
-		let menu = new Menu(entries).open(button);
-		return menu;
-	}
 };
 onVueSetup(function() {
-	if (!Blockbench.isMobile) {
-		Modes.vue = new Vue({
-			el: '#mode_selector',
-			data: {
-				options: Modes.options
+	Modes.vue = new Vue({
+		el: '#mode_selector',
+		data: {
+			options: Modes.options
+		},
+		methods: {
+			showModes() {
+				let count = 0;
+				for (let key in this.options) {
+					if (Condition(this.options[key].condition)) count++;
+				}
+				return count > 1;
 			},
-			methods: {
-				showModes() {
-					let count = 0;
-					for (let key in this.options) {
-						if (Condition(this.options[key].condition)) count++;
-					}
-					return count > 1;
-				},
-				Condition
-			}
-		})
-	} else {
-		document.getElementById('mode_selector').remove();
-	}
+			Condition
+		}
+	})
 });
 BARS.defineActions(function() {
 	new Mode('edit', {
-		icon: 'deployed_code',
 		default_tool: 'move_tool',
 		category: 'navigate',
 		condition: () => Format && Format.edit_mode,
-		onSelect: () => {
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
-		},
 		onUnselect: () => {
 			if (Undo) Undo.closeAmendEditMenu();
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
 		}
 	})
 	new Mode('paint', {
-		icon: 'fa-paint-brush',
 		default_tool: 'brush_tool',
 		category: 'navigate',
 		condition: () => Format && Format.paint_mode,
@@ -190,7 +137,7 @@ BARS.defineActions(function() {
 				Animator.preview();
 			}
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
 			if (StateMemory.color_picker_rgb) {
@@ -205,27 +152,39 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
+			if (Format.image_editor) {
+				let old_color_slot = Panels.color.slot;
+				Panels.color.position_data = Interface.data.panels.color_2d;
+				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
+			}
+			Panels.uv.position_data = Interface.data.panels.paint;
+			if (Panels.uv.slot !== Interface.data.panels.uv.slot) Panels.uv.moveTo(Panels.uv.slot);
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
 			Canvas.updateAllBones()
 			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+				if (cube.preview_controller.updatePaintingGrid) cube.preview_controller.updatePaintingGrid(cube);
 			})
 			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			Panels.uv.position_data = Interface.data.panels.uv;
+			if (Panels.uv.slot !== Interface.data.panels.paint.slot) Panels.uv.moveTo(Panels.uv.slot);
+			if (Panels.color.position_data == Interface.data.panels.color_2d) {
+				let old_color_slot = Panels.color.slot;
+				Panels.color.position_data = Interface.data.panels.color;
+				if (Panels.color.slot !== old_color_slot) Panels.color.moveTo(Panels.color.slot);
+			}
 			UVEditor.vue.setMode('uv');
 			three_grid.visible = true;
 		},
 	})
 	new Mode('pose', {
-		icon: 'emoji_people',
 		default_tool: 'rotate_tool',
 		category: 'navigate',
 		condition: () => Format && Format.pose_mode,
 	})
 	new Mode('display', {
-		icon: 'tune',
 		selectElements: false,
 		default_tool: 'move_tool',
 		category: 'navigate',
@@ -238,7 +197,6 @@ BARS.defineActions(function() {
 		},
 	})
 	new Mode('animate', {
-		icon: 'movie',
 		default_tool: 'move_tool',
 		category: 'navigate',
 		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],

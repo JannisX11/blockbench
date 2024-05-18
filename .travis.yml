@@ -3,7 +3,7 @@ dist: trusty
 
 language: node_js
 node:
-  - 16
+  - 14
 
 if: tag IS blank AND commit_message =~ ci-build
 
@@ -11,15 +11,21 @@ jobs:
   include:
     - name: "macOS"
       os: osx
-      osx_image: "xcode14.2"
+      osx_image: "xcode12.5"
       script:
-        - npm run prepublish
         - electron-builder --publish=always
+
+    - name: "Windows"
+      os: osx
+      osx_image: "xcode12.5"
+      script:
+        - electron-builder -w --x64 --ia32 --publish=onTagOrDraft
+        - node ./scripts/rename_portable.js
+        - electron-builder --windows portable --ia32 --publish=onTagOrDraft
 
     - name: "Linux"
       os: linux
       script:
-        - npm run prepublish
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
 

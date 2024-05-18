@@ -1,110 +1,100 @@
 {
-  "name": "Blockbench",
-  "description": "Low-poly modeling and animation software",
-  "version": "4.10.1",
-  "license": "GPL-3.0-or-later",
-  "author": {
-    "name": "JannisX11",
-    "email": "info@blockbench.net"
-  },
-  "homepage": "https://blockbench.net",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/JannisX11/blockbench"
-  },
-  "main": "main.js",
-  "build": {
-    "afterSign": "scripts/notarize.js",
-    "appId": "blockbench",
-    "productName": "Blockbench",
-    "artifactName": "${productName}_${version}.${ext}",
-    "publish": [
-      {
-        "provider": "github"
-      }
-    ],
-    "mac": {
-      "target": [
-        {
-          "target": "default",
-          "arch": [
-            "arm64"
-          ]
-        }
-      ],
-      "artifactName": "${productName}_${arch}_${version}.${ext}",
-      "category": "macOS.application",
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
-    },
-    "win": {
-      "certificateSubjectName": "Jannis Tobias Petersen",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "linux": {
-      "artifactName": "${productName}_${version}.${ext}",
-      "target": [
-        "deb",
-        "rpm",
-        "appImage"
-      ],
-      "category": "3DGraphics",
-      "icon": "build/icon.icns"
-    },
-    "files": [
-      "assets/",
-      "build/",
-      "css/",
-      "js/",
-      "lib/",
-      "font/",
-      "main.js",
-      "bundle.js",
-      "index.html",
-      "package.json",
-      "favicon.png",
-      "icon.icns",
-      "icon.ico",
-      "icon.png"
-    ],
-    "dmg": {
-      "artifactName": "${productName}_${arch}_${version}.${ext}",
-      "window": {
-        "x": 200,
-        "y": 100,
-        "width": 440,
-        "height": 220
-      },
-      "contents": [
-        {
-          "x": 130,
-          "y": 120
-        },
-        {
-          "x": 360,
-          "y": 120,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    },
-    "fileAssociations": [
-      {
-        "ext": "bbmodel",
-        "name": "Blockbench Project",
-        "role": "Editor"
-      }
-    ]
-  },
+	"name": "Blockbench",
+	"description": "Low-poly modeling and animation software",
+	"version": "4.6.1",
+	"license": "GPL-3.0-or-later",
+	"author": {
+		"name": "JannisX11",
+		"email": "info@blockbench.net"
+	},
+	"homepage": "https://blockbench.net",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/JannisX11/blockbench"
+	},
+	"main": "main.js",
+	"build": {
+		"afterSign": "scripts/notarize.js",
+		"appId": "blockbench",
+		"productName": "Blockbench",
+		"artifactName": "${productName}_${version}.${ext}",
+		"publish": [
+			{
+				"provider": "github"
+			}
+		],
+		"mac": {
+			"target": {
+				"target": "default",
+				"arch": [
+					"arm64",
+					"x64"
+				]
+			},
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
+			"category": "macOS.application",
+      		"hardenedRuntime": false,
+      		"gatekeeperAssess": false,
+			"entitlements": "build/entitlements.mac.plist",
+			"entitlementsInherit": "build/entitlements.mac.plist"
+		},
+		"files": [
+			"assets/",
+			"build/",
+			"css/",
+			"js/",
+			"lib/",
+			"font/",
+			"main.js",
+			"index.html",
+			"package.json",
+			"favicon.png",
+			"icon.icns",
+			"icon.ico",
+			"icon.png"
+		],
+		"dmg": {
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
+			"window": {
+				"x": 200,
+				"y": 100,
+				"width": 440,
+				"height": 220
+			},
+			"contents": [
+				{
+					"x": 130,
+					"y": 120
+				},
+				{
+					"x": 360,
+					"y": 120,
+					"type": "link",
+					"path": "/Applications"
+				}
+			]
+		},
+		"win": {
+			"target": "nsis"
+		},
+		"linux": {
+			"artifactName": "${productName}_${version}.${ext}",
+			"target": [
+				"deb",
+				"rpm",
+				"appImage"
+			],
+			"category": "3DGraphics",
+			"icon": "build/icon.icns"
+		},
+		"fileAssociations": [
+			{
+				"ext": "bbmodel",
+				"name": "Blockbench Project",
+				"role": "Editor"
+			}
+		]
+	},
   "scripts": {
     "bundle": "webpack --config webpack.config.js",
     "bundle-watch": "webpack --config webpack.config.js --watch",

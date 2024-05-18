@@ -19,7 +19,6 @@ class ModelFormat {
 		this.show_in_new_list = true;
 		this.can_convert_to = true;
 		this.confidential = false;
-		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -64,13 +63,16 @@ class ModelFormat {
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 0;
+			})
 		} else {
 			scene.position.set(-8, -8, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
+			PreviewModel.getActiveModels().forEach(model => {
+				model.model_3d.position.x = model.model_3d.position.z = 8;
+			})
 		}
-		PreviewModel.getActiveModels().forEach(model => {
-			model.update();
-		})
 		Settings.updateSettingsInProfiles();
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
@@ -82,9 +84,8 @@ class ModelFormat {
 		}
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
-		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		if (Modes.vue) Modes.vue.$forceUpdate();
-		updateInterfacePanels();
+		Modes.vue.$forceUpdate()
+		updateInterfacePanels()
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
@@ -115,20 +116,6 @@ class ModelFormat {
 			})
 		}
 
-		if (!Format.per_texture_uv_size && old_format.per_texture_uv_size) {
-			let tex = Texture.getDefault();
-			if (tex) {
-				Project.texture_width = tex.uv_width;
-				Project.texture_height = tex.uv_height;
-			}
-		}
-		if (Format.per_texture_uv_size && !old_format.per_texture_uv_size) {
-			Texture.all.forEach(tex => {
-				tex.uv_width = Project.texture_width;
-				tex.uv_height = Project.texture_height;
-			})
-		}
-
 		//Bone Rig
 		if (!Format.bone_rig && old_format.bone_rig) {
 			Group.all.forEach(group => {
@@ -155,20 +142,6 @@ class ModelFormat {
 		if (Format.bone_rig) {
 			Group.all.forEach(group => {
 				group.createUniqueName();
-			})
-		}
-		if (Format.centered_grid != old_format.centered_grid) {
-			let offset = Format.centered_grid ? -8 : 8;
-			Cube.all.forEach(cube => {
-				for (let axis of [0, 2]) {
-					cube.from[axis] += offset;
-					cube.to[axis] += offset;
-					cube.origin[axis] += offset;
-				}
-			})
-			Group.all.forEach(group => {
-				group.origin[0] += offset;
-				group.origin[2] += offset;
 			})
 		}
 
@@ -221,7 +194,7 @@ class ModelFormat {
 		if (Format.rotation_limit && !old_format.rotation_limit && Format.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
-					var axis = (getAxisNumber(cube.rotationAxis())) || 0;
+					var axis = (cube.rotation_axis && getAxisNumber(cube.rotation_axis)) || 0;
 					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
 					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0)
@@ -258,20 +231,14 @@ class ModelFormat {
 
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
-new Property(ModelFormat, 'boolean', 'box_uv_float_size');
 new Property(ModelFormat, 'boolean', 'single_texture');
-new Property(ModelFormat, 'boolean', 'single_texture_default');
-new Property(ModelFormat, 'boolean', 'per_group_texture');
-new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
-new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
 new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
-new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'texture_meshes');

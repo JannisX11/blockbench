@@ -3,16 +3,9 @@
 	* {
 		margin: 0;
 		padding: 0;
+		user-select: none;
 		outline: none;
 		outline-color: rgba(0, 0, 0, 0);
-	}
-	body {
-		user-select: none;
-		-webkit-user-select: none;
-	}
-	body.is_mobile * {
-		user-select: none;
-		-webkit-user-select: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -26,13 +19,11 @@
 	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
-
-	/* SCROLLBARS */
-	/* webkit */
 	::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
+
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -48,10 +39,10 @@
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-accent);
 	}
-	/* Web standard */
+	/*Mozilla*/
 	* {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-selected) transparent;
+		scrollbar-color: var(--color-selected) var(--color-back);
 	}
 
 	::selection {
@@ -118,12 +109,13 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
-	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: url(../font/material-icons.woff2) format('woff');
+		src: local('Material Icons'),
+			local('MaterialIcons-Regular'),
+			url(../font/MaterialIcons-Regular.ttf) format('truetype');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -298,7 +290,6 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
-		overflow: hidden;
 	}
 	i.fa_big {
 		font-size: 18px;
@@ -410,21 +401,19 @@
 	}
 	h1, h2, h3, h4, h5, h6 {
 		font-family: var(--font-headline);
-		margin: 12px 0 8px 0;
-	}
-	h1 {
-		letter-spacing: -0.03em;
 	}
 	h2 {
 		font-weight: lighter;
 		margin: 0;
 	}
 	h3 {
+		display: inline-block;
 		font-size: 1.28em;
 		padding-bottom: 4px;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
+		height: 32px;
 	}
 	h4 {
 		font-size: 1.2em;
@@ -441,7 +430,6 @@
 		font-size: 1em;
 		font-family: inherit;
 		outline: none;
-		-webkit-user-select: initial;
 	}
 	button {
 		border: none;
@@ -481,8 +469,7 @@
 	}
 	button > i {
 		pointer-events: none;
-		vertical-align: sub;
-		margin-right: 4px;
+		vertical-align: middle;
 	}
 	select {
 		-webkit-appearance: none;
@@ -505,7 +492,6 @@
 	}
 	select option {
 		-webkit-appearance: none;
-		appearance: none;
 		background-color: var(--color-back);
 		outline: none;
 		border: none;
@@ -517,14 +503,9 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
+		cursor: default;
 		resize: none;
 		outline: none;
-		user-select: initial;
-		-webkit-user-select: initial;
-	}
-	div[contenteditable="true"] {
-		user-select: initial;
-		-webkit-user-select: initial;
 	}
 	bb-select {
 		display: block;
@@ -621,9 +602,6 @@
 		background: var(--color-track);
 		border-radius: 3px;
 	}
-	input[type=text].dark_bordered:read-only {
-		color: var(--color-subtle_text);
-	}
 	input:-webkit-autofill,
 	input:-webkit-autofill:hover, 
 	input:-webkit-autofill:focus, 
@@ -674,27 +652,6 @@
 	input:-webkit-autofill:focus {
 		transition: background-color 600000s 0s, color 600000s 0s;
 	}
-	.numeric_input {
-		position: relative;
-		flex-shrink: 1;
-		flex-grow: 1;
-	}
-	.numeric_input > input {
-		position: relative;
-		width: 100%;
-	}
-	.numeric_input > div.tool {
-		position: absolute;
-		width: 18px;
-		right: 1px;
-		top: 0;
-		color: var(--color-subtle_text);
-		cursor: ew-resize;
-	}
-	.numeric_input > div.tool > i {
-		font-size: 18px;
-		margin-top: 6px;
-	}
 
 	div.nslide {
 		position: relative;
@@ -744,9 +701,6 @@
 	}
 	div.nslide_arrow.na_right {
 		margin-left: 16px;
-	}
-	div.nslide.editing {
-		cursor: text;
 	}
 
 	input.toggle_panel {

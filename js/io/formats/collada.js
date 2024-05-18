@@ -168,31 +168,25 @@ var codec = new Codec('collada', {
 				);
 			}
 
-			var adjustedFrom = cube.from.slice();
-			var adjustedTo = cube.to.slice();
-			adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
-
-			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedTo[2]  );
-			addPosition(adjustedTo[0],   adjustedTo[1],   adjustedFrom[2]);
-			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedTo[2]  );
-			addPosition(adjustedTo[0],   adjustedFrom[1], adjustedFrom[2]);
-			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedFrom[2]);
-			addPosition(adjustedFrom[0], adjustedTo[1],   adjustedTo[2]  );
-			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedFrom[2]);
-			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedTo[2]  );
+			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.to[0]   + cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.to[1] +	cube.inflate, cube.to[2]  	+ cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.from[2]  - cube.inflate);
+			addPosition(cube.from[0] - cube.inflate, cube.from[1] -	cube.inflate, cube.to[2]  	+ cube.inflate);
 
 			for (let fkey in cube.faces) {
 				let face = cube.faces[fkey];
 				if (face.texture === null) continue;
 				normals.push(...cube_face_normals[fkey]);
-				let texture = face.getTexture();
-				let uv_size = [Project.getUVWidth(texture), Project.getUVHeight(texture)];
 
 				let uv_outputs = [
-					[face.uv[0] / uv_size[0], 1 - face.uv[1] / uv_size[1]],
-					[face.uv[2] / uv_size[0], 1 - face.uv[1] / uv_size[1]],
-					[face.uv[2] / uv_size[0], 1 - face.uv[3] / uv_size[1]],
-					[face.uv[0] / uv_size[0], 1 - face.uv[3] / uv_size[1]],
+					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
+					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+					[face.uv[0] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
 				];
 				var rot = face.rotation || 0;
 				while (rot > 0) {
@@ -384,10 +378,9 @@ var codec = new Codec('collada', {
 					let face = mesh.faces[key];
 					let vertices = face.getSortedVertices();
 					let tex = mesh.faces[key].getTexture();
-					let uv_size = [Project.getUVWidth(tex), Project.getUVHeight(tex)];
 
 					vertices.forEach(vkey => {
-						uv.push(face.uv[vkey][0] / uv_size[0], 1 - face.uv[vkey][1] / uv_size[1]);
+						uv.push(face.uv[vkey][0] / Project.texture_width, 1 - face.uv[vkey][1] / Project.texture_height);
 					})
 
 					normals.push(...face.getNormal(true));
@@ -596,7 +589,7 @@ var codec = new Codec('collada', {
 		})
 
 		
-		let compiled_animations = Codecs.gltf.buildAnimationTracks(export_scale, false);
+		let compiled_animations = Codecs.gltf.buildAnimationTracks(false);
 		if (compiled_animations.length) {
 			let animations_tag = {
 				type: 'library_animations',

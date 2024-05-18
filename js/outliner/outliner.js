@@ -115,8 +115,9 @@ class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	//Sorting
-	sortInBefore(element, index_mod = 0) {
+	sortInBefore(element, index_mod) {
 		var index = -1;
+		index_mod = index_mod || 0;
 
 		if (element.parent === 'root') {
 			index = Outliner.root.indexOf(element)
@@ -327,13 +328,6 @@ class OutlinerNode {
 			return true;
 		}
 	}
-	matchesFilter(search_term_lowercase) {
-		if (this.name.toLowerCase().includes(search_term_lowercase)) return true;
-		if (this.children) {
-			return this.children.find(child => child.matchesFilter(search_term_lowercase));
-		}
-		return false;
-	}
 	isChildOf(group, max_levels) {
 		function iterate(obj, level) {
 			if (!obj || obj === 'root') {
@@ -369,6 +363,7 @@ class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	showContextMenu(event) {
+		Prop.active_panel = 'outliner'
 		if (this.locked) return this;
 		if (!this.selected) {
 			this.select()
@@ -376,20 +371,12 @@ class OutlinerElement extends OutlinerNode {
 		this.menu.open(event, this)
 		return this;
 	}
-	forSelected(fc, undo_tag, selection_method) {
+	forSelected(fc, undo_tag) {
 		let selected = this.constructor.selected;
 		if (selected.length <= 1 || !selected.includes(this)) {
 			var edited = [this];
 		} else {
 			var edited = selected;
-		}
-		if (selection_method == 'all_in_group') {
-			edited = edited.slice();
-			edited.slice().forEach(element => {
-				element.getParentArray().forEach(child => {
-					if (child.faces) edited.safePush(child);
-				})
-			})
 		}
 		if (typeof fc === 'function') {
 			if (undo_tag) {
@@ -429,11 +416,8 @@ class OutlinerElement extends OutlinerNode {
 		return copy;
 	}
 	select(event, isOutlinerClick) {
-		if (Modes.animate && !this.constructor.animator) {
-			Blockbench.showQuickMessage('message.group_required_to_animate');
-			return false;
-		}
-		//Shift
+		if (Modes.animate && !this.constructor.animator) return false;
+		//Shiftv
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
 			var starting_point;
@@ -536,18 +520,11 @@ class OutlinerElement extends OutlinerNode {
 			console.warn('You cannot modify this')
 		}
 	})
-	OutlinerElement.hasAny = function() {
-		return Outliner.elements.length > 0 && Outliner.elements.findIndex(element => element instanceof this) !== -1;
-	}
-	OutlinerElement.hasSelected = function() {
-		return Outliner.selected.length > 0 && Outliner.selected.findIndex(element => element instanceof this) !== -1;
-	}
 	OutlinerElement.types = {};
 
 
-class NodePreviewController extends EventSystem {
+class NodePreviewController {
 	constructor(type, data = {}) {
-		super();
 		this.type = type;
 		this.events = {};
 		type.preview_controller = this;
@@ -555,7 +532,7 @@ class NodePreviewController extends EventSystem {
 		this.updateGeometry = null;
 		this.updateUV = null;
 		this.updateFaces = null;
-		this.updatePixelGrid = null;
+		this.updatePaintingGrid = null;
 		this.updateHighlight = null;
 
 		Object.assign(this, data);
@@ -593,7 +570,7 @@ class NodePreviewController extends EventSystem {
 		if (this.updateGeometry) this.updateGeometry(element);
 		if (this.updateUV) this.updateUV(element);
 		if (this.updateFaces) this.updateFaces(element);
-		if (this.updatePixelGrid) this.updatePixelGrid(element);
+		if (this.updatePaintingGrid) this.updatePaintingGrid(element);
 
 		this.dispatchEvent('update_all', {element});
 	}
@@ -645,40 +622,36 @@ class NodePreviewController extends EventSystem {
 	updateSelection(element) {
 		let {mesh} = element;
 		if (mesh && mesh.outline) {
-			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
-				mesh.outline.visible = false;
-			} else {
-				mesh.outline.visible = element.selected;
-			}
+			mesh.outline.visible = element.selected
 		}
 
 		this.dispatchEvent('update_selection', {element});
 	}
-	updateRenderOrder(element) {
-		switch (element.render_order) {
-			case 'behind': element.mesh.renderOrder = -1; break;	
-			case 'in_front': element.mesh.renderOrder = 1; break;	
-			default: element.mesh.renderOrder = 0; break;	
+
+	//Events
+	dispatchEvent(event_name, data) {
+		if (!this.events) return;
+		var list = this.events[event_name]
+		if (!list) return;
+		for (var i = 0; i < list.length; i++) {
+			if (typeof list[i] === 'function') {
+				list[i](data)
+			}
+		}
+	}
+	on(event_name, cb) {
+		if (!this.events[event_name]) {
+			this.events[event_name] = []
+		}
+		this.events[event_name].safePush(cb)
+	}
+	removeListener(event_name, cb) {
+		if (this.events[event_name]) {
+			this.events[event_name].remove(cb);
 		}
 	}
 }
-/**
-Standardied outliner node context menu group order
-
-(mesh editing)
-(settings)
-copypaste
-	copy, paste, duplicate
-outliner_control
-	group, move
-(add)
-settings
-	color, options, texture
-manage
-	visibility, rename, delete
- */
 Outliner.control_menu_group = [
-	new MenuSeparator('outliner_control'),
 	'copy',
 	'paste',
 	'duplicate',
@@ -827,18 +800,8 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		iterate(target)
 		if (is_parent) return;
 	}
-	if (item instanceof OutlinerElement && Outliner.selected.includes( item )) {
-		var items = [];
-		// ensure elements are in displayed order
-		Outliner.root.forEach(node => {
-			if (node instanceof Group) {
-				node.forEachChild(child => {
-					if (child.selected && child instanceof Group == false) items.push(child);
-				})
-			} else if (node.selected) {
-				items.push(node);
-			}
-		})
+	if (item instanceof OutlinerElement && selected.includes( item )) {
+		var items = selected.slice();
 	} else {
 		var items = [item];
 	}
@@ -987,146 +950,6 @@ function toggleCubeProperty(key) {
 
 StateMemory.init('advanced_outliner_toggles', 'boolean')
 
-SharedActions.add('rename', {
-	subject: 'outliner',
-	condition: {modes: ['edit', 'paint']},
-	priority: -1,
-	run() {
-		renameOutliner();
-	}
-});
-SharedActions.add('delete', {
-	subject: 'outliner',
-	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.selected)),
-	priority: -1,
-	run() {
-		if (Group.selected) {
-			Group.selected.remove(true)
-			return;
-		}
-		let array;
-		Undo.initEdit({elements: selected, outliner: true, selection: true})
-		if (array == undefined) {
-			array = selected.slice(0)
-		} else if (array.constructor !== Array) {
-			array = [array]
-		} else {
-			array = array.slice(0)
-		}
-		array.forEach(function(s) {
-			s.remove(false)
-		})
-		TickUpdates.selection = true;
-		Undo.finishEdit('Delete elements')
-	}
-})
-SharedActions.add('duplicate', {
-	subject: 'outliner',
-	condition: () => Modes.edit && Group.selected && (Group.selected.matchesSelection() || selected.length === 0),
-	priority: -1,
-	run() {
-		let cubes_before = elements.length;
-		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let original = Group.selected;
-		let all_original = [];
-		Group.selected.forEachChild(g => all_original.push(g), Group, true);
-
-		let new_group = Group.selected.duplicate();
-		let all_new = [];
-		new_group.forEachChild(g => all_new.push(g), Group, true);
-		new_group.select();
-
-		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true});
-
-		if (Animation.all.length) {
-			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
-			if (affected_anims) {
-				Blockbench.showMessageBox({
-					translateKey: 'duplicate_bone_copy_animation',
-					message: tl('message.duplicate_bone_copy_animation.message', [affected_anims.length]),
-					buttons: ['dialog.yes', 'dialog.no'],
-				}, result => {
-					if (result == 1) return;
-
-					Undo.initEdit({animations: affected_anims});
-					for (let animation of affected_anims) {
-						for (let i = 0; i < all_original.length; i++) {
-							let orig_animator = animation.animators[all_original[i].uuid];
-							if (!orig_animator) continue;
-							let new_animator = animation.getBoneAnimator(all_new[i]);
-		
-							new_animator.rotation_global = orig_animator.rotation_global;
-							for (let kf of orig_animator.keyframes) {
-								new_animator.addKeyframe(kf);
-							}
-						}
-					}
-					Undo.finishEdit('Copy animations of duplicated bones');
-				})
-			}
-		}
-	}
-})
-SharedActions.add('duplicate', {
-	subject: 'outliner',
-	condition: () => Modes.edit && Outliner.selected.length,
-	priority: -2,
-	run() {
-		let added_elements = [];
-		Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-		selected.forEachReverse(function(obj, i) {
-			let copy = obj.duplicate();
-			added_elements.push(copy);
-		})
-		BarItems.move_tool.select();
-		Undo.finishEdit('Duplicate elements')
-	}
-})
-SharedActions.add('select_all', {
-	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
-	priority: -2,
-	run() {
-		let selectable_elements = Outliner.elements.filter(element => !element.locked);
-		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
-			}
-		} else {
-			unselectAllElements()
-		}
-	}
-})
-SharedActions.add('unselect_all', {
-	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
-	priority: -2,
-	run() {
-		unselectAllElements()
-	}
-})
-SharedActions.add('invert_selection', {
-	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
-	priority: -2,
-	run() {
-		Outliner.elements.forEach(element => {
-			if (element.selected) {
-				element.unselect()
-			} else {
-				element.selectLow()
-			}
-		})
-		if (Group.selected) Group.selected.unselect();
-		updateSelection();
-	}
-})
-
 BARS.defineActions(function() {
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
@@ -1137,19 +960,6 @@ BARS.defineActions(function() {
 			Outliner.vue.options.show_advanced_toggles = value;
 			StateMemory.advanced_outliner_toggles = value;
 			StateMemory.save('advanced_outliner_toggles');
-		}
-	})
-	new Toggle('search_outliner', {
-		icon: 'search',
-		category: 'edit',
-		onChange(value) {
-			Outliner.vue._data.options.search_term = '';
-			Outliner.vue._data.search_enabled = value;
-			if (value) {
-				Vue.nextTick(() => {
-					document.getElementById('outliner_search_bar').firstChild.focus();
-				});
-			}
 		}
 	})
 	new BarText('cube_counter', {
@@ -1354,6 +1164,54 @@ BARS.defineActions(function() {
 			$('.dialog#selection_creator .form_bar_name > input').focus()
 		}
 	})
+	new Action('invert_selection', {
+		icon: 'swap_vert',
+		category: 'edit',
+		keybind: new Keybind({key: 'i', ctrl: true}),
+		condition: () => Modes.edit || Modes.paint,
+		click: function () {
+			elements.forEach(function(s) {
+				if (s.selected) {
+					s.unselect()
+				} else {
+					s.selectLow()
+				}
+			})
+			if (Group.selected) Group.selected.unselect()
+			updateSelection()
+			Blockbench.dispatchEvent('invert_selection')
+		}
+	})
+	new Action('select_all', {
+		icon: 'select_all',
+		category: 'edit',
+		condition: () => !Modes.display,
+		keybind: new Keybind({key: 'a', ctrl: true}),
+		click() {selectAll()}
+	})
+	new Action('unselect_all', {
+		icon: 'border_clear',
+		category: 'edit',
+		condition: () => !Modes.display,
+		click() {
+			if (Modes.animate) {
+				unselectAllKeyframes()
+			} else if (Prop.active_panel == 'uv') {
+				this.vue.selected_faces.empty();
+				UVEditor.displayTools();
+		
+			} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
+				Mesh.selected.forEach(mesh => {
+					delete Project.mesh_selection[mesh.uuid];
+				})
+				updateSelection();
+		
+			} else if (Modes.edit || Modes.paint) {
+				unselectAll()
+			}
+			Blockbench.dispatchEvent('select_all')
+		}
+	})
 
 	new Action('hide_everything_except_selection', {
 		icon: 'fa-glasses',
@@ -1361,7 +1219,6 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
-			if (Painter.painting) return;
 			let enabled = !Project.only_hidden_elements;
 
 			if (Project.only_hidden_elements) {
@@ -1402,10 +1259,13 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" v-on:click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
-				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
+				<i :class="node.icon.substring(0, 2) == 'fa' ? node.icon : 'material-icons'"
+					:style="(outliner_colors.value && node.color >= 0) && {color: markerColors[node.color % markerColors.length].pastel}"
+					v-on:dblclick.stop="doubleClickIcon(node)"
+				>{{ node.icon.substring(0, 2) == 'fa' ? '' : node.icon }}</i>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
@@ -1420,7 +1280,7 @@ Interface.definePanels(function() {
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
-				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
+				'<vue-tree-item v-for="item in visible_children" :node="item" :options="options" :key="item.uuid"></vue-tree-item>' +
 				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
 			'</ul>' +
 		'</li>',
@@ -1428,26 +1288,20 @@ Interface.definePanels(function() {
 			options: Object,
 			node: {
 				type: Object
-			},
-			depth: Number
+			}
 		},
 		data() {return {
 			outliner_colors: settings.outliner_colors
 		}},
 		computed: {
 			indentation() {
-				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
+				return this.node.getDepth ? (limitNumber(this.node.getDepth(), 0, (this.width-100) / 16) * 16) : 0;
 			},
 			visible_children() {
-				let filtered = this.node.children;
-				if (this.options.search_term) {
-					let search_term_lowercase = this.options.search_term.toLowerCase();
-					filtered = this.node.children.filter(child => child.matchesFilter(search_term_lowercase));
-				}
 				if (!this.options.hidden_types.length) {
-					return filtered;
+					return this.node.children;
 				} else {
-					return filtered.filter(node => !this.options.hidden_types.includes(node.type));
+					return this.node.children.filter(node => !this.options.hidden_types.includes(node.type));
 				}
 			}
 		},
@@ -1517,23 +1371,10 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
-		toolbars: [
-			new Toolbar('outliner', {
-				children: [
-					'add_mesh',
-					'add_cube',
-					'add_group',
-					'outliner_toggle',
-					'toggle_skin_layer',
-					'explode_skin_model',
-					'+',
-					'search_outliner',
-					'cube_counter'
-				]
-			})
-		],
+		toolbars: {
+			head: Toolbars.outliner
+		},
 		growable: true,
-		resizable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.width = this.width;
 		},
@@ -1541,23 +1382,15 @@ Interface.definePanels(function() {
 			name: 'panel-outliner',
 			data() { return {
 				root: Outliner.root,
-				search_enabled: false,
 				options: {
 					width: 300,
 					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
-					hidden_types: [],
-					search_term: ''
+					hidden_types: []
 				}
 			}},
 			methods: {
 				openMenu(event) {
-					Panels.outliner.menu.show(event)
-				},
-				updateSearch(event) {
-					if (this.search_enabled && !this.options.search_term && !document.querySelector('#outliner_search_bar > input:focus')) {
-						this.search_enabled = false;
-						BarItems.search_outliner.set(false);
-					}
+					Interface.Panels.outliner.menu.show(event)
 				},
 				dragToggle(e1) {
 					let [original] = eventTargetToNode(e1.target);
@@ -1645,7 +1478,7 @@ Interface.definePanels(function() {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
 							if (e1.target && e1.offsetX > e1.target.clientWidth) return;
-							if (e2.target && e2.target.id == 'cubes_list') unselectAllElements();
+							if (e2.target && e2.target.id == 'cubes_list') unselectAll();
 						}
 						addEventListeners(document, 'mouseup touchend', off);
 						return;
@@ -1768,45 +1601,27 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
-			computed: {
-				filtered_root() {
-					if (!this.options.search_term) {
-						return this.root;
-					} else {
-						let search_term_lowercase = this.options.search_term.toLowerCase();
-						return this.root.filter(node => node.matchesFilter(search_term_lowercase))
-					}
-				}
-			},
 			template: `
-				<div>
-					<search-bar id="outliner_search_bar" v-if="search_enabled" v-model="options.search_term" @input="updateSearch()" onfocusout="Panels.outliner.vue.updateSearch()" />
-					<ul id="cubes_list"
-						class="list mobile_scrollbar"
-						@contextmenu.stop.prevent="openMenu($event)"
-						@mousedown="dragNode($event)"
-						@touchstart="dragNode($event)"
-					>
-						<vue-tree-item v-for="item in filtered_root" :node="item" :depth="0" :options="options" :key="item.uuid"></vue-tree-item>
-					</ul>
-				</div>
+				<ul id="cubes_list"
+					class="list mobile_scrollbar"
+					@contextmenu.stop.prevent="openMenu($event)"
+					@mousedown="dragNode($event)"
+					@touchstart="dragNode($event)"
+				>
+					<vue-tree-item v-for="item in root" :node="item" :options="options" :key="item.uuid"></vue-tree-item>
+				</ul>
 			`
 		},
 		menu: new Menu([
-			new MenuSeparator('add_element'),
-			'add_mesh',
 			'add_cube',
+			'add_mesh',
 			'add_texture_mesh',
 			'add_group',
-			new MenuSeparator('copypaste'),
-			'paste',
-			new MenuSeparator('manage'),
-			'select_all',
+			'_',
 			'sort_outliner',
+			'select_all',
 			'collapse_groups',
 			'unfold_groups',
-			'search_outliner',
-			new MenuSeparator('options'),
 			'element_colors',
 			'outliner_toggle'
 		])
@@ -1837,13 +1652,12 @@ Interface.definePanels(function() {
 				float_size: [300, 400],
 				height: 400
 			},
-			toolbars: [
-				Toolbars.element_position,
-				Toolbars.element_size,
-				Toolbars.element_stretch,
-				Toolbars.element_origin,
-				Toolbars.element_rotation,
-			]
+			toolbars: {
+				element_position: 	Toolbars.element_position,
+				element_size: 		Toolbars.element_size,
+				element_origin: 	Toolbars.element_origin,
+				element_rotation: 	Toolbars.element_rotation,
+			}
 		})
 		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 	}
@@ -1871,16 +1685,14 @@ class Face {
 		return this;
 	}
 	getTexture() {
-		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
-			return Texture.all.findInArray('uuid', this.element.parent.texture);
-		}
-		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && !this.texture))) {
+		if (Format.single_texture && this.texture !== null) {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
+		} else {
+			return this.texture;
 		}
-		return this.texture;
 	}
 	reset() {
 		for (var key in Mesh.properties) {
@@ -1890,17 +1702,15 @@ class Face {
 		return this;
 	}
 	getSaveCopy(project) {
-		let copy = {
+		var copy = {
 			uv: this.uv,
 		}
-		for (let key in this.constructor.properties) {
+		for (var key in this.constructor.properties) {
 			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
 		}
-		let tex = this.getTexture()
+		var tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (!this.texture) {
-			copy.texture = false;
 		} else if (tex instanceof Texture && project) {
 			copy.texture = Texture.all.indexOf(tex)
 		} else if (tex instanceof Texture) {

@@ -14,12 +14,10 @@ class Property {
 		} else {
 			switch (this.type) {
 				case 'string': this.default = ''; break;
-				case 'enum': this.default = options.values?.[0] || ''; break;
 				case 'molang': this.default = '0'; break;
 				case 'number': this.default = 0; break;
 				case 'boolean': this.default = false; break;
 				case 'array': this.default = []; break;
-				case 'object': this.default = {}; break;
 				case 'instance': this.default = null; break;
 				case 'vector': this.default = [0, 0, 0]; break;
 				case 'vector2': this.default = [0, 0]; break;
@@ -27,12 +25,10 @@ class Property {
 		}
 		switch (this.type) {
 			case 'string': this.isString = true; break;
-			case 'enum': this.isEnum = true; break;
 			case 'molang': this.isMolang = true; break;
 			case 'number': this.isNumber = true; break;
 			case 'boolean': this.isBoolean = true; break;
 			case 'array': this.isArray = true; break;
-			case 'object': this.isObject = true; break;
 			case 'instance': this.isInstance = true; break;
 			case 'vector': this.isVector = true; break;
 			case 'vector2': this.isVector2 = true; break;
@@ -48,9 +44,6 @@ class Property {
 				}
 			})
 		}
-		if (this.isEnum) {
-			this.enum_values = options.values;
-		}
 
 		if (typeof options.merge == 'function') this.merge = options.merge;
 		if (typeof options.reset == 'function') this.reset = options.reset;
@@ -61,19 +54,14 @@ class Property {
 		if (options.copy_value == false) this.copy_value = false;
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
-		if (options.placeholder) this.placeholder = options.placeholder;
 		if (options.options) this.options = options.options;
 	}
 	delete() {
-		delete this.class.properties[this.name];
-	}
+        delete this.class.properties[this.name];
+    }
 	getDefault(instance) {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
-		} else if (this.isArray) {
-			return this.default ? this.default.slice() : [];
-		} else if (this.isObject) {
-			return Object.keys(this.default).length ? JSON.parse(JSON.stringify(this.default)) : {};
 		} else {
 			return this.default;
 		}
@@ -83,9 +71,6 @@ class Property {
 
 		if (this.isString) {
 			Merge.string(instance, data, this.name, this.merge_validation)
-		}
-		else if (this.isEnum) {
-			Merge.string(instance, data, this.name, val => (!this.enum_values || this.enum_values.includes(val)));
 		}
 		else if (this.isNumber) {
 			Merge.number(instance, data, this.name)

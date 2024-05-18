@@ -99,7 +99,6 @@ BARS.defineActions(() => {
 							<ul class="multi_column_list">
 								<li><a class="open-in-browser" href="https://material.io/icons/">Material Icons</a></li>
 								<li><a class="open-in-browser" href="https://fontawesome.com/icons/">Font Awesome</a></li>
-								<li><a class="open-in-browser" href="https://github.com/microsoft/vscode-codicons">VSCode Codicons</a></li>
 								<li><a class="open-in-browser" href="https://electronjs.org">Electron</a></li>
 								<li><a class="open-in-browser" href="https://vuejs.org">Vue</a></li>
 								<li><a class="open-in-browser" href="https://github.com/weibangtuo/vue-tree">Vue Tree</a></li>
@@ -109,7 +108,6 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a></li>
 								<li><a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a></li>
 								<li><a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a></li>
-								<li><a class="open-in-browser" href="https://github.com/mattdesl/gifenc">gifenc</a></li>
 								<li><a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a></li>
 								<li><a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a></li>
 								<li><a class="open-in-browser" href="https://jquery.com">jQuery</a></li>
@@ -118,7 +116,6 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a></li>
 								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
-								<li><a class="open-in-browser" href="https://github.com/cure53/DOMPurify">DOMPurify</a></li>
 								<li><a class="open-in-browser" href="https://prismjs.com">Prism</a></li>
 								<li><a class="open-in-browser" href="https://github.com/akalverboer/canvas2apng">Canvas2APNG</a></li>
 								<li><a class="open-in-browser" href="https://github.com/koca/vue-prism-editor">Vue Prism Editor</a></li>

@@ -2,8 +2,8 @@
 new ModelFormat({
 	id: 'free',
 	icon: 'icon-format_free',
-	category: 'general',
-	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender'],
+	category: 'low_poly',
+	target: ['Blender', 'Unity', 'Unreal Engine', 'Sketchfab'],
 	format_page: {
 		content: [
 			{type: 'h3', text: tl('mode.start.format.informations')},
@@ -19,7 +19,6 @@ new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	optional_box_uv: true,
-	per_texture_uv_size: true,
 	uv_rotation: true,
 	animation_mode: true,
 	animated_textures: true,

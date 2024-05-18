@@ -462,7 +462,7 @@ BARS.defineActions(function() {
 				title: 'dialog.edit_session.title',
 				form: {
 					username: {type: 'text', label: 'edit_session.username', value: username},
-					token: {type: 'text', label: 'edit_session.token', value: token, readonly: !!session, share_text: true},
+					token: {type: 'text', label: 'edit_session.token', value: token, readonly: !!session},
 					about: {type: 'info', text: 'edit_session.about', condition: !session},
 					status: {type: 'info', text: `**${tl('edit_session.status')}**: ${(session && session.hosting) ? tl('edit_session.hosting') : tl('edit_session.connected')}`, condition: !!session},
 				},
@@ -514,6 +514,7 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400
 		},
+		toolbars: {},
 		onResize: t => {
 		},
 		component: {

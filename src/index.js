@@ -20,7 +20,4 @@ window.CustomThemeOptions = [
 	ContrastTheme
 ]
 
-import { GIFEncoder, quantize, applyPalette } from 'gifenc'
-window.GIFEnc = { GIFEncoder, quantize, applyPalette };
-
 window.appVersion = BBVERSION;

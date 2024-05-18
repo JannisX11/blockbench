@@ -117,7 +117,7 @@ function parseGeometry(data) {
 	loadTextureDraggable()
 	Canvas.updateAllBones()
 	setProjectTitle()
-	if (isApp && Project.geometry_name && Project.BedrockEntityManager) {
+	if (isApp && Project.geometry_name) {
 		Project.BedrockEntityManager.initEntity()
 	}
 	Validator.validate()
@@ -164,7 +164,7 @@ var codec = new Codec('bedrock_old', {
 		}
 
 		groups.forEach(function(g) {
-			if (g.type !== 'group' || g.export == false) return;
+			if (g.type !== 'group') return;
 			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {}
@@ -241,7 +241,7 @@ var codec = new Codec('bedrock_old', {
 		if (options.raw) {
 			return entitymodel
 		} else {
-			var model_name = 'geometry.' + (Project.geometry_name||Project.name||'unknown')
+			var model_name = 'geometry.' + (Project.geometry_name||'unknown')
 			return autoStringify({
 				format_version: '1.10.0',
 				[model_name]: entitymodel

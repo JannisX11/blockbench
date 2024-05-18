@@ -21,9 +21,6 @@ class CubeFace extends Face {
 		this.uv[2] = arr[0] + this.uv[0];
 		this.uv[3] = arr[1] + this.uv[1];
 	}
-	get element() {
-		return this.cube;
-	}
 	extend(data) {
 		super.extend(data);
 		if (data.uv) {
@@ -52,56 +49,10 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
-	UVToLocal(point) {
-		let from = this.cube.from.slice()
-		let to = this.cube.to.slice()
-		adjustFromAndToForInflateAndStretch(from, to, this.cube);
-
-		let vector = new THREE.Vector3().fromArray(from);
-
-		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
-		let lerp_y = Math.getLerp(this.uv[1], this.uv[3], point[1]);
-
-		for (let i = 0; i < this.rotation; i += 90) {
-			[lerp_x, lerp_y] = [1-lerp_y, lerp_x];
-		}
-
-		if (this.direction == 'east') {
-			vector.x = to[0];
-			vector.y = Math.lerp(to[1], from[1], lerp_y);
-			vector.z = Math.lerp(to[2], from[2], lerp_x);
-		}
-		if (this.direction == 'west') {
-			vector.y = Math.lerp(to[1], from[1], lerp_y);
-			vector.z = Math.lerp(from[2], to[2], lerp_x);
-		}
-		if (this.direction == 'up') {
-			vector.y = to[1];
-			vector.z = Math.lerp(from[2], to[2], lerp_y);
-			vector.x = Math.lerp(from[0], to[0], lerp_x);
-		}
-		if (this.direction == 'down') {
-			vector.z = Math.lerp(to[2], from[2], lerp_y);
-			vector.x = Math.lerp(from[0], to[0], lerp_x);
-		}
-		if (this.direction == 'south') {
-			vector.z = to[2];
-			vector.y = Math.lerp(to[1], from[1], lerp_y);
-			vector.x = Math.lerp(from[0], to[0], lerp_x);
-		}
-		if (this.direction == 'north') {
-			vector.y = Math.lerp(to[1], from[1], lerp_y);
-			vector.x = Math.lerp(to[0], from[0], lerp_x);
-		}
-		vector.x -= this.cube.origin[0];
-		vector.y -= this.cube.origin[1];
-		vector.z -= this.cube.origin[2];
-		return vector;
-	}
 }
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
-new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
+new Property(CubeFace, 'string', 'cullface', )//{merge_validation: (val) => (UVEditor.cube_faces.includes(val) || val == '')});
 new Property(CubeFace, 'string', 'material_name');
 new Property(CubeFace, 'boolean', 'enabled', {default: true});
 
@@ -118,50 +69,35 @@ class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
+		this.from = [0, 0, 0];
+		this.to = [size, size, size];
 		this.shade = true;
 		this.mirror_uv = false;
-		this.color = Math.floor(Math.random()*markerColors.length)
+		this.color = Math.floor(Math.random()*8)
 		this.uv_offset = [0,0]
 		this.inflate = 0;
-		this.stretch = [1, 1, 1];
+		this.rotation = [0, 0, 0];
+		this.origin = [0, 0, 0];
 		this.visibility = true;
 		this.autouv = 0;
 
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
 		}
-		this._static = Object.freeze({
-			properties: {
-				faces: {
-					north: 	new CubeFace('north', null, this),
-					east: 	new CubeFace('east', null, this),
-					south: 	new CubeFace('south', null, this),
-					west: 	new CubeFace('west', null, this),
-					up: 	new CubeFace('up', null, this),
-					down: 	new CubeFace('down', null, this)
-				},
-				from: [0, 0, 0],
-				to: [size, size, size],
-				rotation: [0, 0, 0],
-				origin: [0, 0, 0],
-			}
-		})
 
 		this.box_uv = Project.box_uv;
+		this.faces = {
+			north: 	new CubeFace('north', null, this),
+			east: 	new CubeFace('east', null, this),
+			south: 	new CubeFace('south', null, this),
+			west: 	new CubeFace('west', null, this),
+			up: 	new CubeFace('up', null, this),
+			down: 	new CubeFace('down', null, this)
+		}
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
 	}
-	get faces() {return this._static.properties.faces};
-	get from() {return this._static.properties.from};
-	get to() {return this._static.properties.to};
-	get rotation() {return this._static.properties.rotation};
-	get origin() {return this._static.properties.origin};
-	set faces(v) {this._static.properties.faces = v};
-	set from(v) {this._static.properties.from = v};
-	set to(v) {this._static.properties.to = v};
-	set rotation(v) {this._static.properties.rotation = v};
-	set origin(v) {this._static.properties.origin = v};
 	extend(object) {
 		for (var key in Cube.properties) {
 			Cube.properties[key].merge(this, object)
@@ -193,11 +129,6 @@ class Cube extends OutlinerElement {
 		if (object.uv_offset) {
 			Merge.number(this.uv_offset, object.uv_offset, 0)
 			Merge.number(this.uv_offset, object.uv_offset, 1)
-		}
-		if (object.stretch) {
-			Merge.number(this.stretch, object.stretch, 0)
-			Merge.number(this.stretch, object.stretch, 1)
-			Merge.number(this.stretch, object.stretch, 2)
 		}
 		if (typeof object.rotation === 'object' && object.rotation.constructor.name === 'Object') {
 			if (object.rotation.angle && object.rotation.axis) {
@@ -256,12 +187,8 @@ class Cube extends OutlinerElement {
 		var scope = this;
 		let epsilon = 0.0000001;
 		function getA(axis) {
-			if (floored == true) {
+			if (floored) {
 				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
-
-			} else if (floored == 'box_uv' && Format.box_uv_float_size != true) {
-				return Math.floor(scope.to[axis] - scope.from[axis] + epsilon);
-
 			} else {
 				return scope.to[axis] - scope.from[axis]
 			}
@@ -275,9 +202,6 @@ class Cube extends OutlinerElement {
 				getA(2)
 			]
 		}
-	}
-	getSize(axis, selection_only) {
-		return this.size(axis);
 	}
 	rotationAxis() {
 		for (var axis = 0; axis < 3; axis++) {
@@ -295,33 +219,22 @@ class Cube extends OutlinerElement {
 		return Project.nodes_3d[this.uuid];
 	}
 	getUndoCopy(aspects = 0) {
-		let copy = {};
-
-		for (var key in Cube.properties) {
-			Cube.properties[key].copy(this, copy);
+		var copy = new Cube(this)
+		if (aspects.uv_only) {
+			copy = {
+				box_uv: copy.box_uv,
+				uv_offset: copy.uv_offset,
+				faces: copy.faces,
+				mirror_uv: copy.mirror_uv,
+				autouv: copy.autouv,
+			}
 		}
-
-		copy.from = this.from.slice();
-		copy.to = this.to.slice();
-		copy.stretch = this.stretch.slice();
-		copy.inflate = this.inflate;
-		copy.rotation = this.rotation.slice();
-		copy.origin = this.origin.slice();
-		copy.uv_offset = this.uv_offset.slice();
-		copy.autouv = this.autouv;
-		copy.color = this.color;
-		copy.visibility = this.visibility;
-		copy.export = this.export;
-		copy.shade = this.shade;
-		copy.mirror_uv = this.mirror_uv;
-
-		copy.faces = {};
-		for (let face_id in this.faces) {
-			copy.faces[face_id] = this.faces[face_id].getUndoCopy();
+		for (let face_id in copy.faces) {
+			copy.faces[face_id] = copy.faces[face_id].getUndoCopy()
 		}
-
 		copy.uuid = this.uuid
 		copy.type = this.type;
+		delete copy.parent;
 		return copy;
 	}
 	getSaveCopy(project) {
@@ -341,7 +254,6 @@ class Cube extends OutlinerElement {
 		if (!this.shade) el.shade = false;
 		if (this.mirror_uv) el.mirror_uv = true;
 		if (this.inflate) el.inflate = this.inflate;
-		if (this.isStretched()) el.stretch = this.stretch;
 		if (!this.rotation.allEqual(0)) el.rotation = this.rotation;
 		el.origin = this.origin;
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
@@ -412,7 +324,6 @@ class Cube extends OutlinerElement {
 		}
 
 		function rotateUVFace(number, iterations) {
-			if (!Format.uv_rotation) return 0;
 			if (!number) number = 0;
 			number += iterations * 90;
 			return number % 360;
@@ -488,14 +399,9 @@ class Cube extends OutlinerElement {
 		this.from[axis] = center - (this.to[axis] - center)
 		this.to[axis] = center - (from - center)
 		this.origin[axis] = center - (this.origin[axis] - center)
-		
-		flipNameOnAxis(this, axis);
 
 		if (!skipUV) {
 
-			if (this.box_uv && axis === 0) {
-				this.mirror_uv = !this.mirror_uv;
-			}
 			function mirrorUVX(face, skip_rot) {
 				var f = scope.faces[face]
 				if (skip_rot) {}
@@ -571,7 +477,7 @@ class Cube extends OutlinerElement {
 	}
 	getWorldCenter() {
 		var m = this.mesh;
-		var pos = new THREE.Vector3(
+		var pos = Reusable.vec1.set(
 			this.from[0] + this.size(0)/2,
 			this.from[1] + this.size(1)/2,
 			this.from[2] + this.size(2)/2
@@ -588,19 +494,15 @@ class Cube extends OutlinerElement {
 		return pos;
 	}
 	getGlobalVertexPositions() {
-		var adjustedFrom = this.from.slice();
-		var adjustedTo = this.to.slice();
-		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, this);
-		
 		let vertices = [
-			[adjustedTo[0]	,  adjustedTo[1]  ,  adjustedTo[2]	],
-			[adjustedTo[0]  ,  adjustedTo[1]  ,  adjustedFrom[2]],
-			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedTo[2]	],
-			[adjustedTo[0]  ,  adjustedFrom[1],  adjustedFrom[2]],
-			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedFrom[2]],
-			[adjustedFrom[0],  adjustedTo[1]  ,  adjustedTo[2]	],
-			[adjustedFrom[0],  adjustedFrom[1],  adjustedFrom[2]],
-			[adjustedFrom[0],  adjustedFrom[1],  adjustedTo[2]	],
+			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
+			[this.to[0]   + this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
+			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
+			[this.to[0]   + this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.to[1] 	+ this.inflate,  this.to[2]		+ this.inflate],
+			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.from[2]	- this.inflate],
+			[this.from[0] - this.inflate,  this.from[1]	- this.inflate,  this.to[2]		+ this.inflate],
 		];
 		let vec = new THREE.Vector3();
 		return vertices.map(coords => {
@@ -623,19 +525,6 @@ class Cube extends OutlinerElement {
 				this.uv_offset[0] = this.faces.east.uv[0];
 			}
 			this.uv_offset[1] = this.faces.up.uv[3];
-			let texture = Texture.getDefault();
-			for (let fkey in this.faces) {
-				if (this.faces[fkey].texture) {
-					texture = this.faces[fkey].getTexture();
-				}
-			}
-			for (let fkey in this.faces) {
-				if (this.faces[fkey].texture === null) {
-					this.faces[fkey].extend({texture: texture || false});
-				}
-			}
-			this.preview_controller.updateFaces(this);
-
 		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
@@ -652,6 +541,7 @@ class Cube extends OutlinerElement {
 		return this;
 	}
 	applyTexture(texture, faces) {
+		var scope = this;
 		if (faces === true || this.box_uv) {
 			var sides = ['north', 'east', 'south', 'west', 'up', 'down']
 		} else if (faces === undefined) {
@@ -659,15 +549,15 @@ class Cube extends OutlinerElement {
 		} else {
 			var sides = faces
 		}
-		let value = null;
+		var value = null
 		if (texture) {
 			value = texture.uuid
 		} else if (texture === false || texture === null) {
 			value = texture;
 		}
-		sides.forEach((side) => {
-			if (this.faces[side].texture !== null) {
-				this.faces[side].texture = value;
+		sides.forEach(function(side) {
+			if (scope.faces[side].texture !== null) {
+				scope.faces[side].texture = value;
 			}
 		})
 		if (selected.indexOf(this) === 0) {
@@ -677,7 +567,7 @@ class Cube extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 	}
 	mapAutoUV() {
-		if (this.box_uv) return;
+		if (Blockbench.box_uv) return;
 		var scope = this;
 		var pw = Project.texture_width;
 		var ph = Project.texture_height;
@@ -763,11 +653,9 @@ class Cube extends OutlinerElement {
 		} else if (scope.autouv === 1) {
 
 			function calcAutoUV(face, size) {
-				size[0] = Math.abs(size[0]);
-				size[1] = Math.abs(size[1]);
-				var sx = scope.faces[face].uv[0];
-				var sy = scope.faces[face].uv[1];
-				var rot = scope.faces[face].rotation;
+				var sx = scope.faces[face].uv[0]
+				var sy = scope.faces[face].uv[1]
+				var rot = scope.faces[face].rotation
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
@@ -842,11 +730,9 @@ class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		var before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		if (before instanceof Array) before = before[axis];
-		let is_inverted = before < 0;
-		if (is_inverted) negative = !negative;
-		let modify = val instanceof Function ? val : n => (n + val);
+		var modify = val instanceof Function ? val : n => (n+val)
 
 		if (bidirectional) {
 
@@ -854,8 +740,8 @@ class Cube extends OutlinerElement {
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
-			let from = center - (before/2) - difference;
-			let to = center + (before/2) + difference;
+			var from = center - (before/2) - difference;
+			var to = center + (before/2) + difference;
 
 			if (Format.integer_size) {
 				from = Math.round(from-this.from[axis])+this.from[axis];
@@ -868,7 +754,7 @@ class Cube extends OutlinerElement {
 			}
 
 		} else if (!negative) {
-			let pos = this.from[axis] + modify(before);
+			var pos = this.from[axis] + modify(before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.from[axis])+this.from[axis];
 			}
@@ -878,7 +764,7 @@ class Cube extends OutlinerElement {
 				this.to[axis] = this.from[axis];
 			}
 		} else {
-			let pos = this.to[axis] + modify(-before);
+			var pos = this.to[axis] + modify(-before);
 			if (Format.integer_size) {
 				pos = Math.round(pos-this.to[axis])+this.to[axis];
 			}
@@ -893,40 +779,27 @@ class Cube extends OutlinerElement {
 		}
 		this.mapAutoUV();
 		if (this.box_uv) {
-			if (axis == 2) {
-				let difference = before - this.size(axis);
-				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
-				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
-				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
-			} else if (axis == 0 && (!negative || bidirectional)) {
-				let difference = before - this.size(axis);
-				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
-				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
-			}
 			Canvas.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
 		return this;
 	}
-	isStretched() {
-		return !this.stretch.allEqual(1);
-	}
 }
 	Cube.prototype.title = tl('data.cube');
 	Cube.prototype.type = 'cube';
-	Cube.prototype.icon = 'fa-cube';
+	Cube.prototype.icon = 'fa fa-cube';
 	Cube.prototype.movable = true;
 	Cube.prototype.resizable = true;
 	Cube.prototype.rotatable = true;
 	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
-		new MenuSeparator('settings'),
+		'_',
+		'rename',
 		'convert_to_mesh',
 		'update_autouv',
 		'cube_uv_mode',
-		'allow_element_mirror_modeling',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -939,12 +812,12 @@ class Cube extends OutlinerElement {
 				}
 			}});
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			var arr = [
-				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(cube) {
+				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
 					cube.forSelected(function(obj) {
 						obj.applyTexture(false, true)
-					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
+					}, 'texture blank')
 				}}
 			]
 			Texture.all.forEach(function(t) {
@@ -954,16 +827,13 @@ class Cube extends OutlinerElement {
 					click: function(cube) {
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)
-						}, 'apply texture', Format.per_group_texture ? 'all_in_group' : null)
+						}, 'apply texture')
 					}
 				})
 			})
 			return arr;
 		}},
 		'edit_material_instances',
-		'element_render_order',
-		new MenuSeparator('manage'),
-		'rename',
 		'toggle_visibility',
 		'delete'
 	]);
@@ -980,26 +850,9 @@ new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
-new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Cube, 'cube');
 
-function adjustFromAndToForInflateAndStretch(from, to, element) {
-	var halfSize = element.size().slice();
-	halfSize.forEach((v, i) => {
-		halfSize[i] /= 2;
-	});
-	var center = [
-		element.from[0] + halfSize[0],
-		element.from[1] + halfSize[1],
-		element.from[2] + halfSize[2]
-	];
-
-	for (let i = 0; i < from.length; i++) {
-		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
-		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
-	}
-}
 
 new NodePreviewController(Cube, {
 	setup(element) {
@@ -1029,12 +882,11 @@ new NodePreviewController(Cube, {
 		this.updateGeometry(element);
 		this.updateFaces(element);
 		this.updateUV(element);
-		this.updateRenderOrder(element);
 
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform.call(this, element);
+		NodePreviewController.prototype.updateTransform(element);
 
 		let mesh = element.mesh;
 
@@ -1051,14 +903,13 @@ new NodePreviewController(Cube, {
 		if (element.resizable) {
 			let mesh = element.mesh;
 			var from = element.from.slice()
-			var to = element.to.slice()
-
-			adjustFromAndToForInflateAndStretch(from, to, element);
-
 			from.forEach((v, i) => {
+				from[i] -= element.inflate;
 				from[i] -= element.origin[i];
 			})
+			var to = element.to.slice()
 			to.forEach((v, i) => {
+				to[i] += element.inflate
 				to[i] -= element.origin[i];
 				if (from[i] === to[i]) {
 					to[i] += 0.001
@@ -1084,8 +935,6 @@ new NodePreviewController(Cube, {
 			].map(a => new THREE.Vector3().fromArray(a))
 			mesh.outline.geometry.setFromPoints(points);
 		}
-
-		this.updatePixelGrid(element);
 
 		this.dispatchEvent('update_geometry', {element});
 	},
@@ -1129,36 +978,36 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
 
 		} else {
-			let materials = [];
+			var materials = []
 			Canvas.face_order.forEach(function(face) {
 				if (element.faces[face].texture !== null) {
-					let tex = element.faces[face].getTexture();
+					var tex = element.faces[face].getTexture()
 					if (tex && tex.uuid) {
 						materials.push(Project.materials[tex.uuid])
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
+						materials.push(Canvas.emptyMaterials[element.color])
 					}
 				}
 			})
 			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials;
+			mesh.material = materials
 		}
 		if (!mesh.material) mesh.material = Canvas.transparentMaterial;
 
 		Cube.preview_controller.dispatchEvent('update_faces', {element});
 	},
 	updateUV(element, animation = true) {
-		let mesh = element.mesh
+		var mesh = element.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
 		if (element.box_uv) {
 
-			let size = element.size(undefined, Format.box_uv_float_size != true);
+			var size = element.size(undefined, true)
 			
-			let face_list = [   
+			var face_list = [   
 				{face: 'east',	from: [0, size[2]],				   		size: [size[2],  size[1]]},
 				{face: 'west',	from: [size[2] + size[0], size[2]],   	size: [size[2],  size[1]]},
 				{face: 'up', 	from: [size[2]+size[0], size[2]],	 	size: [-size[0], -size[2]]},
@@ -1174,7 +1023,7 @@ new NodePreviewController(Cube, {
 				})
 				//East+West
 				
-				let p = {}
+				var p = {}
 
 				p.from = face_list[0].from.slice()
 				p.size = face_list[0].size.slice()
@@ -1190,7 +1039,7 @@ new NodePreviewController(Cube, {
 
 				if (element.faces[f.face].texture == null) return;
 
-				let uv= [
+				var uv= [
 					f.from[0]			 +  element.uv_offset[0],
 					f.from[1]			 +  element.uv_offset[1],
 					f.from[0] + f.size[0] + element.uv_offset[0],
@@ -1204,38 +1053,9 @@ new NodePreviewController(Cube, {
 				element.faces[f.face].uv[1] = uv[1]
 				element.faces[f.face].uv[2] = uv[2]
 				element.faces[f.face].uv[3] = uv[3]
-			})
 
-		}
-
-		Canvas.face_order.forEach((fkey, index) => {
-			let face = element.faces[fkey];
-			if (face.texture === null) return;
-
-			let stretch = 1;
-			let frame = 0;
-			let tex = face.getTexture();
-			let uv = face.uv;
-			let vertex_uvs = mesh.geometry.attributes.uv;
-			let pw = Project.texture_width;
-			let ph = Project.texture_height;
-			if (tex && Format.per_texture_uv_size && Project.view_mode !== 'uv') {
-				pw = tex.getUVWidth();
-				ph = tex.getUVHeight();
-			}
-
-			if (tex instanceof Texture && tex.frameCount !== 1) {
-				stretch = tex.frameCount || 1;
-				if (animation === true && tex.currentFrame) {
-					frame = tex.currentFrame;
-				}
-			}
-			stretch *= -1;
-
-			// Box UV fight texture bleeding
-			if (element.box_uv) {
-				uv = uv.slice();
-				for (let si = 0; si < 2; si++) {
+				//Fight Bleeding
+				for (var si = 0; si < 2; si++) {
 					let margin = 1/64;
 					if (uv[si] > uv[si+2]) {
 						margin = -margin
@@ -1243,42 +1063,45 @@ new NodePreviewController(Cube, {
 					uv[si] += margin
 					uv[si+2] -= margin
 				}
-			}
 
-			let arr = [
-				[uv[0]/pw, (uv[1]/ph)/stretch+1],
-				[uv[2]/pw, (uv[1]/ph)/stretch+1],
-				[uv[0]/pw, (uv[3]/ph)/stretch+1],
-				[uv[2]/pw, (uv[3]/ph)/stretch+1],
-			]
-			if (frame > 0 && stretch !== -1) {
-				//Animate
-				let offset = (1/stretch) * frame
-				arr[0][1] += offset
-				arr[1][1] += offset
-				arr[2][1] += offset
-				arr[3][1] += offset
-			}
-			let rot = (face.rotation+0)
-			while (rot > 0) {
-				let a = arr[0];
-				arr[0] = arr[2];
-				arr[2] = arr[3];
-				arr[3] = arr[1];
-				arr[1] = a;
-				rot = rot-90;
-			}
-			vertex_uvs.array.set(arr[0], index*8 + 0);  //0,1
-			vertex_uvs.array.set(arr[1], index*8 + 2);  //1,1
-			vertex_uvs.array.set(arr[2], index*8 + 4);  //0,0
-			vertex_uvs.array.set(arr[3], index*8 + 6);  //1,0
-		})
+				stretch = 1;
+				frame = 0;
+				let tex = element.faces[f.face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
 
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, {uv: uv}, frame, stretch)
+			})
+
+		} else {
+		
+			var stretch = 1
+			var frame = 0
+
+			Canvas.face_order.forEach((face, fIndex) => {
+
+				if (element.faces[face].texture === null) return;
+
+				stretch = 1;
+				frame = 0;
+				let tex = element.faces[face].getTexture();
+				if (tex instanceof Texture && tex.frameCount !== 1) {
+					stretch = tex.frameCount
+					if (animation === true && tex.currentFrame) {
+						frame = tex.currentFrame
+					}
+				}
+				Canvas.updateUVFace(mesh.geometry.attributes.uv, fIndex, element.faces[face], frame, stretch)
+			})
+
+		}
 		mesh.geometry.attributes.uv.needsUpdate = true;
 
 		this.dispatchEvent('update_uv', {element});
-
-		this.updatePixelGrid(element);
 
 		return mesh.geometry;
 	},
@@ -1298,20 +1121,19 @@ new NodePreviewController(Cube, {
 
 		this.dispatchEvent('update_highlight', {element});
 	},
-	updatePixelGrid(cube) {
+	updatePaintingGrid(cube) {
 		var mesh = cube.mesh;
 		if (mesh === undefined) return;
 		mesh.remove(mesh.grid_box);
-		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
 		if (cube.visibility == false) return;
 
-		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
-		if (!grid_enabled) return;
+		if (!Modes.paint || !settings.painting_grid.value) return;
 
 		var from = cube.from.slice();
 		var to = cube.to.slice();
-		if (cube.inflate || cube.isStretched()) {
-			adjustFromAndToForInflateAndStretch(from, to, cube);
+		if (cube.inflate) {
+			from[0] -= cube.inflate; from[1] -= cube.inflate; from[2] -= cube.inflate;
+			  to[0] += cube.inflate;   to[1] += cube.inflate;   to[2] += cube.inflate;
 		}
 
 		var vertices = [];
@@ -1339,8 +1161,8 @@ new NodePreviewController(Cube, {
 			var texture = face.getTexture();
 			if (texture === null) return;
 
-			var px_x = texture ? texture.uv_width / texture.width : 1;
-			var px_y = texture ? texture.uv_height / texture.height : 1;
+			var px_x = texture ? Project.texture_width / texture.width : 1;
+			var px_y = texture ? Project.texture_height / texture.height : 1;
 			var uv_size = [
 				Math.abs(face.uv_size[0]),
 				Math.abs(face.uv_size[1])
@@ -1366,7 +1188,7 @@ new NodePreviewController(Cube, {
 			//Columns
 			var width = end[0]-start[0];
 			var step = Math.abs( width / uv_size[0] );
-			if (texture) step *= texture.uv_width / texture.width;
+			if (texture) step *= Project.texture_width / texture.width;
 			if (step < epsilon) step = epsilon;
 
 			for (var col = start[0] - uv_offset[0]; col <= end[0]; col += step) {
@@ -1381,7 +1203,7 @@ new NodePreviewController(Cube, {
 			var step = Math.abs( height / uv_size[1] );
 			if (texture) {
 				let tex_height = texture.frameCount ? (texture.height / texture.frameCount) : texture.height;
-				step *= texture.uv_height / tex_height;
+				step *= Project.texture_height / tex_height;
 			}
 			if (step < epsilon) step = epsilon;
 
@@ -1541,33 +1363,6 @@ BARS.defineActions(function() {
 	Blockbench.on('update_selection', () => {
 		if (Condition(BarItems.cube_uv_mode)) {
 			BarItems.cube_uv_mode.set(Cube.selected[0].box_uv ? 'box_uv' : 'face_uv');
-		}
-	})
-
-	new BarSelect('element_render_order', {
-		name: 'action.element_render_order',
-		category: 'edit',
-		condition: () => Outliner.selected.find(e => e.render_order) && Texture.all.length,
-		options: {
-			default: 'action.element_render_order.default',
-			behind: 'action.element_render_order.behind',
-			in_front: 'action.element_render_order.in_front',
-		},
-		onChange() {
-			let elements = Outliner.selected.filter(e => e.render_order);
-			Undo.initEdit({elements});
-			elements.forEach(element => {
-				element.render_order = this.value;
-				element.preview_controller.updateRenderOrder(element);
-			})
-			Undo.finishEdit('Change render order')
-			updateSelection();
-		}
-	})
-	Blockbench.on('update_selection', () => {
-		let element = Outliner.selected.find(e => e.render_order);
-		if (element) {
-			BarItems.element_render_order.set(element.render_order);
 		}
 	})
 })

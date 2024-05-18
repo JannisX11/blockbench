@@ -9,7 +9,6 @@ const CustomTheme = {
 		headline_font: '',
 		code_font: '',
 		css: '',
-		thumbnail: '',
 		colors: {},
 	},
 	themes: [
@@ -64,8 +63,6 @@ const CustomTheme = {
 					})
 				}
 			} catch (err) {}
-
-			CustomTheme.loadThumbnailStyles();
 		}
 
 		CustomTheme.dialog = new Dialog({
@@ -85,7 +82,6 @@ const CustomTheme = {
 					options: tl('layout.options'),
 					color: tl('layout.color'),
 					css: tl('layout.css'),
-					thumbnail: tl('layout.thumbnail'),
 				},
 				page: 'select',
 				actions: [
@@ -113,7 +109,7 @@ const CustomTheme = {
 						files.forEach(async file => {
 							try {
 								let {content} = await $.getJSON(file.git_url);
-								let theme = JSON.parse(patchedAtob(content));
+								let theme = JSON.parse(Buffer.from(content, 'base64').toString());
 								theme.id = file.name.replace(/\.\w+/, '');
 								CustomTheme.themes.push(theme);
 							} catch (err) {
@@ -121,6 +117,8 @@ const CustomTheme = {
 							}
 						})
 					}).catch(console.error)
+
+
 				}
 			},
 			component: {
@@ -151,10 +149,6 @@ const CustomTheme = {
 						saveChanges();
 					},
 					'data.css'() {
-						CustomTheme.updateSettings();
-						saveChanges();
-					},
-					'data.thumbnail'() {
 						CustomTheme.updateSettings();
 						saveChanges();
 					},
@@ -227,7 +221,7 @@ const CustomTheme = {
 
 							<div id="theme_list">
 								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)" @contextmenu="openContextMenu(theme, $event)">
-									<div class="theme_preview" :class="{ borders: theme.borders }" :theme_id="theme.id" :style="getThemeThumbnailStyle(theme)">
+									<div class="theme_preview" :class="{borders: theme.borders}" :style="getThemeThumbnailStyle(theme)">
 										<div class="theme_preview_header">
 											<span class="theme_preview_text" style="width: 20px;" />
 											<div class="theme_preview_menu_header">
@@ -305,33 +299,6 @@ const CustomTheme = {
 							</div>
 	
 						</div>
-
-						<div v-if="open_category == 'thumbnail'">
-							<h2 class="i_b">${tl('layout.thumbnail')}</h2>
-							<div class="theme_preview custom_thumbnail_preview" :class="{ borders: data.borders }" :theme_id="data.id" :style="getThemeThumbnailStyle(data)">
-								<div class="theme_preview_header">
-									<span class="theme_preview_text" style="width: 20px;" />
-									<div class="theme_preview_menu_header">
-										<span class="theme_preview_text" style="width: 34px;" />
-									</div>
-									<span class="theme_preview_text" style="width: 45px;" />
-								</div>
-								<div class="theme_preview_menu">
-									<span class="theme_preview_text" style="width: 23px;" />
-									<span class="theme_preview_text" style="width: 16px;" />
-									<span class="theme_preview_text" style="width: 40px;" />
-								</div>
-								<div class="theme_preview_window">
-									<div class="theme_preview_sidebar"></div>
-									<div class="theme_preview_center"></div>
-									<div class="theme_preview_sidebar"></div>
-								</div>
-							</div>
-							<div id="thumbnail_editor">
-								<vue-prism-editor v-model="data.thumbnail" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
-							</div>
-	
-						</div>
 	
 					</div>`
 			},
@@ -369,7 +336,7 @@ const CustomTheme = {
 						CustomTheme.data.colors[scope_key] = last_color;
 						field.spectrum('set', last_color);
 					},
-					beforeShow() {
+					beforeShow(a, b) {
 						last_color = CustomTheme.data.colors[scope_key];
 						field.spectrum('set', last_color);
 					}
@@ -418,7 +385,6 @@ const CustomTheme = {
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.color, '--color-brush-outline');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();
@@ -431,33 +397,7 @@ const CustomTheme = {
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
 		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
 		$('style#theme_css').text(CustomTheme.data.css);
-		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
-	},
-	loadThumbnailStyles() {
-		let split_regex = (isApp || window.chrome) ? new RegExp('(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")', 'g') : null;
-		if (!split_regex) return;
-		let thumbnailStyles = '\n';
-		const style = document.createElement('style');
-		document.head.appendChild(style);
-		for (const theme of CustomTheme.themes) {
-			style.textContent = theme.thumbnail;
-			const sheet = style.sheet;
-			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
-			}
-		}
-		if (CustomTheme.data.customized) {
-			style.textContent = CustomTheme.data.thumbnail;
-			const sheet = style.sheet;
-			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
-			}
-		}
-		document.head.removeChild(style);
-		$('style#theme_thumbnail_css').text(thumbnailStyles);
 	},
 	loadTheme(theme) {
 		var app = CustomTheme.data;
@@ -492,8 +432,6 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
-		if (!theme.thumbnail) theme.thumbnail = '';
-		Merge.string(app, theme, 'thumbnail');
 		this.updateColors();
 		this.updateSettings();
 	},
@@ -575,6 +513,24 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	//Only interface
+	new Action('reset_layout', {
+		icon: 'replay',
+		category: 'blockbench',
+		click: function () {
+			Interface.data = $.extend(true, {}, Interface.default_data)
+			Interface.data.left_bar.forEach((id) => {
+				$('#left_bar').append(Interface.Panels[id].node)
+			})
+			Interface.data.right_bar.forEach((id) => {
+				$('#right_bar').append(Interface.Panels[id].node)
+			})
+			updateInterface()
+		}
+	})
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
 })
+
+
+
