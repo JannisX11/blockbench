@@ -5,7 +5,7 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.10", "type": "h2"},
+			{"text": "Welcome to Blockbench 4.10", "type": "h3"},
 			{"text": "The Knife Tool Update!", "type": "h1"},
 			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.10.0)!"}
 		],

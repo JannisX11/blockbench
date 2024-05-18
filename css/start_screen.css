@@ -207,8 +207,10 @@
 	}
 	#start_screen div.graphic.graphic_icon i {
 		font-size: 40px;
-		width: 12px;
-		margin-top: 6px;
+		width: 42px;
+		max-width: unset;
+		margin-top: 4px;
+		margin-right: -20px;
 	}
 	#start_screen .start_screen_graphic_description {
 		bottom: 15px;
