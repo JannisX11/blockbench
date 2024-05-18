@@ -603,8 +603,8 @@ function updateKeyframeSelection() {
 		}
 		let has_expressions = false;
 		if (kf.transform) {
-			has_expressions = !!kf.data_points.find(point => {
-				return !isStringNumber(point.x) || !isStringNumber(point.y) ||! isStringNumber(point.z);
+			has_expressions = !!kf.data_points.find((point, i) => {
+				return kf.getArray(i).find(v => typeof v == 'string');
 			})
 		}
 		if (has_expressions != kf.has_expressions) {
