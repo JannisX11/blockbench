@@ -494,7 +494,7 @@ var codec = new Codec('modded_entity', {
 			let group_snippets = [];
 			for (var group of all_groups) {
 				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
-				if (group.is_rotation_subgroup) continue;
+				if (group.is_rotation_subgroup && Templates.get('model_part')) continue;
 				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
