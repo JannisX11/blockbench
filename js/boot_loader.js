@@ -132,6 +132,8 @@ onVueSetup.funcs.forEach((func) => {
 	}
 })
 
+AutoBackup.initialize();
+
 if (isApp) {
 	initializeDesktopApp();
 } else {

@@ -528,30 +528,6 @@ onVueSetup(async function() {
 	if (settings.streamer_mode.value) {
 		updateStreamerModeNotification()
 	}
-	
-	//Backup Model
-	let has_backups = await AutoBackup.hasBackups();
-	if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
-
-		let section = addStartScreenSection({
-			color: 'var(--color-back)',
-			graphic: {type: 'icon', icon: 'fa-archive'},
-			insert_before: 'start_files',
-			text: [
-				{type: 'h2', text: tl('message.recover_backup.title')},
-				{text: tl('message.recover_backup.message')},
-				{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
-					AutoBackup.recoverAllBackups().then(() => {
-						section.delete();
-					});
-				}},
-				{type: 'button', text: tl('dialog.discard'), click: (e) => {
-					AutoBackup.removeAllBackups();
-					section.delete();
-				}}
-			]
-		})
-	}
 });
 
 
