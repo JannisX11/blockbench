@@ -269,7 +269,7 @@ const AutoBackup = {
 					graphic: {type: 'icon', icon: 'fa-archive'},
 					insert_before: 'start_files',
 					text: [
-						{type: 'h2', text: tl('message.recover_backup.title')},
+						{type: 'h3', text: tl('message.recover_backup.title')},
 						{text: tl('message.recover_backup.message')},
 						{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
 							AutoBackup.recoverAllBackups().then(() => {

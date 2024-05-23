@@ -21,6 +21,7 @@
 	}
 	#start_screen button {
 		margin-right: 4px;
+		margin-top: 4px;
 	}
 	#start_screen .recent_project {
 		margin: 2px 0;
