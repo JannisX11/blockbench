@@ -1679,7 +1679,11 @@ const Painter = {
 				} else {
 					preset.color = null;
 				}
-				
+				if (form.pixel_perfect) {
+					preset.pixel_perfect = true;
+				} else {
+					preset.pixel_perfect = false;
+				}
 				if (form.shape !== 'unset') {
 					preset.shape = form.shape;
 				} else {
