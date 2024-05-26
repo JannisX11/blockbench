@@ -78,6 +78,9 @@
 			"certificateSubjectName": "Jannis Tobias Petersen",
 			"target": "nsis"
 		},
+		"nsis": {
+			"license": "LICENSE.MD"
+		},
 		"linux": {
 			"artifactName": "${productName}_${version}.${ext}",
 			"target": [
