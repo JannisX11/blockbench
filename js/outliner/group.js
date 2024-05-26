@@ -454,14 +454,18 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
+			function applyTexture(texture_value, undo_message) {
+				let affected_groups = Group.all.filter(g => g.selected);
+				Undo.initEdit({outliner: true});
+				for (let group of affected_groups) {
+					group.texture = texture_value;
+				}
+				Undo.finishEdit(undo_message);
+				Canvas.updateAllFaces();
+			}
 			let arr = [
 				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(group) {
-					Undo.initEdit({group: group});
-					group.texture = '';
-					Undo.finishEdit('Unassign texture from group');
-					group.forEachChild(child => {
-						if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-					})
+					applyTexture('', 'Unassign texture from group');
 				}}
 			]
 			Texture.all.forEach(t => {
@@ -469,12 +473,7 @@ class Group extends OutlinerNode {
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
 					click(group) {
-						Undo.initEdit({group: group});
-						group.texture = t.uuid;
-						Undo.finishEdit('Apply texture to group');
-						group.forEachChild(child => {
-							if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-						})
+						applyTexture(t.uuid, 'Apply texture to group');
 					}
 				})
 			})

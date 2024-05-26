@@ -2081,7 +2081,7 @@
 	"dialog.animated_texture_editor.add_frame": "Add Frame",
 	"dialog.animated_texture_editor.resize_frames": "Resize Frames...",
 	"dialog.animated_texture_editor.apply": "Apply",
-	"dialog.add_primitive.shape.rounded_cuboid": "Cuboid with Edges",
+	"dialog.add_primitive.shape.beveled_cuboid": "Beveled Cuboid",
 	"dialog.add_primitive.edge_size": "Edge Size",
 	"dialog.change_animation_speed.speed": "Speed",
 	"dialog.change_animation_speed.adjust_snapping": "Adjust Snapping",

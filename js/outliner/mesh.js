@@ -111,19 +111,29 @@ class MeshFace extends Face {
 				let matrix_x = x-start_offset[0];
 				let matrix_y = y-start_offset[1];
 
-				let inside = ( pointInsidePolygon(x+0.00001, y+0.00001)
-							|| pointInsidePolygon(x+0.99999, y+0.00001)
-							|| pointInsidePolygon(x+0.00001, y+0.99999)
-							|| pointInsidePolygon(x+0.99999, y+0.99999));
+				let inside = ( pointInsidePolygon(x+0.000001, y+0.000001)
+							|| pointInsidePolygon(x+0.999999, y+0.000001)
+							|| pointInsidePolygon(x+0.000001, y+0.999999)
+							|| pointInsidePolygon(x+0.999999, y+0.999999));
 				if (!inside) {
 					let i = 0;
-					let px_rect = [[x, y], [x+0.99999, y+0.99999]]
+					let px_rect = [[x, y], [x+0.999999, y+0.999999]]
 					for (let vkey of sorted_vertices) {
-						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0]
-						if (pointInRectangle(face.uv[vkey], ...px_rect)) {
+						if (!face.uv[vkey]) continue;
+						let uv_a = [
+							face.uv[vkey][0] * factor_x,
+							face.uv[vkey][1] * factor_y,
+						];
+						if (pointInRectangle(uv_a, ...px_rect)) {
 							inside = true; break;
 						}
-						if (lineIntersectsReactangle(face.uv[vkey], face.uv[vkey_b], ...px_rect)) {
+						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
+						if (!face.uv[vkey_b]) continue;
+						let uv_b = [
+							face.uv[vkey_b][0] * factor_x,
+							face.uv[vkey_b][1] * factor_y,
+						];
+						if (lineIntersectsReactangle(uv_a, uv_b, ...px_rect)) {
 							inside = true; break;
 						}
 						i++;
@@ -817,7 +827,7 @@ class Mesh extends OutlinerElement {
 		var scope = this;
 		if (faces === true) {
 			var sides = Object.keys(this.faces);
-		} else if (faces === undefined) {
+		} else if (!faces) {
 			var sides = this.getSelectedFaces()
 		} else {
 			var sides = faces
@@ -872,21 +882,23 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
 			var arr = [
-				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(cube) {
-					cube.forSelected(function(obj) {
-						obj.applyTexture(false, true)
+				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(mesh) {
+					let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
+					mesh.forSelected((obj) => {
+						obj.applyTexture(false, all_faces)
 					}, 'texture blank')
 				}}
 			]
-			Texture.all.forEach(function(t) {
+			Texture.all.forEach((t) => {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					click: function(cube) {
-						cube.forSelected(function(obj) {
-							obj.applyTexture(t, true)
+					click(mesh) {
+						let all_faces = BarItems.selection_mode.value != 'face' || Mesh.selected[0]?.getSelectedFaces().length == 0;
+						mesh.forSelected((obj) => {
+							obj.applyTexture(t, all_faces)
 						}, 'apply texture')
 					}
 				})
@@ -1153,12 +1165,19 @@ new NodePreviewController(Mesh, {
 				? [tex.getUVWidth(), tex.getUVHeight()]
 				: [Project.texture_width, Project.texture_height];
 
+			let first_values;
 			face.vertices.forEach((key, i) => {
 				let u = (face.uv[key] ? face.uv[key][0] : 0) / uv_size[0];
 				let v = (face.uv[key] ? face.uv[key][1] : 0) / uv_size[1];
 				if (stretch > 1) {
 					v = (v + frame) / stretch;
 				}
+				// Fix grainy visuals when UV all in one point
+				if (!first_values) {
+					first_values = [u, v];
+				} else if (first_values[0] == u && first_values[1] == v) {
+					i < 2 ? u += 0.00005 : v += 0.00005;
+				} 
 				uv_array.push(u, 1-v);
 			})
 		}
