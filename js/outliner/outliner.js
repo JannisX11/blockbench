@@ -1899,8 +1899,6 @@ class Face {
 		let tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (!this.texture) {
-			copy.texture = false;
 		} else if (tex instanceof Texture && project) {
 			copy.texture = Texture.all.indexOf(tex)
 		} else if (tex instanceof Texture) {
