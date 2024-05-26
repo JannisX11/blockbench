@@ -172,6 +172,9 @@ function createWindow(second_instance, options = {}) {
 	return win;
 }
 
+app.commandLine.appendSwitch("gpu")
+app.commandLine.appendSwitch("gpu-launcher")
+app.commandLine.appendSwitch("in-process-gpu")
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
 app.commandLine.appendSwitch('ignore-gpu-blocklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
