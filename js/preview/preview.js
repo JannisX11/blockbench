@@ -947,7 +947,7 @@ class Preview {
 
 				let vertices = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedEdges(true);
+				let faces = data.element.getSelectedFaces(true);
 
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
