@@ -119,6 +119,7 @@
 
 	"format.free": "Generic Model",
 	"format.free.desc": "Model without restrictions. For game engines, rendering etc.",
+	"format.free.info.3d_printing": "3D Printing",
 	"format.free.info.meshes": "In this format, you can create low poly models using cubes and custom shaped meshes.",
 	"format.free.info.limitation": "Models cannot be loaded into games that need specialized formats, such as Minecraft.",
 
