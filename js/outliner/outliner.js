@@ -1874,7 +1874,7 @@ class Face {
 		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
 			return Texture.all.findInArray('uuid', this.element.parent.texture);
 		}
-		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && !this.texture))) {
+		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && (Format.per_group_texture || !this.texture)))) {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {

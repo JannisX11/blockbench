@@ -2055,8 +2055,8 @@ SharedActions.add('paste', {
 			layer.setSize(frame.width, frame.height);
 			layer.ctx.putImageData(image_data, 0, 0);
 			if (!offset) layer.center();
-			texture.layers.push(layer);
-			layer.select();
+
+			layer.addForEditing();
 			layer.setLimbo();
 			texture.updateChangesAfterEdit();
 
