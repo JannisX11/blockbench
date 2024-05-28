@@ -1566,8 +1566,10 @@ Interface.definePanels(function() {
 					let key = e1.target.getAttribute('toggle');
 					let previous_values = {};
 					let value = original[key];
+					let toggle_config = Outliner.buttons[key];
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
+					if (!toggle_config) return;
 					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
 
 					function move(e2) {
@@ -1588,11 +1590,15 @@ Interface.definePanels(function() {
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
 								if (node instanceof Group) {
-									node.forEachChild(node => new_affected.push(node))
+									if (toggle_config.change_children != false) {
+										node.forEachChild(node => {
+											if (node.buttons.find(b => b.id == key)) new_affected.push(node)
+										});
+									}
 									affected_groups.push(node);
-								} else if (node.selected && selected.length > 1) {
-									selected.forEach(el => {
-										if (node[key] != undefined) new_affected.safePush(el);
+								} else if (node.selected && Outliner.selected.length > 1) {
+									Outliner.selected.forEach(el => {
+										if (el.buttons.find(b => b.id == key)) new_affected.safePush(el);
 									})
 								}
 								new_affected.forEach(node => {
