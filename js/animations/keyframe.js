@@ -1200,6 +1200,15 @@ BARS.defineActions(function() {
 									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
 								}
 								time = Timeline.snapTime(time);
+								if (Math.epsilon(time, Animation.selected.length, 0.004) && formResult.offset && !occupied_times.includes(0)) {
+									// Copy keyframe to start
+									occupied_times.push(0);
+									let new_kf = opposite_animator.createKeyframe(old_kf, 0, channel, false, false)
+									if (new_kf) {
+										new_kf.flip(0);
+										new_keyframes.push(new_kf);
+									}
+								}
 								if (occupied_times.includes(time)) return;
 								occupied_times.push(time);
 								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
