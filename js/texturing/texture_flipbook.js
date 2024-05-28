@@ -209,7 +209,7 @@ BARS.defineActions(function() {
 
 				} else if (Format.id == 'java_block') {
 					docs = 'https://minecraft.wiki/w/Resource_pack#Animation';
-					file_name = texture.name + '.mcmeta';
+					file_name = (texture.name.match(/\.png$/i) ? texture.name : texture.name + '.png') + '.mcmeta';
 					content = texture.getMCMetaContent();
 					text = compileJSON(content);
 				}
