@@ -1077,6 +1077,9 @@ class Preview {
 				x = Math.round(x + offset) - offset;
 				y = Math.round(y + offset) - offset;
 			}
+			if (texture.currentFrame) {
+				y -= texture.display_height * texture.currentFrame;
+			}
 			// Position
 			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
 			let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
