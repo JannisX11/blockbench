@@ -428,14 +428,15 @@ class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return copy;
 	}
-	select(event, isOutlinerClick) {
+	select(event, is_outliner_click) {
 		if (Modes.animate && !this.constructor.animator) {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
+		if (event instanceof PointerEvent && event.pointerType == 'touch') return;
 		//Shift
 		var just_selected = []
-		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && is_outliner_click) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -1397,7 +1398,7 @@ Interface.definePanels(function() {
 				v-bind:style="{'padding-left': indentation + 'px'}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
-				@touchstart="node.select($event)" :title="node.title"
+				@touchstart="node.select($event, true)" :title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
 				//Opener
