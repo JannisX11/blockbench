@@ -589,6 +589,7 @@ class Keyframe {
 function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
 		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
+		if (data_point && !kf.data_points[data_point]) return;
 		kf.set(axis, value, data_point);
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
@@ -1200,6 +1201,15 @@ BARS.defineActions(function() {
 									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
 								}
 								time = Timeline.snapTime(time);
+								if (Math.epsilon(time, Animation.selected.length, 0.004) && formResult.offset && !occupied_times.includes(0)) {
+									// Copy keyframe to start
+									occupied_times.push(0);
+									let new_kf = opposite_animator.createKeyframe(old_kf, 0, channel, false, false)
+									if (new_kf) {
+										new_kf.flip(0);
+										new_keyframes.push(new_kf);
+									}
+								}
 								if (occupied_times.includes(time)) return;
 								occupied_times.push(time);
 								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
@@ -1454,6 +1464,17 @@ Interface.definePanels(function() {
 						}
 					}
 					return channel;
+				},
+				firstKeyframe() {
+					let data_point_length = 0;
+					let keyframe;
+					for (let kf of this.keyframes) {
+						if (kf.data_points.length > data_point_length) {
+							keyframe = kf;
+							data_point_length = kf.data_points.length;
+						}
+					}
+					return keyframe;
 				}
 			},
 			template: `
@@ -1466,7 +1487,7 @@ Interface.definePanels(function() {
 							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
 							<div
 								class="in_list_button"
-								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points && keyframes[0].interpolation !== 'catmullrom'"
+								v-if="firstKeyframe.animator.channels[channel] && firstKeyframe.data_points.length < firstKeyframe.animator.channels[channel].max_data_points && firstKeyframe.interpolation !== 'catmullrom'"
 								v-on:click.stop="addDataPoint()"
 								title="${ tl('panel.keyframe.change_effect_file') }"
 							>
@@ -1474,19 +1495,19 @@ Interface.definePanels(function() {
 							</div>
 						</div>
 
-						<ul class="list" :style="{overflow: keyframes[0].data_points.length > 1 ? 'auto' : 'visible'}">
+						<ul class="list" :style="{overflow: firstKeyframe.data_points.length > 1 ? 'auto' : 'visible'}">
 
-							<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
+							<div v-for="(data_point, data_point_i) of firstKeyframe.data_points" class="keyframe_data_point">
 
-								<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
-									<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
+								<div class="keyframe_data_point_header" v-if="firstKeyframe.data_points.length > 1">
+									<label>{{ firstKeyframe.transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
 									<div class="flex_fill_line"></div>
 									<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point_i)" title="${ tl('panel.keyframe.remove_data_point') }">
 										<i class="material-icons">clear</i>
 									</div>
 								</div>
 
-								<template v-if="channel == 'scale' && keyframes[0].uniform && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
+								<template v-if="channel == 'scale' && firstKeyframe.uniform && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
 									<div
 										class="bar flex"
 										id="keyframe_bar_uniform_scale"
@@ -1533,7 +1554,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
-										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, keyframes[0])">
+										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, firstKeyframe)">
 											<i class="material-icons">upload_file</i>
 										</div>
 									</div>
