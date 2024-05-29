@@ -733,7 +733,7 @@ function updateStreamerModeNotification() {
 			color: 'var(--color-stream)',
 			text_color: 'var(--color-light)',
 			text: [
-				{type: 'h1', text: tl('interface.streamer_mode_on'), click() {
+				{type: 'h2', text: tl('interface.streamer_mode_on'), click() {
 					Settings.openDialog({search_term: tl('settings.streamer_mode')})
 				}}
 			]

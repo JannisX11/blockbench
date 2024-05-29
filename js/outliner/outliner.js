@@ -428,14 +428,15 @@ class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return copy;
 	}
-	select(event, isOutlinerClick) {
+	select(event, is_outliner_click) {
 		if (Modes.animate && !this.constructor.animator) {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
+		if (event instanceof PointerEvent && event.pointerType == 'touch') return;
 		//Shift
 		var just_selected = []
-		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && is_outliner_click) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -1397,7 +1398,7 @@ Interface.definePanels(function() {
 				v-bind:style="{'padding-left': indentation + 'px'}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
-				@touchstart="node.select($event)" :title="node.title"
+				@touchstart="node.select($event, true)" :title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
 				//Opener
@@ -1566,8 +1567,10 @@ Interface.definePanels(function() {
 					let key = e1.target.getAttribute('toggle');
 					let previous_values = {};
 					let value = original[key];
+					let toggle_config = Outliner.buttons[key];
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
+					if (!toggle_config) return;
 					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
 
 					function move(e2) {
@@ -1588,11 +1591,15 @@ Interface.definePanels(function() {
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
 								if (node instanceof Group) {
-									node.forEachChild(node => new_affected.push(node))
+									if (toggle_config.change_children != false) {
+										node.forEachChild(node => {
+											if (node.buttons.find(b => b.id == key)) new_affected.push(node)
+										});
+									}
 									affected_groups.push(node);
-								} else if (node.selected && selected.length > 1) {
-									selected.forEach(el => {
-										if (node[key] != undefined) new_affected.safePush(el);
+								} else if (node.selected && Outliner.selected.length > 1) {
+									Outliner.selected.forEach(el => {
+										if (el.buttons.find(b => b.id == key)) new_affected.safePush(el);
 									})
 								}
 								new_affected.forEach(node => {
@@ -1874,7 +1881,7 @@ class Face {
 		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
 			return Texture.all.findInArray('uuid', this.element.parent.texture);
 		}
-		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && !this.texture))) {
+		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && (Format.per_group_texture || !this.texture)))) {
 			return Texture.getDefault();
 		}
 		if (typeof this.texture === 'string') {
@@ -1899,8 +1906,6 @@ class Face {
 		let tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (!this.texture) {
-			copy.texture = false;
 		} else if (tex instanceof Texture && project) {
 			copy.texture = Texture.all.indexOf(tex)
 		} else if (tex instanceof Texture) {

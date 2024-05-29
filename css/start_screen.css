@@ -21,6 +21,7 @@
 	}
 	#start_screen button {
 		margin-right: 4px;
+		margin-top: 4px;
 	}
 	#start_screen .recent_project {
 		margin: 2px 0;
@@ -183,6 +184,7 @@
 	div.start_screen_right > ul {
 		max-height: 470px;
     	padding-right: 5px;
+		overflow-x: hidden;
 		overflow-y: auto;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
 		grid-gap: 5px;
@@ -207,8 +209,10 @@
 	}
 	#start_screen div.graphic.graphic_icon i {
 		font-size: 40px;
-		width: 12px;
-		margin-top: 6px;
+		width: 42px;
+		max-width: unset;
+		margin-top: 4px;
+		margin-right: -20px;
 	}
 	#start_screen .start_screen_graphic_description {
 		bottom: 15px;

@@ -684,55 +684,56 @@ class Cube extends OutlinerElement {
 		if (scope.autouv === 2) {
 			//Relative UV
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
+			let offset = Format.centered_grid ? 8 : 0;
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
 				switch (side) {
 					case 'north':
 					uv = [
-						pw - scope.to[0],
+						pw - (scope.to[0]+offset),
 						ph - scope.to[1],
-						pw - scope.from[0],
+						pw - (scope.from[0]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'south':
 					uv = [
-						scope.from[0],
+						(scope.from[0]+offset),
 						ph - scope.to[1],
-						scope.to[0],
+						(scope.to[0]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'west':
 					uv = [
-						scope.from[2],
+						(scope.from[2]+offset),
 						ph - scope.to[1],
-						scope.to[2],
+						(scope.to[2]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'east':
 					uv = [
-						pw - scope.to[2],
+						pw - (scope.to[2]+offset),
 						ph - scope.to[1],
-						pw - scope.from[2],
+						pw - (scope.from[2]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'up':
 					uv = [
-						scope.from[0],
-						scope.from[2],
-						scope.to[0],
-						scope.to[2],
+						(scope.from[0]+offset),
+						(scope.from[2]+offset),
+						(scope.to[0]+offset),
+						(scope.to[2]+offset),
 					];
 					break;
 					case 'down':
 					uv = [
-						scope.from[0],
-						ph - scope.to[2],
-						scope.to[0],
-						ph - scope.from[2],
+						(scope.from[0]+offset),
+						ph - (scope.to[2]+offset),
+						(scope.to[0]+offset),
+						ph - (scope.from[2]+offset),
 					];
 					break;
 				}

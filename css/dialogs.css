@@ -1890,10 +1890,12 @@
 	li.validator_dialog_problem.validator_warning > i {
 		color: var(--color-warning);
 		margin: 3px 4px;
+		flex-shrink: 0;
 	}
 	li.validator_dialog_problem.validator_error > i {
 		color: var(--color-error);
 		margin: 3px 4px;
+		flex-shrink: 0;
 	}
 	li.validator_dialog_problem span {
 		flex-grow: 1;
