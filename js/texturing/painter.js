@@ -285,6 +285,7 @@ const Painter = {
 		delete Painter.current.texture;
 		delete Painter.current.textures;
 		delete Painter.current.uv_rects;
+		delete Painter.current.uv_islands;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -331,6 +332,7 @@ const Painter = {
 					let island = Painter.getMeshUVIsland(Painter.current.face, current_face);
 					island.forEach(fkey => {
 						let face = Mesh.selected[0].faces[fkey];
+						if (!face) return;
 						for (let vkey in face.uv) {
 							min_x = Math.min(min_x, face.uv[vkey][0]); max_x = Math.max(max_x, face.uv[vkey][0]);
 							min_y = Math.min(min_y, face.uv[vkey][1]); max_y = Math.max(max_y, face.uv[vkey][1]);
