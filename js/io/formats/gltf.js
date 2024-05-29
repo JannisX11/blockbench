@@ -334,7 +334,6 @@ var codec = new Codec('gltf', {
 			Outliner.root.forEach(node => {
 				if (node instanceof Group) {
 					let armature = buildSkinnedMesh(node, options.scale);
-					console.log(armature)
 					gl_scene.add(armature);
 				} else {
 					gl_scene.add(node.mesh);
