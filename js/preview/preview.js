@@ -947,7 +947,7 @@ class Preview {
 
 				let vertices = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedEdges(true);
+				let faces = data.element.getSelectedFaces(true);
 
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
 					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
@@ -1076,6 +1076,9 @@ class Preview {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
 				x = Math.round(x + offset) - offset;
 				y = Math.round(y + offset) - offset;
+			}
+			if (texture.currentFrame) {
+				y -= texture.display_height * texture.currentFrame;
 			}
 			// Position
 			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);

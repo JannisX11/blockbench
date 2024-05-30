@@ -257,8 +257,32 @@ const AutoBackup = {
 				console.log(`Upgraded ${Object.keys(parsed_backup_models).length} project back-ups to indexedDB`);
 			}
 		}
-		request.onsuccess = function() {
+		request.onsuccess = async function() {
 			AutoBackup.db = request.result;
+			
+			// Start Screen Message
+			let has_backups = await AutoBackup.hasBackups();
+			if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
+
+				let section = addStartScreenSection({
+					color: 'var(--color-back)',
+					graphic: {type: 'icon', icon: 'fa-archive'},
+					insert_before: 'start_files',
+					text: [
+						{type: 'h3', text: tl('message.recover_backup.title')},
+						{text: tl('message.recover_backup.message')},
+						{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
+							AutoBackup.recoverAllBackups().then(() => {
+								section.delete();
+							});
+						}},
+						{type: 'button', text: tl('dialog.discard'), click: (e) => {
+							AutoBackup.removeAllBackups();
+							section.delete();
+						}}
+					]
+				})
+			}
 		}
 	},
 	async backupOpenProject() {
@@ -347,7 +371,6 @@ const AutoBackup = {
 		});
 	}
 }
-AutoBackup.initialize();
 
 
 setInterval(function() {
