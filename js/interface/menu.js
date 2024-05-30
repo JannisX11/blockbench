@@ -664,9 +664,14 @@ class Menu {
 			this.structure.remove(action);
 			this.structure.remove(action.id);
 			action.menus.remove(this);
+		} else if (this.structure.includes(path)) {
+			this.structure.remove(path);
 		}
 		if (path === undefined) path = '';
-		if (typeof path == 'string') path = path.split('.');
+		if (typeof path == 'string') {
+			path = path.split('.');
+		}
+		if (path instanceof Array == false) return;
 
 		function traverse(arr, layer) {
 			if (!isNaN(parseInt(path[layer]))) {
