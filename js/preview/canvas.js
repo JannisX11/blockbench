@@ -36,6 +36,78 @@ const Reusable = {
 	euler2: new THREE.Euler(),
 }
 
+// Aza note:
+// ---------------------------------------
+// Not sure about the pertinence of doing this, but my reasoning is that it saves us 
+// from copying the exact same shaders twice for both solid view mode variants (monochromatic & colored).
+const SolidMaterialShaders = {
+	vertShader: `
+		attribute float highlight;
+
+		uniform bool SHADE;
+
+		varying float light;
+		varying float lift;
+
+		float AMBIENT = 0.1;
+		float XFAC = -0.05;
+		float ZFAC = 0.05;
+
+		void main()
+		{
+
+			if (SHADE) {
+
+				vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
+
+				light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
+
+			} else {
+
+				light = 1.0;
+
+			}
+
+			if (highlight == 2.0) {
+				lift = 0.3;
+			} else if (highlight == 1.0) {
+				lift = 0.12;
+			} else {
+				lift = 0.0;
+			}
+			
+			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			gl_Position = projectionMatrix * mvPosition;
+		}`,
+	fragShader: `
+		#ifdef GL_ES
+		precision ${isApp ? 'highp' : 'mediump'} float;
+		#endif
+
+		uniform bool SHADE;
+		uniform float BRIGHTNESS;
+		uniform vec3 base;
+
+		varying float light;
+		varying float lift;
+
+		void main(void)
+		{
+
+			gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
+
+			if (lift > 0.1) {
+				gl_FragColor.b = gl_FragColor.b * 1.16;
+				gl_FragColor.g = gl_FragColor.g * 1.04;
+			}
+			if (lift > 0.2) {
+				gl_FragColor.r = gl_FragColor.r * 0.6;
+				gl_FragColor.g = gl_FragColor.g * 0.7;
+			}
+
+		}`
+}
+
 const Canvas = {
 	// Stores various colors for the 3D scene
 	gizmo_colors,
@@ -58,81 +130,15 @@ const Canvas = {
 	wireframeMaterial: new THREE.MeshBasicMaterial({
 		wireframe: true
 	}),
-	solidMaterial: (function() {
-		var vertShader = `
-			attribute float highlight;
-
-			uniform bool SHADE;
-
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.1;
-			float XFAC = -0.05;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
-
-					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-
-				}
-
-				if (highlight == 2.0) {
-					lift = 0.3;
-				} else if (highlight == 1.0) {
-					lift = 0.12;
-				} else {
-					lift = 0.0;
-				}
-				
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-
-			uniform bool SHADE;
-			uniform float BRIGHTNESS;
-			uniform vec3 base;
-
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-
-				gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
-
-				if (lift > 0.1) {
-					gl_FragColor.b = gl_FragColor.b * 1.16;
-					gl_FragColor.g = gl_FragColor.g * 1.04;
-				}
-				if (lift > 0.2) {
-					gl_FragColor.r = gl_FragColor.r * 0.6;
-					gl_FragColor.g = gl_FragColor.g * 0.7;
-				}
-
-			}`
-
+	monochromaticSolidMaterial: (function() {
 		return new THREE.ShaderMaterial({
 			uniforms: {
 				SHADE: {type: 'bool', value: settings.shading.value},
 				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
 				base: {value: gizmo_colors.solid}
 			},
-			vertexShader: vertShader,
-			fragmentShader: fragShader,
+			vertexShader: SolidMaterialShaders.vertShader,
+			fragmentShader: SolidMaterialShaders.fragShader,
 			side: THREE.DoubleSide
 		});
 	})(),
@@ -314,6 +320,7 @@ const Canvas = {
 		})
 	})(),
 	emptyMaterials: [],
+	coloredSolidMaterials:[],
 	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -397,17 +404,32 @@ const Canvas = {
 		
 		markerColors.forEach(function(color, i) {
 			if (Canvas.emptyMaterials[i]) return;
+
+			// Define uniforms that all marker colored shaders share
+			let commonUniforms = {
+				SHADE: {type: 'bool', value: settings.shading.value},
+				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
+				base: {value: new THREE.Color().set(color.pastel)}
+			}
+
+			// Empty texture materials
 			Canvas.emptyMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: {
 					map: {type: 't', value: tex},
-					SHADE: {type: 'bool', value: settings.shading.value},
-					BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
-					base: {value: new THREE.Color().set(color.pastel)}
+					...commonUniforms
 				},
 				vertexShader: vertShader,
 				fragmentShader: fragShader,
 				side: THREE.DoubleSide,
 			})
+
+			// Colored solid materials
+			Canvas.coloredSolidMaterials[i] = new THREE.ShaderMaterial({
+				uniforms: commonUniforms,
+				vertexShader: SolidMaterialShaders.vertShader,
+				fragmentShader: SolidMaterialShaders.fragShader,
+				side: THREE.DoubleSide
+			});
 		})
 	},
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
@@ -935,9 +957,12 @@ const Canvas = {
 		if (Canvas.layered_material) {
 			Canvas.layered_material.side = side;
 		}
-		if (Canvas.solidMaterial) {
-			Canvas.solidMaterial.side = side;
+		if (Canvas.monochromaticSolidMaterial) {
+			Canvas.monochromaticSolidMaterial.side = side;
 		}
+		Canvas.coloredSolidMaterials.forEach(function(mat) {
+			mat.side = side
+		})
 		Canvas.emptyMaterials.forEach(function(mat) {
 			mat.side = side
 		})
@@ -1219,8 +1244,11 @@ const Canvas = {
 		Canvas.adaptObjectFaceGeo(cube);
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.solidMaterial
-		
+			mesh.material = Canvas.monochromaticSolidMaterial
+
+		} else if (Project.view_mode === 'colored_solid') {
+			mesh.material = Canvas.coloredSolidMaterials[cube.color]
+
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 

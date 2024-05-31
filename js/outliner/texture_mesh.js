@@ -294,8 +294,11 @@ new NodePreviewController(TextureMesh, {
 		let {mesh} = element;
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.solidMaterial
+			mesh.material = Canvas.monochromaticSolidMaterial
 		
+		} else if (Project.view_mode === 'colored_solid') {
+			mesh.material = Canvas.coloredSolidMaterials[0]
+
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
