@@ -109,6 +109,15 @@ class Property {
 				instance[this.name] =data[this.name];
 			}
 		}
+		else if (this.isObject) {
+			if (typeof data[this.name] === 'object') {
+				if (window.structuredClone) {
+					instance[this.name] = structuredClone(data[this.name]);
+				} else {
+					instance[this.name] = JSON.parse(JSON.stringify(data[this.name]));
+				}
+			}
+		}
 	}
 	copy(instance, target) {
 		if (!Condition(this.condition, instance)) return;
@@ -116,6 +125,12 @@ class Property {
 		if (this.isArray || this.isVector || this.isVector2) {
 			if (instance[this.name] instanceof Array) {
 				target[this.name] = instance[this.name].slice();
+			}
+		} else if (this.isObject) {
+			if (window.structuredClone) {
+				target[this.name] = structuredClone(instance[this.name]);
+			} else {
+				target[this.name] = JSON.parse(JSON.stringify(instance[this.name]));
 			}
 		} else {
 			target[this.name] = instance[this.name];

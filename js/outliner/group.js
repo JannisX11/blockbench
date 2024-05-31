@@ -443,6 +443,7 @@ class Group extends OutlinerNode {
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'edit_bedrock_binding',
+		'edit_group_ik_options',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {
 				icon: 'bubble_chart',
@@ -508,6 +509,7 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
+new Property(Group, 'number', 'color');
 new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
@@ -515,7 +517,7 @@ new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_enti
 new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
-new Property(Group, 'number', 'color');
+new Property(Group, 'object', 'ik_options', {condition: {features: ['animation_mode']}});
 
 new NodePreviewController(Group, {
 	setup(group) {
@@ -743,6 +745,75 @@ BARS.defineActions(function() {
 						Group.selected.bedrock_binding = value;
 						Undo.finishEdit('Edit group binding');
 					}
+				},
+				onCancel() {
+					dialog.hide().delete();
+				}
+			}).show();
+		}
+	})
+	new Action('edit_group_ik_options', {
+		icon: 'rheumatology',
+		category: 'edit',
+		condition: () => Format.animation_mode && Group.selected && NullObject.hasAny() && NullObject.all.find(n => n.ik_target),
+		click: function() {
+			if (!Group.selected) return;
+			if (!Group.selected.ik_options) Group.selected.ik_options = {};
+			let ik_options = Group.selected.ik_options;
+			let dialog = new Dialog({
+				id: 'edit_group_ik_options',
+				title: 'action.edit_group_ik_options',
+				form: {
+					// todo: localization
+					joint_type: {
+						label: 'Joint Type',
+						type: 'select',
+						options: {
+							ball_joint: 'Ball Joint',
+							hinge: 'Hinge',
+						},
+						value: ik_options.joint_type ?? 'ball_joint',
+					},
+					angle_limit: {
+						label: 'Angle Limit',
+						value: ik_options.angle_limit,
+						type: 'vector',
+						dimensions: 2,
+						min: 0,
+						max: 180,
+						toggle_enabled: true,
+						toggle_default: !!ik_options.angle_limit
+					},
+					rotation_axis: {
+						label: 'Rotation Axis',
+						value: ik_options.rotation_axis,
+						type: 'vector',
+						dimensions: 3,
+						min: -1, max: 1, step: 0.1,
+						toggle_enabled: true,
+						toggle_default: !!ik_options.rotation_axis
+					},
+					reference_axis: {
+						label: 'Reference Axis',
+						value: ik_options.reference_axis,
+						type: 'vector',
+						dimensions: 3,
+						min: -1, max: 1, step: 0.1,
+						toggle_enabled: true,
+						toggle_default: !!ik_options.reference_axis
+					},
+				},
+				onConfirm: form_data => {
+					dialog.hide().delete();
+
+					Undo.initEdit({group: Group.selected});
+
+					ik_options.joint_type = form_data.joint_type;
+					ik_options.angle_limit = form_data.angle_limit;
+					ik_options.rotation_axis = form_data.rotation_axis;
+					ik_options.reference_axis = form_data.reference_axis;
+
+					Undo.finishEdit('Edit group IK options');
 				},
 				onCancel() {
 					dialog.hide().delete();

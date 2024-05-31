@@ -1421,6 +1421,8 @@
 	"action.unfold_groups.desc": "Unfold all groups in the outliner",
 	"action.edit_bedrock_binding": "Edit Binding...",
 	"action.edit_bedrock_binding.desc": "Change which bone the geometry is bound to",
+	"action.edit_group_ik_options": "IK Bone Options...",
+	"action.edit_group_ik_options.desc": "Edit IK options and constraints of the selected bone",
 	"action.element_render_order": "Transparency Render Order",
 	"action.element_render_order.default": "Auto",
 	"action.element_render_order.behind": "Behind",
@@ -1962,6 +1964,7 @@
 	"menu.cube.texture.blank": "Blank",
 	"menu.cube.texture.default": "Default",
 	"menu.locator.ignore_inherited_scale": "Ignore Inherited Scale",
+	"menu.null_object.ik_solve_mode": "IK Solve Mode",
 	"menu.null_object.lock_ik_target_rotation": "Lock IK Target Rotation",
 	"menu.texture_mesh.texture_name": "Texture Name...",
 

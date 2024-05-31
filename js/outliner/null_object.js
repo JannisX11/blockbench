@@ -126,6 +126,37 @@ class NullObject extends OutlinerElement {
 					if (Modes.animate) Animator.preview();
 				}
 			},
+			{
+				id: 'ik_solve_mode',
+				name: 'menu.null_object.ik_solve_mode',
+				icon: 'precision_manufacturing',
+				children: [
+					{
+						name: 'Smooth',
+						icon: (clicked) => clicked.ik_solve_mode == 'smooth' ? 'far.fa-dot-circle' : 'far.fa-circle',
+						click(clicked) {
+							Undo.initEdit({elements: NullObject.selected});
+							NullObject.selected.forEach(null_object => {
+								null_object.ik_solve_mode = 'smooth';
+							})
+							Undo.finishEdit('Change null object IK solve mode');
+							if (Modes.animate) Animator.preview();
+						}
+					},
+					{
+						name: 'Tight',
+						icon: (clicked) => clicked.ik_solve_mode == 'tight' ? 'far.fa-dot-circle' : 'far.fa-circle',
+						click(clicked) {
+							Undo.initEdit({elements: NullObject.selected});
+							NullObject.selected.forEach(null_object => {
+								null_object.ik_solve_mode = 'tight';
+							})
+							Undo.finishEdit('Change null object IK solve mode');
+							if (Modes.animate) Animator.preview();
+						}
+					}
+				]
+			},
 			...Outliner.control_menu_group,
 			new MenuSeparator('manage'),
 			'rename',
@@ -137,6 +168,7 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
+	new Property(NullObject, 'string', 'ik_solve_mode', {default: 'smooth'})
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
 	

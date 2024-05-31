@@ -531,7 +531,6 @@ class NullObjectAnimator extends BoneAnimator {
 		this.uuid = uuid;
 		this._name = name;
 
-		this.solver = new FIK.Structure3D(scene);
 		this.chain = new FIK.Chain3D();
 
 		this.position = [];
@@ -631,6 +630,24 @@ class NullObjectAnimator extends BoneAnimator {
 			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false));
 
 			let ik_bone = new FIK.Bone3D(startPoint, endPoint);
+			if (bone.ik_options && Object.keys(bone.ik_options).length) {
+				let rotation_axis = new FIK.V3(1, 0, 0);
+				let reference_axis = new FIK.V3(0, 0, 1);
+				if (bone.ik_options.rotation_axis) {
+					rotation_axis.set(...bone.ik_options.rotation_axis);
+				}
+				if (bone.ik_options.reference_axis) {
+					reference_axis.set(...bone.ik_options.reference_axis);
+				}
+				ik_bone.joint.setHinge(
+					bone.ik_options.joint_type == 'hinge' ? 11 : 10,
+					rotation_axis,
+					bone.ik_options.angle_limit?.[0] ?? 180,
+					bone.ik_options.angle_limit?.[1] ?? 180,
+					reference_axis
+				)
+			}
+
 			this.chain.addBone(ik_bone);
 
 			bone_references.push({
@@ -643,17 +660,17 @@ class NullObjectAnimator extends BoneAnimator {
 			})
 		})
 
-		this.solver.add(this.chain, ik_target , true);
-		this.solver.meshChains[0].forEach(mesh => {
-			mesh.visible = false;
-		})
-
-		this.solver.update();
+		let target_fikv3 = new FIK.V3(ik_target.x, ik_target.y, ik_target.z);
+		if (null_object.ik_solve_mode == 'tight') {
+			this.chain.solveForTarget(target_fikv3);
+		} else {
+			this.chain.solveIK(target_fikv3);
+		}
 		
 		let results = {};
 		bone_references.forEach((bone_ref, i) => {
-			let start = Reusable.vec1.copy(this.solver.chains[0].bones[i].start);
-			let end = Reusable.vec2.copy(this.solver.chains[0].bones[i].end);
+			let start = Reusable.vec1.copy(this.chain.bones[i].start);
+			let end = Reusable.vec2.copy(this.chain.bones[i].end);
 			bones[i].mesh.worldToLocal(start);
 			bones[i].mesh.worldToLocal(end);
 
@@ -703,7 +720,6 @@ class NullObjectAnimator extends BoneAnimator {
 			}
 		}
 
-		this.solver.clear();
 		this.chain.clear();
 		this.chain.lastTargetLocation.set(1e9, 0, 0);
 
