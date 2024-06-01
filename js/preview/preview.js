@@ -2074,8 +2074,12 @@ function updateShading() {
 		material.uniforms.SHADE.value = settings.shading.value;
 		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	})
-	Canvas.solidMaterial.uniforms.SHADE.value = settings.shading.value;
-	Canvas.solidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	Canvas.coloredSolidMaterials.forEach(material => {
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+	})
+	Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
+	Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Blockbench.dispatchEvent('update_scene_shading');
@@ -2098,6 +2102,7 @@ BARS.defineActions(function() {
 		options: {
 			textured: {name: true, icon: 'image', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('textured'))},
 			solid: {name: true, icon: 'fas.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('solid'))},
+			colored_solid: {name: true, icon: 'fas.fa-square-plus', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('colored_solid'))},
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
 			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
