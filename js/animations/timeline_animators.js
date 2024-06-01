@@ -633,13 +633,16 @@ class NullObjectAnimator extends BoneAnimator {
 		let bone_config = {
 			axis_weight: [1, 0.2, 0.2]
 		}
-		for (let iteration = 0; iteration < 70; iteration++) {
-			let iteration_start_value = (70 / (iteration + 10)) * 0.11;
-			bones.forEach((bone, i) => {
-				let bone_weight = ((bones.length-i) / (bones.length * 5));
+		let iteration_count = 25;
+		for (let iteration = 0; iteration < iteration_count; iteration++) {
+			let iteration_start_value = (iteration_count / (iteration + 10)) * 1;
+			//console.log(iteration_start_value)
+			let forBone = (bone) => {
+				let bone_weight = 2 * iteration_weight * ((bones.length-i) / (bones.length * 5));
+				let rotation = bone.mesh.rotation;
+				let fix_rotation = bone.mesh.fix_rotation;
 				for (let axis_number = 0; axis_number < 3; axis_number++) {
 					let axis_letter = getAxisLetter(axis_number);
-					let rotation = bone.mesh.rotation;
 					let sample_value = iteration_start_value * bone_config.axis_weight[axis_number] * bone_weight;
 					let sample_value2 = sample_value * -0.4;
 
@@ -655,23 +658,29 @@ class NullObjectAnimator extends BoneAnimator {
 					rotation[axis_letter] -= sample_value2;
 
 					//let sign = distance - distance2;
-					let sign = distance2 - distance;
+					let sign = (distance2 - distance);
+					//sign = (sign < 0 ? (distance) : (distance2)) * sign
 
 					//let progress = Math.clamp(Math.getLerp(last_distance, 0, distance), -1, 1);
 					//console.log(progress, last_distance, distance);
 					//if (!progress) continue;
 					//let inverse_progress = Math.clamp(1/progress, -10, 10) * 0.01 * sign
-					sample_value *= sign;
+					sample_value *= sign * (window.IKF??0.04);
 
 
-					rotation[axis_letter] += sample_value;
+					rotation[axis_letter] = fix_rotation[axis_letter] + Math.clamp(rotation[axis_letter] - fix_rotation[axis_letter] + sample_value, -0.02, Math.PI);
 					//console.log(sample_value)
 
-					//bone.mesh.updateMatrixWorld();
+					bone.mesh.updateMatrixWorld();
 				}
-			})
+				i++;
+			}
+			let i = 0, iteration_weight = 1;
+			bones.forEach(forBone);
+			i = 0, iteration_weight = 0.2;
+			bones.forEachReverse(forBone);
 		}
-		console.log(calculateTargetDistance())
+		console.log('-------' + calculateTargetDistance())
 
 
 		/**
