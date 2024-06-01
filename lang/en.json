@@ -1126,9 +1126,11 @@
 
 	"action.fill_mode": "Fill Mode",
 	"action.fill_mode.face": "Face",
+	"action.fill_mode.selection": "Selection",
 	"action.fill_mode.color_connected": "Connected Colors",
 	"action.fill_mode.color": "Colors",
 	"action.fill_mode.element": "Element",
+	"action.fill_mode.selected_elements": "Selected Elements",
 	"action.draw_shape_type": "Shape Type",
 	"action.draw_shape_type.rectangle": "Rectangle",
 	"action.draw_shape_type.rectangle_h": "Rectangle (Hollow)",

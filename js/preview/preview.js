@@ -788,7 +788,7 @@ class Preview {
 					}
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
-				if (Modes.paint) {
+				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
 				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
@@ -915,6 +915,10 @@ class Preview {
 
 					} else if (data.element instanceof Mesh && ['edge', 'vertex'].includes(select_mode)) {
 						data.element.select()
+					} else if (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements') {
+						if (!data.element.selected) {
+							data.element.select(event)
+						}
 					} else {
 						data.element.select(event)
 					}

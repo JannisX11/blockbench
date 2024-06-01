@@ -481,51 +481,66 @@ const Painter = {
 			}
 		}
 
-		if (element instanceof Cube && fill_mode === 'element') {
-			ctx.beginPath();
-			for (var face in element.faces) {
-				var tag = element.faces[face]
-				if (tag.getTexture() === texture) {
-					var face_rect = getRectangle(
-						tag.uv[0] * uvFactorX,
-						tag.uv[1] * uvFactorY,
-						tag.uv[2] * uvFactorX,
-						tag.uv[3] * uvFactorY
-					)
-					let animation_offset = texture.currentFrame * texture.display_height;
-					ctx.rect(
-						Math.floor(face_rect.ax),
-						Math.floor(face_rect.ay) + animation_offset,
-						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
-						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
-					)
-				}
-			}
-			ctx.fill()
-
-		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
-			ctx.beginPath();
-			for (var fkey in element.faces) {
-				var face = element.faces[fkey];
-				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
-				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-				
-				let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
-				Painter.current.face_matrices[element.uuid + fkey] = matrix;
-				for (let x in matrix) {
-					for (let y in matrix[x]) {
-						if (!matrix[x][y]) continue;
-						if (!texture.selection.allow(x, y)) continue;
-						x = parseInt(x); y = parseInt(y);
-						ctx.rect(x, y, 1, 1);
+		function paintElement(element) {
+			if (element instanceof Cube) {
+				ctx.beginPath();
+				for (var face in element.faces) {
+					var tag = element.faces[face]
+					if (tag.getTexture() === texture) {
+						var face_rect = getRectangle(
+							tag.uv[0] * uvFactorX,
+							tag.uv[1] * uvFactorY,
+							tag.uv[2] * uvFactorX,
+							tag.uv[3] * uvFactorY
+						)
+						let animation_offset = texture.currentFrame * texture.display_height;
+						ctx.rect(
+							Math.floor(face_rect.ax),
+							Math.floor(face_rect.ay) + animation_offset,
+							Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
+							Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
+						)
 					}
 				}
-			}
-			ctx.fill()
+				ctx.fill()
 
-		} else if (fill_mode === 'face' || fill_mode === 'element') {
+			} else if (element instanceof Mesh) {
+				ctx.beginPath();
+				for (var fkey in element.faces) {
+					var face = element.faces[fkey];
+					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
+					if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+					
+					let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
+					Painter.current.face_matrices[element.uuid + fkey] = matrix;
+					for (let x in matrix) {
+						for (let y in matrix[x]) {
+							if (!matrix[x][y]) continue;
+							if (!texture.selection.allow(x, y)) continue;
+							x = parseInt(x); y = parseInt(y);
+							ctx.rect(x, y, 1, 1);
+						}
+					}
+				}
+				ctx.fill()
+			}
+		}
+
+		if (element instanceof Cube && fill_mode === 'element') {
+			paintElement(element);
+
+		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
+			paintElement(element);
+
+		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {
 			texture.selection.maskCanvas(ctx, offset);
 			ctx.fill();
+
+		} else if (fill_mode === 'selected_elements') {
+			for (let element of Outliner.selected) {
+				paintElement(element);
+			}
+
 		} else {
 			let selection = texture.selection;
 			let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
@@ -2718,8 +2733,10 @@ BARS.defineActions(function() {
 		category: 'paint',
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
-			face: true,
+			face: {name: true, condition: () => !Format.image_editor},
+			selection: {name: true, condition: () => Format.image_editor},
 			element: {name: true, condition: () => !Format.image_editor},
+			selected_elements: {name: true, condition: () => !Format.image_editor},
 			color_connected: true,
 			color: true,
 		}

@@ -205,6 +205,16 @@ BARS.defineActions(function() {
 
 			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
 
+			let fill_mode = BarItems.fill_mode.value;
+			if (!Condition(BarItems.fill_mode.options[fill_mode].condition)) {
+				for (let key in BarItems.fill_mode.options) {
+					if (Condition(BarItems.fill_mode.options[key].condition)) {
+						BarItems.fill_mode.set(key);
+						break;
+					}
+				}
+			}
+
 			UVEditor.vue.setMode('paint');
 			three_grid.visible = false;
 		},

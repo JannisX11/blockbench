@@ -434,8 +434,9 @@ class OutlinerElement extends OutlinerNode {
 			return false;
 		}
 		//Shift
-		var just_selected = []
-		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		var just_selected = [];
+		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements'));
+		if (event && allow_multi_select && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && isOutlinerClick) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -466,7 +467,7 @@ class OutlinerElement extends OutlinerNode {
 			})
 
 		//Control
-		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
+		} else if (event && allow_multi_select && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
 			if (selected.includes(this)) {
 				selected.replace(selected.filter((e) => {
 					return e !== this
