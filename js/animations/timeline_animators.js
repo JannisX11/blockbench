@@ -619,13 +619,76 @@ class NullObjectAnimator extends BoneAnimator {
 			bones.push(source);
 		}
 		if (!bones.length) return;
-		bones.reverse();
 		
 		bones.forEach(bone => {
 			if (bone.mesh.fix_rotation) bone.mesh.rotation.copy(bone.mesh.fix_rotation);
 		})
 
-		bones.forEach((bone, i) => {
+		function calculateTargetDistance() {
+			let current_pos = target.getWorldCenter();
+			let d = ik_target.distanceTo(current_pos);
+			return d;
+		}
+
+		let bone_config = {
+			axis_weight: [1, 0.2, 0.2]
+		}
+		for (let iteration = 0; iteration < 70; iteration++) {
+			let iteration_start_value = (70 / (iteration + 10)) * 0.11;
+			bones.forEach((bone, i) => {
+				let bone_weight = ((bones.length-i) / (bones.length * 5));
+				for (let axis_number = 0; axis_number < 3; axis_number++) {
+					let axis_letter = getAxisLetter(axis_number);
+					let rotation = bone.mesh.rotation;
+					let sample_value = iteration_start_value * bone_config.axis_weight[axis_number] * bone_weight;
+					let sample_value2 = sample_value * -0.4;
+
+					rotation[axis_letter] += sample_value;
+					bone.mesh.updateMatrixWorld();
+					let distance = calculateTargetDistance();
+					rotation[axis_letter] -= sample_value;
+					if (!distance) continue;
+
+					rotation[axis_letter] += sample_value2;
+					bone.mesh.updateMatrixWorld();
+					let distance2 = calculateTargetDistance();
+					rotation[axis_letter] -= sample_value2;
+
+					//let sign = distance - distance2;
+					let sign = distance2 - distance;
+
+					//let progress = Math.clamp(Math.getLerp(last_distance, 0, distance), -1, 1);
+					//console.log(progress, last_distance, distance);
+					//if (!progress) continue;
+					//let inverse_progress = Math.clamp(1/progress, -10, 10) * 0.01 * sign
+					sample_value *= sign;
+
+
+					rotation[axis_letter] += sample_value;
+					//console.log(sample_value)
+
+					//bone.mesh.updateMatrixWorld();
+				}
+			})
+		}
+		console.log(calculateTargetDistance())
+
+
+		/**
+		
+		Chain of bones
+		target
+		bone:
+			axis weight
+			min, max euler angles
+		fixed number of iterations
+			Cycle through bones, from end to root
+				Move bone, from
+
+		 
+		 */
+
+		/*bones.forEach((bone, i) => {
 			let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()));
 			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false));
 
@@ -721,7 +784,7 @@ class NullObjectAnimator extends BoneAnimator {
 		}
 
 		this.chain.clear();
-		this.chain.lastTargetLocation.set(1e9, 0, 0);
+		this.chain.lastTargetLocation.set(1e9, 0, 0);*/
 
 		if (get_samples) return results;
 	}

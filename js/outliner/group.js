@@ -55,6 +55,9 @@ class Group extends OutlinerNode {
 	getMesh() {
 		return this.mesh;
 	}
+	getWorldCenter() {
+		return THREE.fastWorldPosition(this.mesh, new THREE.Vector3());
+	}
 	init() {
 		super.init();
 		Project.groups.push(this);
