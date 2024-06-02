@@ -1184,6 +1184,18 @@
 		display: block;
 		margin-left: -2px;
 	}
+	#timeline_custom_range_indicator {
+		position: absolute;
+		z-index: 0;
+		pointer-events: none;
+		height: 100%;
+		top: 0;
+		opacity: 0.86;
+		border-radius: 3px;
+		background-color: var(--color-button);
+		border-right: 1px solid var(--color-border);
+		border-left: 1px solid var(--color-border);
+	}
 
 	#panel_timeline .keyframe {
 		position: absolute;

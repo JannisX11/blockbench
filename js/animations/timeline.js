@@ -69,6 +69,7 @@ const Timeline = {
 	get second() {return Timeline.time},
 	get animation_length() {return Animation.selected ? Animation.selected.length : 0;},
 	playing: false,
+	custom_range: [0, 0],
 	graph_editor_limit: 10_000,
 	selector: {
 		start: [0, 0],
@@ -537,7 +538,7 @@ const Timeline = {
 		BarItems.play_animation.setIcon('pause')
 		Timeline.last_frame_timecode = Date.now();
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
-			Timeline.setTime(0)
+			Timeline.setTime(Timeline.custom_range[0])
 		}
 		if (Timeline.time > 0) {
 			Animator.animations.forEach(animation => {
@@ -553,6 +554,7 @@ const Timeline = {
 		if (!Animation.selected) return;
 
 		let max_length = Animation.selected.length || 1e3;
+		let max_time = Timeline.custom_range[1] || max_length;
 		let new_time;
 		if (Animation.selected && Animation.selected.anim_time_update) {
 			new_time = Animator.MolangParser.parse(Animation.selected.anim_time_update);
@@ -562,21 +564,21 @@ const Timeline = {
 		}
 		let time = Timeline.time + (new_time - Timeline.time) * (Timeline.playback_speed/100)
 		if (Animation.selected.loop == 'hold') {
-			time = Math.clamp(time, 0, Animation.selected.length);
+			time = Math.clamp(time, Timeline.custom_range[0], max_time);
 		}
 		Timeline.last_frame_timecode = Date.now();
 
-		if (time < max_length) {
+		if (time < max_time) {
 			Timeline.setTime(time);
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
-				Timeline.setTime(0)
+				Timeline.setTime(Timeline.custom_range[0]);
 			} else if (Animation.selected.loop == 'once') {
-				Timeline.setTime(0)
+				Timeline.setTime(Timeline.custom_range[0]);
 				Animator.preview()
 				Timeline.pause()
 			} else if (Animation.selected.loop == 'hold') {
-				Timeline.setTime(max_length);
+				Timeline.setTime(max_time);
 				Timeline.pause()
 			}
 		}
@@ -657,6 +659,9 @@ const Timeline = {
 		'looped_animation_playback',
 		'jump_to_timeline_start',
 		'jump_to_timeline_end',
+		'set_timeline_range_start',
+		'set_timeline_range_end',
+		'disable_timeline_range',
 		new MenuSeparator('copypaste'),
 		'paste',
 		'apply_animation_preset',
@@ -730,6 +735,7 @@ Interface.definePanels(() => {
 				timecodes: [],
 				animators: Timeline.animators,
 				markers: [],
+				custom_range: Timeline.custom_range,
 				waveforms: Timeline.waveforms,
 				focus_channel: null,
 				playhead: Timeline.time,
@@ -1473,6 +1479,9 @@ Interface.definePanels(() => {
 						</div>
 						<div id="timeline_time_wrapper">
 						<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
+								<div id="timeline_custom_range_indicator" v-if="custom_range[1]"
+									v-bind:style="{left: (custom_range[0] * size) + 'px', width: ((custom_range[1] - custom_range[0]) * size) + 'px'}"
+								/>
 								<div v-for="t in timecodes" class="timeline_timecode" :key="t.text" :style="{left: (t.time * size) + 'px', width: (t.width * size) + 'px'}">
 									<span>{{ t.text }}</span>
 									<div class="substeps">
@@ -1850,6 +1859,31 @@ BARS.defineActions(function() {
 			} else {
 				BarItems.animated_texture_frame.change(v => v + 1);
 			}
+		}
+	})
+	new Action('set_timeline_range_start', {
+		icon: 'logout',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click() {
+			Timeline.custom_range.set(0, Timeline.time);
+		}
+	})
+	new Action('set_timeline_range_end', {
+		icon: 'login',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click() {
+			Timeline.custom_range.set(1, Timeline.time);
+		}
+	})
+	new Action('disable_timeline_range', {
+		icon: 'code_off',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		condition: () => Timeline.custom_range[1],
+		click() {
+			Timeline.custom_range.replace([0, 0]);
 		}
 	})
 
