@@ -19,6 +19,7 @@ jobs:
     - name: "Linux"
       os: linux
       script:
+        - npm install electron@30.0.3
         - npm run prepublish
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
