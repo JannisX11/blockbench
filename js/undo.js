@@ -591,6 +591,14 @@ UndoSystem.save = class {
 			})
 		}
 
+		if (aspects.texture_groups) {
+			this.texture_groups = {};
+			aspects.texture_groups.forEach(tg => {
+				let copy = tg.getUndoCopy()
+				this.texture_groups[tg.uuid] = copy;
+			})
+		}
+
 		if (aspects.layers) {
 			this.layers = {};
 			aspects.layers.forEach(layer => {

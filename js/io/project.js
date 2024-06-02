@@ -59,6 +59,7 @@ class ModelProject {
 		this.mesh_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
+		this.texture_groups = [];
 		this.outliner = [];
 		this.animations = [];
 		this.animation_controllers = [];
@@ -207,6 +208,7 @@ class ModelProject {
 		BarItems.edit_mode_uv_overlay.updateEnabledState();
 
 		Panels.textures.inside_vue.textures = Texture.all;
+		Panels.textures.inside_vue.texture_groups = TextureGroup.all;
 		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
 		scene.add(this.model_3d);
 
@@ -607,6 +609,7 @@ function selectNoProject() {
 	UVEditor.vue.all_elements = [];
 
 	Interface.Panels.textures.inside_vue.textures = [];
+	Interface.Panels.textures.inside_vue.texture_groups = [];
 
 	Panels.animations.inside_vue.animations = [];
 	Panels.animations.inside_vue.animation_controllers = [];

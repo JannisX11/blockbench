@@ -2330,15 +2330,15 @@ BARS.defineActions(function() {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true}),
-		click() {
-			var start_path;
+		click(event, context) {
+			let start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
-				var arr = Texture.all[0].path.split(osfs)
+				let arr = Texture.all[0].path.split(osfs)
 				arr.splice(-1)
 				start_path = arr.join(osfs)
 			} else if (Project.export_path) {
-				var arr = Project.export_path.split(osfs)
+				let arr = Project.export_path.split(osfs)
 				arr.splice(-3)
 				arr.push('textures')
 				start_path = arr.join(osfs)
@@ -2351,11 +2351,19 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(results) {
-				var new_textures = []
-				Undo.initEdit({textures: new_textures})
+				let new_textures = [];
+				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
+				if (texture_group) {
+					Undo.initEdit({textures: new_textures, texture_groups: [texture_group]});
+				} else {
+					Undo.initEdit({textures: new_textures});
+				}
 				results.forEach(function(f) {
-					var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
-					new_textures.push(t)
+					let t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle();
+					new_textures.push(t);
+					if (texture_group) {
+						texture_group.textures.push(t.uuid);
+					}
 				})
 				Undo.finishEdit('Add texture')
 			})
@@ -2421,6 +2429,71 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
+	let texture_component = Vue.extend({
+		props: {
+			texture: Texture
+		},
+		methods: {
+			getDescription(texture) {
+				if (texture.error) {
+					return texture.getErrorMessage()
+				} else {
+					let message = texture.width + ' x ' + texture.height + 'px';
+					if (!Format.image_editor) {
+						let uv_size = texture.width / texture.getUVWidth() * 16;
+						message += ` (${trimFloatNumber(uv_size, 2)}x)`;
+					}
+					if (texture.frameCount > 1) {
+						message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
+					}
+					return message;
+				}
+			},
+			getTextureIconOffset(texture) {
+				if (!texture.currentFrame) return;
+				let val = texture.currentFrame * -48 * (texture.display_height / texture.width);
+				return `${val}px`;
+			}
+		},
+		template: `
+			<li
+				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
+				v-bind:texid="texture.uuid"
+				class="texture"
+				v-on:click.stop="texture.select($event)"
+				v-on:dblclick="texture.openMenu($event)"
+				@contextmenu.prevent.stop="texture.showContextMenu($event)"
+			>
+				<div class="texture_icon_wrapper">
+					<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
+					<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
+					<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
+				</div>
+				<div class="texture_description_wrapper">
+					<div class="texture_name">{{ texture.name }}</div>
+					<div class="texture_res">{{ getDescription(texture) }}</div>
+				</div>
+				<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
+				<template v-else>
+					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+					<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
+					<i class="material-icons texture_visibility_icon clickable"
+						v-bind:class="{icon_off: !texture.visible}"
+						v-if="texture.render_mode == 'layered'"
+						@click.stop="texture.toggleVisibility()"
+						@dblclick.stop
+					>
+						{{ texture.visible ? 'visibility' : 'visibility_off' }}
+					</i>
+					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
+						<template v-if="texture.saved">check_circle</template>
+						<template v-else>save</template>
+					</i>
+				</template>
+			</li>
+		`
+	})
+
 	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
@@ -2437,6 +2510,7 @@ Interface.definePanels(function() {
 				children: [
 					'import_texture',
 					'create_texture',
+					'create_texture_group',
 					'append_to_template',
 				]
 			})
@@ -2449,26 +2523,16 @@ Interface.definePanels(function() {
 			name: 'panel-textures',
 			data() { return {
 				textures: Texture.all,
+				texture_groups: TextureGroup.all,
 				currentFrame: 0,
 			}},
+			components: {'Texture': texture_component},
 			methods: {
 				openMenu(event) {
 					Interface.Panels.textures.menu.show(event)
 				},
-				getDescription(texture) {
-					if (texture.error) {
-						return texture.getErrorMessage()
-					} else {
-						let message = texture.width + ' x ' + texture.height + 'px';
-						if (!Format.image_editor) {
-							let uv_size = texture.width / texture.getUVWidth() * 16;
-							message += ` (${trimFloatNumber(uv_size, 2)}x)`;
-						}
-						if (texture.frameCount > 1) {
-							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
-						}
-						return message;
-					}
+				addTextureToGroup() {
+
 				},
 				slideTimelinePointer(e1) {
 					let scope = this;
@@ -2509,53 +2573,48 @@ Interface.definePanels(function() {
 						if (tex.frameCount > count) count = tex.frameCount;
 					});
 					return count;
-				},
-				getTextureIconOffset(texture) {
-					if (!texture.currentFrame) return;
-					let val = texture.currentFrame * -48 * (texture.display_height / texture.width);
-					return `${val}px`;
 				}
+			},
+			computed: {
+				ungroupedTextures() {
+					let taken_uuids = new Set();
+					for (let texture_group of this.texture_groups) {
+						texture_group.textures.forEach(uuid => taken_uuids.add(uuid));
+					}
+					return this.textures.filter(tex => !taken_uuids.has(tex.uuid));
+				},
 			},
 			template: `
 				<div>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
 						<li
-							v-for="texture in textures"
-							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
-							v-bind:texid="texture.uuid"
-							:key="texture.uuid"
-							class="texture"
-							v-on:click.stop="texture.select($event)"
-							v-on:dblclick="texture.openMenu($event)"
-							@contextmenu.prevent.stop="texture.showContextMenu($event)"
+							v-for="texture_group in texture_groups" :key="texture_group.uuid"
+							class="texture_group"
 						>
-							<div class="texture_icon_wrapper">
-								<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
-								<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
-								<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
+							<div class="texture_group_head" @click="texture_group.select()" @dblclick.stop="texture_group.folded = !texture_group.folded" @contextmenu.prevent.stop="texture_group.showContextMenu($event)">
+								<i
+									@click.stop="texture_group.folded = !texture_group.folded"
+									class="icon-open-state fa"
+									:class=\'{"fa-angle-right": texture_group.folded, "fa-angle-down": !texture_group.folded}\'
+								></i>
+								<label :title="texture_group.name">{{ texture_group.name }}</label>
+								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group)">
+									<i class="material-icons">library_add</i>
+								</div>
 							</div>
-							<div class="texture_description_wrapper">
-								<div class="texture_name">{{ texture.name }}</div>
-								<div class="texture_res">{{ getDescription(texture) }}</div>
-							</div>
-							<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
-							<template v-else>
-								<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
-								<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
-								<i class="material-icons texture_visibility_icon clickable"
-									v-bind:class="{icon_off: !texture.visible}"
-									v-if="texture.render_mode == 'layered'"
-									@click.stop="texture.toggleVisibility()"
-									@dblclick.stop
-								>
-									{{ texture.visible ? 'visibility' : 'visibility_off' }}
-								</i>
-								<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-									<template v-if="texture.saved">check_circle</template>
-									<template v-else>save</template>
-								</i>
-							</template>
+							<ul class="texture_group_list" v-if="!texture_group.folded">
+								<Texture
+									v-for="texture in texture_group.getTextures()"
+									:key="texture.uuid"
+									:texture="texture"
+								></Texture>
+							</ul>
 						</li>
+						<Texture
+							v-for="texture in ungroupedTextures"
+							:key="texture.uuid"
+							:texture="texture"
+						></Texture>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
 						<div class="tool_wrapper"></div>

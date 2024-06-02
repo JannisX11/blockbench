@@ -26,6 +26,7 @@
 	"data.texture_mesh": "Texture Mesh",
 	"data.group": "Group",
 	"data.texture": "Texture",
+	"data.texture_group": "Texture Group",
 	"data.layer": "Layer",
 	"data.origin": "Pivot",
 	"data.plugin": "Plugin",
@@ -2013,6 +2014,8 @@
 	"menu.texture.export": "Save As",
 	"menu.texture.save": "Save",
 	"menu.texture.properties": "Properties...",
+
+	"menu.texture_group.resolve": "Resolve",
 
 	"menu.preview.background": "Background",
 	"menu.preview.background.load": "Load",
