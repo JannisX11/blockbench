@@ -351,6 +351,7 @@ const MenuBar = {
 			'optimize_animation',
 			'bake_ik_animation',
 			'bake_animation_into_model',
+			'merge_animation',
 			new MenuSeparator('file'),
 			'load_animation_file',
 			'save_all_animations',
