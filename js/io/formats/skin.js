@@ -1839,6 +1839,94 @@ skin_presets.boat = {
 		]
 	}`
 };
+skin_presets.breeze = {
+	display_name: 'Breeze',
+	model: `{
+		"name": "breeze",
+		"texturewidth": 32,
+		"textureheight": 32,
+		"eyes": [
+			[7, 14, 3, 1],
+			[14, 14, 3, 1],
+			[6, 29, 5, 1],
+			[15, 29, 5, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "rods",
+				"parent": "body",
+				"pivot": [0, 16, 0],
+				"cubes": [
+					{"origin": [-1, 11, -6], "size": [2, 8, 2], "pivot": [0, 19, -3], "rotation": [22.5, 0, 0], "uv": [0, 17]},
+					{"origin": [-3.59808, 11, -1.5], "size": [2, 8, 2], "pivot": [-2.59808, 19, 1.5], "rotation": [-157.5, 60, 180], "uv": [0, 17]},
+					{"origin": [1.59808, 11, -1.5], "size": [2, 8, 2], "pivot": [2.59808, 19, 1.5], "rotation": [-157.5, -60, 180], "uv": [0, 17]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 20, 0],
+				"cubes": [
+					{"origin": [-4, 20, -4], "size": [8, 8, 8], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "eyes",
+				"parent": "head",
+				"pivot": [0, 20, 0],
+				"cubes": [
+					{"origin": [-5, 22, -4.2], "size": [10, 3, 4], "uv": [4, 24], "layer": true}
+				]
+			}
+		]
+	}`
+}
+skin_presets.breeze_tornado = {
+	display_name: 'Breeze Tornado',
+	model: `{
+		"name": "breeze_wind",
+		"texturewidth": 128,
+		"textureheight": 128,
+		"bones": [
+			{
+				"name": "tornado_body",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "tornado_bottom",
+				"parent": "tornado_body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-2.5, 0, -2.5], "size": [5, 7, 5], "uv": [1, 83]}
+				]
+			},
+			{
+				"name": "tornado_mid",
+				"parent": "tornado_bottom",
+				"pivot": [0, 7, 0],
+				"cubes": [
+					{"origin": [-2.5, 7, -2.5], "size": [5, 6, 5], "uv": [49, 71]},
+					{"origin": [-4, 7, -4], "size": [8, 6, 8], "uv": [78, 32]},
+					{"origin": [-6, 7, -6], "size": [12, 6, 12], "uv": [74, 28]}
+				]
+			},
+			{
+				"name": "tornado_top",
+				"parent": "tornado_mid",
+				"pivot": [0, 13, 0],
+				"cubes": [
+					{"origin": [-2.5, 13, -2.5], "size": [5, 8, 5], "uv": [105, 57]},
+					{"origin": [-6, 13, -6], "size": [12, 8, 12], "uv": [6, 6]},
+					{"origin": [-9, 13, -9], "size": [18, 8, 18], "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.camel = {
 	display_name: 'Camel',
 	model: `{
