@@ -582,6 +582,10 @@ const Settings = {
 			settings.brush_opacity_modifier.set('none');
 			settings.brush_size_modifier.set('none');
 		})
+		let date = new Date();
+		if (date.getMonth() >= 5 && date.getDate() >= 13) {
+			settings.bedrock_uv_rotations.set(true);
+		}
 	},
 	setupProfiles() {
 		if (localStorage.getItem('settings_profiles') != null) {
