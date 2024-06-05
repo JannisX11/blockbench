@@ -877,15 +877,17 @@ class Texture {
 		if (event instanceof Event) {
 			Prop.active_panel = 'textures';
 		}
-		if (event && (event.shiftKey || event.ctrlKey)) {
-			this.multi_selected = true;
-			if (event.shiftKey) {
+		if (event && (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
+			if (event.shiftKey || Pressing.overrides.shift) {
+				this.multi_selected = true;
 				let start_i = Texture.last_selected;
 				let end_i = Texture.all.indexOf(this);
 				if (start_i > end_i) [start_i, end_i] = [end_i, start_i];
 				for (let i = start_i+1; i < end_i; i++) {
 					Texture.all[i].multi_selected = true;
 				}
+			} else {
+				this.multi_selected = !this.multi_selected;
 			}
 			Texture.last_selected = Texture.all.indexOf(this);
 			return;
@@ -1097,10 +1099,9 @@ class Texture {
 		return this;
 	}
 	showContextMenu(event) {
-		var scope = this;
-		scope.select()
+		if (this != Texture.selected) this.select()
 		Prop.active_panel = 'textures'
-		this.menu.open(event, scope)
+		this.menu.open(event, this)
 	}
 	openMenu() {
 		this.select();
