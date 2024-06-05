@@ -402,6 +402,7 @@
 	#cubes_list {
 		padding-top: 1px;
 		overflow-y: scroll;
+		--indentation: 16px;
 	}
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
