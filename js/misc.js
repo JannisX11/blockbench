@@ -395,10 +395,6 @@ const TickUpdates = {
 				delete TickUpdates.UVEditor;
 				UVEditor.loadData()
 			}
-			if (TickUpdates.texture_list) {
-				delete TickUpdates.texture_list;
-				loadTextureDraggable();
-			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;
 				Vue.nextTick(updateKeyframeSelection)

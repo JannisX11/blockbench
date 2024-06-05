@@ -2,6 +2,7 @@
 class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
+		// todo: save texture group association inside texture instead of here
 		this.textures = [];
 		this.folded = false;
 	}
@@ -84,11 +85,13 @@ BARS.defineActions(function() {
 		category: 'textures',
 		click() {
 			let texture_group = new TextureGroup();
-			if (Texture.selected) {
-				texture_group.textures.push(Texture.selected.uuid);
-				texture_group.name = Texture.selected.name.replace(/\.\w+$/, '') + 'Group';
+			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
+			if (textures_to_add.length) {
+				texture_group.textures.push(...textures_to_add);
+				let first = Texture.selected || textures_to_add[0];
+				texture_group.name = first.name.replace(/\.\w+$/, '') + ' Group';
 			}
-			texture_group.add()
+			texture_group.add();
 		}
 	})
 });

@@ -730,7 +730,6 @@ function calculateVisibleBox() {
 
 		codec.dispatchEvent('parsed', {model: data.object});
 
-		loadTextureDraggable()
 		Canvas.updateAllBones()
 		setProjectTitle()
 		if (isApp && Project.geometry_name) {

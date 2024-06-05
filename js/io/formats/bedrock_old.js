@@ -114,7 +114,6 @@ function parseGeometry(data) {
 
 	codec.dispatchEvent('parsed', {model: data.object});
 
-	loadTextureDraggable()
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name && Project.BedrockEntityManager) {

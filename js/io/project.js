@@ -281,8 +281,6 @@ class ModelProject {
 		updateProjectResolution();
 		Validator.validate();
 		Vue.nextTick(() => {
-			loadTextureDraggable();
-
 			if (this.on_next_upen instanceof Array) {
 				this.on_next_upen.forEach(callback => callback());
 				delete this.on_next_upen;
