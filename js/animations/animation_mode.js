@@ -1415,6 +1415,7 @@ Interface.definePanels(function() {
 						if (document.exitPointerLock) document.exitPointerLock()
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
+						Blockbench.setStatusBarText();
 					}
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
