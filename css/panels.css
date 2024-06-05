@@ -1280,7 +1280,7 @@
 		width: 144px;
 		flex-shrink: 0;
 		background-color: var(--color-back);
-		z-index: 4;
+		z-index: 6;
 		border-bottom: 1px solid var(--color-border);
 		height: calc(100% + 1px);
 	}
