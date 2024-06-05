@@ -1839,6 +1839,164 @@ skin_presets.boat = {
 		]
 	}`
 };
+skin_presets.bogged = {
+	display_name: 'Bogged',
+	model: `{
+		"name": "bogged",
+		"texturewidth": 64,
+		"textureheight": 32,
+		"eyes": [
+			[9, 12, 2, 1],
+			[13, 12, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}
+				]
+			},
+			{
+				"name": "waist",
+				"pivot": [0, 12, 0]
+			},
+			{
+				"name": "head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "mushrooms",
+				"parent": "head",
+				"pivot": [3, 31.5, 3],
+				"cubes": [
+					{"origin": [-6, 31, -3], "size": [6, 4, 0], "pivot": [-3, 32.5, -3], "rotation": [0, -45, 0], "uv": [50, 22]},
+					{"origin": [-6, 31, -3], "size": [6, 4, 0], "pivot": [-3, 32.5, -3], "rotation": [0, 45, 0], "uv": [50, 22]},
+					{"origin": [0, 31, 3], "size": [6, 4, 0], "pivot": [3, 31.5, 3], "rotation": [0, 45, 0], "uv": [50, 16]},
+					{"origin": [0, 31, 3], "size": [6, 4, 0], "pivot": [3, 31.5, 3], "rotation": [0, -45, 0], "uv": [50, 16]},
+					{"origin": [-5, 25, 3], "size": [6, 5, 0], "pivot": [-2, 25, 3], "rotation": [-90, 0, 45], "uv": [50, 27]},
+					{"origin": [-5, 25, 3], "size": [6, 5, 0], "pivot": [-2, 25, 3], "rotation": [-90, 0, 135], "uv": [50, 27]}
+				]
+			},
+			{
+				"name": "hat",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.2, "uv": [32, 0], "layer": true}
+				]
+			},
+			{
+				"name": "rightArm",
+				"pivot": [-5, 22, 0],
+				"cubes": [
+					{"origin": [-6, 12, -1], "size": [2, 12, 2], "uv": [40, 16]}
+				]
+			},
+			{
+				"name": "rightItem",
+				"parent": "rightArm",
+				"pivot": [-6, 15, 1]
+			},
+			{
+				"name": "leftArm",
+				"pivot": [5, 22, 0],
+				"mirror": true,
+				"cubes": [
+					{"origin": [4, 12, -1], "size": [2, 12, 2], "uv": [40, 16], "mirror": true}
+				]
+			},
+			{
+				"name": "leftItem",
+				"parent": "leftArm",
+				"pivot": [6, 15, 1]
+			},
+			{
+				"name": "rightLeg",
+				"pivot": [-2, 12, 0],
+				"cubes": [
+					{"origin": [-3, 0, -1], "size": [2, 12, 2], "uv": [0, 16]}
+				]
+			},
+			{
+				"name": "leftLeg",
+				"pivot": [2, 12, 0],
+				"mirror": true,
+				"cubes": [
+					{"origin": [1, 0, -1], "size": [2, 12, 2], "uv": [0, 16], "mirror": true}
+				]
+			}
+		]
+	}`
+};
+skin_presets.bogged_layer = {
+	display_name: 'Bogged/Stray Layer',
+	model: `{
+		"name": "bogged_layer",
+		"texturewidth": 64,
+		"textureheight": 32,
+		"eyes": [
+			[9, 12, 2, 1],
+			[13, 12, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}
+				]
+			},
+			{
+				"name": "leftArm",
+				"parent": "body",
+				"pivot": [5, 22, 0],
+				"mirror": true,
+				"cubes": [
+					{"origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16], "mirror": true}
+				]
+			},
+			{
+				"name": "head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "hat",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.5, "uv": [32, 0], "layer": true, , "visibility": false}
+				]
+			},
+			{
+				"name": "rightArm",
+				"pivot": [-5, 22, 0],
+				"cubes": [
+					{"origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+				]
+			},
+			{
+				"name": "rightLeg",
+				"pivot": [-1.9, 12, 0],
+				"cubes": [
+					{"origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
+				]
+			},
+			{
+				"name": "leftLeg",
+				"pivot": [1.9, 12, 0],
+				"mirror": true,
+				"cubes": [
+					{"origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16], "mirror": true}
+				]
+			}
+		]
+	}`
+};
 skin_presets.breeze = {
 	display_name: 'Breeze',
 	model: `{
@@ -5528,7 +5686,7 @@ skin_presets.silverfish = {
 	}`
 };
 skin_presets.skeleton = {
-	display_name: 'Skeleton',
+	display_name: 'Skeleton/Stray',
 	model: `{
 		"name": "skeleton",
 		"texturewidth": 64,
