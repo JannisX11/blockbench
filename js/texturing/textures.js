@@ -343,7 +343,13 @@ class Texture {
 		}
 	}
 	getGroup() {
-		return TextureGroup.all.find(group => group.textures.includes(this.uuid));
+		if (!this.group) return;
+		let group = TextureGroup.all.find(group => group.uuid == this.group);
+		if (group) {
+			return group;
+		} else {
+			this.group = '';
+		}
 	}
 	getUndoCopy(bitmap) {
 		var copy = {};
@@ -903,6 +909,10 @@ class Texture {
 		if (this.layers_enabled && !this.selected_layer && this.layers[0]) {
 			this.layers[0].select();
 		}
+		if (this.group) {
+			let group = this.getGroup();
+			if (group) group.folded = false;
+		}
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
 			Canvas.updatePixelGrid()
@@ -1402,7 +1412,7 @@ class Texture {
 		return this;
 	}
 	scrollTo() {
-		var el = $(`#texture_list > li[texid=${this.uuid}]`)
+		var el = $(`#texture_list li.texture[texid=${this.uuid}]`)
 		if (el.length === 0 || Texture.all.length < 2) return;
 
 		var outliner_pos = $('#texture_list').offset().top
@@ -2054,6 +2064,7 @@ class Texture {
 	new Property(Texture, 'string', 'folder')
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
+	new Property(Texture, 'string', 'group')
 	new Property(Texture, 'number', 'width')
 	new Property(Texture, 'number', 'height')
 	new Property(Texture, 'number', 'uv_width')
@@ -2220,16 +2231,12 @@ BARS.defineActions(function() {
 			}, function(results) {
 				let new_textures = [];
 				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
-				if (texture_group) {
-					Undo.initEdit({textures: new_textures, texture_groups: [texture_group]});
-				} else {
-					Undo.initEdit({textures: new_textures});
-				}
+				Undo.initEdit({textures: new_textures});
 				results.forEach(function(f) {
 					let t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle();
 					new_textures.push(t);
 					if (texture_group) {
-						texture_group.textures.push(t.uuid);
+						t.group = texture_group.uuid;
 					}
 				})
 				Undo.finishEdit('Add texture')
@@ -2397,7 +2404,7 @@ Interface.definePanels(function() {
 							tar.addClass('drag_hover').attr('order', '0');
 
 						} else if ($('#texture_list li:hover').length) {
-							let node = document.querySelector('#texture_list > .texture:hover');
+							let node = document.querySelector('#texture_list li.texture:hover');
 							if (node) {
 								//let target_tex = Texture.all.findInArray('uuid', node.getAttribute('texid'));
 								let offset = e2.clientY - $(node).offset().top;
@@ -2432,7 +2439,6 @@ Interface.definePanels(function() {
 					$('.texture[order]').attr('order', null);
 					$('.outliner_node[order]').attr('order', null);
 					if (Blockbench.isTouch) clearTimeout(timeout);
-					console.log('off')
 
 					if (!active || Menu.open) return;
 
@@ -2468,7 +2474,7 @@ Interface.definePanels(function() {
 						}
 					} else if ($('#texture_list:hover').length > 0) {
 						let index = Texture.all.length-1;
-						let node = $('#texture_list > .texture:hover');
+						let node = $('#texture_list li.texture:hover');
 						let new_group = '';
 						if (node.length) {
 							let target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
@@ -2580,7 +2586,7 @@ Interface.definePanels(function() {
 					>
 						{{ texture.visible ? 'visibility' : 'visibility_off' }}
 					</i>
-					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
+					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click.stop="texture.save()">
 						<template v-if="texture.saved">check_circle</template>
 						<template v-else>save</template>
 					</i>
@@ -2626,8 +2632,8 @@ Interface.definePanels(function() {
 				openMenu(event) {
 					Interface.Panels.textures.menu.show(event)
 				},
-				addTextureToGroup() {
-
+				addTextureToGroup(texture_group) {
+					BarItems.import_texture.click(0, texture_group);
 				},
 				slideTimelinePointer(e1) {
 					let scope = this;
@@ -2672,16 +2678,10 @@ Interface.definePanels(function() {
 				unselect(event) {
 					if (Blockbench.hasFlag('dragging_textures')) return;
 					unselectTextures();
-				}
-			},
-			computed: {
-				ungroupedTextures() {
-					let taken_uuids = new Set();
-					for (let texture_group of this.texture_groups) {
-						texture_group.textures.forEach(uuid => taken_uuids.add(uuid));
-					}
-					return this.textures.filter(tex => !taken_uuids.has(tex.uuid));
 				},
+				getUngroupedTextures() {
+					return this.textures.filter(tex => !(tex.group && TextureGroup.all.find(g => g.uuid == tex.group)));
+				}
 			},
 			template: `
 				<div>
@@ -2690,15 +2690,25 @@ Interface.definePanels(function() {
 							v-for="texture_group in texture_groups" :key="texture_group.uuid"
 							class="texture_group"
 						>
-							<div class="texture_group_head" @click="texture_group.select()" @dblclick.stop="texture_group.folded = !texture_group.folded" @contextmenu.prevent.stop="texture_group.showContextMenu($event)">
+							<div class="texture_group_head" :class="{folded: texture_group.folded}" @dblclick.stop="texture_group.select()" @click.stop="texture_group.folded = !texture_group.folded" @contextmenu.prevent.stop="texture_group.showContextMenu($event)">
 								<i
 									@click.stop="texture_group.folded = !texture_group.folded"
 									class="icon-open-state fa"
 									:class=\'{"fa-angle-right": texture_group.folded, "fa-angle-down": !texture_group.folded}\'
 								></i>
 								<label :title="texture_group.name">{{ texture_group.name }}</label>
-								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group)">
-									<i class="material-icons">library_add</i>
+								<ul class="texture_group_mini_icon_list" v-if="texture_group.folded">
+									<li
+										v-for="texture in texture_group.getTextures()"
+										:key="texture.uuid"
+										class="texture_mini_icon"
+										:title="texture.name"
+									>
+										<img :src="texture.source" class="texture_icon" width="24px" height="24px" alt="" v-if="texture.show_icon" />
+									</li>
+								</ul>
+								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group)" v-if="!texture_group.folded">
+									<i class="material-icons">add</i>
 								</div>
 							</div>
 							<ul class="texture_group_list" v-if="!texture_group.folded">
@@ -2710,7 +2720,7 @@ Interface.definePanels(function() {
 							</ul>
 						</li>
 						<Texture
-							v-for="texture in ungroupedTextures"
+							v-for="texture in getUngroupedTextures()"
 							:key="texture.uuid"
 							:texture="texture"
 						></Texture>

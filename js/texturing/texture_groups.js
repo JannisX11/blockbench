@@ -2,9 +2,8 @@
 class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
-		// todo: save texture group association inside texture instead of here
-		this.textures = [];
 		this.folded = false;
+		if (data) this.extend(data);
 	}
 	extend(data) {
 		for (let key in TextureGroup.properties) {
@@ -28,14 +27,11 @@ class TextureGroup {
 		TextureGroup.all.remove(this);
 	}
 	showContextMenu(event) {
-		Prop.active_panel = 'textures'
-		this.menu.open(event, this)
+		Prop.active_panel = 'textures';
+		this.menu.open(event, this);
 	}
 	getTextures() {
-		let all_textures = Texture.all;
-		return this.textures.map(uuid => {
-			return all_textures.find(t => t.uuid == uuid);
-		}).filter(texture => texture instanceof Texture);
+		return Texture.all.filter(texture => texture.group == this.uuid);
 	}
 	getUndoCopy() {
 		let copy = {
@@ -65,18 +61,30 @@ Object.defineProperty(TextureGroup, 'all', {
 	}
 })
 new Property(TextureGroup, 'string', 'name', {default: tl('data.texture_group')});
-new Property(TextureGroup, 'array', 'textures');
 
 TextureGroup.prototype.menu = new Menu([
 	new MenuSeparator('manage'),
 	{
 		icon: 'fa-leaf',
 		name: 'menu.texture_group.resolve',
-		click() {
-
+		click(texture_group) {
+			let textures = texture_group.getTextures();
+			Undo.initEdit({textures, texture_groups: [texture_group]});
+			texture_group.remove();
+			textures.forEach(texture => {
+				texture.group = '';
+			})
+			Undo.finishEdit('Resolve texture group', {textures, texture_groups: []});
 		}
 	},
 ])
+/**
+ToDo:
+- Drag and dropping textures into empty groups
+- Auto-generate groups
+- Rearranging groups
+- Grid view?
+ */
 
 
 BARS.defineActions(function() {
@@ -86,12 +94,16 @@ BARS.defineActions(function() {
 		click() {
 			let texture_group = new TextureGroup();
 			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
+			Undo.initEdit({texture_groups: [], textures: textures_to_add});
 			if (textures_to_add.length) {
-				texture_group.textures.push(...textures_to_add);
+				for (let texture of textures_to_add) {
+					texture.group = texture_group.uuid;
+				}
 				let first = Texture.selected || textures_to_add[0];
 				texture_group.name = first.name.replace(/\.\w+$/, '') + ' Group';
 			}
-			texture_group.add();
+			texture_group.add(false);
+			Undo.finishEdit('Add texture group', {texture_groups: [texture_group], textures: textures_to_add});
 		}
 	})
 });

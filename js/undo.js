@@ -323,6 +323,26 @@ class UndoSystem {
 			}
 		}
 
+		if (save.texture_groups) {
+			for (let uuid in save.texture_groups) {
+				if (reference.texture_groups[uuid]) {
+					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						group.extend(save.texture_groups[uuid]);
+					}
+				} else {
+					new TextureGroup(save.texture_groups[uuid], uuid).add(false);
+				}
+			}
+			for (let uuid in reference.texture_groups) {
+				if (!save.texture_groups[uuid]) {
+					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						TextureGroup.all.remove(group);
+					}
+				}
+			}
+		}
 		if (save.textures) {
 			Painter.current = {}
 			for (var uuid in save.textures) {
