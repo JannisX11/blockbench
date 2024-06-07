@@ -1907,7 +1907,7 @@ const BARS = {
 				category: 'file',
 				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					shell.showItemInFolder(Project.export_path || Project.save_path);
+					showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('reload', {

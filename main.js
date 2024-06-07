@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, ipcMain} = require('electron')
+const {app, BrowserWindow, Menu, ipcMain, shell} = require('electron')
 const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
@@ -246,6 +246,9 @@ ipcMain.on('request-color-picker', async (event, arg) => {
 			win.webContents.send('set-main-color', color)
 		})
 	}
+})
+ipcMain.on('show-item-in-folder', async (event, path) => {
+	shell.showItemInFolder(path);
 })
 
 app.on('ready', () => {

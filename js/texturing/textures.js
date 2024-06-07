@@ -1069,7 +1069,7 @@ class Texture {
 			Blockbench.showQuickMessage('texture.error.file')
 			return this;
 		}
-		shell.showItemInFolder(this.path)
+		showItemInFolder(this.path)
 		return this;
 	}
 	openEditor() {

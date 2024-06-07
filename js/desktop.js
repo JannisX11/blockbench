@@ -305,6 +305,10 @@ function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
+function showItemInFolder(path) {
+	ipcRenderer.send('show-item-in-folder', path);
+}
+
 //Window Controls
 function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();

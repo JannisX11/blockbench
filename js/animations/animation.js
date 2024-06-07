@@ -828,7 +828,7 @@ class Animation extends AnimationItem {
 			icon: 'folder',
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
-				shell.showItemInFolder(animation.path);
+				showItemInFolder(animation.path);
 			}
 		},
 		'rename',

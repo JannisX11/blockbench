@@ -692,7 +692,7 @@ Plugin.prototype.menu = new Menu([
 		icon: 'folder',
 		condition: plugin => (isApp && plugin.source == 'file'),
 		click(plugin) {
-			shell.showItemInFolder(plugin.path);
+			showItemInFolder(plugin.path);
 		}
 	},
 ]);

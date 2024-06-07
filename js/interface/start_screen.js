@@ -261,7 +261,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							shell.showItemInFolder(recent_project.path)
+							showItemInFolder(recent_project.path)
 						}
 					},
 					{
