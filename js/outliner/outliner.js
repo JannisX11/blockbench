@@ -1433,7 +1433,8 @@ Interface.definePanels(function() {
 			depth: Number
 		},
 		data() {return {
-			outliner_colors: settings.outliner_colors
+			outliner_colors: settings.outliner_colors,
+			markerColors
 		}},
 		computed: {
 			indentation() {

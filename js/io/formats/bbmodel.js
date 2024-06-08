@@ -189,6 +189,11 @@ var codec = new Codec('project', {
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
+		for (let texture_group of TextureGroup.all) {
+			if (!model.texture_groups) model.texture_groups = [];
+			let copy = texture_group.getSaveCopy();
+			model.texture_groups.push(copy);
+		}
 
 		if (Animation.all.length) {
 			model.animations = [];
@@ -328,6 +333,11 @@ var codec = new Codec('project', {
 			Project.texture_height = model.resolution.height;
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
@@ -533,6 +543,11 @@ var codec = new Codec('project', {
 			}
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
 			new_textures.replace(model.textures.map(loadTexture))
 		}

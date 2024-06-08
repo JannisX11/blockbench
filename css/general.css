@@ -47,8 +47,10 @@
 		font-weight: normal; 
 		display: inline-block;
 	}
-	.code {
+	code, .code {
 		font-family: var(--font-code);
+	}
+	.code {
 		font-size: 16px;
 	}
 	.small_text {

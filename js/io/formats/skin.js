@@ -149,7 +149,6 @@ const codec = new Codec('skin_model', {
 		if (data.camera_angle) {
 			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
 		}
-		loadTextureDraggable()
 		Canvas.updateAllBones()
 		Canvas.updateVisibility()
 		setProjectTitle()

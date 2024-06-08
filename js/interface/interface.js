@@ -538,8 +538,6 @@ function setupInterface() {
 		reference.select();
 	});
 
-	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
-
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
