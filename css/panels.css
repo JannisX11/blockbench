@@ -637,6 +637,21 @@
 		z-index: 100;
 		border: 2px solid var(--color-accent);
 		box-shadow: 0 0 16px black;
+		height: 48px;
+		width: 48px;
+		position: absolute;
+		pointer-events: none;
+	}
+	.texture_group_drag_helper {
+		position: absolute;
+		z-index: 100;
+		min-height: 24px;
+		min-width: 120px;
+		padding: 4px;
+		border: 2px solid var(--color-accent);
+		background-color: var(--color-ui);
+		box-shadow: 0 0 16px black;
+		pointer-events: none;
 	}
 	.icon_placeholder {
 		width: 48px;
@@ -736,7 +751,7 @@
 	}
 	.texture_group_head.folded > label {
 		max-width: calc(60% - 50px);
-		min-width: 110px;
+		min-width: 30px;
 	}
 	.texture_group_head > .in_list_button {
 		margin-left: auto;

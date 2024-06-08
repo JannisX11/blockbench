@@ -28,14 +28,26 @@ class TextureGroup {
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'textures';
+		TextureGroup.active_menu_group = this;
 		this.menu.open(event, this);
+	}
+	rename() {
+		Blockbench.textPrompt('generic.rename', this.name, (name) => {
+			if (name && name !== this.name) {
+				Undo.initEdit({texture_groups: [this]});
+				this.name = name;
+				Undo.finishEdit('Rename texture group');
+			}
+		})
+		return this;
 	}
 	getTextures() {
 		return Texture.all.filter(texture => texture.group == this.uuid);
 	}
 	getUndoCopy() {
 		let copy = {
-			uuid: this.uuid
+			uuid: this.uuid,
+			index: TextureGroup.all.indexOf(this)
 		};
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].copy(this, copy)
@@ -62,8 +74,9 @@ Object.defineProperty(TextureGroup, 'all', {
 })
 new Property(TextureGroup, 'string', 'name', {default: tl('data.texture_group')});
 
-TextureGroup.prototype.menu = new Menu([
+TextureGroup.prototype.menu = new Menu('texture_group', [
 	new MenuSeparator('manage'),
+	'rename',
 	{
 		icon: 'fa-leaf',
 		name: 'menu.texture_group.resolve',
@@ -77,14 +90,26 @@ TextureGroup.prototype.menu = new Menu([
 			Undo.finishEdit('Resolve texture group', {textures, texture_groups: []});
 		}
 	},
-])
+], {
+	onClose() {
+		setTimeout(() => {
+			TextureGroup.active_menu_group = null;
+		}, 10);
+	}
+})
 /**
 ToDo:
-- Drag and dropping textures into empty groups
 - Auto-generate groups
-- Rearranging groups
 - Grid view?
+- Search
  */
+
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'textures' && TextureGroup.active_menu_group,
+	run() {
+		TextureGroup.active_menu_group.rename();
+	}
+})
 
 
 BARS.defineActions(function() {
@@ -93,6 +118,7 @@ BARS.defineActions(function() {
 		category: 'textures',
 		click() {
 			let texture_group = new TextureGroup();
+			texture_group.name = 'Texture Group ' + (TextureGroup.all.length+1);
 			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
 			Undo.initEdit({texture_groups: [], textures: textures_to_add});
 			if (textures_to_add.length) {

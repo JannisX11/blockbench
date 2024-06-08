@@ -2371,62 +2371,56 @@ Interface.definePanels(function() {
 						} else if (distance > 6) {
 							active = true;
 						}
-					} else {
-						if (e2) e2.preventDefault();
+					}
+					if (!active) return;
+
+					if (e2) e2.preventDefault();
+
+					if (open_menu) open_menu.hide();
+
+					if (!helper) {
+						helper = vue_scope.$el.cloneNode();
+						helper.classList.add('texture_drag_helper');
+						helper.setAttribute('texid', texture.uuid);
+
+						document.body.append(helper);
+
+						scrollIntervalID = setInterval(scrollInterval, 1000/60)
 						
-						if (open_menu) open_menu.hide();
+						Blockbench.addFlag('dragging_textures');
+					}
+					helper.style.left = `${e2.clientX}px`;
+					helper.style.top = `${e2.clientY}px`;
 
-						if (!helper) {
-							
-							///return t.find('.texture_icon_wrapper').clone().addClass('texture_drag_helper').attr('texid', t.attr('texid'))
-							helper = vue_scope.$el.cloneNode();
-							helper.classList.add('texture_drag_helper');
-							helper.setAttribute('texid', texture.uuid);
+					// drag
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
+					$('.texture[order]').attr('order', null)
 
-							document.body.append(helper);
-
-							scrollIntervalID = setInterval(scrollInterval, 1000/60)
-							
-							Blockbench.addFlag('dragging_textures');
+					let target = $('#cubes_list li.outliner_node:hover').last();
+					if (target.length) {
+						tar.addClass('drag_hover').attr('order', '0');
+						return;
+					}
+					target = document.querySelector('#texture_list li.texture:hover');
+					if (target) {
+						let offset = e2.clientY - $(target).offset().top;
+						target.setAttribute('order', offset > 24 ? '1' : '-1');
+						return;
+					}
+					target = document.querySelector('#texture_list .texture_group_head:hover');
+					if (target) {
+						target.classList.add('drag_hover');
+						target.setAttribute('order', '0');
+						return;
+					}
+					if (document.querySelector('#texture_list:hover')) {
+						let nodes = document.querySelectorAll('#texture_list > li');
+						if (nodes.length) {
+							let target = nodes[nodes.length-1];
+							target.setAttribute('order', '1');
+							target.classList.add('drag_hover');
 						}
-						helper.style.left = `${e2.clientX}px`;
-						helper.style.top = `${e2.clientY}px`;
-
-						// drag
-						$('.outliner_node[order]').attr('order', null);
-						$('.drag_hover').removeClass('drag_hover');
-						$('.texture[order]').attr('order', null)
-
-						
-						//let target = document.elementFromPoint(e2.clientX, e2.clientY);
-						if ($('#cubes_list li.outliner_node:hover').length) {
-							let tar = $('#cubes_list li.outliner_node:hover').last();
-							tar.addClass('drag_hover').attr('order', '0');
-
-						} else if ($('#texture_list li:hover').length) {
-							let node = document.querySelector('#texture_list li.texture:hover');
-							if (node) {
-								//let target_tex = Texture.all.findInArray('uuid', node.getAttribute('texid'));
-								let offset = e2.clientY - $(node).offset().top;
-								node.setAttribute('order', offset > 24 ? '1' : '-1');
-							}
-						}
-
-						/*let target = document.elementFromPoint(e2.clientX, e2.clientY);
-						[drop_target, drop_target_node] = eventTargetToNode(target);
-						if (drop_target) {
-							var location = e2.clientY - $(drop_target_node).offset().top;
-							order = getOrder(location, drop_target)
-							drop_target_node.setAttribute('order', order)
-							drop_target_node.classList.add('drag_hover');
-							let parent_node = drop_target_node.parentElement.parentElement;
-							if ((drop_target instanceof OutlinerElement || order) && parent_node && parent_node.classList.contains('outliner_node')) {
-								parent_node.classList.add('drag_hover_level');
-							}
-
-						} else if ($('#texture_list').is(':hover')) {
-							$('#texture_list').addClass('drag_hover');
-						}*/
 					}
 					last_event = e2;
 				}
@@ -2436,8 +2430,10 @@ Interface.definePanels(function() {
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', off);
 					e2.stopPropagation();
-					$('.texture[order]').attr('order', null);
+
 					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
+					$('.texture[order]').attr('order', null)
 					if (Blockbench.isTouch) clearTimeout(timeout);
 
 					if (!active || Menu.open) return;
@@ -2474,14 +2470,18 @@ Interface.definePanels(function() {
 						}
 					} else if ($('#texture_list:hover').length > 0) {
 						let index = Texture.all.length-1;
-						let node = $('#texture_list li.texture:hover');
+						let texture_node = document.querySelector('#texture_list li.texture:hover');
+						let target_group_head = document.querySelector('#texture_list .texture_group_head:hover');
 						let new_group = '';
-						if (node.length) {
-							let target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
+						if (target_group_head) {
+							new_group = target_group_head.parentNode.id;
+
+						} else if (texture_node) {
+							let target_tex = Texture.all.findInArray('uuid', texture_node.getAttribute('texid'));
 							index = Texture.all.indexOf(target_tex);
 							let own_index = Texture.all.indexOf(texture)
 							if (own_index == index) return;
-							let offset = e2.clientY - $(node).offset().top;
+							let offset = e2.clientY - $(texture_node).offset().top;
 							if (own_index < index) index--;
 							if (offset > 24) index++;
 							new_group = target_tex.group;
@@ -2491,7 +2491,7 @@ Interface.definePanels(function() {
 						Texture.all.splice(index, 0, texture);
 						texture.group = new_group;
 						Canvas.updateLayeredTextures();
-						Undo.finishEdit('Reorder textures');
+						Undo.finishEdit('Rearrange textures');
 
 					} else if ($('#cubes_list:hover').length) {
 
@@ -2681,16 +2681,143 @@ Interface.definePanels(function() {
 				},
 				getUngroupedTextures() {
 					return this.textures.filter(tex => !(tex.group && TextureGroup.all.find(g => g.uuid == tex.group)));
+				},
+				dragTextureGroup(texture_group, e1) {
+					if (e1.button == 1) return;
+					convertTouchEvent(e1);
+
+					let active = false;
+					let helper;
+					let timeout;
+					let last_event = e1;
+					let texture_group_target_node;
+					let order = 0;
+	
+					// scrolling
+					let list = document.getElementById('texture_list');
+					let list_offset = $(list).offset();
+					let scrollInterval = function() {
+						if (!active) return;
+						if (mouse_pos.y < list_offset.top) {
+							list.scrollTop += (mouse_pos.y - list_offset.top) / 7 - 3;
+						} else if (mouse_pos.y > list_offset.top + list.clientHeight) {
+							list.scrollTop += (mouse_pos.y - (list_offset.top + list.clientHeight)) / 6 + 3;
+						}
+					}
+					let scrollIntervalID;
+	
+					function move(e2) {
+						convertTouchEvent(e2);
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!active) {
+							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							if (Blockbench.isTouch) {
+								if (distance > 20 && timeout) {
+									clearTimeout(timeout);
+									timeout = null;
+								} else {
+									document.getElementById('texture_list').scrollTop += last_event.clientY - e2.clientY;
+								}
+							} else if (distance > 6) {
+								active = true;
+							}
+						}
+						if (!active) return;
+	
+						if (e2) e2.preventDefault();
+	
+						if (open_menu) open_menu.hide();
+	
+						if (!helper) {
+							helper = Interface.createElement('div', {class: 'texture_group_drag_helper'}, texture_group.name);
+							document.body.append(helper);
+							scrollIntervalID = setInterval(scrollInterval, 1000/60)
+						}
+						helper.style.left = `${e2.clientX}px`;
+						helper.style.top = `${e2.clientY}px`;
+	
+						// drag
+						$('.drag_hover').removeClass('drag_hover');
+						$('.texture_group[order]').attr('order', null);
+	
+						let target = document.querySelector('#texture_list .texture_group:hover');
+						if (target) {
+							target.classList.add('drag_hover');
+							let offset = e2.clientY - $(target).offset().top;
+							order = offset > (target.clientHeight/2) ? 1 : -1;
+							target.setAttribute('order', order.toString());
+							texture_group_target_node = target;
+
+						} else if (document.querySelector('#texture_list:hover')) {
+							let nodes = document.querySelectorAll('#texture_list > li.texture_group');
+							if (nodes.length) {
+								let target = nodes[nodes.length-1];
+								order = 1;
+								target.setAttribute('order', '1');
+								target.classList.add('drag_hover');
+								texture_group_target_node = target;
+							}
+						}
+						last_event = e2;
+					}
+					async function off(e2) {
+						if (helper) helper.remove();
+						clearInterval(scrollIntervalID);
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						e2.stopPropagation();
+	
+						$('.drag_hover').removeClass('drag_hover');
+						$('.texture_group[order]').attr('order', null);
+						if (Blockbench.isTouch) clearTimeout(timeout);
+	
+						if (!active || Menu.open) return;
+	
+						if (texture_group_target_node) {
+							let index = TextureGroup.all.length-1;
+							let texture_group_target = TextureGroup.all.find(tg => tg.uuid == texture_group_target_node.id);
+							if (texture_group_target) {
+								index = TextureGroup.all.indexOf(texture_group_target)
+								let own_index = TextureGroup.all.indexOf(texture_group)
+								if (own_index == index) return;
+								if (own_index < index) index--;
+								if (order == 1) index++;
+							}
+							Undo.initEdit({texture_groups: [texture_group]});
+							TextureGroup.all.remove(texture_group);
+							TextureGroup.all.splice(index, 0, texture_group);
+							Undo.finishEdit('Rearrange texture groups');
+	
+						}
+					}
+	
+					if (Blockbench.isTouch) {
+						timeout = setTimeout(() => {
+							active = true;
+							move(e1);
+						}, 320)
+					}
+	
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
 			template: `
 				<div>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)" @click.stop="unselect($event)">
 						<li
-							v-for="texture_group in texture_groups" :key="texture_group.uuid"
+							v-for="texture_group in texture_groups" :key="texture_group.uuid" :id="texture_group.uuid"
 							class="texture_group"
 						>
-							<div class="texture_group_head" :class="{folded: texture_group.folded}" @dblclick.stop="texture_group.select()" @click.stop="texture_group.folded = !texture_group.folded" @contextmenu.prevent.stop="texture_group.showContextMenu($event)">
+							<div class="texture_group_head" :class="{folded: texture_group.folded}"
+								@dblclick.stop="texture_group.select()"
+								@click.stop="texture_group.folded = !texture_group.folded"
+								@contextmenu.prevent.stop="texture_group.showContextMenu($event)"
+								@mousedown.stop="dragTextureGroup(texture_group, $event)" @touchstart.stop="dragTextureGroup(texture_group, $event)"
+							>
 								<i
 									@click.stop="texture_group.folded = !texture_group.folded"
 									class="icon-open-state fa"

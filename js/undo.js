@@ -325,13 +325,21 @@ class UndoSystem {
 
 		if (save.texture_groups) {
 			for (let uuid in save.texture_groups) {
+				let group;
+				let data = save.texture_groups[uuid];
 				if (reference.texture_groups[uuid]) {
-					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					group = TextureGroup.all.find(tg => tg.uuid == uuid);
 					if (group) {
-						group.extend(save.texture_groups[uuid]);
+						group.extend(data);
 					}
 				} else {
-					new TextureGroup(save.texture_groups[uuid], uuid).add(false);
+					group = new TextureGroup(data, uuid).add(false);
+				}
+				//order
+				let index = TextureGroup.all.indexOf(group);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					TextureGroup.all.remove(group);
+					TextureGroup.all.splice(data.index, 0, group);
 				}
 			}
 			for (let uuid in reference.texture_groups) {
