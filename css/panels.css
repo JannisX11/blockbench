@@ -402,7 +402,7 @@
 	#cubes_list {
 		padding-top: 1px;
 		overflow-y: scroll;
-		--indentation: 16px;
+		--indentation-offset: 16px;
 	}
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
@@ -438,6 +438,7 @@
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
+		padding-left: calc(var(--indentation) * var(--indentation-offset));
 	}
 	.outliner_object:active {
 	    background-color: var(--color-ui);

@@ -1395,7 +1395,7 @@ Interface.definePanels(function() {
 			`<div
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
-				v-bind:style="{'padding-left': 'calc(var(--indentation) * ' + indentation + ')'}"
+				v-bind:style="{'--indentation': indentation}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				@touchstart="node.select($event)" :title="node.title"
