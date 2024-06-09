@@ -2319,6 +2319,8 @@
 	"display.preset.armor_stand": "Ground (Armor Stand)",
 
 	"preview_scene.studio": "Studio",
+	"preview_scene.sky": "Sky",
+	"preview_scene.space": "Space",
 	"preview_scene.minecraft_overworld": "Overworld",
 	"preview_scene.minecraft_nether": "Nether",
 	"preview_scene.minecraft_end": "End",
@@ -2328,6 +2330,7 @@
 	"preview_scene.minecraft_sunset": "Sunset",
 	"preview_scene.minecraft_night": "Night",
 	"preview_scene.minecraft_desert": "Desert",
+	"preview_scene.minecraft_oceant": "Ocean",
 	"preview_scene.minecraft_underwater": "Underwater",
 	"preview_scene.minecraft_coral_reef": "Coral Reef",
 	"preview_scene.minecraft_lush_cave": "Lush Cave",
