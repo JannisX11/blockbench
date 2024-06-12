@@ -526,16 +526,16 @@ var codec = new Codec('project', {
 				c++;
 				tex_copy.id = c.toString();
 			}
-			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.loadContentFromPath(tex.path)
-				return tex_copy;
-			}
 			if (isApp && tex.relative_path && path) {
 				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
 					tex_copy.loadContentFromPath(resolved_path)
 					return tex_copy;
 				}
+			}
+			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
+				tex_copy.loadContentFromPath(tex.path)
+				return tex_copy;
 			}
 			if (tex.source && tex.source.substr(0, 5) == 'data:') {
 				tex_copy.fromDataURL(tex.source)
