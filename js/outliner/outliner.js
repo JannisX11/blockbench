@@ -727,66 +727,46 @@ Array.prototype.findRecursive = function(key1, val) {
 	return undefined;
 }
 
-function compileGroups(undo, lut) {
-	var result = []
+function compileGroups() {
+	let result = [];
 	function iterate(array, save_array) {
-		var i = 0;
-		for (var element of array) {
+		let i = 0;
+		for (let element of array) {
 			if (element.type === 'group') {
-
-				if (lut === undefined || element.export === true) {
-
-					var obj = element.compile(undo)
-
-					if (element.children.length > 0) {
-						iterate(element.children, obj.children)
-					}
-					save_array.push(obj)
+				let copy = element.compile(true)
+				if (element.children.length > 0) {
+					iterate(element.children, copy.children)
 				}
+				save_array.push(copy)
 			} else {
-				if (undo) {
-					save_array.push(element.uuid)
-				} else {
-					if (lut) {
-						var index = lut[elements.indexOf(element)]
-					} else {
-						var index = elements.indexOf(element)
-					}
-					if (index >= 0) {
-						save_array.push(index)
-					}
-				}
+				save_array.push(element.uuid)
 			}
 			i++;
 		}
 	}
-	iterate(Outliner.root, result)
+	iterate(Outliner.root, result);
 	return result;
 }
-function parseGroups(array, import_reference, startIndex) {
+function parseGroups(array, add_to_project) {
 	function iterate(array, save_array, addGroup) {
 		var i = 0;
 		while (i < array.length) {
 			if (typeof array[i] === 'number' || typeof array[i] === 'string') {
 
-				if (typeof array[i] === 'number') {
-					var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
-				} else {
-					var obj = OutlinerNode.uuids[array[i]];
-				}
+				let obj = OutlinerNode.uuids[array[i]];
 				if (obj) {
-					obj.removeFromParent()
-					save_array.push(obj)
-					obj.parent = addGroup
+					obj.removeFromParent();
+					save_array.push(obj);
+					obj.parent = addGroup;
 				}
 			} else {
 				if (OutlinerNode.uuids[array[i].uuid] instanceof Group) {
 					OutlinerNode.uuids[array[i].uuid].removeFromParent();
 					delete OutlinerNode.uuids[array[i].uuid];
 				}
-				var obj = new Group(array[i], array[i].uuid)
+				let obj = new Group(array[i], array[i].uuid)
 				obj.parent = addGroup
-				obj.isOpen = !!array[i].isOpen
+				obj.isOpen = !!array[i].isOpen;
 				if (array[i].uuid) {
 					obj.uuid = array[i].uuid
 				}
@@ -795,24 +775,17 @@ function parseGroups(array, import_reference, startIndex) {
 				if (array[i].children && array[i].children.length > 0) {
 					iterate(array[i].children, obj.children, obj)
 				}
-				if (array[i].content && array[i].content.length > 0) {
-					iterate(array[i].content, obj.children, obj)
-				}
 			}
 			i++;
 		}
 	}
-	if (import_reference instanceof Group && startIndex !== undefined) {
-		iterate(array, import_reference.children, import_reference)
-	} else {
-		if (!import_reference) {
-			Group.all.forEach(group => {
-				group.removeFromParent();
-			})
-			Group.all.empty();
-		}
-		iterate(array, Outliner.root, 'root');
+	if (!add_to_project) {
+		Group.all.forEach(group => {
+			group.removeFromParent();
+		})
+		Group.all.empty();
 	}
+	iterate(array, Outliner.root, 'root');
 }
 
 // Dropping
