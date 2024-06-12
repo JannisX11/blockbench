@@ -2399,7 +2399,7 @@ Interface.definePanels(function() {
 
 					let target = $('#cubes_list li.outliner_node:hover').last();
 					if (target.length) {
-						tar.addClass('drag_hover').attr('order', '0');
+						target.addClass('drag_hover').attr('order', '0');
 						return;
 					}
 					target = document.querySelector('#texture_list li.texture:hover');
@@ -2431,6 +2431,8 @@ Interface.definePanels(function() {
 					removeEventListeners(document, 'mouseup touchend', off);
 					e2.stopPropagation();
 
+					let outliner_target_node = document.querySelector('#cubes_list li.outliner_node.drag_hover');
+
 					$('.outliner_node[order]').attr('order', null);
 					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
@@ -2438,7 +2440,7 @@ Interface.definePanels(function() {
 
 					if (!active || Menu.open) return;
 
-					await new Promise(r => setTimeout(r, 10));
+					//await new Promise(r => setTimeout(r, 10));
 
 					Blockbench.removeFlag('dragging_textures');
 
@@ -2493,12 +2495,8 @@ Interface.definePanels(function() {
 						Canvas.updateLayeredTextures();
 						Undo.finishEdit('Rearrange textures');
 
-					} else if ($('#cubes_list:hover').length) {
-
-						let target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
-						$('.drag_hover').removeClass('drag_hover');
-						if (!target_node) return;
-						let uuid = target_node.id;
+					} else if (outliner_target_node) {
+						let uuid = outliner_target_node.id;
 						let target = OutlinerNode.uuids[uuid];
 						
 						let array = [];
