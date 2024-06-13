@@ -185,6 +185,9 @@ const CustomTheme = {
 					},
 					getThemeThumbnailStyle(theme) {
 						let style = {};
+						for (let key in CustomTheme.defaultColors) {
+							style[`--color-${key}`] = CustomTheme.defaultColors[key];
+						}
 						for (let key in theme.colors) {
 							style[`--color-${key}`] = theme.colors[key];
 						}
