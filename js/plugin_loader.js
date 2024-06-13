@@ -320,7 +320,7 @@ class Plugin {
 				}).fail(reject)
 			} else {
 				try {
-					new Function(file.content)();
+					new Function(file.content + `\n//# sourceURL=[PLUGIN]:${this.id}.js`)();
 				} catch (err) {
 					reject(err)
 				}
