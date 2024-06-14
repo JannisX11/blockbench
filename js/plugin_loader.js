@@ -1267,8 +1267,8 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
-						<ul class="list" id="plugin_list" ref="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
+						<ul class="list" :class="{paginated_list: pages.length > 1}" id="plugin_list" ref="plugin_list">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -1292,7 +1292,7 @@ BARS.defineActions(function() {
 						</ol>
 					</div>
 					
-					<div id="plugin_browser_page" v-if="selected_plugin">
+					<div id="plugin_browser_page" v-if="selected_plugin" :class="{plugin_disabled: selected_plugin.disabled, plugin_installed: selected_plugin.installed}">
 						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>

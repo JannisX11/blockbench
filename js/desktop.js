@@ -732,7 +732,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 
 	} else {
-		addStartScreenSection({
+		addStartScreenSection('update_notification', {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
