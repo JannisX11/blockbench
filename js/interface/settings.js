@@ -465,10 +465,6 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
-		new Setting('bedrock_uv_rotations',	{category: 'edit', value: false, name: 'Bedrock UV Rotations (Experimental)', description: 'Enable the experimental bedrock UV rotations feature.', onChange(value) {
-			Formats.bedrock.uv_rotation = value;
-			Formats.bedrock_block.uv_rotation = value;
-		}});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -582,10 +578,6 @@ const Settings = {
 			settings.brush_opacity_modifier.set('none');
 			settings.brush_size_modifier.set('none');
 		})
-		let date = new Date();
-		if (date.getMonth() >= 5 && date.getDate() >= 13) {
-			settings.bedrock_uv_rotations.set(true);
-		}
 	},
 	setupProfiles() {
 		if (localStorage.getItem('settings_profiles') != null) {
