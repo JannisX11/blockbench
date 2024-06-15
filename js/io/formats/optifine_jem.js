@@ -383,4 +383,47 @@ BARS.defineActions(function() {
 	})
 })
 
+new ValidatorCheck('optifine_jem_uv', {
+	condition: {formats: ['optifine_entity']},
+	update_triggers: ['update_selection'],
+	run() {
+		for (let cube of Cube.all) {
+			let select_cube_button = {
+				name: 'Select Cube',
+				icon: 'fa-cube',
+				click() {
+					Validator.dialog.hide();
+					cube.select();
+				}
+			};
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				let uv_size = face.uv_size;
+				let size_issue, offset_issue;
+				for (let i of [0, 1]) {
+					let size = uv_size[i];
+					if (Math.roundTo(size, 4) && Math.abs(size) < 1) {
+						size_issue = true;
+					}
+					if (Math.roundTo(face.uv[i], 4) % 1) {
+						offset_issue = true;
+					}
+				}
+				if (size_issue) {
+					this.warn({
+						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes with an absolute value below 1 but not 0 are invalid in OptiFine models.`,
+						buttons: [select_cube_button]
+					})
+				}
+				if (offset_issue) {
+					this.warn({
+						message: `The face "${fkey}" on cube "${cube.name}" has an invalid UV offset. OptiFine only supports integer values as UV offset.`,
+						buttons: [select_cube_button]
+					})
+				}
+			}
+		}
+	}
+})
+
 })()
