@@ -1896,29 +1896,25 @@ const BARS = {
 				icon: 'shuffle',
 				category: 'edit',
 				condition: {modes: ['edit' ], project: true},
-				click: function () {
-					let setRandomGroupColor = function() {
-						let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
-						let elements = Outliner.selected.filter(element => element.setColor)
-						Undo.initEdit({outliner: true, elements: elements, selection: true})
-						Group.all.forEach(group => {
-							if (group.selected) {
-								let lastColor = group.color
-								// Ensure chosen group color is never the same as before
-								do group.color = randomColor();
-								while (group.color === lastColor)
-							}
-						})
-						elements.forEach(element => {
-							let lastColor = element.color
-							// Ensure chosen element color is never the same as before
-							do element.setColor(randomColor())
-							while (element.color === lastColor)
-						})
-						Undo.finishEdit('Change group marker color')
-					}
-
-					setRandomGroupColor();
+				click: function() {
+					let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
+					let elements = Outliner.selected.filter(element => element.setColor)
+					Undo.initEdit({outliner: true, elements: elements, selection: true})
+					Group.all.forEach(group => {
+						if (group.selected) {
+							let lastColor = group.color
+							// Ensure chosen group color is never the same as before
+							do group.color = randomColor();
+							while (group.color === lastColor)
+						}
+					})
+					elements.forEach(element => {
+						let lastColor = element.color
+						// Ensure chosen element color is never the same as before
+						do element.setColor(randomColor())
+						while (element.color === lastColor)
+					})
+					Undo.finishEdit('Change marker color')
 				}
 			})
 
