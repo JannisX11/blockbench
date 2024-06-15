@@ -439,26 +439,6 @@ class Group extends OutlinerNode {
 		})
 		Undo.finishEdit('Change group marker color')
 	}
-	function setRandomGroupColor() {
-		let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
-		let elements = Outliner.selected.filter(el => el.setColor)
-		Undo.initEdit({outliner: true, elements: elements, selection: true})
-		Group.all.forEach(group => {
-			if (group.selected) {
-				let lastColor = group.color
-				// Ensure chosen group color is never the same as before
-				do group.color = randomColor();
-				while (group.color === lastColor)
-			}
-		})
-		elements.forEach(el => {
-			let lastColor = el.color
-			// Ensure chosen element color is never the same as before
-			do el.setColor(randomColor())
-			while (el.color === lastColor)
-		})
-		Undo.finishEdit('Change group marker color')
-	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
