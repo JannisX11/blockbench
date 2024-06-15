@@ -1893,7 +1893,7 @@ const BARS = {
 				keybind: new Keybind({key: 's', alt: true}),
 			})
 			new Action('randomize_marker_colors', {
-				icon: 'shuffle',
+				icon: 'fa-shuffle',
 				category: 'edit',
 				condition: {modes: ['edit' ], project: true},
 				click: function() {
