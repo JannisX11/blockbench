@@ -872,15 +872,7 @@ class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
-		{name: 'action.cube.random_color', icon: 'fa-swatchbook', click(cube) {
-				cube.forSelected(function(obj){
-					let lastColor = obj.color
-					// Ensure chosen color is never equal to the previous color
-					do obj.setColor(Math.floor(Math.random() * markerColors.length))
-					while (obj.color === lastColor)
-				}, 'change color')
-			}
-		},
+		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children: function() {
 			var arr = [
 				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click: function(cube) {

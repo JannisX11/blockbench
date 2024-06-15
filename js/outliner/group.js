@@ -473,10 +473,7 @@ class Group extends OutlinerNode {
 				}
 			}})
 		}},
-		{name: 'action.cube.random_color', icon: 'fa-swatchbook', click() {
-				setRandomGroupColor()
-			}
-		},
+		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
 			let arr = [
 				{icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(group) {

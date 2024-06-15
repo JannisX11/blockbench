@@ -1387,9 +1387,9 @@
 	"action.outliner_toggle.desc": "Toggles switches for more options in the outliner",
 	"action.cube_counter": "Model Statistics",
 	"action.cube_counter.desc": "Displays the current number of elements and other statistics",
-	"action.cube.random_color": "Random Marker Color",
 	"action.search_outliner": "Search Outliner",
 	"action.search_outliner.desc": "Search for specific element names in the outliner",
+	"action.randomize_marker_colors": "Randomize Marker Colors",
 
 	"action.duplicate": "Duplicate",
 	"action.duplicate.desc": "Duplicates the selected elements or group",
