@@ -189,6 +189,11 @@ var codec = new Codec('project', {
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
+		for (let texture_group of TextureGroup.all) {
+			if (!model.texture_groups) model.texture_groups = [];
+			let copy = texture_group.getSaveCopy();
+			model.texture_groups.push(copy);
+		}
 
 		if (Animation.all.length) {
 			model.animations = [];
@@ -328,6 +333,11 @@ var codec = new Codec('project', {
 			Project.texture_height = model.resolution.height;
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
@@ -516,10 +526,6 @@ var codec = new Codec('project', {
 				c++;
 				tex_copy.id = c.toString();
 			}
-			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.loadContentFromPath(tex.path)
-				return tex_copy;
-			}
 			if (isApp && tex.relative_path && path) {
 				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
@@ -527,18 +533,31 @@ var codec = new Codec('project', {
 					return tex_copy;
 				}
 			}
+			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
+				tex_copy.loadContentFromPath(tex.path)
+				return tex_copy;
+			}
 			if (tex.source && tex.source.substr(0, 5) == 'data:') {
 				tex_copy.fromDataURL(tex.source)
 				return tex_copy;
 			}
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
 			new_textures.replace(model.textures.map(loadTexture))
 		}
 
 		if (model.skin_model) {
+			let elements_before = Outliner.elements.slice();
 			Codecs.skin_model.rebuild(model.skin_model);
+			for (let element of Outliner.elements) {
+				if (!elements_before.includes(element)) new_elements.push(element);
+			}
 		}
 		let adjust_uv = !Format.per_texture_uv_size || !imported_format?.per_texture_uv_size;
 		if (model.elements) {

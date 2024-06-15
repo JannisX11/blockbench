@@ -351,6 +351,7 @@ const MenuBar = {
 			'optimize_animation',
 			'bake_ik_animation',
 			'bake_animation_into_model',
+			'merge_animation',
 			new MenuSeparator('file'),
 			'load_animation_file',
 			'save_all_animations',
@@ -562,6 +563,47 @@ const MenuBar = {
 			buttons.forEach(button => {
 				header.append(button);
 			})
+
+			header.addEventListener('touchstart', e1 => {
+				convertTouchEvent(e1);
+				let opened, bar, initial;
+				let onMove = e2 => {
+					convertTouchEvent(e2);
+					let y_diff = e2.clientY - e1.clientY;
+					if (y_diff > 16) {
+						if (!opened) {
+							bar = MenuBar.openMobile(menu_button);
+							opened = true;
+							initial = y_diff;
+						}
+					}
+					if (bar) {
+						bar.style.marginTop = Math.clamp(y_diff - 50, -60, 0)+'px';
+						for (let node of bar.childNodes) {
+							if (!node.bbOpenMenu) continue;
+							let offset_center = bar.offsetLeft + node.offsetLeft + node.clientWidth/2;
+							if (Math.abs(offset_center - e2.clientX) < 21) {
+								node.bbOpenMenu(e2);
+								break;
+							}
+						}
+					}
+				}
+				let onStop = e2 => {
+					document.removeEventListener('touchmove', onMove);
+					document.removeEventListener('touchend', onStop);
+					if (bar) {
+						bar.style.marginTop = '0';
+						convertTouchEvent(e2);
+						let y_diff = e2.clientY - e1.clientY;
+						if (y_diff < initial && MenuBar.open) {
+							MenuBar.open.hide()
+						}
+					}
+				}
+				document.addEventListener('touchmove', onMove);
+				document.addEventListener('touchend', onStop);
+			})
 		}
 	},
 	openMobile(button, event) {
@@ -584,12 +626,15 @@ const MenuBar = {
 			if (!Condition(menu.condition)) continue;
 
 			let node = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode(menu.icon));
-			addEventListeners(node, 'pointerdown touchmove', event => {
+			let openMenu = event => {
 				if (MenuBar.last_opened == menu) return;
 				MenuBar.last_opened = MenuBar.open = menu;
 				menu.open(menu_position);
 				setSelected(node, menu);
-			})
+			}
+			addEventListeners(node, 'pointerdown touchmove', openMenu);
+			node.bbOpenMenu = openMenu;
+
 			menu_button_nodes.push(node);
 			bar.append(node);
 			if (MenuBar.last_opened == menu || (!MenuBar.last_opened && id == 'file')) {
@@ -605,6 +650,7 @@ const MenuBar = {
 			clientX: bar.offsetLeft + 7,
 			clientY: bar.offsetTop + bar.clientHeight - 1
 		}
+		return bar;
 	},
 	update() {
 		if (!Blockbench.isMobile) {

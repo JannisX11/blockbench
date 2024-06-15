@@ -12,7 +12,7 @@ function buildForm(dialog) {
 			let bar = $(`<div class="dialog_bar bar form_bar form_bar_${form_id}"></div>`)
 			let label;
 			if (typeof data.label == 'string') {
-				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+(data.nocolon?'':':'))
+				label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(data.label)+((data.nocolon || !data.label)?'':':'))
 				bar.append(label);
 				if (!data.full_width && data.condition !== false) {
 					dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
@@ -128,7 +128,7 @@ function buildForm(dialog) {
 					let select_input = new Interface.CustomElements.SelectInput(form_id, {
 						options: data.options,
 						value: data.value || data.default,
-						onChange() {
+						onInput() {
 							dialog.updateFormValues();
 						}
 					});

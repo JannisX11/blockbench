@@ -1265,6 +1265,126 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+	new Action('merge_animation', {
+		icon: 'merge_type',
+		category: 'animation',
+		condition: () => Modes.animate && Animation.all.length > 1,
+		click: async function() {
+			let source_animation = Animation.selected;
+
+			let options = await new Promise(resolve => {
+				let animation_options = {};
+				for (let animation of animations) {
+					if (animation == source_animation) continue;
+					animation_options[animation.uuid] = animation.name;
+				}
+				new Dialog('merge_animation', {
+					name: 'action.merge_animation',
+					form: {
+						animation: {label: 'data.animation', type: 'select', options: animation_options},
+					},
+					onConfirm(result) {
+						resolve(result);
+					},
+					onCancel() {
+						resolve(false);
+					}
+				}).show();
+			})
+			if (!options) return;
+			
+			let target_animation = Animation.all.find(anim => anim.uuid == options.animation);
+			let animations = [source_animation, target_animation];
+			Undo.initEdit({animations});
+
+
+			for (let uuid in source_animation.animators) {
+				let source_animator = source_animation.animators[uuid];
+				let target_animator;
+				if (source_animator instanceof BoneAnimator) {
+					let node = source_animator.getElement ? source_animator.getElement() : source_animator.getGroup();
+					target_animator = target_animation.getBoneAnimator(node);
+				} else if (source_animator instanceof EffectAnimator) {
+					if (!target_animation.animators.effects) {
+						target_animation.animators.effects = new EffectAnimator(target_animation);
+					}
+					target_animator = target_animation.animators.effects;
+				}
+				for (let channel in source_animator.channels) {
+					let source_kfs = source_animator[channel];
+					let target_kfs = target_animator[channel];
+					let timecodes = {};
+					for (let kf of source_kfs) {
+						let key = Math.roundTo(kf.time, 2);
+						if (!timecodes[key]) timecodes[key] = {};
+						timecodes[key].source_kf = kf;
+						timecodes[key].time = kf.time;
+					}
+					for (let kf of target_kfs) {
+						let key = Math.roundTo(kf.time, 2);
+						if (!timecodes[key]) timecodes[key] = {};
+						timecodes[key].target_kf = kf;
+						timecodes[key].time = kf.time;
+					}
+					function mergeValues(a, b) {
+						if (!a) return b;
+						if (!b) return a;
+						if (typeof a == 'number' && typeof b == 'number') {
+							return a + b;
+						}
+						return a.toString() + ' + ' + b.toString();
+					}
+					let keys = Object.keys(timecodes).sort((a, b) => a.time - b.time);
+					for (let key of keys) {
+						let {source_kf, target_kf, time} = timecodes[key];
+						Timeline.time = time;
+						if (kf.transform) {
+							if (source_kf && target_kf) {
+								for (let axis of 'xyz') {
+									let source_val = source_kf.get(axis);
+									let target_val = target_kf.get(axis);
+									target_kf.set(axis, mergeValues(target_val, source_val));
+								}
+							} else if (source_kf) {
+								//let interpolated = target_animator.interpolate(channel, true);
+								// Todo: At time of creatio, this might already be affected by modified keyframes around it. Interpolate values before!
+								let target_kf = target_animator.createKeyframe(null, time, channel, false, false);
+								let i = 0;
+								for (let axis of 'xyz') {
+									let source_val = source_kf.get(axis);
+									let target_val = target_kf.get(axis);
+									target_kf.set(axis, mergeValues(target_val, source_val));
+									i++;
+								}
+
+							} else if (target_kf) {
+								let interpolated = this.interpolate(channel, true);
+								let i = 0;
+								for (let axis of 'xyz') {
+									let source_val = source_kf.get(axis);
+									let target_val = target_kf.get(axis);
+									target_kf.set(axis, mergeValues(target_val, source_val));
+									i++;
+								}
+							}
+						} else if (source_animator instanceof EffectAnimator) {
+							if (source_kf && target_kf) {
+								
+							} else if (source_kf) {
+
+							} else if (target_kf) {
+							}
+						}
+					}
+				}
+			}
+			animations.remove(source_animation);
+			source_animation.remove(false);
+			target_animation.select();
+			
+			Undo.finishEdit('Merge animations');
+		}
+	})
 	let optimize_animation_mode = 'selected_animation';
 	new Action('optimize_animation', {
 		icon: 'settings_slow_motion',

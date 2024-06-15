@@ -538,8 +538,6 @@ function setupInterface() {
 		reference.select();
 	});
 
-	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
-
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
@@ -756,7 +754,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	let options = typeof data.options == 'function' ? data.options() : data.options;
 	let value = data.value || data.default || Object.keys(options)[0];
 	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
-	function setKey(key, options) {
+	function setKey(key, options, input_event) {
 		if (!options) {
 			options = typeof data.options == 'function' ? data.options() : data.options;
 		}
@@ -765,6 +763,9 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		select.textContent = getNameFor(options[key]);
 		if (typeof data.onChange == 'function') {
 			data.onChange(value);
+		}
+		if (input_event && typeof data.onInput == 'function') {
+			data.onInput(value, input_event);
 		}
 	}
 	select.addEventListener('click', function(event) {
@@ -779,8 +780,8 @@ Interface.CustomElements.SelectInput = function(id, data) {
 					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
 					color: val.color,
 					condition: val.condition,
-					click: (e) => {
-						setKey(key, options);
+					click: (context, event) => {
+						setKey(key, options, event || 1);
 					}
 				})
 			}

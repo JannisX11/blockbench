@@ -36,6 +36,40 @@ const Plugins = {
 StateMemory.init('installed_plugins', 'array')
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
+async function runPluginFile(path, plugin_id) {
+	let file_content;
+	if (path.startsWith('http')) {
+		if (!path.startsWith('https')) {
+			throw 'Cannot load plugins over http: ' + path;
+		}
+		await new Promise((resolve, reject) => {
+			$.ajax({
+				cache: false,
+				url: path,
+				success(data) {
+					file_content = data;
+					resolve();
+				},
+				error() {
+					reject('Failed to load plugin ' + plugin_id);
+				}
+			});
+		})
+
+	} else if (isApp) {
+		file_content = fs.readFileSync(path, {encoding: 'utf-8'});
+
+	} else {
+		throw 'Failed to load plugin: Unknown URL format'
+	}
+	if (typeof file_content != 'string' || file_content.length < 20) {
+		throw `Issue loading plugin "${plugin_id}": Plugin file empty`;
+	}
+	let func = new Function(file_content + `\n//# sourceURL=PLUGINS/(Plugin):${plugin_id}.js`);
+	func();
+	return file_content;
+}
+
 class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
@@ -137,10 +171,7 @@ class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			$.getScript(path, (content, status, context) => {
-				if (!content || content.length <= 20) {
-					console.warn(`Issue loading plugin "${this.id}": Plugin file empty`);
-				}
+			runPluginFile(path, this.id).then((content) => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -148,13 +179,14 @@ class Plugin {
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
-			}).fail(() => {
+			}).catch((error) => {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
 				reject()
+				console.error(error)
 			})
 			this.remember()
 			scope.installed = true;
@@ -300,44 +332,37 @@ class Plugin {
 		this.source = 'file';
 		this.tags.safePush('Local');
 
-		return await new Promise((resolve, reject) => {
-
-			if (isApp) {
-				$.getScript(file.path, () => {
-					if (window.plugin_data) {
-						scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
-						scope.extend(plugin_data)
-						scope.bindGlobalData()
-					}
-					if (first && scope.oninstall) {
-						scope.oninstall()
-					}
-					scope.installed = true;
-					scope.path = file.path;
-					this.remember();
-					Plugins.sort();
-					resolve()
-				}).fail(reject)
-			} else {
-				try {
-					new Function(file.content)();
-				} catch (err) {
-					reject(err)
-				}
-				if (!Plugins.registered && window.plugin_data) {
-					scope.id = (plugin_data && plugin_data.id)||scope.id
+		if (isApp) {
+			let content = await runPluginFile(file.path, this.id);
+			if (content) {
+				if (window.plugin_data) {
+					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
-				scope.installed = true
-				this.remember()
-				Plugins.sort()
-				resolve()
+				scope.path = file.path;
 			}
-		})
+		} else {
+			try {
+				new Function(file.content + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`)();
+			} catch (err) {
+				reject(err)
+			}
+			if (!Plugins.registered && window.plugin_data) {
+				scope.id = (plugin_data && plugin_data.id)||scope.id
+				scope.extend(plugin_data)
+				scope.bindGlobalData()
+			}
+			if (first && scope.oninstall) {
+				scope.oninstall()
+			}
+		}
+		this.installed = true;
+		this.remember();
+		Plugins.sort();
 	}
 	async loadFromURL(url, first) {
 		if (first) {
@@ -354,36 +379,36 @@ class Plugin {
 		this.tags.safePush('Remote');
 
 		this.source = 'url';
-		await new Promise((resolve, reject) => {
-			$.getScript(url, () => {
-				if (window.plugin_data) {
-					this.id = (plugin_data && plugin_data.id)||pathToName(url)
-					this.extend(plugin_data)
-					this.bindGlobalData()
-				}
-				if (first && this.oninstall) {
-					this.oninstall()
-				}
-				this.installed = true
-				this.path = url
-				this.remember()
-				Plugins.sort()
-				// Save
-				if (isApp) {
-					var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+		let content = await runPluginFile(url, this.id).catch((error) => {
+			if (isApp) {
+				this.load().then(resolve).catch(resolve)
+			}
+			console.error(error);
+		})
+		if (content) {
+			if (window.plugin_data) {
+				this.id = (plugin_data && plugin_data.id)||pathToName(url)
+				this.extend(plugin_data)
+				this.bindGlobalData()
+			}
+			if (first && this.oninstall) {
+				this.oninstall()
+			}
+			this.installed = true
+			this.path = url
+			this.remember()
+			Plugins.sort()
+			// Save
+			if (isApp) {
+				await new Promise((resolve) => {
+					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
-				} else {
-					resolve()
-				}
-			}).fail(() => {
-				if (isApp) {
-					this.load().then(resolve).catch(resolve)
-				}
-			})
-		})
+				})
+			}
+		}
 		return this;
 	}
 	remember(id = this.id, path = this.path) {
@@ -1023,7 +1048,12 @@ BARS.defineActions(function() {
 					return pureMarked(about);
 				},
 				reduceLink(url) {
-					return url.replace('https://', '').substring(0, 50)+'...';
+					url = url.replace('https://', '').replace(/\/$/, '');
+					if (url.length > 50) {
+						return url.substring(0, 50)+'...';
+					} else {
+						return url;
+					}
 				},
 				printDate(input_date) {
 					return getDateDisplay(input_date).short;

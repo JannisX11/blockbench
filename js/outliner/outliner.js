@@ -434,8 +434,9 @@ class OutlinerElement extends OutlinerNode {
 			return false;
 		}
 		//Shift
-		var just_selected = []
-		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && isOutlinerClick) {
+		var just_selected = [];
+		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements'));
+		if (event && allow_multi_select && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && isOutlinerClick) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -466,7 +467,7 @@ class OutlinerElement extends OutlinerNode {
 			})
 
 		//Control
-		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
+		} else if (event && allow_multi_select && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
 			if (selected.includes(this)) {
 				selected.replace(selected.filter((e) => {
 					return e !== this
@@ -1394,7 +1395,7 @@ Interface.definePanels(function() {
 			`<div
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
-				v-bind:style="{'padding-left': indentation + 'px'}"
+				v-bind:style="{'--indentation': indentation}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				@touchstart="node.select($event)" :title="node.title"
@@ -1421,7 +1422,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: 'calc(var(--indentation) * ' + indentation + ')'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1432,11 +1433,12 @@ Interface.definePanels(function() {
 			depth: Number
 		},
 		data() {return {
-			outliner_colors: settings.outliner_colors
+			outliner_colors: settings.outliner_colors,
+			markerColors
 		}},
 		computed: {
 			indentation() {
-				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
+				return limitNumber(this.depth, 0, (this.width-100) / 16);
 			},
 			visible_children() {
 				let filtered = this.node.children;

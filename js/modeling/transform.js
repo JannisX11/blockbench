@@ -909,7 +909,7 @@ BARS.defineActions(function() {
 	new BarSelect('rotation_space', {
 		condition: {modes: ['edit', 'animate', 'pose'], tools: ['rotate_tool']},
 		category: 'transform',
-		value: 'parent',
+		value: 'local',
 		options: {
 			global: 'action.transform_space.global',
 			parent: 'action.transform_space.parent',

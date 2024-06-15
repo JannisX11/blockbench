@@ -151,6 +151,9 @@ PreviewScene.menu_categories = {
 	generic: {
 		_label: 'Generic'
 	},
+	realistic: {
+		_label: 'Realistic'
+	},
 	minecraft: {
 		_label: 'Minecraft'
 	},
@@ -379,6 +382,14 @@ new PreviewScene('studio', {
 	light_side: 1,
 	preview_models: ['studio']
 });
+new PreviewScene('sky', {
+	category: 'realistic',
+	web_config: 'realistic/sky/sky.json',
+});
+new PreviewScene('space', {
+	category: 'realistic',
+	web_config: 'realistic/space/space.json',
+});
 new PreviewScene('minecraft_plains', {
 	category: 'minecraft',
 	web_config: 'minecraft/plains/plains.json',
@@ -407,6 +418,11 @@ new PreviewScene('minecraft_night', {
 new PreviewScene('minecraft_desert', {
 	category: 'minecraft',
 	web_config: 'minecraft/desert/desert.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_ocean', {
+	category: 'minecraft',
+	web_config: 'minecraft/ocean/ocean.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_underwater', {
