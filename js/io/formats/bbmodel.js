@@ -708,6 +708,9 @@ BARS.defineActions(function() {
 				let projectVerRegex = /([0-9]+).bbmodel/gm;
 				let projectVerMatch = projectVerRegex.exec(Project.save_path);
 
+				// Check if project file has version patterns in it (right before ".bbmodel")
+				// if it does, grab & increment it
+				// if it doesn't, add it
 				if (projectVerMatch) {
 					let projectVer = parseInt(projectVerMatch[1]); // Parse & store project ver int (capturing group 1)
 					codec.write(codec.compile(), Project.save_path.replace(projectVerRegex, `${projectVer + 1}.bbmodel`));
