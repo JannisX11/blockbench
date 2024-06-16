@@ -696,6 +696,30 @@ BARS.defineActions(function() {
 		}
 	})
 
+	new Action('save_project_incremental', {
+		icon: 'difference',
+		category: 'file',
+		keybind: new Keybind({key: 's', shift: true, alt: true}),
+		condition: () => Project,
+		click: function () {
+			saveTextures(true)
+			if (isApp && Project.save_path) {
+				let projectTailRegex = /.bbmodel/gm;
+				let projectVerRegex = /([0-9]+).bbmodel/gm;
+				let projectVerMatch = projectVerRegex.exec(Project.save_path);
+
+				if (projectVerMatch) {
+					let projectVer = parseInt(projectVerMatch[1]); // Parse & store project ver int (capturing group 1)
+					codec.write(codec.compile(), Project.save_path.replace(projectVerRegex, `${projectVer + 1}.bbmodel`));
+				} else {
+					codec.write(codec.compile(), Project.save_path.replace(projectTailRegex, "_1.bbmodel"));
+				}
+			} else {
+				codec.export()
+			}
+		}
+	})
+
 	new Action('save_project_as', {
 		icon: 'save',
 		category: 'file',

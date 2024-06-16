@@ -140,6 +140,7 @@ const MenuBar = {
 			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
+			'save_project_incremental',
 			'convert_project',
 			'close_project',
 			new MenuSeparator('import_export'),
