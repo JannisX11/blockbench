@@ -2431,6 +2431,9 @@
 		object-fit: contain;
 		image-rendering: auto;
 	}
+	#tab_overview_grid > li.pixel_art img {
+		image-rendering: pixelated;
+	}
 	#tab_overview_grid > li label {
 		cursor: inherit;
 	}
