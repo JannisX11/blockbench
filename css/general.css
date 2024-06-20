@@ -28,13 +28,13 @@
 	}
 	.progress_bar {
 		background-color: var(--color-back);
-		height: 20px;
+		height: 18px;
 		margin-top: 12px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
-		width: 0px;
+		width: calc(100% * var(--progress));
 	}
 	.accent_color {
 		color: var(--color-accent);

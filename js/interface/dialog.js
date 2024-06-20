@@ -545,6 +545,18 @@ window.Dialog = class Dialog {
 
 		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar, this) : null;
 		this.title_menu = options.title_menu || null;
+		if (options.progress_bar) {
+			this.progress_bar = {
+				setProgress: (progress) => {
+					this.progress_bar.progress = progress;
+					if (this.progress_bar.node) {
+						this.progress_bar.node.style.setProperty('--progress', progress);
+					}
+				},
+				progress: options.progress_bar.progress ?? 0,
+				node: null
+			}
+		}
 
 		this.width = options.width
 		this.draggable = options.draggable
@@ -796,6 +808,14 @@ window.Dialog = class Dialog {
 				? Math.clamp(this.max_label_width+9, 0, width/2)
 				: Math.clamp(this.max_label_width+16, 0, width - 100);
 			this.object.style.setProperty('--max_label_width', max_width + 'px');
+		}
+
+		if (this.progress_bar) {
+			this.progress_bar.node = Interface.createElement('div', {class: 'progress_bar'},
+				Interface.createElement('div', {class: 'progress_bar_inner'})
+			)
+			this.progress_bar.setProgress(this.progress_bar.progress);
+			this.object.querySelector('content.dialog_content').append(this.progress_bar.node);
 		}
 
 		if (this.buttons.length) {
