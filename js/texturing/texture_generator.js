@@ -323,7 +323,7 @@ const TextureGenerator = {
 		}
 	},
 	//Face Template
-	generateTemplate(options, makeTexture) {
+	async generateTemplate(options, makeTexture) {
 		let res_multiple = options.resolution / 16;
 		let background_color = options.color;
 		let new_resolution = [];
@@ -374,6 +374,28 @@ const TextureGenerator = {
 			}
 			let texture = face.getTexture();
 			return uv_id + ':' + (texture ? texture.uuid : 'blank');
+		}
+
+		let cancelled = false;
+		const progress_dialog = new Dialog('generate_template_progress', {
+			title: 'action.create_texture',
+			cancel_on_click_outside: false,
+			progress_bar: {},
+			buttons: ['dialog.cancel'],
+			onCancel() {
+				Undo.cancelEdit(false);
+				cancelled = true;
+				Blockbench.setProgress();
+			}
+		});
+		progress_dialog.show();
+
+		let last_timeout = Date.now();
+		async function setProgress(progress) {
+			Blockbench.setProgress(progress);
+			progress_dialog.progress_bar.setProgress(progress ?? 0);
+			await new Promise(resolve => setTimeout(resolve, 1));
+			last_timeout = Date.now();
 		}
 
 		Undo.initEdit({
@@ -979,28 +1001,41 @@ const TextureGenerator = {
 					return true;
 				}
 			}
-			box_uv_templates.forEach(tpl => {
-				let vert = extend_x > extend_y;
-				//Scan for empty spot
 
+			let total = (box_uv_templates.length * 6 + face_list.length) * 1.05;
+			let handled = 0;
+			outer_loop:
+			for (let tpl of box_uv_templates) {
+				if (Date.now() - last_timeout > 24) {
+					await setProgress(handled/total);
+				}
+				if (cancelled) return;
+				handled += 6;
+				//Scan for empty spot
 				for (let line = 0; line < 2e3; line++) {
 					for (let space = 0; space <= line; space++) {
-						if (place(tpl, space, line)) return;
+						if (place(tpl, space, line)) continue outer_loop;
 						if (space == line) continue;
-						if (place(tpl, line, space)) return;
+						if (place(tpl, line, space)) continue outer_loop;
 					}
 				}
-			})
-			face_list.forEach(tpl => {
+			}
+			outer_loop2:
+			for (let tpl of face_list) {
+				if (Date.now() - last_timeout > 24) {
+					await setProgress(handled/total);
+				}
+				if (cancelled) return;
+				handled += 1;
 				//Scan for empty spot
 				for (var line = 0; line < 2e3; line++) {
 					for (var space = 0; space <= line; space++) {
-						if (place(tpl, space, line)) return;
+						if (place(tpl, space, line)) continue outer_loop2;
 						if (space == line) continue;
-						if (place(tpl, line, space)) return;
+						if (place(tpl, line, space)) continue outer_loop2;
 					}
 				}
-			})
+			}
 
 			
 			var max_size = Math.max(extend_x, extend_y)
@@ -1027,6 +1062,8 @@ const TextureGenerator = {
 				face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
 			})
 		}
+
+		await setProgress(1);
 
 		if (background_color) {
 			background_color = background_color.toRgbString()
@@ -1475,6 +1512,8 @@ const TextureGenerator = {
 			uv_only: true,
 			uv_mode: true
 		})
+		progress_dialog.close();
+		setProgress();
 		// Warning
 		if (element_list.find(element => {
 			if (element instanceof Cube == false || !element.box_uv) return false;
