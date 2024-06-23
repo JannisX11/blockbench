@@ -2232,6 +2232,10 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
+	.flipbook_frame.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
 	.flipbook_frame > img {
 		cursor: inherit;
 		pointer-events: none;
