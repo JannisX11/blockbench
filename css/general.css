@@ -768,6 +768,10 @@
 	.contextMenu .menu_search_bar {
 		padding: 0;
 		display: flex;
+		position: sticky;
+		top: 0;
+		background-color: inherit;
+		border-bottom: 2px solid var(--color-menu_separator);
 	}
 	.menu_search_bar > input {
 		color: inherit;

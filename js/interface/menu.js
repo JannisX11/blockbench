@@ -238,7 +238,6 @@ class Menu {
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
 				menu_node.append(search_bar);
-				menu_node.append(Interface.createElement('li', {class: 'menu_separator'}));
 				
 				let object_list = [];
 				list.forEach(function(s2, i) {
