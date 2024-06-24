@@ -723,7 +723,7 @@ BARS.defineActions(function() {
 							]).show(event.target);
 						},
 						autocomplete(text, position) {
-							let test = Animator.autocompleteMolang(text, position, 'binding');
+							let test = MolangAutocomplete.BedrockBindingContext.autocomplete(text, position);
 							return test;
 						}
 					},

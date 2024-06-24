@@ -1420,7 +1420,7 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'placeholders');
+					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 					return test;
 				}
 			},

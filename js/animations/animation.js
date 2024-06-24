@@ -724,7 +724,7 @@ class Animation extends AnimationItem {
 				},
 				methods: {
 					autocomplete(text, position) {
-						let test = Animator.autocompleteMolang(text, position, 'animation');
+						let test = MolangAutocomplete.AnimationContext.autocomplete(text, position);
 						return test;
 					}
 				},
@@ -2049,7 +2049,7 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'placeholders');
+					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 					return test;
 				}
 			},
