@@ -9,7 +9,7 @@ class Keybind {
 	 * @param {boolean} keys.alt Alt key
 	 * @param {boolean} keys.meta Meta key
 	 */
-	constructor(keys) {
+	constructor(keys, variations) {
 		this.key 	= -1;
 		this.ctrl 	= false;
 		this.shift 	= false;
@@ -27,6 +27,12 @@ class Keybind {
 			}
 			this.set(keys)
 		}
+		if (variations) {
+			this.variations = {};
+			for (let option in variations) {
+				this.variations[option] = variations[option];
+			}
+		}
 	}
 	set(keys, dflt) {
 		if (!keys || typeof keys !== 'object') return this;
@@ -40,6 +46,11 @@ class Keybind {
 			if (dflt.shift 	== null) this.shift = null;
 			if (dflt.alt 	== null) this.alt = null;
 			if (dflt.meta 	== null) this.meta = null;
+		}
+		if (keys.variations && this.variations) {
+			for (let option in keys.variations) {
+				this.variations[option] = keys.variations[option];
+			}
 		}
 		this.label = this.getText()
 		TickUpdates.keybind_conflicts = true;
@@ -57,13 +68,20 @@ class Keybind {
 	}
 	save(save) {
 		if (this.action) {
-			var obj = {
+			let obj = {
 				key: this.key
 			}
 			if (this.ctrl)	 obj.ctrl = true
 			if (this.shift)	 obj.shift = true
 			if (this.alt)	 obj.alt = true
 			if (this.meta)	 obj.meta = true
+
+			if (this.variations && Object.keys(this.variations)) {
+				obj.variations = {};
+				for (let option in this.variations) {
+					obj.variations[option] = this.variations[option];
+				}
+			}
 
 			let key = this.sub_id ? (this.action + '.' + this.sub_id) : this.action;
 			Keybinds.stored[key] = obj
@@ -205,13 +223,33 @@ class Keybind {
 		return this;
 	}
 	isTriggered(event) {
+		let modifiers_used = new Set();
+		if (this.variations) {
+			for (let option in this.variations) {
+				modifiers_used.add(this.variations[option]);
+			}
+		}
 		return (
 			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null 	) &&
-			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	) &&
-			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null 	) &&
-			(this.meta 	=== event.metaKey								|| this.meta === null 	)
+			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null	|| modifiers_used.has('ctrl') 	) &&
+			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	|| modifiers_used.has('shift')	) &&
+			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null	|| modifiers_used.has('alt') 	) &&
+			(this.meta 	=== event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	)
 		)
+	}
+	additionalModifierTriggered(event) {
+		if (!this.variations) return;
+		for (let option in this.variations) {
+			let key = this.variations[option];
+			if (
+				(key == 'ctrl' && (event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+				(key == 'shift' && (event.shiftKey || Pressing.overrides.shift)) ||
+				(key == 'alt' && (event.altKey || Pressing.overrides.alt)) ||
+				(key == 'meta' && (event.metaKey || Pressing.overrides.meta))
+			) {
+				return option;
+			}
+		}
 	}
 	record() {
 		var scope = this;
@@ -489,6 +527,12 @@ onVueSetup(function() {
 				structure: Keybinds.structure,
 				open_category: 'navigate',
 				search_term: '',
+				modifier_options: {
+					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
+					shift: tl('keys.shift'),
+					alt: tl('keys.alt'),
+					none: '',
+				} 
 			}},
 			methods: {
 				record(item, sub_id) {
@@ -538,7 +582,13 @@ onVueSetup(function() {
 				},
 				hasSubKeybinds(item) {
 					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
-				}
+				},
+				getVariationText(action, variation) {
+					return tl(action.variations?.[variation]?.name, null, variation);
+				},
+				getVariationDescription(action, variation) {
+					return action.variations?.[variation]?.description ? tl(action.variations[variation].description, null, '') : '';
+				},
 			},
 			computed: {
 				list() {
@@ -601,6 +651,13 @@ onVueSetup(function() {
 								<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}"><i class="material-icons">replay</i></div>
 								<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}"><i class="material-icons">clear</i></div>
 							</div>
+
+							<ul class="keybind_item_variations" v-if="action.keybind.variations">
+								<li v-for="(value, option_key) in action.keybind.variations">
+									<label :title="getVariationDescription(action, option_key)">{{ getVariationText(action, option_key) }}</label>
+									<select-input v-model="action.keybind.variations[option_key]" @change="action.keybind.save(true)" :options="modifier_options" />
+								</li>
+							</ul>
 
 							<ul class="keybind_item_sub_keybinds" v-if="hasSubKeybinds(action)">
 								<li v-for="(sub_keybind, sub_id) in action.sub_keybinds" class="keybind_line keybind_line__sub" :key="sub_id">

@@ -433,7 +433,15 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
-		keybind: new Keybind({key: 'c', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'c', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.copy.multiple',
+				description: 'action.copy.multiple.desc',
+			}
+		},
 		click(event) {
 			Clipbench.copy(event)
 		}
@@ -443,7 +451,15 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
-		keybind: new Keybind({key: 'x', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'x', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.copy.multiple',
+				description: 'action.copy.multiple.desc',
+			}
+		},
 		click(event) {
 			Clipbench.copy(event, true)
 		}
@@ -453,7 +469,14 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(2, true) || SharedActions.condition('paste'),
-		keybind: new Keybind({key: 'v', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'v', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.paste.multiple',
+			}
+		},
 		click(event) {
 			Clipbench.paste(event)
 		}

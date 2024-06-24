@@ -1175,6 +1175,7 @@ const UVEditor = {
 	copy(event) {
 		let elements = this.getMappableElements();
 		if (!elements.length) return;
+		let multiple = BarItems.copy.keybind.additionalModifierTriggered(event) == 'multiple';
 
 		UVEditor.clipboard = []
 
@@ -1203,7 +1204,7 @@ const UVEditor = {
 			}
 			UVEditor.clipboard.push(new_face);
 		}
-		if (event.shiftKey) {
+		if (multiple) {
 			for (let key in elements[0].faces) {
 				addToClipboard(key)
 			}
@@ -1218,6 +1219,7 @@ const UVEditor = {
 		let elements = UVEditor.getMappableElements();
 		if (UVEditor.clipboard === null || elements.length === 0) return;
 
+		let multiple = BarItems.paste.keybind.additionalModifierTriggered(event) == 'multiple';
 
 
 		Undo.initEdit({elements, uv_only: true})
@@ -1246,15 +1248,14 @@ const UVEditor = {
 			}
 		}
 
-		let shifting = (event && event.shiftKey) || Pressing.overrides.shift;
-		if (shifting || UVEditor.clipboard.length === 1) {
+		if (multiple || UVEditor.clipboard.length === 1) {
 			let tag = UVEditor.clipboard[0];
 			elements.forEach(el => {
 				if (el instanceof Cube && el.box_uv) return;
 				if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
 					let selected_faces = UVEditor.getSelectedFaces(el);
 					for (let key in el.faces) {
-						if (shifting || selected_faces.includes(key)) {
+						if (multiple || selected_faces.includes(key)) {
 							mergeFace(el, key, tag);
 						}
 					}

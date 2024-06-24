@@ -38,12 +38,13 @@ class BarItem extends EventSystem {
 			if (data.keybind) {
 				this.default_keybind = data.keybind
 			}
-			this.keybind = new Keybind()
+			this.keybind = new Keybind(null, this.default_keybind?.variations);
 			if (Keybinds.stored[this.id]) {
 				this.keybind.set(Keybinds.stored[this.id], this.default_keybind);
 			} else {
 				this.keybind.set(data.keybind);
 			}
+			this.variations = data.variations;
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
 			this.uses = 0;
@@ -219,10 +220,11 @@ class KeybindItem {
 			this.default_keybind = data.keybind
 		}
 		if (Keybinds.stored[this.id]) {
-			this.keybind = new Keybind().set(Keybinds.stored[this.id], this.default_keybind);
+			this.keybind = new Keybind(null, this.default_keybind?.variations).set(Keybinds.stored[this.id], this.default_keybind);
 		} else {
-			this.keybind = new Keybind().set(data.keybind);
+			this.keybind = new Keybind(null, this.default_keybind?.variations).set(data.keybind);
 		}
+		this.variations = data.variations;
 
 		Keybinds.actions.push(this)
 		Keybinds.extra[this.id] = this;
@@ -1764,6 +1766,14 @@ const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1, ctrl: null, shift: null, alt: null})
 			})
+			/*new KeybindItem('preview_select', {
+				category: 'navigate',
+				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1}, {
+					multiple: 'ctrl',
+					range: 'shift',
+					loop: 'alt',
+				})
+			})*/
 			new KeybindItem('preview_rotate', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1})

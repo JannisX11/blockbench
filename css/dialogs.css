@@ -719,6 +719,24 @@
 		width: 25px;
 		float: right;
 	}
+	.keybind_item_variations > li {
+		display: flex;
+		margin-bottom: 2px;
+	}
+	.keybind_item_variations > li > label {
+		color: var(--color-subtle_text);
+		padding: 3px;
+		padding-left: 15px;
+		width: 30px;
+	}
+	.keybind_item_variations > li > * {
+		flex-grow: 1;
+		flex-shrink: 0;
+		width: 0;
+	}
+	.keybind_item_variations > li > bb-select {
+		margin-right: 54px;
+	}
 
 	/*Colors*/
 	dialog#theme .dialog_wrapper {
