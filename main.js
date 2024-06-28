@@ -269,7 +269,7 @@ app.on('ready', () => {
 		}
 
 		app_was_loaded = true;
-		if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
+		if (process.execPath && process.execPath.match(/node_modules[\\\/]electron/)) {
 
 			console.log('[Blockbench] App launched in development mode')
 	
