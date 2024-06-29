@@ -28,14 +28,15 @@ class DisplaySlot {
 		}
 	}
 	export() {
-		var build = {}
-		if (!this.rotation.allEqual(0)) build.rotation = this.rotation
-		if (!this.translation.allEqual(0)) build.translation = this.translation
-		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
+		let build = {};
+		let export_all = Format.id == 'bedrock_block';
+		if (export_all || !this.rotation.allEqual(0)) build.rotation = this.rotation
+		if (export_all || !this.translation.allEqual(0)) build.translation = this.translation
+		if (export_all || !this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
 
-				for (var i = 0; i < 3; i++) {
+				for (let i = 0; i < 3; i++) {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
 			}
@@ -1229,7 +1230,12 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Canvas.updateShading()
 	
 	scene.add(display_area);
-	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	if (Project.model_3d) {
+		Project.model_3d.position.copy(Canvas.scene.position);
+		if (Format.id == 'bedrock_block') {
+			Project.model_3d.position.y = -8;
+		}
+	}
 	scene.position.set(0, 0, 0);
 
 	resizeWindow() //Update panels and sidebars so that the camera can be loaded with the correct aspect ratio
@@ -1257,6 +1263,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	})
 	if (Project.model_3d) {
 		scene.add(Project.model_3d);
+		Project.model_3d.position.set(0, 0, 0);
 	}
 
 	display_mode = false;
@@ -1349,14 +1356,18 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
-	ground_timer += 1
-	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	ground_timer += 1;
+	let ground_offset = Format.id == 'bedrock_block' ? 3.8 : 5.5;
+	display_area.position.y = ground_offset + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
-	if (display_slot == 'gui' && Project.front_gui_light == true) {
+	if (Format.id == 'bedrock_block') {
+		Canvas.global_light_side = 0;
+		Canvas.updateShading();
+	} else if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 		Canvas.global_light_side = 4;
 	} else {
@@ -1748,7 +1759,7 @@ BARS.defineActions(function() {
 			side: true,
 			front: true,
 		},
-		condition: () => Modes.display && display_slot === 'gui',
+		condition: () => Modes.display && display_slot === 'gui' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.front_gui_light = slider.get() == 'front';
 			DisplayMode.updateGUILight();

@@ -714,6 +714,10 @@ function calculateVisibleBox() {
 			Project.texture_height = description.texture_height;
 		}
 
+		if (data.object.item_display_transforms !== undefined) {
+			DisplayMode.loadJSON(data.object.item_display_transforms)
+		}
+
 		var bones = {}
 
 		if (data.object.bones) {
@@ -1025,6 +1029,18 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 })
 
 function getFormatVersion() {
+	if (Format.display_mode) {
+		let has_new_displays = false;
+		for (let i in DisplayMode.slots) {
+			let key = DisplayMode.slots[i]
+			if (Project.display_settings[key] && Project.display_settings[key].export) {
+				let data = Project.display_settings[key].export();
+				if (data) {
+					return '1.21.20';
+				}
+			}
+		}
+	}
 	for (let cube of Cube.all) {
 		for (let fkey in cube.faces) {
 			if (cube.faces[fkey].rotation) return '1.21.0';
@@ -1128,6 +1144,20 @@ var codec = new Codec('bedrock', {
 		if (bones.length) {
 			entitymodel.bones = bones
 		}
+
+		let new_display = {};
+		let has_new_displays = false;
+		for (let i in DisplayMode.slots) {
+			let key = DisplayMode.slots[i]
+			if (Project.display_settings[key] && Project.display_settings[key].export) {
+				new_display[key] = Project.display_settings[key].export();
+				if (new_display[key]) has_new_displays = true;
+			}
+		}
+		if (has_new_displays) {
+			entitymodel.item_display_transforms = new_display
+		}
+
 		this.dispatchEvent('compile', {model: main_tag, options});
 
 		if (options.raw) {
@@ -1357,6 +1387,7 @@ var block_format = new ModelFormat({
 	animated_textures: true,
 	animation_files: false,
 	animation_mode: false,
+	display_mode: true,
 	texture_meshes: true,
 	cube_size_limiter: {
 		rotation_affected: true,
