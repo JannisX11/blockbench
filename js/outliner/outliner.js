@@ -143,7 +143,7 @@ class OutlinerNode {
 		if (!group) {
 			group = 'root'
 		} else if (group !== 'root') {
-			if (group.type !== 'group') {
+			if (!group.children) {
 				if (group.parent === 'root') {
 					index = Outliner.root.indexOf(group)+1
 					group = 'root'
@@ -156,11 +156,12 @@ class OutlinerNode {
 		this.removeFromParent()
 
 		//Get Array
+		let arr;
 		if (group === 'root') {
-			var arr = Outliner.root
+			arr = Outliner.root
 			this.parent = 'root'
 		} else {
-			var arr = group.children
+			arr = group.children
 			this.parent = group
 		}
 
@@ -253,13 +254,17 @@ class OutlinerNode {
 			scope.name = scope.old_name;
 			if (scope.type === 'group') {
 				Undo.initEdit({outliner: true})
+			} else if (scope.type === 'armature_bone') {
+				Undo.initEdit({elements: [scope], outliner: true})
+			} else {
+				Undo.initEdit({elements: [scope]})
+			}
+			if (this.constructor.animator) {
 				Animation.all.forEach(animation => {
 					if (animation.animators[scope.uuid] && animation.animators[scope.uuid].keyframes.length) {
 						animation.saved = false;
 					}
 				})
-			} else {
-				Undo.initEdit({elements: [scope]})
 			}
 			scope.name = name
 			scope.sanitizeName();
@@ -732,7 +737,7 @@ function compileGroups() {
 	function iterate(array, save_array) {
 		let i = 0;
 		for (let element of array) {
-			if (element.type === 'group') {
+			if (element.children instanceof Array) {
 				let copy = element.compile(true)
 				if (element.children.length > 0) {
 					iterate(element.children, copy.children)
@@ -791,10 +796,10 @@ function parseGroups(array, add_to_project) {
 // Dropping
 function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
-	if (item.type === 'group' && target && target.parent) {
+	if (item.children instanceof Array && target && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
-			if (!(is_parent = g === item) && g.parent.type === 'group') {
+			if (!(is_parent = g === item) && g.parent.children instanceof Array) {
 				iterate(g.parent)
 			}
 		}
@@ -822,11 +827,10 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 	} else {
 		Undo.initEdit({outliner: true, selection: true})
 		var updatePosRecursive = function(item) {
-			if (item.type == 'group') {
-				if (item.children && item.children.length) {
-					item.children.forEach(updatePosRecursive)
-				}
-			} else {
+			if (item.children && item.children.length) {
+				item.children.forEach(updatePosRecursive)
+			}
+			if (item.preview_controller?.updateTransform) {
 				item.preview_controller.updateTransform(item);
 			}
 		}
@@ -1367,7 +1371,7 @@ Interface.definePanels(function() {
 		'<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
 			`<div
 				class="outliner_object"
-				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
+				v-bind:class="{ cube: node.type === 'cube', group: !!node.children, selected: node.selected }"
 				v-bind:style="{'--indentation': indentation}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"

@@ -524,6 +524,99 @@ class BoneAnimator extends GeneralAnimator {
 		new MenuSeparator('presets'),
 		'apply_animation_preset'
 	])
+// -
+
+class ArmatureBoneAnimator extends BoneAnimator {
+	constructor(uuid, animation, name) {
+		super(uuid, animation);
+		this.uuid = uuid;
+		this._name = name;
+
+		this.solver = new FIK.Structure3D(scene);
+		this.chain = new FIK.Chain3D();
+
+		this.position = [];
+	}
+	get name() {
+		var element = this.getElement();
+		if (element) return element.name;
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+	}
+	getElement() {
+		this.element = OutlinerNode.uuids[this.uuid];
+		return this.element
+	}
+	select(element_is_selected) {
+		if (!this.getElement()) {
+			unselectAllElements();
+			return this;
+		}
+		if (this.getElement().locked) return;
+
+		if (element_is_selected !== true && this.element) {
+			this.element.select();
+		}
+		GeneralAnimator.prototype.select.call(this);
+		
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+			var nearest;
+			this[Toolbox.selected.animation_channel].forEach(kf => {
+				if (Math.abs(kf.time - Timeline.time) < 0.002) {
+					nearest = kf;
+				}
+			})
+			if (nearest) {
+				nearest.select();
+			}
+		}
+
+		if (this.element && this.element.parent && this.element.parent !== 'root') {
+			this.element.parent.openUp();
+		}
+		return this;
+	}
+	doRender() {
+		this.getElement()
+		return (this.element && this.element && this.element.mesh);
+	}
+	displayPosition(arr, multiplier = 1) {
+	}
+	displayRotation(arr, multiplier = 1) {
+
+		let element = this.element;
+		let mesh = element.getParentArray().filter(m => m instanceof Mesh)[0];
+		if (!mesh) return;
+
+		for (let vkey of vertices) {}
+
+
+
+		var bone = this.element.mesh
+		if (arr) {
+			bone.position.x -= arr[0] * multiplier;
+			bone.position.y += arr[1] * multiplier;
+			bone.position.z += arr[2] * multiplier;
+		}
+		return this;
+	}
+	displayFrame(multiplier = 1) {
+		if (!this.doRender()) return;
+		this.getElement()
+
+		if (!this.muted.position) {
+			this.displayPosition(this.interpolate('position'), multiplier);
+			this.displayRotation(this.interpolate('position'), multiplier);
+		}
+	}
+}
+	ArmatureBoneAnimator.prototype.type = 'null_object';
+	ArmatureBoneAnimator.prototype.channels = {
+		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
+	}
+	ArmatureBone.animator = ArmatureBoneAnimator;
 
 class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {

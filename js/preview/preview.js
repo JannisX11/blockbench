@@ -791,7 +791,7 @@ class Preview {
 				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
+				if (data.element.parent instanceof OutlinerNode && (!data.element instanceof Mesh || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
 					event.shiftKey || Pressing.overrides.shift ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
