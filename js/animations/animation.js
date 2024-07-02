@@ -1274,14 +1274,14 @@ BARS.defineActions(function() {
 
 			let options = await new Promise(resolve => {
 				let animation_options = {};
-				for (let animation of animations) {
+				for (let animation of Animation.all) {
 					if (animation == source_animation) continue;
 					animation_options[animation.uuid] = animation.name;
 				}
 				new Dialog('merge_animation', {
 					name: 'action.merge_animation',
 					form: {
-						animation: {label: 'data.animation', type: 'select', options: animation_options},
+						animation: {label: 'dialog.merge_animation.merge_target', type: 'select', options: animation_options},
 					},
 					onConfirm(result) {
 						resolve(result);
@@ -1300,6 +1300,7 @@ BARS.defineActions(function() {
 
 			for (let uuid in source_animation.animators) {
 				let source_animator = source_animation.animators[uuid];
+				// Get target animator
 				let target_animator;
 				if (source_animator instanceof BoneAnimator) {
 					let node = source_animator.getElement ? source_animator.getElement() : source_animator.getGroup();
@@ -1311,9 +1312,21 @@ BARS.defineActions(function() {
 					target_animator = target_animation.animators.effects;
 				}
 				for (let channel in source_animator.channels) {
+					let channel_config = source_animator.channels[channel];
 					let source_kfs = source_animator[channel];
 					let target_kfs = target_animator[channel];
+
+					if (source_kfs.length == 0) {
+						continue;
+					} else if (target_kfs.length == 0) {
+						for (let src_kf of source_kfs) {
+							target_animator.createKeyframe(src_kf, src_kf.time, channel, false, false);
+						}
+						continue;
+					}
+
 					let timecodes = {};
+					// Save base values
 					for (let kf of source_kfs) {
 						let key = Math.roundTo(kf.time, 2);
 						if (!timecodes[key]) timecodes[key] = {};
@@ -1326,6 +1339,19 @@ BARS.defineActions(function() {
 						timecodes[key].target_kf = kf;
 						timecodes[key].time = kf.time;
 					}
+					if (source_animator.interpolate) {
+						// Interpolate in between values before they become affected by changes
+						for (let key in timecodes) {
+							let data = timecodes[key];
+							Timeline.time = data.time;
+							if (!data.target_kf) {
+								data.target_values = target_animator.interpolate(channel, true);
+							}
+							if (!data.source_kf) {
+								data.source_values = source_animator.interpolate(channel, true);
+							}
+						}
+					}
 					function mergeValues(a, b) {
 						if (!a) return b;
 						if (!b) return a;
@@ -1336,9 +1362,9 @@ BARS.defineActions(function() {
 					}
 					let keys = Object.keys(timecodes).sort((a, b) => a.time - b.time);
 					for (let key of keys) {
-						let {source_kf, target_kf, time} = timecodes[key];
+						let {source_kf, target_kf, target_values, source_values, time} = timecodes[key];
 						Timeline.time = time;
-						if (kf.transform) {
+						if ((source_kf || target_kf).transform) {
 							if (source_kf && target_kf) {
 								for (let axis of 'xyz') {
 									let source_val = source_kf.get(axis);
@@ -1346,22 +1372,19 @@ BARS.defineActions(function() {
 									target_kf.set(axis, mergeValues(target_val, source_val));
 								}
 							} else if (source_kf) {
-								//let interpolated = target_animator.interpolate(channel, true);
-								// Todo: At time of creatio, this might already be affected by modified keyframes around it. Interpolate values before!
 								let target_kf = target_animator.createKeyframe(null, time, channel, false, false);
 								let i = 0;
 								for (let axis of 'xyz') {
 									let source_val = source_kf.get(axis);
-									let target_val = target_kf.get(axis);
+									let target_val = target_values[i] ?? 0;
 									target_kf.set(axis, mergeValues(target_val, source_val));
 									i++;
 								}
 
 							} else if (target_kf) {
-								let interpolated = this.interpolate(channel, true);
 								let i = 0;
 								for (let axis of 'xyz') {
-									let source_val = source_kf.get(axis);
+									let source_val = source_values[i] ?? 0;
 									let target_val = target_kf.get(axis);
 									target_kf.set(axis, mergeValues(target_val, source_val));
 									i++;
@@ -1369,10 +1392,21 @@ BARS.defineActions(function() {
 							}
 						} else if (source_animator instanceof EffectAnimator) {
 							if (source_kf && target_kf) {
+								if (channel == 'timeline' ) {
+									let source = source_kf.data_points[0].script;
+									let target = target_kf.data_points[0].script;
+									target_kf.data_points[0].script = (source && target) ? (target + '\n' + source) : (source || target);
+								} else if (channel_config?.max_data_points > 1) {
+									for (let src_kfdp of source_kf.data_points) {
+										let new_dp = new KeyframeDataPoint(target_kf);
+										new_dp.extend(src_kfdp);
+										target_kf.data_points.push(new_dp);
+									}
+								}
 								
 							} else if (source_kf) {
-
-							} else if (target_kf) {
+								let new_kf = target_animator.createKeyframe(source_kf, source_kf.time, source_kf.channel, false, false);
+								Property.resetUniqueValues(Keyframe, new_kf);
 							}
 						}
 					}
