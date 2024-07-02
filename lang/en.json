@@ -985,6 +985,8 @@
 	"settings.autouv.desc": "Enable Auto UV by default",
 	"settings.default_cube_size": "Cube Size",
 	"settings.default_cube_size.desc": "Set the default cube size when creating a new cube",
+	"settings.inherit_parent_color": "Inherit Parent Color",
+	"settings.inherit_parent_color.desc": "Set the marker color of a newly created element to the color of the parent instead of a random color",
 	"settings.create_rename": "Rename New Element",
 	"settings.create_rename.desc": "Focus name field when creating new element or group",
 	"settings.show_only_selected_uv": "Show Only Selected UV",

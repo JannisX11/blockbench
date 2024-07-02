@@ -396,7 +396,7 @@ const Settings = {
 			}
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
-		new Setting('outliner_colors', 		{category: 'interface', value: false});
+		new Setting('outliner_colors', 		{category: 'interface', value: true});
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
@@ -533,7 +533,8 @@ const Settings = {
 		
 		//Defaults
 		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
-		new Setting('autouv',	   				{category: 'defaults', value: true});
+		new Setting('autouv',					{category: 'defaults', value: true});
+		new Setting('inherit_parent_color',		{category: 'defaults', value: false});
 		new Setting('create_rename', 			{category: 'defaults', value: false});
 		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
 		new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});

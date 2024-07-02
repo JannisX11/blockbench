@@ -1439,7 +1439,7 @@ BARS.defineActions(function() {
 			let group = getCurrentGroup();
 			if (group) {
 				base_cube.addTo(group)
-				base_cube.color = group.color;
+				if (settings.inherit_parent_color.value) base_cube.color = group.color;
 			}
 
 			if (Texture.all.length && Format.single_texture) {
@@ -1468,7 +1468,7 @@ BARS.defineActions(function() {
 
 			if (Group.selected) Group.selected.unselect()
 			base_cube.select()
-			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true}})
+			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
