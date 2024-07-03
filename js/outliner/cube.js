@@ -252,6 +252,18 @@ class Cube extends OutlinerElement {
 		}
 		return this;
 	}
+	selectLow(...args) {
+		let was_selected = this.selected;
+		super.selectLow(...args);
+		if (!was_selected && Cube.selected[0]) {
+			let other_selected_faces = UVEditor.selected_faces.slice();
+			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
+			if (other_selected_faces?.length && !own_selected_faces?.length) {
+				own_selected_faces.replace(other_selected_faces);
+			}
+		}
+		return this;
+	}
 	size(axis, floored) {
 		var scope = this;
 		let epsilon = 0.0000001;

@@ -478,7 +478,9 @@ class OutlinerElement extends OutlinerNode {
 
 		//Normal
 		} else {
-			selected.forEachReverse(obj => obj.unselect())
+			selected.forEachReverse(obj => {
+				if (obj != this) obj.unselect();
+			})
 			if (Group.selected) Group.selected.unselect()
 			this.selectLow()
 			just_selected.push(this)
