@@ -425,7 +425,8 @@ Interface.definePanels = function(callback) {
 //Misc
 function unselectInterface(event) {
 	if (
-		open_menu && $('.contextMenu').find(event.target).length === 0 &&
+		open_menu &&
+		!event.target.classList.contains('contextMenu') && $('.contextMenu').find(event.target).length === 0 &&
 		$('.menu_bar_point.opened:hover').length === 0 &&
 		!document.getElementById('mobile_menu_bar')?.contains(event.target)
 	) {
