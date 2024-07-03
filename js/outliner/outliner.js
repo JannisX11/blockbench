@@ -433,7 +433,6 @@ class OutlinerElement extends OutlinerNode {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
-		if (event instanceof PointerEvent && event.pointerType == 'touch') return;
 		//Shift
 		var just_selected = []
 		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && is_outliner_click) {
@@ -1401,7 +1400,7 @@ Interface.definePanels(function() {
 				v-bind:style="{'padding-left': indentation + 'px'}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
-				@touchstart="node.select($event, true)" :title="node.title"
+				:title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
 				//Opener
