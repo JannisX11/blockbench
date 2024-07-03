@@ -625,7 +625,7 @@
 	}
 	.settings_list li .setting_icon i {
 		font-size: 26pt;
-		width: 34px;
+		max-width: unset;
 		margin-top: -6px;
 	}
 	.settings_list li:hover .setting_icon i {

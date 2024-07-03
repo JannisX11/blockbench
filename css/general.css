@@ -449,6 +449,7 @@
 		cursor: default;
 		float: left;
 		color: var(--color-text);
+		flex-shrink: 0;
 	}
 	.tool i {
 		display: block;
