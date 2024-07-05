@@ -375,7 +375,7 @@ onVueSetup(async function() {
 		template: `
 			<div id="start_screen">
 				<content>
-					<section id="splash_screen" v-if="show_splash_screen" section_id="splash_screen">
+					<section id="splash_screen" v-if="show_splash_screen" class="start_screen_section" section_id="splash_screen">
 						<div class="splash_art_slideshow_image" :style="{backgroundImage: getBackground(slideshow[slideshow_selected].source)}">
 							<p v-if="slideshow[slideshow_selected].description" class="start_screen_graphic_description" v-html="pureMarked(slideshow[slideshow_selected].description)"></p>
 						</div>
@@ -387,7 +387,7 @@ onVueSetup(async function() {
 						<i class="material-icons start_screen_close_button" @click="show_splash_screen = false">clear</i>
 					</section>
 
-					<section id="start_files" section_id="start_files">
+					<section id="start_files" class="start_screen_section" section_id="start_files">
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
 							<h2>${tl('mode.start.new')}</h2>

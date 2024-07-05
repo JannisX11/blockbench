@@ -46,9 +46,6 @@ class Texture {
 				}, 40);
 			}
 		}
-		if (!data || !data.uv_width) {
-			this.flags.add('undefined_uv_size');
-		}
 
 		//Setup Img/Mat
 		this.canvas = document.createElement('canvas');
@@ -215,9 +212,6 @@ class Texture {
 				this.flags.delete('update_uv_size_from_resolution');
 				this.uv_width = scope.width;
 				this.uv_height = scope.display_height;
-			}
-			if (this.flags.has('undefined_uv_size')) {
-				this.flags.delete('undefined_uv_size');
 			}
 
 			if (scope.isDefault) {
@@ -924,7 +918,7 @@ class Texture {
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
-	add(undo) {
+	add(undo, uv_size_from_resolution) {
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
 				if (tex.path === this.path) return tex;
@@ -933,7 +927,7 @@ class Texture {
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
 		}
-		if (Format.per_texture_uv_size && this.flags.has('undefined_uv_size')) {
+		if (Format.per_texture_uv_size && uv_size_from_resolution) {
 			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
@@ -2304,7 +2298,7 @@ Clipbench.pasteTextures = function() {
 	function loadFromDataUrl(dataUrl) {
 		if (!dataUrl || dataUrl.length < 32) return;
 		var texture = new Texture({name: 'pasted', folder: 'block' }).fillParticle().convertToInternal(dataUrl)
-		texture.load().add(true, true);
+		texture.load().add(true);
 		setTimeout(function() {
 			texture.openMenu();
 		}, 40)
