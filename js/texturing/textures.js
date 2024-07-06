@@ -918,7 +918,7 @@ class Texture {
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
-	add(undo) {
+	add(undo, uv_size_from_resolution) {
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
 				if (tex.path === this.path) return tex;
@@ -927,7 +927,7 @@ class Texture {
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
 		}
-		if (Format.per_texture_uv_size && undo) {
+		if (Format.per_texture_uv_size && uv_size_from_resolution) {
 			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
@@ -1069,7 +1069,7 @@ class Texture {
 			Blockbench.showQuickMessage('texture.error.file')
 			return this;
 		}
-		shell.showItemInFolder(this.path)
+		showItemInFolder(this.path)
 		return this;
 	}
 	openEditor() {
@@ -2355,7 +2355,7 @@ BARS.defineActions(function() {
 				var new_textures = []
 				Undo.initEdit({textures: new_textures})
 				results.forEach(function(f) {
-					var t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle()
+					var t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle()
 					new_textures.push(t)
 				})
 				Undo.finishEdit('Add texture')

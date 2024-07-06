@@ -264,7 +264,7 @@ const Painter = {
 		let texture = Painter.current.texture;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
-			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
+			let result = Toolbox.selected.brush.onStrokeEnd({texture});
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {

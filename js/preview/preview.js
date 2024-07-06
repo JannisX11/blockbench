@@ -781,7 +781,7 @@ class Preview {
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
-					if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+					if (data.element.selected && (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
 						face_selection.safePush(data.face);
 					} else {
 						face_selection.replace([data.face]);

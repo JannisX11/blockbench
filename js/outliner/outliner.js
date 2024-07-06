@@ -478,7 +478,9 @@ class OutlinerElement extends OutlinerNode {
 
 		//Normal
 		} else {
-			selected.forEachReverse(obj => obj.unselect())
+			selected.forEachReverse(obj => {
+				if (obj != this) obj.unselect();
+			})
 			if (Group.selected) Group.selected.unselect()
 			this.selectLow()
 			just_selected.push(this)
@@ -503,6 +505,9 @@ class OutlinerElement extends OutlinerNode {
 	unselect() {
 		Project.selected_elements.remove(this);
 		this.selected = false;
+		if (UVEditor.selected_element_faces[this.uuid]) {
+			delete UVEditor.selected_element_faces[this.uuid];
+		}
 		TickUpdates.selection = true;
 		return this;
 	}

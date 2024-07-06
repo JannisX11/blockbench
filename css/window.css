@@ -1049,6 +1049,7 @@
 		z-index: 9;
 		pointer-events: initial;
 		cursor: move;
+		clip-path: none !important;
 	}
 	.reference_image.selected, .reference_image:hover {
 		outline: 1px solid var(--color-accent);
