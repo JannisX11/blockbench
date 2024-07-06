@@ -795,7 +795,11 @@ async function autoFixMeshEdit() {
 							return true;
 						})
 						let off_corners = edges.find(edge => !edge.includes(concave_vkey))
-						if (!off_corners) return;
+						if (!off_corners) {
+							// not sure if this always works, but its only required in special cases (if the quad edge that should be split is already connected to another face).
+							let concave_index = sorted_vertices.indexOf(concave_vkey);
+							off_corners = (concave_index%2) ? [sorted_vertices[1], sorted_vertices[3]] : [sorted_vertices[0], sorted_vertices[2]];
+						}
 
 						let new_face = new MeshFace(mesh, face);
 						new_face.vertices.remove(off_corners[0]);
