@@ -167,9 +167,16 @@ function removeEventListeners(el, events, func, option) {
 }
 
 function patchedAtob(base64) {
-	return (typeof Buffer == 'function')
-		? Buffer.from(base64, 'base64').toString()
-		: atob(base64);
+	if (typeof Buffer == 'function') {
+		return Buffer.from(base64, 'base64').toString();
+	} else {
+		const binary = atob(base64);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < bytes.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		return String.fromCharCode(...new Uint16Array(bytes.buffer));
+	}
 }
 
 function highestInObject(obj, inverse) {
