@@ -636,8 +636,9 @@ var codec = new Codec('modded_entity', {
 		this.dispatchEvent('parse', {model});
 
 		var lines = [];
+		model = model.replace(/\/\*[\s\S]*?\*\//gm, '');
 		model.split('\n').forEach(l => {
-			l = l.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '').trim().replace(/;$/, '');
+			l = l.replace(/\/\/.*/g, '').trim().replace(/;$/, '');
 			if (l) {
 				lines.push(l)
 			}
@@ -665,6 +666,7 @@ var codec = new Codec('modded_entity', {
 						case 'f': key_regex = '^-?\\d+\\.?\\d*[Ff]'; break;
 						case 'd': key_regex = '^-?\\d+\\.?\\d*'; break;
 						case 'b': key_regex = '^true|false'; break;
+						case 's': key_regex = '^"[a-zA-Z_][a-zA-Z0-9_]+"'; break;
 					}
 					var partmatch = new RegExp(key_regex+part).exec(input.substr(location));
 					if (partmatch == null) return;
@@ -677,6 +679,7 @@ var codec = new Codec('modded_entity', {
 						case 'f': results.push(parseFloat(variable.replace(/F$/, ''))); break;
 						case 'd': results.push(parseFloat(variable.replace(/F$/, ''))); break;
 						case 'b': results.push(variable == 'true'); break;
+						case 's': results.push(variable.substr(1, variable.length - 2)); break;
 					}
 					location += partmatch[0].length;
 				}
@@ -692,6 +695,18 @@ var codec = new Codec('modded_entity', {
 			match,
 			last_uv;
 
+		// 1 for 1.17+
+		var version = 0,
+			root_name,
+			line_continue = false,
+			last_line;
+
+		var bone_parent = {},
+			bone_childs = {};
+
+		Project.texture_width = 64;
+		Project.texture_height = 32;
+
 		lines.forEach(line => {
 			if (scope == 0) {
 				if (/^public class/.test(line)) {
@@ -706,239 +721,467 @@ var codec = new Codec('modded_entity', {
 						name,
 						origin: [0, 24, 0]
 					}).init();
-				} else if (line.substr(0, geo_name.length) == geo_name) {
+				} else if (line.substr(0, 9) == 'ModelPart') {
+					version = 1;
+				} else if (version == 0 && line.substr(0, geo_name.length) == geo_name ||
+						   version == 1 && line.substr(0, 15) == 'LayerDefinition'
+				) {
 					scope = 2;
 				}
 
 			} else if (scope == 2) {
-				line = line.replace(/^this\./, '');
+				line = line.replace(/^this\./, '').replace(/\(this\./, '(');
 				match = undefined;
 				
 				if (line == '}') {
 					scope--;
-				} else
+				} else if (version == 0) {
 
-
-				if (parseScheme('textureWidth = $i', line) || parseScheme('texWidth = $i', line)) {
-					Project.texture_width = match[0];
-				} else
-				
-				if (parseScheme('textureHeight = $i', line) || parseScheme('texHeight = $i', line)) {
-					Project.texture_height = match[0];
-				} else
-				
-				if (parseScheme('super($v, $i, $i)', line)) {
-					Project.texture_width = match[1];
-					Project.texture_height = match[2];
-				} else
-				
-				if (
-					parseScheme('ModelRenderer $v = new ModelRenderer(this, $i, $i)', line) ||
-					parseScheme('RendererModel $v = new RendererModel(this, $i, $i)', line) ||
-					parseScheme('$v = new ModelRenderer(this, $i, $i)', line) ||
-					parseScheme('$v = new RendererModel(this, $i, $i)', line)
-				) {
-					if (!bones[match[0]]) {
-						bones[match[0]] = new Group({
-							name: match[0],
-							origin: [0, 24, 0]
-						}).init();
-					}
-					last_uv = [match[1], match[2]];
-				} else
-				
-				if (
-					parseScheme('$v = new ModelRenderer(this)', line)
-				) {
-					// Blockbench for 1.15
-					if (!bones[match[0]]) {
-						bones[match[0]] = new Group({
-							name: match[0],
-							origin: [0, 0, 0]
-						}).init();
-					}
-				} else
-				
-				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
-					var bone = bones[match[0]]
-					if (bone) {
-						bone.extend({origin: [-match[1], 24-match[2], match[3]]});
-						bone.children.forEach(cube => {
-							if (cube instanceof Cube) {
-								cube.from[0] += bone.origin[0]; cube.to[0] += bone.origin[0];
-								cube.from[1] += bone.origin[1]-24; cube.to[1] += bone.origin[1]-24;
-								cube.from[2] += bone.origin[2]; cube.to[2] += bone.origin[2];
-							}
-						})
-					}
-				} else
-				
-				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
-					var child = bones[match[1]], parent = bones[match[0]];
-					child.addTo(parent);
-					child.origin.V3_add(parent.origin)
-					child.origin[1] -= 24;
-
-					child.children.forEach(cube => {
-						if (cube instanceof Cube) {
-							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
-							cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
-							cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
+					if (parseScheme('textureWidth = $i', line) || parseScheme('texWidth = $i', line)) {
+						Project.texture_width = match[0];
+					} else
+					
+					if (parseScheme('textureHeight = $i', line) || parseScheme('texHeight = $i', line)) {
+						Project.texture_height = match[0];
+					} else
+					
+					if (parseScheme('super($v, $i, $i)', line)) {
+						Project.texture_width = match[1];
+						Project.texture_height = match[2];
+					} else
+					
+					if (
+						parseScheme('ModelRenderer $v = new ModelRenderer(this, $i, $i)', line) ||
+						parseScheme('RendererModel $v = new RendererModel(this, $i, $i)', line) ||
+						parseScheme('$v = new ModelRenderer(this, $i, $i)', line) ||
+						parseScheme('$v = new RendererModel(this, $i, $i)', line)
+					) {
+						if (!bones[match[0]]) {
+							bones[match[0]] = new Group({
+								name: match[0],
+								origin: [0, 24, 0]
+							}).init();
 						}
-					})
-				} else
-				
-				//Cubes
-				if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line) || parseScheme('$v.cubes.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
-					var group = bones[match[0]];
-					var cube = new Cube({
-						name: match[0],
-						uv_offset: [match[2], match[3]],
-						from: [
-							group.origin[0] - match[4] - match[7],
-							group.origin[1] - match[5] - match[8],
-							group.origin[2] + match[6]
-						],
-						inflate: match[10],
-						mirror_uv: match[11],
-					})
-					cube.extend({
-						to: [
-							cube.from[0] + Math.floor(match[7]),
-							cube.from[1] + Math.floor(match[8]),
-							cube.from[2] + Math.floor(match[9]),
-						]
-					});
-					cube.addTo(bones[match[0]]).init();
-				} else
-				
-				if (parseScheme('$v.addBox($f, $f, $f, $i, $i, $i)', line)
-				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $v)', line)
-				 || parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $f)', line)
-				 || parseScheme('$v.addBox($f, $f, $f, $f, $f, $f, $f, $f, $f)', line)
-				) {
-					var group = bones[match[0]];
-					var cube = new Cube({
-						name: match[0],
-						uv_offset: last_uv,
-						from: [
-							group.origin[0] - match[1] - match[4],
-							group.origin[1] - match[2] - match[5],
-							group.origin[2] + match[3]
-						],
-						inflate: (typeof match[7] == 'number' ? match[7] : 0),
-						mirror_uv: group.mirror_uv
-					})
-					cube.extend({
-						to: [
-							cube.from[0] + Math.floor(match[4]),
-							cube.from[1] + Math.floor(match[5]),
-							cube.from[2] + Math.floor(match[6]),
-						]
-					});
-					cube.addTo(bones[match[0]]).init();
-				} else
-				
-				if (parseScheme('$v.setTextureOffset($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line) ||
-					parseScheme('$v.texOffs($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
-				) {
-					var group = bones[match[0]];
-					var cube = new Cube({
-						name: match[0],
-						uv_offset: [match[1], match[2]],
-						from: [
-							group.origin[0] - match[3] - match[6],
-							group.origin[1] - match[4] - match[7],
-							group.origin[2] + match[5]
-						],
-						inflate: match[9],
-						mirror_uv: match[10]
-					})
-					cube.extend({
-						to: [
-							cube.from[0] + Math.floor(match[6]),
-							cube.from[1] + Math.floor(match[7]),
-							cube.from[2] + Math.floor(match[8]),
-						]
-					});
-					cube.addTo(bones[match[0]]).init();
-				} else
+						last_uv = [match[1], match[2]];
+					} else
+					
+					if (
+						parseScheme('$v = new ModelRenderer(this)', line)
+					) {
+						// Blockbench for 1.15
+						if (!bones[match[0]]) {
+							bones[match[0]] = new Group({
+								name: match[0],
+								origin: [0, 0, 0]
+							}).init();
+						}
+					} else
+					
+					if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
+						var bone = bones[match[0]]
+						if (bone) {
+							bone.extend({origin: [-match[1], 24-match[2], match[3]]});
+							bone.children.forEach(cube => {
+								if (cube instanceof Cube) {
+									cube.from[0] += bone.origin[0]; cube.to[0] += bone.origin[0];
+									cube.from[1] += bone.origin[1]-24; cube.to[1] += bone.origin[1]-24;
+									cube.from[2] += bone.origin[2]; cube.to[2] += bone.origin[2];
+								}
+							})
+						}
+					} else
+					
+					if (parseScheme('$v.addChild($v)', line)) {
+						let child_name = match[1], parent_name = match[0];
+						bone_parent[child_name] = parent_name;
+						if (!bone_childs[parent_name]) bone_childs[parent_name] = [];
+						bone_childs[parent_name].push(child_name);
+					} else
+					
+					//Cubes
+					if (parseScheme('$v.cubeList.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line) || parseScheme('$v.cubes.add(new ModelBox($v, $i, $i, $f, $f, $f, $i, $i, $i, $f, $b))', line)) {
+						var group = bones[match[0]];
+						var cube = new Cube({
+							name: match[0],
+							uv_offset: [match[2], match[3]],
+							from: [
+								group.origin[0] - match[4] - match[7],
+								group.origin[1] - match[5] - match[8],
+								group.origin[2] + match[6]
+							],
+							inflate: match[10],
+							mirror_uv: match[11],
+						})
+						cube.extend({
+							to: [
+								cube.from[0] + Math.floor(match[7]),
+								cube.from[1] + Math.floor(match[8]),
+								cube.from[2] + Math.floor(match[9]),
+							]
+						});
+						cube.addTo(bones[match[0]]).init();
+					} else
+					
+					if (parseScheme('$v.addBox($f, $f, $f, $i, $i, $i)', line)
+					|| parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $v)', line)
+					|| parseScheme('$v.addBox($f, $f, $f, $i, $i, $i, $f)', line)
+					|| parseScheme('$v.addBox($f, $f, $f, $f, $f, $f, $f, $f, $f)', line)
+					) {
+						var group = bones[match[0]];
+						var cube = new Cube({
+							name: match[0],
+							uv_offset: last_uv,
+							from: [
+								group.origin[0] - match[1] - match[4],
+								group.origin[1] - match[2] - match[5],
+								group.origin[2] + match[3]
+							],
+							inflate: (typeof match[7] == 'number' ? match[7] : 0),
+							mirror_uv: group.mirror_uv
+						})
+						cube.extend({
+							to: [
+								cube.from[0] + Math.floor(match[4]),
+								cube.from[1] + Math.floor(match[5]),
+								cube.from[2] + Math.floor(match[6]),
+							]
+						});
+						cube.addTo(bones[match[0]]).init();
+					} else
+					
+					if (parseScheme('$v.setTextureOffset($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line) ||
+						parseScheme('$v.texOffs($i, $i).addBox($f, $f, $f, $f, $f, $f, $f, $b)', line)
+					) {
+						var group = bones[match[0]];
+						var cube = new Cube({
+							name: match[0],
+							uv_offset: [match[1], match[2]],
+							from: [
+								group.origin[0] - match[3] - match[6],
+								group.origin[1] - match[4] - match[7],
+								group.origin[2] + match[5]
+							],
+							inflate: match[9],
+							mirror_uv: match[10]
+						})
+						cube.extend({
+							to: [
+								cube.from[0] + Math.floor(match[6]),
+								cube.from[1] + Math.floor(match[7]),
+								cube.from[2] + Math.floor(match[8]),
+							]
+						});
+						cube.addTo(bones[match[0]]).init();
+					} else
 
 
-				//Rotation
-				if (parseScheme('setRotationAngle($v, $f, $f, $f)', line)) {
-					//blockbench
-					var group = bones[match[0]];
-					if (group) {
-						group.extend({
-							rotation: [
-								-Math.radToDeg(match[1]),
-								-Math.radToDeg(match[2]),
-								Math.radToDeg(match[3]),
-							]
-						})
-					}
-				} else
-				
-				if (parseScheme('setRotation($v, $f, $f, $f)', line)) {
-					//cubik
-					var group = bones[match[0]];
-					if (group) {
-						group.extend({
-							rotation: [
-								-Math.radToDeg(match[1]),
-								-Math.radToDeg(match[2]),
-								Math.radToDeg(match[3]),
-							]
-						})
-					}
-				} else
-				
-				if (parseScheme('setRotateAngle($v, $f, $f, $f)', line)) {
-					//tabula
-					var group = bones[match[0]];
-					if (group) {
-						group.extend({
-							rotation: [
-								-Math.radToDeg(match[1]),
-								-Math.radToDeg(match[2]),
-								Math.radToDeg(match[3]),
-							]
-						})
-					}
-				} else
+					//Rotation
+					if (parseScheme('setRotationAngle($v, $f, $f, $f)', line)) {
+						//blockbench
+						var group = bones[match[0]];
+						if (group) {
+							group.extend({
+								rotation: [
+									-Math.radToDeg(match[1]),
+									-Math.radToDeg(match[2]),
+									Math.radToDeg(match[3]),
+								]
+							})
+						}
+					} else
+					
+					if (parseScheme('setRotation($v, $f, $f, $f)', line)) {
+						//cubik
+						var group = bones[match[0]];
+						if (group) {
+							group.extend({
+								rotation: [
+									-Math.radToDeg(match[1]),
+									-Math.radToDeg(match[2]),
+									Math.radToDeg(match[3]),
+								]
+							})
+						}
+					} else
+					
+					if (parseScheme('setRotateAngle($v, $f, $f, $f)', line)) {
+						//tabula
+						var group = bones[match[0]];
+						if (group) {
+							group.extend({
+								rotation: [
+									-Math.radToDeg(match[1]),
+									-Math.radToDeg(match[2]),
+									Math.radToDeg(match[3]),
+								]
+							})
+						}
+					} else
 
-				if (parseScheme('$v.rotateAngleX = $f', line) || parseScheme('$v.xRot = $f', line)) {
-					//default
-					var group = bones[match[0]];
-					if (group) {
-						group.rotation[0] = -Math.radToDeg(match[1]);
+					if (parseScheme('$v.rotateAngleX = $f', line) || parseScheme('$v.xRot = $f', line)) {
+						//default
+						var group = bones[match[0]];
+						if (group) {
+							group.rotation[0] = -Math.radToDeg(match[1]);
+						}
+					} else
+					if (parseScheme('$v.rotateAngleY = $f', line) || parseScheme('$v.yRot = $f', line)) {
+						//default
+						var group = bones[match[0]];
+						if (group) {
+							group.rotation[1] = -Math.radToDeg(match[1]);
+						}
+					} else
+					if (parseScheme('$v.rotateAngleZ = $f', line) || parseScheme('$v.zRot = $f', line)) {
+						//default
+						var group = bones[match[0]];
+						if (group) {
+							group.rotation[2] = Math.radToDeg(match[1]);
+						}
+					} else
+					
+					if (parseScheme('$v.mirror = $b', line)) {
+						var group = bones[match[0]];
+						group.mirror_uv = match[1];
+						group.children.forEach(cube => {
+							cube.mirror_uv = match[1];
+						});
 					}
-				} else
-				if (parseScheme('$v.rotateAngleY = $f', line) || parseScheme('$v.yRot = $f', line)) {
-					//default
-					var group = bones[match[0]];
-					if (group) {
-						group.rotation[1] = -Math.radToDeg(match[1]);
+				} else if (version == 1) {
+					if (line_continue) line = last_line + line;
+					let piece = line.split(',')[0];
+
+					if (parseScheme('PartDefinition $v = $v.getRoot()', line)) {
+						root_name = match[0];
+					} else
+
+					if (parseScheme('PartDefinition $v = $v.addOrReplaceChild($s', piece) ||
+						parseScheme('$v.addOrReplaceChild($s', piece)
+					) {
+						let child_name, parent_name;
+						if (typeof match[2] == 'string') {
+							child_name = match[0];
+							parent_name = match[1];
+						} else {
+							child_name = match[1];
+							parent_name = match[0];
+						}
+						if (!line_continue) {
+							if (parent_name != root_name) {
+								bone_parent[child_name] = parent_name;
+								if (!bone_childs[parent_name]) bone_childs[parent_name] = [];
+								bone_childs[parent_name].push(child_name);
+							}
+							bones[child_name] = new Group({
+								name: child_name,
+								origin: [0, 24, 0]
+							}).init();
+						}
+						let group = bones[child_name];
+
+						let args = []
+						let level = 0, start = 0;
+						for (let i = 0; i < line.length; ++i) {
+							if (line[i] == '(') {
+								++level;
+								if (level == 1) start = i + 1;
+							} else if (line[i] == ')') {
+								--level;
+								if (level == 0) args.push(line.substring(start, i).trim());
+							} else if (level == 1 && line[i] == ',') {
+								args.push(line.substring(start, i).trim());
+								start = i + 1;
+							}
+						}
+						if (level != 0) {
+							line_continue = true;
+							last_line = line;
+							return;
+						}
+						line_continue = false;
+						let cube_list = [];
+						level = 0, start = 0;
+						for (let i = 0; i < args[1].length; ++i) {
+							if (args[1][i] == '(') {
+								++level;
+							} else if (args[1][i] == ')') {
+								--level;
+							} else if (level == 0 && args[1][i] == '.') {
+								cube_list.push(args[1].substring(start, i));
+								start = i + 1;
+							}
+						}
+						cube_list.push(args[1].substring(start));
+						let part_pose = [];
+						level = 0, start = 0;
+						for (let i = 0; i < args[2].length; ++i) {
+							if (args[2][i] == '(') {
+								++level;
+							} else if (args[2][i] == ')') {
+								--level;
+							} else if (level == 0 && args[2][i] == '.') {
+								part_pose.push(args[2].substring(start, i));
+								start = i + 1;
+							}
+						}
+						part_pose.push(args[2].substring(start));
+
+						let mirror = false;
+						cube_list.forEach(piece => {
+							if (parseScheme('texOffs($i, $i)', piece)) {
+								last_uv = [match[0], match[1]];
+							} else
+							// todo more CubeDeformation support
+							if (parseScheme('addBox($s, $f, $f, $f, $i, $i, $i, new CubeDeformation($f), $i, $i)', piece) ||
+								parseScheme('addBox($s, $f, $f, $f, $f, $f, $f, new CubeDeformation($f))', piece)
+							) {
+								if (typeof match[8] == 'number') last_uv = [match[8], match[9]];
+								var cube = new Cube({
+									name: child_name,
+									uv_offset: last_uv,
+									from: [
+										group.origin[0] - match[1] - match[4],
+										group.origin[1] - match[2] - match[5],
+										group.origin[2] + match[3]
+									],
+									inflate: match[7],
+									mirror_uv: mirror
+								})
+								cube.extend({
+									to: [
+										cube.from[0] + match[4],
+										cube.from[1] + match[5],
+										cube.from[2] + match[6]
+									]
+								});
+								cube.addTo(group).init();
+							} else
+							if (parseScheme('addBox($s, $f, $f, $f, $i, $i, $i, $i, $i)', piece) ||
+								parseScheme('addBox($s, $f, $f, $f, $f, $f, $f)', piece)
+							) {
+								if (typeof match[7] == 'number') last_uv = [match[7], match[8]];
+								var cube = new Cube({
+									name: child_name,
+									uv_offset: last_uv,
+									from: [
+										group.origin[0] - match[1] - match[4],
+										group.origin[1] - match[2] - match[5],
+										group.origin[2] + match[3]
+									],
+									inflate: 0,
+									mirror_uv: mirror
+								})
+								cube.extend({
+									to: [
+										cube.from[0] + match[4],
+										cube.from[1] + match[5],
+										cube.from[2] + match[6]
+									]
+								});
+								cube.addTo(group).init();
+							} else
+							if (parseScheme('addBox($f, $f, $f, $f, $f, $f)', piece) ||
+								parseScheme('addBox($f, $f, $f, $f, $f, $f, $b)', piece) ||
+								parseScheme('addBox($f, $f, $f, $f, $f, $f, new CubeDeformation($f), $f, $f)', piece) ||
+								parseScheme('addBox($f, $f, $f, $f, $f, $f, new CubeDeformation($f))', piece)
+							) {
+								var cube = new Cube({
+									name: child_name,
+									uv_offset: (typeof match[7] == 'number' ? [last_uv[0] / match[7], last_uv[1] / match[8]] : last_uv),
+									from: [
+										group.origin[0] - match[0] - match[3],
+										group.origin[1] - match[1] - match[4],
+										group.origin[2] + match[2]
+									],
+									inflate: (typeof match[6] == 'number' ? match[6] : 0),
+									mirror_uv: (typeof match[6] == 'boolean' ? match[6] : mirror)
+								})
+								cube.extend({
+									to: [
+										cube.from[0] + match[3],
+										cube.from[1] + match[4],
+										cube.from[2] + match[5]
+									]
+								});
+								cube.addTo(group).init();
+							} else
+							if (parseScheme('mirror()', piece)) {
+								mirror = group.mirror_uv = true;
+							} else
+							if (parseScheme('mirror($b)', piece)) {
+								mirror = group.mirror_uv = match[0];
+							}
+						});
+						part_pose.forEach(piece => {
+							if (parseScheme('offset($f, $f, $f)', piece)) {
+								group.extend({origin: [-match[0], 24-match[1], match[2]]});
+								group.children.forEach(cube => {
+									if (cube instanceof Cube) {
+										cube.from[0] += group.origin[0]; cube.to[0] += group.origin[0];
+										cube.from[1] += group.origin[1]-24; cube.to[1] += group.origin[1]-24;
+										cube.from[2] += group.origin[2]; cube.to[2] += group.origin[2];
+									}
+								})
+							} else
+							if (parseScheme('rotation($f, $f, $f)', piece)) {
+								group.extend({
+									rotation: [
+										-Math.radToDeg(match[0]),
+										-Math.radToDeg(match[1]),
+										Math.radToDeg(match[2]),
+									]
+								})
+							} else
+							if (parseScheme('offsetAndRotation($f, $f, $f, $f, $f, $f)', piece)) {
+								group.extend({
+									origin: [-match[0], 24-match[1], match[2]],
+									rotation: [
+										-Math.radToDeg(match[3]),
+										-Math.radToDeg(match[4]),
+										Math.radToDeg(match[5]),
+									]
+								});
+								group.children.forEach(cube => {
+									if (cube instanceof Cube) {
+										cube.from[0] += group.origin[0]; cube.to[0] += group.origin[0];
+										cube.from[1] += group.origin[1]-24; cube.to[1] += group.origin[1]-24;
+										cube.from[2] += group.origin[2]; cube.to[2] += group.origin[2];
+									}
+								})
+							}
+						});
+					} else
+
+					if (parseScheme('return LayerDefinition.create($v, $i, $i)', line)) {
+						Project.texture_width = match[1];
+						Project.texture_height = match[2];
 					}
-				} else
-				if (parseScheme('$v.rotateAngleZ = $f', line) || parseScheme('$v.zRot = $f', line)) {
-					//default
-					var group = bones[match[0]];
-					if (group) {
-						group.rotation[2] = Math.radToDeg(match[1]);
-					}
-				} else
-				
-				if (parseScheme('$v.mirror = $b', line)) {
-					var group = bones[match[0]];
-					group.mirror_uv = match[1];
-					group.children.forEach(cube => {
-						cube.mirror_uv = match[1];
-					});
 				}
 			}
 		})
+		function addChild(parent_name) {
+			if (!bone_childs[parent_name]) return;
+			let parent = bones[parent_name];
+			bone_childs[parent_name].forEach(child_name => {
+				let child = bones[child_name];
+				child.addTo(parent);
+				child.origin.V3_add(parent.origin)
+				child.origin[1] -= 24;
+		
+				child.children.forEach(cube => {
+					if (cube instanceof Cube) {
+						cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
+						cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
+						cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
+					}
+				})
+
+				addChild(child_name);
+			});
+		}
+		Object.keys(bones).filter(bone => !bone_parent[bone]).forEach(root => {
+			addChild(root);
+		});
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
