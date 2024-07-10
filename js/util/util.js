@@ -170,12 +170,9 @@ function patchedAtob(base64) {
 	if (typeof Buffer == 'function') {
 		return Buffer.from(base64, 'base64').toString();
 	} else {
-		const binary = atob(base64);
-		const bytes = new Uint8Array(binary.length);
-		for (let i = 0; i < bytes.length; i++) {
-			bytes[i] = binary.charCodeAt(i);
-		}
-		return String.fromCharCode(...new Uint16Array(bytes.buffer));
+		return decodeURIComponent(atob(base64).split('').map((c) => {
+			return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+		}).join(''));
 	}
 }
 
