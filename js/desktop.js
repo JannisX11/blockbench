@@ -323,6 +323,16 @@ currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Image Editor
 function changeImageEditor(texture, not_found) {
+  let extensionsarray = []
+  if (Blockbench.platform == 'linux') {
+    extensionsarray = []
+  } else if (Blockbench.platform == 'darwin') {
+    extensionsarray = ['app']
+  } else {
+    extensionsarray = ['exe']
+  }
+
+
 	new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
@@ -339,7 +349,7 @@ function changeImageEditor(texture, not_found) {
 				nocolon: true,
 				type: 'file',
 				file_type: 'Program',
-				extensions: ['exe', 'app', 'desktop', 'appimage'],
+				extensions: extensionsarray,
 				description: 'message.image_editor.exe',
 				condition: result => result.editor == 'other'
 			}
