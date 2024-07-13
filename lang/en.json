@@ -1779,6 +1779,8 @@
 	"action.export_animation_file.desc": "Export a selection of animations into a new file",
 	"action.optimize_animation": "Optimize Animation",
 	"action.optimize_animation.desc": "Optimize the current animation and reduce the keyframe count",
+	"action.retarget_animators": "Retarget Animations",
+	"action.retarget_animators.desc": "Select which animator targets which bone or element",
 	"action.merge_animation": "Merge Animation",
 	"action.merge_animation.desc": "Optimize the current animation and reduce the keyframe count",
 	"action.bake_ik_animation": "Bake Inverse Kinematics",

@@ -467,6 +467,7 @@ class Animation extends AnimationItem {
 			Animator.preview();
 			updateInterface();
 		}
+		Blockbench.dispatchEvent('select_animation', {animation: this})
 		return this;
 	}
 	setLength(len = this.length) {
@@ -975,6 +976,49 @@ Blockbench.addDragHandler('animation', {
 	}
 })
 
+new ValidatorCheck('unused_animators', {
+	condition: { features: ['animation_mode'], selected: {animation: true} },
+	update_triggers: ['select_animation'],
+	run() {
+		let animation = Animation.selected;
+		if (!animation) return;
+		let animators = [];
+		for (let id in animation.animators) {
+			let animator = animation.animators[id];
+			if (animator instanceof BoneAnimator && animator.keyframes.length) {
+				if (!animator.getGroup()) {
+					animators.push(animator);
+				}
+			}
+		}
+		if (animators.length) {
+			let buttons = [
+				{
+					name: 'Retarget Animators',
+					icon: 'rebase',
+					click() {
+						Validator.dialog.close()
+						BarItems.retarget_animators.click();
+					},
+				},
+				{
+					name: 'Reveal in Timeline',
+					icon: 'fa-sort-amount-up',
+					click() {
+						for (let animator of animators) {
+							animator.addToTimeline();
+						}
+						Validator.dialog.close();
+					},
+				}
+			];
+			this.warn({
+				message: `The animation "${animation.name}" contains ${animators.length} animated nodes that do not exist in the current model.`,
+				buttons,
+			})
+		}
+	}
+})
 
 BARS.defineActions(function() {
 	new NumSlider('slider_animation_length', {
@@ -1564,6 +1608,87 @@ BARS.defineActions(function() {
 				Blockbench.showQuickMessage('message.optimize_animation.nothing_to_optimize', 1800);
 				Undo.cancelEdit(false);
 			}
+		}
+	})
+	new Action('retarget_animators', {
+		icon: 'rebase',
+		category: 'animation',
+		condition: () => Animation.selected,
+		click: async function() {
+			let animation = Animation.selected;
+			let form = {};
+			let unassigned_animators = [];
+			let assigned_animators = [];
+
+			for (let id in animation.animators) {
+				let animator = animation.animators[id];
+				if (animator instanceof BoneAnimator && animator.keyframes.length) {
+					if (!animator.getGroup()) {
+						unassigned_animators.push(animator);
+					} else {
+						assigned_animators.push(animator);
+					}
+				}
+			}
+			let all_animators = unassigned_animators.slice();
+			if (unassigned_animators.length && assigned_animators.length) {
+				all_animators.push('_');
+			}
+			all_animators.push(...assigned_animators);
+
+			for (let animator of all_animators) {
+				if (animator == '_') {
+					form._ = '_';
+					continue;
+				}
+				let is_assigned = assigned_animators.includes(animator);
+				let options = {};
+				let nodes;
+				if (animator.type == 'bone') {
+					nodes = Group.all;
+				} else {
+					nodes = Outliner.all.filter(element => element.type == animator.type);
+				}
+				if (!is_assigned) options[animator.uuid] = '-';
+				for (let node of nodes) {
+					options[node.uuid] = node.name;
+				}
+				form[animator.uuid] = {
+					label: animator.name,
+					type: 'select',
+					value: animator.uuid,
+					options
+				}
+			}
+
+			let form_result = await new Promise(resolve => {
+
+				new Dialog('retarget_animators', {
+					name: 'action.retarget_animators',
+					form,
+					onConfirm(result) {
+						resolve(result);
+					},
+					onCancel() {
+						resolve(false);
+					}
+				}).show();
+			})
+			if (!form_result) return;
+			Undo.initEdit({animations: [animation]});
+
+			for (let animator of all_animators) {
+				if (animator == '_') continue;
+
+				let new_target = form_result[animator.uuid];
+				if (new_target == animator.uuid) continue;
+
+				delete animation.animators[animator.uuid];
+				animation.animators[new_target] = animator;
+				animator.uuid = new_target;
+			}
+
+			Undo.finishEdit('Retarget animations');
 		}
 	})
 })
