@@ -1267,6 +1267,7 @@
 	}
 	#plugin_list > li {
 		overflow-y: hidden;
+		position: relative;
 		margin: 12px;
 		padding: 8px 12px;
 		padding-bottom: 12px;
@@ -1374,6 +1375,10 @@
 	}
 	.plugin_installed_tag {
 		color: var(--color-confirm);
+	}
+	#plugin_list .plugin_installed_tag {
+		position: absolute;
+		right: 4px;
 	}
 	dialog#plugins .version {
 		display: inline-block;
@@ -1627,6 +1632,7 @@
 		width: 320px;
 		margin-bottom: -26px;
 		margin-top: -20px;
+		image-rendering: auto;
 	}
 	.plugins_suggested_row {
 		width: 100%;

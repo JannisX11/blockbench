@@ -629,8 +629,12 @@ class Plugin {
 			this.details[key + '_full'] = date.full;
 		}
 		if (this.source == 'store') {
-			if (!this.details.bug_tracker) this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
-			if (!this.details.repository) this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			if (!this.details.bug_tracker) {
+				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			}
+			if (!this.details.repository) {
+				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			}
 
 			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
@@ -920,22 +924,25 @@ BARS.defineActions(function() {
 			},
 			computed: {
 				plugin_search() {
-					var name = this.search_term.toUpperCase()
-					return this.items.filter(item => {
-						if ((this.tab == 'installed') == item.installed) {
-							if (name.length > 0) {
-								return (
-									item.id.toUpperCase().includes(name) ||
-									item.title.toUpperCase().includes(name) ||
-									item.description.toUpperCase().includes(name) ||
-									item.author.toUpperCase().includes(name) ||
-									item.tags.find(tag => tag.toUpperCase().includes(name))
-								)
-							}
-							return true;
-						}
-						return false;
-					})
+					let search_name = this.search_term.toUpperCase();
+					if (search_name) {
+						let filtered = this.items.filter(item => {
+							return (
+								item.id.toUpperCase().includes(search_name) ||
+								item.title.toUpperCase().includes(search_name) ||
+								item.description.toUpperCase().includes(search_name) ||
+								item.author.toUpperCase().includes(search_name) ||
+								item.tags.find(tag => tag.toUpperCase().includes(search_name))
+							)
+						});
+						let installed = filtered.filter(p => p.installed);
+						let not_installed = filtered.filter(p => !p.installed);
+						return installed.concat(not_installed);
+					} else {
+						return this.items.filter(item => {
+							return (this.tab == 'installed') == item.installed;
+						})
+					}
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
@@ -1288,12 +1295,12 @@ BARS.defineActions(function() {
 							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
-						<div class="tab_bar">
+						<div class="tab_bar" v-if="!search_term">
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" id="plugin_list" ref="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, installed: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -1303,6 +1310,7 @@ BARS.defineActions(function() {
 										<div class="title">{{ plugin.title || plugin.id }}</div>
 										<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 									</div>
+									<div v-if="plugin.installed && search_term" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
 								</div>
 								<div class="description">{{ plugin.description }}</div>
 								<ul class="plugin_tag_list">
