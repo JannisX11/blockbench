@@ -497,6 +497,12 @@
 
 	"dialog.edit_texture.preview": "Preview",
 
+	"dialog.expand_texture_selection.radius": "Amount",
+	"dialog.expand_texture_selection.corner": "Corner Shape",
+	"dialog.expand_texture_selection.corner.round": "Round",
+	"dialog.expand_texture_selection.corner.square": "Square",
+	"dialog.expand_texture_selection.corner.manhattan": "Manhattan",
+
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",
@@ -1181,6 +1187,8 @@
 	"action.blend_mode.overlay": "Overlay",
 	"action.blend_mode.hard_light": "Hard Light",
 	"action.blend_mode.difference": "Difference",
+	"action.expand_texture_selection": "Expand Texture Selection",
+	"action.expand_texture_selection.desc": "Expand or shrink the texture selection",
 
 	"action.uv_slider_pos_x": "Move Horizontal",
 	"action.uv_slider_pos_x.desc": "Move all selected UV faces horizontally",

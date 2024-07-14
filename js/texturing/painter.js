@@ -2778,6 +2778,69 @@ BARS.defineActions(function() {
 		}
 	});
 
+	let expand_texture_selection_dialog = new Dialog('expand_texture_selection', {
+		title: 'action.expand_texture_selection',
+		form: {
+			value: {type: 'number', label: 'dialog.expand_texture_selection.radius', value: 1},
+			corner: {
+				type: 'select',
+				label: 'dialog.expand_texture_selection.corner',
+				options: {
+					round: 'dialog.expand_texture_selection.corner.round',
+					square: 'dialog.expand_texture_selection.corner.square',
+					manhattan: 'dialog.expand_texture_selection.corner.manhattan',
+				}
+			}
+		},
+		onConfirm(result) {
+			if (result.value == 0) return;
+			let texture = UVEditor.texture;
+			let selection = texture.selection;
+			let radius = Math.abs(result.value);
+			let radius_sq = result.value ** 2;
+			const round = 'round';
+			const manhattan = 'manhattan';
+
+			if (selection.is_custom) {
+				let selection_copy = selection.array.slice();
+				let expected_value = result.value < 0 ? 0 : 1;
+				selection.forEachPixel((x, y, val, index) => {
+					if (val == expected_value) return;
+					for (let offset_x = -radius; offset_x <= radius; offset_x++) {
+						for (let offset_y = -radius; offset_y <= radius; offset_y++) {
+							// Radius check
+							if (result.corner == round) {
+								if ((offset_x ** 2 + offset_y ** 2) > radius_sq) continue;
+							} else if (result.corner == manhattan) {
+								if ((Math.abs(offset_x) + Math.abs(offset_y)) > radius) continue;
+							}
+							// Testing
+							if (selection.get(x + offset_x, y + offset_y) == expected_value) {
+								selection_copy[index] = expected_value;
+								return;
+							}
+						}
+					}
+				})
+				selection.array = selection_copy;
+			} else if (selection.override == true && result.value < 0) {
+				selection.setOverride(null);
+				selection.forEachPixel((x, y, val, index) => {
+					let selected = x >= radius && y >= radius && x < selection.width - radius && y < selection.height - radius;
+					selection.array[index] = selected ? 1 : 0;
+				});
+			}
+			UVEditor.updateSelectionOutline();
+		}
+	});
+	new Action('expand_texture_selection', {
+		icon: 'settings_overscan',
+		category: 'paint',
+		click() {
+			expand_texture_selection_dialog.show();
+		}
+	})
+
 	StateMemory.init('mirror_painting_options', 'object');
 	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
 	if (!Painter.mirror_painting_options.axis) {
