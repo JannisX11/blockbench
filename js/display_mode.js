@@ -1806,6 +1806,12 @@ Interface.definePanels(function() {
 				}
 			},
 			methods: {
+				allowMirroring() {
+					return this.allow_mirroring && this.allowEnablingMirroring();
+				},
+				allowEnablingMirroring() {
+					return Format.id != 'bedrock_block';
+				},
 				isMirrored: (axis) => {
 					if (Project.display_settings[display_slot]) {
 						return Project.display_settings[display_slot].scale[axis] < 0;
@@ -1925,11 +1931,11 @@ Interface.definePanels(function() {
 
 						<div class="bar display_slot_section_bar">
 							<p class="panel_toolbar_label">${ tl('display.scale') }</p>
-							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
-							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
