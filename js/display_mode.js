@@ -16,6 +16,8 @@ class DisplaySlot {
 		this.rotation = [0, 0, 0];
 		this.translation = [0, 0, 0];
 		this.scale = [1, 1, 1];
+		this.rotation_pivot = [0, 0, 0];
+		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
 		return this;
 	}
@@ -24,6 +26,8 @@ class DisplaySlot {
 			rotation: this.rotation.slice(),
 			translation: this.translation.slice(),
 			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot.slice(),
+			scale_pivot: this.scale_pivot.slice(),
 			mirror: this.mirror.slice()
 		}
 	}
@@ -41,6 +45,8 @@ class DisplaySlot {
 				}
 			}
 		}
+		if (export_all || !this.rotation_pivot.allEqual(0)) build.rotation_pivot = this.rotation_pivot
+		if (export_all || !this.scale_pivot.allEqual(0)) build.scale_pivot = this.scale_pivot
 		if (Object.keys(build).length) {
 			return build;
 		}
@@ -49,9 +55,11 @@ class DisplaySlot {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
 			if (data.rotation) Merge.number(this.rotation, data.rotation, i)
-			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
 			if (data.scale) Merge.number(this.scale, data.scale, i)
+			if (data.translation) Merge.number(this.translation, data.translation, i)
+			if (data.rotation_pivot) Merge.number(this.rotation_pivot, data.rotation_pivot, i)
+			if (data.scale_pivot) Merge.number(this.scale_pivot, data.scale_pivot, i)
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
@@ -1807,10 +1815,13 @@ Interface.definePanels(function() {
 			},
 			methods: {
 				allowMirroring() {
-					return this.allow_mirroring && this.allowEnablingMirroring();
+					return this.allow_mirroring && !this.isBedrockStyle();
 				},
 				allowEnablingMirroring() {
 					return Format.id != 'bedrock_block';
+				},
+				isBedrockStyle() {
+					return Format.id == 'bedrock_block';
 				},
 				isMirrored: (axis) => {
 					if (Project.display_settings[display_slot]) {
@@ -1839,8 +1850,10 @@ Interface.definePanels(function() {
 						}
 					} else if (channel === 'translation') {
 						DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-					} else {
+					} else if (channel == 'rotation') {
 						DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+					} else {
+						DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0;
 					}
 					DisplayMode.updateDisplayBase()
 				},
@@ -1955,6 +1968,40 @@ Interface.definePanels(function() {
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" >
 								<numeric-input class="tool disp_text" v-model.number="pose_angle" :min="-180" :max="180" :step="0.5" />
+							</div>
+						</template>
+						
+						<template v-if="isBedrockStyle()">
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.rotation_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('rotation_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.rotation_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'rotation_pivot')"
+									@focusout="focusout(axis, 'rotation_pivot');save()"
+									@mousedown="start()"
+								/>
+							</div>
+
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.scale_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('scale_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.scale_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'scale_pivot')"
+									@focusout="focusout(axis, 'scale_pivot');save()"
+									@mousedown="start()"
+								/>
 							</div>
 						</template>
 					</div>
