@@ -1966,6 +1966,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "Datei laden und alle Änderungen und Ebenen in Blockbench verwerfen",
 	"message.group_required_to_animate": "Diese Art von Element kann nicht animiert werden. Erstelle stattdessen eine Gruppe.",
 	"dialog.texture.uv_size": "UV-Größe",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "Kamerablickwinkel",
 	"dialog.advanced_screenshot.resolution": "Auflösung",
 	"dialog.advanced_screenshot.zoom_to_fit": "Passend zoomen",

@@ -1966,6 +1966,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "Завантажити файл і скасувати всі зміни та шари в Blockbench",
 	"message.group_required_to_animate": "Цей тип елементів не можна анімувати. Створіть групу, щоб анімувати його.",
 	"dialog.texture.uv_size": "UV-Розмір",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "Попередньо заданий кут",
 	"dialog.advanced_screenshot.resolution": "Роздільність",
 	"dialog.advanced_screenshot.zoom_to_fit": "Розмір зображення",
