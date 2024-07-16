@@ -1314,13 +1314,27 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
+	if (!slot.rotation_pivot.allEqual(0)) {
+		let rot_piv_offset = new THREE.Vector3().fromArray(slot.rotation_pivot).multiplyScalar(16);
+		let original = new THREE.Vector3().copy(rot_piv_offset);
+		rot_piv_offset.applyEuler(display_base.rotation);
+		rot_piv_offset.sub(original);
+		display_base.position.sub(rot_piv_offset);
+	}
+	if (!slot.scale_pivot.allEqual(0)) {
+		let scale_piv_offset = new THREE.Vector3().fromArray(slot.scale_pivot).multiplyScalar(16);
+		scale_piv_offset.applyEuler(display_base.rotation);
+		scale_piv_offset.multiplyScalar(1-slot.scale[0]);
+		display_base.position.add(scale_piv_offset)
+	}
+
 	Transformer.center()
 }
 
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
-	var slots = [display_slot]
+	var slots = [display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
 	} else if (preset.areas[display_slot] == undefined) {
@@ -1332,7 +1346,12 @@ DisplayMode.applyPreset = function(preset, all) {
 		if (!Project.display_settings[sl]) {
 			Project.display_settings[sl] = new DisplaySlot()
 		}
-		Project.display_settings[sl].extend(preset.areas[sl])
+		let preset_values = preset.areas[sl];
+		if (preset_values) {
+			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
+			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
+			Project.display_settings[sl].extend(preset.areas[sl]);
+		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
