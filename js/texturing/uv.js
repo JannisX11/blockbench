@@ -367,7 +367,9 @@ const UVEditor = {
 	//Set
 	setZoom(zoom) {
 		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
-		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64))
+		// zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64));
+		zoom = Math.clamp(zoom, 0.0, Math.clamp(max_zoom, 16, 64));
+		console.log(zoom, max_zoom);
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
@@ -1999,6 +2001,12 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Cycle reverse UV')
 		}
 	})
+	new Toggle('snap_uv_to_image_bounds', {
+		icon: 'grid_goldenratio',
+		category: 'uv',
+		condition: {modes: ['edit']},
+		value: true
+	})
 	new Toggle('edit_mode_uv_overlay', {
 		name: 'action.paint_mode_uv_overlay',
 		description: 'action.edit_mode_uv_overlay.desc',
@@ -2842,36 +2850,38 @@ Interface.definePanels(function() {
 						event,
 						snap: UVEditor.isBoxUV() ? 1 : undefined,
 						onDrag: (diff_x, diff_y) => {
-							elements.forEach(element => {
-								if (element instanceof Mesh) {
-									UVEditor.getSelectedFaces(element).forEach(key => {
-										let face = element.faces[key];
-										if (!face) return;
-										face.vertices.forEach(vertex_key => {
-											diff_x = Math.clamp(diff_x, -face.uv[vertex_key][0], UVEditor.getUVWidth()  - face.uv[vertex_key][0]);
-											diff_y = Math.clamp(diff_y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+							// Snap UV to Image Bounds
+							if (BarItems.snap_uv_to_image_bounds.value) {
+								elements.forEach(element => {
+									if (element instanceof Mesh) {
+										UVEditor.getSelectedFaces(element).forEach(key => {
+											let face = element.faces[key];
+											if (!face) return;
+											face.vertices.forEach(vertex_key => {
+												diff_x = Math.clamp(diff_x, -face.uv[vertex_key][0], UVEditor.getUVWidth()  - face.uv[vertex_key][0]);
+												diff_y = Math.clamp(diff_y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+											})
 										})
-									})
-								} else if (element.box_uv) {
-									let size = element.size(undefined, Format.box_uv_float_size != true);
-									let uv_size = [
-										size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
-										size[2] + size[1],
-									]
-									diff_x = Math.clamp(diff_x, -element.uv_offset[0] - (size[1] ? 0 : size[2]), UVEditor.getUVWidth()  - element.uv_offset[0] - uv_size[0]);
-									diff_y = Math.clamp(diff_y, -element.uv_offset[1] - (size[0] ? 0 : size[2]), UVEditor.getUVHeight() - element.uv_offset[1] - uv_size[1]);
-
-								} else {
-									UVEditor.getSelectedFaces(element).forEach(key => {
-										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
-											diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], UVEditor.getUVWidth()  - element.faces[key].uv[0]);
-											diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], UVEditor.getUVHeight() - element.faces[key].uv[1]);
-											diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], UVEditor.getUVWidth()  - element.faces[key].uv[2]);
-											diff_y = Math.clamp(diff_y, -element.faces[key].uv[3], UVEditor.getUVHeight() - element.faces[key].uv[3]);
-										}
-									})
-								}
-							})
+									} else if (element.box_uv) {
+										let size = element.size(undefined, Format.box_uv_float_size != true);
+										let uv_size = [
+											size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
+											size[2] + size[1],
+										]
+										diff_x = Math.clamp(diff_x, -element.uv_offset[0] - (size[1] ? 0 : size[2]), UVEditor.getUVWidth()  - element.uv_offset[0] - uv_size[0]);
+										diff_y = Math.clamp(diff_y, -element.uv_offset[1] - (size[0] ? 0 : size[2]), UVEditor.getUVHeight() - element.uv_offset[1] - uv_size[1]);
+									} else {
+										UVEditor.getSelectedFaces(element).forEach(key => {
+											if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
+												diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], UVEditor.getUVWidth()  - element.faces[key].uv[0]);
+												diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], UVEditor.getUVHeight() - element.faces[key].uv[1]);
+												diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], UVEditor.getUVWidth()  - element.faces[key].uv[2]);
+												diff_y = Math.clamp(diff_y, -element.faces[key].uv[3], UVEditor.getUVHeight() - element.faces[key].uv[3]);
+											}
+										})
+									}
+								})
+							}
 							elements.forEach(element => {
 								if (element instanceof Mesh) {
 									UVEditor.getSelectedFaces(element).forEach(key => {
@@ -2937,6 +2947,7 @@ Interface.definePanels(function() {
 						}
 					})
 				},
+				// Drag UV edge from Cube with Per-Face-UV
 				resizeFace(face_key, event, x_side, y_side) {
 					if (event.which == 2 || event.which == 3) return;
 					event.stopPropagation();
@@ -2960,11 +2971,18 @@ Interface.definePanels(function() {
 						onDrag: (x, y) => {
 							elements.forEach(element => {
 								UVEditor.getSelectedFaces(element).forEach(key => {
-									if (element.faces[key] && element instanceof Cube) {
-										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, UVEditor.getUVWidth());
-										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, UVEditor.getUVHeight());
-										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, UVEditor.getUVWidth());
-										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = Math.clamp(element.faces[key].uv[3] + y, 0, UVEditor.getUVHeight());
+									if (BarItems.snap_uv_to_image_bounds.value) {
+										if (element.faces[key] && element instanceof Cube) {
+											if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, UVEditor.getUVWidth());
+											if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, UVEditor.getUVHeight());
+											if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, UVEditor.getUVWidth());
+											if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = Math.clamp(element.faces[key].uv[3] + y, 0, UVEditor.getUVHeight());
+										}
+									} else {
+										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = element.faces[key].uv[0] + x;
+										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = element.faces[key].uv[1] + y;
+										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = element.faces[key].uv[2] + x;
+										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = element.faces[key].uv[3] + y;
 									}
 								})
 							})
@@ -3059,8 +3077,13 @@ Interface.definePanels(function() {
 												face.uv[vkey][1] = face.old_uv[vkey][1] - face_center[1];
 												let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
 												let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
-												face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
-												face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
+												if (BarItems.snap_uv_to_image_bounds.value) {
+													face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
+													face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
+												} else {
+													face.uv[vkey][0] = a + face_center[0]
+													face.uv[vkey][1] = b + face_center[1]
+												}
 											})
 										})
 									}
@@ -3175,7 +3198,6 @@ Interface.definePanels(function() {
 						}
 					})
 				},
-
 				dragVertices(element, vertex_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
@@ -3204,12 +3226,14 @@ Interface.definePanels(function() {
 								UVEditor.getSelectedFaces(element).forEach(key => {
 									let face = element.faces[key];
 									if (!face) return;
-									face.vertices.forEach(vertex_key => {
-										if (vertices.includes(vertex_key)) {
-											x = Math.clamp(x, -face.uv[vertex_key][0], UVEditor.getUVWidth() - face.uv[vertex_key][0]);
-											y = Math.clamp(y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
-										}
-									})
+									if (BarItems.snap_uv_to_image_bounds.value) {
+										face.vertices.forEach(vertex_key => {
+											if (vertices.includes(vertex_key)) {
+												x = Math.clamp(x, -face.uv[vertex_key][0], UVEditor.getUVWidth() - face.uv[vertex_key][0]);
+												y = Math.clamp(y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+											}
+										})
+									}
 								})
 							})
 							elements.forEach(element => {
@@ -3250,7 +3274,6 @@ Interface.definePanels(function() {
 						}
 					})
 				},
-
 				toPixels(uv_coord, offset = 0) {
 					return (uv_coord / this.uv_resolution[0] * this.inner_width + offset) + 'px';
 				},
