@@ -214,6 +214,9 @@ class Texture {
 				this.uv_width = scope.width;
 				this.uv_height = scope.display_height;
 			}
+			
+			tex.wrapS = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+			tex.wrapT = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
 
 			if (scope.isDefault) {
 				console.log('Successfully loaded '+scope.name+' from default pack')
