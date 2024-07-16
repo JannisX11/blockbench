@@ -1796,6 +1796,7 @@
 	"action.uv_cycle_invert.desc": "Reverse the order of UV vertices without changing the UV positions",
 	"action.paint_mode_uv_overlay": "UV Overlay",
 	"action.paint_mode_uv_overlay.desc": "Display the UV map as an overlay in paint mode",
+	"action.snap_uv_to_image_bounds": "Snap UV to image bounds",
 	"action.edit_mode_uv_overlay.desc": "Display the UV map as an overlay in edit mode",
 	"action.remove_blank_faces": "Remove Blank Faces",
 	"action.remove_blank_faces.desc": "Deletes all untextured faces of the selection",
