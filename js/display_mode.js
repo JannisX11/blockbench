@@ -1324,7 +1324,9 @@ DisplayMode.updateDisplayBase = function(slot) {
 	if (!slot.scale_pivot.allEqual(0)) {
 		let scale_piv_offset = new THREE.Vector3().fromArray(slot.scale_pivot).multiplyScalar(16);
 		scale_piv_offset.applyEuler(display_base.rotation);
-		scale_piv_offset.multiplyScalar(1-slot.scale[0]);
+		scale_piv_offset.x *= (1-slot.scale[0]);
+		scale_piv_offset.y *= (1-slot.scale[1]);
+		scale_piv_offset.z *= (1-slot.scale[2]);
 		display_base.position.add(scale_piv_offset)
 	}
 
