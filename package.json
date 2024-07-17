@@ -95,6 +95,7 @@
 			{
 				"ext": "bbmodel",
 				"name": "Blockbench Project",
+				"mimeType": "model/vnd.blockbench.bbmodel",
 				"role": "Editor"
 			}
 		]
