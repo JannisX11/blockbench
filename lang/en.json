@@ -657,6 +657,9 @@
 	"dialog.create_texture.resolution.desc": "The height and width of the texture",
 	"dialog.create_texture.pixel_density": "Pixel Density",
 	"dialog.create_texture.pixel_density.desc": "The pixel density of the texture, in pixels per meter. The size of the texture map may differ depending on the amount and size of elements.",
+	"dialog.unwrap_mesh.resolution": "Target Resolution",
+	"dialog.unwrap_mesh.resolution.desc": "The resolution to use to scale the UV",
+	"dialog.unwrap_mesh.pixel_density.desc": "The pixel density of the texture, in pixels per meter.",
 
 	"dialog.mirror_painting_texture_center.middle": "Middle",
 	"dialog.mirror_painting_texture_center.custom": "Custom",

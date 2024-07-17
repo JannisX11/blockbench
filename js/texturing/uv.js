@@ -456,7 +456,6 @@ const UVEditor = {
 		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
 		// zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64));
 		zoom = Math.clamp(zoom, 0.0, Math.clamp(max_zoom, 16, 64));
-		console.log(zoom, max_zoom);
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {

@@ -1545,8 +1545,8 @@ const TextureGenerator = {
 			title: tl('action.unwrap_mesh_faces'),
 			width: 480,
 			form: {
-				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 4096},
-				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: 16, options: resolution_presets},
+				resolution_vec: {label: 'dialog.unwrap_mesh.resolution', description: "dialog.unwrap_mesh.resolution.desc", type: 'vector', dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 4096},
+				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.unwrap_mesh.pixel_density.desc', type: 'select', value: 16, options: resolution_presets},
 				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (Mesh.selected.length)},
 				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
@@ -1561,7 +1561,6 @@ const TextureGenerator = {
 	},
 	unwrapMeshFaces(options) {
 		let res_multiple = options.resolution / 16.0;
-		console.log(res_multiple)
 
 		let element_list = ((Format.single_texture) ? Outliner.elements : Outliner.selected);
 		element_list = element_list.filter(el => {
@@ -1575,6 +1574,7 @@ const TextureGenerator = {
 			uv_mode: true
 		})
 		
+		// Creates a face_list, containing face_groups
 		let face_list = [];
 		let vec1 = new THREE.Vector3(),
 			vec2 = new THREE.Vector3(),
@@ -1723,6 +1723,7 @@ const TextureGenerator = {
 				return true;
 			}
 
+			// Combined Islands
 			let processed_faces = [];
 			if (options.combine_polys) {
 				face_groups.slice().forEach((face_group) => {
@@ -1806,7 +1807,7 @@ const TextureGenerator = {
 							)
 							let snap = 2;
 							rot = (Math.radToDeg(rot) + 360) % 90;
-							let rounded
+							let rounded;
 							let last_difference = snap;
 							for (let rounded_angle in precise_rotation_angle) {
 								let precise = precise_rotation_angle[rounded_angle];
@@ -1948,70 +1949,87 @@ const TextureGenerator = {
 			face_list.push(...face_groups);
 		})
 
+		// Check if there's faces to work with.
 		if (face_list.length == 0) {
 			Blockbench.showMessage('message.no_valid_elements', 'center')
 			return;
 		}
 
+		// Gets the matrix of space occupied for each face.
 		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
 			let matrix = {};
+			let memo = {};
+		
 			function vSub(a, b) {
-				return [a[0]-b[0], a[1]-b[1]];
+				return [a[0] - b[0], a[1] - b[1]];
 			}
+		
 			function getSide(a, b) {
-				let cosine_sign = a[0]*b[1] - a[1]*b[0];
-				if (cosine_sign > 0) return 1;
-				if (cosine_sign < 0) return -1;
+				return a[0] * b[1] - a[1] * b[0];
 			}
-			function pointInsidePolygon(x, y) {
-				face_uvs:
-				for (let vertex_uvs of vertex_uv_faces) {
-					let previous_side;
-					let i = 0;
-					vertices:
-					for (let a of vertex_uvs) {
-						let b = vertex_uvs[i+1] || vertex_uvs[0];
-						let affine_segment = vSub(b, a);
-						let affine_point = vSub([x, y], a);
-						let side = getSide(affine_segment, affine_point);
-						if (!side) continue face_uvs;
-						if (!previous_side) previous_side = side;
-						if (side !== previous_side) continue face_uvs;
-						i++;
+		
+			function boundingBox(vertices) {
+				let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+				vertices.forEach(([x, y]) => {
+					if (x < minX) minX = x;
+					if (y < minY) minY = y;
+					if (x > maxX) maxX = x;
+					if (y > maxY) maxY = y;
+				});
+				return { minX, minY, maxX, maxY };
+			}
+		
+			function pointInsidePolygon(x, y, vertices) {
+				let key = `${x},${y}`;
+				if (memo[key] !== undefined) return memo[key];
+				
+				let previous_side;
+				for (let i = 0; i < vertices.length; i++) {
+					let a = vertices[i];
+					let b = vertices[(i + 1) % vertices.length];
+					let affine_segment = vSub(b, a);
+					let affine_point = vSub([x, y], a);
+					let side = getSide(affine_segment, affine_point);
+					if (side === 0) continue;
+					if (!previous_side) previous_side = side;
+					if ((side > 0 && previous_side < 0) || (side < 0 && previous_side > 0)) {
+						memo[key] = false;
+						return false;
 					}
-					return true;
+					previous_side = side;
 				}
-				return false;
+				memo[key] = true;
+				return true;
 			}
-			for (let x = 0; x < (0 + width); x++) {
-				for (let y =0; y < (0 + height); y++) {
-					let inside = ( pointInsidePolygon(x+0.00001, y+0.00001)
-								|| pointInsidePolygon(x+0.99999, y+0.00001)
-								|| pointInsidePolygon(x+0.00001, y+0.99999)
-								|| pointInsidePolygon(x+0.99999, y+0.99999));
-					if (!inside) {
-						let px_rect = [[x, y], [x+0.99999, y+0.99999]]
-						faces:
-						for (let vertex_uvs of vertex_uv_faces) {
-							let i = 0;
-							for (let a of vertex_uvs) {
-								let b = vertex_uvs[i+1] || vertex_uvs[0];
-								if (pointInRectangle(a, ...px_rect)) {
-									inside = true; break faces;
-								}
-								if (lineIntersectsReactangle(a, b, ...px_rect)) {
-									inside = true; break faces;
-								}
-								i++;
+		
+			for (let x = 0; x < width; x++) {
+				for (let y = 0; y < height; y++) {
+					let inside = false;
+		
+					for (let vertex_uvs of vertex_uv_faces) {
+						let { minX, minY, maxX, maxY } = boundingBox(vertex_uvs);
+						console.log(x, y)
+		
+						if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+							if (
+								pointInsidePolygon(x + 0.00001, y + 0.00001, vertex_uvs) ||
+								pointInsidePolygon(x + 0.99999, y + 0.00001, vertex_uvs) ||
+								pointInsidePolygon(x + 0.00001, y + 0.99999, vertex_uvs) ||
+								pointInsidePolygon(x + 0.99999, y + 0.99999, vertex_uvs)
+							) {
+								inside = true;
+								break;
 							}
 						}
 					}
+		
 					if (inside) {
 						if (!matrix[x]) matrix[x] = {};
 						matrix[x][y] = true;
 					}
 				}
 			}
+		
 			return matrix;
 		}
 		face_list.forEach(face_group => {
@@ -2019,27 +2037,31 @@ const TextureGenerator = {
 			let face_uvs = face_group.faces.map((face, i) => {
 				return face.getSortedVertices().map(vkey => {
 					return face_group.vertex_uvs[face_group.keys[i]][vkey];
-				})
+				});
 			});
+			console.log(face_group.width, face_group.height)
 			face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
-		})
+		});
 
+		// Change the order of the faces.
 		face_list.sort(function(a,b) {
 			return b.size - a.size;
 		})
 
+		// Place Faces into an empty space.
+		// If the faces are too big, this can be really slow.
 		var fill_map = {};
 		function occupy(x, y) {
 			if (!fill_map[x]) fill_map[x] = {}
 			fill_map[x][y] = true
 		}
-		function check(x, y) {
+		function is_occupied(x, y) {
 			return fill_map[x] && fill_map[x][y]
 		}
-		function forTemplatePixel(tpl, sx, sy, cb) {
+		function check_place(tpl, sx, sy) {
 			let w = tpl.width;
 			let h = tpl.height;
-
+			const coord = [];
 			if (options.padding) {
 				w++; h++;
 				for (var x = 0; x < w; x++) {
@@ -2052,7 +2074,11 @@ const TextureGenerator = {
 							(!tpl.matrix[x] || !tpl.matrix[x][y-1]) &&
 							(!tpl.matrix[x-1] || !tpl.matrix[x-1][y-1])
 						) continue;
-						if (cb(sx+x, sy+y)) return;
+						if (is_occupied(sx+x, sy+y)) {
+							return null;
+						} else {
+							coord.push([sx+x, sy+y]);
+						}
 					}
 				}
 			} else {
@@ -2060,37 +2086,38 @@ const TextureGenerator = {
 					if (tpl.matrix && !tpl.matrix[x]) continue;
 					for (var y = 0; y < h; y++) {
 						if (tpl.matrix && !tpl.matrix[x][y]) continue;
-						if (cb(sx+x, sy+y)) return;
+						if (is_occupied(sx+x, sy+y)) {
+							return null;
+						} else {
+							coord.push([sx+x, sy+y]);
+						}
 					}
 				}
 			}
+			return coord;
 		}
 		function place(tpl, x, y) {
-			var works = true;
-			forTemplatePixel(tpl, x, y, (tx, ty) => {
-				if (check(tx, ty)) {
-					works = false;
-					return true;
-				}
-			})
-			if (works) {
-				forTemplatePixel(tpl, x, y, occupy)
+			const coordinatesToCheck = check_place(tpl, x, y);
+			if (coordinatesToCheck) {
+				coordinatesToCheck.forEach(([tx, ty]) => occupy(tx, ty));
 				tpl.posx = x;
 				tpl.posy = y;
 				return true;
 			}
+			return false;
 		}
 		face_list.forEach(tpl => {
-			//Scan for empty spot
-			for (var line = 0; line < 2e3; line++) {
-				for (var space = 0; space <= line; space++) {
-					if (place(tpl, space, line)) return;
+			outerLoop:
+			for (let line = 0; line < 2000; line++) {
+				for (let space = 0; space <= line; space++) {
+					if (place(tpl, space, line)) break outerLoop;
 					if (space == line) continue;
-					if (place(tpl, line, space)) return;
+					if (place(tpl, line, space)) break outerLoop;
 				}
 			}
 		})
 
+		// Applies the UV, using the .posx and .posy set before.
 		face_list.forEach(function(ftemp) {		
 			function applyUV(source, target) {
 				target.faces.forEach((face, i) => {
@@ -2110,13 +2137,14 @@ const TextureGenerator = {
 						}
 						if (!face.uv[vkey]) face.uv[vkey] = [];
 						// Final UV sizes and positions, per face.
-						let uv_size_multiplier = res_multiple;
-						let uv_offset_multiplier = res_multiple;
-						face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] * uv_size_multiplier + (source.posx * uv_offset_multiplier);
-						face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] * uv_size_multiplier + (source.posy * uv_offset_multiplier);
+						let uv_size_pixel_density_multiplier = res_multiple;
+						let uv_offset_pixel_density_multiplier = res_multiple;
+						face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] * uv_size_pixel_density_multiplier + (source.posx * uv_offset_pixel_density_multiplier);
+						face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] * uv_size_pixel_density_multiplier + (source.posy * uv_offset_pixel_density_multiplier);
 					})
 				})
 			}
+
 			if (ftemp.copy_to) {
 				for (let ftemp2 of ftemp.copy_to) {
 					applyUV(ftemp, ftemp2);
