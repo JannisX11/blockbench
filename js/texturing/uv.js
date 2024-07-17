@@ -1699,6 +1699,14 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Auto UV')
 		}
 	})
+	new Action('unwrap_mesh_faces', {
+		icon: 'view_in_ar',
+		category: 'uv',
+		condition: () => Mesh.selected.length,
+		click() {
+			TextureGenerator.unwrapFaceDialog()
+		}
+	})
 	new Action('uv_project_from_view', {
 		icon: 'view_in_ar',
 		category: 'uv',

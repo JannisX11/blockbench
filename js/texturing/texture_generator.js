@@ -1530,6 +1530,622 @@ const TextureGenerator = {
 			})
 		}
 	},
+	
+	unwrapFaceDialog() {
+		let resolution_presets = {
+			16: '16x',
+			32: '32x',
+			64: '64x',
+			128: '128x',
+			256: '256x',
+			512: '512x',
+		};
+		var dialog = new Dialog({
+			id: 'add_bitmap',
+			title: tl('action.unwrap_mesh'),
+			width: 480,
+			form: {
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 4096},
+				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: 16, options: resolution_presets},
+				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (Mesh.selected.length)},
+				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
+				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => Mesh.selected.length},
+				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: false},
+			},
+			onConfirm(options) {
+				dialog.hide()
+				TextureGenerator.unwrapFace(options);
+				return false;
+			}
+		}).show()
+	},
+	unwrapFace(options) {
+		let res_multiple = options.resolution / 16.0;
+		console.log(res_multiple)
+
+		let element_list = ((Format.single_texture) ? Outliner.elements : Outliner.selected);
+		element_list = element_list.filter(el => {
+			return (el instanceof Mesh && el.visibility);
+		});
+		
+		Undo.initEdit({
+			elements: element_list,
+			uv_only: true,
+			bitmap: true,
+			uv_mode: true
+		})
+		
+		let face_list = [];
+		let vec1 = new THREE.Vector3(),
+			vec2 = new THREE.Vector3(),
+			vec3 = new THREE.Vector3(),
+			vec4 = new THREE.Vector3();
+		element_list.forEach(mesh => {
+			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[mesh.uuid] && MirrorModeling.cached_elements[mesh.uuid].is_copy;
+			if (mirror_modeling_duplicate) return;
+
+			let face_groups = [];
+			for (let fkey in mesh.faces) {
+				let face = mesh.faces[fkey];
+				if (face.vertices.length < 3) continue;
+				
+				let face_old_pos_id;
+				if (BarItems.selection_mode.value !== 'object' && !face.isSelected(fkey)) continue;
+				face_groups.push({
+					type: 'face_group',
+					mesh,
+					faces: [face],
+					keys: [fkey],
+					face_old_pos_id,
+					edges: new Map(),
+					normal: face.getNormal(true),
+					vertex_uvs: {},
+				})
+			}
+			
+			function getEdgeLength(edge) {
+				let edge_vertices = edge.map(vkey => mesh.vertices[vkey]);
+				return Math.sqrt(
+					Math.pow(edge_vertices[1][0] - edge_vertices[0][0], 2) +
+					Math.pow(edge_vertices[1][1] - edge_vertices[0][1], 2) +
+					Math.pow(edge_vertices[1][2] - edge_vertices[0][2], 2)
+				)
+			}
+
+			// Sort straight faces first
+			function getNormalStraightness(normal) {
+				let absolute = normal.map(Math.abs);
+				return (
+					(absolute[0] < 0.5 ? absolute[0] : (1-absolute[0]))*1.6 +
+					(absolute[1] < 0.5 ? absolute[1] : (1-absolute[1])) +
+					(absolute[2] < 0.5 ? absolute[2] : (1-absolute[2]))
+				)
+			}
+			face_groups.sort((a, b) => {
+				return getNormalStraightness(a.normal) - getNormalStraightness(b.normal);
+			})
+			
+			function projectFace(face, fkey, face_group, connection) {
+				// Project vertex coords onto plane
+				let {vertex_uvs} = face_group;
+				let normal_vec = vec1.fromArray(face.getNormal(true));
+				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+					normal_vec,
+					vec2.fromArray(mesh.vertices[face.vertices[0]])
+				)
+				let sorted_vertices = face.getSortedVertices();
+				let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
+				let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
+
+				let face_vertex_uvs = {};
+
+				face.vertices.forEach(vkey => {
+					let coplanar_pos = plane.projectPoint(vec3.fromArray(mesh.vertices[vkey]), vec4);
+					coplanar_pos.applyEuler(e);
+					face_vertex_uvs[vkey] = [
+						Math.roundTo(coplanar_pos.x, 4),
+						Math.roundTo(coplanar_pos.z, 4),
+					]
+				})
+
+				if (connection) {
+					// Rotate to connect to previous face
+					let other_face_vertex_uvs = vertex_uvs[connection.fkey];
+					let uv_hinge = face_vertex_uvs[connection.edge[0]];
+					let uv_latch = face_vertex_uvs[connection.edge[1]];
+					let uv_lock = other_face_vertex_uvs[connection.edge[1]];
+
+					// Join hinge
+					let offset = uv_hinge.slice().V2_subtract(other_face_vertex_uvs[connection.edge[0]]);
+					for (let vkey in face_vertex_uvs) {
+						face_vertex_uvs[vkey].V2_subtract(offset);
+					}
+
+					// Join latch
+					uv_hinge = uv_hinge.slice();
+					let angle = Math.atan2(
+						uv_hinge[0] - uv_latch[0],
+						uv_hinge[1] - uv_latch[1],
+					) - Math.atan2(
+						uv_hinge[0] - uv_lock[0],
+						uv_hinge[1] - uv_lock[1],
+					);
+					let s = Math.sin(angle);
+					let c = Math.cos(angle);
+					for (let vkey in face_vertex_uvs) {
+						let point = face_vertex_uvs[vkey].slice().V2_subtract(uv_hinge);
+						face_vertex_uvs[vkey][0] = point[0] * c - point[1] * s;
+						face_vertex_uvs[vkey][1] = point[0] * s + point[1] * c;
+						face_vertex_uvs[vkey].V2_add(uv_hinge);
+					}
+
+					// Check overlap
+					function isSameUVVertex(point_a, point_b) {
+						return (Math.epsilon(point_a[0], point_b[0], 0.1)
+								&& Math.epsilon(point_a[1], point_b[1], 0.1))
+					}
+					let i = -1;
+					for (let other_face of face_group.faces) {
+						i++;
+						if (other_face == connection.face) continue;
+						let other_fkey = face_group.keys[i];
+						let sorted_vertices_b = other_face.getSortedVertices();
+						let l1 = 0;
+						for (let vkey_1_a of sorted_vertices) {
+							let vkey_1_b = sorted_vertices[l1+1] || sorted_vertices[0]
+							let l2 = 0;
+							for (let vkey_2_a of sorted_vertices_b) {
+								let vkey_2_b = sorted_vertices_b[l2+1] || sorted_vertices_b[0];
+
+								if (intersectLines(
+									face_vertex_uvs[vkey_1_a],
+									face_vertex_uvs[vkey_1_b],
+									face_group.vertex_uvs[other_fkey][vkey_2_a],
+									face_group.vertex_uvs[other_fkey][vkey_2_b]
+								)) {
+									if (
+										!isSameUVVertex(face_vertex_uvs[vkey_1_a], face_group.vertex_uvs[other_fkey][vkey_2_a]) &&
+										!isSameUVVertex(face_vertex_uvs[vkey_1_a], face_group.vertex_uvs[other_fkey][vkey_2_b]) &&
+										!isSameUVVertex(face_vertex_uvs[vkey_1_b], face_group.vertex_uvs[other_fkey][vkey_2_a]) &&
+										!isSameUVVertex(face_vertex_uvs[vkey_1_b], face_group.vertex_uvs[other_fkey][vkey_2_b])
+									) {
+										return false;
+									}
+								}
+								l2++;
+							}
+							l1++;
+						}
+					}
+				}
+
+				face_group.vertex_uvs[fkey] = face_vertex_uvs;
+				return true;
+			}
+
+			let processed_faces = [];
+			if (options.combine_polys) {
+				face_groups.slice().forEach((face_group) => {
+					if (!face_groups.includes(face_group)) return;
+
+					function growFromFaces(faces) {
+						let perimeter = {};
+						for (let fkey in faces) {
+							let face = faces[fkey];
+							let face_connection_count = 0;
+							processed_faces.push(face);
+							let face_normal = face.getNormal(true);
+							[2, 0, 3, 1].forEach(i => {
+								if (!face.vertices[i]) return;
+								let other_face_match = face.getAdjacentFace(i);
+								let edge = other_face_match && face.vertices.filter(vkey => other_face_match.face.vertices.includes(vkey));
+								if (other_face_match && edge.length == 2 && !face_group.faces.includes(other_face_match.face) && !processed_faces.includes(other_face_match.face)) {
+									let other_face = other_face_match.face;
+									let other_face_group = face_groups.find(group => group.faces[0] == other_face);
+									if (!other_face_group) return;
+									let seam = mesh.getSeam(other_face_match.edge);
+									if (seam === 'divide') return;
+									if (seam !== 'join') {
+
+										let angle = face.getAngleTo(other_face);
+										if (angle > (options.max_edge_angle||36)) return;
+
+										let angle_total = face_group.faces[0].getAngleTo(other_face);
+										if (angle_total > (options.max_island_angle||45)) return;
+
+										let edge_length = getEdgeLength(other_face_match.edge);
+										if (edge_length < 2.2 && face_connection_count >= 2) return;
+
+										let other_face_normal = other_face.getNormal(true);
+										if (Math.abs(other_face_normal[0]) > 0.04 &&
+											Math.epsilon(face_normal[0], -other_face_normal[0], 0.04) &&
+											Math.epsilon(face_normal[1], other_face_normal[1], 0.04) &&
+											Math.epsilon(face_normal[2], other_face_normal[2], 0.04)
+										) return;
+									}
+									let projection_success = projectFace(other_face, other_face_match.key, face_group, {face, fkey, edge});
+									if (!projection_success) return;
+
+									face_group.faces.push(other_face);
+									face_group.keys.push(other_face_match.key);
+									face_groups.remove(other_face_group);
+									perimeter[other_face_match.key] = other_face;
+									face_connection_count++;
+								}
+							})
+						}
+						if (Object.keys(perimeter).length) growFromFaces(perimeter);
+					}
+					projectFace(face_group.faces[0], face_group.keys[0], face_group);
+					growFromFaces({[face_group.keys[0]]: face_group.faces[0]});
+				});
+			} else {
+				face_groups.forEach(face_group => {
+					face_group.faces.forEach((face, i) => {
+						let fkey = face_group.keys[i];
+						projectFace(face, fkey, face_group);
+					})
+				})
+			}
+
+			face_groups.forEach(face_group => {
+				let {vertex_uvs} = face_group;
+				// Rotate UV to match corners
+				if (face_group.faces.length == 1) {
+					let rotation_angles = {};
+					let precise_rotation_angle = {};
+					face_group.faces.forEach((face, i) => {
+						let fkey = face_group.keys[i];
+						let vertices = face.getSortedVertices();
+						vertices.forEach((vkey, i) => {
+							let vkey2 = vertices[i+1] || vertices[0];
+							let edge_length = getEdgeLength([vkey, vkey2]);
+							let rot = Math.atan2(
+								vertex_uvs[fkey][vkey2][0] - vertex_uvs[fkey][vkey][0],
+								vertex_uvs[fkey][vkey2][1] - vertex_uvs[fkey][vkey][1],
+							)
+							let snap = 2;
+							rot = (Math.radToDeg(rot) + 360) % 90;
+							let rounded
+							let last_difference = snap;
+							for (let rounded_angle in precise_rotation_angle) {
+								let precise = precise_rotation_angle[rounded_angle];
+								if (Math.abs(rot - precise) < last_difference) {
+									last_difference = Math.abs(rot - precise);
+									rounded = rounded_angle;
+								}
+							}
+							if (!rounded) rounded = Math.round(rot / snap) * snap;
+							if (rotation_angles[rounded]) {
+								rotation_angles[rounded] += edge_length;
+							} else {
+								rotation_angles[rounded] = edge_length;
+								precise_rotation_angle[rounded] = rot;
+							}
+						})
+					})
+					let angles = Object.keys(rotation_angles).map(k => parseInt(k));
+					angles.sort((a, b) => {
+						let diff = rotation_angles[b] - rotation_angles[a];
+						if (diff) {
+							return diff;
+						} else {
+							return a < b ? -1 : 1;
+						}
+					})
+					if (rotation_angles[angles[0]] > 1) {
+						let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
+						let s = Math.sin(angle);
+						let c = Math.cos(angle);
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								let point = vertex_uvs[fkey][vkey].slice();
+								vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
+								vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
+							}
+						}
+					}
+				}
+
+				// Define UV bounding box
+				let min_x = Infinity;
+				let min_z = Infinity;
+				for (let fkey in vertex_uvs) {
+					for (let vkey in vertex_uvs[fkey]) {
+						min_x = Math.min(min_x, vertex_uvs[fkey][vkey][0]);
+						min_z = Math.min(min_z, vertex_uvs[fkey][vkey][1]);
+					}
+				}
+				for (let fkey in vertex_uvs) {
+					for (let vkey in vertex_uvs[fkey]) {
+						vertex_uvs[fkey][vkey][0] -= min_x;
+						vertex_uvs[fkey][vkey][1] -= min_z;
+					}
+				}
+
+				// Round
+				if (face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) {
+					let sorted_vertices = face_group.faces[0].getSortedVertices();
+					sorted_vertices.forEach((vkey, vi) => {
+						let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
+						let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
+						let snap = 1;
+						let vertex_uvs_1 = vertex_uvs[face_group.keys[0]];
+
+						if (Math.epsilon(vertex_uvs_1[vkey][0], vertex_uvs_1[vkey2][0], 0.001)) {
+							let min = vertex_uvs_1[vkey][0] > vertex_uvs_1[vkey0][0] ? 1 : 0;
+							vertex_uvs_1[vkey][0] = vertex_uvs_1[vkey2][0] = Math.round(Math.max(min, vertex_uvs_1[vkey][0] * snap)) / snap;
+						}
+						if (Math.epsilon(vertex_uvs_1[vkey][1], vertex_uvs_1[vkey2][1], 0.001)) {
+							let min = vertex_uvs_1[vkey][1] > vertex_uvs_1[vkey0][1] ? 1 : 0;
+							vertex_uvs_1[vkey][1] = vertex_uvs_1[vkey2][1] = Math.round(Math.max(min, vertex_uvs_1[vkey][1] * snap)) / snap;
+						}
+					})
+				}
+
+
+				max_x = -Infinity;
+				max_z = -Infinity;
+				for (let fkey in vertex_uvs) {
+					for (let vkey in vertex_uvs[fkey]) {
+						max_x = Math.max(max_x, vertex_uvs[fkey][vkey][0]);
+						max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
+					}
+				}
+				// Center island if it faces front of back
+				if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
+					let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							vertex_uvs[fkey][vkey][0] += offset_x;
+						}
+					}
+				}
+				// ... or on the side
+				else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
+					let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							vertex_uvs[fkey][vkey][0] += offset_x;
+						}
+					}
+				}
+				// Or align right if face points to right side of model
+				else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
+						}
+					}
+				}
+				// Align bottom if face points downwards
+				if (face_group.normal[1] < 0) {
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
+						}
+					}
+				}
+				face_group.posx = 0;
+				face_group.posy = 0;
+				face_group.vertex_uvs = vertex_uvs;
+				face_group.width = max_x;
+				face_group.height = max_z;
+				face_group.size = max_x * max_z;
+
+				let axis = [0, 1, 2].sort((a, b) => {
+					return Math.abs(face_group.normal[b]) - Math.abs(face_group.normal[a]) - 0.0001
+				})[0]
+				if (axis == 0 && face_group.normal[0] >= 0) face_group.face_key = 'east';
+				if (axis == 0 && face_group.normal[0] <= 0) face_group.face_key = 'west';
+				if (axis == 1 && face_group.normal[1] >= 0) face_group.face_key = 'up';
+				if (axis == 1 && face_group.normal[1] <= 0) face_group.face_key = 'down';
+				if (axis == 2 && face_group.normal[2] >= 0) face_group.face_key = 'south';
+				if (axis == 2 && face_group.normal[2] <= 0) face_group.face_key = 'north';
+
+
+			})
+			face_list.push(...face_groups);
+		})
+
+		if (face_list.length == 0) {
+			Blockbench.showMessage('message.no_valid_elements', 'center')
+			return;
+		}
+
+		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
+			let matrix = {};
+			function vSub(a, b) {
+				return [a[0]-b[0], a[1]-b[1]];
+			}
+			function getSide(a, b) {
+				let cosine_sign = a[0]*b[1] - a[1]*b[0];
+				if (cosine_sign > 0) return 1;
+				if (cosine_sign < 0) return -1;
+			}
+			function pointInsidePolygon(x, y) {
+				face_uvs:
+				for (let vertex_uvs of vertex_uv_faces) {
+					let previous_side;
+					let i = 0;
+					vertices:
+					for (let a of vertex_uvs) {
+						let b = vertex_uvs[i+1] || vertex_uvs[0];
+						let affine_segment = vSub(b, a);
+						let affine_point = vSub([x, y], a);
+						let side = getSide(affine_segment, affine_point);
+						if (!side) continue face_uvs;
+						if (!previous_side) previous_side = side;
+						if (side !== previous_side) continue face_uvs;
+						i++;
+					}
+					return true;
+				}
+				return false;
+			}
+			for (let x = 0; x < (0 + width); x++) {
+				for (let y =0; y < (0 + height); y++) {
+					let inside = ( pointInsidePolygon(x+0.00001, y+0.00001)
+								|| pointInsidePolygon(x+0.99999, y+0.00001)
+								|| pointInsidePolygon(x+0.00001, y+0.99999)
+								|| pointInsidePolygon(x+0.99999, y+0.99999));
+					if (!inside) {
+						let px_rect = [[x, y], [x+0.99999, y+0.99999]]
+						faces:
+						for (let vertex_uvs of vertex_uv_faces) {
+							let i = 0;
+							for (let a of vertex_uvs) {
+								let b = vertex_uvs[i+1] || vertex_uvs[0];
+								if (pointInRectangle(a, ...px_rect)) {
+									inside = true; break faces;
+								}
+								if (lineIntersectsReactangle(a, b, ...px_rect)) {
+									inside = true; break faces;
+								}
+								i++;
+							}
+						}
+					}
+					if (inside) {
+						if (!matrix[x]) matrix[x] = {};
+						matrix[x][y] = true;
+					}
+				}
+			}
+			return matrix;
+		}
+		face_list.forEach(face_group => {
+			if (!face_group.mesh) return;
+			let face_uvs = face_group.faces.map((face, i) => {
+				return face.getSortedVertices().map(vkey => {
+					return face_group.vertex_uvs[face_group.keys[i]][vkey];
+				})
+			});
+			face_group.matrix = getPolygonOccupationMatrix(face_uvs, face_group.width, face_group.height);
+		})
+
+		face_list.sort(function(a,b) {
+			return b.size - a.size;
+		})
+
+		var fill_map = {};
+		function occupy(x, y) {
+			if (!fill_map[x]) fill_map[x] = {}
+			fill_map[x][y] = true
+		}
+		function check(x, y) {
+			return fill_map[x] && fill_map[x][y]
+		}
+		function forTemplatePixel(tpl, sx, sy, cb) {
+			let w = tpl.width;
+			let h = tpl.height;
+
+			if (options.padding) {
+				w++; h++;
+				for (var x = 0; x < w; x++) {
+					if (tpl.matrix && !tpl.matrix[x] && !tpl.matrix[x-1]) continue;
+					for (var y = 0; y < h; y++) {
+						if (
+							tpl.matrix && 
+							(!tpl.matrix[x] || !tpl.matrix[x][y]) &&
+							(!tpl.matrix[x-1] || !tpl.matrix[x-1][y]) &&
+							(!tpl.matrix[x] || !tpl.matrix[x][y-1]) &&
+							(!tpl.matrix[x-1] || !tpl.matrix[x-1][y-1])
+						) continue;
+						if (cb(sx+x, sy+y)) return;
+					}
+				}
+			} else {
+				for (var x = 0; x < w; x++) {
+					if (tpl.matrix && !tpl.matrix[x]) continue;
+					for (var y = 0; y < h; y++) {
+						if (tpl.matrix && !tpl.matrix[x][y]) continue;
+						if (cb(sx+x, sy+y)) return;
+					}
+				}
+			}
+		}
+		function place(tpl, x, y) {
+			var works = true;
+			forTemplatePixel(tpl, x, y, (tx, ty) => {
+				if (check(tx, ty)) {
+					works = false;
+					return true;
+				}
+			})
+			if (works) {
+				forTemplatePixel(tpl, x, y, occupy)
+				tpl.posx = x;
+				tpl.posy = y;
+				return true;
+			}
+		}
+		face_list.forEach(tpl => {
+			//Scan for empty spot
+			for (var line = 0; line < 2e3; line++) {
+				for (var space = 0; space <= line; space++) {
+					if (place(tpl, space, line)) return;
+					if (space == line) continue;
+					if (place(tpl, line, space)) return;
+				}
+			}
+		})
+
+		face_list.forEach(function(ftemp) {		
+			function applyUV(source, target) {
+				target.faces.forEach((face, i) => {
+					let source_face = source.faces[i];
+					let source_fkey = source.keys[i];
+					face.vertices.forEach((vkey, j) => {
+						let source_vkey = vkey;
+						if (ftemp.copy_to) {
+							for (let vkey2 of source_face.vertices) {
+								let vertex_uv_a = source_face.uv[vkey2];
+								let vertex_uv_b = face.uv[vkey];
+								if (Math.epsilon(vertex_uv_a[0], vertex_uv_b[0], 0.002) && Math.epsilon(vertex_uv_a[1], vertex_uv_b[1], 0.002)) {
+									source_vkey = vkey2;
+									break;
+								}
+							}
+						}
+						if (!face.uv[vkey]) face.uv[vkey] = [];
+						// Final UV sizes and positions, per face.
+						let uv_size_multiplier = res_multiple;
+						let uv_offset_multiplier = res_multiple;
+						face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] * uv_size_multiplier + (source.posx * uv_offset_multiplier);
+						face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] * uv_size_multiplier + (source.posy * uv_offset_multiplier);
+					})
+				})
+			}
+			if (ftemp.copy_to) {
+				for (let ftemp2 of ftemp.copy_to) {
+					applyUV(ftemp, ftemp2);
+				}
+			}
+			applyUV(ftemp, ftemp);
+		})
+
+		// Updates the texture in the object, I think.
+		element_list.forEach(function(element) {
+			if (!Format.single_texture) {
+				element.preview_controller.updateFaces(element);
+			}
+			element.preview_controller.updateUV(element);
+		})
+
+		Project.texture_width = options.resolution_vec[0];
+		Project.texture_height = options.resolution_vec[1];
+
+		updateSelection()
+		setTimeout(Canvas.updatePixelGrid, 1);
+		Undo.finishEdit('Unwrap Mesh', {
+			bitmap: true,
+			elements: [...element_list],
+			uv_only: true,
+			uv_mode: true
+		})
+	},
+	
 	generateColorMapTemplate(options, cb) {
 
 		var background_color = options.color;
