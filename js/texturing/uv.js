@@ -1704,7 +1704,7 @@ BARS.defineActions(function() {
 		category: 'uv',
 		condition: () => Mesh.selected.length,
 		click() {
-			TextureGenerator.unwrapFaceDialog()
+			TextureGenerator.unwrapMeshFacesDialog()
 		}
 	})
 	new Action('uv_project_from_view', {

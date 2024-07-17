@@ -1530,8 +1530,8 @@ const TextureGenerator = {
 			})
 		}
 	},
-	
-	unwrapFaceDialog() {
+
+	unwrapMeshFacesDialog() {
 		let resolution_presets = {
 			16: '16x',
 			32: '32x',
@@ -1542,7 +1542,7 @@ const TextureGenerator = {
 		};
 		var dialog = new Dialog({
 			id: 'add_bitmap',
-			title: tl('action.unwrap_mesh'),
+			title: tl('action.unwrap_mesh_faces'),
 			width: 480,
 			form: {
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 4096},
@@ -1554,12 +1554,12 @@ const TextureGenerator = {
 			},
 			onConfirm(options) {
 				dialog.hide()
-				TextureGenerator.unwrapFace(options);
+				TextureGenerator.unwrapMeshFaces(options);
 				return false;
 			}
 		}).show()
 	},
-	unwrapFace(options) {
+	unwrapMeshFaces(options) {
 		let res_multiple = options.resolution / 16.0;
 		console.log(res_multiple)
 
