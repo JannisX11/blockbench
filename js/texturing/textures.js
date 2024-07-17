@@ -58,7 +58,7 @@ class Texture {
 
 		var tex = new THREE.Texture(this.canvas);
 		tex.magFilter = THREE.NearestFilter;
-        tex.minFilter = THREE.NearestFilter;
+		tex.minFilter = THREE.NearestFilter;
 		tex.name = this.name;
 		img.tex = tex;
 
@@ -738,7 +738,7 @@ class Texture {
 
 		// Map
 		mat.map.wrapS = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-        mat.map.wrapT = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+		mat.map.wrapT = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
 		mat.map.needsUpdate = true;
 		return this;
 	}
