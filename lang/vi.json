@@ -1407,7 +1407,7 @@
 	"action.new_window.desc": "Mở một cửa sổ Blockbench mới",
 	"action.export_collada": "Xuất mô hình Collada (dae)",
 	"action.export_collada.desc": "Xuất mô hình và hoạt ảnh dưới dạng tệp dae để sử dụng nó trong các ứng dụng 3D khác",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "Hiển thị bản đồ UV dưới dạng lớp phủ trong chế độ sơn",
 	"action.bake_animation_into_model": "Đưa hoạt ảnh vào mô hình",
 	"action.bake_animation_into_model.desc": "Đưa khung hoạt ảnh hiện đang hiển thị vào mô hình. Chỉ áp dụng xoay và vị trí, bỏ qua tỷ lệ.",

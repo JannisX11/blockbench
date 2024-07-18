@@ -1407,7 +1407,7 @@
 	"action.new_window.desc": "打开新的 Blockbench 窗口",
 	"action.export_collada": "导出Collada模型（dae）",
 	"action.export_collada.desc": "将模型导出为dae格式以用于其他3D软件",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "在编辑模式下以覆盖形式显示 UV 贴图",
 	"action.bake_animation_into_model": "烘焙动画到模型",
 	"action.bake_animation_into_model.desc": "将当前显示的动画帧复制到模型中。只应用旋转和位置，忽略缩放。",

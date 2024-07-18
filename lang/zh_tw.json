@@ -1407,7 +1407,7 @@
 	"action.new_window.desc": "開啟新Blockbench視窗",
 	"action.export_collada": "匯出為Collada Model (dae)",
 	"action.export_collada.desc": "將模型和動畫匯出為dae檔，以在其他3D應用程式中使用",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "在繪圖模式中顯示UV覆蓋",
 	"action.bake_animation_into_model": "將動畫烘培成模型",
 	"action.bake_animation_into_model.desc": "將目前的動畫關鍵影格烘焙至模型上。僅包含旋轉和位置，不包含比例。",
