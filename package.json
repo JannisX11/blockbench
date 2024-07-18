@@ -97,6 +97,12 @@
 				"name": "Blockbench Project",
 				"mimeType": "model/vnd.blockbench.bbmodel",
 				"role": "Editor"
+			},
+			{
+				"ext": "json",
+				"name": "JSON Model",
+				"mimeType": "application/json",
+				"role": "Editor"
 			}
 		]
 	},
