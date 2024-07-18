@@ -88,7 +88,7 @@
 				"rpm",
 				"appImage"
 			],
-			"category": "3DGraphics",
+			"category": "Graphics;3DGraphics",
 			"icon": "build/icon.icns"
 		},
 		"fileAssociations": [
