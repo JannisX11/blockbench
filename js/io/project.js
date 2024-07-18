@@ -30,7 +30,7 @@ class ModelProject {
 		this.mode = 'edit';
 		this.tool = '';
 		this.view_mode = 'textured';
-		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
+		this.display_uv = settings.display_uv.value;
 		this.exploded_view = false;
 		this.mirror_modeling_enabled = false;
 		this.previews = {};
