@@ -1509,11 +1509,16 @@ class Toolbar {
 		//Items
 		this.children.length = 0;
 		var items = data.children
-		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
+		console.log('> cheguei 01', !force, BARS.stored[scope.id], typeof BARS.stored[scope.id] === 'object')
+		if (BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
 			items = BARS.stored[scope.id]
+			console.log('> items:', items, data.children, force)
+		}
+		if (force) {
 			if (data.children) {
 				// Add new actions to existing toolbars
 				data.children.forEach((key, index) => {
+					console.log('> novo item em data.children:', key)
 					if (typeof key == 'string' && key.length > 1 && !items.includes(key) && !Keybinds.stored[key] && BarItems[key]) {
 						// Figure out best index based on item before. Otherwise use index from original array
 						let prev_index = items.indexOf(data.children[index-1]);
