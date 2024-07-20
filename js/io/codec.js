@@ -123,7 +123,7 @@ class Codec extends EventSystem {
 		return Project.name||'model';
 	}
 	startPath() {
-		return Project.export_path;
+		return Project.save_path;
 	}
 	write(content, path) {
 		if (fs.existsSync(path) && this.overwrite) {
