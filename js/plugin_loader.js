@@ -333,7 +333,9 @@ class Plugin {
 		this.tags.safePush('Local');
 
 		if (isApp) {
-			let content = await runPluginFile(file.path, this.id);
+			let content = await runPluginFile(file.path, this.id).catch((error) => {
+				console.error(error);
+			});
 			if (content) {
 				if (window.plugin_data) {
 					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
