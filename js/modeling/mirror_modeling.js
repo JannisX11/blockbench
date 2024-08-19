@@ -116,9 +116,45 @@ const MirrorModeling = {
 			return 16 - input;
 		}
 	},
+	discoverMeshPartConnections(mesh) {
+		let data = {
+			faces: {},
+			vertices: {},
+		}
+		for (let vkey in mesh.vertices) {
+			if (data.vertices[vkey]) continue;
+			for (let vkey2 in mesh.vertices) {
+				if (vkey == vkey2) continue;
+				let distance = Reusable.vec1.fromArray(mesh.vertices[vkey]).distanceTo(Reusable.vec2.fromArray(mesh.vertices[vkey2]));
+				if (distance < 0.001) {
+					data.vertices[vkey] = vkey2;
+					data.vertices[vkey2] = vkey;
+					break;
+				}
+			}
+		}
+		for (let fkey in mesh.faces) {
+			if (data.faces[fkey]) continue;
+			for (let fkey2 in mesh.faces) {
+				if (fkey == fkey2) continue;
+				let match = mesh.faces[fkey].vertices.allAre(vkey => {
+					let other_vkey = data.vertices[vkey];
+					if (!other_vkey) return;
+					return mesh.faces[fkey].vertices.includes(other_vkey);
+				})
+				if (match) {
+					data.faces[fkey] = fkey2;
+					data.faces[fkey2] = fkey;
+					break;
+				}
+			}
+		}
+		return data;
+	},
 	createLocalSymmetry(mesh) {
 		// Create or update clone
 		let edit_side = MirrorModeling.getEditSide();
+		let mirror_uv = false;
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
 		let deleted_vertices_by_position = {};
@@ -155,6 +191,7 @@ const MirrorModeling = {
 			}
 		}
 
+		// Delete faces temporarily if all their vertices have been removed
 		let deleted_faces = {};
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
@@ -201,21 +238,32 @@ const MirrorModeling = {
 
 			} else if (deleted_face_vertices.length == 0 && face.vertices.find((vkey) => vkey != vertex_counterpart[vkey])) {
 				// Recreate face as mirrored
-				let new_face_key;
+				let new_face_key, original_face;
+				console.log(deleted_faces, vertex_counterpart)
 				for (let key in deleted_faces) {
 					let deleted_face = deleted_faces[key];
+					console.log(face.vertices, face.vertices.filter(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey])))
 					if (face.vertices.allAre(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey]))) {
 						new_face_key = key;
+						original_face = deleted_face;
 						break;
 					}
 				}
+				console.log(new_face_key, original_face)
 
 				let new_face = new MeshFace(mesh, face);
 				face.vertices.forEach((vkey, i) => {
 					let new_vkey = vertex_counterpart[vkey];
 					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
-					new_face.uv[new_vkey] = face.uv[vkey].slice();
+					if (mirror_uv || !original_face) {
+						new_face.uv[new_vkey] = face.uv[vkey].slice();
+					} else {
+						// change
+						let original_vkey = original_face.vertices[i];
+						console.log('y', {vkey, new_vkey, original_vkey})
+						new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
+					}
 				})
 				new_face.invert();
 				if (new_face_key) {
@@ -331,6 +379,9 @@ Blockbench.on('init_edit', ({aspects}) => {
 					if (!data.counterpart) data.is_copy = false;
 				} else {
 					data.is_copy = false;
+					if (element instanceof Mesh) {
+						data.pre_part_connections = MirrorModeling.discoverMeshPartConnections(element)
+					}
 				}
 			}
 		})
