@@ -1308,6 +1308,10 @@
 		margin-top: 8px;
 		display: inline-block;
 	}
+	.plugin_icon_area img.icon {
+		height: auto;
+		margin-top: 0;
+	}
 	.plugin_icon_area img {
 		border-radius: 8px;
 		pointer-events: none;
