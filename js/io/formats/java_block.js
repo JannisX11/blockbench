@@ -530,6 +530,7 @@ var format = new ModelFormat({
 	rotation_snap: true,
 	optional_box_uv: true,
 	uv_rotation: true,
+	java_cube_shading_properties: true,
 	java_face_properties: true,
 	animated_textures: true,
 	select_texture_for_particles: true,

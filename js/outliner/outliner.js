@@ -36,7 +36,7 @@ const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			condition: () => Format.java_face_properties,
+			condition: () => Format.java_cube_shading_properties,
 			title: tl('switches.shade'),
 			icon: 'fa fa-star',
 			icon_off: 'far fa-star',

@@ -1579,7 +1579,7 @@ BARS.defineActions(function() {
 
 	new NumSlider('cube_light_emission', {
 		category: 'edit',
-		condition: {features: ['java_face_properties']},
+		condition: {features: ['java_cube_shading_properties']},
 		settings: {
 			min: 0, max: 15, default: 0,
 			show_bar: true
