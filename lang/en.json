@@ -1442,6 +1442,8 @@
 	"action.element_render_order.default": "Auto",
 	"action.element_render_order.behind": "Behind",
 	"action.element_render_order.in_front": "In Front",
+	"action.cube_light_emission": "Light Emission",
+	"action.cube_light_emission.desc": "Change the emissiveness of the selected cubes, as a value between 0 and 15",
 
 	"action.slider_color_h": "Hue",
 	"action.slider_color_s": "Saturation",

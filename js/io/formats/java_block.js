@@ -47,6 +47,9 @@ var codec = new Codec('java_block', {
 			if (s.shade === false) {
 				element.shade = false
 			}
+			if (s.light_emission) {
+				element.light_emission = s.light_emission;
+			}
 			if (!s.rotation.allEqual(0) || !s.origin.allEqual(0)) {
 				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({

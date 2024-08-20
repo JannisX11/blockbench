@@ -963,6 +963,7 @@ class Cube extends OutlinerElement {
 		}},
 		'edit_material_instances',
 		'element_render_order',
+		'cube_light_emission',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -981,6 +982,7 @@ new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'number', 'light_emission');
 new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
 
 OutlinerElement.registerType(Cube, 'cube');
@@ -1573,5 +1575,35 @@ BARS.defineActions(function() {
 		if (element) {
 			BarItems.element_render_order.set(element.render_order);
 		}
+	})
+
+	new NumSlider('cube_light_emission', {
+		category: 'edit',
+		condition: {features: ['java_face_properties']},
+		settings: {
+			min: 0, max: 15, default: 0,
+			show_bar: true
+		},
+		getInterval(event) {
+			return 1;
+		},
+		get() {
+			return Cube.selected[0]?.light_emission ?? 0;
+		},
+		change(modify) {
+			for (let cube of Cube.selected) {
+				cube.light_emission = modify(cube.light_emission);
+			}
+		},
+		onBefore() {
+			Undo.initEdit({elements: Cube.selected});
+		},
+		onAfter() {
+			Undo.finishEdit('Change cube light emission');
+		}
+	})
+	Blockbench.on('update_selection', () => {
+		let value = Cube.selected[0]?.light_emission ?? 0;
+		BarItems.cube_light_emission.setValue(value);
 	})
 })
