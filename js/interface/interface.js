@@ -330,7 +330,7 @@ const Interface = {
 		}),
 		timeline_head: new ResizeLine('timeline_head', {
 			horizontal: false,
-			condition() {return Modes.animate},
+			condition() {return Modes.animate && !Blockbench.isMobile},
 			get() {return Interface.data.timeline_head},
 			set(o, diff) {
 				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);

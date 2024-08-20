@@ -731,7 +731,7 @@ Interface.definePanels(() => {
 				animation_length: 0,
 				scroll_left: 0,
 				scroll_top: 0,
-				head_width: Interface.data.timeline_head,
+				head_width: Blockbench.isMobile ? 108 : Interface.data.timeline_head,
 				timecodes: [],
 				animators: Timeline.animators,
 				markers: [],

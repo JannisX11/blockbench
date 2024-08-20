@@ -1500,7 +1500,7 @@
 	#timeline_body li > .animator_head_bar .channel_head:hover {
 		color: var(--color-light);
 	}
-	#timeline_body li > .animator_channel_bar .channel_head {
+	body:not(.is_mobile) #timeline_body li > .animator_channel_bar .channel_head {
 		padding-left: 16px;
 	}
 	.animator.selected .channel_head {
