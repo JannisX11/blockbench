@@ -363,6 +363,10 @@
 		flex-grow: 1;
 		margin-top: 6px;
 	}
+	.bar.display_inline_inputs {
+		display: flex;
+		gap: 1px;
+	}
 
 	input#preset_name {
 		background-color: var(--color-back);

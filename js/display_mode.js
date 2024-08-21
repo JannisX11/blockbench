@@ -16,6 +16,8 @@ class DisplaySlot {
 		this.rotation = [0, 0, 0];
 		this.translation = [0, 0, 0];
 		this.scale = [1, 1, 1];
+		this.rotation_pivot = [0, 0, 0];
+		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
 		return this;
 	}
@@ -24,22 +26,27 @@ class DisplaySlot {
 			rotation: this.rotation.slice(),
 			translation: this.translation.slice(),
 			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot.slice(),
+			scale_pivot: this.scale_pivot.slice(),
 			mirror: this.mirror.slice()
 		}
 	}
 	export() {
-		var build = {}
-		if (!this.rotation.allEqual(0)) build.rotation = this.rotation
-		if (!this.translation.allEqual(0)) build.translation = this.translation
-		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
+		let build = {};
+		let export_all = Format.id == 'bedrock_block';
+		if (export_all || !this.rotation.allEqual(0)) build.rotation = this.rotation
+		if (export_all || !this.translation.allEqual(0)) build.translation = this.translation
+		if (export_all || !this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
 
-				for (var i = 0; i < 3; i++) {
+				for (let i = 0; i < 3; i++) {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
 			}
 		}
+		if (export_all || !this.rotation_pivot.allEqual(0)) build.rotation_pivot = this.rotation_pivot
+		if (export_all || !this.scale_pivot.allEqual(0)) build.scale_pivot = this.scale_pivot
 		if (Object.keys(build).length) {
 			return build;
 		}
@@ -48,9 +55,11 @@ class DisplaySlot {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
 			if (data.rotation) Merge.number(this.rotation, data.rotation, i)
-			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
 			if (data.scale) Merge.number(this.scale, data.scale, i)
+			if (data.translation) Merge.number(this.translation, data.translation, i)
+			if (data.rotation_pivot) Merge.number(this.rotation_pivot, data.rotation_pivot, i)
+			if (data.scale_pivot) Merge.number(this.scale_pivot, data.scale_pivot, i)
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
@@ -1229,7 +1238,12 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Canvas.updateShading()
 	
 	scene.add(display_area);
-	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	if (Project.model_3d) {
+		Project.model_3d.position.copy(Canvas.scene.position);
+		if (Format.id == 'bedrock_block') {
+			Project.model_3d.position.y = -8;
+		}
+	}
 	scene.position.set(0, 0, 0);
 
 	resizeWindow() //Update panels and sidebars so that the camera can be loaded with the correct aspect ratio
@@ -1257,6 +1271,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	})
 	if (Project.model_3d) {
 		scene.add(Project.model_3d);
+		Project.model_3d.position.set(0, 0, 0);
 	}
 
 	display_mode = false;
@@ -1299,13 +1314,29 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
+	if (!slot.rotation_pivot.allEqual(0)) {
+		let rot_piv_offset = new THREE.Vector3().fromArray(slot.rotation_pivot).multiplyScalar(16);
+		let original = new THREE.Vector3().copy(rot_piv_offset);
+		rot_piv_offset.applyEuler(display_base.rotation);
+		rot_piv_offset.sub(original);
+		display_base.position.sub(rot_piv_offset);
+	}
+	if (!slot.scale_pivot.allEqual(0)) {
+		let scale_piv_offset = new THREE.Vector3().fromArray(slot.scale_pivot).multiplyScalar(16);
+		scale_piv_offset.applyEuler(display_base.rotation);
+		scale_piv_offset.x *= (1-slot.scale[0]);
+		scale_piv_offset.y *= (1-slot.scale[1]);
+		scale_piv_offset.z *= (1-slot.scale[2]);
+		display_base.position.add(scale_piv_offset)
+	}
+
 	Transformer.center()
 }
 
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
-	var slots = [display_slot]
+	var slots = [display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
 	} else if (preset.areas[display_slot] == undefined) {
@@ -1317,7 +1348,12 @@ DisplayMode.applyPreset = function(preset, all) {
 		if (!Project.display_settings[sl]) {
 			Project.display_settings[sl] = new DisplaySlot()
 		}
-		Project.display_settings[sl].extend(preset.areas[sl])
+		let preset_values = preset.areas[sl];
+		if (preset_values) {
+			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
+			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
+			Project.display_settings[sl].extend(preset.areas[sl]);
+		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1349,14 +1385,18 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
-	ground_timer += 1
-	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	ground_timer += 1;
+	let ground_offset = Format.id == 'bedrock_block' ? 3.8 : 5.5;
+	display_area.position.y = ground_offset + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
-	if (display_slot == 'gui' && Project.front_gui_light == true) {
+	if (Format.id == 'bedrock_block') {
+		Canvas.global_light_side = 0;
+		Canvas.updateShading();
+	} else if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 		Canvas.global_light_side = 4;
 	} else {
@@ -1748,7 +1788,7 @@ BARS.defineActions(function() {
 			side: true,
 			front: true,
 		},
-		condition: () => Modes.display && display_slot === 'gui',
+		condition: () => Modes.display && display_slot === 'gui' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.front_gui_light = slider.get() == 'front';
 			DisplayMode.updateGUILight();
@@ -1795,6 +1835,15 @@ Interface.definePanels(function() {
 				}
 			},
 			methods: {
+				allowMirroring() {
+					return this.allow_mirroring && !this.isBedrockStyle();
+				},
+				allowEnablingMirroring() {
+					return Format.id != 'bedrock_block';
+				},
+				isBedrockStyle() {
+					return Format.id == 'bedrock_block';
+				},
 				isMirrored: (axis) => {
 					if (Project.display_settings[display_slot]) {
 						return Project.display_settings[display_slot].scale[axis] < 0;
@@ -1822,8 +1871,10 @@ Interface.definePanels(function() {
 						}
 					} else if (channel === 'translation') {
 						DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-					} else {
+					} else if (channel == 'rotation') {
 						DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+					} else {
+						DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0;
 					}
 					DisplayMode.updateDisplayBase()
 				},
@@ -1914,11 +1965,11 @@ Interface.definePanels(function() {
 
 						<div class="bar display_slot_section_bar">
 							<p class="panel_toolbar_label">${ tl('display.scale') }</p>
-							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
-							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
@@ -1938,6 +1989,40 @@ Interface.definePanels(function() {
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" >
 								<numeric-input class="tool disp_text" v-model.number="pose_angle" :min="-180" :max="180" :step="0.5" />
+							</div>
+						</template>
+						
+						<template v-if="isBedrockStyle()">
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.rotation_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('rotation_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.rotation_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'rotation_pivot')"
+									@focusout="focusout(axis, 'rotation_pivot');save()"
+									@mousedown="start()"
+								/>
+							</div>
+
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.scale_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('scale_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.scale_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'scale_pivot')"
+									@focusout="focusout(axis, 'scale_pivot');save()"
+									@mousedown="start()"
+								/>
 							</div>
 						</template>
 					</div>

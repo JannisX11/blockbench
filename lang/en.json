@@ -2310,6 +2310,8 @@
 	"display.translation": "Translation",
 	"display.scale": "Scale",
 	"display.mirror": "Mirror",
+	"display.rotation_pivot": "Rotation Pivot",
+	"display.scale_pivot": "Scale Pivot",
 	"display.slot": "Slot",
 	"display.reference": "Reference Model",
 	"display.pose_angle": "Pose Angle (For Preview Only)",
