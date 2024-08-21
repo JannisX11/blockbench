@@ -1588,16 +1588,18 @@ const Painter = {
 						this.selected_preset = preset;
 						current_preset = preset;
 						dialog.object.classList.add('preset_selected');
+						dialog.setFormToggles({
+							size: preset.size !== null,
+							softness: preset.softness !== null,
+							opacity: preset.opacity !== null,
+							color: preset.color !== null,
+						}, false);
 						dialog.setFormValues({
 							name: preset.name,
-							use_size: preset.size !== null,
 							size: preset.size == null ? BarItems.slider_brush_size.get() : preset.size,
-							use_softness: preset.softness !== null,
 							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
-							use_opacity: preset.opacity !== null,
 							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
 							pixel_perfect: preset.pixel_perfect == null ? BarItems.pixel_perfect_drawing.value : preset.pixel_perfect,
-							use_color: preset.color !== null,
 							color: preset.color == null ? ColorPanel.get() : preset.color,
 							shape: preset.shape ? preset.shape : 'unset',
 							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
@@ -1657,39 +1659,68 @@ const Painter = {
 					screen: 'action.blend_mode.screen',
 					difference: 'action.blend_mode.difference',
 				}},
-				use_size: {label: 'action.slider_brush_size', description: 'action.slider_brush_size.desc', type: 'checkbox'},
-				size: {label: '', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
-				use_opacity: {label: 'action.slider_brush_opacity', description: 'action.slider_brush_opacity.desc', type: 'checkbox'},
-				opacity: {label: '', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
-				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
-				softness: {label: '', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
-				pixel_perfect: {label: 'action.pixel_perfect_drawing', type: 'checkbox'},
-				use_color: {label: 'data.color', type: 'checkbox'},
-				color: {label: '', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
+				size: {
+					label: 'action.slider_brush_size', nocolon: true,
+					description: 'action.slider_brush_size.desc',
+					type: 'number',
+					value: 1, min: 1, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				opacity: {
+					label: 'action.slider_brush_opacity', nocolon: true,
+					description: 'action.slider_brush_opacity.desc', type: 'number',
+					value: 255, min: 0, max: 255,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				softness: {
+					label: 'action.slider_brush_softness', nocolon: true,
+					description: 'action.slider_brush_softness.desc', type: 'number',
+					value: 0, min: 0, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				pixel_perfect: {
+					label: 'action.pixel_perfect_drawing',
+					type: 'checkbox',
+				},
+				color: {
+					label: 'data.color', nocolon: true,
+					description: 'action.brush_shape.desc', type: 'color',
+					toggle_enabled: true,
+					toggle_default: true
+				},
 				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
 					dialog.content_vue.removePreset();
 				}}
 			},
+			/**
+			use_size
+			use_opacity
+			use_softness
+			use_color
+			 */
 			onFormChange(form) {
 				let preset = this.content_vue.selected_preset;
 				preset.name = form.name;
 
-				if (form.use_size) {
+				if (form.size != undefined) {
 					preset.size = form.size;
 				} else {
 					preset.size = null;
 				}
-				if (form.use_softness) {
+				if (form.softness != undefined) {
 					preset.softness = form.softness;
 				} else {
 					preset.softness = null;
 				}
-				if (form.use_opacity) {
+				if (form.opacity != undefined) {
 					preset.opacity = form.opacity;
 				} else {
 					preset.opacity = null;
 				}
-				if (form.use_color) {
+				if (form.color != undefined) {
 					preset.color = form.color.toHexString();
 				} else {
 					preset.color = null;

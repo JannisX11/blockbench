@@ -655,6 +655,16 @@ window.Dialog = class Dialog {
 		}
 		if (update) this.updateFormValues();
 	}
+	setFormToggles(values, update = true) {
+		for (let form_id in this.form) {
+			let data = this.form[form_id];
+			if (values[form_id] != undefined && typeof data == 'object' && data.input_toggle && data.bar) {
+				data.input_toggle.checked = values[form_id];
+				data.bar.toggleClass('form_toggle_disabled', !data.input_toggle.checked);
+			}
+		}
+		if (update) this.updateFormValues();
+	}
 	getFormResult() {
 		let result = {}
 		if (this.form) {
