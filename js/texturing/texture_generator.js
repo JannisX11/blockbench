@@ -1427,8 +1427,10 @@ const TextureGenerator = {
 									}
 								}
 								if (!face.uv[vkey]) face.uv[vkey] = [];
-								face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] + source.posx;
-								face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] + source.posy;
+								if (source.vertex_uvs[source_fkey][source_vkey]) {
+									face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] + source.posx;
+									face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] + source.posy;
+								}
 							})
 						})
 					}

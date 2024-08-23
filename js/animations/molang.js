@@ -661,7 +661,6 @@ function sortAutocompleteResults(results, incomplete) {
 				.toLowerCase()
 			if (start.length === 0) return result
 			const [space, dir] = start.split('.').slice(-2)
-			console.log(`'${text}' => '${start}' '${space}' '${dir}'`)
 
 			const possibleRootTokens = this.getPossibleRootTokens(start)
 			possibleRootTokens.forEach((token) => {

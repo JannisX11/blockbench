@@ -1610,6 +1610,7 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+	// Todo: Fix undo
 	new Action('retarget_animators', {
 		icon: 'rebase',
 		category: 'animation',
