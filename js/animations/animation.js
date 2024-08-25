@@ -1610,7 +1610,6 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	// Todo: Fix undo
 	new Action('retarget_animators', {
 		icon: 'rebase',
 		category: 'animation',
@@ -1678,18 +1677,47 @@ BARS.defineActions(function() {
 			if (!form_result) return;
 			Undo.initEdit({animations: [animation]});
 
+			let temp_animators = {};
+
+			function copyAnimator(target, source) {
+				for (let channel in target.channels) {
+					target[channel].splice(0, Infinity, ...source[channel]);
+					for (let kf of target[channel]) {
+						kf.animator = target;
+					}
+				}
+				target.rotation_global = source.rotation_global;
+			}
+			function resetAnimator(animator) {
+				for (let channel in animator.channels) {
+					animator[channel].empty();
+				}
+				animator.rotation_global = false;
+			}
+
 			for (let animator of all_animators) {
 				if (animator == '_') continue;
 
-				let new_target = form_result[animator.uuid];
-				if (new_target == animator.uuid) continue;
+				let target_uuid = form_result[animator.uuid];
+				if (target_uuid == animator.uuid) continue;
+				let target_animator = animation.animators[target_uuid];
 
-				delete animation.animators[animator.uuid];
-				animation.animators[new_target] = animator;
-				animator.uuid = new_target;
+				if (!temp_animators[target_uuid]) {
+					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
+					copyAnimator(temp_animators[target_uuid], target_animator);
+				}
+				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
+				
+				// Reset animator
+				if (!temp_animators[animator.uuid]) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+					resetAnimator(animator)
+				}
 			}
 
 			Undo.finishEdit('Retarget animations');
+			Animator.preview();
 		}
 	})
 })

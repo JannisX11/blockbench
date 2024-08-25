@@ -349,6 +349,7 @@ const MenuBar = {
 			'select_effect_animator',
 			'flip_animation',
 			'optimize_animation',
+			'retarget_animators',
 			'bake_ik_animation',
 			'bake_animation_into_model',
 			'merge_animation',
