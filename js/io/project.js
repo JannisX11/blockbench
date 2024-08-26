@@ -1196,12 +1196,15 @@ BARS.defineActions(function() {
 	new Action('switch_tabs', {
 		icon: 'swap_horiz',
 		category: 'file',
-		keybind: new Keybind({key: 9, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 9, ctrl: true}, {reverse_order: 'shift'}),
+		variations: {
+			reverse_order: {name: 'action.switch_tabs.reverse_order'}
+		},
 		condition: () => ModelProject.all.length > 1,
 		click(event) {
 			let index = ModelProject.all.indexOf(Project);
 			let target;
-			if (event && event.shiftKey) {
+			if (this.keybind.additionalModifierTriggered(event) == 'reverse_order') {
 				target = ModelProject.all[index-1] || ModelProject.all.last();
 			} else {
 				target = ModelProject.all[index+1] || ModelProject.all[0];

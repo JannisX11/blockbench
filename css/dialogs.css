@@ -673,6 +673,7 @@
 	.keybind_line > div:first-child {
 		flex-grow: 1;
 		flex-shrink: 1;
+		flex-basis: 0;
 		padding: 4px;
 		padding-left: 8px;
 		display: flex;

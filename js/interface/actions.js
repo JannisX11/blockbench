@@ -1764,16 +1764,15 @@ const BARS = {
 		//Extras
 			new KeybindItem('preview_select', {
 				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1, ctrl: null, shift: null, alt: null})
+				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1},
+					{multi_select: 'ctrl', group_select: 'shift', loop_select: 'alt'}
+				),
+				variations: {
+					multi_select: {name: 'keybind.preview_select.multi_select'},
+					group_select: {name: 'keybind.preview_select.group_select'},
+					loop_select: {name: 'keybind.preview_select.loop_select'},
+				}
 			})
-			/*new KeybindItem('preview_select', {
-				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1}, {
-					multiple: 'ctrl',
-					range: 'shift',
-					loop: 'alt',
-				})
-			})*/
 			new KeybindItem('preview_rotate', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1})

@@ -1112,6 +1112,9 @@
 	"category.separators": "Separators",
 
 	"keybind.preview_select": "Select",
+	"keybind.preview_select.multi_select": "Multi-select",
+	"keybind.preview_select.group_select": "Group-select",
+	"keybind.preview_select.loop_select": "Loop-select",
 	"keybind.preview_rotate": "Rotate View",
 	"keybind.preview_drag": "Drag View",
 	"keybind.preview_zoom": "Zoom View",
@@ -1275,6 +1278,7 @@
 	"action.tab_overview.desc": "View all open tabs in a grid and jump to one",
 	"action.switch_tabs": "Switch Tabs",
 	"action.switch_tabs.desc": "Cycle between opened tabs. Hold shift to cycle in the opposite direction.",
+	"action.switch_tabs.reverse_order": "Reverse order",
 	"action.validator_window": "View Model Issues...",
 	"action.validator_window.desc": "Opens the validator, which lists issues with the current model.",
 	"action.import_obj": "Import OBJ Model",
@@ -1673,6 +1677,7 @@
 	"action.load_camera_angle.desc": "Load the camera angle '%0'",
 	"action.focus_on_selection": "Center View on Selection",
 	"action.focus_on_selection.desc": "Align the camera to face the center of the current selection",
+	"action.focus_on_selection.rotate_only": "Rotate only",
 
 	"action.edit_reference_images": "Edit Reference Images",
 	"action.edit_reference_images.desc": "Turn on reference image mode to add or edit reference images and blueprints",

@@ -766,6 +766,10 @@ class Preview {
 		if (data) {
 			this.selection.click_target = data;
 
+			let multi_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'multi_select');
+			let group_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'group_select');
+			let loop_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'loop_select');
+
 			function unselectOtherNodes() {
 				if (Group.selected) Group.selected.unselect();
 				Outliner.elements.forEach(el => {
@@ -781,7 +785,7 @@ class Preview {
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
-					if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+					if (multi_select || group_select) {
 						face_selection.safePush(data.face);
 					} else {
 						face_selection.replace([data.face]);
@@ -793,10 +797,10 @@ class Preview {
 				}
 				if (data.element.parent.type === 'group' && (!data.element instanceof Mesh || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
-					event.shiftKey || Pressing.overrides.shift ||
+					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					if (data.element.parent.selected && (event.shiftKey || Pressing.overrides.shift)) {
+					if (data.element.parent.selected && (group_select)) {
 						let super_parent = data.element.parent;
 						while (super_parent.parent instanceof Group && super_parent.selected) {
 							super_parent = super_parent.parent;
@@ -811,7 +815,7 @@ class Preview {
 					if (data.element instanceof Mesh && select_mode == 'face') {
 						if (!data.element.selected) data.element.select(event);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							unselectOtherNodes()
 						}
 
@@ -820,7 +824,7 @@ class Preview {
 						let selected_edges = mesh.getSelectedEdges(true);
 						let selected_faces = mesh.getSelectedFaces(true);
 
-						if (event.altKey || Pressing.overrides.alt) {
+						if (loop_select) {
 							
 							let start_face = mesh.faces[data.face];
 							if (!start_face) return;
@@ -842,7 +846,7 @@ class Preview {
 								selectFace(start_face, (index+2) % 4);
 							}
 
-							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							if (!(multi_select || group_select)) {
 								selected_vertices.empty();
 								selected_edges.empty();
 								selected_faces.empty();
@@ -856,7 +860,7 @@ class Preview {
 						} else {
 							let face_vkeys = data.element.faces[data.face].vertices;
 							
-							if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+							if (multi_select || group_select) {
 								if (selected_faces.includes(data.face)) {
 									let selected_faces = data.element.getSelectedFaces();
 									let vkeys_to_remove = face_vkeys.filter(vkey => {
@@ -881,7 +885,7 @@ class Preview {
 					} else if (data.element instanceof Mesh && select_mode == 'cluster') {
 						if (!data.element.selected) data.element.select(event);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							unselectOtherNodes()
 						}
 
@@ -890,7 +894,7 @@ class Preview {
 						let selected_edges = mesh.getSelectedEdges(true);
 						let selected_faces = mesh.getSelectedFaces(true);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							selected_vertices.empty();
 							selected_edges.empty();
 							selected_faces.empty();
@@ -938,7 +942,7 @@ class Preview {
 				let edges = data.element.getSelectedEdges(true);
 				let faces = data.element.getSelectedEdges(true);
 
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+				if (multi_select || group_select) {
 					list.toggle(data.vertex);
 				} else {
 					unselectOtherNodes();
@@ -953,7 +957,7 @@ class Preview {
 				let edges = data.element.getSelectedEdges(true);
 				let faces = data.element.getSelectedEdges(true);
 
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+				if (multi_select || group_select) {
 					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
 					if (index >= 0) {
 						vertices.remove(...data.vertices);
@@ -968,7 +972,7 @@ class Preview {
 					vertices.replace(data.vertices);
 					unselectOtherNodes();
 				}
-				if (event.altKey || Pressing.overrides.alt) {
+				if (loop_select) {
 					
 					let mesh = data.element;
 					let start_face;
@@ -2207,7 +2211,10 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Format.image_editor,
-		keybind: new Keybind({shift: null}),
+		keybind: new Keybind({}, {rotate_only: 'shift'}),
+		variations: {
+			rotate_only: {name: 'action.focus_on_selection.rotate_only'}
+		},
 		click(event = 0) {
 			if (!Project) return;
 			if (Prop.active_panel == 'uv') {
@@ -2231,7 +2238,7 @@ BARS.defineActions(function() {
 				let interval = setInterval(() => {
 					preview.controls.target.sub(difference);
 
-					if (!event.shiftKey || preview.angle != null) {
+					if (this.keybind.additionalModifierTriggered(event) != 'rotate_only' || preview.angle != null) {
 						preview.camera.position.sub(difference);
 					}
 					i++;

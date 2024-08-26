@@ -237,9 +237,10 @@ class Keybind {
 			(this.meta 	=== event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	)
 		)
 	}
-	additionalModifierTriggered(event) {
+	additionalModifierTriggered(event, variation) {
 		if (!this.variations) return;
 		for (let option in this.variations) {
+			if (variation && option != variation) continue;
 			let key = this.variations[option];
 			if (
 				(key == 'ctrl' && (event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
@@ -247,7 +248,7 @@ class Keybind {
 				(key == 'alt' && (event.altKey || Pressing.overrides.alt)) ||
 				(key == 'meta' && (event.metaKey || Pressing.overrides.meta))
 			) {
-				return option;
+				return variation ? true : option;
 			}
 		}
 	}
@@ -655,7 +656,7 @@ onVueSetup(function() {
 							<ul class="keybind_item_variations" v-if="action.keybind.variations">
 								<li v-for="(value, option_key) in action.keybind.variations">
 									<label :title="getVariationDescription(action, option_key)">{{ getVariationText(action, option_key) }}</label>
-									<select-input v-model="action.keybind.variations[option_key]" @change="action.keybind.save(true)" :options="modifier_options" />
+									<select-input v-model="action.keybind.variations[option_key]" @input="action.keybind.save(true)" :options="modifier_options" />
 								</li>
 							</ul>
 
