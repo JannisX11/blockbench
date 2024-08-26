@@ -869,8 +869,10 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 					for (let sub_id in action.sub_keybinds) {
 						let sub = action.sub_keybinds[sub_id];
 						if (sub.keybind.isTriggered(e)) {
+							let value_before = action.value;
 							sub.trigger(e)
 							used = true;
+							if (action instanceof BarSelect && value_before != action.value) break;
 						}
 					}
 				}
