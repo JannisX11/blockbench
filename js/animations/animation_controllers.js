@@ -864,6 +864,24 @@ class AnimationController extends AnimationItem {
 		},
 		'rename',
 		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			click(controller) {
+				Blockbench.read([controller.path], {}, ([file]) => {
+					Undo.initEdit({animation_controllers: [controller]})
+					let anim_index = AnimationController.all.indexOf(controller);
+					controller.remove(false, false);
+					let [new_ac] = Animator.loadFile(file, [controller.name]);
+					AnimationController.all.remove(new_ac);
+					AnimationController.all.splice(anim_index, 0, new_ac);
+					new_ac.select();
+					Undo.finishEdit('Reload animation', {animation_controllers: [new_ac]});
+				})
+			}
+		},
+		{
 			id: 'unload',
 			name: 'menu.animation.unload',
 			icon: 'remove',

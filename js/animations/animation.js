@@ -834,6 +834,23 @@ class Animation extends AnimationItem {
 		},
 		'rename',
 		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			click(animation) {
+				Blockbench.read([animation.path], {}, ([file]) => {
+					Undo.initEdit({animations: [animation]})
+					let anim_index = Animation.all.indexOf(animation);
+					animation.remove(false, false);
+					let [new_animation] = Animator.loadFile(file, [animation.name]);
+					Animation.all.remove(new_animation);
+					Animation.all.splice(anim_index, 0, new_animation);
+					Undo.finishEdit('Reload animation', {animations: [new_animation]})
+				})
+			}
+		},
+		{
 			id: 'unload',
 			name: 'menu.animation.unload',
 			icon: 'remove',
@@ -852,18 +869,10 @@ class Animation extends AnimationItem {
 	])
 	Animation.prototype.file_menu = new Menu([
 		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
-			let animations_to_remove = [];
-			let controllers_to_remove = [];
-			AnimationItem.all.forEach(animation => {
-				if (animation.path == id && animation.saved) {
-					if (animation instanceof AnimationController) {
-						controllers_to_remove.push(animation);
-					} else {
-						animations_to_remove.push(animation);
-					}
-				}
-			})
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
 			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
 			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
@@ -872,6 +881,34 @@ class Animation extends AnimationItem {
 				animation.remove(false, false);
 			})
 			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
+		}},
+		{name: 'menu.animation.reload', icon: 'refresh', click(id) {
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
+			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
+			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
+			let names = [];
+			let selected_name = AnimationItem.selected?.name;
+			animations_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+			controllers_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+
+			Blockbench.read([id], {}, ([file]) => {
+				let new_animations = Animator.loadFile(file, names);
+				let selected = new_animations.find(item => item.name == selected_name);
+				if (selected) selected.select();
+				if (new_animations[0] instanceof AnimationController) {
+					Undo.finishEdit('Reload animation controller file', {animation_controllers: new_animations, animations: []});
+				} else {
+					Undo.finishEdit('Reload animation file', {animations: new_animations, animation_controllers: []});
+				}
+			})
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {
