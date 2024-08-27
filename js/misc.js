@@ -283,6 +283,8 @@ const AutoBackup = {
 					]
 				})
 			}
+
+			AutoBackup.backupProjectLoop(false);
 		}
 	},
 	async backupOpenProject() {
@@ -369,6 +371,21 @@ const AutoBackup = {
 				reject();
 			}
 		});
+	},
+	loop_timeout: null,
+	backupProjectLoop(run_save = true) {
+		if (run_save && Project && (Outliner.root.length || Project.textures.length)) {
+			try {
+				AutoBackup.backupOpenProject();
+			} catch (err) {
+				console.error('Unable to create backup. ', err)
+			}
+		}
+		let interval = settings.recovery_save_interval.value;
+		if (interval != 0) {
+			interval = Math.max(interval, 5);
+			AutoBackup.loop_timeout = setTimeout(() => AutoBackup.backupProjectLoop(true), interval * 1000);
+		}
 	}
 }
 
@@ -376,13 +393,8 @@ const AutoBackup = {
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		Validator.validate();
-		try {
-			AutoBackup.backupOpenProject();
-		} catch (err) {
-			console.error('Unable to create backup. ', err)
-		}
 	}
-}, 1e3*30)
+}, 1e3*30);
 //Misc
 const TickUpdates = {
 	Run() {

@@ -363,6 +363,10 @@ const Settings = {
 			updateStreamerModeNotification();
 		}});
 		new Setting('cdn_mirror', {value: false});
+		new Setting('recovery_save_interval', {value: 30, type: 'number', min: 0, onChange() {
+			clearTimeout(AutoBackup.loop_timeout);
+			AutoBackup.backupProjectLoop(false);
+		}});
 
 		//Interface
 		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {

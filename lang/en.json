@@ -876,6 +876,8 @@
 	"settings.streamer_mode.desc": "Hides sensitive information like recent models",
 	"settings.cdn_mirror": "Use CDN Mirror",
 	"settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work.",
+	"settings.recovery_save_interval": "Recovery Point Save Interval",
+	"settings.recovery_save_interval.desc": "Blockbench regularly saves the open project in the background to recover in case of a computer crash. Set the interval in seconds. Set to 0 to disable saving.",
 
 	"settings.interface_scale": "Interface Scale",
 	"settings.interface_scale.desc": "Scale of the entire Blockbench interface",
@@ -1691,6 +1693,8 @@
 	"action.import_texture.desc": "Import one or more textures from your file system",
 	"action.create_texture": "Create Texture",
 	"action.create_texture.desc": "Create a blank texture or template texture",
+	"action.create_texture_group": "Create Texture Group",
+	"action.create_texture_group.desc": "Create a group for your textures",
 	"action.append_to_template": "Append Elements to Template...",
 	"action.append_to_template.desc": "Add the currently selected elements to the texture template",
 	"action.save_textures": "Save Textures",
