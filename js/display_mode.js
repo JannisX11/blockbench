@@ -1386,7 +1386,10 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
 	ground_timer += 1;
-	let ground_offset = Format.id == 'bedrock_block' ? 3.8 : 5.5;
+	let ground_offset = 3.8;
+	if (Format.id != 'bedrock_block') {
+		ground_offset = 1.9 + display_base.scale.y * 3.6;
+	}
 	display_area.position.y = ground_offset + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
