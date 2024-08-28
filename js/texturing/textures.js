@@ -307,7 +307,7 @@ class Texture {
 	}
 	get frameCount() {
 		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (this.getUVWidth() / this.getUVHeight()) && 1/this.ratio % 1 === 0) {
-			return (this.getUVWidth() / this.getUVHeight()) / this.ratio
+			return Math.ceil((this.getUVWidth() / this.getUVHeight()) / this.ratio - 0.05);
 		}
 	}
 	get display_height() {

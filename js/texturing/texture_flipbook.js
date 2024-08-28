@@ -392,7 +392,6 @@ BARS.defineActions(function() {
 									content_vue.stride = Math.clamp(Math.round(data.stride), 1, texture.height);
 									let new_frames = splitIntoFrames(content_vue.stride);
 									content_vue.frames.replace(new_frames);
-									content_vue.selected_frames.empty();
 								}
 							}).show();
 						},
@@ -658,7 +657,7 @@ BARS.defineActions(function() {
 								</div>
 								<div class="flipbook_options">
 									<label>${'FPS'}</label>
-									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+									<numeric-input v-model.number="fps" :min="1" :step="1" @input="updateFPS()" />
 									<button @click="openCode()" v-if="code_available">${tl('dialog.animated_texture_editor.code_reference')}</button>
 								</div>
 							</div>
