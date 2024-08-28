@@ -25,14 +25,20 @@ const Outliner = {
 			title: tl('switches.lock'),
 			icon: ' fas fa-lock',
 			icon_off: ' fas fa-lock-open',
-			advanced_option: true
+			advanced_option: true,
+			visibilityException(node) {
+				return node.locked
+			}
 		},
 		export: {
 			id: 'export',
 			title: tl('switches.export'),
-			icon: ' fa fa-camera',
+			icon: ' far fa-square-check',
 			icon_off: ' far fa-window-close',
-			advanced_option: true
+			advanced_option: true,
+			visibilityException(node) {
+				return !node.export;
+			}
 		},
 		shade: {
 			id: 'shade',
@@ -1411,10 +1417,10 @@ Interface.definePanels(function() {
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
+					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.visibilityException && btn.visibilityException(node)) )"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
-					:title="btn.title"
+					:title="getBtnTooltip(btn, node)"
 					:toggle="btn.id"
 					@click.stop
 				></i>` +
@@ -1469,6 +1475,19 @@ Interface.definePanels(function() {
 					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
 				} else {
 					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
+				}
+			},
+			getBtnTooltip: function (btn, node) {
+				let value = node.isIconEnabled(btn);
+				let text = btn.title + ': ';
+				if (value === true) {
+					return text + tl('generic.on');
+				} else if (value === false) {
+					return text + tl('generic.off');
+				} else if (value == 'alt') {
+					return text + tl(`switches.${btn.id}.alt`);
+				} else {
+					return text + value;
 				}
 			},
 			doubleClickIcon(node) {
