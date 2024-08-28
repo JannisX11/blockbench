@@ -26,7 +26,7 @@ const Animator = {
 			if (paths.length) {
 				Blockbench.read(paths, {}, files => {
 					files.forEach(file => {
-						Animator.importFile(file);
+						Animator.importFile(file, true);
 					})
 				})
 			}
@@ -689,8 +689,11 @@ const Animator = {
 			animation_controllers: controllers
 		}
 	},
-	importFile(file) {
+	importFile(file, auto_loaded) {
 		let form = {};
+		if (auto_loaded && file.path) {
+			form['_path'] = {type: 'info', text: file.path};
+		}
 		let json = autoParseJSON(file.content)
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
@@ -707,7 +710,7 @@ const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);
 		}
 		file.json = json;
@@ -721,15 +724,21 @@ const Animator = {
 
 		} else {
 			return new Promise(resolve => {
+				let buttons = ['dialog.ok', 'dialog.ignore'];
+				if (auto_loaded && Project?.memory_animation_files_to_load?.length > 1) {
+					buttons.push('dialog.ignore_all');
+				}
 				let dialog = new Dialog({
 					id: 'animation_import',
 					title: 'dialog.animation_import.title',
 					form,
+					buttons,
+					cancelIndex: 1,
 					onConfirm(form_result) {
 						this.hide();
 						let names = [];
 						for (var key of keys) {
-							if (form_result[key.hashCode()]) {
+							if (form_result['anim' + key.hashCode()]) {
 								names.push(key);
 							}
 						}
@@ -738,7 +747,14 @@ const Animator = {
 						Undo.finishEdit('Import animations', {animations: new_animations})
 						resolve();
 					},
-					onCancel() {
+					onCancel(index) {
+						Project.memory_animation_files_to_load.remove(file.path);
+						resolve();
+					},
+					onButton(index) {
+						if (auto_loaded && index == 2) {
+							Project.memory_animation_files_to_load.empty();
+						}
 						resolve();
 					}
 				});
@@ -747,7 +763,7 @@ const Animator = {
 					buttons: ['generic.select_all', 'generic.select_none'],
 					click(index) {
 						let values = {};
-						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						keys.forEach(key => values['anim' + key.hashCode()] = (index == 0));
 						dialog.setFormValues(values);
 					}
 				}

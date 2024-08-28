@@ -12,6 +12,7 @@
 	"dialog.discard": "Discard",
 	"dialog.continue": "Continue",
 	"dialog.ignore": "Ignore",
+	"dialog.ignore_all": "Ignore All",
 	"dialog.dontshowagain": "Don't Show Again",
 	"dialog.copy_to_clipboard": "Copy to clipboard",
 	"dialog.open_url": "Open URL",

@@ -170,6 +170,9 @@
 	.dialog_bar > .molang_input {
 		width: calc(100% - var(--max_label_width));
 	}
+	.dialog_bar.form_bar.small_text {
+		word-break: break-word;
+	}
 	/*.dialog_bar::after {
 		content: "";
 		clear: both;
@@ -2078,6 +2081,15 @@
 		position: sticky;
 		right: 0;
 		background: var(--color-back);
+	}
+/* Animation import */
+	dialog#animation_import .form_bar__path {
+		padding: 2px;
+		color: var(--color-subtle_text);
+		overflow-x: auto;
+		white-space: nowrap;
+		text-align: right;
+		direction: rtl;
 	}
 
 /* Texture Edit */
