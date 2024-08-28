@@ -12,6 +12,7 @@ class ResizeLine {
 		this.width = 0;
 		this.get = data.get;
 		this.set = data.set;
+		this.reset = data.reset;
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
@@ -39,6 +40,13 @@ class ResizeLine {
 			document.addEventListener('pointermove', move, false);
 			document.addEventListener('pointerup', stop, false);
 		})
+		if (this.reset) {
+			this.node.addEventListener('dblclick', event => {
+				this.reset();
+				updateInterface();
+				this.update();
+			})
+		}
 	}
 	update() {
 		if (BARS.condition(this.condition)) {
@@ -209,6 +217,10 @@ const Interface = {
 					Prop.show_left_bar = true;
 				}
 			},
+			reset() {
+				Interface.getModeData().left_bar_width = Interface.default_data.left_bar_width;
+				Prop.show_left_bar = true;
+			},
 			position() {
 				this.setPosition({
 					top: 0,
@@ -241,6 +253,10 @@ const Interface = {
 					Prop.show_right_bar = true;
 				}
 			},
+			reset() {
+				Interface.getModeData().right_bar_width = Interface.default_data.right_bar_width;
+				Prop.show_right_bar = true;
+			},
 			position() {
 				this.setPosition({
 					top: 30,
@@ -253,6 +269,9 @@ const Interface = {
 			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
 			get() {return Interface.data.quad_view_x},
 			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
+			reset() {
+				Interface.data.quad_view_x = Interface.default_data.quad_view_x;
+			},
 			position() {
 				let p = Interface.preview;
 				if (!p) return;
@@ -273,6 +292,9 @@ const Interface = {
 			get() {return Interface.data.quad_view_y},
 			set(o, diff) {
 				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
+			},
+			reset() {
+				Interface.data.quad_view_y = Interface.default_data.quad_view_y;
 			},
 			position() {
 				let p = Interface.preview;
@@ -336,6 +358,9 @@ const Interface = {
 				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
 				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
+			},
+			reset() {
+				Interface.data.timeline_head = Interface.default_data.timeline_head;
 			},
 			position() {
 				let offset = $(Panels.timeline.vue.$el).offset();
