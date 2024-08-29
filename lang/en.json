@@ -1329,6 +1329,8 @@
 	"action.save_project.desc": "Saves the current model as a project file",
 	"action.save_project_as": "Save Project As",
 	"action.save_project_as.desc": "Saves the current model as a project file at a new location",
+	"action.save_project_incremental": "Save Project With Increment",
+	"action.save_project_incremental.desc": "Saves the current model as a project file with an increment (ex: project_2.bbmodel)",
 	"action.import_project": "Import Project",
 	"action.import_project.desc": "Import another project from a .bbmodel file into the current project",
 	"action.export_over": "Save Model",
