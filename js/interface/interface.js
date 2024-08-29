@@ -777,7 +777,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		}
 	}
 	let options = typeof data.options == 'function' ? data.options() : data.options;
-	let value = data.value || data.default || Object.keys(options)[0];
+	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
 	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
 	function setKey(key, options, input_event) {
 		if (!options) {
@@ -799,17 +799,16 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		let options = typeof data.options == 'function' ? data.options() : data.options;
 		for (let key in options) {
 			let val = options[key];
-			if (val) {
-				items.push({
-					name: getNameFor(options[key]),
-					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-					color: val.color,
-					condition: val.condition,
-					click: (context, event) => {
-						setKey(key, options, event || 1);
-					}
-				})
-			}
+			if (!val) continue;
+			items.push({
+				name: getNameFor(options[key]),
+				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+				color: val.color,
+				condition: val.condition,
+				click: (context, event) => {
+					setKey(key, options, event || 1);
+				}
+			})
 		}
 		let menu = new Menu(id, items, {searchable: items.length > 16});
 		menu.node.style['min-width'] = select.clientWidth+'px';
