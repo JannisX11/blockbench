@@ -2062,7 +2062,8 @@ span.controller_state_section_info {
 		pointer-events: none;
 	}
 
-	body[mode=paint] #uv_frame {
+	body[mode=paint] #uv_frame,
+	body[mode=paint] #uv_viewport.tiled_mode {
 		cursor: crosshair;
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas,
@@ -2075,6 +2076,16 @@ span.controller_state_section_info {
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=tiled] {
+		width: 300%;
+		height: 300%;
+		margin-left: -100%;
+		margin-top: -100%;
+	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=onion_skin] {
+		width: 100%;
+		height: 100%;
 	}
 	/* Fix in Firefox + iPadOS */
 	#uv_frame_spacer {
@@ -2092,6 +2103,8 @@ span.controller_state_section_info {
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+		margin: -1px;
+		border: 1px solid var(--color-grid);
 	}
 	#uv_texture_grid path {
 		fill: none;

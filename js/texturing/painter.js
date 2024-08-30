@@ -249,7 +249,16 @@ const Painter = {
 
 		} else {
 			texture.edit(canvas => {
-				Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+				let is_line = true;
+				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
+					is_line = false;
+				}
+				if (is_line) {
+					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
+				} else {
+					Painter.current.x = Painter.current.y = 0
+					Painter.useBrushlike(texture, x, y, event, uv)
+				}
 			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
@@ -3050,11 +3059,36 @@ BARS.defineActions(function() {
 	})
 
 	new Toggle('painting_grid', {
-		icon: 'grid_on',
+		icon: 'grid_3x3',
 		category: 'view',
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
+	})
+	new Toggle('image_tiled_view', { 
+		category: 'paint',
+		icon: 'grid_view',
+		onChange(value) {
+			if (value && BarItems.image_onion_skin_view.value) {
+				BarItems.image_onion_skin_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'tiled' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		}
+	})
+	new Toggle('image_onion_skin_view', { 
+		category: 'paint',
+		icon: 'animation',
+		condition: () => Panels.textures.vue.maxFrameCount(),
+		onChange(value) {
+			if (value && BarItems.image_tiled_view.value) {
+				BarItems.image_tiled_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'onion_skin' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		}
 	})
 
 	new NumSlider('slider_brush_size', {

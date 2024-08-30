@@ -7,6 +7,12 @@ const UVEditor = {
 	panel: null,
 	sliders: {},
 	selected_element_faces: {},
+	previous_animation_frame: 1,
+	overlay_canvas: (() => {
+		let canvas = document.createElement('canvas');
+		canvas.classList.add('overlay_canvas');
+		return canvas;
+	})(),
 
 	get vue() {
 		return this.panel.inside_vue;
@@ -60,6 +66,10 @@ const UVEditor = {
 		if (tex) {
 			if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
 			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
+			if (BarItems.image_tiled_view.value == true) {
+				result.x = (tex.width + result.x) % tex.width;
+				result.y = (tex.display_height + result.y) % tex.display_height;
+			}
 		}
 		return result;
 	},
@@ -247,6 +257,30 @@ const UVEditor = {
 			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
 			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
 		}, 100)
+	},
+
+	updateOverlayCanvas() {
+		if (!Texture.selected) return;
+		let canvas = UVEditor.overlay_canvas;
+		let texture = Texture.selected;
+		let ctx = canvas.getContext('2d');
+		if (BarItems.image_tiled_view.value == true) {
+			canvas.setAttribute('overlay_mode', 'tiled');
+			canvas.width = texture.width * 3;
+			canvas.height = texture.display_height * 3;
+			for (let x = 0; x < 3; x++) {
+				for (let y = 0; y < 3; y++) {
+					ctx.drawImage(texture.canvas, x * texture.width, y * texture.display_height);
+				}
+			}
+		} else if (BarItems.image_onion_skin_view.value == true) {
+			canvas.setAttribute('overlay_mode', 'onion_skin');
+			canvas.width = texture.width;
+			canvas.height = texture.display_height;
+			ctx.filter = `opacity(${45}%)`;
+			let frame = Math.clamp(UVEditor.previous_animation_frame, 0, texture.frameCount-1);
+			ctx.drawImage(texture.canvas, 0, frame * -texture.display_height);
+		}
 	},
 	//Get
 	get width() {
@@ -2105,6 +2139,7 @@ Interface.definePanels(function() {
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
 				brush_type: BarItems.brush_shape.value,
+				overlay_canvas_mode: null,
 				selection_rect: {
 					pos_x: 0,
 					pos_y: 0,
@@ -2316,11 +2351,18 @@ Interface.definePanels(function() {
 					this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 					this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
 
+					UVEditor.updateOverlayCanvas();
+
 					Vue.nextTick(() => {
 						let wrapper = this.$refs.texture_canvas_wrapper;
-						if (!wrapper || wrapper.firstChild == this.texture.canvas) return;
-						if (wrapper.firstChild) {
+						let overlay_canvas_mode = this.overlay_canvas_mode;
+						if (this.mode != 'paint') overlay_canvas_mode = null;
+						if (!wrapper || (wrapper.firstChild == this.texture.canvas && !overlay_canvas_mode)) return;
+						while (wrapper.firstChild) {
 							wrapper.firstChild.remove();
+						}
+						if (UVEditor.overlay_canvas && overlay_canvas_mode) {
+							wrapper.append(UVEditor.overlay_canvas);
 						}
 						wrapper.append(this.texture.canvas);
 					})
@@ -3941,6 +3983,7 @@ Interface.definePanels(function() {
 						@mouseenter="onMouseEnter($event)"
 						@mouseleave="onMouseLeave($event)"
 						class="checkerboard_target"
+						:class="{tiled_mode: overlay_canvas_mode == 'tiled'}"
 						ref="viewport"
 						v-if="!hidden && mode !== 'face_properties'"
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
