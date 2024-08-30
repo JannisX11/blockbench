@@ -44,3 +44,4 @@ Blockbench supports Javascript-based plugins. Learn more about creating plugins 
 * Modifications to the source code can be made under the terms of that license.
 * Blockbench plugins (external scripts) and themes (theme files to customize the design) that interact with the Blockbench API are an exception. Plugins and themes can be created and/or published as open source, proprietary or paid software.
 * All assets created with Blockbench (models, textures, animations, screenshots etc.) are your own!
+
