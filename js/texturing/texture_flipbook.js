@@ -127,6 +127,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			let slider_tex = getSliderTexture()
 			if (!slider_tex) return;
+			UVEditor.previous_animation_frame = slider_tex.currentFrame;
 			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
 
 			let textures = Texture.all.filter(tex => tex.frameCount > 1);
