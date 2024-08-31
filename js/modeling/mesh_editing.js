@@ -751,10 +751,10 @@ class KnifeToolCubeContext {
 		}
 	}
 	addPoint(data) {
+		if (!data?.element) return;
 		if (!this.first_point_set) {
 			this.first_point_set = true;
 		} else {
-			//this.hover(data);
 			this.apply();
 		}
 	}
@@ -772,10 +772,11 @@ class KnifeToolCubeContext {
 		let duplicate = this.cube.duplicate();
 		selected.push(duplicate);
 		elements.push(duplicate);
-		let offset_lerp = Math.getLerp(this.cube.from[this.axis], this.cube.to[this.axis], this.offset);
+		let offset = this.offset + this.cube.origin[this.axis];
+		let offset_lerp = Math.getLerp(this.cube.from[this.axis], this.cube.to[this.axis], offset);
 
-		this.cube.to[this.axis] = this.offset;
-		duplicate.from[this.axis] = this.offset;
+		this.cube.to[this.axis] = offset;
+		duplicate.from[this.axis] = offset;
 
 		function modifyUV(face, index, inverted) {
 			index = (index - (face.rotation/90) + 8) % 4;
