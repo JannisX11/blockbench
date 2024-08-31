@@ -215,6 +215,8 @@ class PreviewModel {
 			tex = new THREE.Texture(img);
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
 			img.crossOrigin = '';
 			img.onload = function() {
 				tex.needsUpdate = true;
