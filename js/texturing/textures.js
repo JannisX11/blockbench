@@ -1844,7 +1844,32 @@ class Texture {
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',
+				name: 'menu.texture.pbr_channel',
+				condition: (texture) => texture.getGroup()?.is_material,
+				children(texture) {
+					function setViewMode(channel) {
+						let group = texture.getGroup();
+						let changed_textures = group.getTextures();
+
+						Undo.initEdit({textures: changed_textures});
+						texture.pbr_channel = channel;
+						changed_textures.forEach(t =>  {
+							t.updateMaterial();
+						});
+						Undo.finishEdit('Change texture PBR channel');
+					}
+					return [
+						{name: 'menu.texture.pbr_channel.color', icon: texture.pbr_channel == 'color' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('color')}},
+						{name: 'menu.texture.pbr_channel.normal', icon: texture.pbr_channel == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('normal')}},
+						{name: 'menu.texture.pbr_channel.height', icon: texture.pbr_channel == 'height' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('height')}},
+						{name: 'menu.texture.pbr_channel.mer', icon: texture.pbr_channel == 'mer' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('mer')}},
+					]
+				}
+			},
+			{
+				icon: 'list',
 				name: 'menu.texture.render_mode',
+				condition: (texture) => (!texture.getGroup()?.is_material),
 				children(texture) {
 					function setViewMode(mode) {
 						let update_layered = (mode == 'layered' || texture.render_mode == 'layered');
@@ -2077,6 +2102,7 @@ class Texture {
 	new Property(Texture, 'string', 'sync_to_project')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'enum', 'pbr_channel', {default: 'color'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
@@ -2309,6 +2335,15 @@ Interface.definePanels(function() {
 		props: {
 			texture: Texture
 		},
+		data() {return {
+			pbr_channels: {
+				color: {icon: 'palette'},
+				normal: {icon: 'area_chart'},
+				height: {icon: 'landscape'},
+				mer: {icon: 'brightness_5'},
+				mer_subsurface: {icon: 'brightness_6'},
+			}
+		}},
 		methods: {
 			getDescription(texture) {
 				if (texture.error) {
@@ -2565,6 +2600,7 @@ Interface.definePanels(function() {
 				@mousedown.stop="dragTexture($event)" @touchstart.stop="dragTexture($event)"
 				@contextmenu.prevent.stop="texture.showContextMenu($event)"
 			>
+				<i v-if="texture.getGroup()?.is_material" class="material-icons icon pbr_channel_icon">{{ pbr_channels[texture.pbr_channel].icon }}</i>
 				<div class="texture_icon_wrapper">
 					<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
 					<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
@@ -2840,6 +2876,7 @@ Interface.definePanels(function() {
 									class="icon-open-state fa"
 									:class=\'{"fa-angle-right": texture_group.folded, "fa-angle-down": !texture_group.folded}\'
 								></i>
+								<div class="texture_group_material_icon" v-if="texture_group.is_material"></div>
 								<label :title="texture_group.name">{{ texture_group.name }}</label>
 								<ul class="texture_group_mini_icon_list" v-if="texture_group.folded">
 									<li

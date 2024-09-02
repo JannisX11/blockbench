@@ -3,6 +3,9 @@ class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
+		for (let key in TextureGroup.properties) {
+			TextureGroup.properties[key].reset(this);
+		}
 		if (data) this.extend(data);
 	}
 	extend(data) {
@@ -73,6 +76,7 @@ Object.defineProperty(TextureGroup, 'all', {
 	}
 })
 new Property(TextureGroup, 'string', 'name', {default: tl('data.texture_group')});
+new Property(TextureGroup, 'boolean', 'is_material', {default: false});
 
 TextureGroup.prototype.menu = new Menu('texture_group', [
 	new MenuSeparator('manage'),
