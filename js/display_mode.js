@@ -1348,11 +1348,11 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 	Transformer.center()
 }
 DisplayMode.groundAnimation = function() {
-	display_area.rotation.y += 0.01
+	display_area.rotation.y += 0.005
 	ground_timer += 1
-	display_area.position.y = 2.5 + Math.sin(Math.PI * (ground_timer / 200)) * 2
+	display_area.position.y = 2.5 + Math.sin(Math.PI * (ground_timer / 300)) * 2;
 	Transformer.center()
-	if (ground_timer === 200) ground_timer = 0;
+	if (ground_timer === 600) ground_timer = 0;
 }
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
