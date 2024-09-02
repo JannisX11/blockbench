@@ -2666,6 +2666,20 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off);
 					slide(e1);
 				},
+				scrollTimeline(event) {
+					
+					let slider_tex = [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
+					if (!slider_tex) return;
+					UVEditor.previous_animation_frame = slider_tex.currentFrame;
+					let offset = Math.sign(event.deltaY);
+					slider_tex.currentFrame = (slider_tex.currentFrame + slider_tex.frameCount + offset) % slider_tex.frameCount;
+
+					let textures = Texture.all.filter(tex => tex.frameCount > 1);
+					textures.forEach(tex => {
+						tex.currentFrame = (slider_tex.currentFrame % tex.frameCount) || 0;
+					})
+					TextureAnimator.update(textures);
+				},
 				getPlayheadPos() {
 					if (!this.$refs.timeline) return 0;
 					let width = this.$refs.timeline.clientWidth - 8;
@@ -2857,7 +2871,7 @@ Interface.definePanels(function() {
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
 						<div class="tool_wrapper"></div>
-						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer">
+						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer" @wheel="scrollTimeline($event)">
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
