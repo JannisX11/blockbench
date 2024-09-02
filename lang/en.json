@@ -2106,6 +2106,18 @@
 	"menu.mirror_painting.texture_frames": "Repeat on Animated Texture Frames",
 	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
 
+	"menu.image_tiled_view.mirrored": "Mirrored Edges",
+
+	"menu.image_onion_skin_view.frame": "Frames",
+	"menu.image_onion_skin_view.frame.last_viewed": "Last Viewed Frame",
+	"menu.image_onion_skin_view.frame.previous": "Previous Frame",
+	"menu.image_onion_skin_view.frame.next": "Next Frame",
+	"menu.image_onion_skin_view.frame.both": "Previous + Next",
+	"menu.image_onion_skin_view.display": "Frames",
+	"menu.image_onion_skin_view.display.pixels": "Smaller Pixels",
+	"menu.image_onion_skin_view.display.transparent": "Transparent",
+	"menu.image_onion_skin_view.above": "Display Above",
+
 	"menu.toolbar.edit": "Customize Toolbar",
 	"menu.toolbar.reset": "Reset Toolbar",
 	"menu.toolbar.overflow": "Toolbar Overflow",

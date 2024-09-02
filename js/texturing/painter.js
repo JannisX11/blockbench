@@ -3065,6 +3065,9 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
+	Painter.image_tiled_view_options = {
+		mirrored: false
+	};
 	new Toggle('image_tiled_view', { 
 		category: 'paint',
 		icon: 'grid_view',
@@ -3075,8 +3078,22 @@ BARS.defineActions(function() {
 			UVEditor.vue.overlay_canvas_mode = value ? 'tiled' : null;
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
-		}
+		},
+		side_menu: new Menu('image_tiled_view', [
+			{
+				name: 'menu.image_tiled_view.mirrored',
+				icon: () => !!Painter.image_tiled_view_options.mirrored,
+				click() {
+					Painter.image_tiled_view_options.mirrored = !Painter.image_tiled_view_options.mirrored;
+					UVEditor.updateOverlayCanvas();
+				}
+			},
+		])
 	})
+	Painter.image_onion_skin_view_options = {
+		frame: 'last_viewed',
+		display: 'pixels'
+	};
 	new Toggle('image_onion_skin_view', { 
 		category: 'paint',
 		icon: 'animation',
@@ -3088,7 +3105,55 @@ BARS.defineActions(function() {
 			UVEditor.vue.overlay_canvas_mode = value ? 'onion_skin' : null;
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
-		}
+		},
+		side_menu: new Menu('image_onion_skin_view', [
+			{
+				name: 'menu.image_onion_skin_view.frame',
+				icon: 'list',
+				children() {
+					let options = [
+						'last_viewed',
+						'previous',
+						'next',
+						'both',
+					];
+					return options.map(id => ({
+						name: 'menu.image_onion_skin_view.frame.' + id,
+						icon: () => Painter.image_onion_skin_view_options.frame == id ? 'far.fa-dot-circle' : 'far.fa-circle',
+						click() {
+							Painter.image_onion_skin_view_options.frame = id;
+							UVEditor.updateOverlayCanvas();
+						}
+					}))
+				},
+			},
+			{
+				name: 'menu.image_onion_skin_view.display',
+				icon: 'list',
+				children() {
+					let options = [
+						'pixels',
+						'transparent',
+					];
+					return options.map(id => ({
+						name: 'menu.image_onion_skin_view.display.' + id,
+						icon: () => Painter.image_onion_skin_view_options.display == id ? 'far.fa-dot-circle' : 'far.fa-circle',
+						click() {
+							Painter.image_onion_skin_view_options.display = id;
+							UVEditor.updateOverlayCanvas();
+						}
+					}));
+				}
+			},
+			{
+				name: 'menu.image_onion_skin_view.above',
+				icon: () => !!Painter.image_onion_skin_view_options.above,
+				click() {
+					Painter.image_onion_skin_view_options.above = !Painter.image_onion_skin_view_options.above;
+					UVEditor.updateOverlayCanvas();
+				}
+			},
+		], {keep_open: true})
 	})
 
 	new NumSlider('slider_brush_size', {

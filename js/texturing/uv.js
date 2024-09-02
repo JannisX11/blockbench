@@ -67,6 +67,10 @@ const UVEditor = {
 			if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
 			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
 			if (BarItems.image_tiled_view.value == true) {
+				if (Painter.image_tiled_view_options.mirrored) {
+					if (result.x < 0 || result.x >= tex.width) result.x = tex.width - result.x - 1;
+					if (result.y < 0 || result.y >= tex.display_height) result.y = tex.display_height - result.y - 1;
+				}
 				result.x = (tex.width + result.x) % tex.width;
 				result.y = (tex.display_height + result.y) % tex.display_height;
 			}
@@ -268,18 +272,63 @@ const UVEditor = {
 			canvas.setAttribute('overlay_mode', 'tiled');
 			canvas.width = texture.width * 3;
 			canvas.height = texture.display_height * 3;
-			for (let x = 0; x < 3; x++) {
-				for (let y = 0; y < 3; y++) {
-					ctx.drawImage(texture.canvas, x * texture.width, y * texture.display_height);
+			if (Painter.image_tiled_view_options.mirrored) {
+				// X
+				ctx.scale(-1, 1);
+				ctx.drawImage(texture.canvas, -1 * texture.width, 1 * texture.display_height);
+				ctx.drawImage(texture.canvas, -3 * texture.width, 1 * texture.display_height);
+				// Y
+				ctx.scale(-1, -1);
+				ctx.drawImage(texture.canvas, 1 * texture.width, -1 * texture.display_height);
+				ctx.drawImage(texture.canvas, 1 * texture.width, -3 * texture.display_height);
+				// XY
+				ctx.scale(-1, 1);
+				ctx.drawImage(texture.canvas, -1 * texture.width, -1 * texture.display_height);
+				ctx.drawImage(texture.canvas, -1 * texture.width, -3 * texture.display_height);
+				ctx.drawImage(texture.canvas, -3 * texture.width, -1 * texture.display_height);
+				ctx.drawImage(texture.canvas, -3 * texture.width, -3 * texture.display_height);
+				ctx.scale(-1, -1);
+				
+			} else {
+				for (let x = 0; x < 3; x++) {
+					for (let y = 0; y < 3; y++) {
+						ctx.drawImage(texture.canvas, x * texture.width, y * texture.display_height);
+					}
 				}
 			}
 		} else if (BarItems.image_onion_skin_view.value == true) {
 			canvas.setAttribute('overlay_mode', 'onion_skin');
-			canvas.width = texture.width;
-			canvas.height = texture.display_height;
-			ctx.filter = `opacity(${45}%)`;
-			let frame = Math.clamp(UVEditor.previous_animation_frame, 0, texture.frameCount-1);
-			ctx.drawImage(texture.canvas, 0, frame * -texture.display_height);
+			let frames = [];
+			switch (Painter.image_onion_skin_view_options.frame) {
+				case 'last_viewed': frames = [UVEditor.previous_animation_frame]; break;
+				case 'previous': frames = [texture.currentFrame-1]; break;
+				case 'next': frames = [texture.currentFrame+1]; break;
+				case 'both': frames = [texture.currentFrame-1, texture.currentFrame+1]; break;
+			}
+			frames = frames.map(f => Math.clamp(f, 0, texture.frameCount-1)).filter(f => f != texture.currentFrame);
+
+			if (Painter.image_onion_skin_view_options.display == 'transparent') {
+				canvas.width = texture.width;
+				canvas.height = texture.display_height;
+				ctx.filter = `opacity(${45}%)`;
+				for (let frame_offset of frames) {
+					ctx.drawImage(texture.canvas, 0, frame_offset * -texture.display_height);
+				}
+			} else {
+				canvas.width = texture.width * 4;
+				canvas.height = texture.display_height * 4;
+				ctx.filter = "";
+				for (let frame_offset of frames) {
+					let image_data = texture.canvas.getContext('2d').getImageData(0, frame_offset * texture.display_height, texture.width, texture.display_height);
+					for (let i = 0; i < image_data.data.length; i += 4) {
+						if (image_data.data[i+3] < 2) continue;
+						ctx.fillStyle = `rgba(${image_data.data[i]}, ${image_data.data[i+1]}, ${image_data.data[i+2]}, ${image_data.data[i+3] / 460})`;
+						let x = (i / 4) % texture.width;
+						let y = Math.floor((i / 4) / texture.width);
+						ctx.fillRect(x * 4 + 1, y * 4 + 1, 2, 2);
+					}
+				}
+			}
 		}
 	},
 	//Get
@@ -3993,7 +4042,7 @@ Interface.definePanels(function() {
 							v-if="texture !== null"
 							@click.stop="reverseSelect($event)"
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
-							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true)}"
+							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true), '--inner-width': inner_width + 'px', '--inner-height': inner_height + 'px'}"
 						>
 							<div id="uv_frame_spacer" :style="{left: (inner_width+getFrameMargin()[0])+'px', top: (inner_height+getFrameMargin()[1])+'px'}"></div>
 

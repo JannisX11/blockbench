@@ -2080,8 +2080,8 @@ span.controller_state_section_info {
 	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=tiled] {
 		width: 300%;
 		height: 300%;
-		margin-left: -100%;
-		margin-top: -100%;
+		margin-top: calc(-1 * var(--inner-height));
+		margin-left: calc(-1 * var(--inner-width));
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=onion_skin] {
 		width: 100%;
