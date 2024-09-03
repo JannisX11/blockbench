@@ -690,12 +690,10 @@
 	}
 	.texture_error {
 		position: absolute;
-		color: red;
+		color: var(--color-error);
 		margin-left: 21px;
 		margin-top: 21px;
 		text-shadow: 0 0 5px #000;
-		font-size: 20pt;
-		left: 0;
 	}
 	.texture_movie {
 		position: absolute;
