@@ -947,11 +947,27 @@ class Cube extends OutlinerElement {
 						obj.applyTexture(false, true)
 					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
 				}}
-			]
+			];
+			let applied_texture;
+			main_loop: for (let cube of Cube.selected) {
+				face_loop: for (let fkey in cube.faces) {
+					let texture = cube.faces[fkey].getTexture();
+					if (texture) {
+						if (!applied_texture) {
+							applied_texture = texture;
+						} else if (applied_texture != texture) {
+							applied_texture = null;
+							break main_loop;
+							break face_loop;
+						}
+					}
+				}
+			}
 			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t == applied_texture,
 					click: function(cube) {
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)

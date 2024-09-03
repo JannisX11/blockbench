@@ -473,6 +473,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t.uuid == Group.selected.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}

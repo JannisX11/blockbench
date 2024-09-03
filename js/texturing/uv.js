@@ -1551,6 +1551,7 @@ const UVEditor = {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t == UVEditor.texture,
 					click() {
 						UVEditor.applyTexture(t);
 					}
@@ -2696,6 +2697,7 @@ Interface.definePanels(function() {
 						return {
 							name: tex.name,
 							icon: tex.img,
+							marked: tex == UVEditor.texture,
 							click(event) {
 								tex.select(event);
 							}
@@ -3885,6 +3887,7 @@ Interface.definePanels(function() {
 						return {
 							name: tex.name,
 							icon: tex.img,
+							marked: tex == UVEditor.texture,
 							click(event) {
 								UVEditor.applyTexture(tex);
 							}

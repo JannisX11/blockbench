@@ -476,6 +476,9 @@ class Menu {
 				}
 				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
+				if (s.marked) {
+					entry.classList.add('marked');
+				}
 				if (s.keybind) {
 					let label = document.createElement('label');
 					label.classList.add('keybinding_label')

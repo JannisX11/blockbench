@@ -710,6 +710,9 @@
 		pointer-events: none;
 		flex: 1 0 auto;
 	}
+	.contextMenu li.marked > span {
+		text-decoration: underline;
+	}
 	.contextMenu li.parent.focused > .contextMenu.sub {
 		display: block;
 	}
