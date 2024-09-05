@@ -532,7 +532,7 @@ onVueSetup(function() {
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
 					alt: tl('keys.alt'),
-					none: '',
+					'': '-',
 				} 
 			}},
 			methods: {
@@ -699,7 +699,7 @@ window.addEventListener('blur', event => {
 	Pressing.alt = false;
 	Pressing.ctrl = false;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
 
@@ -743,7 +743,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (modifiers_changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 
 	if (e.which === 16) {
@@ -993,6 +993,6 @@ $(document).keyup(function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
