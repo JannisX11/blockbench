@@ -377,9 +377,9 @@ const UVEditor = {
 				: UVEditor.getUVWidth()
 		);
 	},
-	getFaces(element, event) {
+	getFaces(element, event, action) {
 		let available = Object.keys(element.faces)
-		if (event && event.shiftKey) {
+		if (event && (action ? action.keybind.additionalModifierTriggered(event, 'all_faces') : event.shiftKey)) {
 			return available;
 		} else {
 			return UVEditor.getSelectedFaces(element).filter(key => available.includes(key));
@@ -807,7 +807,7 @@ const UVEditor = {
 	maximize(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_maximize).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, scope.getResolution(0, obj.faces[side]), scope.getResolution(1, obj.faces[side])]
 			})
 			obj.autouv = 0;
@@ -819,7 +819,7 @@ const UVEditor = {
 	turnMapping(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_turn_mapping).forEach(function(side) {
 				var uv = obj.faces[side].uv_size;
 				obj.faces[side].uv_size = [uv[1], uv[0]];
 				if (uv[0] < 0) {
@@ -856,7 +856,7 @@ const UVEditor = {
 
 		this.getMappableElements().forEach(obj => {
 			let height, width;
-			let faces = face_keys || this.getFaces(obj, event);
+			let faces = face_keys || this.getFaces(obj, event, BarItems.uv_auto);
 			if (obj instanceof Cube) {
 				faces.forEach(function(side) {
 					let face = obj.faces[side];
@@ -996,7 +996,7 @@ const UVEditor = {
 	setRelativeAutoSize(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_rel_auto).forEach(function(side) {
 				var uv = obj.faces[side].uv,
 					ru = scope.getResolution(0, obj.faces[side]),
 					rv = scope.getResolution(1, obj.faces[side]);
@@ -1065,7 +1065,7 @@ const UVEditor = {
 		var scope = this;
 		this.forElements(obj => {
 			if (obj instanceof Cube) {
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					var proxy = obj.faces[side].uv[0]
 					obj.faces[side].uv[0] = obj.faces[side].uv[2]
 					obj.faces[side].uv[2] = proxy
@@ -1073,7 +1073,7 @@ const UVEditor = {
 			} else if (obj instanceof Mesh) {
 				let min = Infinity;
 				let max = -Infinity;
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						min = Math.min(min, obj.faces[side].uv[vkey][0]);
 						max = Math.max(max, obj.faces[side].uv[vkey][0]);
@@ -1081,7 +1081,7 @@ const UVEditor = {
 				})
 				let center = Math.lerp(min, max, 0.5);
 
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][0] = center*2 - obj.faces[side].uv[vkey][0];
 					})
@@ -1097,7 +1097,7 @@ const UVEditor = {
 		var scope = this;
 		this.forElements(obj => {
 			if (obj instanceof Cube) {
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					var proxy = obj.faces[side].uv[1]
 					obj.faces[side].uv[1] = obj.faces[side].uv[3]
 					obj.faces[side].uv[3] = proxy
@@ -1105,7 +1105,7 @@ const UVEditor = {
 			} else if (obj instanceof Mesh) {
 				let min = Infinity;
 				let max = -Infinity;
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						min = Math.min(min, obj.faces[side].uv[vkey][1]);
 						max = Math.max(max, obj.faces[side].uv[vkey][1]);
@@ -1113,7 +1113,7 @@ const UVEditor = {
 				})
 				let center = Math.lerp(min, max, 0.5);
 
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][1] = center*2 - obj.faces[side].uv[vkey][1];
 					})
@@ -1141,7 +1141,7 @@ const UVEditor = {
 		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_transparent).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 0, 0]
 				obj.faces[side].texture = null;
 			})
@@ -1248,7 +1248,7 @@ const UVEditor = {
 	autoCullface(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
 				obj.faces[side].cullface = side
 			})
 		})
@@ -1371,7 +1371,7 @@ const UVEditor = {
 	reset(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_reset).forEach(function(side) {
 				obj.faces[side].reset()
 			})
 			obj.preview_controller.updateFaces(obj);
@@ -1647,6 +1647,12 @@ BARS.defineActions(function() {
 		icon: 'zoom_out_map',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('maximize', event)
@@ -1657,6 +1663,12 @@ BARS.defineActions(function() {
 		icon: 'screen_rotation',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('turnMapping', event)
@@ -1667,6 +1679,12 @@ BARS.defineActions(function() {
 		icon: 'brightness_auto',
 		category: 'uv',
 		condition: () => (UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
@@ -1741,6 +1759,12 @@ BARS.defineActions(function() {
 		icon: 'brightness_auto',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('setRelativeAutoSize', event)
@@ -1751,6 +1775,12 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_x',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
@@ -1761,6 +1791,12 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_y',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
@@ -1771,6 +1807,12 @@ BARS.defineActions(function() {
 		icon: 'rotate_left',
 		category: 'uv',
 		condition: () => Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			UVEditor.rotate(-90);
@@ -1781,6 +1823,12 @@ BARS.defineActions(function() {
 		icon: 'rotate_right',
 		category: 'uv',
 		condition: () => Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			UVEditor.rotate(90);
@@ -1791,6 +1839,12 @@ BARS.defineActions(function() {
 		icon: 'clear',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			UVEditor.forSelection('clear', event)
 		}
@@ -1799,6 +1853,12 @@ BARS.defineActions(function() {
 		icon: 'replay',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('reset', event)
@@ -1838,6 +1898,12 @@ BARS.defineActions(function() {
 		icon: 'block',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('autoCullface', event)

@@ -792,6 +792,7 @@
 	"keybindings.clear": "Empty",
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
+	"keybindings.variation_conflict": "Variation conflicts with the main keybinding",
 
 	"keybindings.item.num_slider.increase": "Increase",
 	"keybindings.item.num_slider.decrease": "Decrease",
@@ -1737,6 +1738,7 @@
 	"action.uv_apply_all.desc": "Applies the settings of the current face to all faces",
 	"action.uv_maximize": "Maximize UV",
 	"action.uv_maximize.desc": "Sets the UV for this face to the full texture",
+	"action.uv_maximize.all_faces": "Affect all faces",
 	"action.uv_turn_mapping": "Turn Mapping",
 	"action.uv_turn_mapping.desc": "Turn the UV mapping around 90 degrees",
 	"action.uv_auto": "Auto UV",

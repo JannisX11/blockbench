@@ -584,6 +584,9 @@ onVueSetup(function() {
 				hasSubKeybinds(item) {
 					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
 				},
+				hasVariationConflict(keybind, variation_key) {
+					return keybind[keybind.variations[variation_key]];
+				},
 				getVariationText(action, variation) {
 					return tl(action.variations?.[variation]?.name, null, variation);
 				},
@@ -657,6 +660,7 @@ onVueSetup(function() {
 								<li v-for="(value, option_key) in action.keybind.variations">
 									<label :title="getVariationDescription(action, option_key)">{{ getVariationText(action, option_key) }}</label>
 									<select-input v-model="action.keybind.variations[option_key]" @input="action.keybind.save(true)" :options="modifier_options" />
+									<i v-if="hasVariationConflict(action.keybind, option_key)" class="material-icons icon keybind_variation_conflict" title="${tl('keybindings.variation_conflict')}">warning</i>
 								</li>
 							</ul>
 

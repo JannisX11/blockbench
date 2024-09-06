@@ -741,6 +741,11 @@
 	.keybind_item_variations > li > bb-select {
 		margin-right: 54px;
 	}
+	.keybind_variation_conflict {
+		color: var(--color-warning);
+		margin-left: -22px;
+		width: 22px;
+	}
 
 	/*Colors*/
 	dialog#theme .dialog_wrapper {
