@@ -441,7 +441,9 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				let texture_path = `textures/blocks/${material.texture || this.project.geometry_name}`;
 				if (terrain_texture) {
 					let texture_data = terrain_texture[material.texture];
-					texture_path = texture_data.textures
+					if (typeof texture_data?.textures == 'string') {
+						texture_path = texture_data.textures;
+					}
 				}
 				let full_texture_path = PathModule.join(this.rp_root_path + osfs + texture_path.replace(/\.png$/i, ''));
 				full_texture_path = findExistingFile([

@@ -203,8 +203,8 @@ function updateSelection(options = {}) {
 	Preview.all.forEach(preview => {
 		preview.updateAnnotations();
 	})
-	BarItems.layer_opacity.update();
-	BarItems.layer_blend_mode.set(this.blend_mode);
+	if (Condition(BarItems.layer_opacity.condition)) BarItems.layer_opacity.update();
+	if (Condition(BarItems.layer_blend_mode.condition)) BarItems.layer_blend_mode.set(this.blend_mode);
 
 	BARS.updateConditions();
 	delete TickUpdates.selection;
