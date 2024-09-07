@@ -308,7 +308,8 @@ class Texture {
 	}
 	get frameCount() {
 		if (Format.animated_textures && this.ratio !== (this.getUVWidth() / this.getUVHeight())) {
-			return Math.ceil((this.getUVWidth() / this.getUVHeight()) / this.ratio - 0.05);
+			let frames = Math.ceil((this.getUVWidth() / this.getUVHeight()) / this.ratio - 0.05);
+			if (frames > 1) return frames;
 		}
 	}
 	get display_height() {
@@ -2714,7 +2715,7 @@ Interface.definePanels(function() {
 					this.textures.forEach(tex => {
 						if (tex.frameCount > count) count = tex.frameCount;
 					});
-					return count;
+					return count > 1;
 				},
 				unselect(event) {
 					if (Blockbench.hasFlag('dragging_textures')) return;
