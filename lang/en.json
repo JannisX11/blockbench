@@ -904,6 +904,8 @@
 	"settings.control_size.desc": "Size of the transform gizmo",
 	"settings.motion_trails": "Motion Trails",
 	"settings.motion_trails.desc": "Show motion trails in the animation editor",
+	"settings.save_view_per_tab": "Save View per Tab",
+	"settings.save_view_per_tab.desc": "Save the current view angle for each tab separately",
 	"settings.display_skin": "Minecraft Skin",
 	"settings.display_skin.desc": "Skin used for the reference player model",
 	"settings.seethrough_outline": "X-Ray Outlines",

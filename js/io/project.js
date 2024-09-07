@@ -227,19 +227,21 @@ class ModelProject {
 		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
-		
-		Preview.all.forEach(preview => {
-			let data = this.previews[preview.id];
-			if (data) {
-				preview.camera.position.fromArray(data.position);
-				preview.controls.target.fromArray(data.target);
-				preview.setProjectionMode(data.orthographic);
-				if (data.zoom) preview.camOrtho.zoom = data.zoom;
-				if (data.angle) preview.setLockedAngle(data.angle);
-			} else if (preview.default_angle !== undefined) {
-				preview.loadAnglePreset(preview.default_angle);
-			}
-		})
+
+		if (settings.save_view_per_tab.value) {
+			Preview.all.forEach(preview => {
+				let data = this.previews[preview.id];
+				if (data) {
+					preview.camera.position.fromArray(data.position);
+					preview.controls.target.fromArray(data.target);
+					preview.setProjectionMode(data.orthographic);
+					if (data.zoom) preview.camOrtho.zoom = data.zoom;
+					if (data.angle) preview.setLockedAngle(data.angle);
+				} else if (preview.default_angle !== undefined) {
+					preview.loadAnglePreset(preview.default_angle);
+				}
+			})
+		}
 
 		Modes.options[this.mode].select();
 		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {

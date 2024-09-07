@@ -506,7 +506,7 @@ class Animation extends AnimationItem {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 8e3; num++) {
+		for (var num = 2; num < 8e2; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;

@@ -446,6 +446,7 @@ const Settings = {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+		new Setting('save_view_per_tab',		{category: 'preview', value: true});
 		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
