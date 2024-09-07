@@ -888,15 +888,17 @@ class Texture {
 		if (event instanceof Event) {
 			Prop.active_panel = 'textures';
 		}
-		if (event && (event.shiftKey || event.ctrlKey)) {
-			this.multi_selected = true;
-			if (event.shiftKey) {
+		if (event && (event.shiftKey || event.ctrlOrCmd || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
+			if (event.shiftKey || Pressing.overrides.shift) {
+				this.multi_selected = true;
 				let start_i = Texture.last_selected;
 				let end_i = Texture.all.indexOf(this);
 				if (start_i > end_i) [start_i, end_i] = [end_i, start_i];
 				for (let i = start_i+1; i < end_i; i++) {
 					Texture.all[i].multi_selected = true;
 				}
+			} else {
+				this.multi_selected = !this.multi_selected;
 			}
 			Texture.last_selected = Texture.all.indexOf(this);
 			return;
@@ -931,7 +933,7 @@ class Texture {
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
-	add(undo) {
+	add(undo, uv_size_from_resolution) {
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
 				if (tex.path === this.path) return tex;
@@ -940,7 +942,7 @@ class Texture {
 		if (Texture.all.find(t => t.render_mode == 'layered')) {
 			this.render_mode = 'layered';
 		}
-		if (Format.per_texture_uv_size && undo) {
+		if (Format.per_texture_uv_size && uv_size_from_resolution) {
 			this.flags.add('update_uv_size_from_resolution');
 		}
 		if (undo) {
@@ -1081,7 +1083,7 @@ class Texture {
 			Blockbench.showQuickMessage('texture.error.file')
 			return this;
 		}
-		shell.showItemInFolder(this.path)
+		showItemInFolder(this.path)
 		return this;
 	}
 	openEditor() {
@@ -1111,10 +1113,9 @@ class Texture {
 		return this;
 	}
 	showContextMenu(event) {
-		var scope = this;
-		scope.select()
+		if (this != Texture.selected) this.select()
 		Prop.active_panel = 'textures'
-		this.menu.open(event, scope)
+		this.menu.open(event, this)
 	}
 	openMenu() {
 		this.select();
@@ -2236,7 +2237,7 @@ BARS.defineActions(function() {
 				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
 				Undo.initEdit({textures: new_textures});
 				results.forEach(function(f) {
-					let t = new Texture({name: f.name}).fromFile(f).add(false).fillParticle();
+					let t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle();
 					new_textures.push(t);
 					if (texture_group) {
 						t.group = texture_group.uuid;

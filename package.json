@@ -122,7 +122,7 @@
 		"publish-windows": "npm run bundle && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run bundle && npm run pwa",
-		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
+		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.3.0",

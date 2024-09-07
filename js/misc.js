@@ -266,12 +266,12 @@ const AutoBackup = {
 			let has_backups = await AutoBackup.hasBackups();
 			if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
 
-				let section = addStartScreenSection({
+				let section = addStartScreenSection('recover_backup', {
 					color: 'var(--color-back)',
 					graphic: {type: 'icon', icon: 'fa-archive'},
 					insert_before: 'start_files',
 					text: [
-						{type: 'h2', text: tl('message.recover_backup.title')},
+						{type: 'h3', text: tl('message.recover_backup.title')},
 						{text: tl('message.recover_backup.message')},
 						{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
 							AutoBackup.recoverAllBackups().then(() => {
@@ -436,6 +436,15 @@ function factoryResetAndReload() {
 		console.log('Cleared Local Storage');
 		window.location.reload(true);
 	}
+}
+
+function benchmarkCode(id, iterations, code) {
+	if (!iterations) iterations = 1000;
+	console.time(id);
+	for (let i = 0; i < iterations; i++) {
+		code();
+	}
+	console.timeEnd(id);
 }
 
 const documentReady = new Promise((resolve, reject) => {

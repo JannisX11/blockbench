@@ -305,6 +305,10 @@ function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
+function showItemInFolder(path) {
+	ipcRenderer.send('show-item-in-folder', path);
+}
+
 //Window Controls
 function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();
@@ -733,11 +737,11 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 
 	} else {
-		addStartScreenSection({
+		addStartScreenSection('update_notification', {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
-				{type: 'h2', text: tl('message.update_notification.title')},
+				{type: 'h3', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
 				{type: 'button', text: tl('generic.enable'), click: (e) => {
 					settings.automatic_updates.set(true);

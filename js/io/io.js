@@ -147,7 +147,7 @@ async function loadImages(files, event) {
 			let new_textures = [];
 			Undo.initEdit({textures: new_textures});
 			files.forEach(function(f, i) {
-				let tex = new Texture().fromFile(f).add().fillParticle();
+				let tex = new Texture().fromFile(f).add(false, true).fillParticle();
 				new_textures.push(tex);
 				if (Format.image_editor && i == 0) {
 					tex.select();

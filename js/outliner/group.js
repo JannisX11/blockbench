@@ -64,15 +64,15 @@ class Group extends OutlinerNode {
 		Canvas.updateAllBones([this]);
 		return this;
 	}
-	select(event, isOutlinerClick) {
+	select(event, is_outliner_click) {
 		var scope = this;
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		if (isOutlinerClick && event.pointerType == 'touch') return;
-		var allSelected = Group.selected === this && selected.length && this.matchesSelection()
+		var allSelected = Group.selected === this && selected.length && this.matchesSelection();
+		let previous_first_selected = Project.selected_elements[0];
 
 		//Clear Old Group
-		if (Group.selected) Group.selected.unselect()
+		if (Group.selected) Group.selected.unselect();
 		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
 			selected.length = 0
 		}
@@ -88,6 +88,10 @@ class Group extends OutlinerNode {
 			//Select Only Group, unselect Children
 			selected.length = 0
 		} else {
+			// Fix for #2401
+			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
+				selected.push(previous_first_selected);
+			}
 			scope.children.forEach(function(s) {
 				s.selectLow()
 			})

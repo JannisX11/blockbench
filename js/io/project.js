@@ -1232,6 +1232,9 @@ BARS.defineActions(function() {
 						select(project) {
 							Dialog.open.confirm();
 							project.select();
+						},
+						isPixelArt(project) {
+							return project.format.image_editor && project.textures[0]?.height < 190;
 						}
 					},
 					computed: {
@@ -1249,7 +1252,7 @@ BARS.defineActions(function() {
 								<search-bar id="tab_overview_search_bar" v-model="search_term"></search-bar>
 							</div>
 							<ul id="tab_overview_grid">
-								<li v-for="project in filtered_projects" @mousedown="select(project)">
+								<li v-for="project in filtered_projects" @mousedown="select(project)" :class="{pixel_art: isPixelArt(project)}">
 									<img :src="project.thumbnail" :style="{visibility: project.thumbnail ? 'unset' : 'hidden'}">
 									{{ project.name }}
 								</li>

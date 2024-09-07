@@ -299,6 +299,7 @@
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
 		overflow: hidden;
+		flex-shrink: 0;
 	}
 	i.fa_big {
 		font-size: 18px;
