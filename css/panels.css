@@ -2085,6 +2085,9 @@ span.controller_state_section_info {
 		width: 100%;
 		height: 100%;
 	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas.above {
+		z-index: 1;
+	}
 	/* Fix in Firefox + iPadOS */
 	#uv_frame_spacer {
 		width: 1px;

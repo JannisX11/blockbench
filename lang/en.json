@@ -2117,7 +2117,7 @@
 	"menu.image_onion_skin_view.frame.previous": "Previous Frame",
 	"menu.image_onion_skin_view.frame.next": "Next Frame",
 	"menu.image_onion_skin_view.frame.both": "Previous + Next",
-	"menu.image_onion_skin_view.display": "Frames",
+	"menu.image_onion_skin_view.display": "Display",
 	"menu.image_onion_skin_view.display.pixels": "Smaller Pixels",
 	"menu.image_onion_skin_view.display.transparent": "Transparent",
 	"menu.image_onion_skin_view.above": "Display Above",

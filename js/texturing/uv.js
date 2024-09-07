@@ -305,7 +305,7 @@ const UVEditor = {
 				case 'next': frames = [texture.currentFrame+1]; break;
 				case 'both': frames = [texture.currentFrame-1, texture.currentFrame+1]; break;
 			}
-			frames = frames.map(f => Math.clamp(f, 0, texture.frameCount-1)).filter(f => f != texture.currentFrame);
+			frames = frames.map(f => (f+texture.frameCount) % texture.frameCount).filter(f => f != texture.currentFrame);
 
 			if (Painter.image_onion_skin_view_options.display == 'transparent') {
 				canvas.width = texture.width;
@@ -330,6 +330,7 @@ const UVEditor = {
 				}
 			}
 		}
+		canvas.classList.toggle('above', BarItems.image_onion_skin_view.value && Painter.image_onion_skin_view_options.above);
 	},
 	//Get
 	get width() {
