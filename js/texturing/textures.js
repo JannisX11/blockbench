@@ -2715,7 +2715,8 @@ Interface.definePanels(function() {
 					this.textures.forEach(tex => {
 						if (tex.frameCount > count) count = tex.frameCount;
 					});
-					return count > 1;
+					if (count == 1) return 0;
+					return count;
 				},
 				unselect(event) {
 					if (Blockbench.hasFlag('dragging_textures')) return;
