@@ -268,6 +268,8 @@ const UVEditor = {
 		let canvas = UVEditor.overlay_canvas;
 		let texture = Texture.selected;
 		let ctx = canvas.getContext('2d');
+		canvas.width = texture.width;
+
 		if (BarItems.image_tiled_view.value == true) {
 			canvas.setAttribute('overlay_mode', 'tiled');
 			canvas.width = texture.width * 3;
@@ -296,7 +298,7 @@ const UVEditor = {
 					}
 				}
 			}
-		} else if (BarItems.image_onion_skin_view.value == true) {
+		} else if (BarItems.image_onion_skin_view.value == true && texture.frameCount > 2) {
 			canvas.setAttribute('overlay_mode', 'onion_skin');
 			let frames = [];
 			switch (Painter.image_onion_skin_view_options.frame) {
