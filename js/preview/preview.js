@@ -800,14 +800,15 @@ class Preview {
 					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
+					let node_to_select = data.element.parent;
 					if (data.element.parent.selected && (group_select)) {
-						let super_parent = data.element.parent;
-						while (super_parent.parent instanceof Group && super_parent.selected) {
-							super_parent = super_parent.parent;
+						while (node_to_select.parent instanceof Group && node_to_select.selected) {
+							node_to_select = node_to_select.parent;
 						}
-						super_parent.select().showInOutliner();
-					} else {
-						data.element.parent.select().showInOutliner();
+					}
+					node_to_select.select();
+					if (settings.outliner_reveal_on_select.value) {
+						node_to_select.showInOutliner();
 					}
 
 				} else if (!Animator.open) {

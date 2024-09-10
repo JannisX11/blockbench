@@ -456,6 +456,7 @@ const Settings = {
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
+		new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 			DisplayMode.vue.allow_mirroring = value;
 		}})

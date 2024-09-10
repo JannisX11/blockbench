@@ -493,7 +493,9 @@ class OutlinerElement extends OutlinerNode {
 			if (Group.selected) Group.selected.unselect()
 			this.selectLow()
 			just_selected.push(this)
-			this.showInOutliner()
+			if (settings.outliner_reveal_on_select.value) {
+				this.showInOutliner()
+			}
 		}
 		if (Group.selected) {
 			Group.selected.unselect()
