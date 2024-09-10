@@ -36,25 +36,26 @@ const Outliner = {
 			icon: ' far fa-square-check',
 			icon_off: ' far fa-window-close',
 			advanced_option: true,
+			condition: {modes: ['edit']},
 			visibilityException(node) {
 				return !node.export;
 			}
 		},
 		shade: {
 			id: 'shade',
-			condition: () => Format.java_cube_shading_properties,
+			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
 			title: tl('switches.shade'),
 			icon: 'fa fa-star',
 			icon_off: 'far fa-star',
-			advanced_option: true
+			advanced_option: true,
 		},
 		mirror_uv: {
 			id: 'mirror_uv',
-			condition: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv,
+			condition: {modes: ['edit'], method: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv},
 			title: tl('switches.mirror'),
 			icon: 'icon-mirror_x icon',
 			icon_off: 'icon-mirror_x icon',
-			advanced_option: true
+			advanced_option: true,
 		},
 		autouv: {
 			id: 'autouv',
@@ -63,6 +64,7 @@ const Outliner = {
 			icon_off: ' far fa-times-circle',
 			icon_alt: ' fa fa-magic',
 			advanced_option: true,
+			condition: {modes: ['edit']},
 			getState(element) {
 				if (!element.autouv) {
 					return false
@@ -1596,7 +1598,7 @@ Interface.definePanels(function() {
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
 					if (!toggle_config) return;
-					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
+					if (!Condition(toggle_config.condition, selected[0])) return;
 
 					function move(e2) {
 						convertTouchEvent(e2);
