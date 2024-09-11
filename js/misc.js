@@ -145,7 +145,7 @@ function updateSelection(options = {}) {
 		}
 	})
 	for (var i = Outliner.selected.length-1; i >= 0; i--) {
-		if (!selected.includes(Outliner.selected[i])) {
+		if (!Project.elements.includes(Outliner.selected[i])) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
