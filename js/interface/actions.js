@@ -823,6 +823,25 @@ class NumSlider extends Widget {
 							this.onAfter()
 						}
 					}
+				},
+				{
+					id: 'round',
+					name: 'menu.slider.reset_vector',
+					icon: 'replay',
+					condition: this.slider_vector instanceof Array,
+					click: () => {
+						if (typeof this.onBefore === 'function') {
+							this.onBefore()
+						}
+						for (let slider of this.slider_vector) {
+							let value = slider.settings?.default ?? 0;
+							slider.change(n => value);
+							slider.update();
+						}
+						if (typeof this.onAfter === 'function') {
+							this.onAfter()
+						}
+					}
 				}
 			]).open(event);
 		});

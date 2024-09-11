@@ -1959,6 +1959,7 @@
 	"menu.options": "Options...",
 
 	"menu.slider.round_value": "Round Value",
+	"menu.slider.reset_vector": "Reset Vector",
 
 	"menu.file": "File",
 	"menu.edit": "Edit",
