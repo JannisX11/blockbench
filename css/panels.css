@@ -2279,6 +2279,7 @@ span.controller_state_section_info {
 		flex-grow: 1;
 		flex-shrink: 1;
 		width: 50px;
+		overflow: hidden;
 	}
 	.uv_face_properties_labels label > i {
 		vertical-align: top;

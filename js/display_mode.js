@@ -1312,9 +1312,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	scene.add(display_area);
 	if (Project.model_3d) {
 		Project.model_3d.position.copy(Canvas.scene.position);
-		if (Format.id == 'bedrock_block') {
-			Project.model_3d.position.y = -8;
-		}
+		Project.model_3d.position.y = -8;
 	}
 	scene.position.set(0, 0, 0);
 
@@ -1336,7 +1334,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.global_light_side = 0;
 	Canvas.updateShading();
 	scene.remove(display_area)
-	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
+	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
 	display_base.children.forEachReverse(child => {
 		display_base.remove(child);
 		child.position.set(0, 0, 0);

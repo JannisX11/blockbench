@@ -1098,7 +1098,6 @@ class Preview {
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
 				brush_coord.x += 8;
-				brush_coord.y += 8;
 				brush_coord.z += 8;
 			}
 			Canvas.brush_outline.position.copy(brush_coord);

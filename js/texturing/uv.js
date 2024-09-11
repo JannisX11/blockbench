@@ -602,8 +602,10 @@ const UVEditor = {
 		let face = UVEditor.getReferenceFace();
 		if (face instanceof CubeFace) {
 			BarItems.uv_rotation.set((face && face.rotation)||0);
-			if (Format.java_face_properties) {
+			if (Format.cullfaces) {
 				BarItems.cullface.set(face.cullface||'off')
+			}
+			if (Format.java_face_properties) {
 				BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
 				BarItems.slider_face_tint.update()
 			}
@@ -1495,7 +1497,7 @@ const UVEditor = {
 		},
 		new MenuSeparator('face_options'),
 		'face_tint',
-		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
+		{icon: 'flip_to_back', condition: () => (Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
 			let off = 'far.fa-circle';
 			let on = 'far.fa-dot-circle';
 			function setCullface(cullface) {
@@ -1881,7 +1883,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -1901,7 +1903,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2425,8 +2427,10 @@ Interface.definePanels(function() {
 					UVEditor.updateSelectionOutline(false);
 				},
 				centerView() {
-					this.$refs.viewport.scrollLeft = this.width/2;
-					this.$refs.viewport.scrollTop = this.height/2;
+					if (this.$refs.viewport) {
+						this.$refs.viewport.scrollLeft = this.width/2;
+						this.$refs.viewport.scrollTop = this.height/2;
+					}
 					this.centered_view = true;
 				},
 				setMode(mode) {
@@ -4041,7 +4045,9 @@ Interface.definePanels(function() {
 									${tl('action.face_tint')}
 									<i class="material-icons">info</i>
 								</label>
+							</template>
 
+							<template v-if="checkFormat({cullfaces: true})">
 								<label style="width: 50px;" @click="showInfoBox('action.cullface', 'uv_editor.cullface.info')" title="${tl('uv_editor.cullface.info')}" class="flexible">
 									${tl('action.cullface')}
 									<i class="material-icons">info</i>
@@ -4079,7 +4085,9 @@ Interface.definePanels(function() {
 										<input type="checkbox" title="${tl('action.face_tint')}" :checked="mappable_elements[0].faces[key].tint > -1" @change="toggleFaceTint(key, $event)">
 										<input type="number" title="${tl('action.face_tint')}" style="width: 30px;" :value="mappable_elements[0].faces[key].tint" min="0" step="1" @input="changeFaceTint(key, $event)" v-if="mappable_elements[0].faces[key].tint > -1">
 									</div>
+								</template>
 
+								<template v-if="checkFormat({cullfaces: true})">
 									<select-input class="flexible" title="${tl('action.cullface')}" :value="mappable_elements[0].faces[key].cullface" @input="setCullface(key, $event)" :options="cullface_options" />
 								</template>
 

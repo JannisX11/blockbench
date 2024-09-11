@@ -619,7 +619,7 @@ class Cube extends OutlinerElement {
 			vec.set(...coords.V3_subtract(this.origin));
 			vec.applyMatrix4( this.mesh.matrixWorld );
 			let arr = vec.toArray();
-			arr.V3_add(8, 8, 8);
+			arr.V3_add(8, 0, 8);
 			return arr;
 		})
 	}
