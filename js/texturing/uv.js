@@ -332,7 +332,8 @@ const UVEditor = {
 				}
 			}
 		}
-		canvas.classList.toggle('above', BarItems.image_onion_skin_view.value && Painter.image_onion_skin_view_options.above);
+		let is_above = BarItems.image_onion_skin_view.value && Painter.image_onion_skin_view_options.above;
+		canvas.classList.toggle('above', !!is_above);
 	},
 	//Get
 	get width() {
