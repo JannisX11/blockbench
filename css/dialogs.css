@@ -2106,29 +2106,9 @@
 	#blend_transition_graph {
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
-		height: 412px;
-		width: 412px;
 		position: relative;
 		overflow: hidden;
 		cursor: crosshair;
-	}
-	.blend_transition_graph_selector {
-		clear: both;
-		display: flex;
-	}
-	.blend_transition_graph_selector > div {
-		flex-basis: 0;
-		flex-grow: 1;
-		padding-top: 2px;
-		text-align: center;
-		cursor: pointer;
-	}
-	.blend_transition_graph_selector > div:hover {
-		color: var(--color-light);
-	}
-	.blend_transition_graph_selector > div.selected {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
 	}
 	#blend_transition_graph svg {
 		height: 100%;
@@ -2139,16 +2119,6 @@
 		fill: none;
 		stroke-width: 2px;
 		stroke: var(--color-accent);
-		opacity: 0.3;
-	}
-	#blend_transition_graph svg path.active {
-		opacity: 1.0;
-	}
-	#blend_transition_graph svg polygon {
-		fill: var(--color-selected);
-		stroke: none;
-		stroke-width: 0;
-		pointer-events: none;
 	}
 	.blend_transition_graph_point {
 		position: absolute;
@@ -2176,12 +2146,12 @@
 		height: auto;
 		position: relative;
 		background-color: var(--color-back);
-		margin-left: 5px;
+		margin-left: 8px;
 	}
 	.blend_transition_preview > div {
 		background-color: var(--color-accent);
 		position: absolute;
-		height: calc(var(--percentage) * 1%);
+		height: calc(var(--progress) * 100%);
 		width: 100%;
 		bottom: 0;
 		left: 0;

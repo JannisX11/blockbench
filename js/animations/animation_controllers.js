@@ -32,6 +32,12 @@ class AnimationControllerState {
 			if (AnimationControllerState.properties[key].type == 'array') continue;
 			AnimationControllerState.properties[key].merge(this, data)
 		}
+		if (typeof data.blend_transition_curve == 'object') {
+			this.blend_transition_curve = {};
+			for (let key in data.blend_transition_curve) {
+				this.blend_transition_curve[key] = data.blend_transition_curve[key];
+			}
+		}
 		if (data.animations instanceof Array) {
 			this.animations.empty();
 			data.animations.forEach(a => {
@@ -127,6 +133,14 @@ class AnimationControllerState {
 				this.sounds.push(sound);
 			})
 		}
+		if (typeof data.blend_transition == 'object') {
+			this.blend_transition_curve = {};
+			this.blend_transition = Math.max(...Object.keys(data.blend_transition).map(time => parseFloat(time)));
+			for (let key in data.blend_transition) {
+				let timecode = parseFloat(key) / this.blend_transition;
+				this.blend_transition_curve[timecode] = data.blend_transition[key];
+			}
+		}
 	}
 	getUndoCopy() {
 		var copy = {
@@ -183,6 +197,18 @@ class AnimationControllerState {
 			})
 		}
 		if (this.blend_transition) object.blend_transition = this.blend_transition;
+		let curve_keys = this.blend_transition_curve && Object.keys(this.blend_transition_curve);
+		if (curve_keys?.length) {
+			let curve_output = {};
+			let points = curve_keys.map(key => ({time: parseFloat(key), value: this.blend_transition_curve[key]}));
+			points.sort((a, b) => a.time - b.time);
+			for (let point of points) {
+				let timecode = trimFloatNumber(point.time * this.blend_transition, 4).toString();
+				if (!timecode.includes('.')) timecode += '.0';
+				curve_output[timecode] = Math.roundTo(point.value, 6);
+			}
+			object.blend_transition = curve_output;
+		}
 		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
 		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
@@ -406,32 +432,26 @@ class AnimationControllerState {
 			}
 			i++;
 		}
-		let two_point_blend = Math.getLerp(prev_time, next_time, time);
-		return Math.lerp(prev, next, two_point_blend);
+		if (prev === null) return 1 - values[next];
+		if (next === null || prev == next) return 1 - values[prev];
+		let two_point_blend = Math.getLerp(prev_time, next_time, time) || 0;
+		return 1 - Math.lerp(values[prev], values[next], two_point_blend);
 	}
 	editTransitionCurve() {
 		let state = this;
 		let duration = this.blend_transition;
-		if (this.blend_transition_curve) {
-			duration = Math.max(duration, ...Object.keys(this.blend_transition_curve).map(key => parseFloat(key)));
-		}
-		/*function copyGraph(input, duration = 1) {
-			if (typeof input != 'object') return {};
-			let copy = {};
-			for (let key in input) {
-				key = parseFloat(key) / duration;
-				copy[key] = parseFloat(input[key]);
-			}
-		}*/
-		//let graph = copyGraph(this.blend_transition_curve, duration);
 		let points = [];
-		for (let key in state.blend_transition_curve) {
-			key = parseFloat(key) / duration;
+		for (let key in this.blend_transition_curve) {
+			key = parseFloat(key);
 			points.push({
 				uuid: guid(),
 				time: key,
-				value: input[key]
+				value: this.blend_transition_curve[key]
 			})
+		}
+		if (!points.length) {
+			points.push({time: 0, value: 1, uuid: guid()});
+			points.push({time: 1, value: 0, uuid: guid()});
 		}
 
 		let preview_loop = setInterval(() => {
@@ -441,11 +461,13 @@ class AnimationControllerState {
 
 		let dialog = new Dialog('blend_transition_edit', {
 			title: 'animation_controllers.state.blend_transition_curve',
-			width: 452,
+			width: 418,
 			form: {
 				duration: {
 					label: 'animation_controllers.state.blend_transition',
 					value: duration,
+					min: 0.05,
+					step: 0.05,
 					type: 'number',
 				}
 			},
@@ -455,7 +477,7 @@ class AnimationControllerState {
 					points,
 					graph_data: '',
 					preview_value: 0,
-					width: Math.min(380, window.innerWidth - 42),
+					width: Math.min(340, window.innerWidth - 42),
 					height: 220
 				}},
 				methods: {
@@ -464,45 +486,33 @@ class AnimationControllerState {
 						let original_time = point.time;
 						let original_value = point.value;
 						
-						function drag(e2) {
+						let drag = (e2) => {
 							point.time = original_time + (e2.clientX - e1.clientX) / this.width;
-							point.value = original_value + (e2.clientY - e1.clientY) / this.height;
+							point.value = original_value - (e2.clientY - e1.clientY) / this.height;
 							point.time = Math.clamp(point.time, 0, 1);
 							point.value = Math.clamp(point.value, 0, 1);
-							console.log(point)
+							Blockbench.setCursorTooltip(`${Math.roundTo(point.time * this.duration, 4)} x ${Math.roundTo(point.time, 4)}`);
 
 							scope.updateGraph();
 						}
-						function stop() {
+						let stop = () => {
 							removeEventListeners(document, 'mousemove touchmove', drag);
 							removeEventListeners(document, 'mouseup touchend', stop);
+							Blockbench.setCursorTooltip();
 						}
 						addEventListeners(document, 'mousemove touchmove', drag);
 						addEventListeners(document, 'mouseup touchend', stop);
 					},
 					createNewPoint(event) {
-						console.log('add')
 						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
 						let point = {
 							uuid: guid,
 							time: (event.offsetX - 5) / this.width,
 							value: 1 - ((event.offsetY - 5) / this.height),
 						}
-						console.log(point);
 						this.points.push(point);
 						this.updateGraph();
 						this.dragPoint(point, event);
-					},
-					updateGraph() {
-						let offset = 5;
-
-						this.points.sort((a, b) => a.time - b.time);
-						let graph_data = ''//`M${offset} ${this.height + offset} `;
-						for (let point of this.points) {
-							console.log(point.time)
-							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.height + offset} `;
-						}
-						this.graph_data = graph_data;
 					},
 					contextMenu(point, event) {
 						let points = this.points;
@@ -515,6 +525,20 @@ class AnimationControllerState {
 								this.updateGraph();
 							}
 						}]).open(event.target);
+					},
+					updateGraph() {
+						if (!this.points.length) {
+							this.graph_data = '';
+							return;
+						}
+						let offset = 5;
+						this.points.sort((a, b) => a.time - b.time);
+						let graph_data = `M${0} ${(1-this.points[0].value) * this.height + offset} `;
+						for (let point of this.points) {
+							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.height + offset} `;
+						}
+						graph_data += `L${this.width + 10} ${(1-points.last().value) * this.height + offset} `;
+						this.graph_data = graph_data;
 					},
 					preview() {
 						if (this.points.length == 0) return 0;
@@ -533,7 +557,6 @@ class AnimationControllerState {
 						if (!next) return prev.value;
 						let two_point_blend = Math.getLerp(prev_time, next_time, time);
 						this.preview_value = Math.lerp(prev.value, next.value, two_point_blend);
-						if (Math.random() < 0.06) console.log(prev_time, prev, next_time, next, this.preview_value);
 					}
 				},
 				template: `
@@ -541,7 +564,7 @@ class AnimationControllerState {
 						<div id="blend_transition_graph"
 							@mousedown="createNewPoint($event)"
 							@touchstart="createNewPoint($event)"
-							:style="{height: height + 'px', width: width + 'px'}"
+							:style="{height: (height+10) + 'px', width: (width+10) + 'px'}"
 						>
 							<svg>+
 								<path :d="graph_data"></path>
@@ -553,7 +576,7 @@ class AnimationControllerState {
 								@contextmenu="contextMenu(point, $event)"
 							></div>
 						</div>
-						<div class="blend_transition_preview" :style="{'--percentage': preview_value + 1}">
+						<div class="blend_transition_preview" :style="{'--progress': preview_value}">
 							<div />
 						</div>
 					</div>
@@ -566,12 +589,16 @@ class AnimationControllerState {
 				this.content_vue.duration = result.duration;
 			},
 			onConfirm() {
+				clearInterval(preview_loop);
 				Undo.initEdit({animation_controller_state: state});
 				state.blend_transition_curve = {};
 				for (let point of points) {
-					state.blend_transition_curve[point.time] = point.value;
+					state.blend_transition_curve[Math.clamp(point.time, 0, 1)] = point.value;
 				}
 				Undo.finishEdit('Change blend transition curve');
+			},
+			onCancel() {
+				clearInterval(preview_loop);
 			}
 		});
 		dialog.show();
