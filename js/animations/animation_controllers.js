@@ -386,6 +386,146 @@ class AnimationControllerState {
 			}
 		})
 	}
+	editTransitionCurve() {
+		let duration = this.blend_transition;
+		if (this.blend_transition_curve) {
+			duration = Math.max(duration, ...Object.keys(this.blend_transition_curve).map(key => parseFloat(key)));
+		}
+		function copyGraph(input, duration = 1) {
+			if (typeof input != 'object') return {};
+			let copy = {};
+			for (let key in input) {
+				key = parseFloat(key) / duration;
+				copy[key] = parseFloat(input[key]);
+			}
+		}
+		let graph = copyGraph(this.blend_transition_curve, duration);
+
+		let dialog = new Dialog('edit_state_transition_curve', {
+			title: 'animation_controllers.state.blend_transition_curve',
+			width: 460,
+			component: {
+				data() {return {
+					duration,
+					graph,
+				}},
+				methods: {
+					change() {
+						let values = {};
+						for (let key in this.graphs) {
+							let graph = this.graphs[key];
+							if (graph.points.length === 2 && graph.points[0].allEqual(0) && graph.points[1].allEqual(1)) {
+								delete curves[key];
+							} else {
+								let vectors = [];
+								values[key] = {};
+								graph.points.forEach(point => {
+									vectors.push(new THREE.Vector2(point[0], point[1]));
+								})
+								curves[key] = new THREE.SplineCurve(vectors);
+							}
+						}
+					},
+					dragPoint(point, e1) {
+						let scope = this;
+						let {points} = this.graphs[this.graph];
+						let original_point = point.slice();
+						
+						function drag(e2) {
+							if (point == points[0] || point == points.last()) {
+								point[0] = point == points[0] ? 0 : 1;
+							} else {
+								point[0] = Math.clamp(original_point[0] + (e2.clientX - e1.clientX) / scope.width, 0, 1);
+							}
+							point[1] = Math.clamp(original_point[1] - (e2.clientY - e1.clientY) / scope.height, 0, 1);
+							scope.updateGraph();
+							scope.change();
+						}
+						function stop() {
+							removeEventListeners(document, 'mousemove touchmove', drag);
+							removeEventListeners(document, 'mouseup touchend', stop);
+						}
+						addEventListeners(document, 'mousemove touchmove', drag);
+						addEventListeners(document, 'mouseup touchend', stop);
+					},
+					createNewPoint(event) {
+						if (event.target.id !== 'contrast_graph' || event.which == 3) return;
+						let point = [
+							(event.offsetX - 5) / this.width,
+							1 - ((event.offsetY - 5) / this.width),
+						]
+						let {points} = this.graphs[this.graph];
+						points.push(point);
+						this.updateGraph();
+						this.change();
+						this.dragPoint(point, event);
+					},
+					updateGraph(id = this.graph) {
+						let offset = 5;
+						let {points} = this.graphs[this.graph];
+
+						points.sort((a, b) => a[0] - b[0]);
+						this.graphs[id].data = toCatmullRomBezier(points.map(p => {
+							return [p[0] * this.width + offset, (1-p[1]) * this.height + offset];
+						}));
+					},
+					contextMenu(point, event) {
+						let {points} = this.graphs[this.graph];
+						if (point == points[0] || point == points.last()) return;
+						new Menu([{
+							id: 'remove',
+							name: 'Remove',
+							icon: 'clear',
+							click: () => {
+								let {points} = this.graphs[this.graph];
+								points.remove(point);
+								this.updateGraph();
+								this.change();
+							}
+						}]).open(event.target);
+					}
+				},
+				template: `
+					<div>
+						<div id="blend_transition_editor" @mousedown="createNewPoint($event)" @touchstart="createNewPoint($event)">
+							<svg>
+								<path :class="{active: graph == 'r'}" :d="graphs.r.data" style="stroke: #ff0000;"></path>
+								<path :class="{active: graph == 'g'}" :d="graphs.g.data" style="stroke: #00ff00;"></path>
+								<path :class="{active: graph == 'b'}" :d="graphs.b.data" style="stroke: #3b3bff;"></path>
+								<path :class="{active: graph == 'a'}" :d="graphs.a.data" style="stroke: var(--color-text);"></path>
+								<path :class="{active: graph == 'rgb'}" :d="graphs.rgb.data"></path>
+								<polygon :points="light_data" />
+							</svg>
+							<div class="contrast_graph_point"
+								v-for="point in graphs[graph].points"
+								:style="{left: point[0] * width + 'px', top: (1-point[1]) * height + 'px'}"
+								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
+								@contextmenu="contextMenu(point, $event)"
+							></div>
+						</div>
+						<div class="bar button_bar_checkbox">
+							<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
+							<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+						</div>
+					</div>
+				`,
+				mounted() {
+					for (let key in this.graphs) {
+						this.updateGraph(key);
+					}
+					this.light_data = `${5},${this.height + 5}`;
+					for (let key in light_points) {
+						this.light_data += ` ${Math.round((key / 255) * this.width) + 5},${Math.round((1 - light_points[key] / highest_light_point) * this.height) + 5}`;
+					}
+					this.light_data += ` ${this.width + 5},${this.height + 5}`;
+
+				}
+			},
+			onConfirm() {
+			}
+		});
+		dialog.show();
+	}
 	openMenu(event) {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
@@ -402,6 +542,7 @@ new Property(AnimationControllerState, 'array', 'particles');
 new Property(AnimationControllerState, 'string', 'on_entry');
 new Property(AnimationControllerState, 'string', 'on_exit');
 new Property(AnimationControllerState, 'number', 'blend_transition');
+new Property(AnimationControllerState, 'object', 'blend_transition_curve');
 new Property(AnimationControllerState, 'boolean', 'blend_via_shortest_path');
 AnimationControllerState.prototype.menu = new Menu([
 	{
@@ -1749,6 +1890,9 @@ Interface.definePanels(() => {
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
 										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
+										<div class="tool" title="${tl('animation_controllers.state.blend_transition_curve')}" @click="state.editTransitionCurve()">
+											<i class="fa-solid fa-chart-line icon"></i>
+										</div>
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>

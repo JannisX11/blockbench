@@ -1948,6 +1948,7 @@
 	"animation_controllers.state.transitions": "Transitions",
 	"animation_controllers.state.condition": "Condition",
 	"animation_controllers.state.blend_transition": "Blend Time",
+	"animation_controllers.state.blend_transition_curve": "Blend Transition Curve",
 	"animation_controllers.state.shortest_path": "Blend by Shortest Path",
 	"animation_controllers.state.edit_transition": "Edit Transition",
 
