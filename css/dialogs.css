@@ -2096,6 +2096,97 @@
 		text-align: right;
 		direction: rtl;
 	}
+/* Animation Controller curves */
+	
+	dialog#blend_transition_edit .blend_transition_graph_wrapper {
+		margin-top: 6px;
+		margin-bottom: 10px;
+		display: flex;
+	}
+	#blend_transition_graph {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		height: 412px;
+		width: 412px;
+		position: relative;
+		overflow: hidden;
+		cursor: crosshair;
+	}
+	.blend_transition_graph_selector {
+		clear: both;
+		display: flex;
+	}
+	.blend_transition_graph_selector > div {
+		flex-basis: 0;
+		flex-grow: 1;
+		padding-top: 2px;
+		text-align: center;
+		cursor: pointer;
+	}
+	.blend_transition_graph_selector > div:hover {
+		color: var(--color-light);
+	}
+	.blend_transition_graph_selector > div.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#blend_transition_graph svg {
+		height: 100%;
+		width: 100%;
+		pointer-events: none;
+	}
+	#blend_transition_graph svg path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-accent);
+		opacity: 0.3;
+	}
+	#blend_transition_graph svg path.active {
+		opacity: 1.0;
+	}
+	#blend_transition_graph svg polygon {
+		fill: var(--color-selected);
+		stroke: none;
+		stroke-width: 0;
+		pointer-events: none;
+	}
+	.blend_transition_graph_point {
+		position: absolute;
+		width: 11px;
+		height: 11px;
+		background-color: var(--color-accent);
+		margin: -1px;
+		transform: rotate(45deg);
+		transform-origin: center;
+	}
+	.blend_transition_graph_point:hover {
+		background-color: var(--color-light);
+	}
+	.blend_transition_graph_point::before {
+		content: "";
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		left: -6px;
+		top: -6px;
+		cursor: move;
+	}
+	.blend_transition_preview {
+		width: 12px;
+		height: auto;
+		position: relative;
+		background-color: var(--color-back);
+		margin-left: 5px;
+	}
+	.blend_transition_preview > div {
+		background-color: var(--color-accent);
+		position: absolute;
+		height: calc(var(--percentage) * 1%);
+		width: 100%;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
 
 /* Texture Edit */
 	div.texture_adjust_previews {

@@ -386,60 +386,92 @@ class AnimationControllerState {
 			}
 		})
 	}
+	calculateBlendValue(blend_progress) {
+		if (!this.blend_transition_curve || Object.keys(this.blend_transition_curve).length < 2) {
+			return blend_progress;
+		}
+		let time = blend_progress;
+		let keys = Object.keys(this.blend_transition_curve);
+		let values = keys.map(key => this.blend_transition_curve[key]);
+		let times = keys.map(v => parseFloat(v));
+		let prev_time = -Infinity, prev = null;
+		let next_time = Infinity, next = null;
+		let i = 0;
+		for (let t of times) {
+			if (t <= time && t > prev_time) {
+				prev = i; prev_time = t;
+			}
+			if (t >= time && t < next_time) {
+				next = i; next_time = t;
+			}
+			i++;
+		}
+		let two_point_blend = Math.getLerp(prev_time, next_time, time);
+		return Math.lerp(prev, next, two_point_blend);
+	}
 	editTransitionCurve() {
+		let state = this;
 		let duration = this.blend_transition;
 		if (this.blend_transition_curve) {
 			duration = Math.max(duration, ...Object.keys(this.blend_transition_curve).map(key => parseFloat(key)));
 		}
-		function copyGraph(input, duration = 1) {
+		/*function copyGraph(input, duration = 1) {
 			if (typeof input != 'object') return {};
 			let copy = {};
 			for (let key in input) {
 				key = parseFloat(key) / duration;
 				copy[key] = parseFloat(input[key]);
 			}
+		}*/
+		//let graph = copyGraph(this.blend_transition_curve, duration);
+		let points = [];
+		for (let key in state.blend_transition_curve) {
+			key = parseFloat(key) / duration;
+			points.push({
+				uuid: guid(),
+				time: key,
+				value: input[key]
+			})
 		}
-		let graph = copyGraph(this.blend_transition_curve, duration);
 
-		let dialog = new Dialog('edit_state_transition_curve', {
+		let preview_loop = setInterval(() => {
+			dialog.content_vue.preview();
+		}, 1000 / 60);
+		let preview_loop_start_time = Date.now();
+
+		let dialog = new Dialog('blend_transition_edit', {
 			title: 'animation_controllers.state.blend_transition_curve',
-			width: 460,
+			width: 452,
+			form: {
+				duration: {
+					label: 'animation_controllers.state.blend_transition',
+					value: duration,
+					type: 'number',
+				}
+			},
 			component: {
 				data() {return {
 					duration,
-					graph,
+					points,
+					graph_data: '',
+					preview_value: 0,
+					width: Math.min(380, window.innerWidth - 42),
+					height: 220
 				}},
 				methods: {
-					change() {
-						let values = {};
-						for (let key in this.graphs) {
-							let graph = this.graphs[key];
-							if (graph.points.length === 2 && graph.points[0].allEqual(0) && graph.points[1].allEqual(1)) {
-								delete curves[key];
-							} else {
-								let vectors = [];
-								values[key] = {};
-								graph.points.forEach(point => {
-									vectors.push(new THREE.Vector2(point[0], point[1]));
-								})
-								curves[key] = new THREE.SplineCurve(vectors);
-							}
-						}
-					},
 					dragPoint(point, e1) {
 						let scope = this;
-						let {points} = this.graphs[this.graph];
-						let original_point = point.slice();
+						let original_time = point.time;
+						let original_value = point.value;
 						
 						function drag(e2) {
-							if (point == points[0] || point == points.last()) {
-								point[0] = point == points[0] ? 0 : 1;
-							} else {
-								point[0] = Math.clamp(original_point[0] + (e2.clientX - e1.clientX) / scope.width, 0, 1);
-							}
-							point[1] = Math.clamp(original_point[1] - (e2.clientY - e1.clientY) / scope.height, 0, 1);
+							point.time = original_time + (e2.clientX - e1.clientX) / this.width;
+							point.value = original_value + (e2.clientY - e1.clientY) / this.height;
+							point.time = Math.clamp(point.time, 0, 1);
+							point.value = Math.clamp(point.value, 0, 1);
+							console.log(point)
+
 							scope.updateGraph();
-							scope.change();
 						}
 						function stop() {
 							removeEventListeners(document, 'mousemove touchmove', drag);
@@ -449,79 +481,97 @@ class AnimationControllerState {
 						addEventListeners(document, 'mouseup touchend', stop);
 					},
 					createNewPoint(event) {
-						if (event.target.id !== 'contrast_graph' || event.which == 3) return;
-						let point = [
-							(event.offsetX - 5) / this.width,
-							1 - ((event.offsetY - 5) / this.width),
-						]
-						let {points} = this.graphs[this.graph];
-						points.push(point);
+						console.log('add')
+						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
+						let point = {
+							uuid: guid,
+							time: (event.offsetX - 5) / this.width,
+							value: 1 - ((event.offsetY - 5) / this.height),
+						}
+						console.log(point);
+						this.points.push(point);
 						this.updateGraph();
-						this.change();
 						this.dragPoint(point, event);
 					},
-					updateGraph(id = this.graph) {
+					updateGraph() {
 						let offset = 5;
-						let {points} = this.graphs[this.graph];
 
-						points.sort((a, b) => a[0] - b[0]);
-						this.graphs[id].data = toCatmullRomBezier(points.map(p => {
-							return [p[0] * this.width + offset, (1-p[1]) * this.height + offset];
-						}));
+						this.points.sort((a, b) => a.time - b.time);
+						let graph_data = ''//`M${offset} ${this.height + offset} `;
+						for (let point of this.points) {
+							console.log(point.time)
+							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.height + offset} `;
+						}
+						this.graph_data = graph_data;
 					},
 					contextMenu(point, event) {
-						let {points} = this.graphs[this.graph];
-						if (point == points[0] || point == points.last()) return;
+						let points = this.points;
 						new Menu([{
 							id: 'remove',
-							name: 'Remove',
+							name: 'generic.remove',
 							icon: 'clear',
 							click: () => {
-								let {points} = this.graphs[this.graph];
 								points.remove(point);
 								this.updateGraph();
-								this.change();
 							}
 						}]).open(event.target);
+					},
+					preview() {
+						if (this.points.length == 0) return 0;
+						let time = (((Date.now() - preview_loop_start_time) / 1000) / this.duration) % 1;
+						let prev_time = -Infinity, prev = 0;
+						let next_time = Infinity, next = 0;
+						for (let pt of points) {
+							if (pt.time <= time && pt.time > prev_time) {
+								prev = pt; prev_time = pt.time;
+							}
+							if (pt.time >= time && pt.time < next_time) {
+								next = pt; next_time = pt.time;
+							}
+						}
+						if (!prev) return next.value;
+						if (!next) return prev.value;
+						let two_point_blend = Math.getLerp(prev_time, next_time, time);
+						this.preview_value = Math.lerp(prev.value, next.value, two_point_blend);
+						if (Math.random() < 0.06) console.log(prev_time, prev, next_time, next, this.preview_value);
 					}
 				},
 				template: `
-					<div>
-						<div id="blend_transition_editor" @mousedown="createNewPoint($event)" @touchstart="createNewPoint($event)">
-							<svg>
-								<path :class="{active: graph == 'r'}" :d="graphs.r.data" style="stroke: #ff0000;"></path>
-								<path :class="{active: graph == 'g'}" :d="graphs.g.data" style="stroke: #00ff00;"></path>
-								<path :class="{active: graph == 'b'}" :d="graphs.b.data" style="stroke: #3b3bff;"></path>
-								<path :class="{active: graph == 'a'}" :d="graphs.a.data" style="stroke: var(--color-text);"></path>
-								<path :class="{active: graph == 'rgb'}" :d="graphs.rgb.data"></path>
-								<polygon :points="light_data" />
+					<div class="blend_transition_graph_wrapper">
+						<div id="blend_transition_graph"
+							@mousedown="createNewPoint($event)"
+							@touchstart="createNewPoint($event)"
+							:style="{height: height + 'px', width: width + 'px'}"
+						>
+							<svg>+
+								<path :d="graph_data"></path>
 							</svg>
-							<div class="contrast_graph_point"
-								v-for="point in graphs[graph].points"
-								:style="{left: point[0] * width + 'px', top: (1-point[1]) * height + 'px'}"
+							<div class="blend_transition_graph_point"
+								v-for="point in points"
+								:style="{left: point.time * width + 'px', top: (1-point.value) * height + 'px'}"
 								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
 								@contextmenu="contextMenu(point, $event)"
 							></div>
 						</div>
-						<div class="bar button_bar_checkbox">
-							<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
-							<label for="checkbox_preview_changes">${tl('dialog.edit_texture.preview')}</label>
+						<div class="blend_transition_preview" :style="{'--percentage': preview_value + 1}">
+							<div />
 						</div>
 					</div>
 				`,
 				mounted() {
-					for (let key in this.graphs) {
-						this.updateGraph(key);
-					}
-					this.light_data = `${5},${this.height + 5}`;
-					for (let key in light_points) {
-						this.light_data += ` ${Math.round((key / 255) * this.width) + 5},${Math.round((1 - light_points[key] / highest_light_point) * this.height) + 5}`;
-					}
-					this.light_data += ` ${this.width + 5},${this.height + 5}`;
-
+					this.updateGraph();
 				}
 			},
+			onFormChange(result) {
+				this.content_vue.duration = result.duration;
+			},
 			onConfirm() {
+				Undo.initEdit({animation_controller_state: state});
+				state.blend_transition_curve = {};
+				for (let point of points) {
+					state.blend_transition_curve[point.time] = point.value;
+				}
+				Undo.finishEdit('Change blend transition curve');
 			}
 		});
 		dialog.show();
@@ -1891,7 +1941,7 @@ Interface.definePanels(() => {
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
 										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
 										<div class="tool" title="${tl('animation_controllers.state.blend_transition_curve')}" @click="state.editTransitionCurve()">
-											<i class="fa-solid fa-chart-line icon"></i>
+											<i class="fas fa-chart-line icon" style="font-size: 19px;"></i>
 										</div>
 									</div>
 									<div class="controller_state_input_bar">
