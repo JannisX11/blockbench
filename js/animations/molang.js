@@ -30,6 +30,12 @@ Animator.MolangParser.global_variables = {
 		}
 		return 0
 	},
+	get 'query.state_time'() {
+		if (AnimationController.selected?.selected_state) {
+			AnimationController.selected.selected_state.getStateTime();
+		}
+		return Timeline.time
+	},
 	get 'query.any_animation_finished'() {
 		if (AnimationController.selected?.selected_state) {
 			let state = AnimationController.selected?.selected_state
@@ -773,6 +779,9 @@ function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'life_time',
+				})
+				.addQuery({
+					id: 'state_time',
 				})
 				.addQuery({
 					id: 'yaw_speed',
