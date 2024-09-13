@@ -190,6 +190,13 @@ class Keybind {
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
 
+			case 106: return tl('keys.numpad', ['*']);
+			case 107: return tl('keys.numpad', ['+']);
+			case 108: return tl('keys.numpad', ['+']);
+			case 109: return tl('keys.numpad', ['-']);
+			case 110: return tl('keys.numpad', [',']);
+			case 111: return tl('keys.numpad', ['/']);
+
 			case 188: return ',';
 			case 190: return '.';
 			case 189: return '-';
