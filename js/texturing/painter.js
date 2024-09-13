@@ -1999,7 +1999,7 @@ class IntMatrix {
 				}
 				if (can_exp_h && y + i >= this.height) can_exp_h = false;
 				if (can_exp_h) {
-					for (let j = 0; j < h; j++) {
+					for (let j = 0; j < w; j++) {
 						if (this.getDirect(x+j, y+i) != 1) {
 							can_exp_h = false;
 							break;
