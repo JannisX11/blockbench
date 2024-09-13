@@ -2378,14 +2378,6 @@ Interface.definePanels(function() {
 					}
 				}
 				let scrollIntervalID;
-				function isUnderCursor(node, event) {
-					if (!node) return;
-					let rect = node.getBoundingClientRect();
-					return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right, rect.bottom]);
-				}
-				function findUnderCursor(selector, event) {
-					return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isUnderCursor(node, event));
-				}
 
 				function move(e2) {
 					convertTouchEvent(e2);
@@ -2431,24 +2423,25 @@ Interface.definePanels(function() {
 					$('.drag_hover').removeClass('drag_hover');
 					$('.texture[order]').attr('order', null)
 
-					if (isUnderCursor(document.getElementById('cubes_list'), e2)) {
-						for (let node of document.querySelectorAll('li.outliner_node')) {
-							if (isUnderCursor(node, e2)) {
-								node.classList.add('drag_hover');
-								node.setAttribute('order', '0');
+					if (isNodeUnderCursor(document.getElementById('cubes_list'), e2)) {
+						for (let node of document.querySelectorAll('.outliner_object')) {
+							if (isNodeUnderCursor(node, e2)) {
+								let parent = node.parentNode;
+								parent.classList.add('drag_hover');
+								parent.setAttribute('order', '0');
 								return;
 							}
 						}
 					}
-					if (isUnderCursor(document.querySelector('#texture_list'), e2)) {
+					if (isNodeUnderCursor(document.querySelector('#texture_list'), e2)) {
 
-						let texture_target = findUnderCursor('#texture_list li.texture', e2);
+						let texture_target = findNodeUnderCursor('#texture_list li.texture', e2);
 						if (texture_target) {
 							let offset = e2.clientY - $(texture_target).offset().top;
 							texture_target.setAttribute('order', offset > 24 ? '1' : '-1');
 							return;
 						}
-						let group_target = findUnderCursor('#texture_list .texture_group_head', e2);
+						let group_target = findNodeUnderCursor('#texture_list .texture_group_head', e2);
 						if (group_target) {
 							group_target.classList.add('drag_hover');
 							group_target.setAttribute('order', '0');
@@ -2486,7 +2479,7 @@ Interface.definePanels(function() {
 					Blockbench.removeFlag('dragging_textures');
 
 
-					if (isUnderCursor(Interface.preview, e2)) {
+					if (isNodeUnderCursor(Interface.preview, e2)) {
 						var data = Canvas.raycast(e2)
 						if (data.element && data.face) {
 							var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
@@ -2512,11 +2505,11 @@ Interface.definePanels(function() {
 							}
 							Undo.finishEdit('Apply texture')
 						}
-					} else if (isUnderCursor(document.getElementById('texture_list'), e2)) {
+					} else if (isNodeUnderCursor(document.getElementById('texture_list'), e2)) {
 
 						let index = Texture.all.length-1;
-						let texture_node = findUnderCursor('#texture_list li.texture', e2);
-						let target_group_head = findUnderCursor('#texture_list .texture_group_head', e2);
+						let texture_node = findNodeUnderCursor('#texture_list li.texture', e2);
+						let target_group_head = findNodeUnderCursor('#texture_list .texture_group_head', e2);
 						let new_group = '';
 						if (target_group_head) {
 							new_group = target_group_head.parentNode.id;
@@ -2571,7 +2564,7 @@ Interface.definePanels(function() {
 						Undo.finishEdit('Apply texture');
 						UVEditor.loadData();
 
-					} else if (isUnderCursor(document.getElementById('uv_viewport'), e2)) {
+					} else if (isNodeUnderCursor(document.getElementById('uv_viewport'), e2)) {
 						UVEditor.applyTexture(texture);
 					}
 				}
@@ -2795,7 +2788,7 @@ Interface.definePanels(function() {
 						$('.drag_hover').removeClass('drag_hover');
 						$('.texture_group[order]').attr('order', null);
 	
-						let target = findUnderCursor('#texture_list .texture_group', e2);
+						let target = findNodeUnderCursor('#texture_list .texture_group', e2);
 						if (target) {
 							target.classList.add('drag_hover');
 							let offset = e2.clientY - $(target).offset().top;
@@ -2803,7 +2796,7 @@ Interface.definePanels(function() {
 							target.setAttribute('order', order.toString());
 							texture_group_target_node = target;
 
-						} else if (isUnderCursor(document.querySelector('#texture_list'))) {
+						} else if (isNodeUnderCursor(document.querySelector('#texture_list'), e2)) {
 							let nodes = document.querySelectorAll('#texture_list > li.texture_group');
 							if (nodes.length) {
 								let target = nodes[nodes.length-1];
