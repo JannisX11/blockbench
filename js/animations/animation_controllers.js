@@ -469,6 +469,26 @@ class AnimationControllerState {
 					min: 0.05,
 					step: 0.05,
 					type: 'number',
+				},
+				buttons: {
+					type: 'buttons', buttons: [
+						'generic.reset',
+						tl('dialog.blend_transition_edit.ease_in_out', [6]),
+						tl('dialog.blend_transition_edit.ease_in_out', [10]),
+						tl('dialog.blend_transition_edit.ease_in_out', [16])
+					],
+					click(index) {
+						let point_amount = ([2, 6, 10, 16])[index];
+						function hermiteBlend(t) {
+							return 3*(t**2) - 2*(t**3);
+						}
+						points.empty();
+						for (let i = 0; i < point_amount; i++) {
+							let time = i / (point_amount-1);
+							points.push({time, value: 1-hermiteBlend(time), uuid: guid()})
+						}
+						dialog.content_vue.updateGraph();
+					}
 				}
 			},
 			component: {
@@ -588,12 +608,16 @@ class AnimationControllerState {
 			onFormChange(result) {
 				this.content_vue.duration = result.duration;
 			},
-			onConfirm() {
+			onConfirm(result) {
 				clearInterval(preview_loop);
 				Undo.initEdit({animation_controller_state: state});
+				state.blend_transition = result.duration;
 				state.blend_transition_curve = {};
-				for (let point of points) {
-					state.blend_transition_curve[Math.clamp(point.time, 0, 1)] = point.value;
+				let is_linear = points.length == 2 && points.find(p => p.time == 0 && p.value == 1) && points.find(p => p.time == 1 && p.value == 0);
+				if (!is_linear) {
+					for (let point of points) {
+						state.blend_transition_curve[Math.clamp(point.time, 0, 1)] = point.value;
+					}
 				}
 				Undo.finishEdit('Change blend transition curve');
 			},
@@ -1651,6 +1675,9 @@ Interface.definePanels(() => {
 						Undo.finishEdit('Change animation controller audio file')
 					})
 				},
+				editStateBlendTime(state) {
+					state.controller.saved = false;
+				},
 
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
@@ -1966,9 +1993,14 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
-										<div class="tool" title="${tl('animation_controllers.state.blend_transition_curve')}" @click="state.editTransitionCurve()">
-											<i class="fas fa-chart-line icon" style="font-size: 19px;"></i>
+										<numeric-input style="width: 70px; flex-grow: 0;" v-model.number="state.blend_transition" :min="0" :step="0.05" @input="editStateBlendTime(state)" />
+										<div
+											class="tool blend_transition_curve_button"
+											title="${tl('animation_controllers.state.blend_transition_curve')}"
+											@click="state.editTransitionCurve()"
+										>
+											<i class="fas fa-chart-line icon"></i>
+											<span v-if="Object.keys(state.blend_transition_curve).length">{{ Object.keys(state.blend_transition_curve).length }}</span>
 										</div>
 									</div>
 									<div class="controller_state_input_bar">

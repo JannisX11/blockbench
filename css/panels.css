@@ -1821,6 +1821,17 @@
 .controller_transition .controller_item_drag_handle {
 	background-color: var(--color-marker);
 }
+.blend_transition_curve_button {
+    margin-left: 4px;
+    cursor: pointer;
+    display: flex;
+    width: 42px;
+    justify-content: start;
+    align-items: center;
+}
+.blend_transition_curve_button > span {
+    color: var(--color-subtle_text);
+}
 span.controller_state_section_info {
     margin: 0 8px;
     color: var(--color-subtle_text);

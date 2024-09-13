@@ -625,6 +625,8 @@
 	"dialog.optimize_animation.thresholds": "Threshold values",
 	"dialog.merge_animation.merge_target": "Merge into",
 
+	"dialog.blend_transition_edit.ease_in_out": "Ease-in-out (%0)",
+
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.type": "Type",
 	"dialog.create_texture.type.blank": "Blank",
