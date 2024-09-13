@@ -837,7 +837,8 @@ const TextureGenerator = {
 		})
 
 		if (face_list.length == 0 && box_uv_templates.length == 0) {
-			Blockbench.showMessage('message.no_valid_elements', 'center')
+			progress_dialog.close();
+			Blockbench.showMessage('message.no_valid_elements', 'center');
 			return;
 		}
 
