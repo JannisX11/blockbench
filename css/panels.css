@@ -626,6 +626,7 @@
 		flex-shrink: 0;
 		overflow: hidden;
 		position: relative;
+		pointer-events: none;
 	}
 	.texture.selected img.texture_icon {
 		margin-top: 0;
