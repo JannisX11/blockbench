@@ -570,6 +570,7 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('java_export_pivots', 	{category: 'export', value: false});
 		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),

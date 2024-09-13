@@ -1073,6 +1073,8 @@
 	"settings.export_empty_groups.desc": "Include groups without content in exported files",
 	"settings.export_groups": "Export Groups in Java block/item models",
 	"settings.export_groups.desc": "Save groups in java block or item model JSON files",
+	"settings.java_export_pivots": "Export Pivots in Java block/item models",
+	"settings.java_export_pivots.desc": "Save pivot points in Java block/item models on cubes without rotation",
 	"settings.obj_face_export_mode": "OBJ Face Export Mode",
 	"settings.obj_face_export_mode.desc": "Choose to let the OBJ exporter convert all faces into tris or quads",
 	"settings.obj_face_export_mode.both": "Default",
