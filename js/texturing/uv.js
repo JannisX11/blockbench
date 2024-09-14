@@ -264,9 +264,9 @@ const UVEditor = {
 	},
 
 	updateOverlayCanvas() {
-		if (!Texture.selected) return;
+		if (!UVEditor.texture) return;
 		let canvas = UVEditor.overlay_canvas;
-		let texture = Texture.selected;
+		let texture = UVEditor.texture;
 		let ctx = canvas.getContext('2d');
 		canvas.width = texture.width;
 
