@@ -216,8 +216,8 @@ class AnimationControllerState {
 	select(force) {
 		if (this.controller.selected_state !== this || force) {
 			this.controller.last_state = this.controller.selected_state;
-			this.controller.transition_timestamp = Date.now();
-			this.start_timestamp = Date.now();
+			this.controller.transition_timestamp = performance.now();
+			this.start_timestamp = performance.now();
 
 			this.controller.selected_state = this;
 
@@ -457,7 +457,7 @@ class AnimationControllerState {
 		let preview_loop = setInterval(() => {
 			dialog.content_vue.preview();
 		}, 1000 / 60);
-		let preview_loop_start_time = Date.now();
+		let preview_loop_start_time = performance.now();
 
 		let dialog = new Dialog('blend_transition_edit', {
 			title: 'animation_controllers.state.blend_transition_curve',
@@ -562,7 +562,7 @@ class AnimationControllerState {
 					},
 					preview() {
 						if (this.points.length == 0) return 0;
-						let time = (((Date.now() - preview_loop_start_time) / 1000) / this.duration) % 1;
+						let time = (((performance.now() - preview_loop_start_time) / 1000) / this.duration) % 1;
 						let prev_time = -Infinity, prev = 0;
 						let next_time = Infinity, next = 0;
 						for (let pt of points) {
@@ -632,7 +632,7 @@ class AnimationControllerState {
 	}
 	getStateTime() {
 		if (!this.start_timestamp) return 0;
-		return (Date.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
+		return (performance.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});

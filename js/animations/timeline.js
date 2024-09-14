@@ -536,7 +536,7 @@ const Timeline = {
 		}
 		Timeline.playing = true
 		BarItems.play_animation.setIcon('pause')
-		Timeline.last_frame_timecode = Date.now();
+		Timeline.last_frame_timecode = performance.now();
 		if (Animation.selected.loop == 'hold' && Timeline.time >= (Animation.selected.length||1e3)) {
 			Timeline.setTime(Timeline.custom_range[0])
 		}
@@ -566,7 +566,7 @@ const Timeline = {
 		if (Animation.selected.loop == 'hold') {
 			time = Math.clamp(time, Timeline.custom_range[0], max_time);
 		}
-		Timeline.last_frame_timecode = Date.now();
+		Timeline.last_frame_timecode = performance.now();
 
 		if (time < max_time) {
 			Timeline.setTime(time);

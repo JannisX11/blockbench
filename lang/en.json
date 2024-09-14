@@ -928,6 +928,8 @@
 	"settings.render_sides.auto": "Auto",
 	"settings.render_sides.front": "Outside",
 	"settings.render_sides.double": "Inside and Outside",
+	"settings.fps_limit": "FPS Limit",
+	"settings.fps_limit.desc": "Limit how many frames per second Blockbench renders. The actual frame rate is limited to what your device can display.",
 	"settings.background_rendering": "Background Rendering",
 	"settings.background_rendering.desc": "Update the preview while the window is not focused",
 	"settings.texture_fps": "Animated Texture FPS",

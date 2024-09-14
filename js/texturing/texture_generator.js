@@ -390,12 +390,12 @@ const TextureGenerator = {
 		});
 		progress_dialog.show();
 
-		let last_timeout = Date.now();
+		let last_timeout = performance.now();
 		async function setProgress(progress) {
 			Blockbench.setProgress(progress);
 			progress_dialog.progress_bar.setProgress(progress ?? 0);
 			await new Promise(resolve => setTimeout(resolve, 1));
-			last_timeout = Date.now();
+			last_timeout = performance.now();
 		}
 
 		Undo.initEdit({
@@ -1007,7 +1007,7 @@ const TextureGenerator = {
 			let handled = 0;
 			outer_loop:
 			for (let tpl of box_uv_templates) {
-				if (Date.now() - last_timeout > 24) {
+				if (performance.now() - last_timeout > 24) {
 					await setProgress(handled/total);
 				}
 				if (cancelled) return;
@@ -1023,7 +1023,7 @@ const TextureGenerator = {
 			}
 			outer_loop2:
 			for (let tpl of face_list) {
-				if (Date.now() - last_timeout > 24) {
+				if (performance.now() - last_timeout > 24) {
 					await setProgress(handled/total);
 				}
 				if (cancelled) return;

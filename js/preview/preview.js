@@ -2034,9 +2034,14 @@ function initCanvas() {
 	CustomTheme.updateColors();
 	resizeWindow();
 }
+let last_animation_timestamp = performance.now();
 function animate() {
 	requestAnimationFrame( animate );
 	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
+	if (performance.now() < last_animation_timestamp + 1000 / settings.fps_limit.value - 1) return;
+
+	last_animation_timestamp = performance.now();
+
 	TickUpdates.Run();
 
 	if (Animator.open) {
