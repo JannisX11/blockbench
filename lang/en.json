@@ -627,6 +627,10 @@
 	"dialog.merge_animation.merge_target": "Merge into",
 
 	"dialog.blend_transition_edit.ease_in_out": "Ease-in-out (%0)",
+	"dialog.blend_transition_edit.generate": "Generate...",
+	"dialog.blend_transition_edit.generate.learn_more": "More info and preview",
+	"dialog.blend_transition_edit.generate.curve": "Easing Type",
+	"dialog.blend_transition_edit.generate.steps": "Keyframes",
 
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.type": "Type",

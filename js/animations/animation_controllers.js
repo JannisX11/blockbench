@@ -196,20 +196,22 @@ class AnimationControllerState {
 				return new oneLiner({[state ? state.name : 'missing_state']: condition})
 			})
 		}
-		if (this.blend_transition) object.blend_transition = this.blend_transition;
-		let curve_keys = this.blend_transition_curve && Object.keys(this.blend_transition_curve);
-		if (curve_keys?.length) {
-			let curve_output = {};
-			let points = curve_keys.map(key => ({time: parseFloat(key), value: this.blend_transition_curve[key]}));
-			points.sort((a, b) => a.time - b.time);
-			for (let point of points) {
-				let timecode = trimFloatNumber(point.time * this.blend_transition, 4).toString();
-				if (!timecode.includes('.')) timecode += '.0';
-				curve_output[timecode] = Math.roundTo(point.value, 6);
+		if (this.blend_transition) {
+			object.blend_transition = this.blend_transition;
+			let curve_keys = this.blend_transition_curve && Object.keys(this.blend_transition_curve);
+			if (curve_keys?.length) {
+				let curve_output = {};
+				let points = curve_keys.map(key => ({time: parseFloat(key), value: this.blend_transition_curve[key]}));
+				points.sort((a, b) => a.time - b.time);
+				for (let point of points) {
+					let timecode = trimFloatNumber(point.time * this.blend_transition, 4).toString();
+					if (!timecode.includes('.')) timecode += '.0';
+					curve_output[timecode] = Math.roundTo(point.value, 6);
+				}
+				object.blend_transition = curve_output;
 			}
-			object.blend_transition = curve_output;
+			if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
 		}
-		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
 		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
@@ -475,19 +477,73 @@ class AnimationControllerState {
 						'generic.reset',
 						tl('dialog.blend_transition_edit.ease_in_out', [6]),
 						tl('dialog.blend_transition_edit.ease_in_out', [10]),
-						tl('dialog.blend_transition_edit.ease_in_out', [16])
+						'dialog.blend_transition_edit.generate',
 					],
 					click(index) {
-						let point_amount = ([2, 6, 10, 16])[index];
-						function hermiteBlend(t) {
-							return 3*(t**2) - 2*(t**3);
+						function generate(easing, point_amount) {
+							points.empty();
+							for (let i = 0; i < point_amount; i++) {
+								let time = i / (point_amount-1);
+								points.push({time, value: 1-easing(time), uuid: guid()})
+							}
+							dialog.content_vue.updateGraph();
 						}
-						points.empty();
-						for (let i = 0; i < point_amount; i++) {
-							let time = i / (point_amount-1);
-							points.push({time, value: 1-hermiteBlend(time), uuid: guid()})
+						if (index == 3) {
+							let easings = {
+								easeInSine: 'In Sine',
+								easeOutSine: 'Out Sine',
+								easeInOutSine: 'In Out Sine',
+								easeInQuad: 'In Quad',
+								easeOutQuad: 'Out Quad',
+								easeInOutQuad: 'In Out Quad',
+								easeInCubic: 'In Cubic',
+								easeOutCubic: 'Out Cubic',
+								easeInOutCubic: 'In Out Cubic',
+								easeInQuart: 'In Quart',
+								easeOutQuart: 'Out Quart',
+								easeInOutQuart: 'In Out Quart',
+								easeInQuint: 'In Quint',
+								easeOutQuint: 'Out Quint',
+								easeInOutQuint: 'In Out Quint',
+								easeInExpo: 'In Expo',
+								easeOutExpo: 'Out Expo',
+								easeInOutExpo: 'In Out Expo',
+								easeInCirc: 'In Circ',
+								easeOutCirc: 'Out Circ',
+								easeInOutCirc: 'In Out Circ',
+								easeInBack: 'In Back',
+								easeOutBack: 'Out Back',
+								easeInOutBack: 'In Out Back',
+								easeInElastic: 'In Elastic',
+								easeOutElastic: 'Out Elastic',
+								easeInOutElastic: 'In Out Elastic',
+								easeOutBounce: 'Out Bounce',
+								easeInBounce: 'In Bounce',
+								easeInOutBounce: 'In Out Bounce',
+							};
+							new Dialog('blend_transition_edit_easing', {
+								title: 'dialog.blend_transition_edit.generate',
+								width: 380,
+								form: {
+									easings: {type: 'info', text: tl('dialog.blend_transition_edit.generate.learn_more') + ': [easings.net](https://easings.net)'},
+									curve: {type: 'select', label: 'dialog.blend_transition_edit.generate.curve', options: easings},
+									steps: {type: 'number', label: 'dialog.blend_transition_edit.generate.steps', value: 10, step: 1, min: 3, max: 64}
+								},
+								onConfirm(result) {
+									console.log(result);
+									let easing_func = Easings[result.curve];
+									generate(easing_func, result.steps);
+								}
+							}).show();
+
+						} else {
+							let point_amount = ([2, 6, 10])[index];
+							function hermiteBlend(t) {
+								return 3*(t**2) - 2*(t**3);
+							}
+							generate(hermiteBlend, point_amount);
 						}
-						dialog.content_vue.updateGraph();
+
 					}
 				}
 			},
@@ -562,7 +618,13 @@ class AnimationControllerState {
 					},
 					preview() {
 						if (this.points.length == 0) return 0;
-						let time = (((performance.now() - preview_loop_start_time) / 1000) / this.duration) % 1;
+						let pause = 0.4;
+						let absolute_time = ((performance.now() - preview_loop_start_time) / 1000);
+						let time = (absolute_time % (this.duration + pause)) / this.duration;
+						if (time > 1) {
+							this.preview_value = 0;
+							return;
+						}
 						let prev_time = -Infinity, prev = 0;
 						let next_time = Infinity, next = 0;
 						for (let pt of points) {
