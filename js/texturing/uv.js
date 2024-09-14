@@ -2212,6 +2212,7 @@ Interface.definePanels(function() {
 			float_size: [500, 600],
 			height: 500
 		},
+		resizable: true,
 		toolbars: [
 			new Toolbar('uv_editor', {
 				children: [
@@ -2405,8 +2406,8 @@ Interface.definePanels(function() {
 							if (panel) this.height -= panel.height;
 						}
 
-					} else if (Panels.uv.slot.includes('_bar')) {
-						this.height = size * Math.clamp(this.uv_resolution[1] / this.uv_resolution[0], 0.5, 1);
+					} else if (Panels.uv.slot.includes('_bar') && !UVEditor.panel.fixed_height) {
+						this.height = size;
 
 					} else {
 						this.height = Math.clamp(
