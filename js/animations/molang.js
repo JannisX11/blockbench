@@ -861,6 +861,7 @@ function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'property',
+					arguments: ['property'],
 				})
 				.addQuery({
 					id: 'has_property',
