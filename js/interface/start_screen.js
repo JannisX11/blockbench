@@ -36,7 +36,7 @@ function addStartScreenSection(id, data) {
 		data = id;
 		id = '';
 	}
-	var obj = $(Interface.createElement('section', {id}))
+	var obj = $(Interface.createElement('section', {class: 'start_screen_section', section_id: id}))
 	if (typeof data.graphic === 'object') {
 		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)
@@ -140,9 +140,9 @@ function addStartScreenSection(id, data) {
 	if (data.last) {
 		$('#start_screen > content').append(obj);
 	} else if (data.insert_after) {
-		$('#start_screen > content').find(`#${data.insert_after}`).after(obj);
+		$('#start_screen > content').find(`.start_screen_section[section_id="${data.insert_after}"]`).after(obj);
 	} else if (data.insert_before) {
-		$('#start_screen > content').find(`#${data.insert_before}`).before(obj);
+		$('#start_screen > content').find(`.start_screen_section[section_id="${data.insert_before}"]`).before(obj);
 	} else {
 		$('#start_screen > content').prepend(obj);
 	}
@@ -261,7 +261,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							shell.showItemInFolder(recent_project.path)
+							showItemInFolder(recent_project.path)
 						}
 					},
 					{
@@ -375,7 +375,7 @@ onVueSetup(async function() {
 		template: `
 			<div id="start_screen">
 				<content>
-					<section id="splash_screen" v-if="show_splash_screen">
+					<section id="splash_screen" v-if="show_splash_screen" class="start_screen_section" section_id="splash_screen">
 						<div class="splash_art_slideshow_image" :style="{backgroundImage: getBackground(slideshow[slideshow_selected].source)}">
 							<p v-if="slideshow[slideshow_selected].description" class="start_screen_graphic_description" v-html="pureMarked(slideshow[slideshow_selected].description)"></p>
 						</div>
@@ -387,7 +387,7 @@ onVueSetup(async function() {
 						<i class="material-icons start_screen_close_button" @click="show_splash_screen = false">clear</i>
 					</section>
 
-					<section id="start_files">
+					<section id="start_files" class="start_screen_section" section_id="start_files">
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
 							<h2>${tl('mode.start.new')}</h2>
@@ -581,7 +581,7 @@ ModelLoader.loaders = {};
 		let twitter_ad;
 		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
 			twitter_ad = true;
-			addStartScreenSection({
+			addStartScreenSection('twitter_link', {
 				color: '#1da1f2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
@@ -594,7 +594,7 @@ ModelLoader.loaders = {};
 		}
 		//Discord
 		if (Blockbench.startup_count < 6 && !twitter_ad) {
-			addStartScreenSection({
+			addStartScreenSection('discord_link', {
 				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
@@ -666,7 +666,7 @@ ModelLoader.loaders = {};
 					}
 				},
 				template: `
-					<section id="quick_setup">
+					<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
 						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
 						<h2>${tl('mode.start.quick_setup')}</h2>
 

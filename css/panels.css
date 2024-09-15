@@ -626,6 +626,7 @@
 		flex-shrink: 0;
 		overflow: hidden;
 		position: relative;
+		pointer-events: none;
 	}
 	.texture.selected img.texture_icon {
 		margin-top: 0;
@@ -690,12 +691,10 @@
 	}
 	.texture_error {
 		position: absolute;
-		color: red;
+		color: var(--color-error);
 		margin-left: 21px;
 		margin-top: 21px;
 		text-shadow: 0 0 5px #000;
-		font-size: 20pt;
-		left: 0;
 	}
 	.texture_movie {
 		position: absolute;
@@ -1382,7 +1381,7 @@
 		width: 144px;
 		flex-shrink: 0;
 		background-color: var(--color-back);
-		z-index: 4;
+		z-index: 6;
 		border-bottom: 1px solid var(--color-border);
 		height: calc(100% + 1px);
 	}
@@ -1835,6 +1834,17 @@
 .controller_transition .controller_item_drag_handle {
 	background-color: var(--color-marker);
 }
+.blend_transition_curve_button {
+    margin-left: 4px;
+    cursor: pointer;
+    display: flex;
+    width: 42px;
+    justify-content: start;
+    align-items: center;
+}
+.blend_transition_curve_button > span {
+    color: var(--color-subtle_text);
+}
 span.controller_state_section_info {
     margin: 0 8px;
     color: var(--color-subtle_text);
@@ -2100,6 +2110,9 @@ span.controller_state_section_info {
 		width: 100%;
 		height: 100%;
 	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas.above {
+		z-index: 1;
+	}
 	/* Fix in Firefox + iPadOS */
 	#uv_frame_spacer {
 		width: 1px;
@@ -2291,6 +2304,7 @@ span.controller_state_section_info {
 		flex-grow: 1;
 		flex-shrink: 1;
 		width: 50px;
+		overflow: hidden;
 	}
 	.uv_face_properties_labels label > i {
 		vertical-align: top;

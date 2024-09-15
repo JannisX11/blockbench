@@ -252,6 +252,18 @@ class Cube extends OutlinerElement {
 		}
 		return this;
 	}
+	selectLow(...args) {
+		let was_selected = this.selected;
+		super.selectLow(...args);
+		if (!was_selected && Cube.selected[0]) {
+			let other_selected_faces = UVEditor.selected_faces.slice();
+			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
+			if (other_selected_faces?.length && !own_selected_faces?.length) {
+				own_selected_faces.replace(other_selected_faces);
+			}
+		}
+		return this;
+	}
 	size(axis, floored) {
 		var scope = this;
 		let epsilon = 0.0000001;
@@ -607,7 +619,7 @@ class Cube extends OutlinerElement {
 			vec.set(...coords.V3_subtract(this.origin));
 			vec.applyMatrix4( this.mesh.matrixWorld );
 			let arr = vec.toArray();
-			arr.V3_add(8, 8, 8);
+			arr.V3_add(8, 0, 8);
 			return arr;
 		})
 	}
@@ -684,55 +696,56 @@ class Cube extends OutlinerElement {
 		if (scope.autouv === 2) {
 			//Relative UV
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
+			let offset = Format.centered_grid ? 8 : 0;
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
 				switch (side) {
 					case 'north':
 					uv = [
-						pw - scope.to[0],
+						pw - (scope.to[0]+offset),
 						ph - scope.to[1],
-						pw - scope.from[0],
+						pw - (scope.from[0]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'south':
 					uv = [
-						scope.from[0],
+						(scope.from[0]+offset),
 						ph - scope.to[1],
-						scope.to[0],
+						(scope.to[0]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'west':
 					uv = [
-						scope.from[2],
+						(scope.from[2]+offset),
 						ph - scope.to[1],
-						scope.to[2],
+						(scope.to[2]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'east':
 					uv = [
-						pw - scope.to[2],
+						pw - (scope.to[2]+offset),
 						ph - scope.to[1],
-						pw - scope.from[2],
+						pw - (scope.from[2]+offset),
 						ph - scope.from[1],
 					];
 					break;
 					case 'up':
 					uv = [
-						scope.from[0],
-						scope.from[2],
-						scope.to[0],
-						scope.to[2],
+						(scope.from[0]+offset),
+						(scope.from[2]+offset),
+						(scope.to[0]+offset),
+						(scope.to[2]+offset),
 					];
 					break;
 					case 'down':
 					uv = [
-						scope.from[0],
-						ph - scope.to[2],
-						scope.to[0],
-						ph - scope.from[2],
+						(scope.from[0]+offset),
+						ph - (scope.to[2]+offset),
+						(scope.to[0]+offset),
+						ph - (scope.from[2]+offset),
 					];
 					break;
 				}
@@ -947,11 +960,27 @@ class Cube extends OutlinerElement {
 						obj.applyTexture(false, true)
 					}, 'texture blank', Format.per_group_texture ? 'all_in_group' : null)
 				}}
-			]
+			];
+			let applied_texture;
+			main_loop: for (let cube of Cube.selected) {
+				face_loop: for (let fkey in cube.faces) {
+					let texture = cube.faces[fkey].getTexture();
+					if (texture) {
+						if (!applied_texture) {
+							applied_texture = texture;
+						} else if (applied_texture != texture) {
+							applied_texture = null;
+							break main_loop;
+							break face_loop;
+						}
+					}
+				}
+			}
 			Texture.all.forEach(function(t) {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t == applied_texture,
 					click: function(cube) {
 						cube.forSelected(function(obj) {
 							obj.applyTexture(t, true)

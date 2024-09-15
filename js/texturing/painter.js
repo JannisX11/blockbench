@@ -273,7 +273,7 @@ const Painter = {
 		let texture = Painter.current.texture;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
-			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
+			let result = Toolbox.selected.brush.onStrokeEnd({texture});
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {
@@ -294,6 +294,7 @@ const Painter = {
 		delete Painter.current.texture;
 		delete Painter.current.textures;
 		delete Painter.current.uv_rects;
+		delete Painter.current.uv_islands;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -340,6 +341,7 @@ const Painter = {
 					let island = Painter.getMeshUVIsland(Painter.current.face, current_face);
 					island.forEach(fkey => {
 						let face = Mesh.selected[0].faces[fkey];
+						if (!face) return;
 						for (let vkey in face.uv) {
 							min_x = Math.min(min_x, face.uv[vkey][0]); max_x = Math.max(max_x, face.uv[vkey][0]);
 							min_y = Math.min(min_y, face.uv[vkey][1]); max_y = Math.max(max_y, face.uv[vkey][1]);
@@ -1734,7 +1736,11 @@ const Painter = {
 				} else {
 					preset.color = null;
 				}
-				
+				if (form.pixel_perfect) {
+					preset.pixel_perfect = true;
+				} else {
+					preset.pixel_perfect = false;
+				}
 				if (form.shape !== 'unset') {
 					preset.shape = form.shape;
 				} else {
@@ -1993,7 +1999,7 @@ class IntMatrix {
 				}
 				if (can_exp_h && y + i >= this.height) can_exp_h = false;
 				if (can_exp_h) {
-					for (let j = 0; j < h; j++) {
+					for (let j = 0; j < w; j++) {
 						if (this.getDirect(x+j, y+i) != 1) {
 							can_exp_h = false;
 							break;
@@ -2106,8 +2112,8 @@ SharedActions.add('paste', {
 			layer.setSize(frame.width, frame.height);
 			layer.ctx.putImageData(image_data, 0, 0);
 			if (!offset) layer.center();
-			texture.layers.push(layer);
-			layer.select();
+
+			layer.addForEditing();
 			layer.setLimbo();
 			texture.updateChangesAfterEdit();
 
@@ -2629,6 +2635,13 @@ BARS.defineActions(function() {
 			}
 		}
 	})*/
+	let selection_tools = {
+		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
+		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
+		//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+		wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
+		color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
+	};
 	let selection_tool = new Tool('selection_tool', {
 		icon: 'select',
 		category: 'tools',
@@ -2639,23 +2652,22 @@ BARS.defineActions(function() {
 		paintTool: true,
 		allowed_view_modes: ['textured'],
 		modes: ['paint'],
-		keybind: new Keybind({key: 'm'}),
+		keybind: new Keybind({key: 'm'}, {
+			create: '',
+			add: 'shift',
+			subtract: 'ctrl',
+			intersect: '',
+		}),
 		side_menu: new Menu('selection_tool', () => {
-			let modes = {
-				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
-				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-				//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
-				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
-				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
-			};
 			let entries = [];
-			for (let id in modes) {
+			for (let id in selection_tools) {
 				let entry = {
 					id,
-					name: modes[id].name,
-					icon: modes[id].icon,
+					name: selection_tools[id].name,
+					icon: selection_tools[id].icon,
+					keybind: BarItems.selection_tool.sub_keybinds[id]?.keybind || undefined,
 					click() {
-						selection_tool.setIcon(modes[id].icon);
+						selection_tool.setIcon(selection_tools[id].icon);
 						selection_tool.mode = id;
 						selection_tool.select();
 						BARS.updateConditions();
@@ -2666,6 +2678,12 @@ BARS.defineActions(function() {
 			}
 			return entries;
 		}),
+		variations: {
+			create: {name: 'action.selection_tool_operation_mode.create'},
+			add: {name: 'action.selection_tool_operation_mode.add'},
+			subtract: {name: 'action.selection_tool_operation_mode.subtract'},
+			intersect: {name: 'action.selection_tool_operation_mode.intersect'},
+		},
 		onCanvasClick(data) {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
@@ -2688,6 +2706,15 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
+	for (let id in selection_tools) {
+		selection_tool.addSubKeybind(id, selection_tools[id].name, null, event => {
+			selection_tool.setIcon(selection_tools[id].icon);
+			selection_tool.mode = id;
+			selection_tool.select();
+			BARS.updateConditions();
+			BarItems.slider_color_select_threshold.update();
+		});
+	}
 	selection_tool.mode = 'rectangle';
 
 	new Tool('move_layer_tool', {
@@ -2802,18 +2829,31 @@ BARS.defineActions(function() {
 		}
 	})
 	let last_mode = null;
-	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+	let last_changed_to = null;
+	Blockbench.on('update_pressed_modifier_keys', ({before, now, event}) => {
 		let tool = BarItems.selection_tool_operation_mode;
+		let selection_tool = BarItems.selection_tool;
 		if (!Condition(tool.condition)) return;
 		if (UVEditor.vue.selection_rect.active) return;
-		if (now.shift) {
+
+		if (selection_tool.keybind.additionalModifierTriggered(event) == 'add') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('add');
-		} else if (now.ctrl) {
+			last_changed_to = 'add';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'subtract') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('subtract');
-		} else if (before.ctrl || before.shift) {
+			last_changed_to = 'subtract';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'intersect') {
+			if (!last_mode) last_mode = tool.value;
+			tool.set('intersect');
+			last_changed_to = 'intersect';
+
+		} else if (last_changed_to == tool.value) {
 			tool.set(last_mode);
+			last_changed_to = last_mode;
 			last_mode = null;
 		}
 	});

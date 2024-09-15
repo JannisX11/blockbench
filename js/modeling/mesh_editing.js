@@ -692,10 +692,11 @@ class KnifeToolCubeContext {
 
 			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
 			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
-			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl)
+			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl);
+			let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
 
-			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - this.cube.from[off_axes[0]]) / snap) * snap + this.cube.from[off_axes[0]];
-			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - this.cube.from[off_axes[1]]) / snap) * snap + this.cube.from[off_axes[1]];
+			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - modified_from[off_axes[0]]) / snap) * snap + modified_from[off_axes[0]];
+			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - modified_from[off_axes[1]]) / snap) * snap + modified_from[off_axes[1]];
 
 		} else {
 			this.mesh_3d.add(this.preview_mesh);
@@ -746,7 +747,7 @@ class KnifeToolCubeContext {
 	
 			let pos = THREE.fastWorldPosition(this.preview_mesh);
 			let size = Preview.selected.calculateControlScale(pos) / 8;
-			this.preview_mesh.scale.set(...this.cube.size().map(v => v += size));
+			this.preview_mesh.scale.set(...this.cube.size().map(v => v + this.cube.inflate * 2 + size));
 			this.preview_mesh.scale[this.axis_letter] = size;
 		}
 	}
@@ -770,13 +771,15 @@ class KnifeToolCubeContext {
 			this.cube.box_uv = false;
 		}
 		let duplicate = this.cube.duplicate();
-		selected.push(duplicate);
-		elements.push(duplicate);
+		Outliner.selected.safePush(duplicate);
+		elements.safePush(duplicate);
+		let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
+		let modified_to = this.cube.to.slice().V3_subtract(this.cube.inflate);
 		let offset = this.offset + this.cube.origin[this.axis];
-		let offset_lerp = Math.getLerp(this.cube.from[this.axis], this.cube.to[this.axis], offset);
+		let offset_lerp = Math.getLerp(modified_from[this.axis], modified_to[this.axis], offset);
 
-		this.cube.to[this.axis] = offset;
-		duplicate.from[this.axis] = offset;
+		this.cube.to[this.axis] = offset - this.cube.inflate;
+		duplicate.from[this.axis] = offset + this.cube.inflate;
 
 		function modifyUV(face, index, inverted) {
 			index = (index - (face.rotation/90) + 8) % 4;
@@ -1013,7 +1016,11 @@ async function autoFixMeshEdit() {
 							return true;
 						})
 						let off_corners = edges.find(edge => !edge.includes(concave_vkey))
-						if (!off_corners) return;
+						if (!off_corners) {
+							// not sure if this always works, but its only required in special cases (if the quad edge that should be split is already connected to another face).
+							let concave_index = sorted_vertices.indexOf(concave_vkey);
+							off_corners = (concave_index%2) ? [sorted_vertices[1], sorted_vertices[3]] : [sorted_vertices[0], sorted_vertices[2]];
+						}
 
 						let new_face = new MeshFace(mesh, face);
 						new_face.vertices.remove(off_corners[0]);

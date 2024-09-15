@@ -480,6 +480,17 @@ Object.defineProperty(String.prototype, 'hashCode', {
 	}
 });
 
+// HTML
+function isNodeUnderCursor(node, event) {
+	if (!node) return;
+	let rect = node.getBoundingClientRect();
+	return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right+1, rect.bottom+1]);
+}
+function findNodeUnderCursor(selector, event) {
+	return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isNodeUnderCursor(node, event));
+}
+
+
 //Color
 tinycolor.prototype.toInt = function() {
 	let {r, g, b, a} = this.toRgb();

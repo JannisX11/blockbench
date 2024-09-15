@@ -318,6 +318,7 @@ const Animator = {
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
 			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
+			let blend_value = last_state?.calculateBlendValue(blend_progress) ?? blend_progress;
 
 			// Active State
 			Timeline.time = state_time;
@@ -328,13 +329,13 @@ const Animator = {
 				let animation = Animation.all.find(anim => a.animation == anim.uuid);
 				if (!animation) return;
 				let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
-				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_value;
 				animations_to_play.push(animation);
 			})
 			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
 
 			// Last State
-			if (blend_progress < 1 && last_state) {
+			if (blend_value < 1 && last_state) {
 				Timeline.time = last_state.getStateTime();
 				controller_blend_values = {};
 				animations_to_play = [];
@@ -344,7 +345,7 @@ const Animator = {
 					if (!animation) return;
 					let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
 					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
-					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_value);
 					animations_to_play.push(animation);
 				})
 				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
@@ -1431,6 +1432,7 @@ Interface.definePanels(function() {
 						if (document.exitPointerLock) document.exitPointerLock()
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
+						Blockbench.setStatusBarText();
 					}
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);

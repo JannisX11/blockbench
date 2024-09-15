@@ -438,6 +438,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('fps_limit',				{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
 		new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
 			TextureAnimator.updateSpeed()
@@ -446,6 +447,7 @@ const Settings = {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+		new Setting('save_view_per_tab',		{category: 'preview', value: true});
 		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
@@ -455,6 +457,7 @@ const Settings = {
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
+		new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
@@ -469,10 +472,6 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
-		new Setting('bedrock_uv_rotations',	{category: 'edit', value: false, name: 'Bedrock UV Rotations (Experimental)', description: 'Enable the experimental bedrock UV rotations feature.', onChange(value) {
-			Formats.bedrock.uv_rotation = value;
-			Formats.bedrock_block.uv_rotation = value;
-		}});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -572,6 +571,7 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('java_export_pivots', 	{category: 'export', value: true});
 		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),

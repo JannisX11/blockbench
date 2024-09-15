@@ -190,6 +190,13 @@ class Keybind {
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
 
+			case 106: return tl('keys.numpad', ['*']);
+			case 107: return tl('keys.numpad', ['+']);
+			case 108: return tl('keys.numpad', ['+']);
+			case 109: return tl('keys.numpad', ['-']);
+			case 110: return tl('keys.numpad', [',']);
+			case 111: return tl('keys.numpad', ['/']);
+
 			case 188: return ',';
 			case 190: return '.';
 			case 189: return '-';
@@ -532,7 +539,7 @@ onVueSetup(function() {
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
 					alt: tl('keys.alt'),
-					none: '',
+					'': '-',
 				} 
 			}},
 			methods: {
@@ -583,6 +590,9 @@ onVueSetup(function() {
 				},
 				hasSubKeybinds(item) {
 					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
+				},
+				hasVariationConflict(keybind, variation_key) {
+					return keybind[keybind.variations[variation_key]];
 				},
 				getVariationText(action, variation) {
 					return tl(action.variations?.[variation]?.name, null, variation);
@@ -657,6 +667,7 @@ onVueSetup(function() {
 								<li v-for="(value, option_key) in action.keybind.variations">
 									<label :title="getVariationDescription(action, option_key)">{{ getVariationText(action, option_key) }}</label>
 									<select-input v-model="action.keybind.variations[option_key]" @input="action.keybind.save(true)" :options="modifier_options" />
+									<i v-if="hasVariationConflict(action.keybind, option_key)" class="material-icons icon keybind_variation_conflict" title="${tl('keybindings.variation_conflict')}">warning</i>
 								</li>
 							</ul>
 
@@ -699,7 +710,7 @@ window.addEventListener('blur', event => {
 	Pressing.alt = false;
 	Pressing.ctrl = false;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
 
@@ -743,7 +754,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (modifiers_changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 
 	if (e.which === 16) {
@@ -993,6 +1004,6 @@ $(document).keyup(function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })

@@ -264,10 +264,12 @@ const UVEditor = {
 	},
 
 	updateOverlayCanvas() {
-		if (!Texture.selected) return;
+		if (!UVEditor.texture) return;
 		let canvas = UVEditor.overlay_canvas;
-		let texture = Texture.selected;
+		let texture = UVEditor.texture;
 		let ctx = canvas.getContext('2d');
+		canvas.width = texture.width;
+
 		if (BarItems.image_tiled_view.value == true) {
 			canvas.setAttribute('overlay_mode', 'tiled');
 			canvas.width = texture.width * 3;
@@ -296,7 +298,7 @@ const UVEditor = {
 					}
 				}
 			}
-		} else if (BarItems.image_onion_skin_view.value == true) {
+		} else if (BarItems.image_onion_skin_view.value == true && texture.frameCount > 2) {
 			canvas.setAttribute('overlay_mode', 'onion_skin');
 			let frames = [];
 			switch (Painter.image_onion_skin_view_options.frame) {
@@ -305,7 +307,7 @@ const UVEditor = {
 				case 'next': frames = [texture.currentFrame+1]; break;
 				case 'both': frames = [texture.currentFrame-1, texture.currentFrame+1]; break;
 			}
-			frames = frames.map(f => Math.clamp(f, 0, texture.frameCount-1)).filter(f => f != texture.currentFrame);
+			frames = frames.map(f => (f+texture.frameCount) % texture.frameCount).filter(f => f != texture.currentFrame);
 
 			if (Painter.image_onion_skin_view_options.display == 'transparent') {
 				canvas.width = texture.width;
@@ -330,6 +332,8 @@ const UVEditor = {
 				}
 			}
 		}
+		let is_above = BarItems.image_onion_skin_view.value && Painter.image_onion_skin_view_options.above;
+		canvas.classList.toggle('above', !!is_above);
 	},
 	//Get
 	get width() {
@@ -377,9 +381,9 @@ const UVEditor = {
 				: UVEditor.getUVWidth()
 		);
 	},
-	getFaces(element, event) {
+	getFaces(element, event, action) {
 		let available = Object.keys(element.faces)
-		if (event && event.shiftKey) {
+		if (event && (action ? action.keybind.additionalModifierTriggered(event, 'all_faces') : event.shiftKey)) {
 			return available;
 		} else {
 			return UVEditor.getSelectedFaces(element).filter(key => available.includes(key));
@@ -598,8 +602,10 @@ const UVEditor = {
 		let face = UVEditor.getReferenceFace();
 		if (face instanceof CubeFace) {
 			BarItems.uv_rotation.set((face && face.rotation)||0);
-			if (Format.java_face_properties) {
+			if (Format.cullfaces) {
 				BarItems.cullface.set(face.cullface||'off')
+			}
+			if (Format.java_face_properties) {
 				BarItems.face_tint.setIcon(face.tint !== -1 ? 'check_box' : 'check_box_outline_blank')
 				BarItems.slider_face_tint.update()
 			}
@@ -807,7 +813,7 @@ const UVEditor = {
 	maximize(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_maximize).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, scope.getResolution(0, obj.faces[side]), scope.getResolution(1, obj.faces[side])]
 			})
 			obj.autouv = 0;
@@ -819,7 +825,7 @@ const UVEditor = {
 	turnMapping(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_turn_mapping).forEach(function(side) {
 				var uv = obj.faces[side].uv_size;
 				obj.faces[side].uv_size = [uv[1], uv[0]];
 				if (uv[0] < 0) {
@@ -856,7 +862,7 @@ const UVEditor = {
 
 		this.getMappableElements().forEach(obj => {
 			let height, width;
-			let faces = face_keys || this.getFaces(obj, event);
+			let faces = face_keys || this.getFaces(obj, event, BarItems.uv_auto);
 			if (obj instanceof Cube) {
 				faces.forEach(function(side) {
 					let face = obj.faces[side];
@@ -996,7 +1002,7 @@ const UVEditor = {
 	setRelativeAutoSize(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_rel_auto).forEach(function(side) {
 				var uv = obj.faces[side].uv,
 					ru = scope.getResolution(0, obj.faces[side]),
 					rv = scope.getResolution(1, obj.faces[side]);
@@ -1065,7 +1071,7 @@ const UVEditor = {
 		var scope = this;
 		this.forElements(obj => {
 			if (obj instanceof Cube) {
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					var proxy = obj.faces[side].uv[0]
 					obj.faces[side].uv[0] = obj.faces[side].uv[2]
 					obj.faces[side].uv[2] = proxy
@@ -1073,7 +1079,7 @@ const UVEditor = {
 			} else if (obj instanceof Mesh) {
 				let min = Infinity;
 				let max = -Infinity;
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						min = Math.min(min, obj.faces[side].uv[vkey][0]);
 						max = Math.max(max, obj.faces[side].uv[vkey][0]);
@@ -1081,7 +1087,7 @@ const UVEditor = {
 				})
 				let center = Math.lerp(min, max, 0.5);
 
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][0] = center*2 - obj.faces[side].uv[vkey][0];
 					})
@@ -1097,7 +1103,7 @@ const UVEditor = {
 		var scope = this;
 		this.forElements(obj => {
 			if (obj instanceof Cube) {
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					var proxy = obj.faces[side].uv[1]
 					obj.faces[side].uv[1] = obj.faces[side].uv[3]
 					obj.faces[side].uv[3] = proxy
@@ -1105,7 +1111,7 @@ const UVEditor = {
 			} else if (obj instanceof Mesh) {
 				let min = Infinity;
 				let max = -Infinity;
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						min = Math.min(min, obj.faces[side].uv[vkey][1]);
 						max = Math.max(max, obj.faces[side].uv[vkey][1]);
@@ -1113,7 +1119,7 @@ const UVEditor = {
 				})
 				let center = Math.lerp(min, max, 0.5);
 
-				scope.getFaces(obj, event).forEach((side) => {
+				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					obj.faces[side].vertices.forEach(vkey => {
 						obj.faces[side].uv[vkey][1] = center*2 - obj.faces[side].uv[vkey][1];
 					})
@@ -1141,7 +1147,7 @@ const UVEditor = {
 		var scope = this;
 		Undo.initEdit({elements: Cube.selected, uv_only: true})
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_transparent).forEach(function(side) {
 				obj.faces[side].uv = [0, 0, 0, 0]
 				obj.faces[side].texture = null;
 			})
@@ -1248,7 +1254,7 @@ const UVEditor = {
 	autoCullface(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
 				obj.faces[side].cullface = side
 			})
 		})
@@ -1371,7 +1377,7 @@ const UVEditor = {
 	reset(event) {
 		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event).forEach(function(side) {
+			scope.getFaces(obj, event, BarItems.uv_reset).forEach(function(side) {
 				obj.faces[side].reset()
 			})
 			obj.preview_controller.updateFaces(obj);
@@ -1491,7 +1497,7 @@ const UVEditor = {
 		},
 		new MenuSeparator('face_options'),
 		'face_tint',
-		{icon: 'flip_to_back', condition: () => (Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
+		{icon: 'flip_to_back', condition: () => (Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace()), name: 'action.cullface' , children: function() {
 			let off = 'far.fa-circle';
 			let on = 'far.fa-dot-circle';
 			function setCullface(cullface) {
@@ -1551,6 +1557,7 @@ const UVEditor = {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t == UVEditor.texture,
 					click() {
 						UVEditor.applyTexture(t);
 					}
@@ -1646,6 +1653,12 @@ BARS.defineActions(function() {
 		icon: 'zoom_out_map',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('maximize', event)
@@ -1656,6 +1669,12 @@ BARS.defineActions(function() {
 		icon: 'screen_rotation',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) { 
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('turnMapping', event)
@@ -1666,6 +1685,12 @@ BARS.defineActions(function() {
 		icon: 'brightness_auto',
 		category: 'uv',
 		condition: () => (UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
@@ -1740,6 +1765,12 @@ BARS.defineActions(function() {
 		icon: 'brightness_auto',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('setRelativeAutoSize', event)
@@ -1750,6 +1781,12 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_x',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorX', event)
@@ -1760,6 +1797,12 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_y',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('mirrorY', event)
@@ -1770,6 +1813,12 @@ BARS.defineActions(function() {
 		icon: 'rotate_left',
 		category: 'uv',
 		condition: () => Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			UVEditor.rotate(-90);
@@ -1780,6 +1829,12 @@ BARS.defineActions(function() {
 		icon: 'rotate_right',
 		category: 'uv',
 		condition: () => Mesh.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			UVEditor.rotate(90);
@@ -1790,6 +1845,12 @@ BARS.defineActions(function() {
 		icon: 'clear',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			UVEditor.forSelection('clear', event)
 		}
@@ -1798,6 +1859,12 @@ BARS.defineActions(function() {
 		icon: 'replay',
 		category: 'uv',
 		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('reset', event)
@@ -1816,7 +1883,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -1836,7 +1903,13 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
+		keybind: new Keybind({}, {
+			all_faces: 'shift'
+		}),
+		variations: {
+			all_faces: {name: 'action.uv_maximize.all_faces'}
+		},
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('autoCullface', event)
@@ -2139,6 +2212,7 @@ Interface.definePanels(function() {
 			float_size: [500, 600],
 			height: 500
 		},
+		resizable: true,
 		toolbars: [
 			new Toolbar('uv_editor', {
 				children: [
@@ -2332,8 +2406,8 @@ Interface.definePanels(function() {
 							if (panel) this.height -= panel.height;
 						}
 
-					} else if (Panels.uv.slot.includes('_bar')) {
-						this.height = size * Math.clamp(this.uv_resolution[1] / this.uv_resolution[0], 0.5, 1);
+					} else if (Panels.uv.slot.includes('_bar') && !UVEditor.panel.fixed_height) {
+						this.height = size;
 
 					} else {
 						this.height = Math.clamp(
@@ -2354,8 +2428,10 @@ Interface.definePanels(function() {
 					UVEditor.updateSelectionOutline(false);
 				},
 				centerView() {
-					this.$refs.viewport.scrollLeft = this.width/2;
-					this.$refs.viewport.scrollTop = this.height/2;
+					if (this.$refs.viewport) {
+						this.$refs.viewport.scrollLeft = this.width/2;
+						this.$refs.viewport.scrollTop = this.height/2;
+					}
 					this.centered_view = true;
 				},
 				setMode(mode) {
@@ -2696,6 +2772,7 @@ Interface.definePanels(function() {
 						return {
 							name: tex.name,
 							icon: tex.img,
+							marked: tex == UVEditor.texture,
 							click(event) {
 								tex.select(event);
 							}
@@ -3885,6 +3962,7 @@ Interface.definePanels(function() {
 						return {
 							name: tex.name,
 							icon: tex.img,
+							marked: tex == UVEditor.texture,
 							click(event) {
 								UVEditor.applyTexture(tex);
 							}
@@ -3968,7 +4046,9 @@ Interface.definePanels(function() {
 									${tl('action.face_tint')}
 									<i class="material-icons">info</i>
 								</label>
+							</template>
 
+							<template v-if="checkFormat({cullfaces: true})">
 								<label style="width: 50px;" @click="showInfoBox('action.cullface', 'uv_editor.cullface.info')" title="${tl('uv_editor.cullface.info')}" class="flexible">
 									${tl('action.cullface')}
 									<i class="material-icons">info</i>
@@ -4006,7 +4086,9 @@ Interface.definePanels(function() {
 										<input type="checkbox" title="${tl('action.face_tint')}" :checked="mappable_elements[0].faces[key].tint > -1" @change="toggleFaceTint(key, $event)">
 										<input type="number" title="${tl('action.face_tint')}" style="width: 30px;" :value="mappable_elements[0].faces[key].tint" min="0" step="1" @input="changeFaceTint(key, $event)" v-if="mappable_elements[0].faces[key].tint > -1">
 									</div>
+								</template>
 
+								<template v-if="checkFormat({cullfaces: true})">
 									<select-input class="flexible" title="${tl('action.cullface')}" :value="mappable_elements[0].faces[key].cullface" @input="setCullface(key, $event)" :options="cullface_options" />
 								</template>
 

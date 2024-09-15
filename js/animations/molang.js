@@ -3,7 +3,7 @@ Animator.MolangParser.global_variables = {
 	true: 1,
 	false: 0,
 	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode) / 1000
+		let time = (performance.now() - Timeline.last_frame_timecode) / 1000
 		if (time < 0) time += 1
 		return Math.clamp(time, 0, 0.1)
 	},
@@ -29,6 +29,12 @@ Animator.MolangParser.global_variables = {
 			return all_finished ? 1 : 0
 		}
 		return 0
+	},
+	get 'query.state_time'() {
+		if (AnimationController.selected?.selected_state) {
+			AnimationController.selected.selected_state.getStateTime();
+		}
+		return Timeline.time
 	},
 	get 'query.any_animation_finished'() {
 		if (AnimationController.selected?.selected_state) {
@@ -773,6 +779,9 @@ function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'life_time',
+				})
+				.addQuery({
+					id: 'state_time',
 				})
 				.addQuery({
 					id: 'yaw_speed',

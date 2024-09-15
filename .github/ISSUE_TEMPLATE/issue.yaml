@@ -29,6 +29,7 @@ body:
   id: format
   attributes:
     label: Model format in which the issue occurs
+    description: Format means which option you choose when creating a new model. Not the file extension.
   validations:
     required: true
 - type: dropdown

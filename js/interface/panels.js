@@ -694,6 +694,10 @@ class Panel extends EventSystem {
 			}
 			if (!this.fixed_height) this.node.classList.remove('fixed_height');
 
+			if (this.sidebar_resize_handle) {
+				this.sidebar_resize_handle.style.display = (this.slot == 'left_bar' || this.slot == 'right_bar') ? 'block' : 'none';
+			}
+
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
 			this.node.classList.add('hidden');

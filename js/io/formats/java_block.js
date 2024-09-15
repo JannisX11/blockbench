@@ -50,7 +50,7 @@ var codec = new Codec('java_block', {
 			if (s.light_emission) {
 				element.light_emission = s.light_emission;
 			}
-			if (!s.rotation.allEqual(0) || !s.origin.allEqual(0)) {
+			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
 				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({
 					angle: s.rotation[getAxisNumber(axis)],
@@ -532,6 +532,7 @@ var format = new ModelFormat({
 	uv_rotation: true,
 	java_cube_shading_properties: true,
 	java_face_properties: true,
+	cullfaces: true,
 	animated_textures: true,
 	select_texture_for_particles: true,
 	texture_mcmeta: true,

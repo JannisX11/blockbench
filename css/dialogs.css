@@ -628,7 +628,7 @@
 	}
 	.settings_list li .setting_icon i {
 		font-size: 26pt;
-		width: 34px;
+		max-width: unset;
 		margin-top: -6px;
 	}
 	.settings_list li:hover .setting_icon i {
@@ -740,6 +740,11 @@
 	}
 	.keybind_item_variations > li > bb-select {
 		margin-right: 54px;
+	}
+	.keybind_variation_conflict {
+		color: var(--color-warning);
+		margin-left: -22px;
+		width: 22px;
 	}
 
 	/*Colors*/
@@ -2091,6 +2096,67 @@
 		text-align: right;
 		direction: rtl;
 	}
+/* Animation Controller curves */
+	
+	dialog#blend_transition_edit .blend_transition_graph_wrapper {
+		margin-top: 6px;
+		margin-bottom: 10px;
+		display: flex;
+	}
+	#blend_transition_graph {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		position: relative;
+		overflow: hidden;
+		cursor: crosshair;
+	}
+	#blend_transition_graph svg {
+		height: 100%;
+		width: 100%;
+		pointer-events: none;
+	}
+	#blend_transition_graph svg path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-accent);
+	}
+	.blend_transition_graph_point {
+		position: absolute;
+		width: 11px;
+		height: 11px;
+		background-color: var(--color-accent);
+		margin: -1px;
+		transform: rotate(45deg);
+		transform-origin: center;
+	}
+	.blend_transition_graph_point:hover {
+		background-color: var(--color-light);
+	}
+	.blend_transition_graph_point::before {
+		content: "";
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		left: -6px;
+		top: -6px;
+		cursor: move;
+	}
+	.blend_transition_preview {
+		width: 12px;
+		height: auto;
+		position: relative;
+		background-color: var(--color-back);
+		margin-left: 8px;
+	}
+	.blend_transition_preview > div {
+		background-color: var(--color-accent);
+		position: absolute;
+		height: calc(var(--progress) * 100%);
+		width: 100%;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
 
 /* Texture Edit */
 	div.texture_adjust_previews {
@@ -2482,6 +2548,9 @@
 		cursor: inherit;
 		object-fit: contain;
 		image-rendering: auto;
+	}
+	#tab_overview_grid > li.pixel_art img {
+		image-rendering: pixelated;
 	}
 	#tab_overview_grid > li label {
 		cursor: inherit;
