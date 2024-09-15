@@ -725,7 +725,7 @@ class Texture {
 	}
 	updateMaterial() {
 		if (Format.image_editor) return this;
-		let mat = this.getMaterial();
+		let mat = this.getOwnMaterial();
 
 		mat.name = this.name;
 		mat.uniforms.EMISSIVE.value = this.render_mode == 'emissive';
@@ -881,7 +881,14 @@ class Texture {
 		return this;
 	}
 	getMaterial() {
-		return Project.materials[this.uuid]
+		let group = this.getGroup();
+		if (group?.is_material) {
+			return group.getMaterial();
+		}
+		return Project.materials[this.uuid];
+	}
+	getOwnMaterial() {
+		return Project.materials[this.uuid];
 	}
 	//Management
 	select(event) {
@@ -1741,7 +1748,7 @@ class Texture {
 		this.ctx.globalCompositeOperation = 'source-over';
 
 		if (!Format.image_editor && this.getMaterial()) {
-			this.getMaterial().map.needsUpdate = true;
+			this.getOwnMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {
 			this.internal = true;
@@ -1756,7 +1763,7 @@ class Texture {
 		} else {
 			if (!this.internal) this.convertToInternal();
 			if (!Format.image_editor) {
-				this.getMaterial().map.needsUpdate = true;
+				this.getOwnMaterial().map.needsUpdate = true;
 			}
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
@@ -1849,7 +1856,7 @@ class Texture {
 				name: 'menu.texture.pbr_channel',
 				condition: (texture) => texture.getGroup()?.is_material,
 				children(texture) {
-					function setViewMode(channel) {
+					function applyChannel(channel) {
 						let group = texture.getGroup();
 						let changed_textures = group.getTextures();
 
@@ -1858,13 +1865,14 @@ class Texture {
 						changed_textures.forEach(t =>  {
 							t.updateMaterial();
 						});
+						if (group) group.updateMaterial();
 						Undo.finishEdit('Change texture PBR channel');
 					}
 					return [
-						{name: 'menu.texture.pbr_channel.color', icon: texture.pbr_channel == 'color' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('color')}},
-						{name: 'menu.texture.pbr_channel.normal', icon: texture.pbr_channel == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('normal')}},
-						{name: 'menu.texture.pbr_channel.height', icon: texture.pbr_channel == 'height' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('height')}},
-						{name: 'menu.texture.pbr_channel.mer', icon: texture.pbr_channel == 'mer' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('mer')}},
+						{name: 'menu.texture.pbr_channel.color', icon: texture.pbr_channel == 'color' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('color')}},
+						{name: 'menu.texture.pbr_channel.normal', icon: texture.pbr_channel == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('normal')}},
+						{name: 'menu.texture.pbr_channel.height', icon: texture.pbr_channel == 'height' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('height')}},
+						{name: 'menu.texture.pbr_channel.mer', icon: texture.pbr_channel == 'mer' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('mer')}},
 					]
 				}
 			},
@@ -2251,18 +2259,57 @@ BARS.defineActions(function() {
 				arr.push('textures')
 				start_path = arr.join(osfs)
 			}
+			let extensions = ['png', 'tga'];
+			if (isApp) {
+				extensions.push('texture_set.json');
+			}
 			Blockbench.import({
 				resource_id: 'texture',
 				readtype: 'image',
 				type: 'PNG Texture',
-				extensions: ['png', 'tga'],
+				extensions,
 				multiple: true,
 				startpath: start_path
-			}, function(results) {
-				let new_textures = [];
+			}, function(files) {
+				let new_textures = [], new_texture_groups = [];
 				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
-				Undo.initEdit({textures: new_textures});
-				results.forEach(function(f) {
+				Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
+				files.forEach((f) => {
+					if (f.name.endsWith('texture_set.json')) {
+						let texture_group = new TextureGroup({is_material: true});
+						texture_group.name = f.name.replace('.texture_set.json', '');
+
+						let content = fs.readFileSync(f.path, {encoding: 'utf-8'});
+						let content_json = autoParseJSON(content);
+
+						if (content_json && content_json['minecraft:texture_set']) {
+							let channels = {
+								color: 'color',
+								normal: 'normal',
+								heightmap: 'height',
+								metalness_emissive_roughness: 'mer',
+							};
+							for (let key in channels) {
+								let source = content_json['minecraft:texture_set'][key];
+								if (typeof source == 'string') {
+									let path = PathModule.resolve(f.path, '../' + source + '.png');
+									Blockbench.read([path], {
+										readtype: 'image',
+									}, ([file2]) => {
+										let t = new Texture({
+											name: file2.name,
+											pbr_channel: channels[key]
+										}).fromFile(file2).add(false, true).fillParticle();
+										new_textures.push(t);
+										t.group = texture_group.uuid;
+									})
+								}
+							}
+						}
+						new_texture_groups.push(texture_group);
+						texture_group.add(false);
+						return;
+					}
 					let t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle();
 					new_textures.push(t);
 					if (texture_group) {

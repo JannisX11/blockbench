@@ -29,7 +29,7 @@ const Painter = {
 
 		if (options.no_undo && options.use_cache) {
 			texture.updateLayerChanges();
-			let map = texture.getMaterial().map;
+			let map = texture.getOwnMaterial().map;
 			map.needsUpdate = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {

@@ -7,6 +7,12 @@ class TextureGroup {
 			TextureGroup.properties[key].reset(this);
 		}
 		if (data) this.extend(data);
+
+		this._static = Object.freeze({
+			properties: {
+				material: null
+			}
+		})
 	}
 	extend(data) {
 		for (let key in TextureGroup.properties) {
@@ -16,6 +22,9 @@ class TextureGroup {
 	}
 	add() {
 		TextureGroup.all.push(this);
+		if (this.is_material) {
+			this.updateMaterial();
+		}
 		return this;
 	}
 	select() {
@@ -65,6 +74,67 @@ class TextureGroup {
 			TextureGroup.properties[key].copy(this, copy)
 		}
 		return copy;
+	}
+
+	updateMaterial() {
+		let material = this._static.properties.material;
+		if (!material) {
+			//let g = new THREE.PMREMGenerator(Preview.selected.renderer);
+			//let pmrem_render_target = g.fromScene(Canvas.scene);
+			// https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
+			material = this._static.properties.material = new THREE.MeshStandardMaterial({
+				//envMap: pmrem_render_target
+			});
+		}
+		let textures = this.getTextures();
+		let color_tex = textures.find(t => t.pbr_channel == 'color');
+		let normal_tex = textures.find(t => t.pbr_channel == 'normal');
+		let height_tex = textures.find(t => t.pbr_channel == 'height');
+		let mer_tex = textures.find(t => t.pbr_channel == 'mer');
+		if (color_tex) {
+			material.map = color_tex.getOwnMaterial().map;
+		}
+		if (normal_tex) {
+			material.normalMap = normal_tex.getOwnMaterial().map;
+			material.bumpMap = null;
+
+		} else if (height_tex) {
+			material.bumpMap = height_tex.getOwnMaterial().map;
+			material.normalMap = null;
+		}
+		if (mer_tex && mer_tex.img?.naturalWidth) {
+			let image_data = mer_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
+			function generateMap(source_channel, target_channel, key) {
+				let canvas = material[key]?.image ?? document.createElement('canvas');
+				let ctx = canvas.getContext('2d');
+				canvas.width = mer_tex.width;
+				canvas.height = mer_tex.height;
+				ctx.fillStyle = 'red';
+				ctx.fillRect(0, 0, mer_tex.width, mer_tex.height);
+				document.body.append(canvas)
+
+				let image_data_new = ctx.getImageData(0, 0, mer_tex.width, mer_tex.height);
+				for (let i = 0; i < image_data.data.length; i += 4) {
+					image_data_new.data[i + target_channel] = image_data.data[i + source_channel];
+				}
+				ctx.putImageData(image_data_new, 0, 0);
+
+				if (!material[key] || true) {
+					material[key] = new THREE.Texture(canvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.NearestFilter, THREE.NearestFilter);
+					material[key].needsUpdate = true;
+				}
+			}
+			generateMap(0, 2, 'metalnessMap');
+			generateMap(1, 0, 'emissiveMap');
+			generateMap(2, 1, 'roughnessMap');
+		}
+		material.needsUpdate = true;
+	}
+	getMaterial() {
+		if (!this._static.properties.material) {
+			this.updateMaterial();
+		}
+		return this._static.properties.material;
 	}
 }
 Object.defineProperty(TextureGroup, 'all', {

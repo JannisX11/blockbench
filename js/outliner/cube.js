@@ -1172,7 +1172,7 @@ new NodePreviewController(Cube, {
 				if (element.faces[face].texture !== null) {
 					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
-						materials.push(Project.materials[tex.uuid])
+						materials.push(tex.getMaterial())
 					} else {
 						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 					}

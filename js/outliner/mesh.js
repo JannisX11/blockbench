@@ -1118,7 +1118,7 @@ new NodePreviewController(Mesh, {
 				if (faces[key].vertices.length < 3) continue;
 				var tex = faces[key].getTexture()
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[element.color])
 				}

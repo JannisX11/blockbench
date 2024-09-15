@@ -104,8 +104,13 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+
+		
+		let pmremGenerator = new THREE.PMREMGenerator( Preview.selected.renderer );
+		Canvas.scene.environment = pmremGenerator.fromCubemap(this.cubemap).texture;
+
 		if (this.fov) {
 			Preview.selected.setFOV(this.fov);
 		}
