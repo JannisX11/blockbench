@@ -472,6 +472,11 @@ class AnimationControllerState {
 					step: 0.05,
 					type: 'number',
 				},
+				extended_graph: {
+					label: 'dialog.blend_transition_edit.extended',
+					value: false,
+					type: 'checkbox',
+				},
 				buttons: {
 					type: 'buttons', buttons: [
 						'generic.reset',
@@ -521,6 +526,7 @@ class AnimationControllerState {
 								easeInBounce: 'In Bounce',
 								easeInOutBounce: 'In Out Bounce',
 							};
+							let initial_points = points.slice();
 							new Dialog('blend_transition_edit_easing', {
 								title: 'dialog.blend_transition_edit.generate',
 								width: 380,
@@ -529,10 +535,15 @@ class AnimationControllerState {
 									curve: {type: 'select', label: 'dialog.blend_transition_edit.generate.curve', options: easings},
 									steps: {type: 'number', label: 'dialog.blend_transition_edit.generate.steps', value: 10, step: 1, min: 3, max: 64}
 								},
+								onFormChange(result) {
+									generate(Easings[result.curve], result.steps);
+								},
 								onConfirm(result) {
-									console.log(result);
-									let easing_func = Easings[result.curve];
-									generate(easing_func, result.steps);
+									generate(Easings[result.curve], result.steps);
+								},
+								onCancel() {
+									points.replace(initial_points);
+									dialog.content_vue.updateGraph();
 								}
 							}).show();
 
@@ -552,22 +563,26 @@ class AnimationControllerState {
 					duration,
 					points,
 					graph_data: '',
+					zero_line: '',
 					preview_value: 0,
 					width: Math.min(340, window.innerWidth - 42),
-					height: 220
+					height: 220,
+					scale_y: 220
 				}},
 				methods: {
 					dragPoint(point, e1) {
 						let scope = this;
 						let original_time = point.time;
 						let original_value = point.value;
+						let scale_y = this.scale_y;
 						
 						let drag = (e2) => {
 							point.time = original_time + (e2.clientX - e1.clientX) / this.width;
-							point.value = original_value - (e2.clientY - e1.clientY) / this.height;
+							point.value = original_value - (e2.clientY - e1.clientY) / scale_y;
 							point.time = Math.clamp(point.time, 0, 1);
-							point.value = Math.clamp(point.value, 0, 1);
-							Blockbench.setCursorTooltip(`${Math.roundTo(point.time * this.duration, 4)} x ${Math.roundTo(point.time, 4)}`);
+							let limits = (this.scale_y > 188) ? [0, 1] : [-1, 2];
+							point.value = Math.clamp(point.value, ...limits);
+							Blockbench.setCursorTooltip(`${Math.roundTo(point.time * this.duration, 4)} x ${Math.roundTo(point.value, 4)}`);
 
 							scope.updateGraph();
 						}
@@ -581,10 +596,11 @@ class AnimationControllerState {
 					},
 					createNewPoint(event) {
 						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
+						let offset_y = (this.height - this.scale_y) / 2;
 						let point = {
 							uuid: guid,
 							time: (event.offsetX - 5) / this.width,
-							value: 1 - ((event.offsetY - 5) / this.height),
+							value: 1 - ((event.offsetY - 5 - offset_y) / this.scale_y),
 						}
 						this.points.push(point);
 						this.updateGraph();
@@ -602,19 +618,29 @@ class AnimationControllerState {
 							}
 						}]).open(event.target);
 					},
+					scaleY() {
+						let max_offset = 0;
+						for (let point of points) {
+							max_offset = Math.max(max_offset, -point.value, point.value-1);
+						}
+						return max_offset > 0.01 ? 90 : this.height;
+					},
 					updateGraph() {
 						if (!this.points.length) {
 							this.graph_data = '';
 							return;
 						}
 						let offset = 5;
+						let offset_y = 5 + (this.height - this.scale_y) / 2;
 						this.points.sort((a, b) => a.time - b.time);
-						let graph_data = `M${0} ${(1-this.points[0].value) * this.height + offset} `;
+						let graph_data = `M${0} ${(1-this.points[0].value) * this.scale_y + offset_y} `;
 						for (let point of this.points) {
-							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.height + offset} `;
+							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.scale_y + offset_y} `;
 						}
-						graph_data += `L${this.width + 10} ${(1-points.last().value) * this.height + offset} `;
+						graph_data += `L${this.width + 10} ${(1-points.last().value) * this.scale_y + offset_y} `;
 						this.graph_data = graph_data;
+
+						this.zero_line = `M0 ${offset_y} L${this.width} ${offset_y} M0 ${offset_y + this.scale_y} L${this.width} ${offset_y + this.scale_y}`;
 					},
 					preview() {
 						if (this.points.length == 0) return 0;
@@ -649,16 +675,17 @@ class AnimationControllerState {
 							:style="{height: (height+10) + 'px', width: (width+10) + 'px'}"
 						>
 							<svg>+
-								<path :d="graph_data"></path>
+								<path :d="graph_data" />
+								<path :d="zero_line" class="zero_lines" />
 							</svg>
 							<div class="blend_transition_graph_point"
 								v-for="point in points"
-								:style="{left: point.time * width + 'px', top: (1-point.value) * height + 'px'}"
+								:style="{left: point.time * width + 'px', top: ( (1-point.value) * scale_y + (height-scale_y)/2 ) + 'px'}"
 								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
 								@contextmenu="contextMenu(point, $event)"
 							></div>
 						</div>
-						<div class="blend_transition_preview" :style="{'--progress': preview_value}">
+						<div class="blend_transition_preview" :style="{'--progress': scale_y > 200 ? preview_value : (1+preview_value) / 3}">
 							<div />
 						</div>
 					</div>
@@ -669,6 +696,8 @@ class AnimationControllerState {
 			},
 			onFormChange(result) {
 				this.content_vue.duration = result.duration;
+				this.content_vue.scale_y = result.extended_graph ? 220 / 3 : 220;
+				this.content_vue.updateGraph();
 			},
 			onConfirm(result) {
 				clearInterval(preview_loop);

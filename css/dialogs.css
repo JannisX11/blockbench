@@ -2120,6 +2120,11 @@
 		stroke-width: 2px;
 		stroke: var(--color-accent);
 	}
+	#blend_transition_graph svg path.zero_lines {
+		fill: none;
+		stroke-width: 1px;
+		stroke: var(--color-grid);
+	}
 	.blend_transition_graph_point {
 		position: absolute;
 		width: 11px;
@@ -2147,6 +2152,7 @@
 		position: relative;
 		background-color: var(--color-back);
 		margin-left: 8px;
+		overflow: hidden;
 	}
 	.blend_transition_preview > div {
 		background-color: var(--color-accent);
