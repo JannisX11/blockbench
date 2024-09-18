@@ -2212,6 +2212,7 @@ Interface.definePanels(function() {
 			float_size: [500, 600],
 			height: 500
 		},
+		min_height: 200,
 		resizable: true,
 		toolbars: [
 			new Toolbar('uv_editor', {

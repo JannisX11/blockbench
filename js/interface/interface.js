@@ -154,9 +154,9 @@ const Interface = {
 	},
 	getLeftPanels() {
 		let list = [];
-		for (let key in Panels) {
+		for (let key of Interface.getModeData().left_bar) {
 			let panel = Panels[key];
-			if (panel.slot == 'left_bar' && Condition(panel.condition)) {
+			if (panel && panel.slot == 'left_bar' && Condition(panel.condition)) {
 				list.push(panel);
 			}
 		}
@@ -164,9 +164,9 @@ const Interface = {
 	},
 	getRightPanels() {
 		let list = [];
-		for (let key in Panels) {
+		for (let key of Interface.getModeData().right_bar) {
 			let panel = Panels[key];
-			if (panel.slot == 'right_bar' && Condition(panel.condition)) {
+			if (panel && panel.slot == 'right_bar' && Condition(panel.condition)) {
 				list.push(panel);
 			}
 		}
