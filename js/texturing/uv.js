@@ -3894,6 +3894,71 @@ Interface.definePanels(function() {
 						height: this.toPixels(box[3] - box[1], 0),
 					};
 				},
+				getUVNavigatorPosition() {
+					let early_return = {display: 'none'};
+					let mappable_element = this.mappable_elements.find(el => el.getSelectedFaces && el.getSelectedFaces()?.length)
+					if (!mappable_element) return early_return;
+					let box = this.getSelectedUVBoundingBox();
+					if (!box) return early_return;
+
+					let uv_viewport = this.$refs.viewport;
+					if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return early_return;
+					let offset = [
+						(uv_viewport.scrollLeft - this.width/2) / this.inner_width,
+						(uv_viewport.scrollTop - this.height/2) / this.inner_height
+					];
+					let {zoom, uv_resolution} = this;
+					let view_box = [
+						offset[0] * uv_resolution[0],
+						offset[1] * uv_resolution[1],
+						(offset[0] + this.width/this.inner_width) * uv_resolution[0],
+						(offset[1] + this.width/this.inner_width) * uv_resolution[1],
+					];
+
+					let [x1_1, y1_1, x2_1, y2_1] = box;
+					let [x1_2, y1_2, x2_2, y2_2] = view_box;
+					let out_of_view = (x2_1 < x1_2 || x1_1 > x2_2 || y2_1 < y1_2 || y1_1 > y2_2);
+					if (!out_of_view) return early_return;
+
+					let direction = Math.atan2(
+						Math.lerp(y1_2, y2_2, 0.5) - Math.lerp(y1_1, y2_1, 0.5),
+						Math.lerp(x1_2, x2_2, 0.5) - Math.lerp(x1_1, x2_1, 0.5),
+					);
+					let screen_offset = uv_viewport.getBoundingClientRect();
+					let style = {
+						'--rotation': Math.radToDeg(direction) + 'deg',
+						left: (screen_offset.x) + 'px',
+						top: (screen_offset.y) + 'px',
+					};
+					let rotation_range = Math.round(2 * direction / Math.PI);
+					console.log(rotation_range);
+					switch (rotation_range) {
+						case 2: case -2: {
+							style.left = (screen_offset.x + this.width - 25) + 'px';
+							style.top = (screen_offset.x + this.height/2 - 12) + 'px';
+							break;
+						}
+						case -1: {
+							style.left = (screen_offset.x + this.width/2 - 12) + 'px';
+							style.top = (screen_offset.x + this.height - 25) + 'px';
+							break;
+						}
+						case 0: {
+							style.left = (screen_offset.x) + 'px';
+							style.top = (screen_offset.x + this.height/2 - 12) + 'px';
+							break;
+						}
+						case 1: {
+							style.left = (screen_offset.x + this.width/2 - 12) + 'px';
+							style.top = (screen_offset.x) + 'px';
+							break;
+						}
+					}
+					return style;
+				},
+				focusOnSelection() {
+					UVEditor.focusOnSelection();
+				},
 				showTransparentFaceText() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
 				},
@@ -4291,6 +4356,10 @@ Interface.definePanels(function() {
 								<path :d="selection_outline" />
 								<path :d="selection_outline" class="dash_overlay" />
 							</svg>
+						</div>
+
+						<div class="uv_navigator" :style="getUVNavigatorPosition()" @click="focusOnSelection()">
+							<i class="material-icons icon">line_start_arrow</i>
 						</div>
 
 						<div class="uv_transparent_face" v-else-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>

@@ -2224,6 +2224,23 @@ span.controller_state_section_info {
 		font-size: 16px;
 		padding-top: 2px;
 	}
+	.uv_navigator {
+		position: fixed;
+		height: 25px;
+		width: 25px;
+		cursor: pointer;
+		z-index: 16;
+		border-radius: 50%;
+		background-color: var(--color-accent);
+		padding: 1px;
+	}
+	.uv_navigator:hover {
+		color: var(--color-light);
+	}
+	.uv_navigator > .icon {
+		transform-origin: center;
+		transform: rotate(var(--rotation));
+	}
 	#uv_selection_outline {
 		--color-selection-outline-a: black;
 		--color-selection-outline-b: white;
