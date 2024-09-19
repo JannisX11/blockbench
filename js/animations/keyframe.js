@@ -154,6 +154,7 @@ class Keyframe {
 				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
 			}
 		}
+		value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
 		this.set(axis, value, data_point)
 		return value;
 	}
