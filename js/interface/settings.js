@@ -565,13 +565,14 @@ const Settings = {
 			spaces_4: tl('settings.json_indentation.spaces_4'),
 			spaces_2: tl('settings.json_indentation.spaces_2'),
 		}});
-		new Setting('final_newline',		{category: 'export', value: false});
-		new Setting('minifiedout',			{category: 'export', value: false});
-		new Setting('embed_textures', 		{category: 'export', value: true});
-		new Setting('minify_bbmodel', 		{category: 'export', value: true});
-		new Setting('export_empty_groups',	{category: 'export', value: true});
-		new Setting('export_groups', 		{category: 'export', value: true});
-		new Setting('java_export_pivots', 	{category: 'export', value: true});
+		new Setting('final_newline',			{category: 'export', value: false});
+		new Setting('minifiedout',				{category: 'export', value: false});
+		new Setting('embed_textures',			{category: 'export', value: true});
+		new Setting('absolute_texture_paths',	{category: 'export', value: true});
+		new Setting('minify_bbmodel', 			{category: 'export', value: true});
+		new Setting('export_empty_groups',		{category: 'export', value: true});
+		new Setting('export_groups', 			{category: 'export', value: true});
+		new Setting('java_export_pivots', 		{category: 'export', value: true});
 		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),

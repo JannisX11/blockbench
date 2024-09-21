@@ -186,7 +186,9 @@ var codec = new Codec('project', {
 				t.source = tex.getDataURL()
 				t.internal = true;
 			}
-			if (options.absolute_paths == false) delete t.path;
+			if (options.absolute_paths != true && (!Settings.get('absolute_texture_paths') || options.absolute_paths == false)) {
+				delete t.path;
+			}
 			model.textures.push(t);
 		})
 		for (let texture_group of TextureGroup.all) {
