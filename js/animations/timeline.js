@@ -1806,7 +1806,8 @@ BARS.defineActions(function() {
 		click: function () {
 			let was_playing = Timeline.playing;
 			if (Timeline.playing) Timeline.pause();
-			Timeline.setTime(0);
+			let time = Timeline.custom_range[0] || 0;
+			Timeline.setTime(time);
 			if (was_playing) {
 				Timeline.start();
 			} else {
@@ -1823,7 +1824,8 @@ BARS.defineActions(function() {
 		click: function () {
 			let was_playing = Timeline.playing;
 			if (Timeline.playing) Timeline.pause();
-			Timeline.setTime(Animation.selected ? Animation.selected.length : 0)
+			let time = Timeline.custom_range[1] || (Animation.selected ? Animation.selected.length : 0);
+			Timeline.setTime(time);
 			if (was_playing) {
 				Timeline.start();
 			} else {
@@ -1867,6 +1869,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click() {
 			Timeline.custom_range.set(0, Timeline.time);
+			BARS.updateConditions();
 		}
 	})
 	new Action('set_timeline_range_end', {
@@ -1875,15 +1878,17 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click() {
 			Timeline.custom_range.set(1, Timeline.time);
+			BARS.updateConditions();
 		}
 	})
 	new Action('disable_timeline_range', {
 		icon: 'code_off',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		condition: () => Timeline.custom_range[1],
+		condition: () => Timeline.custom_range[0] || Timeline.custom_range[1],
 		click() {
 			Timeline.custom_range.replace([0, 0]);
+			BARS.updateConditions();
 		}
 	})
 
