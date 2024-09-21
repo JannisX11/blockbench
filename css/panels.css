@@ -111,7 +111,7 @@
 	.panel.fixed_height {
 		flex-grow: 0;
 	}
-	.panel.bottommost_panel {
+	.panel.bottommost_panel:not(.topmost_panel) {
 		margin-top: auto;
 	}
 

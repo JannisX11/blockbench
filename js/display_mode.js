@@ -234,6 +234,7 @@ class refModel {
 		this.name = tl('display.reference.'+id);
 		this.id = id;
 		this.icon = options.icon || id;
+		this.condition = options.condition;
 		this.initialized = false;
 		this.pose_angles = {};
 
@@ -1211,7 +1212,7 @@ window.displayReferenceObjects = {
 		armor_stand: 		new refModel('armor_stand', {icon: 'icon-armor_stand'}),
 		baby_zombie: 		new refModel('baby_zombie', {icon: 'icon-baby_zombie'}),
 		armor_stand_small:  new refModel('armor_stand_small', {icon: 'icon-armor_stand_small'}),
-		fox: 				new refModel('fox', {icon: 'pets'}),
+		fox: 				new refModel('fox', {icon: 'pets', condition: {formats: ['java_block']}}),
 		monitor: 			new refModel('monitor', {icon: 'fa-asterisk'}),
 		bow: 				new refModel('bow', {icon: 'icon-bow'}),
 		crossbow: 			new refModel('crossbow', {icon: 'icon-crossbow'}),
@@ -1227,11 +1228,8 @@ window.displayReferenceObjects = {
 	},
 	active: '',
 	bar: function(buttons) {
-		$('#display_ref_bar').html('')
-		if (buttons.length === 10000) {
-			this.refmodels[buttons[0]].load()
-			return;
-		}
+		buttons = buttons.filter(id => Condition(this.refmodels[id]));
+		$('#display_ref_bar').html('');
 		if (buttons.length < 2) {
 			$('.reference_model_bar').css('visibility', 'hidden')
 		} else {

@@ -679,6 +679,7 @@ class Panel extends EventSystem {
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
 				this.node.classList.remove('bottommost_panel');
+				this.node.classList.remove('topmost_panel');
 			} else {
 				this.node.style.width = this.node.style.height = this.node.style.left = this.node.style.top = null;
 			}
@@ -721,6 +722,10 @@ class Panel extends EventSystem {
 			if ((slot == 'right_bar' && Interface.getRightPanels().last() == this) || (slot == 'left_bar' && Interface.getLeftPanels().last() == this)) {
 				this.node.parentElement?.childNodes.forEach(n => n.classList.remove('bottommost_panel'));
 				this.node.classList.add('bottommost_panel');
+			}
+			if ((slot == 'right_bar' && Interface.getRightPanels()[0] == this) || (slot == 'left_bar' && Interface.getLeftPanels()[0] == this)) {
+				this.node.parentElement?.childNodes.forEach(n => n.classList.remove('topmost_panel'));
+				this.node.classList.add('topmost_panel');
 			}
 
 			if (Panels[this.id] && this.onResize) this.onResize()
@@ -802,8 +807,12 @@ function updateSidebarOrder() {
 			let panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
 				panel.node.classList.remove('bottommost_panel');
+				panel.node.classList.remove('topmost_panel');
 				bar_node.append(panel.node);
 				if (Condition(panel.condition)) {
+					if (panel_count == 0) {
+						panel.node.classList.add('topmost_panel');
+					}
 					panel_count++;
 					last_panel = panel;
 				}
