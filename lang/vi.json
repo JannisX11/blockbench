@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Ẩn tay cầm của các khung hình chính Bézier hiện không được chọn",
 	"settings.embed_textures": "Nhúng kết cấu",
 	"settings.embed_textures.desc": "Nhúng nội dung tệp kết cấu vào tệp .bbmodel",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Cụm",
 	"dialog.copied_to_clipboard": "Đã sao chép vào bảng tạm",
 	"data.reference_image": "Ảnh tham chiếu",

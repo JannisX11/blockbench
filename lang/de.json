@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Verstecke die Beziergriffe von Keyframes, die nicht ausgewählt sind",
 	"settings.embed_textures": "Texturen einbetten",
 	"settings.embed_textures.desc": "Bette den Inhalt von Texturen in die .bbmodel-Datei ein",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Zusammenhängend",
 	"dialog.copied_to_clipboard": "In Zwischenablage kopiert",
 	"data.reference_image": "Referenzbild",

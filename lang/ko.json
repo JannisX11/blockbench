@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "현재 선택되지 않은 베지어 키프레임의 핸들 숨기기",
 	"settings.embed_textures": "텍스쳐 임베드",
 	"settings.embed_textures.desc": "텍스쳐 파일 콘텐츠를 .bbmodel 파일에 임베드",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "클러스터",
 	"dialog.copied_to_clipboard": "클립보드에 복사됨",
 	"data.reference_image": "참조용 이미지",

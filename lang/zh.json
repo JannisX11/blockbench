@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "隐藏未选中的贝塞尔手柄",
 	"settings.embed_textures": "嵌入纹理",
 	"settings.embed_textures.desc": "嵌入纹理到 .bbmodel 工程文件",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Cluster",
 	"dialog.copied_to_clipboard": "复制到剪贴板",
 	"data.reference_image": "参考图像",

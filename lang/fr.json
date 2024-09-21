@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Masque les poignées de Bézier des images clés qui ne sont pas actuellement sélectionnées",
 	"settings.embed_textures": "Intégrer les textures",
 	"settings.embed_textures.desc": "Intégrer le contenu des fichiers de texture dans les fichiers .bbmodel",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Cluster",
 	"dialog.copied_to_clipboard": "Copié dans le presse-papiers",
 	"data.reference_image": "Image de référence",

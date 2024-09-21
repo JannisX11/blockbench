@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Приховати дескриптори кадрів Безьє, які наразі не вибрано",
 	"settings.embed_textures": "Вбудувати текстури",
 	"settings.embed_textures.desc": "Вбудувати вміст файлів текстур у файли .bbmodel",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Кластер",
 	"dialog.copied_to_clipboard": "Скопійовано до буфера обміну",
 	"data.reference_image": "Еталонне зображення",

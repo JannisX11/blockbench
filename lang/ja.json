@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "選択されていないベジェハンドルを非表示にします",
 	"settings.embed_textures": "テクスチャの埋め込み",
 	"settings.embed_textures.desc": "テクスチャファイルを .bbmodel ファイルに埋め込みます",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "クラスター",
 	"dialog.copied_to_clipboard": "クリップボードにコピーしました",
 	"data.reference_image": "参考画像",

@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
 	"settings.embed_textures": "Embed Textures",
 	"settings.embed_textures.desc": "Embed texture file content in .bbmodel files",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Cluster",
 	"dialog.copied_to_clipboard": "Copied to clipboard",
 	"data.reference_image": "Reference Image",

@@ -1760,6 +1760,8 @@
 	"settings.only_selected_bezier_handles.desc": "Handvatten van bézier-hoofdframes verbergen die momenteel niet zijn geselecteerd",
 	"settings.embed_textures": "Sluit Texturen In",
 	"settings.embed_textures.desc": "Inhoud van textuurbestanden insluiten in .bbmodel-bestanden",
+	"settings.absolute_texture_paths": "Absolute Texture Paths",
+	"settings.absolute_texture_paths.desc": "Include absolute texture paths in .bbmodel files",
 	"action.selection_mode.cluster": "Kluster",
 	"dialog.copied_to_clipboard": "Kopieer naar klembord",
 	"data.reference_image": "Referentiebeeld",
