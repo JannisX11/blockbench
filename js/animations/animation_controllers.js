@@ -464,6 +464,20 @@ class AnimationControllerState {
 		let dialog = new Dialog('blend_transition_edit', {
 			title: 'animation_controllers.state.blend_transition_curve',
 			width: 418,
+			keyboard_actions: {
+				copy: {
+					keybind: new Keybind({key: 'c', ctrl: true}),
+					run() {
+						this.content_vue.copy();
+					}
+				},
+				paste: {
+					keybind: new Keybind({key: 'v', ctrl: true}),
+					run() {
+						this.content_vue.paste();
+					}
+				}
+			},
 			form: {
 				duration: {
 					label: 'animation_controllers.state.blend_transition',
@@ -598,7 +612,7 @@ class AnimationControllerState {
 						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
 						let offset_y = (this.height - this.scale_y) / 2;
 						let point = {
-							uuid: guid,
+							uuid: guid(),
 							time: (event.offsetX - 5) / this.width,
 							value: 1 - ((event.offsetY - 5 - offset_y) / this.scale_y),
 						}
@@ -606,8 +620,54 @@ class AnimationControllerState {
 						this.updateGraph();
 						this.dragPoint(point, event);
 					},
-					contextMenu(point, event) {
-						let points = this.points;
+					copy() {
+						let copy = points.map(p => ({time: p.time, value: p.value}));
+						Clipbench.setText(JSON.stringify(copy));
+					},
+					async paste() {
+						let input;
+						if (isApp) {
+							input = clipboard.readText();
+						} else {
+							input = await navigator.clipboard.readText();
+						}
+						if (!input) return;
+						try {
+							let parsed = JSON.parse(input);
+							if (!(parsed instanceof Array)) return;
+							points.empty();
+							for (let point_data of parsed) {
+								let point = {
+									uuid: guid(),
+									time: point_data.time ?? 0,
+									value: point_data.value ?? 0,
+								}
+								points.push(point);
+							}
+							this.updateGraph();
+
+						} catch (err) {}
+					},
+					contextMenu(event) {
+						new Menu([
+							{
+								id: 'copy',
+								name: 'action.copy',
+								icon: 'fa-copy',
+								click: () => {
+									this.copy();
+								}
+							}, {
+								id: 'paste',
+								name: 'action.paste',
+								icon: 'fa-clipboard',
+								click: () => {
+									this.paste();
+								}
+							}
+						]).open(event);
+					},
+					pointContextMenu(point, event) {
 						new Menu([{
 							id: 'remove',
 							name: 'generic.remove',
@@ -668,7 +728,7 @@ class AnimationControllerState {
 					}
 				},
 				template: `
-					<div class="blend_transition_graph_wrapper">
+					<div class="blend_transition_graph_wrapper" @contextmenu="contextMenu($event)">
 						<div id="blend_transition_graph"
 							@mousedown="createNewPoint($event)"
 							@touchstart="createNewPoint($event)"
@@ -679,10 +739,10 @@ class AnimationControllerState {
 								<path :d="zero_line" class="zero_lines" />
 							</svg>
 							<div class="blend_transition_graph_point"
-								v-for="point in points"
+								v-for="point in points" :key="point.uuid"
 								:style="{left: point.time * width + 'px', top: ( (1-point.value) * scale_y + (height-scale_y)/2 ) + 'px'}"
 								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
-								@contextmenu="contextMenu(point, $event)"
+								@contextmenu.stop="pointContextMenu(point, $event)"
 							></div>
 						</div>
 						<div class="blend_transition_preview" :style="{'--progress': scale_y > 200 ? preview_value : (1+preview_value) / 3}">
