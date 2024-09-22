@@ -399,6 +399,7 @@ new ValidatorCheck('zero_wide_uv_faces', {
 			};
 			for (let fkey in cube.faces) {
 				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
 				let uv_size = face.uv_size;
 				let size_issue;
 				for (let i of [0, 1]) {
