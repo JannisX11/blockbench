@@ -182,11 +182,11 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [Wanwin](https://wan-win.com/#3darts) & Artem x",
+					description: "Splash Art 1st Place by [BonoGakure](https://twitter.com/bonogakure) & [GlenFebrian](https://twitter.com/glenn_turu)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [BonoGakure](https://twitter.com/bonogakure) & [GlenFebrian](https://twitter.com/glenn_turu)",
+					description: "Splash Art 2nd Place by [Wanwin](https://wan-win.com/#3darts) & Artem x",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
