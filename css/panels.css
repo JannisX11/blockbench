@@ -768,6 +768,7 @@
 		margin-left: 4px;
 		max-width: 36%;
 		overflow: hidden;
+		padding-right: 7px;
 	}
 	.texture_group_mini_icon_list > .texture_mini_icon {
 		width: 24px;
