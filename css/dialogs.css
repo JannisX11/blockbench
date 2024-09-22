@@ -170,6 +170,9 @@
 	.dialog_bar > .molang_input {
 		width: calc(100% - var(--max_label_width));
 	}
+	.dialog_bar.form_bar.small_text {
+		word-break: break-word;
+	}
 	/*.dialog_bar::after {
 		content: "";
 		clear: both;
@@ -673,6 +676,7 @@
 	.keybind_line > div:first-child {
 		flex-grow: 1;
 		flex-shrink: 1;
+		flex-basis: 0;
 		padding: 4px;
 		padding-left: 8px;
 		display: flex;
@@ -718,6 +722,29 @@
 		height: 30px;
 		width: 25px;
 		float: right;
+	}
+	.keybind_item_variations > li {
+		display: flex;
+		margin-bottom: 2px;
+	}
+	.keybind_item_variations > li > label {
+		color: var(--color-subtle_text);
+		padding: 3px;
+		padding-left: 15px;
+		width: 30px;
+	}
+	.keybind_item_variations > li > * {
+		flex-grow: 1;
+		flex-shrink: 0;
+		width: 0;
+	}
+	.keybind_item_variations > li > bb-select {
+		margin-right: 54px;
+	}
+	.keybind_variation_conflict {
+		color: var(--color-warning);
+		margin-left: -22px;
+		width: 22px;
 	}
 
 	/*Colors*/
@@ -787,7 +814,7 @@
 		float: left;
 		padding: 6px;
 		border: 2px solid transparent;
-		background-color: var(--color-ui);
+		background-color: var(--color-back);
 		color: var(--color-text);
 		cursor: pointer;
 	}
@@ -799,16 +826,23 @@
 	#theme_list .theme.selected {
 		border-color: var(--color-accent);
 	}
+	#theme_list .theme > .theme_preview {
+		margin-bottom: 4px;
+	}
 	#theme_list .theme * {
 		cursor: inherit;
 	}
-	.theme_name, .theme_author {
-		float: left;
-		margin-top: 4px;
-		margin-bottom: -4px;
+	.theme_name {
+		display: inline-block;
 	}
 	.theme_author {
+		color: var(--color-subtle_text);
+	}
+	.theme_type_icon {
 		float: right;
+		margin-right: 5px;
+	}
+	.theme_type_icon > i {
 		color: var(--color-subtle_text);
 	}
 
@@ -1242,6 +1276,7 @@
 	}
 	#plugin_list > li {
 		overflow-y: hidden;
+		position: relative;
 		margin: 12px;
 		padding: 8px 12px;
 		padding-bottom: 12px;
@@ -1281,6 +1316,10 @@
 		max-width: unset;
 		margin-top: 8px;
 		display: inline-block;
+	}
+	.plugin_icon_area img.icon {
+		height: auto;
+		margin-top: 0;
 	}
 	.plugin_icon_area img {
 		border-radius: 8px;
@@ -1349,6 +1388,10 @@
 	}
 	.plugin_installed_tag {
 		color: var(--color-confirm);
+	}
+	#plugin_list .plugin_installed_tag {
+		position: absolute;
+		right: 4px;
 	}
 	dialog#plugins .version {
 		display: inline-block;
@@ -1602,6 +1645,7 @@
 		width: 320px;
 		margin-bottom: -26px;
 		margin-top: -20px;
+		image-rendering: auto;
 	}
 	.plugins_suggested_row {
 		width: 100%;
@@ -2043,6 +2087,82 @@
 		right: 0;
 		background: var(--color-back);
 	}
+/* Animation import */
+	dialog#animation_import .form_bar__path {
+		padding: 2px;
+		color: var(--color-subtle_text);
+		overflow-x: auto;
+		white-space: nowrap;
+		text-align: right;
+		direction: rtl;
+	}
+/* Animation Controller curves */
+	
+	dialog#blend_transition_edit .blend_transition_graph_wrapper {
+		margin-top: 6px;
+		margin-bottom: 10px;
+		display: flex;
+	}
+	#blend_transition_graph {
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		position: relative;
+		overflow: hidden;
+		cursor: crosshair;
+	}
+	#blend_transition_graph svg {
+		height: 100%;
+		width: 100%;
+		pointer-events: none;
+	}
+	#blend_transition_graph svg path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-accent);
+	}
+	#blend_transition_graph svg path.zero_lines {
+		fill: none;
+		stroke-width: 1px;
+		stroke: var(--color-grid);
+	}
+	.blend_transition_graph_point {
+		position: absolute;
+		width: 11px;
+		height: 11px;
+		background-color: var(--color-accent);
+		margin: -1px;
+		transform: rotate(45deg);
+		transform-origin: center;
+	}
+	.blend_transition_graph_point:hover {
+		background-color: var(--color-light);
+	}
+	.blend_transition_graph_point::before {
+		content: "";
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		left: -6px;
+		top: -6px;
+		cursor: move;
+	}
+	.blend_transition_preview {
+		width: 12px;
+		height: auto;
+		position: relative;
+		background-color: var(--color-back);
+		margin-left: 8px;
+		overflow: hidden;
+	}
+	.blend_transition_preview > div {
+		background-color: var(--color-accent);
+		position: absolute;
+		height: calc(var(--progress) * 100%);
+		width: 100%;
+		bottom: 0;
+		left: 0;
+		right: 0;
+	}
 
 /* Texture Edit */
 	div.texture_adjust_previews {
@@ -2222,6 +2342,10 @@
 		color: var(--color-light);
 	}
 	.flipbook_frame.viewing {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	.flipbook_frame.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}

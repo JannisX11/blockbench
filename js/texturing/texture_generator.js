@@ -47,7 +47,6 @@ const TextureGenerator = {
 
 				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
-				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && Project.box_uv && form.rearrange_uv)},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
 				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: ((form) => (form.type == 'template' && form.rearrange_uv))},
 				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
@@ -80,7 +79,6 @@ const TextureGenerator = {
 			form: {
 				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (!Project.box_uv && Cube.all.length)},
-				compress: 	{label: 'dialog.create_texture.compress', description: 'dialog.create_texture.compress.desc', type: 'checkbox', value: true, condition: (form) => Project.box_uv},
 				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: Math.isPowerOfTwo(texture.width)},
 				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true},
 				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (Mesh.selected.length)},
@@ -95,11 +93,7 @@ const TextureGenerator = {
 				if (Format.single_texture) {
 					options.texture = Texture.getDefault()
 				}
-				if (Project.box_uv || options.box_uv) {
-					TextureGenerator.generateBoxTemplate(options, texture);
-				} else {
-					TextureGenerator.generateFaceTemplate(options, texture);
-				}
+				TextureGenerator.generateTemplate(options, texture);
 				return false;
 			}
 		}).show()
@@ -143,11 +137,7 @@ const TextureGenerator = {
 			return texture;
 		}
 		if (options.type == 'template') {
-			if (Project.box_uv || options.box_uv) {
-				TextureGenerator.generateBoxTemplate(options, makeTexture);
-			} else {
-				TextureGenerator.generateFaceTemplate(options, makeTexture);
-			}
+			TextureGenerator.generateTemplate(options, makeTexture);
 		} else if (options.type == 'color_map') {
 			TextureGenerator.generateColorMapTemplate(options, makeTexture);
 		} else {
@@ -188,320 +178,6 @@ const TextureGenerator = {
 		this.height = this.z + this.y;
 		this.width = 2* (this.x + this.z);
 		return this;	
-	},
-	//BoxUV Template
-	generateBoxTemplate(options, makeTexture) {
-		var res = options.resolution;
-		var background_color = options.color;
-		var texture = options.texture;
-		var min_size = (Project.box_uv || options.box_uv) ? 0 : 1;
-		var res_multiple = res / 16
-		var templates = [];
-		var doubles = {};
-		var extend_x = 0;
-		var extend_y = 0;
-		var avg_size = 0;
-		var new_resolution = [];
-		var cubes = (Format.single_texture && typeof makeTexture == 'function') ? Cube.all.slice() : Cube.selected.slice();
-
-		Undo.initEdit({
-			textures: makeTexture instanceof Texture ? [makeTexture] : [],
-			elements: cubes,
-			uv_only: true,
-			bitmap: true,
-			selected_texture: true,
-			uv_mode: true
-		})
-
-		for (var i = cubes.length-1; i >= 0; i--) {
-			let obj = cubes[i];
-			if (obj.visibility === true) {
-				let template = new TextureGenerator.boxUVCubeTemplate(obj, min_size);
-				let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[obj.uuid] && MirrorModeling.cached_elements[obj.uuid].is_copy;
-				if (mirror_modeling_duplicate) continue;
-
-				if (options.double_use && Project.box_uv && Texture.all.length) {
-					let double_key = [...obj.uv_offset, ...obj.size(undefined, true), ].join('_')
-					if (doubles[double_key]) {
-						// improve chances that original is not mirrored
-						if (doubles[double_key][0].obj.mirror_uv && !obj.mirror_uv) {
-							templates[templates.indexOf(doubles[double_key][0])] = template;
-							doubles[double_key].splice(0, 0, template)
-						} else {
-							doubles[double_key].push(template)
-						}
-						doubles[double_key][0].duplicates = doubles[double_key];
-						continue;
-					} else {
-						doubles[double_key] = [template]
-					}
-				}
-				templates.push(template)
-				avg_size += templates[templates.length-1].template_size
-			}
-		}
-		//Cancel if no cubes
-		if (templates.length == 0) {
-			if (Mesh.selected.length) {
-				Blockbench.showMessageBox({
-					title: 'message.no_valid_elements',
-					message: 'message.meshes_and_box_uv',
-					icon: 'fa-gem'
-				})
-			} else {
-				Blockbench.showMessage('message.no_valid_elements', 'center');
-			}
-			return;
-
-		} else if (Mesh.selected.length) {
-			Blockbench.showMessage('message.meshes_and_box_uv', 'center');
-		}
-		templates.sort(function(a,b) {
-			return b.template_size - a.template_size;
-		})
-
-		if (options.rearrange_uv) {
-
-			if (options.compress || makeTexture instanceof Texture) {
-				var fill_map = {};
-
-				if (makeTexture instanceof Texture) {
-					extend_x = makeTexture.width / res_multiple;
-					extend_y = makeTexture.height / res_multiple;
-					Cube.all.forEach(element => {
-						for (let fkey in element.faces) {
-							let face = element.faces[fkey];
-							if (face.getTexture() !== makeTexture) continue;
-
-							let rect = face.getBoundingRect();
-							for (let x = Math.floor(rect.ax); x < Math.ceil(rect.bx); x++) {
-								for (let y = Math.floor(rect.ay); y < Math.ceil(rect.by); y++) {
-									if (!fill_map[x]) fill_map[x] = {};
-									fill_map[x][y] = true;
-								}
-							}
-							
-						}
-					})
-				}
-
-				function occupy(x, y) {
-					if (!fill_map[x]) fill_map[x] = {}
-					fill_map[x][y] = true
-				}
-				function check(x, y) {
-					return fill_map[x] && fill_map[x][y]
-				}
-				function forTemplatePixel(tpl, sx, sy, cb) {
-					let w = tpl.width;
-					let h = tpl.height;
-					if (options.padding) {
-						w++; h++;
-					}
-					for (var x = 0; x < w; x++) {		
-						for (var y = 0; y < h; y++) {
-							if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x + (options.padding ? 1 : 0)))) {
-								if (cb(sx+x, sy+y)) return;
-							}
-						}
-					}
-				}
-				function place(tpl, x, y) {
-					var works = true;
-					forTemplatePixel(tpl, x, y, (tx, ty) => {
-						if (check(tx, ty)) {
-							works = false;
-							return true;
-						}
-					})
-					if (works) {
-						forTemplatePixel(tpl, x, y, occupy)
-						tpl.posx = x;
-						tpl.posy = y;
-						extend_x = Math.max(extend_x, x + tpl.width);
-						extend_y = Math.max(extend_y, y + tpl.height);
-						return true;
-					}
-				}
-				templates.forEach(tpl => {
-					var vert = extend_x > extend_y;
-					//Scan for empty spot
-
-					for (var line = 0; line < 2e3; line++) {
-						for (var space = 0; space <= line; space++) {
-							if (place(tpl, space, line)) return;
-							if (space == line) continue;
-							if (place(tpl, line, space)) return;
-						}
-					}
-				})
-			} else {
-				//OLD -------------------------------------------
-				var lines = [[]]
-				var line_length = Math.sqrt(cubes.length/2)
-				avg_size /= templates.length
-				var o = 0
-				var i = 0
-				var ox = 0
-				templates.forEach(function(tpl) {
-					if (ox >= line_length) {
-						o = ox = 0
-						i++
-						lines[i] = []
-					}
-					lines[i][o] = tpl
-					o++;
-					ox += tpl.template_size/avg_size
-				})
-
-				lines.forEach(function(temps) {
-
-					var x_pos = 0
-					var y_pos = 0 //Y Position of current area relative to this bone
-					var filled_x_pos = 0;
-					var max_height = 0
-					//Find the maximum height of the line
-					temps.forEach(function(t) {
-						max_height = Math.max(max_height, t.height + (options.padding ? 1 : 0))
-					})
-					//Place
-					temps.forEach(function(t) {
-						let w = t.width;
-						let h = t.height;
-						if (options.padding) {
-							w++; h++;
-						} 
-						if (y_pos > 0 && (y_pos + h) <= max_height) {
-							//same column
-							t.posx = x_pos
-							t.posy = y_pos + extend_y
-							filled_x_pos = Math.max(filled_x_pos, x_pos + w)
-							y_pos += h
-						} else {
-							//new column
-							x_pos = filled_x_pos
-							y_pos = h
-							t.posx = x_pos
-							t.posy = extend_y
-							filled_x_pos = Math.max(filled_x_pos, x_pos + w)
-						}
-						//size of widest bone
-						extend_x = Math.max(extend_x, filled_x_pos)
-					})
-					extend_y += max_height
-				})
-			}
-			
-			var max_size = Math.max(extend_x, extend_y);
-			if (options.power) {
-				max_size = Math.getNextPower(max_size, 16);
-			} else {
-				max_size = Math.ceil(max_size/16)*16;
-			}
-			new_resolution = [max_size, max_size];
-		} else {
-			new_resolution = [Project.texture_width, Project.texture_height];
-		}
-
-		if (background_color) {
-			background_color = background_color.toRgbString()
-		}
-		let canvas = document.createElement('canvas');
-		let ctx = canvas.getContext('2d');
-		ctx.imageSmoothingEnabled = false;
-		if (makeTexture instanceof Texture) {
-			if (makeTexture.mode === 'link') {
-				makeTexture.convertToInternal();
-			}
-			canvas.width = Math.max(new_resolution[0] * res_multiple, makeTexture.width);
-			canvas.height = Math.max(new_resolution[1] * res_multiple, makeTexture.height);
-			ctx.drawImage(makeTexture.img, 0, 0);
-		} else {
-			canvas.width = new_resolution[0] * res_multiple;
-			canvas.height = new_resolution[1] * res_multiple;
-		}
-
-		
-		//Drawing
-		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
-
-		templates.forEach(function(t) {
-			if (options.rearrange_uv) {
-				t.obj.uv_offset[0] = t.posx;
-				t.obj.uv_offset[1] = t.posy;
-				if (Project.box_uv || Format.optional_box_uv) t.obj.box_uv = true;
-				//if true, dupes must be flipped
-				let reverse_flip = t.obj.mirror_uv;
-				t.obj.mirror_uv = false;
-
-				if (t.duplicates) {
-					t.duplicates.forEach(dupl => {
-						if (dupl.obj !== t.obj) {
-							dupl.obj.mirror_uv = dupl.obj.mirror_uv !== reverse_flip;
-						}
-					})
-				}
-			}
-			TextureGenerator.paintCubeBoxTemplate(t.obj, texture, canvas, t, false, res_multiple);
-		})
-
-		var dataUrl = canvas.toDataURL()
-		var texture = typeof makeTexture == 'function' ? makeTexture(dataUrl) : makeTexture;
-		if (makeTexture instanceof Texture) {
-			makeTexture.updateSource(dataUrl);
-		}
-		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
-
-		if (texture) {
-			cubes.forEach(function(cube) {
-				if (!Format.single_texture) {
-					cube.applyTexture(texture, true);
-				}
-				cube.preview_controller.updateUV(cube);
-				cube.autouv = 0;
-			})
-		}
-		if (options.box_uv && !Project.box_uv && Project.optional_box_uv) {
-			Project.box_uv = true;
-		}
-		templates.forEach(function(t) {
-			if (options.rearrange_uv) {
-				t.obj.uv_offset[0] = t.posx;
-				t.obj.uv_offset[1] = t.posy;
-
-				if (t.duplicates) {
-					t.duplicates.forEach(dupl => {
-						if (dupl.obj !== t.obj) {
-							dupl.obj.uv_offset[0] = t.posx;
-							dupl.obj.uv_offset[1] = t.posy;
-						}
-					})
-				}
-			}
-		})
-
-		updateSelection()
-		let updated_elements = cubes.slice();
-		updated_elements.safePush(...affected_elements);
-		Undo.finishEdit('Create template', {
-			textures: [texture],
-			bitmap: true,
-			elements: updated_elements,
-			selected_texture: true,
-			uv_only: true,
-			uv_mode: true
-		})
-		// Warning
-		if (cubes.find(cube => {
-			let size = cube.size();
-			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
-		})) {
-			Blockbench.showMessageBox({
-				title: 'message.small_face_dimensions.title',
-				message: tl('message.small_face_dimensions.message') + (Format.optional_box_uv ? '\n\n' + tl('message.small_face_dimensions.face_uv') : ''),
-				icon: 'warning',
-			})
-		}
 	},
 	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas, res_multiple) {
 		if (typeof background_color === 'string') {
@@ -594,7 +270,7 @@ const TextureGenerator = {
 	paintCubeBoxTemplate(cube, texture, canvas, template, transparent, res_multiple) {
 
 		if (!template) {
-			template = new TextureGenerator.boxUVCubeTemplate(cube, Project.box_uv ? 0 : 1);
+			template = new TextureGenerator.boxUVCubeTemplate(cube, cube.box_uv ? 0 : 1);
 		}
 		
 		for (var face in TextureGenerator.face_data) {
@@ -647,11 +323,13 @@ const TextureGenerator = {
 		}
 	},
 	//Face Template
-	generateFaceTemplate(options, makeTexture) {
-
+	async generateTemplate(options, makeTexture) {
 		let res_multiple = options.resolution / 16;
 		let background_color = options.color;
 		let new_resolution = [];
+		let box_uv_templates = [];
+		let doubles = {};
+		let avg_size = 0;
 
 		let vec1 = new THREE.Vector3(),
 			vec2 = new THREE.Vector3(),
@@ -698,6 +376,28 @@ const TextureGenerator = {
 			return uv_id + ':' + (texture ? texture.uuid : 'blank');
 		}
 
+		let cancelled = false;
+		const progress_dialog = new Dialog('generate_template_progress', {
+			title: 'action.create_texture',
+			cancel_on_click_outside: false,
+			progress_bar: {},
+			buttons: ['dialog.cancel'],
+			onCancel() {
+				Undo.cancelEdit(false);
+				cancelled = true;
+				Blockbench.setProgress();
+			}
+		});
+		progress_dialog.show();
+
+		let last_timeout = performance.now();
+		async function setProgress(progress) {
+			Blockbench.setProgress(progress);
+			progress_dialog.progress_bar.setProgress(progress ?? 0);
+			await new Promise(resolve => setTimeout(resolve, 1));
+			last_timeout = performance.now();
+		}
+
 		Undo.initEdit({
 			textures: makeTexture instanceof Texture ? [makeTexture] : [],
 			elements: element_list,
@@ -711,28 +411,56 @@ const TextureGenerator = {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
 			if (element instanceof Cube) {
-				for (let fkey in element.faces) {
-					let face = element.faces[fkey];
-					let tex = face.getTexture();
-					if (tex !== null) {
-						let face_old_pos_id;
-						if (tex instanceof Texture) {
-							face_old_pos_id = faceOldPositionIdentifier(face);
-							if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
-							double_use_faces[face_old_pos_id].push([element, face]);
+				if (element.box_uv || options.box_uv) {
+					
+					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
+					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
+					if (mirror_modeling_duplicate) return;
+	
+					if (options.double_use && Texture.all.length) {
+						let double_key = [...element.uv_offset, ...element.size(undefined, true), ].join('_')
+						if (doubles[double_key]) {
+							// improve chances that original is not mirrored
+							if (doubles[double_key][0].obj.mirror_uv && !element.mirror_uv) {
+								box_uv_templates[box_uv_templates.indexOf(doubles[double_key][0])] = template;
+								doubles[double_key].splice(0, 0, template)
+							} else {
+								doubles[double_key].push(template)
+							}
+							doubles[double_key][0].duplicates = doubles[double_key];
+							return;
+						} else {
+							doubles[double_key] = [template]
 						}
-						let x = 0;
-						let y = 0;
-						switch (fkey) {
-							case 'north': x = element.size(0); y = element.size(1); break;
-							case 'east':  x = element.size(2); y = element.size(1); break;
-							case 'south': x = element.size(0); y = element.size(1); break;
-							case 'west':  x = element.size(2); y = element.size(1); break;
-							case 'up':	  x = element.size(0); y = element.size(2); break;
-							case 'down':  x = element.size(0); y = element.size(2); break;
+					}
+					element.box_uv = true;
+					box_uv_templates.push(template)
+					avg_size += box_uv_templates[box_uv_templates.length-1].template_size
+					
+				} else {
+					for (let fkey in element.faces) {
+						let face = element.faces[fkey];
+						let tex = face.getTexture();
+						if (tex !== null) {
+							let face_old_pos_id;
+							if (tex instanceof Texture) {
+								face_old_pos_id = faceOldPositionIdentifier(face);
+								if (!double_use_faces[face_old_pos_id]) double_use_faces[face_old_pos_id] = [];
+								double_use_faces[face_old_pos_id].push([element, face]);
+							}
+							let x = 0;
+							let y = 0;
+							switch (fkey) {
+								case 'north': x = element.size(0); y = element.size(1); break;
+								case 'east':  x = element.size(2); y = element.size(1); break;
+								case 'south': x = element.size(0); y = element.size(1); break;
+								case 'west':  x = element.size(2); y = element.size(1); break;
+								case 'up':	  x = element.size(0); y = element.size(2); break;
+								case 'down':  x = element.size(0); y = element.size(2); break;
+							}
+							let face_rect = new faceRect(element, fkey, tex, x, y, face_old_pos_id);
+							face_list.push(face_rect);
 						}
-						let face_rect = new faceRect(element, fkey, tex, x, y, face_old_pos_id);
-						face_list.push(face_rect);
 					}
 				}
 			} else {
@@ -1108,16 +836,25 @@ const TextureGenerator = {
 			}
 		})
 
-		if (face_list.length == 0) {
-			Blockbench.showMessage('message.no_valid_elements', 'center')
+		if (face_list.length == 0 && box_uv_templates.length == 0) {
+			progress_dialog.close();
+			Blockbench.showMessage('message.no_valid_elements', 'center');
 			return;
 		}
 
+		if (options.box_uv && !Project.box_uv) {
+			Project.box_uv = true;
+		}
+
+		box_uv_templates.sort(function(a,b) {
+			return b.template_size - a.template_size;
+		})
+
 		if (options.rearrange_uv) {
 
-			var extend_x = 0;
-			var extend_y = 0;
-			var fill_map = {};
+			let extend_x = 0;
+			let extend_y = 0;
+			let fill_map = {};
 
 			// When appending to template, mark already used spots as occupied
 			if (makeTexture instanceof Texture) {
@@ -1146,6 +883,15 @@ const TextureGenerator = {
 					}
 				})
 			}
+
+			
+			var max_size = Math.max(extend_x, extend_y);
+			if (options.power) {
+				max_size = Math.getNextPower(max_size, 16);
+			} else {
+				max_size = Math.ceil(max_size/16)*16;
+			}
+			new_resolution = [max_size, max_size];
 
 			// Check for double occupancy
 			if (options.double_use) {
@@ -1184,6 +930,24 @@ const TextureGenerator = {
 			face_list.sort(function(a,b) {
 				return b.size - a.size;
 			})
+
+			
+			/*function forTemplatePixel(tpl, sx, sy, cb) {
+				let w = tpl.width;
+				let h = tpl.height;
+				if (options.padding) {
+					w++; h++;
+				}
+				for (var x = 0; x < w; x++) {		
+					for (var y = 0; y < h; y++) {
+						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x + (options.padding ? 1 : 0)))) {
+							if (cb(sx+x, sy+y)) return;
+						}
+					}
+				}
+			}*/
+
+
 
 			function occupy(x, y) {
 				if (!fill_map[x]) fill_map[x] = {}
@@ -1238,16 +1002,41 @@ const TextureGenerator = {
 					return true;
 				}
 			}
-			face_list.forEach(tpl => {
+
+			let total = (box_uv_templates.length * 6 + face_list.length) * 1.05;
+			let handled = 0;
+			outer_loop:
+			for (let tpl of box_uv_templates) {
+				if (performance.now() - last_timeout > 24) {
+					await setProgress(handled/total);
+				}
+				if (cancelled) return;
+				handled += 6;
+				//Scan for empty spot
+				for (let line = 0; line < 2e3; line++) {
+					for (let space = 0; space <= line; space++) {
+						if (place(tpl, space, line)) continue outer_loop;
+						if (space == line) continue;
+						if (place(tpl, line, space)) continue outer_loop;
+					}
+				}
+			}
+			outer_loop2:
+			for (let tpl of face_list) {
+				if (performance.now() - last_timeout > 24) {
+					await setProgress(handled/total);
+				}
+				if (cancelled) return;
+				handled += 1;
 				//Scan for empty spot
 				for (var line = 0; line < 2e3; line++) {
 					for (var space = 0; space <= line; space++) {
-						if (place(tpl, space, line)) return;
+						if (place(tpl, space, line)) continue outer_loop2;
 						if (space == line) continue;
-						if (place(tpl, line, space)) return;
+						if (place(tpl, line, space)) continue outer_loop2;
 					}
 				}
-			})
+			}
 
 			
 			var max_size = Math.max(extend_x, extend_y)
@@ -1275,6 +1064,8 @@ const TextureGenerator = {
 			})
 		}
 
+		await setProgress(1);
+
 		if (background_color) {
 			background_color = background_color.toRgbString()
 		}
@@ -1292,6 +1083,8 @@ const TextureGenerator = {
 			canvas.width = new_resolution[0] * res_multiple;
 			canvas.height = new_resolution[1] * res_multiple;
 		}
+
+		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
 
 		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
 			let matrix = {};
@@ -1635,8 +1428,10 @@ const TextureGenerator = {
 									}
 								}
 								if (!face.uv[vkey]) face.uv[vkey] = [];
-								face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] + source.posx;
-								face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] + source.posy;
+								if (source.vertex_uvs[source_fkey][source_vkey]) {
+									face.uv[vkey][0] = source.vertex_uvs[source_fkey][source_vkey][0] + source.posx;
+									face.uv[vkey][1] = source.vertex_uvs[source_fkey][source_vkey][1] + source.posy;
+								}
 							})
 						})
 					}
@@ -1649,6 +1444,26 @@ const TextureGenerator = {
 				applyUV(ftemp, ftemp);
 			}
 		})
+		box_uv_templates.forEach((t) => {
+			if (options.rearrange_uv) {
+				t.obj.uv_offset[0] = t.posx;
+				t.obj.uv_offset[1] = t.posy;
+				if (Project.box_uv || Format.optional_box_uv) t.obj.box_uv = true;
+				//if true, dupes must be flipped
+				let reverse_flip = t.obj.mirror_uv;
+				t.obj.mirror_uv = false;
+
+				if (t.duplicates) {
+					t.duplicates.forEach(dupl => {
+						if (dupl.obj !== t.obj) {
+							dupl.obj.mirror_uv = dupl.obj.mirror_uv !== reverse_flip;
+						}
+					})
+				}
+			}
+			TextureGenerator.paintCubeBoxTemplate(t.obj, options.texture, canvas, t, false, res_multiple);
+		})
+
 		var dataUrl = canvas.toDataURL()
 		let texture = typeof makeTexture == 'function' ? makeTexture(dataUrl) : makeTexture;
 		if (makeTexture instanceof Texture) {
@@ -1673,6 +1488,23 @@ const TextureGenerator = {
 				}
 			})
 		}
+		if (options.rearrange_uv) {
+			box_uv_templates.forEach(function(t) {
+				t.obj.uv_offset[0] = t.posx;
+				t.obj.uv_offset[1] = t.posy;
+
+				if (t.duplicates) {
+					t.duplicates.forEach(dupl => {
+						if (dupl.obj !== t.obj) {
+							dupl.obj.uv_offset[0] = t.posx;
+							dupl.obj.uv_offset[1] = t.posy;
+						}
+					})
+				}
+			})
+		}
+
+
 		updateSelection()
 		setTimeout(Canvas.updatePixelGrid, 1);
 		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
@@ -1683,6 +1515,20 @@ const TextureGenerator = {
 			uv_only: true,
 			uv_mode: true
 		})
+		progress_dialog.close();
+		setProgress();
+		// Warning
+		if (element_list.find(element => {
+			if (element instanceof Cube == false || !element.box_uv) return false;
+			let size = element.size();
+			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
+		})) {
+			Blockbench.showMessageBox({
+				title: 'message.small_face_dimensions.title',
+				message: tl('message.small_face_dimensions.message') + (Format.optional_box_uv ? '\n\n' + tl('message.small_face_dimensions.face_uv') : ''),
+				icon: 'warning',
+			})
+		}
 	},
 	generateColorMapTemplate(options, cb) {
 
@@ -1727,7 +1573,7 @@ const TextureGenerator = {
 		}
 		new_resolution = [max_size, max_size];
 
-		if (background_color.getAlpha() != 0) {
+		if (background_color && background_color.getAlpha() != 0) {
 			background_color = background_color.toRgbString()
 		}
 		var canvas = document.createElement('canvas')

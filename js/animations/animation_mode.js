@@ -26,7 +26,7 @@ const Animator = {
 			if (paths.length) {
 				Blockbench.read(paths, {}, files => {
 					files.forEach(file => {
-						Animator.importFile(file);
+						Animator.importFile(file, true);
 					})
 				})
 			}
@@ -318,6 +318,7 @@ const Animator = {
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
 			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
+			let blend_value = last_state?.calculateBlendValue(blend_progress) ?? blend_progress;
 
 			// Active State
 			Timeline.time = state_time;
@@ -328,13 +329,13 @@ const Animator = {
 				let animation = Animation.all.find(anim => a.animation == anim.uuid);
 				if (!animation) return;
 				let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
-				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_value;
 				animations_to_play.push(animation);
 			})
 			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
 
 			// Last State
-			if (blend_progress < 1 && last_state) {
+			if (blend_value < 1 && last_state) {
 				Timeline.time = last_state.getStateTime();
 				controller_blend_values = {};
 				animations_to_play = [];
@@ -344,7 +345,7 @@ const Animator = {
 					if (!animation) return;
 					let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
 					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
-					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_value);
 					animations_to_play.push(animation);
 				})
 				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
@@ -689,8 +690,11 @@ const Animator = {
 			animation_controllers: controllers
 		}
 	},
-	importFile(file) {
+	importFile(file, auto_loaded) {
 		let form = {};
+		if (auto_loaded && file.path) {
+			form['_path'] = {type: 'info', text: file.path};
+		}
 		let json = autoParseJSON(file.content)
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
@@ -707,7 +711,7 @@ const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);
 		}
 		file.json = json;
@@ -721,15 +725,21 @@ const Animator = {
 
 		} else {
 			return new Promise(resolve => {
+				let buttons = ['dialog.ok', 'dialog.ignore'];
+				if (auto_loaded && Project?.memory_animation_files_to_load?.length > 1) {
+					buttons.push('dialog.ignore_all');
+				}
 				let dialog = new Dialog({
 					id: 'animation_import',
 					title: 'dialog.animation_import.title',
 					form,
+					buttons,
+					cancelIndex: 1,
 					onConfirm(form_result) {
 						this.hide();
 						let names = [];
 						for (var key of keys) {
-							if (form_result[key.hashCode()]) {
+							if (form_result['anim' + key.hashCode()]) {
 								names.push(key);
 							}
 						}
@@ -738,7 +748,14 @@ const Animator = {
 						Undo.finishEdit('Import animations', {animations: new_animations})
 						resolve();
 					},
-					onCancel() {
+					onCancel(index) {
+						Project.memory_animation_files_to_load.remove(file.path);
+						resolve();
+					},
+					onButton(index) {
+						if (auto_loaded && index == 2) {
+							Project.memory_animation_files_to_load.empty();
+						}
 						resolve();
 					}
 				});
@@ -747,7 +764,7 @@ const Animator = {
 					buttons: ['generic.select_all', 'generic.select_none'],
 					click(index) {
 						let values = {};
-						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						keys.forEach(key => values['anim' + key.hashCode()] = (index == 0));
 						dialog.setFormValues(values);
 					}
 				}
@@ -1421,7 +1438,7 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'placeholders');
+					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 					return test;
 				}
 			},

@@ -639,6 +639,227 @@ class KnifeToolContext {
 	}
 	static current = null;
 }
+class KnifeToolCubeContext {
+	constructor(cube) {
+		this.cube = cube;
+		this.face;
+		this.first_point_set = false;
+		this.valid_position = false;
+		this.axis = 0;
+		this.face_axis = 0;
+		this.first_point = new THREE.Vector3();
+		this.offset = 0;
+		this.preview_mesh = new THREE.Mesh(
+			new THREE.BoxGeometry(1, 1, 1),
+			new THREE.MeshBasicMaterial({color: Canvas.outlineMaterial.color}),
+		)
+		this.cross_mesh = new THREE.Mesh(
+			new THREE.PlaneGeometry(1, 1),
+			new THREE.MeshBasicMaterial({
+				map: KnifeToolCubeContext.map,
+				alphaTest: 0.1,
+				side: THREE.DoubleSide,
+				color: Canvas.outlineMaterial.color
+			}),
+		);
+
+		this.unselect_listener = Blockbench.on('unselect_project', context => {
+			if (this == KnifeToolContext.current) {
+				this.remove();
+			}
+		})
+		KnifeToolContext.current = this;
+	}
+	get mesh_3d() {
+		return this.cube.mesh;
+	}
+	get axis_letter() {
+		return getAxisLetter(this.axis);
+	}
+	hover(data) {
+		if (!data) {
+			if (this.cross_mesh.parent) {
+				this.cross_mesh.parent.remove(this.cross_mesh);
+			}
+			return;
+		}
+		let intersect = data.intersects[0];
+		if (!this.first_point_set) {
+			this.cube = data.element;
+			this.face = data.face;
+			this.first_point.copy(intersect.point);
+			this.mesh_3d.worldToLocal(this.first_point);
+
+			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
+			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
+			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl);
+			let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
+
+			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - modified_from[off_axes[0]]) / snap) * snap + modified_from[off_axes[0]];
+			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - modified_from[off_axes[1]]) / snap) * snap + modified_from[off_axes[1]];
+
+		} else {
+			this.mesh_3d.add(this.preview_mesh);
+			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
+			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
+
+			let second_point = intersect.point;
+			this.mesh_3d.worldToLocal(second_point);
+			let val_1 = this.first_point[getAxisLetter(off_axes[0])] - second_point[getAxisLetter(off_axes[0])];
+			let val_2 = this.first_point[getAxisLetter(off_axes[1])] - second_point[getAxisLetter(off_axes[1])];
+			let direction = Math.abs(val_1) > Math.abs(val_2);
+			switch (this.face_axis) {
+				case 0: this.axis = direction ? 2 : 1; break;
+				case 1: this.axis = direction ? 2 : 0; break;
+				case 2: this.axis = direction ? 1 : 0; break;
+			}
+			this.offset = this.first_point[this.axis_letter];
+		}
+		this.updatePreview();
+	}
+	updatePreview() {
+		let pos = this.mesh_3d.localToWorld(new THREE.Vector3().copy(this.first_point));
+		let size = Preview.selected.calculateControlScale(pos) / 8;
+		if (!this.first_point_set) {
+			this.mesh_3d.add(this.cross_mesh);
+			this.cross_mesh.position.copy(this.first_point);
+			let face_axis = KnifeToolCubeContext.face_axis[this.face];
+			let face_direction = ['north', 'west', 'down'].includes(this.face) ? -1 : 1;
+			this.cross_mesh.position[getAxisLetter(face_axis)] += face_direction * size;
+			switch (face_axis) {
+				case 0: this.cross_mesh.rotation.set(0, Math.PI/2, 0); break;
+				case 1: this.cross_mesh.rotation.set(Math.PI/2, 0, 0); break;
+				case 2: this.cross_mesh.rotation.set(0, 0, 0); break;
+			}
+	
+			this.cross_mesh.scale.set(size * 16, size * 16, size * 16);
+		} else {
+			if (this.cross_mesh.parent) {
+				this.cross_mesh.parent.remove(this.cross_mesh);
+			}
+			this.mesh_3d.add(this.preview_mesh);
+			this.preview_mesh.position.set(
+				Math.lerp(this.cube.from[0] - this.cube.origin[0], this.cube.to[0] - this.cube.origin[0], 0.5),
+				Math.lerp(this.cube.from[1] - this.cube.origin[1], this.cube.to[1] - this.cube.origin[1], 0.5),
+				Math.lerp(this.cube.from[2] - this.cube.origin[2], this.cube.to[2] - this.cube.origin[2], 0.5),
+			)
+			this.preview_mesh.position[this.axis_letter] = this.offset;
+	
+			let pos = THREE.fastWorldPosition(this.preview_mesh);
+			let size = Preview.selected.calculateControlScale(pos) / 8;
+			this.preview_mesh.scale.set(...this.cube.size().map(v => v + this.cube.inflate * 2 + size));
+			this.preview_mesh.scale[this.axis_letter] = size;
+		}
+	}
+	addPoint(data) {
+		if (!data?.element) return;
+		if (!this.first_point_set) {
+			this.first_point_set = true;
+		} else {
+			this.apply();
+		}
+	}
+	apply() {
+		if (!this.cube || !Cube.all.includes(this.cube) || !this.first_point_set) {
+			this.cancel();
+			return;
+		}
+		let elements = [this.cube];
+		Undo.initEdit({elements});
+
+		if (this.cube.box_uv && Format.optional_box_uv) {
+			this.cube.box_uv = false;
+		}
+		let duplicate = this.cube.duplicate();
+		Outliner.selected.safePush(duplicate);
+		elements.safePush(duplicate);
+		let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
+		let modified_to = this.cube.to.slice().V3_subtract(this.cube.inflate);
+		let offset = this.offset + this.cube.origin[this.axis];
+		let offset_lerp = Math.getLerp(modified_from[this.axis], modified_to[this.axis], offset);
+
+		this.cube.to[this.axis] = offset - this.cube.inflate;
+		duplicate.from[this.axis] = offset + this.cube.inflate;
+
+		function modifyUV(face, index, inverted) {
+			index = (index - (face.rotation/90) + 8) % 4;
+			let index_opposite = (index+2)%4;
+			if (inverted) {
+				face.uv[index] = Math.lerp(face.uv[index], face.uv[index_opposite], offset_lerp);
+			} else {
+				face.uv[index] = Math.lerp(face.uv[index_opposite], face.uv[index], offset_lerp);
+			}
+		}
+		switch (this.axis) {
+			case 0: {
+				modifyUV(this.cube.faces.north, 0);
+				modifyUV(this.cube.faces.south, 2);
+				modifyUV(this.cube.faces.up, 2);
+				modifyUV(this.cube.faces.down, 2);
+
+				modifyUV(duplicate.faces.north, 2, true);
+				modifyUV(duplicate.faces.south, 0, true);
+				modifyUV(duplicate.faces.up, 0, true);
+				modifyUV(duplicate.faces.down, 0, true);
+				break;
+			}
+			case 1: {
+				modifyUV(this.cube.faces.north, 1);
+				modifyUV(this.cube.faces.south, 1);
+				modifyUV(this.cube.faces.east, 1);
+				modifyUV(this.cube.faces.west, 1);
+
+				modifyUV(duplicate.faces.north, 3, true);
+				modifyUV(duplicate.faces.south, 3, true);
+				modifyUV(duplicate.faces.east, 3, true);
+				modifyUV(duplicate.faces.west, 3, true);
+				break;
+			}
+			case 2: {
+				modifyUV(this.cube.faces.east, 0);
+				modifyUV(this.cube.faces.west, 2);
+				modifyUV(this.cube.faces.up, 3);
+				modifyUV(this.cube.faces.down, 1);
+
+				modifyUV(duplicate.faces.east, 2, true);
+				modifyUV(duplicate.faces.west, 0, true);
+				modifyUV(duplicate.faces.up, 1, true);
+				modifyUV(duplicate.faces.down, 3, true);
+				break;
+			}
+		}
+
+		Canvas.updateView({elements, element_aspects: {geometry: true, uv: true}, selection: true});
+		Undo.finishEdit('Use knife tool');
+		this.remove();
+	}
+	cancel() {
+		this.remove();
+	}
+	remove() {
+		if (this.cross_mesh.parent) {
+			this.cross_mesh.parent.remove(this.cross_mesh);
+		}
+		if (this.preview_mesh.parent) {
+			this.preview_mesh.parent.remove(this.preview_mesh);
+		}
+		delete this.cube;
+		delete this.cross_mesh;
+		delete this.precross_meshview_mesh;
+		this.unselect_listener.delete();
+		KnifeToolContext.current = null;
+	}
+	static face_axis = {
+		north: 2,
+		south: 2,
+		up: 1,
+		down: 1,
+		east: 0,
+		west: 0
+	}
+	static map = new THREE.TextureLoader().load('assets/crosshair.png');
+}
+KnifeToolCubeContext.map.magFilter = KnifeToolCubeContext.map.minFilter = THREE.NearestFilter;
 
 async function autoFixMeshEdit() {
 	let meshes = Mesh.selected;
@@ -1085,8 +1306,8 @@ BARS.defineActions(function() {
 				});
 				let group = getCurrentGroup();
 				if (group) {
-					mesh.addTo(group)
-					mesh.color = group.color;
+					mesh.addTo(group);
+					if (settings.inherit_parent_color.value) mesh.color = group.color;
 				}
 				let diameter_factor = result.align_edges ? 1 / Math.cos(Math.PI/result.sides) : 1;
 				let off_ang = result.align_edges ? 0.5 : 0;
@@ -1574,10 +1795,16 @@ BARS.defineActions(function() {
 			vertices: true,
 		},
 		modes: ['edit'],
-		condition: () => Modes.edit && Mesh.hasAny(),
+		condition: () => Modes.edit,
 		onCanvasMouseMove(data) {
-			if (!KnifeToolContext.current && Mesh.selected[0] && Mesh.selected.length == 1) {
-				KnifeToolContext.current = new KnifeToolContext(Mesh.selected[0]);
+			if (Mesh.selected[0]) {
+				if (!KnifeToolContext.current && Mesh.selected.length == 1) {
+					KnifeToolContext.current = new KnifeToolContext(Mesh.selected[0]);
+				}
+			} else if (Cube.all[0]) {
+				if (!KnifeToolContext.current) {
+					KnifeToolContext.current = new KnifeToolCubeContext();
+				}
 			}
 			if (KnifeToolContext.current) {
 				KnifeToolContext.current.hover(data);
@@ -1585,8 +1812,19 @@ BARS.defineActions(function() {
 		},
 		onCanvasClick(data) {
 			if (!data) return;
-			if (!KnifeToolContext.current && data.element instanceof Mesh) {
-				KnifeToolContext.current = new KnifeToolContext(data.element);
+			if (!KnifeToolContext.current) {
+				if (data.element instanceof Mesh) {
+					if (!KnifeToolContext.current && Mesh.selected.length == 1) {
+						KnifeToolContext.current = new KnifeToolContext(data.element);
+					}
+					if (KnifeToolContext.current) {
+						KnifeToolContext.current.hover(data);
+					}
+				} else if (data.element instanceof Cube) {
+					if (!KnifeToolContext.current) {
+						KnifeToolContext.current = new KnifeToolCubeContext(data.element);
+					}
+				}
 			}
 			let context = KnifeToolContext.current;
 			context.addPoint(data);

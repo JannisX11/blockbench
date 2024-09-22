@@ -65,7 +65,7 @@ class ModelFormat {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
-			scene.position.set(-8, -8, -8);
+			scene.position.set(-8, 0, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		PreviewModel.getActiveModels().forEach(model => {
@@ -279,7 +279,9 @@ new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
+new Property(ModelFormat, 'boolean', 'cullfaces');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');

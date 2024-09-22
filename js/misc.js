@@ -145,7 +145,7 @@ function updateSelection(options = {}) {
 		}
 	})
 	for (var i = Outliner.selected.length-1; i >= 0; i--) {
-		if (!selected.includes(Outliner.selected[i])) {
+		if (!Project.elements.includes(Outliner.selected[i])) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
@@ -203,6 +203,8 @@ function updateSelection(options = {}) {
 	Preview.all.forEach(preview => {
 		preview.updateAnnotations();
 	})
+	if (Condition(BarItems.layer_opacity.condition)) BarItems.layer_opacity.update();
+	if (Condition(BarItems.layer_blend_mode.condition)) BarItems.layer_blend_mode.set(TextureLayer.selected?.blend_mode);
 
 	BARS.updateConditions();
 	delete TickUpdates.selection;
@@ -283,6 +285,8 @@ const AutoBackup = {
 					]
 				})
 			}
+
+			AutoBackup.backupProjectLoop(false);
 		}
 	},
 	async backupOpenProject() {
@@ -369,6 +373,21 @@ const AutoBackup = {
 				reject();
 			}
 		});
+	},
+	loop_timeout: null,
+	backupProjectLoop(run_save = true) {
+		if (run_save && Project && (Outliner.root.length || Project.textures.length)) {
+			try {
+				AutoBackup.backupOpenProject();
+			} catch (err) {
+				console.error('Unable to create backup. ', err)
+			}
+		}
+		let interval = settings.recovery_save_interval.value;
+		if (interval != 0) {
+			interval = Math.max(interval, 5);
+			AutoBackup.loop_timeout = setTimeout(() => AutoBackup.backupProjectLoop(true), interval * 1000);
+		}
 	}
 }
 
@@ -376,13 +395,8 @@ const AutoBackup = {
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		Validator.validate();
-		try {
-			AutoBackup.backupOpenProject();
-		} catch (err) {
-			console.error('Unable to create backup. ', err)
-		}
 	}
-}, 1e3*30)
+}, 1e3*30);
 //Misc
 const TickUpdates = {
 	Run() {
@@ -394,10 +408,6 @@ const TickUpdates = {
 			if (TickUpdates.UVEditor) {
 				delete TickUpdates.UVEditor;
 				UVEditor.loadData()
-			}
-			if (TickUpdates.texture_list) {
-				delete TickUpdates.texture_list;
-				loadTextureDraggable();
 			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;

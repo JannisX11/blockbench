@@ -4,7 +4,14 @@ const Validator = {
 	warnings: [],
 	errors: [],
 	_timeout: null,
+	accumulated_triggers: [],
+	wildcard_trigger: false,
 	validate(trigger) {
+		if (trigger) {
+			this.accumulated_triggers.safePush(trigger);
+		} else {
+			this.wildcard_trigger = true;
+		}
 		if (this._timeout) {
 			clearTimeout(this._timeout);
 			this._timeout = null;
@@ -20,7 +27,7 @@ const Validator = {
 				try {
 					if (!Condition(check.condition)) return;
 
-					if (!trigger || check.update_triggers.includes(trigger)) {
+					if (this.wildcard_trigger || check.update_triggers.includes(trigger) || this.accumulated_triggers.find(t => check.update_triggers.includes(t))) {
 						check.update();
 					}
 					Validator.warnings.push(...check.warnings);
@@ -30,6 +37,8 @@ const Validator = {
 					console.error(error);
 				}
 			})
+			this.accumulated_triggers.empty();
+			this.wildcard_trigger = false;
 		}, 40)
 	},
 	openDialog() {

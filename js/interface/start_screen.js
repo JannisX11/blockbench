@@ -182,23 +182,15 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [skeleton_tiffay](https://twitter.com/Tiffany85635656)",
+					description: "Splash Art 1st Place by [BonoGakure](https://twitter.com/bonogakure) & [GlenFebrian](https://twitter.com/glenn_turu)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [AnzSama](https://twitter.com/AnzSamaEr) & [PICASSO](https://twitter.com/Picasso114514)",
+					description: "Splash Art 2nd Place by [Wanwin](https://wan-win.com/#3darts) & Artem x",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [YunGui](https://twitter.com/AmosJea28222061) & [makstutis233](https://x.com/Maks2335770189)",
-				},
-				{
-					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999) & NekoGabriel",
-				},
-				{
-					source: "./assets/splash_art/5.webp",
-					description: "Splash Art 5th Place by [🌷Aza🌷](https://twitter.com/azagwen_art) & Shroomy",
+					description: "Splash Art 3rd Place by [FairyZelz](https://x.com/FairyZelz) & [AnolXD](https://x.com/_AnolXD_)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),

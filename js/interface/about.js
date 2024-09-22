@@ -116,6 +116,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a></li>
 								<li><a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a></li>
 								<li><a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a></li>
+								<li><a class="open-in-browser" href="https://github.com/AndrewRayCode/easing-utils">easing-utils</a></li>
 								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
 								<li><a class="open-in-browser" href="https://github.com/cure53/DOMPurify">DOMPurify</a></li>

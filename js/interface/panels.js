@@ -15,6 +15,7 @@ class Panel extends EventSystem {
 
 		this.growable = data.growable;
 		this.resizable = data.resizable;
+		this.min_height = data.min_height ?? 60;
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
@@ -153,6 +154,9 @@ class Panel extends EventSystem {
 					let height_before = this.node.clientHeight;
 					let started = false;
 					let direction = this.node.classList.contains('bottommost_panel') ? -1 : 1;
+					let other_panel_height_before = {};
+
+					let other_panels = this.slot == 'right_bar' ? Interface.getRightPanels() : Interface.getLeftPanels();
 
 					let drag = e2 => {
 						convertTouchEvent(e2);
@@ -162,9 +166,25 @@ class Panel extends EventSystem {
 						}
 						if (!started) return;
 
+						let change_amount = (e2.clientY - e1.clientY) * direction;
+						let sidebar_gap = this.node.parentElement.clientHeight;
+						for (let panel of other_panels) {
+							sidebar_gap -= panel.node.clientHeight;
+						}
+
+						let height1 = this.position_data.height;
 						this.position_data.fixed_height = true;
-						this.position_data.height = height_before + (e2.clientY - e1.clientY) * direction;
+						this.position_data.height = Math.max(height_before + change_amount, this.min_height);
 						this.update();
+						let height_difference = this.position_data.height - height1;
+
+						let panel_b = other_panels.find(p => p != this && p.resizable && p.min_height < p.height);
+						if (sidebar_gap < 1 && panel_b && change_amount > 0) {
+							if (!other_panel_height_before[panel_b.id]) other_panel_height_before[panel_b.id] = panel_b.height;
+							panel_b.position_data.fixed_height = true;
+							panel_b.position_data.height = Math.max(panel_b.position_data.height - height_difference, this.min_height);
+							panel_b.update();
+						}
 					}
 					let stop = e2 => {
 						convertTouchEvent(e2);
@@ -641,9 +661,10 @@ class Panel extends EventSystem {
 		let show = BARS.condition(this.condition);
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
+		let slot = this.slot;
 		if (show) {
 			this.node.classList.remove('hidden');
-			if (this.slot == 'float') {
+			if (slot == 'float') {
 				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
 					this.position_data.float_position[1] = Math.clamp(this.position_data.float_position[1], 0, work_screen.clientHeight - this.height);
@@ -658,34 +679,35 @@ class Panel extends EventSystem {
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
 				this.node.classList.remove('bottommost_panel');
+				this.node.classList.remove('topmost_panel');
 			} else {
 				this.node.style.width = this.node.style.height = this.node.style.left = this.node.style.top = null;
 			}
 			if (Blockbench.isMobile) {
 				this.width = this.node.clientWidth;
-			} else if (this.slot == 'left_bar') {
+			} else if (slot == 'left_bar') {
 				this.width = Interface.left_bar_width;
-			} else if (this.slot == 'right_bar') {
+			} else if (slot == 'right_bar') {
 				this.width = Interface.right_bar_width;
 			}
-			if (this.slot == 'top' || this.slot == 'bottom') {
+			if (slot == 'top' || slot == 'bottom') {
 
 				if (Blockbench.isMobile && Blockbench.isLandscape) {
 					this.height = center_screen.clientHeight;
 					this.width = Math.clamp(this.position_data.height, 30, center_screen.clientWidth);
 					if (this.folded) this.width = 72;
 				} else {
-					let opposite_panel = this.slot == 'top' ? Interface.getBottomPanel() : Interface.getTopPanel();
+					let opposite_panel = slot == 'top' ? Interface.getBottomPanel() : Interface.getTopPanel();
 					this.height = Math.clamp(this.position_data.height, 30, center_screen.clientHeight - (opposite_panel ? opposite_panel.height : 0));
 					if (this.folded) this.height = this.handle.clientHeight;
 					this.width = Interface.work_screen.clientWidth - Interface.left_bar_width - Interface.right_bar_width;
 				}
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
-			} else if (this.slot == 'left_bar' || this.slot == 'right_bar') {
+			} else if (slot == 'left_bar' || slot == 'right_bar') {
 				if (this.fixed_height) {
-					//let other_panels = this.slot == 'left_bar' ? Interface.getLeftPanels() : Interface.getRightPanels();
-					//let available_height = (this.slot == 'left_bar' ? Interface.left_bar : Interface.right_bar).clientHeight;
+					//let other_panels = slot == 'left_bar' ? Interface.getLeftPanels() : Interface.getRightPanels();
+					//let available_height = (slot == 'left_bar' ? Interface.left_bar : Interface.right_bar).clientHeight;
 					//let min_height = other_panels.reduce((sum, panel) => (panel == this ? sum : (sum - panel.node.clientHeight)), available_height);
 					this.height = Math.clamp(this.position_data.height, 30, Interface.work_screen.clientHeight);
 					this.node.style.height = this.height + 'px';
@@ -693,6 +715,18 @@ class Panel extends EventSystem {
 				}
 			}
 			if (!this.fixed_height) this.node.classList.remove('fixed_height');
+
+			if (this.sidebar_resize_handle) {
+				this.sidebar_resize_handle.style.display = (slot == 'left_bar' || slot == 'right_bar') ? 'block' : 'none';
+			}
+			if ((slot == 'right_bar' && Interface.getRightPanels().last() == this) || (slot == 'left_bar' && Interface.getLeftPanels().last() == this)) {
+				this.node.parentElement?.childNodes.forEach(n => n.classList.remove('bottommost_panel'));
+				this.node.classList.add('bottommost_panel');
+			}
+			if ((slot == 'right_bar' && Interface.getRightPanels()[0] == this) || (slot == 'left_bar' && Interface.getLeftPanels()[0] == this)) {
+				this.node.parentElement?.childNodes.forEach(n => n.classList.remove('topmost_panel'));
+				this.node.classList.add('topmost_panel');
+			}
 
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
@@ -773,8 +807,12 @@ function updateSidebarOrder() {
 			let panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
 				panel.node.classList.remove('bottommost_panel');
+				panel.node.classList.remove('topmost_panel');
 				bar_node.append(panel.node);
 				if (Condition(panel.condition)) {
+					if (panel_count == 0) {
+						panel.node.classList.add('topmost_panel');
+					}
 					panel_count++;
 					last_panel = panel;
 				}

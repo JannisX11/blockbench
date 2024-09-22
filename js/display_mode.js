@@ -16,6 +16,8 @@ class DisplaySlot {
 		this.rotation = [0, 0, 0];
 		this.translation = [0, 0, 0];
 		this.scale = [1, 1, 1];
+		this.rotation_pivot = [0, 0, 0];
+		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
 		return this;
 	}
@@ -24,22 +26,27 @@ class DisplaySlot {
 			rotation: this.rotation.slice(),
 			translation: this.translation.slice(),
 			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot.slice(),
+			scale_pivot: this.scale_pivot.slice(),
 			mirror: this.mirror.slice()
 		}
 	}
 	export() {
-		var build = {}
-		if (!this.rotation.allEqual(0)) build.rotation = this.rotation
-		if (!this.translation.allEqual(0)) build.translation = this.translation
-		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
+		let build = {};
+		let export_all = Format.id == 'bedrock_block';
+		if (export_all || !this.rotation.allEqual(0)) build.rotation = this.rotation
+		if (export_all || !this.translation.allEqual(0)) build.translation = this.translation
+		if (export_all || !this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
 
-				for (var i = 0; i < 3; i++) {
+				for (let i = 0; i < 3; i++) {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
 			}
 		}
+		if (export_all || !this.rotation_pivot.allEqual(0)) build.rotation_pivot = this.rotation_pivot
+		if (export_all || !this.scale_pivot.allEqual(0)) build.scale_pivot = this.scale_pivot
 		if (Object.keys(build).length) {
 			return build;
 		}
@@ -48,9 +55,11 @@ class DisplaySlot {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
 			if (data.rotation) Merge.number(this.rotation, data.rotation, i)
-			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
 			if (data.scale) Merge.number(this.scale, data.scale, i)
+			if (data.translation) Merge.number(this.translation, data.translation, i)
+			if (data.rotation_pivot) Merge.number(this.rotation_pivot, data.rotation_pivot, i)
+			if (data.scale_pivot) Merge.number(this.scale_pivot, data.scale_pivot, i)
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
@@ -225,6 +234,7 @@ class refModel {
 		this.name = tl('display.reference.'+id);
 		this.id = id;
 		this.icon = options.icon || id;
+		this.condition = options.condition;
 		this.initialized = false;
 		this.pose_angles = {};
 
@@ -281,6 +291,11 @@ class refModel {
 					} else if (display_slot === 'head') {
 						setDisplayArea(0, 14.5, 0, 0, 0, 0, 0.4635, 0.4635, 0.4635)
 					}
+				}
+				break;
+			case 'fox':
+				this.updateBasePosition = function() {
+					setDisplayArea(0, 0, -6, 90, 180, 0, 1, 1, 1);
 				}
 				break;
 			case 'zombie':
@@ -341,6 +356,16 @@ class refModel {
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*-1.2, -6.75, 23, 0, side*10, 0, 1, 1, 1)
+				}
+				break;
+				
+			case 'eating':
+				this.updateBasePosition = function() {
+					var side = display_slot.includes('left') ? -1 : 1;
+					DisplayMode.setBase(
+						side*-1.7, -6.1, 23.4,
+						-92, side*100, side*119,
+						0.8, 0.8, 0.8)
 				}
 				break;
 		}
@@ -454,9 +479,11 @@ class refModel {
 				case 'armor_stand': this.buildArmorStand(); break;
 				case 'baby_zombie': this.buildBabyZombie(); break;
 				case 'armor_stand_small': this.buildArmorStandSmall(); break;
+				case 'fox': this.buildFox(); break;
+				case 'crossbow':
+				case 'bow':
+				case 'eating':
 				case 'monitor': this.buildMonitor(); break;
-				case 'bow': this.buildMonitor(); break;
-				case 'crossbow': this.buildMonitor(); break;
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
 				case 'frame_invisible': this.buildFrameInvisible(); break;
@@ -470,6 +497,10 @@ class refModel {
 
 		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
 		DisplayMode.vue.reference_model = this.id;
+
+		if (display_slot == 'ground') {
+			ground_animation = this.id != 'fox';
+		}
 		
 		ReferenceImage.updateAll()
 	}
@@ -933,6 +964,55 @@ class refModel {
 			}
 		]`), 'assets/armor_stand.png', [64, 64])
 	}
+	buildFox() {
+		this.buildModel(JSON.parse(`[
+			{
+				"size": [8, 6, 6],
+				"pos": [0, 4, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [7, 11, 15, 17]},
+				"east": {"uv": [1, 11, 7, 17]},
+				"south": {"uv": [21, 11, 29, 17]},
+				"west": {"uv": [15, 11, 21, 17]},
+				"up": {"uv": [15, 11, 7, 5]},
+				"down": {"uv": [23, 5, 15, 11]}
+			},
+			{
+				"size": [4, 2, 3],
+				"pos": [0, 2, -4.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [9, 21, 13, 23]},
+				"east": {"uv": [6, 21, 9, 23]},
+				"south": {"uv": [16, 21, 20, 23]},
+				"west": {"uv": [13, 21, 16, 23]},
+				"up": {"uv": [13, 21, 9, 18]},
+				"down": {"uv": [17, 18, 13, 21]}
+			},
+			{
+				"size": [2, 2, 1],
+				"pos": [3, 8, -1.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [9, 2, 11, 4]},
+				"east": {"uv": [8, 2, 9, 4]},
+				"south": {"uv": [12, 2, 14, 4]},
+				"west": {"uv": [11, 2, 12, 4]},
+				"up": {"uv": [11, 2, 9, 1]},
+				"down": {"uv": [13, 1, 11, 2]}
+			},
+			{
+				"size": [2, 2, 1],
+				"pos": [-3, 8, -1.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [16, 2, 18, 4]},
+				"east": {"uv": [15, 2, 16, 4]},
+				"south": {"uv": [19, 2, 21, 4]},
+				"west": {"uv": [18, 2, 19, 4]},
+				"up": {"uv": [18, 2, 16, 1]},
+				"down": {"uv": [20, 1, 18, 2]}
+			}
+
+		]`), 'assets/fox.png', [32, 32])
+	}
 	buildZombie() {
 		this.buildModel(JSON.parse(`[
 			{
@@ -1132,9 +1212,11 @@ window.displayReferenceObjects = {
 		armor_stand: 		new refModel('armor_stand', {icon: 'icon-armor_stand'}),
 		baby_zombie: 		new refModel('baby_zombie', {icon: 'icon-baby_zombie'}),
 		armor_stand_small:  new refModel('armor_stand_small', {icon: 'icon-armor_stand_small'}),
+		fox: 				new refModel('fox', {icon: 'pets', condition: {formats: ['java_block']}}),
 		monitor: 			new refModel('monitor', {icon: 'fa-asterisk'}),
 		bow: 				new refModel('bow', {icon: 'icon-bow'}),
 		crossbow: 			new refModel('crossbow', {icon: 'icon-crossbow'}),
+		eating: 			new refModel('eating', {icon: 'fa-apple-whole'}),
 		block: 				new refModel('block', {icon: 'fa-cube'}),
 		frame: 				new refModel('frame', {icon: 'filter_frames'}),
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
@@ -1146,11 +1228,8 @@ window.displayReferenceObjects = {
 	},
 	active: '',
 	bar: function(buttons) {
-		$('#display_ref_bar').html('')
-		if (buttons.length === 10000) {
-			this.refmodels[buttons[0]].load()
-			return;
-		}
+		buttons = buttons.filter(id => Condition(this.refmodels[id]));
+		$('#display_ref_bar').html('');
 		if (buttons.length < 2) {
 			$('.reference_model_bar').css('visibility', 'hidden')
 		} else {
@@ -1229,7 +1308,10 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Canvas.updateShading()
 	
 	scene.add(display_area);
-	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	if (Project.model_3d) {
+		Project.model_3d.position.copy(Canvas.scene.position);
+		Project.model_3d.position.y = -8;
+	}
 	scene.position.set(0, 0, 0);
 
 	resizeWindow() //Update panels and sidebars so that the camera can be loaded with the correct aspect ratio
@@ -1250,13 +1332,14 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.global_light_side = 0;
 	Canvas.updateShading();
 	scene.remove(display_area)
-	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
+	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
 	display_base.children.forEachReverse(child => {
 		display_base.remove(child);
 		child.position.set(0, 0, 0);
 	})
 	if (Project.model_3d) {
 		scene.add(Project.model_3d);
+		Project.model_3d.position.set(0, 0, 0);
 	}
 
 	display_mode = false;
@@ -1299,13 +1382,29 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
+	if (!slot.rotation_pivot.allEqual(0)) {
+		let rot_piv_offset = new THREE.Vector3().fromArray(slot.rotation_pivot).multiplyScalar(16);
+		let original = new THREE.Vector3().copy(rot_piv_offset);
+		rot_piv_offset.applyEuler(display_base.rotation);
+		rot_piv_offset.sub(original);
+		display_base.position.sub(rot_piv_offset);
+	}
+	if (!slot.scale_pivot.allEqual(0)) {
+		let scale_piv_offset = new THREE.Vector3().fromArray(slot.scale_pivot).multiplyScalar(16);
+		scale_piv_offset.applyEuler(display_base.rotation);
+		scale_piv_offset.x *= (1-slot.scale[0]);
+		scale_piv_offset.y *= (1-slot.scale[1]);
+		scale_piv_offset.z *= (1-slot.scale[2]);
+		display_base.position.add(scale_piv_offset)
+	}
+
 	Transformer.center()
 }
 
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
-	var slots = [display_slot]
+	var slots = [display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
 	} else if (preset.areas[display_slot] == undefined) {
@@ -1317,7 +1416,12 @@ DisplayMode.applyPreset = function(preset, all) {
 		if (!Project.display_settings[sl]) {
 			Project.display_settings[sl] = new DisplaySlot()
 		}
-		Project.display_settings[sl].extend(preset.areas[sl])
+		let preset_values = preset.areas[sl];
+		if (preset_values) {
+			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
+			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
+			Project.display_settings[sl].extend(preset.areas[sl]);
+		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1349,14 +1453,21 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
-	ground_timer += 1
-	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	ground_timer += 1;
+	let ground_offset = 3.8;
+	if (Format.id != 'bedrock_block') {
+		ground_offset = 1.9 + display_base.scale.y * 3.6;
+	}
+	display_area.position.y = ground_offset + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
-	if (display_slot == 'gui' && Project.front_gui_light == true) {
+	if (Format.id == 'bedrock_block') {
+		Canvas.global_light_side = 0;
+		Canvas.updateShading();
+	} else if (display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 		Canvas.global_light_side = 4;
 	} else {
@@ -1425,7 +1536,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
@@ -1437,7 +1548,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
@@ -1472,7 +1583,7 @@ DisplayMode.loadGround = function() {		//Loader
 	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
 	ground_animation = true;
 	ground_timer = 0
-	displayReferenceObjects.bar(['block'])
+	displayReferenceObjects.bar(['block', 'fox'])
 }
 DisplayMode.loadFixed = function() {		//Loader
 	loadDisp('fixed')
@@ -1653,6 +1764,21 @@ function updateDisplaySkin(feedback) {
 }
 DisplayMode.updateDisplaySkin = updateDisplaySkin;
 
+DisplayMode.debugBase = function() {
+	new Dialog('display_base_debug', {
+		title: 'Debug Display Base',
+		darken: false,
+		form: {
+			translation: {type: 'vector', dimensions: 3, step: 0.1, value: [0, 0, 0], label: 'Translation'},
+			rotation: {type: 'vector', dimensions: 3, step: 0.5, value: [0, 0, 0], label: 'Rotation'},
+			scale: {type: 'vector', dimensions: 3, step: 0.05, value: [1, 1, 1], label: 'Scale'},
+		},
+		onFormChange(result) {
+			DisplayMode.setBase(...result.translation, ...result.rotation, ...result.scale)
+		}
+	}).show();
+}
+
 BARS.defineActions(function() {
 	new Action('add_display_preset', {
 		icon: 'add',
@@ -1748,7 +1874,7 @@ BARS.defineActions(function() {
 			side: true,
 			front: true,
 		},
-		condition: () => Modes.display && display_slot === 'gui',
+		condition: () => Modes.display && display_slot === 'gui' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.front_gui_light = slider.get() == 'front';
 			DisplayMode.updateGUILight();
@@ -1795,6 +1921,15 @@ Interface.definePanels(function() {
 				}
 			},
 			methods: {
+				allowMirroring() {
+					return this.allow_mirroring && !this.isBedrockStyle();
+				},
+				allowEnablingMirroring() {
+					return Format.id != 'bedrock_block';
+				},
+				isBedrockStyle() {
+					return Format.id == 'bedrock_block';
+				},
 				isMirrored: (axis) => {
 					if (Project.display_settings[display_slot]) {
 						return Project.display_settings[display_slot].scale[axis] < 0;
@@ -1822,8 +1957,10 @@ Interface.definePanels(function() {
 						}
 					} else if (channel === 'translation') {
 						DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-					} else {
+					} else if (channel == 'rotation') {
 						DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+					} else {
+						DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0;
 					}
 					DisplayMode.updateDisplayBase()
 				},
@@ -1914,11 +2051,11 @@ Interface.definePanels(function() {
 
 						<div class="bar display_slot_section_bar">
 							<p class="panel_toolbar_label">${ tl('display.scale') }</p>
-							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
-							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
 						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
@@ -1938,6 +2075,40 @@ Interface.definePanels(function() {
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" >
 								<numeric-input class="tool disp_text" v-model.number="pose_angle" :min="-180" :max="180" :step="0.5" />
+							</div>
+						</template>
+						
+						<template v-if="isBedrockStyle()">
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.rotation_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('rotation_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.rotation_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'rotation_pivot')"
+									@focusout="focusout(axis, 'rotation_pivot');save()"
+									@mousedown="start()"
+								/>
+							</div>
+
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.scale_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('scale_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.scale_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'scale_pivot')"
+									@focusout="focusout(axis, 'scale_pivot');save()"
+									@mousedown="start()"
+								/>
 							</div>
 						</template>
 					</div>

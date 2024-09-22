@@ -43,6 +43,10 @@ Array.prototype.purge = function() {
 	this.splice(0, this.length);
 	return this;
 }
+Array.prototype.set = function(index, value) {
+	this.splice(index, 1, value);
+	return this;
+}
 Array.prototype.replace = function(items) {
 	this.splice(0, this.length, ...items);
 	return this;

@@ -189,6 +189,11 @@ var codec = new Codec('project', {
 			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
+		for (let texture_group of TextureGroup.all) {
+			if (!model.texture_groups) model.texture_groups = [];
+			let copy = texture_group.getSaveCopy();
+			model.texture_groups.push(copy);
+		}
 
 		if (Animation.all.length) {
 			model.animations = [];
@@ -328,6 +333,11 @@ var codec = new Codec('project', {
 			Project.texture_height = model.resolution.height;
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures) {
 			model.textures.forEach(tex => {
 				var tex_copy = new Texture(tex, tex.uuid).add(false);
@@ -516,10 +526,6 @@ var codec = new Codec('project', {
 				c++;
 				tex_copy.id = c.toString();
 			}
-			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
-				tex_copy.loadContentFromPath(tex.path)
-				return tex_copy;
-			}
 			if (isApp && tex.relative_path && path) {
 				let resolved_path = PathModule.resolve(PathModule.dirname(path), tex.relative_path);
 				if (fs.existsSync(resolved_path)) {
@@ -527,12 +533,21 @@ var codec = new Codec('project', {
 					return tex_copy;
 				}
 			}
+			if (isApp && tex.path && fs.existsSync(tex.path) && !model.meta.backup) {
+				tex_copy.loadContentFromPath(tex.path)
+				return tex_copy;
+			}
 			if (tex.source && tex.source.substr(0, 5) == 'data:') {
 				tex_copy.fromDataURL(tex.source)
 				return tex_copy;
 			}
 		}
 
+		if (model.texture_groups) {
+			model.texture_groups.forEach(tex_group => {
+				new TextureGroup(tex_group, tex_group.uuid).add(false);
+			})
+		}
 		if (model.textures && (!Format.single_texture || Texture.all.length == 0)) {
 			new_textures.replace(model.textures.map(loadTexture))
 		}
@@ -697,6 +712,34 @@ BARS.defineActions(function() {
 			} else {
 				codec.export()
 			}
+		}
+	})
+
+	new Action('save_project_incremental', {
+		icon: 'difference',
+		category: 'file',
+		keybind: new Keybind({key: 's', shift: true, alt: true}),
+		condition: isApp ? (() => Project && Project.save_path) : false,
+		click: function () {
+			saveTextures(true);
+			let projectTailRegex = /\.bbmodel$/;
+			let projectVerRegex = /([0-9]+)\.bbmodel$/;
+			let projectVerMatch = projectVerRegex.exec(Project.save_path);
+
+			let file_path;
+			if (projectVerMatch) {
+				let projectVer = parseInt(projectVerMatch[1]); // Parse & store project ver int (capturing group 1)
+				file_path = Project.save_path.replace(projectVerRegex, `${projectVer + 1}.bbmodel`);
+			} else {
+				file_path = Project.save_path.replace(projectTailRegex, "_1.bbmodel");
+			}
+			let original_file_path = file_path;
+			let i = 1;
+			while (fs.existsSync(file_path) && i < 100) {
+				file_path = original_file_path.replace(projectTailRegex, `_alt_${i == 1 ? '' : i}.bbmodel`);
+				i++;
+			}
+			codec.write(codec.compile(), file_path);
 		}
 	})
 

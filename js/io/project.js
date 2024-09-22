@@ -59,6 +59,7 @@ class ModelProject {
 		this.mesh_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
+		this.texture_groups = [];
 		this.outliner = [];
 		this.animations = [];
 		this.animation_controllers = [];
@@ -207,6 +208,7 @@ class ModelProject {
 		BarItems.edit_mode_uv_overlay.updateEnabledState();
 
 		Panels.textures.inside_vue.textures = Texture.all;
+		Panels.textures.inside_vue.texture_groups = TextureGroup.all;
 		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
 		scene.add(this.model_3d);
 
@@ -225,19 +227,21 @@ class ModelProject {
 		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
-		
-		Preview.all.forEach(preview => {
-			let data = this.previews[preview.id];
-			if (data) {
-				preview.camera.position.fromArray(data.position);
-				preview.controls.target.fromArray(data.target);
-				preview.setProjectionMode(data.orthographic);
-				if (data.zoom) preview.camOrtho.zoom = data.zoom;
-				if (data.angle) preview.setLockedAngle(data.angle);
-			} else if (preview.default_angle !== undefined) {
-				preview.loadAnglePreset(preview.default_angle);
-			}
-		})
+
+		if (settings.save_view_per_tab.value) {
+			Preview.all.forEach(preview => {
+				let data = this.previews[preview.id];
+				if (data) {
+					preview.camera.position.fromArray(data.position);
+					preview.controls.target.fromArray(data.target);
+					preview.setProjectionMode(data.orthographic);
+					if (data.zoom) preview.camOrtho.zoom = data.zoom;
+					if (data.angle) preview.setLockedAngle(data.angle);
+				} else if (preview.default_angle !== undefined) {
+					preview.loadAnglePreset(preview.default_angle);
+				}
+			})
+		}
 
 		Modes.options[this.mode].select();
 		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
@@ -279,8 +283,6 @@ class ModelProject {
 		updateProjectResolution();
 		Validator.validate();
 		Vue.nextTick(() => {
-			loadTextureDraggable();
-
 			if (this.on_next_upen instanceof Array) {
 				this.on_next_upen.forEach(callback => callback());
 				delete this.on_next_upen;
@@ -551,6 +553,7 @@ ModelProject.prototype.menu = new Menu([
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
+	'save_project_incremental',
 	'export_over',
 	'share_model',
 	new MenuSeparator('overview'),
@@ -607,6 +610,7 @@ function selectNoProject() {
 	UVEditor.vue.all_elements = [];
 
 	Interface.Panels.textures.inside_vue.textures = [];
+	Interface.Panels.textures.inside_vue.texture_groups = [];
 
 	Panels.animations.inside_vue.animations = [];
 	Panels.animations.inside_vue.animation_controllers = [];
@@ -1195,12 +1199,15 @@ BARS.defineActions(function() {
 	new Action('switch_tabs', {
 		icon: 'swap_horiz',
 		category: 'file',
-		keybind: new Keybind({key: 9, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 9, ctrl: true}, {reverse_order: 'shift'}),
+		variations: {
+			reverse_order: {name: 'action.switch_tabs.reverse_order'}
+		},
 		condition: () => ModelProject.all.length > 1,
 		click(event) {
 			let index = ModelProject.all.indexOf(Project);
 			let target;
-			if (event && event.shiftKey) {
+			if (this.keybind.additionalModifierTriggered(event) == 'reverse_order') {
 				target = ModelProject.all[index-1] || ModelProject.all.last();
 			} else {
 				target = ModelProject.all[index+1] || ModelProject.all[0];

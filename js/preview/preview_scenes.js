@@ -68,7 +68,7 @@ class PreviewScene {
 		}
 	}
 	async lazyLoadFromWeb() {
-		let repo = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+		let repo = PreviewScene.source_repository;
 		// repo = './../blockbench-scenes'
 		this.loaded = true;
 		let response = await fetch(`${repo}/${this.web_config_path}`);
@@ -144,12 +144,16 @@ class PreviewScene {
 PreviewScene.scenes = {};
 PreviewScene.active = null;
 PreviewScene.select_options = {};
+PreviewScene.source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
 PreviewScene.menu_categories = {
 	main: {
 		none: tl('generic.none')
 	},
 	generic: {
 		_label: 'Generic'
+	},
+	realistic: {
+		_label: 'Realistic'
 	},
 	minecraft: {
 		_label: 'Minecraft'
@@ -212,6 +216,8 @@ class PreviewModel {
 			tex = new THREE.Texture(img);
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
 			img.crossOrigin = '';
 			img.onload = function() {
 				tex.needsUpdate = true;
@@ -379,6 +385,14 @@ new PreviewScene('studio', {
 	light_side: 1,
 	preview_models: ['studio']
 });
+new PreviewScene('sky', {
+	category: 'realistic',
+	web_config: 'realistic/sky/sky.json',
+});
+new PreviewScene('space', {
+	category: 'realistic',
+	web_config: 'realistic/space/space.json',
+});
 new PreviewScene('minecraft_plains', {
 	category: 'minecraft',
 	web_config: 'minecraft/plains/plains.json',
@@ -407,6 +421,11 @@ new PreviewScene('minecraft_night', {
 new PreviewScene('minecraft_desert', {
 	category: 'minecraft',
 	web_config: 'minecraft/desert/desert.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_ocean', {
+	category: 'minecraft',
+	web_config: 'minecraft/ocean/ocean.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_underwater', {

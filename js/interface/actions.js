@@ -38,12 +38,13 @@ class BarItem extends EventSystem {
 			if (data.keybind) {
 				this.default_keybind = data.keybind
 			}
-			this.keybind = new Keybind()
+			this.keybind = new Keybind(null, this.default_keybind?.variations);
 			if (Keybinds.stored[this.id]) {
 				this.keybind.set(Keybinds.stored[this.id], this.default_keybind);
 			} else {
 				this.keybind.set(data.keybind);
 			}
+			this.variations = data.variations;
 			this.keybind.setAction(this.id)
 			this.work_in_dialog = data.work_in_dialog === true
 			this.uses = 0;
@@ -219,10 +220,11 @@ class KeybindItem {
 			this.default_keybind = data.keybind
 		}
 		if (Keybinds.stored[this.id]) {
-			this.keybind = new Keybind().set(Keybinds.stored[this.id], this.default_keybind);
+			this.keybind = new Keybind(null, this.default_keybind?.variations).set(Keybinds.stored[this.id], this.default_keybind);
 		} else {
-			this.keybind = new Keybind().set(data.keybind);
+			this.keybind = new Keybind(null, this.default_keybind?.variations).set(data.keybind);
 		}
+		this.variations = data.variations;
 
 		Keybinds.actions.push(this)
 		Keybinds.extra[this.id] = this;
@@ -817,6 +819,25 @@ class NumSlider extends Widget {
 						}
 						this.change(n => Math.round(n));
 						this.update()
+						if (typeof this.onAfter === 'function') {
+							this.onAfter()
+						}
+					}
+				},
+				{
+					id: 'round',
+					name: 'menu.slider.reset_vector',
+					icon: 'replay',
+					condition: this.slider_vector instanceof Array,
+					click: () => {
+						if (typeof this.onBefore === 'function') {
+							this.onBefore()
+						}
+						for (let slider of this.slider_vector) {
+							let value = slider.settings?.default ?? 0;
+							slider.change(n => value);
+							slider.update();
+						}
 						if (typeof this.onAfter === 'function') {
 							this.onAfter()
 						}
@@ -1762,7 +1783,14 @@ const BARS = {
 		//Extras
 			new KeybindItem('preview_select', {
 				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1, ctrl: null, shift: null, alt: null})
+				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1},
+					{multi_select: 'ctrl', group_select: 'shift', loop_select: 'alt'}
+				),
+				variations: {
+					multi_select: {name: 'keybind.preview_select.multi_select'},
+					group_select: {name: 'keybind.preview_select.group_select'},
+					loop_select: {name: 'keybind.preview_select.loop_select'},
+				}
 			})
 			new KeybindItem('preview_rotate', {
 				category: 'navigate',
@@ -1891,6 +1919,31 @@ const BARS = {
 				alt_tool: 'resize_tool',
 				modes: ['edit'],
 				keybind: new Keybind({key: 's', alt: true}),
+			})
+			new Action('randomize_marker_colors', {
+				icon: 'fa-shuffle',
+				category: 'edit',
+				condition: {modes: ['edit' ], project: true},
+				click: function() {
+					let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
+					let elements = Outliner.selected.filter(element => element.setColor)
+					Undo.initEdit({outliner: true, elements: elements, selection: true})
+					Group.all.forEach(group => {
+						if (group.selected) {
+							let lastColor = group.color
+							// Ensure chosen group color is never the same as before
+							do group.color = randomColor();
+							while (group.color === lastColor)
+						}
+					})
+					elements.forEach(element => {
+						let lastColor = element.color
+						// Ensure chosen element color is never the same as before
+						do element.setColor(randomColor())
+						while (element.color === lastColor)
+					})
+					Undo.finishEdit('Change marker color')
+				}
 			})
 
 		//File
@@ -2228,6 +2281,8 @@ const BARS = {
 				'color_erase_mode',
 				'lock_alpha',
 				'painting_grid',
+				'image_tiled_view',
+				'image_onion_skin_view',
 			]
 		})
 		Toolbars.vertex_snap = new Toolbar({

@@ -32,6 +32,12 @@ class AnimationControllerState {
 			if (AnimationControllerState.properties[key].type == 'array') continue;
 			AnimationControllerState.properties[key].merge(this, data)
 		}
+		if (typeof data.blend_transition_curve == 'object') {
+			this.blend_transition_curve = {};
+			for (let key in data.blend_transition_curve) {
+				this.blend_transition_curve[key] = data.blend_transition_curve[key];
+			}
+		}
 		if (data.animations instanceof Array) {
 			this.animations.empty();
 			data.animations.forEach(a => {
@@ -127,6 +133,14 @@ class AnimationControllerState {
 				this.sounds.push(sound);
 			})
 		}
+		if (typeof data.blend_transition == 'object') {
+			this.blend_transition_curve = {};
+			this.blend_transition = Math.max(...Object.keys(data.blend_transition).map(time => parseFloat(time)));
+			for (let key in data.blend_transition) {
+				let timecode = parseFloat(key) / this.blend_transition;
+				this.blend_transition_curve[timecode] = data.blend_transition[key];
+			}
+		}
 	}
 	getUndoCopy() {
 		var copy = {
@@ -182,16 +196,30 @@ class AnimationControllerState {
 				return new oneLiner({[state ? state.name : 'missing_state']: condition})
 			})
 		}
-		if (this.blend_transition) object.blend_transition = this.blend_transition;
-		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		if (this.blend_transition) {
+			object.blend_transition = this.blend_transition;
+			let curve_keys = this.blend_transition_curve && Object.keys(this.blend_transition_curve);
+			if (curve_keys?.length) {
+				let curve_output = {};
+				let points = curve_keys.map(key => ({time: parseFloat(key), value: this.blend_transition_curve[key]}));
+				points.sort((a, b) => a.time - b.time);
+				for (let point of points) {
+					let timecode = trimFloatNumber(point.time * this.blend_transition, 4).toString();
+					if (!timecode.includes('.')) timecode += '.0';
+					curve_output[timecode] = Math.roundTo(point.value, 6);
+				}
+				object.blend_transition = curve_output;
+			}
+			if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		}
 		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
 		if (this.controller.selected_state !== this || force) {
 			this.controller.last_state = this.controller.selected_state;
-			this.controller.transition_timestamp = Date.now();
-			this.start_timestamp = Date.now();
+			this.controller.transition_timestamp = performance.now();
+			this.start_timestamp = performance.now();
 
 			this.controller.selected_state = this;
 
@@ -386,12 +414,376 @@ class AnimationControllerState {
 			}
 		})
 	}
+	calculateBlendValue(blend_progress) {
+		if (!this.blend_transition_curve || Object.keys(this.blend_transition_curve).length < 2) {
+			return blend_progress;
+		}
+		let time = blend_progress;
+		let keys = Object.keys(this.blend_transition_curve);
+		let values = keys.map(key => this.blend_transition_curve[key]);
+		let times = keys.map(v => parseFloat(v));
+		let prev_time = -Infinity, prev = null;
+		let next_time = Infinity, next = null;
+		let i = 0;
+		for (let t of times) {
+			if (t <= time && t > prev_time) {
+				prev = i; prev_time = t;
+			}
+			if (t >= time && t < next_time) {
+				next = i; next_time = t;
+			}
+			i++;
+		}
+		if (prev === null) return 1 - values[next];
+		if (next === null || prev == next) return 1 - values[prev];
+		let two_point_blend = Math.getLerp(prev_time, next_time, time) || 0;
+		return 1 - Math.lerp(values[prev], values[next], two_point_blend);
+	}
+	editTransitionCurve() {
+		let state = this;
+		let duration = this.blend_transition;
+		let points = [];
+		for (let key in this.blend_transition_curve) {
+			key = parseFloat(key);
+			points.push({
+				uuid: guid(),
+				time: key,
+				value: this.blend_transition_curve[key]
+			})
+		}
+		if (!points.length) {
+			points.push({time: 0, value: 1, uuid: guid()});
+			points.push({time: 1, value: 0, uuid: guid()});
+		}
+
+		let preview_loop = setInterval(() => {
+			dialog.content_vue.preview();
+		}, 1000 / 60);
+		let preview_loop_start_time = performance.now();
+
+		let dialog = new Dialog('blend_transition_edit', {
+			title: 'animation_controllers.state.blend_transition_curve',
+			width: 418,
+			keyboard_actions: {
+				copy: {
+					keybind: new Keybind({key: 'c', ctrl: true}),
+					run() {
+						this.content_vue.copy();
+					}
+				},
+				paste: {
+					keybind: new Keybind({key: 'v', ctrl: true}),
+					run() {
+						this.content_vue.paste();
+					}
+				}
+			},
+			form: {
+				duration: {
+					label: 'animation_controllers.state.blend_transition',
+					value: duration,
+					min: 0.05,
+					step: 0.05,
+					type: 'number',
+				},
+				extended_graph: {
+					label: 'dialog.blend_transition_edit.extended',
+					value: false,
+					type: 'checkbox',
+				},
+				buttons: {
+					type: 'buttons', buttons: [
+						'generic.reset',
+						tl('dialog.blend_transition_edit.ease_in_out', [6]),
+						tl('dialog.blend_transition_edit.ease_in_out', [10]),
+						'dialog.blend_transition_edit.generate',
+					],
+					click(index) {
+						function generate(easing, point_amount) {
+							points.empty();
+							for (let i = 0; i < point_amount; i++) {
+								let time = i / (point_amount-1);
+								points.push({time, value: 1-easing(time), uuid: guid()})
+							}
+							dialog.content_vue.updateGraph();
+						}
+						if (index == 3) {
+							let easings = {
+								easeInSine: 'In Sine',
+								easeOutSine: 'Out Sine',
+								easeInOutSine: 'In Out Sine',
+								easeInQuad: 'In Quad',
+								easeOutQuad: 'Out Quad',
+								easeInOutQuad: 'In Out Quad',
+								easeInCubic: 'In Cubic',
+								easeOutCubic: 'Out Cubic',
+								easeInOutCubic: 'In Out Cubic',
+								easeInQuart: 'In Quart',
+								easeOutQuart: 'Out Quart',
+								easeInOutQuart: 'In Out Quart',
+								easeInQuint: 'In Quint',
+								easeOutQuint: 'Out Quint',
+								easeInOutQuint: 'In Out Quint',
+								easeInExpo: 'In Expo',
+								easeOutExpo: 'Out Expo',
+								easeInOutExpo: 'In Out Expo',
+								easeInCirc: 'In Circ',
+								easeOutCirc: 'Out Circ',
+								easeInOutCirc: 'In Out Circ',
+								easeInBack: 'In Back',
+								easeOutBack: 'Out Back',
+								easeInOutBack: 'In Out Back',
+								easeInElastic: 'In Elastic',
+								easeOutElastic: 'Out Elastic',
+								easeInOutElastic: 'In Out Elastic',
+								easeOutBounce: 'Out Bounce',
+								easeInBounce: 'In Bounce',
+								easeInOutBounce: 'In Out Bounce',
+							};
+							let initial_points = points.slice();
+							new Dialog('blend_transition_edit_easing', {
+								title: 'dialog.blend_transition_edit.generate',
+								width: 380,
+								form: {
+									easings: {type: 'info', text: tl('dialog.blend_transition_edit.generate.learn_more') + ': [easings.net](https://easings.net)'},
+									curve: {type: 'select', label: 'dialog.blend_transition_edit.generate.curve', options: easings},
+									steps: {type: 'number', label: 'dialog.blend_transition_edit.generate.steps', value: 10, step: 1, min: 3, max: 64}
+								},
+								onFormChange(result) {
+									generate(Easings[result.curve], result.steps);
+								},
+								onConfirm(result) {
+									generate(Easings[result.curve], result.steps);
+								},
+								onCancel() {
+									points.replace(initial_points);
+									dialog.content_vue.updateGraph();
+								}
+							}).show();
+
+						} else {
+							let point_amount = ([2, 6, 10])[index];
+							function hermiteBlend(t) {
+								return 3*(t**2) - 2*(t**3);
+							}
+							generate(hermiteBlend, point_amount);
+						}
+
+					}
+				}
+			},
+			component: {
+				data() {return {
+					duration,
+					points,
+					graph_data: '',
+					zero_line: '',
+					preview_value: 0,
+					width: Math.min(340, window.innerWidth - 42),
+					height: 220,
+					scale_y: 220
+				}},
+				methods: {
+					dragPoint(point, e1) {
+						let scope = this;
+						let original_time = point.time;
+						let original_value = point.value;
+						let scale_y = this.scale_y;
+						
+						let drag = (e2) => {
+							point.time = original_time + (e2.clientX - e1.clientX) / this.width;
+							point.value = original_value - (e2.clientY - e1.clientY) / scale_y;
+							point.time = Math.clamp(point.time, 0, 1);
+							let limits = (this.scale_y > 188) ? [0, 1] : [-1, 2];
+							point.value = Math.clamp(point.value, ...limits);
+							Blockbench.setCursorTooltip(`${Math.roundTo(point.time * this.duration, 4)} x ${Math.roundTo(point.value, 4)}`);
+
+							scope.updateGraph();
+						}
+						let stop = () => {
+							removeEventListeners(document, 'mousemove touchmove', drag);
+							removeEventListeners(document, 'mouseup touchend', stop);
+							Blockbench.setCursorTooltip();
+						}
+						addEventListeners(document, 'mousemove touchmove', drag);
+						addEventListeners(document, 'mouseup touchend', stop);
+					},
+					createNewPoint(event) {
+						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
+						let offset_y = (this.height - this.scale_y) / 2;
+						let point = {
+							uuid: guid(),
+							time: (event.offsetX - 5) / this.width,
+							value: 1 - ((event.offsetY - 5 - offset_y) / this.scale_y),
+						}
+						this.points.push(point);
+						this.updateGraph();
+						this.dragPoint(point, event);
+					},
+					copy() {
+						let copy = points.map(p => ({time: p.time, value: p.value}));
+						Clipbench.setText(JSON.stringify(copy));
+					},
+					async paste() {
+						let input;
+						if (isApp) {
+							input = clipboard.readText();
+						} else {
+							input = await navigator.clipboard.readText();
+						}
+						if (!input) return;
+						try {
+							let parsed = JSON.parse(input);
+							if (!(parsed instanceof Array)) return;
+							points.empty();
+							for (let point_data of parsed) {
+								let point = {
+									uuid: guid(),
+									time: point_data.time ?? 0,
+									value: point_data.value ?? 0,
+								}
+								points.push(point);
+							}
+							this.updateGraph();
+
+						} catch (err) {}
+					},
+					contextMenu(event) {
+						new Menu([
+							{
+								id: 'copy',
+								name: 'action.copy',
+								icon: 'fa-copy',
+								click: () => {
+									this.copy();
+								}
+							}, {
+								id: 'paste',
+								name: 'action.paste',
+								icon: 'fa-clipboard',
+								click: () => {
+									this.paste();
+								}
+							}
+						]).open(event);
+					},
+					pointContextMenu(point, event) {
+						new Menu([{
+							id: 'remove',
+							name: 'generic.remove',
+							icon: 'clear',
+							click: () => {
+								points.remove(point);
+								this.updateGraph();
+							}
+						}]).open(event.target);
+					},
+					scaleY() {
+						let max_offset = 0;
+						for (let point of points) {
+							max_offset = Math.max(max_offset, -point.value, point.value-1);
+						}
+						return max_offset > 0.01 ? 90 : this.height;
+					},
+					updateGraph() {
+						if (!this.points.length) {
+							this.graph_data = '';
+							return;
+						}
+						let offset = 5;
+						let offset_y = 5 + (this.height - this.scale_y) / 2;
+						this.points.sort((a, b) => a.time - b.time);
+						let graph_data = `M${0} ${(1-this.points[0].value) * this.scale_y + offset_y} `;
+						for (let point of this.points) {
+							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.scale_y + offset_y} `;
+						}
+						graph_data += `L${this.width + 10} ${(1-points.last().value) * this.scale_y + offset_y} `;
+						this.graph_data = graph_data;
+
+						this.zero_line = `M0 ${offset_y} L${this.width} ${offset_y} M0 ${offset_y + this.scale_y} L${this.width} ${offset_y + this.scale_y}`;
+					},
+					preview() {
+						if (this.points.length == 0) return 0;
+						let pause = 0.4;
+						let absolute_time = ((performance.now() - preview_loop_start_time) / 1000);
+						let time = (absolute_time % (this.duration + pause)) / this.duration;
+						if (time > 1) {
+							this.preview_value = 0;
+							return;
+						}
+						let prev_time = -Infinity, prev = 0;
+						let next_time = Infinity, next = 0;
+						for (let pt of points) {
+							if (pt.time <= time && pt.time > prev_time) {
+								prev = pt; prev_time = pt.time;
+							}
+							if (pt.time >= time && pt.time < next_time) {
+								next = pt; next_time = pt.time;
+							}
+						}
+						if (!prev) return next.value;
+						if (!next) return prev.value;
+						let two_point_blend = Math.getLerp(prev_time, next_time, time);
+						this.preview_value = Math.lerp(prev.value, next.value, two_point_blend);
+					}
+				},
+				template: `
+					<div class="blend_transition_graph_wrapper" @contextmenu="contextMenu($event)">
+						<div id="blend_transition_graph"
+							@mousedown="createNewPoint($event)"
+							@touchstart="createNewPoint($event)"
+							:style="{height: (height+10) + 'px', width: (width+10) + 'px'}"
+						>
+							<svg>+
+								<path :d="graph_data" />
+								<path :d="zero_line" class="zero_lines" />
+							</svg>
+							<div class="blend_transition_graph_point"
+								v-for="point in points" :key="point.uuid"
+								:style="{left: point.time * width + 'px', top: ( (1-point.value) * scale_y + (height-scale_y)/2 ) + 'px'}"
+								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
+								@contextmenu.stop="pointContextMenu(point, $event)"
+							></div>
+						</div>
+						<div class="blend_transition_preview" :style="{'--progress': scale_y > 200 ? preview_value : (1+preview_value) / 3}">
+							<div />
+						</div>
+					</div>
+				`,
+				mounted() {
+					this.updateGraph();
+				}
+			},
+			onFormChange(result) {
+				this.content_vue.duration = result.duration;
+				this.content_vue.scale_y = result.extended_graph ? 220 / 3 : 220;
+				this.content_vue.updateGraph();
+			},
+			onConfirm(result) {
+				clearInterval(preview_loop);
+				Undo.initEdit({animation_controller_state: state});
+				state.blend_transition = result.duration;
+				state.blend_transition_curve = {};
+				let is_linear = points.length == 2 && points.find(p => p.time == 0 && p.value == 1) && points.find(p => p.time == 1 && p.value == 0);
+				if (!is_linear) {
+					for (let point of points) {
+						state.blend_transition_curve[Math.clamp(point.time, 0, 1)] = point.value;
+					}
+				}
+				Undo.finishEdit('Change blend transition curve');
+			},
+			onCancel() {
+				clearInterval(preview_loop);
+			}
+		});
+		dialog.show();
+	}
 	openMenu(event) {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
 	getStateTime() {
 		if (!this.start_timestamp) return 0;
-		return (Date.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
+		return (performance.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
@@ -402,6 +794,7 @@ new Property(AnimationControllerState, 'array', 'particles');
 new Property(AnimationControllerState, 'string', 'on_entry');
 new Property(AnimationControllerState, 'string', 'on_exit');
 new Property(AnimationControllerState, 'number', 'blend_transition');
+new Property(AnimationControllerState, 'object', 'blend_transition_curve');
 new Property(AnimationControllerState, 'boolean', 'blend_via_shortest_path');
 AnimationControllerState.prototype.menu = new Menu([
 	{
@@ -863,6 +1256,24 @@ class AnimationController extends AnimationItem {
 			}
 		},
 		'rename',
+		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			click(controller) {
+				Blockbench.read([controller.path], {}, ([file]) => {
+					Undo.initEdit({animation_controllers: [controller]})
+					let anim_index = AnimationController.all.indexOf(controller);
+					controller.remove(false, false);
+					let [new_ac] = Animator.loadFile(file, [controller.name]);
+					AnimationController.all.remove(new_ac);
+					AnimationController.all.splice(anim_index, 0, new_ac);
+					new_ac.select();
+					Undo.finishEdit('Reload animation', {animation_controllers: [new_ac]});
+				})
+			}
+		},
 		{
 			id: 'unload',
 			name: 'menu.animation.unload',
@@ -1415,12 +1826,15 @@ Interface.definePanels(() => {
 						Undo.finishEdit('Change animation controller audio file')
 					})
 				},
+				editStateBlendTime(state) {
+					state.controller.saved = false;
+				},
 
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'controller');
+					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
 				}
 			},
@@ -1730,7 +2144,15 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" :min="0" :step="0.05" />
+										<numeric-input style="width: 70px; flex-grow: 0;" v-model.number="state.blend_transition" :min="0" :step="0.05" @input="editStateBlendTime(state)" />
+										<div
+											class="tool blend_transition_curve_button"
+											title="${tl('animation_controllers.state.blend_transition_curve')}"
+											@click="state.editTransitionCurve()"
+										>
+											<i class="fas fa-chart-line icon"></i>
+											<span v-if="Object.keys(state.blend_transition_curve).length">{{ Object.keys(state.blend_transition_curve).length }}</span>
+										</div>
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>

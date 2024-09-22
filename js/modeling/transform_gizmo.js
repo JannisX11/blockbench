@@ -960,14 +960,32 @@
 					display_base.getWorldPosition(Transformer.position);
 					Transformer.position.sub(scene.position);
 
+					// todo: Fix positions when both rotation pivot and scale pivot are used
 					if (Toolbox.selected.transformerMode === 'translate') {
 						Transformer.rotation_ref = display_area;
 
 					} else if (Toolbox.selected.transformerMode === 'scale') {
+						if (DisplayMode.slot.scale_pivot) {
+							let pivot_offset = new THREE.Vector3().fromArray(DisplayMode.slot.scale_pivot).multiplyScalar(-16);
+							pivot_offset.x *= DisplayMode.slot.scale[0];
+							pivot_offset.y *= DisplayMode.slot.scale[1];
+							pivot_offset.z *= DisplayMode.slot.scale[2];
+							pivot_offset.applyQuaternion(display_base.getWorldQuaternion(new THREE.Quaternion()));
+							Transformer.position.sub(pivot_offset);
+						}
+
 						Transformer.rotation_ref = display_base;
 
-					} else if (Toolbox.selected.transformerMode === 'rotate' && display_slot == 'gui') {
-						Transformer.rotation_ref = display_gui_rotation
+					} else if (Toolbox.selected.transformerMode === 'rotate') {
+						if (DisplayMode.slot.rotation_pivot) {
+							let pivot_offset = new THREE.Vector3().fromArray(DisplayMode.slot.rotation_pivot).multiplyScalar(-16);
+							pivot_offset.applyQuaternion(display_base.getWorldQuaternion(new THREE.Quaternion()));
+							Transformer.position.sub(pivot_offset);
+						}
+
+						if (display_slot == 'gui') {
+							Transformer.rotation_ref = display_gui_rotation;
+						}
 					}
 					Transformer.update()
 

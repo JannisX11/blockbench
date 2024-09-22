@@ -127,6 +127,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			let slider_tex = getSliderTexture()
 			if (!slider_tex) return;
+			UVEditor.previous_animation_frame = slider_tex.currentFrame;
 			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
 
 			let textures = Texture.all.filter(tex => tex.frameCount > 1);
@@ -161,6 +162,7 @@ BARS.defineActions(function() {
 			let texture = Texture.selected;
 			let frametime = 1000/settings.texture_fps.value;
 			let gauge = texture.width;
+			let copied;
 			if (Format.texture_mcmeta && Texture.getDefault()) {
 				let tex = Texture.getDefault();
 				frametime = Math.max(tex.frame_time, 1) * 50;
@@ -260,6 +262,7 @@ BARS.defineActions(function() {
 					let frame = {
 						uuid: guid(),
 						initial_index: i,
+						selected: false,
 						canvas, ctx,
 						data_url,
 					};
@@ -333,6 +336,9 @@ BARS.defineActions(function() {
 					methods: {
 						togglePlay() {
 							if (!this.playing) {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
 								this.playing = true;
 								let frametime = Math.clamp(1000 / this.fps, 2, 1000);
 								this.interval = setInterval(() => {
@@ -390,18 +396,48 @@ BARS.defineActions(function() {
 								}
 							}).show();
 						},
+						select(index, event) {
+							if (!this.frames[index]) return;
+
+							let previous_index = this.frame_index;
+							this.frame_index = index;
+
+							if (event && event.ctrlOrCmd) {
+								this.frames[index].selected = true;
+								
+							} else if (event && event.shiftKey) {
+								let start_index = Math.min(index, previous_index);
+								let end_index = Math.max(index, previous_index);
+								for (let i = start_index; i <= end_index; i++) {
+									this.frames[i].selected = true;
+								}
+
+							} else {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
+								this.frames[index].selected = true;
+
+							}
+						},
 						duplicateFrame() {
-							let frame = this.frames[this.frame_index];
-							if (!frame) return;
-							let copy = Object.assign({}, frame);
-							copy.uuid = guid();
-							this.frames.splice(this.frame_index+1, 0, copy);
-							this.frame_index++;
+							let frames = this.frames.filter(frame => frame.selected);
+							if (!frames.length) return;
+							let insert_index = this.frames.indexOf(frames.last()) + 1;
+							for (let frame of frames) {
+								let copy = Object.assign({}, frame);
+								copy.uuid = guid();
+								frame.selected = false;
+								this.frames.splice(insert_index, 0, copy);
+								this.frame_index = insert_index;
+								insert_index++;
+							}
 						},
 						deleteFrame() {
-							let frame = this.frames[this.frame_index];
-							if (!frame) return;
-							this.frames.remove(frame);
+							for (let frame of this.frames.slice()) {
+								if (!frame.selected) continue;
+								this.frames.remove(frame);
+							}
 							this.frame_index = Math.min(this.frame_index, this.frames.length-1);
 						},
 						createFrame() {
@@ -413,8 +449,15 @@ BARS.defineActions(function() {
 							};
 							this.frame_index++;
 							this.frames.splice(this.frame_index, 0, frame);
+							this.select(this.frame_index);
 						},
 						copy() {
+							copied = [];
+							for (let frame of this.frames) {
+								if (!frame.selected) continue;
+								copied.push(frame);
+							}
+
 							let selected_frame = this.frames[this.frame_index];
 							if (!selected_frame) return;
 							Clipbench.image = {
@@ -434,6 +477,7 @@ BARS.defineActions(function() {
 							}
 						},
 						paste() {
+							let insert_index = this.frames.findLastIndex(f => f.selected) + 1;
 							let addFrame = (data_url) => {
 								let canvas_frame = new CanvasFrame(gauge, this.stride);
 								canvas_frame.loadFromURL(data_url);
@@ -442,11 +486,24 @@ BARS.defineActions(function() {
 									canvas: canvas_frame.canvas,
 									data_url,
 								};
-								this.frame_index++;
-								this.frames.splice(this.frame_index, 0, frame);
+								this.frames.splice(insert_index, 0, frame);
+								this.select(insert_index);
 							}
-						
-							if (isApp) {
+							
+							if (copied) {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
+								for (let original of copied) {
+									let copy = Object.assign({}, original);
+									copy.uuid = guid();
+									copy.selected = true;
+									this.frames.splice(insert_index, 0, copy);
+									this.frame_index = insert_index;
+									insert_index++;
+								}
+
+							} else if (isApp) {
 								var image = clipboard.readImage().toDataURL();
 								addFrame(image);
 							} else {
@@ -557,8 +614,8 @@ BARS.defineActions(function() {
 								<ul v-sortable="{onUpdate: sort, animation: 160}">
 									<li v-for="(frame, i) in frames" :key="frame.uuid"
 										:title="i"
-										class="flipbook_frame" :class="{viewing: frame_index == i}"
-										@click="frame_index = i"
+										class="flipbook_frame" :class="{viewing: frame_index == i, selected: frame.selected}"
+										@click="select(i, $event);"
 										@dblclick="setFrame(i)"
 									>
 										<label>{{ i }}</label>
@@ -601,7 +658,7 @@ BARS.defineActions(function() {
 								</div>
 								<div class="flipbook_options">
 									<label>${'FPS'}</label>
-									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+									<numeric-input v-model.number="fps" :min="1" :step="1" @input="updateFPS()" />
 									<button @click="openCode()" v-if="code_available">${tl('dialog.animated_texture_editor.code_reference')}</button>
 								</div>
 							</div>

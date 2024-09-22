@@ -2,9 +2,9 @@
 //Textures
 class Texture {
 	constructor(data, uuid) {
-		var scope = this;
+		let scope = this;
 		//Info
-		for (var key in Texture.properties) {
+		for (let key in Texture.properties) {
 			Texture.properties[key].reset(this);
 		}
 		//meta
@@ -206,6 +206,7 @@ class Texture {
 				scope.canvas.width = scope.width;
 				scope.canvas.height = scope.height;
 				scope.ctx.drawImage(img, 0, 0);
+				if (UVEditor.vue.texture == this) UVEditor.updateOverlayCanvas();
 			}
 
 			if (this.flags.has('update_uv_size_from_resolution')) {
@@ -306,8 +307,9 @@ class Texture {
 		}
 	}
 	get frameCount() {
-		if (Format.animated_textures && this.ratio !== 1 && this.ratio !== (this.getUVWidth() / this.getUVHeight()) && 1/this.ratio % 1 === 0) {
-			return (this.getUVWidth() / this.getUVHeight()) / this.ratio
+		if (Format.animated_textures && this.ratio !== (this.getUVWidth() / this.getUVHeight())) {
+			let frames = Math.ceil((this.getUVWidth() / this.getUVHeight()) / this.ratio - 0.05);
+			if (frames > 1) return frames;
 		}
 	}
 	get display_height() {
@@ -340,6 +342,15 @@ class Texture {
 			//case 1: return tl('texture.error.invalid'); break;
 			//case 2: return tl('texture.error.ratio'); break;
 			case 3: return tl('texture.error.parent'); break;
+		}
+	}
+	getGroup() {
+		if (!this.group) return;
+		let group = TextureGroup.all.find(group => group.uuid == this.group);
+		if (group) {
+			return group;
+		} else {
+			this.group = '';
 		}
 	}
 	getUndoCopy(bitmap) {
@@ -902,6 +913,10 @@ class Texture {
 		if (this.layers_enabled && !this.selected_layer && this.layers[0]) {
 			this.layers[0].select();
 		}
+		if (this.group) {
+			let group = this.getGroup();
+			if (group) group.folded = false;
+		}
 		this.scrollTo();
 		if (this.render_mode == 'layered') {
 			Canvas.updatePixelGrid()
@@ -937,7 +952,6 @@ class Texture {
 			Project.textures.push(this)
 		}
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
-		loadTextureDraggable()
 
 		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
 			Canvas.updateAllFaces()
@@ -1401,7 +1415,7 @@ class Texture {
 		return this;
 	}
 	scrollTo() {
-		var el = $(`#texture_list > li[texid=${this.uuid}]`)
+		var el = $(`#texture_list li.texture[texid=${this.uuid}]`)
 		if (el.length === 0 || Texture.all.length < 2) return;
 
 		var outliner_pos = $('#texture_list').offset().top
@@ -1734,6 +1748,7 @@ class Texture {
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
+		if (UVEditor.vue.texture == this) UVEditor.updateOverlayCanvas();
 	}
 	updateChangesAfterEdit() {
 		if (this.layers_enabled) {
@@ -2053,6 +2068,7 @@ class Texture {
 	new Property(Texture, 'string', 'folder')
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
+	new Property(Texture, 'string', 'group')
 	new Property(Texture, 'number', 'width')
 	new Property(Texture, 'number', 'height')
 	new Property(Texture, 'number', 'uv_width')
@@ -2095,146 +2111,12 @@ function saveTextures(lazy = false) {
 	})
 }
 function loadTextureDraggable() {
-	Vue.nextTick(function() {
-		setTimeout(function() {
-			$('li.texture:not(.ui-draggable)').draggable({
-				revertDuration: 0,
-				cursorAt: { left: 2, top: -5 },
-				revert: 'invalid',
-				appendTo: 'body',
-				zIndex: 19,
-				distance: 12,
-				delay: 120,
-				helper: function(e) {
-					var t = $(e.target)
-					if (!t.hasClass('texture')) t = t.parent()
-					if (!t.hasClass('texture')) t = t.parent()
-					return t.find('.texture_icon_wrapper').clone().addClass('texture_drag_helper').attr('texid', t.attr('texid'))
-				},
-				drag: function(event, ui) {
-					
-					$('.outliner_node[order]').attr('order', null);
-					$('.drag_hover').removeClass('drag_hover');
-					$('.texture[order]').attr('order', null)
-					if ($('#cubes_list li.outliner_node:hover').length) {
-						var tar = $('#cubes_list li.outliner_node:hover').last()
-						tar.addClass('drag_hover').attr('order', '0');
-						/*
-						var element = Outliner.root.findRecursive('uuid', tar.attr('id'))
-						if (element) {
-							tar.attr('order', '0')
-						}*/
-					} else if ($('#texture_list li:hover').length) {
-						let node = $('#texture_list > .texture:hover')
-						if (node.length) {
-							var target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
-							index = Texture.all.indexOf(target_tex);
-							let offset = event.clientY - node[0].offsetTop;
-							if (offset > 24) {
-								node.attr('order', '1')
-							} else {
-								node.attr('order', '-1')
-							}
-						}
-					}
-				},
-				stop: function(event, ui) {
-					setTimeout(function() {
-						$('.texture[order]').attr('order', null);
-						$('.outliner_node[order]').attr('order', null);
-						var tex = Texture.all.findInArray('uuid', ui.helper.attr('texid'));
-						if (!tex) return;
-						if ($('.preview:hover').length > 0) {
-							var data = Canvas.raycast(event)
-							if (data.element && data.face) {
-								var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
-
-								if (Format.per_group_texture) {
-									elements = [];
-									let groups = Group.selected ? [Group.selected] : [];
-									Outliner.selected.forEach(el => {
-										if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
-									});
-									Undo.initEdit({outliner: true});
-									groups.forEach(group => {
-										group.texture = '';
-										group.forEachChild(child => {
-											if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-										})
-									})
-								} else {
-									Undo.initEdit({elements})
-									elements.forEach(element => {
-										element.applyTexture(tex, event.shiftKey || Pressing.overrides.shift || [data.face])
-									})
-								}
-								Undo.finishEdit('Apply texture')
-							}
-						} else if ($('#texture_list:hover').length > 0) {
-							let index = Texture.all.length-1
-							let node = $('#texture_list > .texture:hover')
-							if (node.length) {
-								var target_tex = Texture.all.findInArray('uuid', node.attr('texid'));
-								index = Texture.all.indexOf(target_tex);
-								let own_index = Texture.all.indexOf(tex)
-								if (own_index == index) return;
-								if (own_index < index) index--;
-								if (event.clientY - node[0].offsetTop > 24) index++;
-							}
-							Undo.initEdit({texture_order: true})
-							Texture.all.remove(tex)
-							Texture.all.splice(index, 0, tex)
-							Canvas.updateLayeredTextures()
-							Undo.finishEdit('Reorder textures')
-						} else if ($('#cubes_list:hover').length) {
-
-							let target_node = $('#cubes_list li.outliner_node.drag_hover').last().get(0);
-							$('.drag_hover').removeClass('drag_hover');
-							if (!target_node) return;
-							let uuid = target_node.id;
-							let target = OutlinerNode.uuids[uuid];
-							
-							let array = [];
-							if (target.type === 'group') {
-								target.forEachChild((element) => {
-									array.push(element);
-								})
-							} else {
-								array = selected.includes(target) ? selected.slice() : [target];
-							}
-							array = array.filter(element => element.applyTexture);
-
-							if (Format.per_group_texture) {
-								let group = target.type === 'group' ? target : null;
-								if (!group) group = target.parent;
-
-								array = [];
-								Undo.initEdit({group});
-								group.texture = tex.uuid;
-								group.forEachChild(child => {
-									if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
-								})
-							} else {
-								Undo.initEdit({elements: array, uv_only: true})
-								array.forEach(element => {
-									element.applyTexture(tex, true);
-								});
-							}
-							Undo.finishEdit('Apply texture');
-							UVEditor.loadData();
-
-						} else if ($('#uv_viewport:hover').length) {
-							UVEditor.applyTexture(tex);
-						}
-					}, 10)
-				}
-			})
-		}, 42)
-	})
+	console.warn('loadTextureDraggable no longer exists');
 }
 function unselectTextures() {
 	Texture.all.forEach(function(s) {
 		s.selected = false;
+		s.multi_selected = false;
 	})
 	Texture.selected = undefined;
 	Canvas.updateLayeredTextures();
@@ -2331,15 +2213,15 @@ BARS.defineActions(function() {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true}),
-		click() {
-			var start_path;
+		click(event, context) {
+			let start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
-				var arr = Texture.all[0].path.split(osfs)
+				let arr = Texture.all[0].path.split(osfs)
 				arr.splice(-1)
 				start_path = arr.join(osfs)
 			} else if (Project.export_path) {
-				var arr = Project.export_path.split(osfs)
+				let arr = Project.export_path.split(osfs)
 				arr.splice(-3)
 				arr.push('textures')
 				start_path = arr.join(osfs)
@@ -2352,11 +2234,15 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(results) {
-				var new_textures = []
-				Undo.initEdit({textures: new_textures})
+				let new_textures = [];
+				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
+				Undo.initEdit({textures: new_textures});
 				results.forEach(function(f) {
-					var t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle()
-					new_textures.push(t)
+					let t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle();
+					new_textures.push(t);
+					if (texture_group) {
+						t.group = texture_group.uuid;
+					}
 				})
 				Undo.finishEdit('Add texture')
 			})
@@ -2422,6 +2308,321 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
+	let texture_component = Vue.extend({
+		props: {
+			texture: Texture
+		},
+		data() {return {
+			temp_color: null
+		}},
+		methods: {
+			getDescription(texture) {
+				if (texture.error) {
+					return texture.getErrorMessage()
+				} else {
+					let message = texture.width + ' x ' + texture.height + 'px';
+					if (!Format.image_editor) {
+						let uv_size = texture.width / texture.getUVWidth() * 16;
+						message += ` (${trimFloatNumber(uv_size, 2)}x)`;
+					}
+					if (texture.frameCount > 1) {
+						message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
+					}
+					return message;
+				}
+			},
+			getTextureIconOffset(texture) {
+				if (!texture.currentFrame) return;
+				let val = texture.currentFrame * -48 * (texture.display_height / texture.width);
+				return `${val}px`;
+			},
+			highlightTexture(event) {
+				if (!Format.single_texture && this.texture.error) {
+					let material = this.texture.getMaterial();
+					let color = material.uniforms.LIGHTCOLOR.value;
+					this.temp_color = new THREE.Color().copy(color);
+					color.r += 0.3;
+					color.g += 0.3;
+					color.b += 0.3;
+					setTimeout(() => {
+					}, 150);
+				}
+			},
+			unhighlightTexture(event) {
+				if (!Format.single_texture && this.temp_color) {
+					let material = this.texture.getMaterial();
+					let color = material.uniforms.LIGHTCOLOR.value;
+					color.copy(this.temp_color);
+				}
+			},
+			dragTexture(e1) {
+				if (e1.button == 1) return;
+				if (getFocusedTextInput()) return;
+				convertTouchEvent(e1);
+				
+				let texture = this.texture;
+				let active = false;
+				let helper;
+				let timeout;
+				let last_event = e1;
+				let vue_scope = this;
+
+				// scrolling
+				let list = document.getElementById('texture_list');
+				let list_offset = $(list).offset();
+				let scrollInterval = function() {
+					if (!active) return;
+					if (mouse_pos.y < list_offset.top) {
+						list.scrollTop += (mouse_pos.y - list_offset.top) / 7 - 3;
+					} else if (mouse_pos.y > list_offset.top + list.clientHeight) {
+						list.scrollTop += (mouse_pos.y - (list_offset.top + list.clientHeight)) / 6 + 3;
+					}
+				}
+				let scrollIntervalID;
+
+				function move(e2) {
+					convertTouchEvent(e2);
+					let offset = [
+						e2.clientX - e1.clientX,
+						e2.clientY - e1.clientY,
+					]
+					if (!active) {
+						let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+						if (Blockbench.isTouch) {
+							if (distance > 20 && timeout) {
+								clearTimeout(timeout);
+								timeout = null;
+							} else {
+								document.getElementById('texture_list').scrollTop += last_event.clientY - e2.clientY;
+							}
+						} else if (distance > 6) {
+							active = true;
+						}
+					}
+					if (!active) return;
+
+					if (e2) e2.preventDefault();
+
+					if (open_menu) open_menu.hide();
+
+					if (!helper) {
+						helper = vue_scope.$el.cloneNode();
+						helper.classList.add('texture_drag_helper');
+						helper.setAttribute('texid', texture.uuid);
+
+						document.body.append(helper);
+
+						scrollIntervalID = setInterval(scrollInterval, 1000/60)
+						
+						Blockbench.addFlag('dragging_textures');
+					}
+					helper.style.left = `${e2.clientX}px`;
+					helper.style.top = `${e2.clientY}px`;
+
+					// drag
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
+					$('.texture[order]').attr('order', null)
+
+					if (isNodeUnderCursor(document.getElementById('cubes_list'), e2)) {
+						for (let node of document.querySelectorAll('.outliner_object')) {
+							if (isNodeUnderCursor(node, e2)) {
+								let parent = node.parentNode;
+								parent.classList.add('drag_hover');
+								parent.setAttribute('order', '0');
+								return;
+							}
+						}
+					}
+					if (isNodeUnderCursor(document.querySelector('#texture_list'), e2)) {
+
+						let texture_target = findNodeUnderCursor('#texture_list li.texture', e2);
+						if (texture_target) {
+							let offset = e2.clientY - $(texture_target).offset().top;
+							texture_target.setAttribute('order', offset > 24 ? '1' : '-1');
+							return;
+						}
+						let group_target = findNodeUnderCursor('#texture_list .texture_group_head', e2);
+						if (group_target) {
+							group_target.classList.add('drag_hover');
+							group_target.setAttribute('order', '0');
+							return;
+						}
+
+						let nodes = document.querySelectorAll('#texture_list > li');
+						if (nodes.length) {
+							let target = nodes[nodes.length-1];
+							target.setAttribute('order', '1');
+							target.classList.add('drag_hover');
+						}
+					}
+					last_event = e2;
+				}
+				async function off(e2) {
+					convertTouchEvent(e2);
+					if (helper) helper.remove();
+					clearInterval(scrollIntervalID);
+					removeEventListeners(document, 'mousemove touchmove', move);
+					removeEventListeners(document, 'mouseup touchend', off);
+					e2.stopPropagation();
+
+					let outliner_target_node = document.querySelector('#cubes_list li.outliner_node.drag_hover');
+
+					$('.outliner_node[order]').attr('order', null);
+					$('.drag_hover').removeClass('drag_hover');
+					$('.texture[order]').attr('order', null)
+					if (Blockbench.isTouch) clearTimeout(timeout);
+
+					if (!active || Menu.open) return;
+
+					//await new Promise(r => setTimeout(r, 10));
+
+					Blockbench.removeFlag('dragging_textures');
+
+
+					if (isNodeUnderCursor(Interface.preview, e2)) {
+						var data = Canvas.raycast(e2)
+						if (data.element && data.face) {
+							var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
+
+							if (Format.per_group_texture) {
+								elements = [];
+								let groups = Group.selected ? [Group.selected] : [];
+								Outliner.selected.forEach(el => {
+									if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
+								});
+								Undo.initEdit({outliner: true});
+								groups.forEach(group => {
+									group.texture = texture.uuid;
+									group.forEachChild(child => {
+										if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+									})
+								})
+							} else {
+								Undo.initEdit({elements});
+								elements.forEach(element => {
+									element.applyTexture(texture, e2.shiftKey || Pressing.overrides.shift || [data.face])
+								})
+							}
+							Undo.finishEdit('Apply texture')
+						}
+					} else if (isNodeUnderCursor(document.getElementById('texture_list'), e2)) {
+
+						let index = Texture.all.length-1;
+						let texture_node = findNodeUnderCursor('#texture_list li.texture', e2);
+						let target_group_head = findNodeUnderCursor('#texture_list .texture_group_head', e2);
+						let new_group = '';
+						if (target_group_head) {
+							new_group = target_group_head.parentNode.id;
+
+						} else if (texture_node) {
+							let target_tex = Texture.all.findInArray('uuid', texture_node.getAttribute('texid'));
+							index = Texture.all.indexOf(target_tex);
+							let own_index = Texture.all.indexOf(texture)
+							if (own_index == index) return;
+							let offset = e2.clientY - $(texture_node).offset().top;
+							if (own_index < index) index--;
+							if (offset > 24) index++;
+							new_group = target_tex.group;
+						}
+						Undo.initEdit({texture_order: true, textures: texture.group != new_group ? [texture] : null});
+						Texture.all.remove(texture);
+						Texture.all.splice(index, 0, texture);
+						texture.group = new_group;
+						Canvas.updateLayeredTextures();
+						Undo.finishEdit('Rearrange textures');
+
+					} else if (outliner_target_node) {
+						let uuid = outliner_target_node.id;
+						let target = OutlinerNode.uuids[uuid];
+						
+						let array = [];
+						if (target.type === 'group') {
+							target.forEachChild((element) => {
+								array.push(element);
+							})
+						} else {
+							array = selected.includes(target) ? selected.slice() : [target];
+						}
+						array = array.filter(element => element.applyTexture);
+
+						if (Format.per_group_texture) {
+							let group = target.type === 'group' ? target : null;
+							if (!group) group = target.parent;
+
+							array = [];
+							Undo.initEdit({group});
+							group.texture = texture.uuid;
+							group.forEachChild(child => {
+								if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
+							})
+						} else {
+							Undo.initEdit({elements: array, uv_only: true})
+							array.forEach(element => {
+								element.applyTexture(texture, true);
+							});
+						}
+						Undo.finishEdit('Apply texture');
+						UVEditor.loadData();
+
+					} else if (isNodeUnderCursor(document.getElementById('uv_viewport'), e2)) {
+						UVEditor.applyTexture(texture);
+					}
+				}
+
+				if (Blockbench.isTouch) {
+					timeout = setTimeout(() => {
+						active = true;
+						move(e1);
+					}, 320)
+				}
+
+				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			}
+		},
+		template: `
+			<li
+				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
+				v-bind:texid="texture.uuid"
+				class="texture"
+				@click.stop="texture.select($event)"
+				@mousedown="highlightTexture($event)"
+				@mouseup="unhighlightTexture($event)"
+				@dblclick="texture.openMenu($event)"
+				@mousedown.stop="dragTexture($event)" @touchstart.stop="dragTexture($event)"
+				@contextmenu.prevent.stop="texture.showContextMenu($event)"
+			>
+				<div class="texture_icon_wrapper">
+					<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
+					<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">priority_high</i>
+					<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
+				</div>
+				<div class="texture_description_wrapper">
+					<div class="texture_name">{{ texture.name }}</div>
+					<div class="texture_res">{{ getDescription(texture) }}</div>
+				</div>
+				<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
+				<template v-else>
+					<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
+					<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
+					<i class="material-icons texture_visibility_icon clickable"
+						v-bind:class="{icon_off: !texture.visible}"
+						v-if="texture.render_mode == 'layered'"
+						@click.stop="texture.toggleVisibility()"
+						@dblclick.stop
+					>
+						{{ texture.visible ? 'visibility' : 'visibility_off' }}
+					</i>
+					<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click.stop="texture.save()">
+						<template v-if="texture.saved">check_circle</template>
+						<template v-else>save</template>
+					</i>
+				</template>
+			</li>
+		`
+	})
+
 	new Panel('textures', {
 		icon: 'fas.fa-images',
 		growable: true,
@@ -2438,6 +2639,7 @@ Interface.definePanels(function() {
 				children: [
 					'import_texture',
 					'create_texture',
+					'create_texture_group',
 					'append_to_template',
 				]
 			})
@@ -2450,26 +2652,16 @@ Interface.definePanels(function() {
 			name: 'panel-textures',
 			data() { return {
 				textures: Texture.all,
+				texture_groups: TextureGroup.all,
 				currentFrame: 0,
 			}},
+			components: {'Texture': texture_component},
 			methods: {
 				openMenu(event) {
 					Interface.Panels.textures.menu.show(event)
 				},
-				getDescription(texture) {
-					if (texture.error) {
-						return texture.getErrorMessage()
-					} else {
-						let message = texture.width + ' x ' + texture.height + 'px';
-						if (!Format.image_editor) {
-							let uv_size = texture.width / texture.getUVWidth() * 16;
-							message += ` (${trimFloatNumber(uv_size, 2)}x)`;
-						}
-						if (texture.frameCount > 1) {
-							message += ` - ${texture.currentFrame+1}/${texture.frameCount}`
-						}
-						return message;
-					}
+				addTextureToGroup(texture_group) {
+					BarItems.import_texture.click(0, texture_group);
 				},
 				slideTimelinePointer(e1) {
 					let scope = this;
@@ -2483,12 +2675,15 @@ Interface.definePanels(function() {
 						convertTouchEvent(e2);
 						let pos = e2.clientX - timeline_offset;
 
+						let previous_frame = scope.currentFrame;
 						scope.currentFrame = Math.clamp(Math.round((pos / timeline_width) * maxFrameCount), 0, maxFrameCount-1);
+						if (previous_frame == scope.currentFrame) return;
 
 						let textures = Texture.all.filter(tex => tex.frameCount > 1);
 						Texture.all.forEach(tex => {
 							tex.currentFrame = (scope.currentFrame % tex.frameCount) || 0;
 						})
+						UVEditor.previous_animation_frame = previous_frame;
 						TextureAnimator.update(textures);
 					}
 					function off(e3) {
@@ -2498,6 +2693,20 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mousemove touchmove', slide);
 					addEventListeners(document, 'mouseup touchend', off);
 					slide(e1);
+				},
+				scrollTimeline(event) {
+					
+					let slider_tex = [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
+					if (!slider_tex) return;
+					UVEditor.previous_animation_frame = slider_tex.currentFrame;
+					let offset = Math.sign(event.deltaY);
+					slider_tex.currentFrame = (slider_tex.currentFrame + slider_tex.frameCount + offset) % slider_tex.frameCount;
+
+					let textures = Texture.all.filter(tex => tex.frameCount > 1);
+					textures.forEach(tex => {
+						tex.currentFrame = (slider_tex.currentFrame % tex.frameCount) || 0;
+					})
+					TextureAnimator.update(textures);
 				},
 				getPlayheadPos() {
 					if (!this.$refs.timeline) return 0;
@@ -2509,58 +2718,189 @@ Interface.definePanels(function() {
 					this.textures.forEach(tex => {
 						if (tex.frameCount > count) count = tex.frameCount;
 					});
+					if (count == 1) return 0;
 					return count;
 				},
-				getTextureIconOffset(texture) {
-					if (!texture.currentFrame) return;
-					let val = texture.currentFrame * -48 * (texture.display_height / texture.width);
-					return `${val}px`;
+				unselect(event) {
+					if (Blockbench.hasFlag('dragging_textures')) return;
+					unselectTextures();
+				},
+				getUngroupedTextures() {
+					return this.textures.filter(tex => !(tex.group && TextureGroup.all.find(g => g.uuid == tex.group)));
+				},
+				dragTextureGroup(texture_group, e1) {
+					if (e1.button == 1) return;
+					convertTouchEvent(e1);
+
+					let active = false;
+					let helper;
+					let timeout;
+					let last_event = e1;
+					let texture_group_target_node;
+					let order = 0;
+	
+					// scrolling
+					let list = document.getElementById('texture_list');
+					let list_offset = $(list).offset();
+					let scrollInterval = function() {
+						if (!active) return;
+						if (mouse_pos.y < list_offset.top) {
+							list.scrollTop += (mouse_pos.y - list_offset.top) / 7 - 3;
+						} else if (mouse_pos.y > list_offset.top + list.clientHeight) {
+							list.scrollTop += (mouse_pos.y - (list_offset.top + list.clientHeight)) / 6 + 3;
+						}
+					}
+					let scrollIntervalID;
+	
+					function move(e2) {
+						convertTouchEvent(e2);
+						let offset = [
+							e2.clientX - e1.clientX,
+							e2.clientY - e1.clientY,
+						]
+						if (!active) {
+							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							if (Blockbench.isTouch) {
+								if (distance > 20 && timeout) {
+									clearTimeout(timeout);
+									timeout = null;
+								} else {
+									document.getElementById('texture_list').scrollTop += last_event.clientY - e2.clientY;
+								}
+							} else if (distance > 6) {
+								active = true;
+							}
+						}
+						if (!active) return;
+	
+						if (e2) e2.preventDefault();
+	
+						if (open_menu) open_menu.hide();
+	
+						if (!helper) {
+							helper = Interface.createElement('div', {class: 'texture_group_drag_helper'}, texture_group.name);
+							document.body.append(helper);
+							scrollIntervalID = setInterval(scrollInterval, 1000/60)
+						}
+						helper.style.left = `${e2.clientX}px`;
+						helper.style.top = `${e2.clientY}px`;
+	
+						// drag
+						$('.drag_hover').removeClass('drag_hover');
+						$('.texture_group[order]').attr('order', null);
+	
+						let target = findNodeUnderCursor('#texture_list .texture_group', e2);
+						if (target) {
+							target.classList.add('drag_hover');
+							let offset = e2.clientY - $(target).offset().top;
+							order = offset > (target.clientHeight/2) ? 1 : -1;
+							target.setAttribute('order', order.toString());
+							texture_group_target_node = target;
+
+						} else if (isNodeUnderCursor(document.querySelector('#texture_list'), e2)) {
+							let nodes = document.querySelectorAll('#texture_list > li.texture_group');
+							if (nodes.length) {
+								let target = nodes[nodes.length-1];
+								order = 1;
+								target.setAttribute('order', '1');
+								target.classList.add('drag_hover');
+								texture_group_target_node = target;
+							}
+						}
+						last_event = e2;
+					}
+					async function off(e2) {
+						if (helper) helper.remove();
+						clearInterval(scrollIntervalID);
+						removeEventListeners(document, 'mousemove touchmove', move);
+						removeEventListeners(document, 'mouseup touchend', off);
+						e2.stopPropagation();
+	
+						$('.drag_hover').removeClass('drag_hover');
+						$('.texture_group[order]').attr('order', null);
+						if (Blockbench.isTouch) clearTimeout(timeout);
+	
+						if (!active || Menu.open) return;
+	
+						if (texture_group_target_node) {
+							let index = TextureGroup.all.length-1;
+							let texture_group_target = TextureGroup.all.find(tg => tg.uuid == texture_group_target_node.id);
+							if (texture_group_target) {
+								index = TextureGroup.all.indexOf(texture_group_target)
+								let own_index = TextureGroup.all.indexOf(texture_group)
+								if (own_index == index) return;
+								if (own_index < index) index--;
+								if (order == 1) index++;
+							}
+							Undo.initEdit({texture_groups: [texture_group]});
+							TextureGroup.all.remove(texture_group);
+							TextureGroup.all.splice(index, 0, texture_group);
+							Undo.finishEdit('Rearrange texture groups');
+	
+						}
+					}
+	
+					if (Blockbench.isTouch) {
+						timeout = setTimeout(() => {
+							active = true;
+							move(e1);
+						}, 320)
+					}
+	
+					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
+					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				}
 			},
 			template: `
 				<div>
-					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)">
+					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)" @click.stop="unselect($event)">
 						<li
-							v-for="texture in textures"
-							v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
-							v-bind:texid="texture.uuid"
-							:key="texture.uuid"
-							class="texture"
-							v-on:click.stop="texture.select($event)"
-							v-on:dblclick="texture.openMenu($event)"
-							@contextmenu.prevent.stop="texture.showContextMenu($event)"
+							v-for="texture_group in texture_groups" :key="texture_group.uuid" :id="texture_group.uuid"
+							class="texture_group"
 						>
-							<div class="texture_icon_wrapper">
-								<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
-								<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">error_outline</i>
-								<i class="texture_movie fa fa_big fa-film" title="Animated Texture" v-if="texture.frameCount > 1"></i>
+							<div class="texture_group_head" :class="{folded: texture_group.folded}"
+								@dblclick.stop="texture_group.select()"
+								@click.stop="texture_group.folded = !texture_group.folded"
+								@contextmenu.prevent.stop="texture_group.showContextMenu($event)"
+								@mousedown.stop="dragTextureGroup(texture_group, $event)" @touchstart.stop="dragTextureGroup(texture_group, $event)"
+							>
+								<i
+									@click.stop="texture_group.folded = !texture_group.folded"
+									class="icon-open-state fa"
+									:class=\'{"fa-angle-right": texture_group.folded, "fa-angle-down": !texture_group.folded}\'
+								></i>
+								<label :title="texture_group.name">{{ texture_group.name }}</label>
+								<ul class="texture_group_mini_icon_list" v-if="texture_group.folded">
+									<li
+										v-for="texture in texture_group.getTextures()"
+										:key="texture.uuid"
+										class="texture_mini_icon"
+										:title="texture.name"
+									>
+										<img :src="texture.source" class="texture_icon" width="24px" height="24px" alt="" v-if="texture.show_icon" />
+									</li>
+								</ul>
+								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group)" v-if="!texture_group.folded">
+									<i class="material-icons">add</i>
+								</div>
 							</div>
-							<div class="texture_description_wrapper">
-								<div class="texture_name">{{ texture.name }}</div>
-								<div class="texture_res">{{ getDescription(texture) }}</div>
-							</div>
-							<i class="material-icons texture_multi_select_icon" v-if="texture.multi_selected">check</i>
-							<template v-else>
-								<i class="material-icons texture_particle_icon" v-if="texture.particle">bubble_chart</i>
-								<i class="material-icons texture_particle_icon" v-if="texture.use_as_default">star</i>
-								<i class="material-icons texture_visibility_icon clickable"
-									v-bind:class="{icon_off: !texture.visible}"
-									v-if="texture.render_mode == 'layered'"
-									@click.stop="texture.toggleVisibility()"
-									@dblclick.stop
-								>
-									{{ texture.visible ? 'visibility' : 'visibility_off' }}
-								</i>
-								<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture.saved}" @click="texture.save()">
-									<template v-if="texture.saved">check_circle</template>
-									<template v-else>save</template>
-								</i>
-							</template>
+							<ul class="texture_group_list" v-if="!texture_group.folded">
+								<Texture
+									v-for="texture in texture_group.getTextures()"
+									:key="texture.uuid"
+									:texture="texture"
+								></Texture>
+							</ul>
 						</li>
+						<Texture
+							v-for="texture in getUngroupedTextures()"
+							:key="texture.uuid"
+							:texture="texture"
+						></Texture>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
 						<div class="tool_wrapper"></div>
-						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer">
+						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer" @wheel="scrollTimeline($event)">
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>

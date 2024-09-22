@@ -344,6 +344,7 @@
 		--color-checkerboard: #1c2026;
 
 		--color-menu_separator: #b0afba;
+		--color-guidelines: rgba(136, 150, 157, 0.35);
 
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
@@ -748,6 +749,19 @@
 	}
 	div.nslide.editing {
 		cursor: text;
+	}
+	.numeric_input.is_colored::before {
+		content: "";
+		position: absolute;
+		pointer-events: none;
+		top: 0;
+		right: 0;
+		z-index: 1;
+		border-width: 4px;
+		border-style: solid;
+		border-color: var(--corner-color);
+		border-bottom-color: transparent !important;
+		border-left-color: transparent !important;
 	}
 
 	input.toggle_panel {

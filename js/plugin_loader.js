@@ -36,6 +36,40 @@ const Plugins = {
 StateMemory.init('installed_plugins', 'array')
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
+async function runPluginFile(path, plugin_id) {
+	let file_content;
+	if (path.startsWith('http')) {
+		if (!path.startsWith('https')) {
+			throw 'Cannot load plugins over http: ' + path;
+		}
+		await new Promise((resolve, reject) => {
+			$.ajax({
+				cache: false,
+				url: path,
+				success(data) {
+					file_content = data;
+					resolve();
+				},
+				error() {
+					reject('Failed to load plugin ' + plugin_id);
+				}
+			});
+		})
+
+	} else if (isApp) {
+		file_content = fs.readFileSync(path, {encoding: 'utf-8'});
+
+	} else {
+		throw 'Failed to load plugin: Unknown URL format'
+	}
+	if (typeof file_content != 'string' || file_content.length < 20) {
+		throw `Issue loading plugin "${plugin_id}": Plugin file empty`;
+	}
+	let func = new Function(file_content + `\n//# sourceURL=PLUGINS/(Plugin):${plugin_id}.js`);
+	func();
+	return file_content;
+}
+
 class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
@@ -137,10 +171,7 @@ class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			$.getScript(path, (content, status, context) => {
-				if (!content || content.length <= 20) {
-					console.warn(`Issue loading plugin "${this.id}": Plugin file empty`);
-				}
+			runPluginFile(path, this.id).then((content) => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -148,13 +179,14 @@ class Plugin {
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
-			}).fail(() => {
+			}).catch((error) => {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
 				reject()
+				console.error(error)
 			})
 			this.remember()
 			scope.installed = true;
@@ -300,44 +332,39 @@ class Plugin {
 		this.source = 'file';
 		this.tags.safePush('Local');
 
-		return await new Promise((resolve, reject) => {
-
-			if (isApp) {
-				$.getScript(file.path, () => {
-					if (window.plugin_data) {
-						scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
-						scope.extend(plugin_data)
-						scope.bindGlobalData()
-					}
-					if (first && scope.oninstall) {
-						scope.oninstall()
-					}
-					scope.installed = true;
-					scope.path = file.path;
-					this.remember();
-					Plugins.sort();
-					resolve()
-				}).fail(reject)
-			} else {
-				try {
-					new Function(file.content)();
-				} catch (err) {
-					reject(err)
-				}
-				if (!Plugins.registered && window.plugin_data) {
-					scope.id = (plugin_data && plugin_data.id)||scope.id
+		if (isApp) {
+			let content = await runPluginFile(file.path, this.id).catch((error) => {
+				console.error(error);
+			});
+			if (content) {
+				if (window.plugin_data) {
+					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
-				scope.installed = true
-				this.remember()
-				Plugins.sort()
-				resolve()
+				scope.path = file.path;
 			}
-		})
+		} else {
+			try {
+				new Function(file.content + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`)();
+			} catch (err) {
+				reject(err)
+			}
+			if (!Plugins.registered && window.plugin_data) {
+				scope.id = (plugin_data && plugin_data.id)||scope.id
+				scope.extend(plugin_data)
+				scope.bindGlobalData()
+			}
+			if (first && scope.oninstall) {
+				scope.oninstall()
+			}
+		}
+		this.installed = true;
+		this.remember();
+		Plugins.sort();
 	}
 	async loadFromURL(url, first) {
 		if (first) {
@@ -354,36 +381,36 @@ class Plugin {
 		this.tags.safePush('Remote');
 
 		this.source = 'url';
-		await new Promise((resolve, reject) => {
-			$.getScript(url, () => {
-				if (window.plugin_data) {
-					this.id = (plugin_data && plugin_data.id)||pathToName(url)
-					this.extend(plugin_data)
-					this.bindGlobalData()
-				}
-				if (first && this.oninstall) {
-					this.oninstall()
-				}
-				this.installed = true
-				this.path = url
-				this.remember()
-				Plugins.sort()
-				// Save
-				if (isApp) {
-					var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+		let content = await runPluginFile(url, this.id).catch((error) => {
+			if (isApp) {
+				this.load().then(resolve).catch(resolve)
+			}
+			console.error(error);
+		})
+		if (content) {
+			if (window.plugin_data) {
+				this.id = (plugin_data && plugin_data.id)||pathToName(url)
+				this.extend(plugin_data)
+				this.bindGlobalData()
+			}
+			if (first && this.oninstall) {
+				this.oninstall()
+			}
+			this.installed = true
+			this.path = url
+			this.remember()
+			Plugins.sort()
+			// Save
+			if (isApp) {
+				await new Promise((resolve) => {
+					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
-				} else {
-					resolve()
-				}
-			}).fail(() => {
-				if (isApp) {
-					this.load().then(resolve).catch(resolve)
-				}
-			})
-		})
+				})
+			}
+		}
 		return this;
 	}
 	remember(id = this.id, path = this.path) {
@@ -604,8 +631,12 @@ class Plugin {
 			this.details[key + '_full'] = date.full;
 		}
 		if (this.source == 'store') {
-			if (!this.details.bug_tracker) this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
-			if (!this.details.repository) this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			if (!this.details.bug_tracker) {
+				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			}
+			if (!this.details.repository) {
+				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			}
 
 			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
@@ -895,22 +926,25 @@ BARS.defineActions(function() {
 			},
 			computed: {
 				plugin_search() {
-					var name = this.search_term.toUpperCase()
-					return this.items.filter(item => {
-						if ((this.tab == 'installed') == item.installed) {
-							if (name.length > 0) {
-								return (
-									item.id.toUpperCase().includes(name) ||
-									item.title.toUpperCase().includes(name) ||
-									item.description.toUpperCase().includes(name) ||
-									item.author.toUpperCase().includes(name) ||
-									item.tags.find(tag => tag.toUpperCase().includes(name))
-								)
-							}
-							return true;
-						}
-						return false;
-					})
+					let search_name = this.search_term.toUpperCase();
+					if (search_name) {
+						let filtered = this.items.filter(item => {
+							return (
+								item.id.toUpperCase().includes(search_name) ||
+								item.title.toUpperCase().includes(search_name) ||
+								item.description.toUpperCase().includes(search_name) ||
+								item.author.toUpperCase().includes(search_name) ||
+								item.tags.find(tag => tag.toUpperCase().includes(search_name))
+							)
+						});
+						let installed = filtered.filter(p => p.installed);
+						let not_installed = filtered.filter(p => !p.installed);
+						return installed.concat(not_installed);
+					} else {
+						return this.items.filter(item => {
+							return (this.tab == 'installed') == item.installed;
+						})
+					}
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
@@ -1263,12 +1297,12 @@ BARS.defineActions(function() {
 							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
-						<div class="tab_bar">
+						<div class="tab_bar" v-if="!search_term">
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
 						<ul class="list" :class="{paginated_list: pages.length > 1}" id="plugin_list" ref="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -1278,6 +1312,7 @@ BARS.defineActions(function() {
 										<div class="title">{{ plugin.title || plugin.id }}</div>
 										<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 									</div>
+									<div v-if="plugin.installed && search_term" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
 								</div>
 								<div class="description">{{ plugin.description }}</div>
 								<ul class="plugin_tag_list">

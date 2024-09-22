@@ -363,6 +363,10 @@ const Settings = {
 			updateStreamerModeNotification();
 		}});
 		new Setting('cdn_mirror', {value: false});
+		new Setting('recovery_save_interval', {value: 30, type: 'number', min: 0, onChange() {
+			clearTimeout(AutoBackup.loop_timeout);
+			AutoBackup.backupProjectLoop(false);
+		}});
 
 		//Interface
 		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
@@ -396,7 +400,7 @@ const Settings = {
 			}
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false});
-		new Setting('outliner_colors', 		{category: 'interface', value: false});
+		new Setting('outliner_colors', 		{category: 'interface', value: true});
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
 		}});
@@ -434,6 +438,7 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('fps_limit',				{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
 		new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
 			TextureAnimator.updateSpeed()
@@ -442,6 +447,7 @@ const Settings = {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+		new Setting('save_view_per_tab',		{category: 'preview', value: true});
 		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 		
 		//Edit
@@ -451,6 +457,7 @@ const Settings = {
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});
+		new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 		new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 			DisplayMode.vue.allow_mirroring = value;
 		}})
@@ -529,7 +536,8 @@ const Settings = {
 		
 		//Defaults
 		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
-		new Setting('autouv',	   				{category: 'defaults', value: true});
+		new Setting('autouv',					{category: 'defaults', value: true});
+		new Setting('inherit_parent_color',		{category: 'defaults', value: false});
 		new Setting('create_rename', 			{category: 'defaults', value: false});
 		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
 		new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
@@ -563,6 +571,7 @@ const Settings = {
 		new Setting('minify_bbmodel', 		{category: 'export', value: true});
 		new Setting('export_empty_groups',	{category: 'export', value: true});
 		new Setting('export_groups', 		{category: 'export', value: true});
+		new Setting('java_export_pivots', 	{category: 'export', value: true});
 		new Setting('optifine_save_default_texture',{category: 'export', value: true});
 		new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
 			both: tl('settings.obj_face_export_mode.both'),

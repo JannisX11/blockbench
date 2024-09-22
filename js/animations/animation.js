@@ -467,6 +467,7 @@ class Animation extends AnimationItem {
 			Animator.preview();
 			updateInterface();
 		}
+		Blockbench.dispatchEvent('select_animation', {animation: this})
 		return this;
 	}
 	setLength(len = this.length) {
@@ -505,7 +506,7 @@ class Animation extends AnimationItem {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 8e3; num++) {
+		for (var num = 2; num < 8e2; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;
@@ -724,7 +725,7 @@ class Animation extends AnimationItem {
 				},
 				methods: {
 					autocomplete(text, position) {
-						let test = Animator.autocompleteMolang(text, position, 'animation');
+						let test = MolangAutocomplete.AnimationContext.autocomplete(text, position);
 						return test;
 					}
 				},
@@ -833,6 +834,23 @@ class Animation extends AnimationItem {
 		},
 		'rename',
 		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			click(animation) {
+				Blockbench.read([animation.path], {}, ([file]) => {
+					Undo.initEdit({animations: [animation]})
+					let anim_index = Animation.all.indexOf(animation);
+					animation.remove(false, false);
+					let [new_animation] = Animator.loadFile(file, [animation.name]);
+					Animation.all.remove(new_animation);
+					Animation.all.splice(anim_index, 0, new_animation);
+					Undo.finishEdit('Reload animation', {animations: [new_animation]})
+				})
+			}
+		},
+		{
 			id: 'unload',
 			name: 'menu.animation.unload',
 			icon: 'remove',
@@ -851,18 +869,10 @@ class Animation extends AnimationItem {
 	])
 	Animation.prototype.file_menu = new Menu([
 		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
-			let animations_to_remove = [];
-			let controllers_to_remove = [];
-			AnimationItem.all.forEach(animation => {
-				if (animation.path == id && animation.saved) {
-					if (animation instanceof AnimationController) {
-						controllers_to_remove.push(animation);
-					} else {
-						animations_to_remove.push(animation);
-					}
-				}
-			})
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
 			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
 			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
@@ -871,6 +881,34 @@ class Animation extends AnimationItem {
 				animation.remove(false, false);
 			})
 			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
+		}},
+		{name: 'menu.animation.reload', icon: 'refresh', click(id) {
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
+			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
+			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
+			let names = [];
+			let selected_name = AnimationItem.selected?.name;
+			animations_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+			controllers_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+
+			Blockbench.read([id], {}, ([file]) => {
+				let new_animations = Animator.loadFile(file, names);
+				let selected = new_animations.find(item => item.name == selected_name);
+				if (selected) selected.select();
+				if (new_animations[0] instanceof AnimationController) {
+					Undo.finishEdit('Reload animation controller file', {animation_controllers: new_animations, animations: []});
+				} else {
+					Undo.finishEdit('Reload animation file', {animations: new_animations, animation_controllers: []});
+				}
+			})
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {
@@ -975,6 +1013,49 @@ Blockbench.addDragHandler('animation', {
 	}
 })
 
+new ValidatorCheck('unused_animators', {
+	condition: { features: ['animation_mode'], selected: {animation: true} },
+	update_triggers: ['select_animation'],
+	run() {
+		let animation = Animation.selected;
+		if (!animation) return;
+		let animators = [];
+		for (let id in animation.animators) {
+			let animator = animation.animators[id];
+			if (animator instanceof BoneAnimator && animator.keyframes.length) {
+				if (!animator.getGroup()) {
+					animators.push(animator);
+				}
+			}
+		}
+		if (animators.length) {
+			let buttons = [
+				{
+					name: 'Retarget Animators',
+					icon: 'rebase',
+					click() {
+						Validator.dialog.close()
+						BarItems.retarget_animators.click();
+					},
+				},
+				{
+					name: 'Reveal in Timeline',
+					icon: 'fa-sort-amount-up',
+					click() {
+						for (let animator of animators) {
+							animator.addToTimeline();
+						}
+						Validator.dialog.close();
+					},
+				}
+			];
+			this.warn({
+				message: `The animation "${animation.name}" contains ${animators.length} animated nodes that do not exist in the current model.`,
+				buttons,
+			})
+		}
+	}
+})
 
 BARS.defineActions(function() {
 	new NumSlider('slider_animation_length', {
@@ -1265,6 +1346,160 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+	new Action('merge_animation', {
+		icon: 'merge_type',
+		category: 'animation',
+		condition: () => Modes.animate && Animation.all.length > 1,
+		click: async function() {
+			let source_animation = Animation.selected;
+
+			let options = await new Promise(resolve => {
+				let animation_options = {};
+				for (let animation of Animation.all) {
+					if (animation == source_animation) continue;
+					animation_options[animation.uuid] = animation.name;
+				}
+				new Dialog('merge_animation', {
+					name: 'action.merge_animation',
+					form: {
+						animation: {label: 'dialog.merge_animation.merge_target', type: 'select', options: animation_options},
+					},
+					onConfirm(result) {
+						resolve(result);
+					},
+					onCancel() {
+						resolve(false);
+					}
+				}).show();
+			})
+			if (!options) return;
+			
+			let target_animation = Animation.all.find(anim => anim.uuid == options.animation);
+			let animations = [source_animation, target_animation];
+			Undo.initEdit({animations});
+
+
+			for (let uuid in source_animation.animators) {
+				let source_animator = source_animation.animators[uuid];
+				// Get target animator
+				let target_animator;
+				if (source_animator instanceof BoneAnimator) {
+					let node = source_animator.getElement ? source_animator.getElement() : source_animator.getGroup();
+					target_animator = target_animation.getBoneAnimator(node);
+				} else if (source_animator instanceof EffectAnimator) {
+					if (!target_animation.animators.effects) {
+						target_animation.animators.effects = new EffectAnimator(target_animation);
+					}
+					target_animator = target_animation.animators.effects;
+				}
+				for (let channel in source_animator.channels) {
+					let channel_config = source_animator.channels[channel];
+					let source_kfs = source_animator[channel];
+					let target_kfs = target_animator[channel];
+
+					if (source_kfs.length == 0) {
+						continue;
+					} else if (target_kfs.length == 0) {
+						for (let src_kf of source_kfs) {
+							target_animator.createKeyframe(src_kf, src_kf.time, channel, false, false);
+						}
+						continue;
+					}
+
+					let timecodes = {};
+					// Save base values
+					for (let kf of source_kfs) {
+						let key = Math.roundTo(kf.time, 2);
+						if (!timecodes[key]) timecodes[key] = {};
+						timecodes[key].source_kf = kf;
+						timecodes[key].time = kf.time;
+					}
+					for (let kf of target_kfs) {
+						let key = Math.roundTo(kf.time, 2);
+						if (!timecodes[key]) timecodes[key] = {};
+						timecodes[key].target_kf = kf;
+						timecodes[key].time = kf.time;
+					}
+					if (source_animator.interpolate) {
+						// Interpolate in between values before they become affected by changes
+						for (let key in timecodes) {
+							let data = timecodes[key];
+							Timeline.time = data.time;
+							if (!data.target_kf) {
+								data.target_values = target_animator.interpolate(channel, true);
+							}
+							if (!data.source_kf) {
+								data.source_values = source_animator.interpolate(channel, true);
+							}
+						}
+					}
+					function mergeValues(a, b) {
+						if (!a) return b;
+						if (!b) return a;
+						if (typeof a == 'number' && typeof b == 'number') {
+							return a + b;
+						}
+						return a.toString() + ' + ' + b.toString();
+					}
+					let keys = Object.keys(timecodes).sort((a, b) => a.time - b.time);
+					for (let key of keys) {
+						let {source_kf, target_kf, target_values, source_values, time} = timecodes[key];
+						Timeline.time = time;
+						if ((source_kf || target_kf).transform) {
+							if (source_kf && target_kf) {
+								for (let axis of 'xyz') {
+									let source_val = source_kf.get(axis);
+									let target_val = target_kf.get(axis);
+									target_kf.set(axis, mergeValues(target_val, source_val));
+								}
+							} else if (source_kf) {
+								let target_kf = target_animator.createKeyframe(null, time, channel, false, false);
+								let i = 0;
+								for (let axis of 'xyz') {
+									let source_val = source_kf.get(axis);
+									let target_val = target_values[i] ?? 0;
+									target_kf.set(axis, mergeValues(target_val, source_val));
+									i++;
+								}
+
+							} else if (target_kf) {
+								let i = 0;
+								for (let axis of 'xyz') {
+									let source_val = source_values[i] ?? 0;
+									let target_val = target_kf.get(axis);
+									target_kf.set(axis, mergeValues(target_val, source_val));
+									i++;
+								}
+							}
+						} else if (source_animator instanceof EffectAnimator) {
+							if (source_kf && target_kf) {
+								if (channel == 'timeline' ) {
+									let source = source_kf.data_points[0].script;
+									let target = target_kf.data_points[0].script;
+									target_kf.data_points[0].script = (source && target) ? (target + '\n' + source) : (source || target);
+								} else if (channel_config?.max_data_points > 1) {
+									for (let src_kfdp of source_kf.data_points) {
+										let new_dp = new KeyframeDataPoint(target_kf);
+										new_dp.extend(src_kfdp);
+										target_kf.data_points.push(new_dp);
+									}
+								}
+								
+							} else if (source_kf) {
+								let new_kf = target_animator.createKeyframe(source_kf, source_kf.time, source_kf.channel, false, false);
+								Property.resetUniqueValues(Keyframe, new_kf);
+							}
+						}
+					}
+				}
+			}
+			animations.remove(source_animation);
+			source_animation.remove(false);
+			target_animation.select();
+			
+			Undo.finishEdit('Merge animations');
+		}
+	})
 	let optimize_animation_mode = 'selected_animation';
 	new Action('optimize_animation', {
 		icon: 'settings_slow_motion',
@@ -1410,6 +1645,116 @@ BARS.defineActions(function() {
 				Blockbench.showQuickMessage('message.optimize_animation.nothing_to_optimize', 1800);
 				Undo.cancelEdit(false);
 			}
+		}
+	})
+	new Action('retarget_animators', {
+		icon: 'rebase',
+		category: 'animation',
+		condition: () => Animation.selected,
+		click: async function() {
+			let animation = Animation.selected;
+			let form = {};
+			let unassigned_animators = [];
+			let assigned_animators = [];
+
+			for (let id in animation.animators) {
+				let animator = animation.animators[id];
+				if (animator instanceof BoneAnimator && animator.keyframes.length) {
+					if (!animator.getGroup()) {
+						unassigned_animators.push(animator);
+					} else {
+						assigned_animators.push(animator);
+					}
+				}
+			}
+			let all_animators = unassigned_animators.slice();
+			if (unassigned_animators.length && assigned_animators.length) {
+				all_animators.push('_');
+			}
+			all_animators.push(...assigned_animators);
+
+			for (let animator of all_animators) {
+				if (animator == '_') {
+					form._ = '_';
+					continue;
+				}
+				let is_assigned = assigned_animators.includes(animator);
+				let options = {};
+				let nodes;
+				if (animator.type == 'bone') {
+					nodes = Group.all;
+				} else {
+					nodes = Outliner.all.filter(element => element.type == animator.type);
+				}
+				if (!is_assigned) options[animator.uuid] = '-';
+				for (let node of nodes) {
+					options[node.uuid] = node.name;
+				}
+				form[animator.uuid] = {
+					label: animator.name,
+					type: 'select',
+					value: animator.uuid,
+					options
+				}
+			}
+
+			let form_result = await new Promise(resolve => {
+
+				new Dialog('retarget_animators', {
+					name: 'action.retarget_animators',
+					form,
+					onConfirm(result) {
+						resolve(result);
+					},
+					onCancel() {
+						resolve(false);
+					}
+				}).show();
+			})
+			if (!form_result) return;
+			Undo.initEdit({animations: [animation]});
+
+			let temp_animators = {};
+
+			function copyAnimator(target, source) {
+				for (let channel in target.channels) {
+					target[channel].splice(0, Infinity, ...source[channel]);
+					for (let kf of target[channel]) {
+						kf.animator = target;
+					}
+				}
+				target.rotation_global = source.rotation_global;
+			}
+			function resetAnimator(animator) {
+				for (let channel in animator.channels) {
+					animator[channel].empty();
+				}
+				animator.rotation_global = false;
+			}
+
+			for (let animator of all_animators) {
+				if (animator == '_') continue;
+
+				let target_uuid = form_result[animator.uuid];
+				if (target_uuid == animator.uuid) continue;
+				let target_animator = animation.animators[target_uuid];
+
+				if (!temp_animators[target_uuid]) {
+					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
+					copyAnimator(temp_animators[target_uuid], target_animator);
+				}
+				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
+				
+				// Reset animator
+				if (!temp_animators[animator.uuid]) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+					resetAnimator(animator)
+				}
+			}
+
+			Undo.finishEdit('Retarget animations');
+			Animator.preview();
 		}
 	})
 })

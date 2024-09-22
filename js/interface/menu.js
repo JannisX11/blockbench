@@ -238,7 +238,6 @@ class Menu {
 				let search_button = Interface.createElement('div', {}, Blockbench.getIconNode('search'));
 				let search_bar = Interface.createElement('li', {class: 'menu_search_bar'}, [input, search_button]);
 				menu_node.append(search_bar);
-				menu_node.append(Interface.createElement('li', {class: 'menu_separator'}));
 				
 				let object_list = [];
 				list.forEach(function(s2, i) {
@@ -477,6 +476,9 @@ class Menu {
 				}
 				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
+				if (s.marked) {
+					entry.classList.add('marked');
+				}
 				if (s.keybind) {
 					let label = document.createElement('label');
 					label.classList.add('keybinding_label')
@@ -664,9 +666,14 @@ class Menu {
 			this.structure.remove(action);
 			this.structure.remove(action.id);
 			action.menus.remove(this);
+		} else if (this.structure.includes(path)) {
+			this.structure.remove(path);
 		}
 		if (path === undefined) path = '';
-		if (typeof path == 'string') path = path.split('.');
+		if (typeof path == 'string') {
+			path = path.split('.');
+		}
+		if (path instanceof Array == false) return;
 
 		function traverse(arr, layer) {
 			if (!isNaN(parseInt(path[layer]))) {

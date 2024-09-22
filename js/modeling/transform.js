@@ -19,7 +19,7 @@ function getSelectionCenter(all = false) {
 	let center = (min[0] == Infinity) ? [0, 0, 0] : max.V3_add(min).V3_divide(2);
 	
 	if (!Format.centered_grid) {
-		center.V3_add(8, 8, 8)
+		center.V3_add(8, 0, 8)
 	}
 	return center;
 }
@@ -1724,7 +1724,7 @@ BARS.defineActions(function() {
 	new Action('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => Format.java_face_properties && Modes.edit,
+		condition: () => Format.java_cube_shading_properties && Modes.edit,
 		click() {toggleCubeProperty('shade')}
 	})
 	new Action('toggle_mirror_uv', {
@@ -1950,7 +1950,7 @@ BARS.defineActions(function() {
 	})
 	new Action('auto_set_cullfaces', {
 		icon: 'smart_button',
-		condition: () => Modes.edit && Format.java_face_properties,
+		condition: () => Modes.edit && Format.cullfaces,
 		click() {
 			if (!Cube.selected.length) {
 				BarItems.select_all.click();
@@ -1977,7 +1977,8 @@ BARS.defineActions(function() {
 				});
 			})
 
-			Undo.finishEdit('Automatically set cullfaces')
+			updateSelection();
+			Undo.finishEdit('Automatically set cullfaces');
 		}
 	})
 })

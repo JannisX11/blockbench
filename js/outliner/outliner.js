@@ -25,30 +25,37 @@ const Outliner = {
 			title: tl('switches.lock'),
 			icon: ' fas fa-lock',
 			icon_off: ' fas fa-lock-open',
-			advanced_option: true
+			advanced_option: true,
+			visibilityException(node) {
+				return node.locked
+			}
 		},
 		export: {
 			id: 'export',
 			title: tl('switches.export'),
-			icon: ' fa fa-camera',
+			icon: ' far fa-square-check',
 			icon_off: ' far fa-window-close',
-			advanced_option: true
+			advanced_option: true,
+			condition: {modes: ['edit']},
+			visibilityException(node) {
+				return !node.export;
+			}
 		},
 		shade: {
 			id: 'shade',
-			condition: () => Format.java_face_properties,
+			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
 			title: tl('switches.shade'),
 			icon: 'fa fa-star',
 			icon_off: 'far fa-star',
-			advanced_option: true
+			advanced_option: true,
 		},
 		mirror_uv: {
 			id: 'mirror_uv',
-			condition: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv,
+			condition: {modes: ['edit'], method: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv},
 			title: tl('switches.mirror'),
 			icon: 'icon-mirror_x icon',
 			icon_off: 'icon-mirror_x icon',
-			advanced_option: true
+			advanced_option: true,
 		},
 		autouv: {
 			id: 'autouv',
@@ -57,6 +64,7 @@ const Outliner = {
 			icon_off: ' far fa-times-circle',
 			icon_alt: ' fa fa-magic',
 			advanced_option: true,
+			condition: {modes: ['edit']},
 			getState(element) {
 				if (!element.autouv) {
 					return false
@@ -434,8 +442,9 @@ class OutlinerElement extends OutlinerNode {
 			return false;
 		}
 		//Shift
-		var just_selected = []
-		if (event && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && !Modes.paint && is_outliner_click) {
+		var just_selected = [];
+		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements'));
+		if (event && allow_multi_select && (event.shiftKey === true || Pressing.overrides.shift) && this.getParentArray().includes(selected[selected.length-1]) && is_outliner_click) {
 			var starting_point;
 			var last_selected = selected[selected.length-1]
 			this.getParentArray().forEach((s, i) => {
@@ -466,7 +475,7 @@ class OutlinerElement extends OutlinerNode {
 			})
 
 		//Control
-		} else if (event && !Modes.paint && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
+		} else if (event && allow_multi_select && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
 			if (selected.includes(this)) {
 				selected.replace(selected.filter((e) => {
 					return e !== this
@@ -484,7 +493,9 @@ class OutlinerElement extends OutlinerNode {
 			if (Group.selected) Group.selected.unselect()
 			this.selectLow()
 			just_selected.push(this)
-			this.showInOutliner()
+			if (settings.outliner_reveal_on_select.value) {
+				this.showInOutliner()
+			}
 		}
 		if (Group.selected) {
 			Group.selected.unselect()
@@ -1399,7 +1410,7 @@ Interface.definePanels(function() {
 			`<div
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
-				v-bind:style="{'padding-left': indentation + 'px'}"
+				v-bind:style="{'--indentation': indentation}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				:title="node.title"
@@ -1415,10 +1426,10 @@ Interface.definePanels(function() {
 
 
 				`<i v-for="btn in node.buttons"
-					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.id === 'locked' && node.isIconEnabled(btn)))"
+					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.visibilityException && btn.visibilityException(node)) )"
 					class="outliner_toggle"
 					:class="getBtnClasses(btn, node)"
-					:title="btn.title"
+					:title="getBtnTooltip(btn, node)"
 					:toggle="btn.id"
 					@click.stop
 				></i>` +
@@ -1426,7 +1437,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: indentation + 'px'}"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: 'calc(var(--indentation) * ' + indentation + ')'}"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1437,11 +1448,12 @@ Interface.definePanels(function() {
 			depth: Number
 		},
 		data() {return {
-			outliner_colors: settings.outliner_colors
+			outliner_colors: settings.outliner_colors,
+			markerColors
 		}},
 		computed: {
 			indentation() {
-				return limitNumber(this.depth, 0, (this.width-100) / 16) * 16;
+				return limitNumber(this.depth, 0, (this.width-100) / 16);
 			},
 			visible_children() {
 				let filtered = this.node.children;
@@ -1472,6 +1484,19 @@ Interface.definePanels(function() {
 					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
 				} else {
 					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
+				}
+			},
+			getBtnTooltip: function (btn, node) {
+				let value = node.isIconEnabled(btn);
+				let text = btn.title + ': ';
+				if (value === true) {
+					return text + tl('generic.on');
+				} else if (value === false) {
+					return text + tl('generic.off');
+				} else if (value == 'alt') {
+					return text + tl(`switches.${btn.id}.alt`);
+				} else {
+					return text + value;
 				}
 			},
 			doubleClickIcon(node) {
@@ -1575,7 +1600,7 @@ Interface.definePanels(function() {
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
 					if (!toggle_config) return;
-					if (!(key == 'locked' || key == 'visibility' || Modes.edit)) return;
+					if (!Condition(toggle_config.condition, selected[0])) return;
 
 					function move(e2) {
 						convertTouchEvent(e2);

@@ -725,6 +725,7 @@ Interface.definePanels(() => {
 			width: 460,
 			form: {
 				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
+				selection_only: {label: 'message.import_palette.selection_only', type: 'checkbox', value: false, condition: Texture.all[selected_texture]?.selection?.is_custom},
 				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
 				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
 			},
@@ -740,6 +741,7 @@ Interface.definePanels(() => {
 				}
 				Painter.scanCanvas(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, (x, y, px) => {
 					if (px[3] < 12) return;
+					if (formData.selection_only && texture.selection.is_custom && !texture.selection.get(x, y)) return;
 					var t = tinycolor({
 						r: px[0],
 						g: px[1],

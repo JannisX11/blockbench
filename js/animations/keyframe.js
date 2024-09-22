@@ -154,6 +154,7 @@ class Keyframe {
 				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
 			}
 		}
+		value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
 		this.set(axis, value, data_point)
 		return value;
 	}
@@ -796,7 +797,14 @@ BARS.defineActions(function() {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 'q', shift: null}),
+		keybind: new Keybind({key: 'q'}, {
+			reset_values: 'shift'
+		}),
+		variations: {
+			reset_values: {
+				name: 'action.add_keyframe.reset_values'
+			}
+		},
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
@@ -807,8 +815,9 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Prop.active_panel == 'timeline' && animator.channels[Timeline.vue.graph_editor_channel]) {
 				channel = Timeline.vue.graph_editor_channel;
 			}
-			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
-			if (event && (event.shiftKey || Pressing.overrides.shift)) {
+			let reset_values = BarItems.add_keyframe.keybind.additionalModifierTriggered(event) == 'reset_values';
+			animator.createKeyframe(reset_values ? {} : null, Timeline.time, channel, true);
+			if (reset_values) {
 				Animator.preview();
 			}
 		}
@@ -1446,7 +1455,7 @@ Interface.definePanels(function() {
 					}
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},
 				tl,

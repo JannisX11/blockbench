@@ -19,6 +19,9 @@ window.CustomThemeOptions = [
 	LightTheme,
 	ContrastTheme
 ]
+for (let theme of window.CustomThemeOptions) {
+	theme.source = 'built_in';
+}
 
 import { GIFEncoder, quantize, applyPalette } from 'gifenc'
 window.GIFEnc = { GIFEncoder, quantize, applyPalette };

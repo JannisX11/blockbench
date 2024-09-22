@@ -457,6 +457,7 @@ class Group extends OutlinerNode {
 				}
 			}})
 		}},
+		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
@@ -476,6 +477,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
+					marked: t.uuid == Group.selected.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -727,7 +729,7 @@ BARS.defineActions(function() {
 							]).show(event.target);
 						},
 						autocomplete(text, position) {
-							let test = Animator.autocompleteMolang(text, position, 'binding');
+							let test = MolangAutocomplete.BedrockBindingContext.autocomplete(text, position);
 							return test;
 						}
 					},

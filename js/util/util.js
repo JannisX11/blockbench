@@ -167,9 +167,13 @@ function removeEventListeners(el, events, func, option) {
 }
 
 function patchedAtob(base64) {
-	return (typeof Buffer == 'function')
-		? Buffer.from(base64, 'base64').toString()
-		: atob(base64);
+	if (typeof Buffer == 'function') {
+		return Buffer.from(base64, 'base64').toString();
+	} else {
+		return decodeURIComponent(atob(base64).split('').map((c) => {
+			return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+		}).join(''));
+	}
 }
 
 function highestInObject(obj, inverse) {
@@ -475,6 +479,17 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+
+// HTML
+function isNodeUnderCursor(node, event) {
+	if (!node) return;
+	let rect = node.getBoundingClientRect();
+	return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right+1, rect.bottom+1]);
+}
+function findNodeUnderCursor(selector, event) {
+	return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isNodeUnderCursor(node, event));
+}
+
 
 //Color
 tinycolor.prototype.toInt = function() {

@@ -323,6 +323,34 @@ class UndoSystem {
 			}
 		}
 
+		if (save.texture_groups) {
+			for (let uuid in save.texture_groups) {
+				let group;
+				let data = save.texture_groups[uuid];
+				if (reference.texture_groups[uuid]) {
+					group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						group.extend(data);
+					}
+				} else {
+					group = new TextureGroup(data, uuid).add(false);
+				}
+				//order
+				let index = TextureGroup.all.indexOf(group);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					TextureGroup.all.remove(group);
+					TextureGroup.all.splice(data.index, 0, group);
+				}
+			}
+			for (let uuid in reference.texture_groups) {
+				if (!save.texture_groups[uuid]) {
+					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						TextureGroup.all.remove(group);
+					}
+				}
+			}
+		}
 		if (save.textures) {
 			Painter.current = {}
 			for (var uuid in save.textures) {
@@ -588,6 +616,14 @@ UndoSystem.save = class {
 			aspects.textures.forEach(t => {
 				let tex = t.getUndoCopy(aspects.bitmap)
 				this.textures[t.uuid] = tex
+			})
+		}
+
+		if (aspects.texture_groups) {
+			this.texture_groups = {};
+			aspects.texture_groups.forEach(tg => {
+				let copy = tg.getUndoCopy()
+				this.texture_groups[tg.uuid] = copy;
 			})
 		}
 

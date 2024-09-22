@@ -545,6 +545,18 @@ window.Dialog = class Dialog {
 
 		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar, this) : null;
 		this.title_menu = options.title_menu || null;
+		if (options.progress_bar) {
+			this.progress_bar = {
+				setProgress: (progress) => {
+					this.progress_bar.progress = progress;
+					if (this.progress_bar.node) {
+						this.progress_bar.node.style.setProperty('--progress', progress);
+					}
+				},
+				progress: options.progress_bar.progress ?? 0,
+				node: null
+			}
+		}
 
 		this.width = options.width
 		this.draggable = options.draggable
@@ -639,6 +651,16 @@ window.Dialog = class Dialog {
 						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
 						break;
 				}
+			}
+		}
+		if (update) this.updateFormValues();
+	}
+	setFormToggles(values, update = true) {
+		for (let form_id in this.form) {
+			let data = this.form[form_id];
+			if (values[form_id] != undefined && typeof data == 'object' && data.input_toggle && data.bar) {
+				data.input_toggle.checked = values[form_id];
+				data.bar.toggleClass('form_toggle_disabled', !data.input_toggle.checked);
 			}
 		}
 		if (update) this.updateFormValues();
@@ -796,6 +818,14 @@ window.Dialog = class Dialog {
 				? Math.clamp(this.max_label_width+9, 0, width/2)
 				: Math.clamp(this.max_label_width+16, 0, width - 100);
 			this.object.style.setProperty('--max_label_width', max_width + 'px');
+		}
+
+		if (this.progress_bar) {
+			this.progress_bar.node = Interface.createElement('div', {class: 'progress_bar'},
+				Interface.createElement('div', {class: 'progress_bar_inner'})
+			)
+			this.progress_bar.setProgress(this.progress_bar.progress);
+			this.object.querySelector('content.dialog_content').append(this.progress_bar.node);
 		}
 
 		if (this.buttons.length) {

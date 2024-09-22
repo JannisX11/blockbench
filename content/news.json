@@ -5,20 +5,25 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.10", "type": "h3"},
-			{"text": "The Knife Tool Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.10.0)!"}
+			{"text": "Welcome to Blockbench 4.11", "type": "h3"},
+			{"text": "The Texture Group Update!", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.11.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/flipbook_editor.png",
-				"title": "Flipbook Animation Editor",
-				"text": "Setup animated textures, preview them, add, remove, rearrange, or resize frames in this new convenient editor!"
+				"image": "https://web.blockbench.net/content/texture_groups.png",
+				"title": "Texture Groups",
+				"text": "Organize your textures with groups!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/knife_tool.png",
-				"title": "Knife Tool",
-				"text": "Cut your mesh to create new details, edges, and faces and shape your mesh in new ways!"
+				"image": "https://web.blockbench.net/content/tiled_view.png",
+				"title": "Onion Skin and Tiled View",
+				"text": "Use onion skinning on animated textures or create tiled textures."
+			},
+			{
+				"image": "https://web.blockbench.net/content/cube_knife.png",
+				"title": "Knife Tool for Cubes",
+				"text": "Use the knife tool to cut cubes and speed up your workflow!"
 			}
 		]
 	}

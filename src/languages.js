@@ -37,7 +37,7 @@ const data = {
 	zh_tw: zh_tw,
 };
 
-window.tl = function(string, variables) {
+window.tl = function(string, variables, default_value) {
 	if (string && string.length > 100) return string;
 	var result = Language.data[string]
 	if (result && result.length > 0) {
@@ -52,6 +52,8 @@ window.tl = function(string, variables) {
 			}
 		}
 		return result;
+	} else if (default_value != undefined) {
+		return default_value;
 	} else {
 		return string;
 	}

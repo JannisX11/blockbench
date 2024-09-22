@@ -28,13 +28,13 @@
 	}
 	.progress_bar {
 		background-color: var(--color-back);
-		height: 20px;
+		height: 18px;
 		margin-top: 12px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
-		width: 0px;
+		width: calc(100% * var(--progress));
 	}
 	.accent_color {
 		color: var(--color-accent);
@@ -47,8 +47,10 @@
 		font-weight: normal; 
 		display: inline-block;
 	}
-	.code {
+	code, .code {
 		font-family: var(--font-code);
+	}
+	.code {
 		font-size: 16px;
 	}
 	.small_text {
@@ -709,6 +711,9 @@
 		pointer-events: none;
 		flex: 1 0 auto;
 	}
+	.contextMenu li.marked > span {
+		text-decoration: underline;
+	}
 	.contextMenu li.parent.focused > .contextMenu.sub {
 		display: block;
 	}
@@ -767,6 +772,10 @@
 	.contextMenu .menu_search_bar {
 		padding: 0;
 		display: flex;
+		position: sticky;
+		top: 0;
+		background-color: inherit;
+		border-bottom: 2px solid var(--color-menu_separator);
 	}
 	.menu_search_bar > input {
 		color: inherit;
