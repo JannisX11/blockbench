@@ -442,6 +442,8 @@
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
+	}
+	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
 	}
 	.outliner_object:active {
