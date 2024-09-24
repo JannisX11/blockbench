@@ -662,6 +662,7 @@ class Panel extends EventSystem {
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
 		let slot = this.slot;
+		let is_sidebar = slot == 'left_bar' || slot == 'right_bar';
 		if (show) {
 			this.node.classList.remove('hidden');
 			if (slot == 'float') {
@@ -681,7 +682,7 @@ class Panel extends EventSystem {
 				this.node.classList.remove('bottommost_panel');
 				this.node.classList.remove('topmost_panel');
 			} else {
-				this.node.style.width = this.node.style.height = this.node.style.left = this.node.style.top = null;
+				this.node.style.width = this.node.style.left = this.node.style.top = null;
 			}
 			if (Blockbench.isMobile) {
 				this.width = this.node.clientWidth;
@@ -704,7 +705,7 @@ class Panel extends EventSystem {
 				}
 				this.node.style.width = this.width + 'px';
 				this.node.style.height = this.height + 'px';
-			} else if (slot == 'left_bar' || slot == 'right_bar') {
+			} else if (is_sidebar) {
 				if (this.fixed_height) {
 					//let other_panels = slot == 'left_bar' ? Interface.getLeftPanels() : Interface.getRightPanels();
 					//let available_height = (slot == 'left_bar' ? Interface.left_bar : Interface.right_bar).clientHeight;
@@ -712,12 +713,14 @@ class Panel extends EventSystem {
 					this.height = Math.clamp(this.position_data.height, 30, Interface.work_screen.clientHeight);
 					this.node.style.height = this.height + 'px';
 					this.node.classList.add('fixed_height');
+				} else {
+					this.node.style.height = null;
 				}
 			}
 			if (!this.fixed_height) this.node.classList.remove('fixed_height');
 
 			if (this.sidebar_resize_handle) {
-				this.sidebar_resize_handle.style.display = (slot == 'left_bar' || slot == 'right_bar') ? 'block' : 'none';
+				this.sidebar_resize_handle.style.display = (is_sidebar) ? 'block' : 'none';
 			}
 			if ((slot == 'right_bar' && Interface.getRightPanels().last() == this) || (slot == 'left_bar' && Interface.getLeftPanels().last() == this)) {
 				this.node.parentElement?.childNodes.forEach(n => n.classList.remove('bottommost_panel'));
