@@ -474,6 +474,7 @@
 	}
 	#cubes_list .outliner_line_guide {
 		position: absolute;
+		left: calc(var(--indentation) * var(--indentation-offset) - 1px);
 		top: -4px;
 		bottom: 4px;
 		width: 4px;

@@ -1406,11 +1406,10 @@ Interface.definePanels(function() {
 
 	var VueTreeItem = Vue.extend({
 		template: 
-		'<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid">' +
+		`<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" v-bind:style="{'--indentation': indentation}">` +
 			`<div
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
-				v-bind:style="{'--indentation': indentation}"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.select($event, true)"
 				:title="node.title"
@@ -1437,7 +1436,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node" v-bind:style="{left: 'calc(var(--indentation) * ' + indentation + ')'}"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.selected == node"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
