@@ -645,23 +645,10 @@ class NullObjectAnimator extends BoneAnimator {
 			}
 		});
 
-		fabrikIter(bone_pos, ik_target);
-
 		old_spheres.forEach(sphere => scene.remove(sphere));
 		old_spheres.length = 0;
 
-		function drawSphere(pos, color, size) {
-			if (typeof size == 'undefined') {
-				size = 4;
-			}
-
-			let geometry = new THREE.SphereGeometry(size, 32, 16);
-			let material = new THREE.MeshBasicMaterial({ color });
-			let sphere = new THREE.Mesh(geometry, material);
-			sphere.position.copy(pos);
-			scene.add(sphere);
-			old_spheres.push(sphere);
-		}
+		fabrikIter(bone_pos, ik_target, pole.mesh.getWorldPosition(new THREE.Vector3()));
 
 		drawSphere(ik_target, 0xff0000);
 		bone_pos.forEach(bone => drawSphere(bone, 0xffff00));

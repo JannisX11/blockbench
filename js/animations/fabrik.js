@@ -1,7 +1,20 @@
 // Vec3[], Vec3
 let old_spheres = []
 
-function fabrikIter(bones, target) {
+function drawSphere(pos, color, size) {
+    if (typeof size == 'undefined') {
+        size = 4;
+    }
+
+    let geometry = new THREE.SphereGeometry(size, 32, 16);
+    let material = new THREE.MeshBasicMaterial({ color });
+    let sphere = new THREE.Mesh(geometry, material);
+    sphere.position.copy(pos);
+    scene.add(sphere);
+    old_spheres.push(sphere);
+}
+
+function fabrikIter(bones, target, pole) {
     let n = bones.length;
     let bases = bones.slice(0, -1);
 
@@ -10,6 +23,41 @@ function fabrikIter(bones, target) {
     });
 
     let dist = bones[0].distanceTo(target);
+
+    polecalc: if (pole) {
+        drawSphere(pole, 0x0000ff);
+
+        let target_offset = target.clone().sub(bones[0]);
+        let target_dir = target_offset.normalize();
+
+        let tip_offset = bones[n - 1].clone().sub(bones[0]);
+        let tip_dir = tip_offset.normalize();
+
+        let tip_to_target_rotation = new THREE.Quaternion().setFromUnitVectors(tip_dir, target_dir);
+
+        let pole_offset = pole.clone().sub(bones[0]);
+        let pole_dir = pole_offset.projectOnPlane(target_dir).normalize();
+
+        if (pole_dir.length() == 0) {
+            break polecalc;
+        }
+
+        let normal = target_dir.cross(pole_dir).normalize();
+
+        if (normal.length() == 0) {
+            break polecalc;
+        }
+
+        bones.forEach(bone => {
+            let offset = bone.clone().sub(bones[0]);
+            offset.applyQuaternion(tip_to_target_rotation);
+
+            offset.projectOnPlane(normal);
+
+            offset.add(bones[0]);
+            bone.copy(offset);
+        });
+    }
 
     if (dist > distances.reduce((partial, a) => partial + a, 0)) {
         for (i = 0; i < n - 1; i++) {
