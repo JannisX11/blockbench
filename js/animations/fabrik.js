@@ -1,19 +1,3 @@
-// Vec3[], Vec3
-let old_spheres = []
-
-function drawSphere(pos, color, size) {
-    if (typeof size == 'undefined') {
-        size = 4;
-    }
-
-    let geometry = new THREE.SphereGeometry(size, 32, 16);
-    let material = new THREE.MeshBasicMaterial({ color });
-    let sphere = new THREE.Mesh(geometry, material);
-    sphere.position.copy(pos);
-    scene.add(sphere);
-    old_spheres.push(sphere);
-}
-
 function fabrikIter(bones, target, pole) {
     let n = bones.length;
     let bases = bones.slice(0, -1);
@@ -25,8 +9,6 @@ function fabrikIter(bones, target, pole) {
     let dist = bones[0].distanceTo(target);
 
     polecalc: if (pole) {
-        drawSphere(pole, 0x0000ff);
-
         let target_offset = target.clone().sub(bones[0]);
         let target_dir = target_offset.normalize();
 

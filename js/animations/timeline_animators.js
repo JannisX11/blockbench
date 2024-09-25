@@ -598,7 +598,7 @@ class NullObjectAnimator extends BoneAnimator {
 		if (!null_object || !target) return;
 
 		let bones = [];
-		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
+		let ik_target = null_object.getWorldCenter(true).clone();
 		let bone_references = [];
 		let current = target;
 
@@ -645,13 +645,9 @@ class NullObjectAnimator extends BoneAnimator {
 			}
 		});
 
-		old_spheres.forEach(sphere => scene.remove(sphere));
-		old_spheres.length = 0;
+		let polePos = pole.mesh.getWorldPosition(new THREE.Vector3());
 
-		fabrikIter(bone_pos, ik_target, pole.mesh.getWorldPosition(new THREE.Vector3()));
-
-		drawSphere(ik_target, 0xff0000);
-		bone_pos.forEach(bone => drawSphere(bone, 0xffff00));
+		fabrikIter(bone_pos, ik_target, polePos);
 
 		let results = {};
 		for (i = 0; i < bone_references.length; i++) {

@@ -330,7 +330,11 @@ BARS.defineActions(function() {
 					click() {
 						Undo.initEdit({ elements: NullObject.selected });
 						NullObject.selected.forEach(null_object => {
-							null_object.ik_pole = node.uuid;
+							if (null_object.ik_pole == node.uuid) {
+								null_object.ik_pole = undefined;
+							} else {
+								null_object.ik_pole = node.uuid;
+							}
 						})
 						Undo.finishEdit('Set IK pole');
 					}
