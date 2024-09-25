@@ -1,5 +1,3 @@
-
-const { Solver, Joint, Link, Goal, DOF } = require('closed-chain-ik-tiny');
 class GeneralAnimator {
 	constructor(uuid, animation) {
 		this.animation = animation;
