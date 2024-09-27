@@ -1405,7 +1405,7 @@
 	"action.new_window.desc": "Открывает новое окно Blockbench",
 	"action.export_collada": "Экспортировать Collada модель (dae)",
 	"action.export_collada.desc": "Экспортировать модель или анимацию в dae файл, что бы использовать в других редакторах 3D",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "Отображение UV-карты в виде наложения в режиме рисования",
 	"action.bake_animation_into_model": "Запечь анимацию в модель",
 	"action.bake_animation_into_model.desc": "Запеките текущий отображаемый кадр анимации в модель. Применяется только вращение и положение, масштаб игнорируется.",

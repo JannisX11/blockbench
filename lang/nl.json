@@ -1405,7 +1405,7 @@
 	"action.new_window.desc": "Opent een nieuw Blockbench venster",
 	"action.export_collada": "Exporteer Collada Model (dae)",
 	"action.export_collada.desc": "Exporteer modellen en animaties als .dae-bestand voor gebruik in andere 3D-applicaties",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "De UV-map weergeven als een overlay in verfmodus",
 	"action.bake_animation_into_model": "Bak Animatie in Model",
 	"action.bake_animation_into_model.desc": "Bak het huidig weergegeven animatieframe in het model. Past alleen rotatie en positie toe, schaal wordt genegeerd.",

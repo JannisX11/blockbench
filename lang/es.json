@@ -1405,7 +1405,7 @@
 	"action.new_window.desc": "Abrir una nueva ventana en Blockbench",
 	"action.export_collada": "Exportar modelo Collada (dae)",
 	"action.export_collada.desc": "Exportar modelo y animaciones como archivo dae para usarlo en otras aplicaciones 3D",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "Muestra el mapa UV como una superposición en el modo de pintura",
 	"action.bake_animation_into_model": "Hornear animación en modelo",
 	"action.bake_animation_into_model.desc": "Hornea la animación mostrada actualmente al modelo. Solo aplica a la rotación y la posición, se ignora la escala.",

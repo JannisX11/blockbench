@@ -1405,7 +1405,7 @@
 	"action.new_window.desc": "新しい Blockbench ウィンドウを開きます",
 	"action.export_collada": "Collada Model (dae)",
 	"action.export_collada.desc": "モデルとアニメーションを dae ファイルとして書き出します",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "ペイントモードで UV マップをオーバーレイとして表示します",
 	"action.bake_animation_into_model": "アニメーションをモデルに焼き付ける",
 	"action.bake_animation_into_model.desc": "現在表示されているアニメーションフレームをモデルにベイク処理します。回転と位置のみを適用し、スケールは無視されます。",

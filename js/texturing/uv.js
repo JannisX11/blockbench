@@ -1404,16 +1404,25 @@ const UVEditor = {
 			'zoom_reset'
 		]},
 		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
-			let options = ['selected_faces', 'selected_elements'];
+			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,
 				name: `menu.uv.display_uv.${option}`,
-				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle',
+				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle', // Affected by current.
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
+					// Affect settings.
 					settings.display_uv.set(option);
 					Settings.saveLocalStorages();
+					// Affect other tools.
+					BarItems.edit_mode_uv_overlay.value = option == 'all_elements';
+					BarItems.edit_mode_uv_overlay.updateEnabledState();
+					if (BarItems.paint_mode_uv_overlay.value && option == 'selected_faces') {
+						UVEditor.vue.uv_overlay = false;
+						BarItems.paint_mode_uv_overlay.value = false;
+						BarItems.paint_mode_uv_overlay.updateEnabledState();
+					}
 				}
 			}})
 		}},
@@ -1439,6 +1448,7 @@ const UVEditor = {
 		'uv_maximize',
 		'uv_auto',
 		'uv_rel_auto',
+		'unwrap_mesh_faces',
 		'uv_project_from_view',
 		'connect_uv_faces',
 		'merge_uv_vertices',
@@ -1698,7 +1708,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('unwrap_mesh_faces', {
-		icon: 'view_in_ar',
+		icon: 'map',
 		category: 'uv',
 		condition: () => Mesh.selected.length,
 		click() {
@@ -2171,24 +2181,35 @@ BARS.defineActions(function() {
 		value: true
 	})
 	new Toggle('edit_mode_uv_overlay', {
-		name: 'action.paint_mode_uv_overlay',
 		icon: 'stack',
 		category: 'uv',
-		condition: {modes: ['edit']},
+		condition: {modes: ['edit', 'paint']},
 		onChange(value) {
 			if (value) {
 				Project.display_uv = UVEditor.vue.display_uv = 'all_elements';
+				// Affect settings.
+				settings.display_uv.set('all_elements');
+				Settings.saveLocalStorages();
 			} else {
-				Project.display_uv = UVEditor.vue.display_uv = settings.display_uv.value;
+				Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
+				// Affect settings.
+				settings.display_uv.set('selected_elements');
+				Settings.saveLocalStorages();
 			}
 		}
 	})
 	new Toggle('paint_mode_uv_overlay', {
-		icon: 'stack',
+		icon: 'preview',
 		category: 'uv',
 		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
+			if (value && UVEditor.vue.display_uv == 'selected_faces') {
+				Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
+				// Affect settings.
+				settings.display_uv.set('selected_elements');
+				Settings.saveLocalStorages();
+			}
 		}
 	})
 	new Toggle('move_texture_with_uv', {
@@ -3455,10 +3476,14 @@ Interface.definePanels(function() {
 					}
 				},
 				getDisplayedUVElements() {
-					if (this.mode == 'uv' || this.uv_overlay) {
-						return (this.display_uv === 'all_elements' || this.mode == 'paint')
-							 ? this.all_mappable_elements
-							 : this.mappable_elements;
+					if (this.mode == 'uv') {
+						return (this.display_uv === 'all_elements')
+							? this.all_mappable_elements
+							: this.mappable_elements;
+					} else if (this.mode == 'paint' && this.uv_overlay) {
+						return (this.display_uv === 'all_elements')
+							? this.all_mappable_elements
+							: this.mappable_elements;
 					} else {
 						return [];
 					}
@@ -4373,11 +4398,11 @@ Interface.definePanels(function() {
 
 	Toolbars.uv_editor.toPlace()
 
+	// Force show tool in the 'locked toolbar'.
 	BarItems.paint_mode_uv_overlay.toElement('#toggle_uv_overlay_anchor');
-	BarItems.edit_mode_uv_overlay.toElement('#toggle_edit_uv_overlay_anchor');
+
 
 	let {slider_bar} = UVEditor.vue.$refs;
-
 	var onBefore = function() {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
 	}
@@ -4511,5 +4536,4 @@ Interface.definePanels(function() {
 		onAfter
 
 	}).toElement(slider_bar);
-	BarItems.edit_mode_uv_overlay.toElement(slider_bar);
 })

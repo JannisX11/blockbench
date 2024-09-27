@@ -1405,7 +1405,7 @@
 	"action.new_window.desc": "Ouvre une nouvelle fenêtre Blockbench",
 	"action.export_collada": "Exporter modèle Collada (dae)",
 	"action.export_collada.desc": "Exporte le modèle et les animations dans un fichier dae pour l'utiliser dans d'autres logiciels 3D",
-	"action.paint_mode_uv_overlay": "UV Show All",
+	"action.paint_mode_uv_overlay": "UV Show in Paint Mode",
 	"action.paint_mode_uv_overlay.desc": "Affiche la carte UV sous forme d'overlay en mode Dessin",
 	"action.bake_animation_into_model": "Intégrer l'animation au modèle",
 	"action.bake_animation_into_model.desc": "Intègre l'image d'animation actuellement affichée au modèle. Seules la rotation et la position s'appliquent, la mise à l'échelle est ignorée.",
