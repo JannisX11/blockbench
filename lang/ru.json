@@ -1963,6 +1963,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "Загрузить файл и отменить все изменения и слои в Blockbench",
 	"message.group_required_to_animate": "Вы не можете анимировать этот тип элемента. Создайте группу для анимации.",
 	"dialog.texture.uv_size": "Размер UV",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "Предустановка угла",
 	"dialog.advanced_screenshot.resolution": "Разрешение",
 	"dialog.advanced_screenshot.zoom_to_fit": "Масштаб по размеру",

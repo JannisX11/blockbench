@@ -1963,6 +1963,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "Load file and discard all changes and layers in Blockbench",
 	"message.group_required_to_animate": "You cannot animate this type of element. Create a group to animate it.",
 	"dialog.texture.uv_size": "UV Size",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "Angle Preset",
 	"dialog.advanced_screenshot.resolution": "Resolution",
 	"dialog.advanced_screenshot.zoom_to_fit": "Zoom To Fit",

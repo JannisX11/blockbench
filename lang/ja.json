@@ -1963,6 +1963,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "ファイルをロードし、Blockbench のすべての変更とレイヤーを破棄します",
 	"message.group_required_to_animate": "このタイプのエレメントをアニメーション化することはできません。 グループを作成してアニメーション化します。",
 	"dialog.texture.uv_size": "UV サイズ",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "アングルプリセット",
 	"dialog.advanced_screenshot.resolution": "解像度",
 	"dialog.advanced_screenshot.zoom_to_fit": "フィットズーム",

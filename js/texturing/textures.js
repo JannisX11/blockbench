@@ -21,6 +21,7 @@ class Texture {
 		this.height = 0;
 		this.uv_width = Project ? Project.texture_width : 16;
 		this.uv_height = Project ? Project.texture_height : 16;
+		this.repeating = false;
 		this.currentFrame = 0;
 		this.saved = true;
 		this.layers = [];
@@ -56,8 +57,8 @@ class Texture {
 		img.src = 'assets/missing.png'
 
 		var tex = new THREE.Texture(this.canvas);
-		tex.magFilter = THREE.NearestFilter
-		tex.minFilter = THREE.NearestFilter
+		tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
 		tex.name = this.name;
 		img.tex = tex;
 
@@ -733,6 +734,8 @@ class Texture {
 		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
 
 		// Map
+		mat.map.wrapS = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+        mat.map.wrapT = this.repeating ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
 		mat.map.needsUpdate = true;
 		return this;
 	}
@@ -1157,6 +1160,7 @@ class Texture {
 		if (Format.per_texture_uv_size) {
 			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1};
 		}
+		form.repeating = {label: 'dialog.texture.repeating', type: 'checkbox', value: this.repeating};
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
 				'texture_mcmeta': '_',
@@ -1185,7 +1189,7 @@ class Texture {
 			onConfirm: results => {
 
 				dialog.hide();
-				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => {
+				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order', 'repeating'].find(key => {
 					return results[key] !== undefined && results[key] !== this[key];
 				}) == undefined) {
 					return;
@@ -1201,6 +1205,7 @@ class Texture {
 				if (results.namespace !== undefined) this.namespace = results.namespace;
 				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
+				if (results.repeating !== undefined) this.repeating = results.repeating;
 				
 				if (Format.per_texture_uv_size) {
 					let changed = this.uv_width != results.uv_size[0] || this.uv_height != results.uv_size[1];
@@ -2079,6 +2084,7 @@ class Texture {
 	new Property(Texture, 'string', 'sync_to_project')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'boolean', 'repeating')
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
