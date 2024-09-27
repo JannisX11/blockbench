@@ -1404,7 +1404,7 @@ const UVEditor = {
 			'zoom_reset'
 		]},
 		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
-			let options = ['selected_faces', 'selected_elements', 'all_elements'];
+			let options = ['selected_faces', 'selected_elements'];
 			return options.map(option => {return {
 				id: option,
 				name: `menu.uv.display_uv.${option}`,
@@ -1412,8 +1412,7 @@ const UVEditor = {
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
-					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
-					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
+					settings.display_uv.set(option);
 					Settings.saveLocalStorages();
 				}
 			}})
@@ -2173,20 +2172,14 @@ BARS.defineActions(function() {
 	})
 	new Toggle('edit_mode_uv_overlay', {
 		name: 'action.paint_mode_uv_overlay',
-		description: 'action.edit_mode_uv_overlay.desc',
 		icon: 'stack',
 		category: 'uv',
 		condition: {modes: ['edit']},
 		onChange(value) {
 			if (value) {
 				Project.display_uv = UVEditor.vue.display_uv = 'all_elements';
-				settings.show_only_selected_uv.set(true);
 			} else {
-				if (settings.show_only_selected_uv.value) {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_faces';
-				} else {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
-				}
+				Project.display_uv = UVEditor.vue.display_uv = settings.display_uv.value;
 			}
 		}
 	})
@@ -2298,7 +2291,7 @@ Interface.definePanels(function() {
 				uv_resolution: [16, 16],
 				elements: [],
 				all_elements: [],
-				display_uv: 'selected_elements',
+				display_uv: settings.display_uv.value,
 				selection_outline: '',
 
 				face_names: {
