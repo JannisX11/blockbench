@@ -342,12 +342,15 @@ new ValidatorCheck('zero_wide_uv_faces', {
 	run() {
 		for (let cube of Cube.all) {
 			if (cube.box_uv && Format.id == 'optifine_entity') continue;
+			let affected_faces = [];
 			let select_cube_button = {
 				name: 'Select Cube',
 				icon: 'fa-cube',
 				click() {
 					Validator.dialog.hide();
 					cube.select();
+					UVEditor.getSelectedFaces(cube, true).replace(affected_faces);
+					updateSelection();
 				}
 			};
 			for (let fkey in cube.faces) {
@@ -362,8 +365,9 @@ new ValidatorCheck('zero_wide_uv_faces', {
 					}
 				}
 				if (size_issue) {
+					affected_faces.push(fkey);
 					this.warn({
-						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes cannot be 0.`,
+						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes should not be 0.`,
 						buttons: [select_cube_button]
 					})
 				}
