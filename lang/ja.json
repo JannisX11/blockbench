@@ -1883,7 +1883,7 @@
 	"dialog.share_model.too_large_references": "アップロードに失敗しました：モデルが大きすぎます。 参考画像なしで試してみてください。",
 	"settings.stretch_linked": "リンクストレッチ",
 	"settings.stretch_linked.desc": "同じ値で立方体を全方向に引き伸ばします",
-	"settings.grids": "グリットを表示",
+	"settings.grids": "グリッドを表示",
 	"settings.grids.desc": "３D グリットを表示します",
 	"settings.double_click_switch_tools": "ダブルクリック切り替え",
 	"settings.double_click_switch_tools.desc": "ダブルクリックでツールを切り替えます",
