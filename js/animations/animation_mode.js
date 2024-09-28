@@ -457,7 +457,7 @@ const Animator = {
 		let new_animations = [];
 		function multilinify(string) {
 			return typeof string == 'string'
-						? string.replace(/;(?!$)/, ';\n')
+						? string.replace(/;\s*(?!$)/g, ';\n')
 						: string
 		}
 		if (!json) return new_animations;
