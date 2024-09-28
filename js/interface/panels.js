@@ -178,9 +178,9 @@ class Panel extends EventSystem {
 						this.update();
 						let height_difference = this.position_data.height - height1;
 
-						let panel_b = other_panels.find(p => p != this && p.resizable && p.min_height < p.height);
+						let panel_b = other_panels.find(p => p != this && p.resizable && p.min_height < (p.height??p.node.clientHeight));
 						if (sidebar_gap < 1 && panel_b && change_amount > 0) {
-							if (!other_panel_height_before[panel_b.id]) other_panel_height_before[panel_b.id] = panel_b.height;
+							if (!other_panel_height_before[panel_b.id]) other_panel_height_before[panel_b.id] = (panel_b.height??panel_b.node.clientHeight);
 							panel_b.position_data.fixed_height = true;
 							panel_b.position_data.height = Math.max(panel_b.position_data.height - height_difference, this.min_height);
 							panel_b.update();
