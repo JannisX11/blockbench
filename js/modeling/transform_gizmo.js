@@ -1488,6 +1488,7 @@
 
 						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E' || (Timeline.selected_animator?.rotation_global && Transformer.getTransformSpace() == 2))) {
 
+							let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 							let normal = scope.axis == 'E'
 								? rotate_normal
 								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
@@ -1505,22 +1506,23 @@
 							mesh.setRotationFromMatrix(rotWorldMatrix)
 							let e = mesh.rotation;
 
-							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
-							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
-							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - old_rotation.z)) - scope.keyframes[0].calc('z') ));
 						
 						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2 && [0, 1, 2].find(axis => axis !== axisNumber && scope.keyframes[0].get(getAxisLetter(axis))) !== undefined) {
 							if (axisNumber != 2) difference *= -1;
 
+							let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 							let old_order = mesh.rotation.order;
 							mesh.rotation.reorder(axisNumber == 0 ? 'ZYX' : (axisNumber == 1 ? 'ZXY' : 'XYZ'))
 							var obj_val = Math.trimDeg(Math.radToDeg(mesh.rotation[axis]) + difference);
 							mesh.rotation[axis] = Math.degToRad(obj_val);
 							mesh.rotation.reorder(old_order);
 				
-							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - mesh.fix_rotation.x)) - scope.keyframes[0].calc('x') ));
-							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - mesh.fix_rotation.y)) - scope.keyframes[0].calc('y') ));
-							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - mesh.fix_rotation.z)) - scope.keyframes[0].calc('z') ));
+							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - old_rotation.z)) - scope.keyframes[0].calc('z') ));
 	
 						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
 
