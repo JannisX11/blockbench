@@ -100,22 +100,44 @@ class TextureGroup {
 
 		} else if (height_tex) {
 			material.bumpMap = height_tex.getOwnMaterial().map;
+			material.bumpScale = 0.4;
 			material.normalMap = null;
+			// Bump map scale
+			let canvas = document.createElement('canvas');
+			let ctx = canvas.getContext('2d');
+			canvas.width = height_tex.width * 8;
+			canvas.height = height_tex.height * 8;
+			ctx.imageSmoothingEnabled = false;
+			ctx.drawImage(height_tex.canvas, 0, 0, canvas.width, canvas.height);
+			material.bumpMap.image = canvas;
+			material.bumpMap.magFilter = THREE.LinearFilter;
+			material.bumpMap.needsUpdate = true;
 		}
 		if (mer_tex && mer_tex.img?.naturalWidth) {
 			let image_data = mer_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
+			let image_data_albedo = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
 			function generateMap(source_channel, target_channel, key) {
 				let canvas = material[key]?.image ?? document.createElement('canvas');
 				let ctx = canvas.getContext('2d');
 				canvas.width = mer_tex.width;
 				canvas.height = mer_tex.height;
-				ctx.fillStyle = 'red';
+				ctx.fillStyle = 'black';
 				ctx.fillRect(0, 0, mer_tex.width, mer_tex.height);
 				document.body.append(canvas)
 
 				let image_data_new = ctx.getImageData(0, 0, mer_tex.width, mer_tex.height);
 				for (let i = 0; i < image_data.data.length; i += 4) {
-					image_data_new.data[i + target_channel] = image_data.data[i + source_channel];
+					if (target_channel == 0) {
+						let value = image_data.data[i + source_channel] / 255;
+						image_data_new.data[i + 0] = image_data_albedo.data[i + 0] * value;
+						image_data_new.data[i + 1] = image_data_albedo.data[i + 1] * value;
+						image_data_new.data[i + 2] = image_data_albedo.data[i + 2] * value;
+					} else {
+						image_data_new.data[i + target_channel] = image_data.data[i + source_channel];
+						if (source_channel == 2 && image_data_new.data[i + target_channel] == 0) {
+							//image_data_new.data[i + target_channel] = 255;
+						}
+					}
 				}
 				ctx.putImageData(image_data_new, 0, 0);
 
@@ -123,10 +145,14 @@ class TextureGroup {
 					material[key] = new THREE.Texture(canvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.NearestFilter, THREE.NearestFilter);
 					material[key].needsUpdate = true;
 				}
+				//material.map = material[key];
 			}
 			generateMap(0, 2, 'metalnessMap');
 			generateMap(1, 0, 'emissiveMap');
 			generateMap(2, 1, 'roughnessMap');
+			material.emissive.set(0xffffff);
+			material.emissiveIntensity = 30;
+			material.metalness = 1;
 		}
 		material.needsUpdate = true;
 	}
@@ -177,6 +203,52 @@ ToDo:
 - Grid view?
 - Search
  */
+
+Blockbench.on('edit_texture', ({texture}) => {
+	if (texture.pbr_channel == 'mer' && texture.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+		texture.getGroup().updateMaterial();
+	}
+})
+
+function importTextureSet(file) {
+	let new_textures = [], new_texture_groups = [];
+	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
+	if (file.name.endsWith('texture_set.json')) {
+		let texture_group = new TextureGroup({is_material: true});
+		texture_group.name = file.name.replace('.texture_set.json', '');
+
+		let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
+		let content_json = autoParseJSON(content);
+
+		if (content_json && content_json['minecraft:texture_set']) {
+			let channels = {
+				color: 'color',
+				normal: 'normal',
+				heightmap: 'height',
+				metalness_emissive_roughness: 'mer',
+			};
+			for (let key in channels) {
+				let source = content_json['minecraft:texture_set'][key];
+				if (typeof source == 'string') {
+					let path = PathModule.resolve(file.path, '../' + source + '.png');
+					Blockbench.read([path], {
+						readtype: 'image',
+					}, ([file2]) => {
+						let t = new Texture({
+							name: file2.name,
+							pbr_channel: channels[key]
+						}).fromFile(file2).add(false, true).fillParticle();
+						new_textures.push(t);
+						t.group = texture_group.uuid;
+					})
+				}
+			}
+		}
+		new_texture_groups.push(texture_group);
+		texture_group.add(false);
+	}
+	Undo.finishEdit('Import texture set');
+}
 
 SharedActions.add('rename', {
 	condition: () => Prop.active_panel == 'textures' && TextureGroup.active_menu_group,

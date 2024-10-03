@@ -854,6 +854,10 @@ const Canvas = {
 		}
 		Blockbench.dispatchEvent('update_view', options);
 	},
+	updateViewMode() {
+		this.updateAllFaces();
+		this.updateShading();
+	},
 	//Main updaters
 	clear() {
 		var objects = []

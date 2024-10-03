@@ -882,7 +882,7 @@ class Texture {
 	}
 	getMaterial() {
 		let group = this.getGroup();
-		if (group?.is_material) {
+		if (group?.is_material && BarItems.view_mode.value == 'material') {
 			return group.getMaterial();
 		}
 		return Project.materials[this.uuid];
@@ -2271,52 +2271,21 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(files) {
+				if (files[0].name.endsWith('texture_set.json')) {
+					importTextureSet(files[0]);
+					return;
+				}
 				let new_textures = [], new_texture_groups = [];
 				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
 				Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
 				files.forEach((f) => {
-					if (f.name.endsWith('texture_set.json')) {
-						let texture_group = new TextureGroup({is_material: true});
-						texture_group.name = f.name.replace('.texture_set.json', '');
-
-						let content = fs.readFileSync(f.path, {encoding: 'utf-8'});
-						let content_json = autoParseJSON(content);
-
-						if (content_json && content_json['minecraft:texture_set']) {
-							let channels = {
-								color: 'color',
-								normal: 'normal',
-								heightmap: 'height',
-								metalness_emissive_roughness: 'mer',
-							};
-							for (let key in channels) {
-								let source = content_json['minecraft:texture_set'][key];
-								if (typeof source == 'string') {
-									let path = PathModule.resolve(f.path, '../' + source + '.png');
-									Blockbench.read([path], {
-										readtype: 'image',
-									}, ([file2]) => {
-										let t = new Texture({
-											name: file2.name,
-											pbr_channel: channels[key]
-										}).fromFile(file2).add(false, true).fillParticle();
-										new_textures.push(t);
-										t.group = texture_group.uuid;
-									})
-								}
-							}
-						}
-						new_texture_groups.push(texture_group);
-						texture_group.add(false);
-						return;
-					}
 					let t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle();
 					new_textures.push(t);
 					if (texture_group) {
 						t.group = texture_group.uuid;
 					}
 				})
-				Undo.finishEdit('Add texture')
+				Undo.finishEdit('Add texture');
 			})
 		}
 	})

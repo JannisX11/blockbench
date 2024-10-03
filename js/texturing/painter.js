@@ -23,6 +23,8 @@ const Painter = {
 
 		callback(canvas, Painter.current);
 
+		Blockbench.dispatchEvent('edit_texture', {texture, options, canvas, ctx, offset});
+
 		if (options.use_cache && options.no_update === true) {
 			return;
 		}
@@ -2217,7 +2219,7 @@ BARS.defineActions(function() {
 		cursor: 'grab',
 		selectFace: false,
 		transformerMode: 'hidden',
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
@@ -2293,7 +2295,7 @@ BARS.defineActions(function() {
 				}
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		side_menu: new Menu('brush_tool', () => {
@@ -2443,7 +2445,7 @@ BARS.defineActions(function() {
 				return result_color;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
@@ -2472,7 +2474,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2522,7 +2524,7 @@ BARS.defineActions(function() {
 				return pxcolor;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
@@ -2544,7 +2546,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2572,7 +2574,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'u'}),
@@ -2596,7 +2598,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		//keybind: new Keybind({key: 'u'}),
@@ -2620,7 +2622,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
@@ -2650,7 +2652,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'm'}, {
 			create: '',
@@ -2725,7 +2727,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({shift: true, key: 'v'}),
 		onCanvasClick(data) {
