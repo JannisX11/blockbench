@@ -594,6 +594,10 @@ class NumSlider extends Widget {
 		this.type = 'numslider'
 		this.icon = 'code'
 		this.value = 0;
+		this.valueRaw = 0;
+		this.lastDelta = 0;
+		// Whether the device is detected to be a touchpad
+		this.touchpad = false;
 		this.width = 69;
 		this.sensitivity = data.sensitivity || 30;
 		this.invert_scroll_direction = data.invert_scroll_direction == true;
@@ -865,6 +869,57 @@ class NumSlider extends Widget {
 		})
 		.on('mouseleave', function() {
 			scope.jq_outer.find('.nslide_arrow').remove()
+
+			// Self clean-up
+			scope.valueRaw = 0
+			scope.lastDelta = 0;
+			scope.touchpad = false;
+		})
+		.on('wheel', event => {
+			// Prevents scrolling, allowing for continuous adjustment
+			event.preventDefault();
+			// We handled it from here.
+			event.stopPropagation();
+
+			const deltaXMul = Pressing.shift && ['safari', 'webkit'].indexOf(Blockbench.browser) >= 0 ? -1 : 1;
+
+			// TODO: Add a slider for this. Note: The scale is backwards and naturally logarithmic 
+			// TODO: Negative sensitivity for reversed scroll direction
+			let sensitivity = 1/64 * (this.invert_scroll_direction ? -1 : 1);
+
+			// TODO: Find a spot for this to live in.
+			function accel(velocity) {
+				velocity *= sensitivity;
+				return Math.pow(velocity, 2) * Math.sign(velocity);
+			};
+
+			let deltaX = +accel(event.originalEvent.deltaX) * deltaXMul;
+			let deltaY = -accel(event.originalEvent.deltaY)
+			let delta = deltaX + deltaY;
+
+			// Only touchpads and certain mice can scroll on both axises at the same time.
+			if (deltaX && deltaY) {
+				this.touchpad = true;
+			} else if (!this.touchpad && this.lastDelta) {
+				let lastDeltaAbs = Math.abs(this.lastDelta);
+				let deltaAbs = Math.abs(delta);
+
+				// Firefox's scrolling is not consistent between up & down.
+				// This is to attempt to tell touchpad and mousewheel apart.
+
+				let firefox = Math.sign(this.lastDelta) != Math.sign(delta) &&
+				deltaAbs > accel(32) && Math.abs(1 - (lastDeltaAbs / deltaAbs)) < 0.10;
+
+				this.touchpad = lastDeltaAbs != deltaAbs && !firefox;
+			}
+
+			this.lastDelta = delta;
+			
+			if (!this.touchpad) {
+				delta = Math.sign(delta);
+			}
+
+			this.updateValue(this.getInterval(event) * delta);
 		})
 	}
 	startInput(e) {
@@ -899,6 +954,9 @@ class NumSlider extends Widget {
 
 		if (!difference) return;
 
+		this.updateValue(difference);
+	}
+	updateValue(difference) {
 		this.change(n => n + difference);
 		this.update();
 		Blockbench.setStatusBarText(trimFloatNumber(this.value - this.last_value));
@@ -1023,11 +1081,12 @@ class NumSlider extends Widget {
 	}
 	change(modify) {
 		//Solo sliders only, gets overwritten for most sliders
-		var num = modify(this.get());
+		var num = modify(this.valueRaw || this.get());
 		if (this.settings && typeof this.settings.min === 'number' && this.settings.limit !== false) {
 			num = limitNumber(num, this.settings.min, this.settings.max)
 		}
-		this.value = num;
+		this.valueRaw = num;
+		this.value = num |= 0;
 		if (this.tool_setting) {
 			Toolbox.selected.tool_settings[this.tool_setting] = num;
 		}

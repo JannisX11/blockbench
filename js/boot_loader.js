@@ -22,6 +22,8 @@ if (isApp === false) {
 		Blockbench.browser = 'opera'
 	} else if (/constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification))) {
 		Blockbench.browser = 'safari'
+	} else if (typeof InstallTrigger === 'undefined' && !window.chrome && navigator.userAgent.includes('WebKit')) {
+		Blockbench.browser = 'webkit'
 	} else if (!!document.documentMode) {
 		Blockbench.browser = 'internet_explorer'
 	} else if (!!window.chrome && window.navigator.userAgent.toLowerCase().includes('edg')) {
