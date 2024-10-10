@@ -393,7 +393,7 @@
 
 	"message.small_face_dimensions.title": "Incompatible Face Dimensions",
 	"message.small_face_dimensions.message": "The selection contains faces that are smaller than 1 unit in one direction. The Box UV mapping system considers any faces below that threshold as 0 pixels wide. The texture on those faces therefore may not work correctly.",
-	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Go to \"File\" > \"Project...\" and change \"UV Mode\" to \"Per-face UV\".",
+	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Right click the affected cubes and change \"UV Mode\" to \"Per-face UV\".",
 
 	"message.auto_fix_mesh_edit.title": "Auto Fix",
 	"message.auto_fix_mesh_edit.revert": "Revert Edit",
