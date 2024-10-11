@@ -676,7 +676,7 @@ BARS.defineActions(function() {
 						Blockbench.showQuickMessage('message.invalid_link')
 					})
 				}
-			}, 'https://blckbn.ch/123abc')
+			}, {placeholder: 'https://blckbn.ch/123abc'});
 		}
 	})
 	new Action('extrude_texture', {

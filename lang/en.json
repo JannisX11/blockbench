@@ -420,6 +420,8 @@
 	"message.invalid_session.title": "Invalid Session Token",
 	"message.invalid_session.message": "The session you are trying to join has expired or the token provided is invalid.",
 
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection.",
+
 	"dialog.project.title": "Project",
 	"dialog.project.name": "File Name",
 	"dialog.project.parent": "Parent Model",
