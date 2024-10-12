@@ -723,6 +723,7 @@ const Settings = {
 		}
 		Settings.dialog.show();
 		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
+		if (options.profile) Settings.dialog.content_vue.profile = options.profile;
 		Settings.dialog.content_vue.$forceUpdate();
 	},
 	old: {}
