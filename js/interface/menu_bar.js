@@ -459,6 +459,17 @@ const MenuBar = {
 			'preview_scene',
 			'edit_reference_images',
 			new MenuSeparator('interface'),
+			{
+				id: 'panels',
+				name: 'Panels',
+				children() {
+					let entries = [];
+					for (let id in Panels) {
+						let panel = Panels[id];
+						
+					}
+				}
+			},
 			'toggle_sidebars',
 			'split_screen',
 			new MenuSeparator('model'),
