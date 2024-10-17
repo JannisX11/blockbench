@@ -67,7 +67,7 @@ class Texture {
 			uniform bool SHADE;
 			uniform int LIGHTSIDE;
 
-			varying vec2 vUv;
+			centroid varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
