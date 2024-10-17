@@ -138,7 +138,7 @@ class Texture {
 			uniform bool EMISSIVE;
 			uniform vec3 LIGHTCOLOR;
 
-			varying vec2 vUv;
+			centroid varying vec2 vUv;
 			varying float light;
 			varying float lift;
 

@@ -287,7 +287,7 @@ const Canvas = {
 
 			uniform bool SHADE;
 
-			varying vec2 vUv;
+			centroid varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
