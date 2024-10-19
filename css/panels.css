@@ -442,6 +442,8 @@
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
+	}
+	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
 	}
 	.outliner_object:active {
@@ -472,6 +474,7 @@
 	}
 	#cubes_list .outliner_line_guide {
 		position: absolute;
+		left: calc(var(--indentation) * var(--indentation-offset) - 1px);
 		top: -4px;
 		bottom: 4px;
 		width: 4px;

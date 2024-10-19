@@ -323,7 +323,7 @@ class refModel {
 			case 'monitor':
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*9.039, -8.318, 20.8, 0, 0, 0, 1,1,1)
+					setDisplayArea(side*9.039, -8.318+24, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
 			case 'frame':
@@ -349,13 +349,13 @@ class refModel {
 			case 'bow':
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*4.2, -4.9, 25, -20, -19, -8, 1,1,1)
+					setDisplayArea(side*4.2, -4.9+24, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
 			case 'crossbow':
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*-1.2, -6.75, 23, 0, side*10, 0, 1, 1, 1)
+					setDisplayArea(side*-1.2, -6.75+24, 23, 0, side*10, 0, 1, 1, 1)
 				}
 				break;
 				
@@ -363,7 +363,7 @@ class refModel {
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
 					DisplayMode.setBase(
-						side*-1.7, -6.1, 23.4,
+						side*-1.7, -6.1+24, 23.4,
 						-92, side*100, side*119,
 						0.8, 0.8, 0.8)
 				}
@@ -1155,10 +1155,10 @@ class refModel {
 	}
 	buildMonitor() {
 		this.buildModel(JSON.parse(`[
-			{"size": [8, 8, 0.1], "pos": [0, 4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [0, -4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [-5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
+			{"size": [8, 8, 0.1], "pos": [0, 28.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [0, 19.07, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [5.65, 24, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [-5.65, 24, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
 		]`), 'black')
 	}
 	buildBlock() {
@@ -1530,8 +1530,8 @@ function getOptimalFocalLength() {
 DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
 	display_preview.loadAnglePreset({
-		position: [0, 0, 32.4],
-		target: [0, 0, 0],
+		position: [0, 24, 32.4],
+		target: [0, 24, 0],
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
@@ -1542,8 +1542,8 @@ DisplayMode.loadFirstRight = function() {	//Loader
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
 	display_preview.loadAnglePreset({
-		position: [0, 0, 32.4],
-		target: [0, 0, 0],
+		position: [0, 24, 32.4],
+		target: [0, 24, 0],
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false

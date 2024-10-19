@@ -230,8 +230,8 @@ BARS.defineActions(function() {
 		click() {
 			let textures = getTextures();
 			let original_image_data = textures.map(tex => {
-				let canvas = Painter.getCanvas(tex);
-				let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+				let {canvas, ctx} = tex.getActiveCanvas();
+				let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				image_data.original_data = image_data.data.slice();
 				return image_data;
 			})
@@ -342,13 +342,13 @@ BARS.defineActions(function() {
 							}
 
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, {offset}) => {
 									let ctx = canvas.getContext('2d');
 									let image_data = original_image_data[i];
 
 									if (this.preview_changes) {
 										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											
 											let R = image_data.original_data[i+0]
 											let G = image_data.original_data[i+1]
@@ -370,7 +370,7 @@ BARS.defineActions(function() {
 										}
 									} else {
 										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											image_data.data[i+0] = image_data.original_data[i+0];
 											image_data.data[i+1] = image_data.original_data[i+1];
 											image_data.data[i+2] = image_data.original_data[i+2];

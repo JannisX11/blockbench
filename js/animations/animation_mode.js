@@ -283,15 +283,26 @@ const Animator = {
 		scene.add(Animator.onion_skin_object);
 	},
 	stackAnimations(animations, in_loop, controller_blend_values = 0) {
+		if (animations.length > 1 && Animation.selected && animations.includes(Animation.selected)) {
+			// Ensure selected animation is applied last so that transform gizmo gets correct pre rotation
+			animations = animations.slice();
+			animations.remove(Animation.selected);
+			animations.push(Animation.selected);
+		}
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
-			animations.forEach(animation => {
+			animations.forEach((animation, anim_i) => {
 				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
 					return;
 				}
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
+				if (anim_i == animations.length - 1) {
+					let mesh = node.mesh;
+					if (!mesh.pre_rotation) mesh.pre_rotation = new THREE.Euler();
+					mesh.pre_rotation.copy(mesh.rotation);
+				}
 				animation.getBoneAnimator(node).displayFrame(multiplier);
 			})
 		})
@@ -446,7 +457,7 @@ const Animator = {
 		let new_animations = [];
 		function multilinify(string) {
 			return typeof string == 'string'
-						? string.replace(/;(?!$)/, ';\n')
+						? string.replace(/;\s*(?!$)/g, ';\n')
 						: string
 		}
 		if (!json) return new_animations;
