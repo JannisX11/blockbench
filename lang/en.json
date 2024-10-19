@@ -924,6 +924,8 @@
 	"settings.shading.desc": "Enable shading in the preview",
 	"settings.antialiasing": "Anti-aliasing",
 	"settings.antialiasing.desc": "Toggle anti-aliasing in the preview. Restart Blockbench to apply changes",
+	"settings.antialiasing_bleed_fix": "Fix anti-aliasing bleeding",
+	"settings.antialiasing_bleed_fix.desc": "Fixes texture bleeding when using anti-aliasing. Restart Blockbench to apply changes",
 	"settings.render_sides": "Render Sides",
 	"settings.fov": "FOV",
 	"settings.fov.desc": "Camera Field of View. Default is 45",
