@@ -241,7 +241,7 @@ const Canvas = {
 			uniform bool SHADE;
 			uniform float DENSITY;
 
-			centroid varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
@@ -287,7 +287,7 @@ const Canvas = {
 
 			uniform bool SHADE;
 
-			centroid varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 

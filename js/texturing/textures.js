@@ -67,7 +67,7 @@ class Texture {
 			uniform bool SHADE;
 			uniform int LIGHTSIDE;
 
-			centroid varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
@@ -138,7 +138,7 @@ class Texture {
 			uniform bool EMISSIVE;
 			uniform vec3 LIGHTCOLOR;
 
-			centroid varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
