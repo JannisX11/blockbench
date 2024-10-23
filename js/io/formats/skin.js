@@ -6619,7 +6619,82 @@ skin_presets.villager = {
 };
 skin_presets.villager_v2 = {
 	display_name: 'Villager (New)',
-	model: `{
+	model_java: `{
+		"name": "villager_v2",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"name": "body", "origin": [-4, 12, -3], "size": [8, 12, 6], "uv": [16, 20]},
+					{"name": "body", "origin": [-4, 4, -3], "size": [8, 20, 6], "uv": [0, 38], "inflate": 0.5}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "head", "origin": [-4, 24, -4], "size": [8, 10, 8], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "helmet",
+				"parent": "head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "helmet", "origin": [-4, 24, -4], "size": [8, 10, 8], "uv": [32, 0], "inflate": 0.5}
+				]
+			},
+			{
+				"name": "brim",
+				"parent": "head",
+				"pivot": [0, 24, 0],
+				"rotation": [-90, 0, 0],
+				"cubes": [
+					{"name": "brim", "origin": [-8, 16, -6], "size": [16, 16, 1], "uv": [30, 47], "inflate": 0.1}
+				]
+			},
+			{
+				"name": "nose",
+				"parent": "head",
+				"pivot": [0, 26, 0],
+				"cubes": [
+					{"name": "nose", "origin": [-1, 23, -6], "size": [2, 4, 2], "uv": [24, 0]}
+				]
+			},
+			{
+				"name": "arms",
+				"parent": "body",
+				"pivot": [0, 22, 0],
+				"rotation": [-45, 0, 0],
+				"cubes": [
+					{"name": "arms", "origin": [-4, 16, -2], "size": [8, 4, 4], "uv": [40, 38]},
+					{"name": "arms", "origin": [-8, 16, -2], "size": [4, 8, 4], "uv": [44, 22]},
+					{"name": "arms", "origin": [4, 16, -2], "size": [4, 8, 4], "uv": [44, 22], "mirror": true}
+				]
+			},
+			{
+				"name": "RightLeg",
+				"parent": "body",
+				"pivot": [-2, 12, 0],
+				"cubes": [
+					{"name": "leg0", "origin": [-4, 0, -2], "size": [4, 12, 4], "uv": [0, 22]}
+				]
+			},
+			{
+				"name": "LeftLeg",
+				"parent": "body",
+				"pivot": [2, 12, 0],
+				"cubes": [
+					{"name": "leg1", "origin": [0, 0, -2], "size": [4, 12, 4], "uv": [0, 22], "mirror": true}
+				]
+			}
+		]
+	}`,
+	model_bedrock: `{
 		"name": "villager_v2",
 		"texturewidth": 64,
 		"textureheight": 64,
@@ -7217,7 +7292,81 @@ skin_presets.zombie_villager_1 = {
 };
 skin_presets.zombie_villager_2 = {
 	display_name: 'Zombie Villager (New)',
-	model: `{
+	model_java: `{
+		"name": "zombie_villager_2",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"bones": [
+			{
+				"name": "waist",
+				"pivot": [0, 12, 0]
+			},
+			{
+				"name": "Body",
+				"parent": "waist",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "Body", "origin": [-4, 12, -3], "size": [8, 12, 6], "uv": [16, 20]},
+					{"name": "Body", "origin": [-4, 4, -3], "size": [8, 20, 6], "uv": [0, 38], "inflate": 0.5}
+				]
+			},
+			{
+				"name": "Head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "Head", "origin": [-4, 24, -4], "size": [8, 10, 8], "uv": [0, 0], "inflate": 0.25},
+					{"name": "Head", "origin": [-1, 23, -6], "size": [2, 4, 2], "uv": [24, 0], "inflate": 0.25}
+				]
+			},
+			{
+				"name": "helmet",
+				"parent": "Head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "Head Layer", "origin": [-4, 24, -4], "size": [8, 10, 8], "uv": [32, 0], "inflate": 0.5}
+				]
+			},
+			{
+				"name": "brim",
+				"parent": "Head",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "brim", "origin": [-8, 16, -6], "size": [16, 16, 1], "uv": [30, 47], "inflate": 0.1}
+				]
+			},
+			{
+				"name": "RightArm",
+				"pivot": [-5, 22, 0],
+				"cubes": [
+					{"name": "RightArm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [44, 22]}
+				]
+			},
+			{
+				"name": "LeftArm",
+				"pivot": [5, 22, 0],
+				"mirror": true,
+				"cubes": [
+					{"name": "LeftArm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [44, 22]}
+				]
+			},
+			{
+				"name": "RightLeg",
+				"pivot": [-2, 12, 0],
+				"cubes": [
+					{"name": "RightLeg", "origin": [-4, 0, -2], "size": [4, 12, 4], "uv": [0, 22]}
+				]
+			},
+			{
+				"name": "LeftLeg",
+				"pivot": [2, 12, 0],
+				"mirror": true,
+				"cubes": [
+					{"name": "LeftLeg", "origin": [0, 0, -2], "size": [4, 12, 4], "uv": [0, 22]}
+				]
+			}
+		]
+	}`,
+	model_bedrock: `{
 		"name": "zombie_villager_2",
 		"texturewidth": 64,
 		"textureheight": 64,
