@@ -48,7 +48,7 @@ Object.assign(Blockbench, {
 			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
 				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
 			
-			if (isIOS && options.extensions && options.extensions.length > 1) {
+			if ((isIOS || Blockbench.isTouch) && options.extensions && options.extensions.length > 1) {
 				let ext_options = {};
 				options.extensions.forEach(extension => {
 					ext_options[extension] = extension;
