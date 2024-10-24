@@ -4,6 +4,7 @@ Blockbench.OutlinerElement = OutlinerElement;
 Blockbench.Group = Group;
 Blockbench.Cube = Cube;
 Blockbench.Mesh = Mesh;
+Blockbench.SplineMesh = SplineMesh;
 Blockbench.Locator = Locator;
 Blockbench.NullObject = NullObject;
 Blockbench.TextureMesh = TextureMesh;

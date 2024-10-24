@@ -57,6 +57,7 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_group = null;
 		this.mesh_selection = {};
+		this.spline_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.texture_groups = [];

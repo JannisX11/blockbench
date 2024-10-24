@@ -1550,6 +1550,7 @@ Interface.definePanels(function() {
 			new Toolbar('outliner', {
 				children: [
 					'add_mesh',
+					'add_spline',
 					'add_cube',
 					'add_group',
 					'outliner_toggle',
@@ -1830,6 +1831,7 @@ Interface.definePanels(function() {
 		menu: new Menu([
 			new MenuSeparator('add_element'),
 			'add_mesh',
+			'add_spline',
 			'add_cube',
 			'add_texture_mesh',
 			'add_group',

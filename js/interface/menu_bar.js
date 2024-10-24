@@ -241,6 +241,7 @@ const MenuBar = {
 			new MenuSeparator('add_element'),
 			'add_cube',
 			'add_mesh',
+			'add_spline',
 			'add_group',
 			'add_locator',
 			'add_null_object',
