@@ -292,7 +292,7 @@ const MirrorModeling = {
 					}
 				}
 			}
-			return element;
+			return false;
 		}
 	},
 	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
@@ -443,6 +443,18 @@ BARS.defineActions(() => {
 		if (allow_toggle.value != !disabled) {
 			allow_toggle.value = !disabled;
 			allow_toggle.updateEnabledState();
+		}
+	})
+	new Action('apply_mirror_modeling', {
+		icon: 'align_horizontal_right',
+		category: 'edit',
+		condition: {modes: ['edit']},
+		click() {
+			let value_before = BarItems.mirror_modeling.value;
+			BarItems.mirror_modeling.value = true;
+			Undo.initEdit({elements: Outliner.selected, outliner: !!Group.selected});
+			Undo.finishEdit('Applied mirror modeling');
+			BarItems.mirror_modeling.value = value_before;
 		}
 	})
 })
