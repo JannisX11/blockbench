@@ -5,7 +5,8 @@ class SplineMesh extends OutlinerElement {
 		this._static = {
 			properties: {
                 handles: {}, // Points & controls of the spline
-				curves: {} // Segments of the spline
+                curves: {}, // Segments of the spline
+                vertices: {} // Dummy for raycaster to be able to grab handle points (broken atm ??)
 			}
 		}
 		Object.freeze(this._static); 
@@ -22,10 +23,13 @@ class SplineMesh extends OutlinerElement {
             )
             
 			let handle_keys = Object.keys(this.handles);
-            this.addCurves([handle_keys[0], handle_keys[1]]);
-            this.addCurves([handle_keys[1], handle_keys[2]]);
-            this.addCurves([handle_keys[2], handle_keys[3]]);
-            this.addCurves([handle_keys[3], handle_keys[4]]);
+            this.addCurves(
+                [handle_keys[0], handle_keys[1]], //  )
+                [handle_keys[1], handle_keys[2]], // (
+                [handle_keys[2], handle_keys[3]], //  )
+                [handle_keys[3], handle_keys[4]]  // (
+            );
+            this.addVertices(handle_keys[0], handle_keys[1], handle_keys[2], handle_keys[3], handle_keys[4]);
         }
 		for (var key in SplineMesh.properties) {
 			SplineMesh.properties[key].reset(this);
@@ -33,6 +37,13 @@ class SplineMesh extends OutlinerElement {
 		if (data && typeof data === 'object') {
 			this.extend(data)
 		}
+
+        console.log(this.vertices);
+        console.log(this.handles);
+        console.log(this.curves);
+    }
+    get vertices() {
+        return this._static.properties.vertices;
     }
     get handles() {
         return this._static.properties.handles;
@@ -40,9 +51,44 @@ class SplineMesh extends OutlinerElement {
     get curves() {
         return this._static.properties.curves;
     }
+	set vertices(v) {
+		this._static.properties.vertices = v;
+	}
+	set handles(v) {
+		this._static.properties.handles = v;
+	}
+	set curves(v) {
+		this._static.properties.curves = v;
+	}
 	get position() {
 		return this.origin;
 	}
+	get vertice_list() {
+		return Object.keys(this.vertices).map(key => this.vertices[key]);
+	}
+    addVertices(...data) {
+        // Collect individual points from handle
+        let point_list = [];
+        data.forEach(key => {
+            let handle = this.handles[key];
+
+            // Push all points of each handle
+            point_list.push(handle.control1);
+            point_list.push(handle.point);
+            point_list.push(handle.control2);
+        });
+
+        // re-inject points as vertices
+        return point_list.map(point => {            
+            let key;
+            while (!key || this.vertices[key]) {
+                key = bbuid(4);
+            }
+
+            this.vertices[key] = [point[0] || 0, point[1] || 0, point[2] || 0];
+            return key;
+        })
+    }
     addHandles(...data) {
         return data.map(anchor => {
             let key;
@@ -54,14 +100,17 @@ class SplineMesh extends OutlinerElement {
         })
     }
     addCurves(...data) {
-        return data.map(handle => {
+        return data.map(handles => {
             let key;
             while (!key || this.curves[key]) {
                 key = bbuid(4);
             }
             
-            let handle1 = this.handles[handle[0]];
-            let handle2 = this.handles[handle[1]];
+            // Curves are defined by their handles
+            // point & control 2 of handle 1 at the start
+            // point & control 1 of handle 2 at the end
+            let handle1 = this.handles[handles[0]];
+            let handle2 = this.handles[handles[1]];
             this.curves[key] = {
                 start: handle1.point,
                 start_ctrl: handle1.control2,
@@ -81,11 +130,7 @@ class SplineMesh extends OutlinerElement {
 				}
 			}
 			for (let key in object.handles) {
-				if (this.handles[key]) {
-					this.handles[key].extend(object.faces[key])
-				} else {
-					this.handles[key] = new MeshFace(this, object.handles[key]);
-				}
+                this.handles[key] = object.handles[key];
 			}
 		}
 		this.sanitizeName();

@@ -463,7 +463,7 @@ class Preview {
 			}
 		} else if (intersect_object.type == 'Points') {
 			var element = OutlinerNode.uuids[intersect_object.element_uuid];
-			let vertex = element instanceof Mesh
+			let vertex = element instanceof Mesh || element instanceof SplineMesh
 				? Object.keys(element.vertices)[intersect.index]
 				: intersect_object.vertices[intersect.index];
 			return {
