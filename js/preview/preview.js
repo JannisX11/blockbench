@@ -1085,6 +1085,8 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
+			let mouse_uv_x = x * uv_factor_x;
+			let mouse_uv_y = y * uv_factor_y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
 				x = Math.round(x + offset) - offset;
@@ -1094,9 +1096,9 @@ class Preview {
 				y -= texture.display_height * texture.currentFrame;
 			}
 			// Position
-			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
+			let brush_coord = face.UVToLocal([mouse_uv_x, mouse_uv_y], face.getSortedVertices(), offset);
+			let brush_coord_difference_x = face.UVToLocal([mouse_uv_x + 1 * uv_factor_x, mouse_uv_y], face.getSortedVertices(), offset);
+			let brush_coord_difference_y = face.UVToLocal([mouse_uv_x, mouse_uv_y + 1 * uv_factor_y], face.getSortedVertices(), offset);
 			brush_coord_difference_x.sub(brush_coord);
 			brush_coord_difference_y.sub(brush_coord);
 			intersect.object.localToWorld(brush_coord);
