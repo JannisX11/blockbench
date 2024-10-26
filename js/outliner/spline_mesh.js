@@ -32,6 +32,9 @@ class SplineHandle {
 			if (this.spline.handles[hkey] == this) return hkey;
 		}
 	}
+	isSelected() {
+		return !!Project.spline_selection[this.mesh.uuid] && Project.spline_selection[this.mesh.uuid].vertices.includes(this.origin);
+	}
 	getSaveCopy() {
 		let copy = {
             control1: this.control1,
@@ -273,7 +276,22 @@ class SplineMesh extends OutlinerElement {
     }
 	getSelectedVertices(make) {
 		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: [], handles: []};
-		return Project.spline_selection[this.uuid]?.vertices || [];
+        let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
+
+        // Force select control points when an handle origin is selected
+        if (selection.length > 0) {
+            for (let key in this.handles) {
+                let handle = this.handles[key];
+                // Do we have the origin selected?
+                if (selection.includes(handle.origin)) {
+                    // are the controls unselected? check for each, so we can select them
+                    if (!selection.includes(handle.control1)) selection.push(handle.control1)
+                    if (!selection.includes(handle.control2)) selection.push(handle.control2)
+                }
+            }
+        }
+
+		return selection;
 	}
     // Bounding box??? idk
 	getSize(axis, selection_only) {

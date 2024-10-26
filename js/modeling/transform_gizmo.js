@@ -1139,7 +1139,7 @@
 					if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
 						var axisnr = getAxisNumber(scope.axis.toLowerCase().replace('n', ''));
 						selected.forEach(function(obj) {
-							if (obj instanceof Mesh) {
+							if (obj instanceof Mesh || obj instanceof SplineMesh) {
 								obj.oldVertices = {};
 								for (let key in obj.vertices) {
 									obj.oldVertices[key] = obj.vertices[key].slice();
