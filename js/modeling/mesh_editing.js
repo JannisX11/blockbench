@@ -2183,7 +2183,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			function runEdit(amended, extend = 1, direction_mode) {
+			function runEdit(amended, extend = 1, direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -2250,18 +2250,29 @@ BARS.defineActions(function() {
 							case 'z-': direction = [0, 0, -1]; break;
 						}
 						if (!direction) {
+							let directions = [];
 							selected_faces.forEach(face => {
 								if (face.vertices.includes(key)) {
 									count++;
+									let face_normal = face.getNormal(true);
+									directions.push(face_normal);
 									if (!direction) {
-										direction = face.getNormal(true);
+										direction = face_normal
 									} else {
-										direction.V3_add(face.getNormal(true));
+										direction.V3_add(face_normal);
 									}
 								}
 							})
+							console.log(count, direction.slice());
 							if (count > 1) {
-								direction.V3_divide(count);
+								let magnitude = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
+								direction.V3_divide(magnitude);
+								if (even_extend) {
+									let a = new THREE.Vector3().fromArray(directions[0]);
+									let b = new THREE.Vector3().fromArray(directions[1]);
+									let angle = a.angleTo(b);
+									direction.V3_divide(Math.cos(angle));
+								}
 							}
 						}
 						if (!direction) {
@@ -2419,8 +2430,9 @@ BARS.defineActions(function() {
 					'z+': 'Z+',
 					'z-': 'Z-',
 				}},
+				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.extend'},
 			}, form => {
-				runEdit(true, form.extend, form.direction_mode);
+				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})
 		}
 	})

@@ -2186,6 +2186,7 @@
 	"edit.extrude_mesh_selection.direction": "Direction",
 	"edit.extrude_mesh_selection.direction.outwards": "Outwards",
 	"edit.extrude_mesh_selection.direction.average": "Average",
+	"edit.extrude_mesh_selection.even_extend": "Even Extend",
 	"edit.solidify_mesh_selection.thickness": "Thickness",
 
 	"web.download_app": "Download App",
