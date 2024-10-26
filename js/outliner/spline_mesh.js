@@ -7,6 +7,8 @@ class SplineHandle {
         this.origin = '';
         this.control1 = '';
         this.control2 = '';
+        this.tilt = 0.0;
+        this.size = 1.0;
 		if (data) {
 			this.extend(data);
 		}
@@ -21,6 +23,8 @@ class SplineHandle {
         if (data.control1) this.control1 = data.control1;
         if (data.control2) this.control2 = data.control2;
         if (data.origin) this.origin = data.origin;
+        if (data.tilt) this.tilt = data.tilt;
+        if (data.size) this.size = data.size;
 		return this;
 	}
 	getHandleKey() {
@@ -32,7 +36,9 @@ class SplineHandle {
 		let copy = {
             control1: this.control1,
             origin: this.origin,
-            control2: this.control2
+            control2: this.control2,
+            tilt: this.tilt,
+            size: this.size
         };
 
 		for (let key in this.constructor.properties) {
@@ -47,6 +53,8 @@ class SplineHandle {
 		return copy;
 	}
 }
+new Property(SplineHandle, 'number', 'tilt');
+
 
 class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
@@ -190,7 +198,7 @@ class SplineMesh extends OutlinerElement {
 			}
 			for (let key in object.handles) {
 				if (this.handles[key]) {
-					this.handles[key].extend(object.faces[key])
+					this.handles[key].extend(object.handles[key])
 				} else {
 					this.handles[key] = new SplineHandle(this, object.handles[key]);
 				}
@@ -338,6 +346,37 @@ class SplineMesh extends OutlinerElement {
 		this.preview_controller.updateGeometry(this);
 		return this;
 	}
+	resize(val, axis, negative, allow_negative, bidirectional) {
+		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
+		let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+		let range = [Infinity, -Infinity];
+		let {vec1, vec2} = Reusable;
+		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+		selected_vertices.forEach(key => {
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+			range[0] = Math.min(range[0], vec1.getComponent(axis));
+			range[1] = Math.max(range[1], vec1.getComponent(axis));
+		})
+		
+		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
+		let size = Math.abs(range[1] - range[0]);
+		if (typeof val !== 'number') {
+			val = val(size) - size;
+			if (bidirectional) val /= 2;
+		}
+		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
+		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
+		if (scale < 0 && !allow_negative) scale = 0;
+		
+		selected_vertices.forEach(key => {
+			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
+			vec2.applyEuler(Transformer.rotation_selection);
+			this.vertices[key].replace(vec2.toArray())
+		})
+		this.preview_controller.updateGeometry(this);
+	}
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
 SplineMesh.prototype.type = 'spline';
@@ -463,7 +502,7 @@ new NodePreviewController(SplineMesh, {
             })
         }
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length/3).fill(mesh.geometry.attributes.highlight.array[0]), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(point_positions.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();

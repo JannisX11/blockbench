@@ -75,7 +75,7 @@ function moveElementsRelative(difference, index, event) { //Multiple
 }
 //Rotate
 function rotateSelected(axis, steps) {
-	let affected = [...Cube.selected, ...Mesh.selected];
+	let affected = [...Cube.selected, ...Mesh.selected, ...SplineMesh.selected];
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
 	if (!steps) steps = 1
@@ -231,7 +231,7 @@ const Vertexsnap = {
 		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
 			if (element.mesh && element.mesh.vertex_points) {
 				element.mesh.vertex_points.visible = false;
-				if (element instanceof Mesh == false && element instanceof SplineMesh == false) {
+				if (element instanceof Mesh == false ) {
 					element.mesh.vertex_points.parent.remove(element.mesh.vertex_points);
 					delete element.mesh.vertex_points;
 				}
@@ -521,6 +521,7 @@ function moveElementsInSpace(difference, axis) {
 
 	Outliner.selected.forEach(el => {
 
+		// Mesh Vertex (and more ?) translation
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
@@ -570,6 +571,28 @@ function moveElementsInSpace(difference, axis) {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
+		} 
+		// Spline handle point translation
+		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
+
+			let selected_vertices = el.getSelectedVertices();
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
+
+			let difference_vec = [0, 0, 0];
+			if (space == 2) {
+				difference_vec[axis] += difference;
+			} else {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+			}
+
+			selected_vertices.forEach(vkey => {
+				el.vertices[vkey].V3_add(difference_vec);
+			})
+
+		
 		} else {
 		
 			if (space == 2 && !group_m) {
