@@ -2183,7 +2183,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = 1, direction_mode) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -2227,23 +2227,42 @@ BARS.defineActions(function() {
 
 						combined_direction = normal.toArray();
 					}
+					if (direction_mode == 'average' && selected_faces.length) {
+						combined_direction = [0, 0, 0];
+						for (let face of selected_faces) {
+							let normal = face.getNormal(true);
+							combined_direction.V3_add(normal);
+						}
+						combined_direction.V3_divide(selected_faces.length);
+					}
 
 					new_vertices = mesh.addVertices(...original_vertices.map(key => {
 						let vector = mesh.vertices[key].slice();
 						let direction;
 						let count = 0;
-						selected_faces.forEach(face => {
-							if (face.vertices.includes(key)) {
-								count++;
-								if (!direction) {
-									direction = face.getNormal(true);
-								} else {
-									direction.V3_add(face.getNormal(true));
+						switch (direction_mode) {
+							case 'average': direction = combined_direction; break;
+							case 'y+': direction = [0, 1, 0]; break;
+							case 'y-': direction = [0, -1, 0]; break;
+							case 'x+': direction = [1, 0, 0]; break;
+							case 'x-': direction = [-1, 0, 0]; break;
+							case 'z+': direction = [0, 0, 1]; break;
+							case 'z-': direction = [0, 0, -1]; break;
+						}
+						if (!direction) {
+							selected_faces.forEach(face => {
+								if (face.vertices.includes(key)) {
+									count++;
+									if (!direction) {
+										direction = face.getNormal(true);
+									} else {
+										direction.V3_add(face.getNormal(true));
+									}
 								}
+							})
+							if (count > 1) {
+								direction.V3_divide(count);
 							}
-						})
-						if (count > 1) {
-							direction.V3_divide(count);
 						}
 						if (!direction) {
 							let match;
@@ -2390,8 +2409,18 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
+				direction_mode: {type: 'select', label: 'edit.extrude_mesh_selection.direction', options: {
+					outwards: 'edit.extrude_mesh_selection.direction.outwards',
+					average: 'edit.extrude_mesh_selection.direction.average',
+					'y+': 'Y+',
+					'y-': 'Y-',
+					'x+': 'X+',
+					'x-': 'X-',
+					'z+': 'Z+',
+					'z-': 'Z-',
+				}},
 			}, form => {
-				runEdit(true, form.extend);
+				runEdit(true, form.extend, form.direction_mode);
 			})
 		}
 	})

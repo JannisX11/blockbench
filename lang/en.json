@@ -2183,6 +2183,9 @@
 	"edit.loop_cut.offset": "Offset",
 	"edit.loop_cut.cuts": "Cuts",
 	"edit.extrude_mesh_selection.extend": "Extend",
+	"edit.extrude_mesh_selection.direction": "Direction",
+	"edit.extrude_mesh_selection.direction.outwards": "Outwards",
+	"edit.extrude_mesh_selection.direction.average": "Average",
 	"edit.solidify_mesh_selection.thickness": "Thickness",
 
 	"web.download_app": "Download App",
