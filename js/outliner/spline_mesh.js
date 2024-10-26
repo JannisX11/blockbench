@@ -62,6 +62,8 @@ new Property(SplineHandle, 'number', 'size');
 //TODO (in order of roadmap)
 // - Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...).
 
+// - Add cyclic functionality, closes the spline from 
+//   the first to last handle with an additional segment.
 // - Add ability to scale & tilt handles.
 // - Add ability to extrude points from the curve.
 // - Add ability to delete points from the curve.
