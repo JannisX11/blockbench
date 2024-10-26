@@ -542,6 +542,7 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_geometry', { element });
     },
+    // This is code smell, majorly copied from mesh.js, I'm still unsure of how it works
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection.call(this, element);
 	
@@ -568,6 +569,7 @@ new NodePreviewController(SplineMesh, {
 
 		this.dispatchEvent('update_selection', {element});
 	},
+    // This is also code smell, from mesh.js, unsure too
 	updateHighlight(element, hover_cube, force_off) {
 		var mesh = element.mesh;
 		let highlighted = (
