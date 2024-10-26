@@ -6,6 +6,9 @@ function buildForm(dialog) {
 	dialog_content.append(dialog.form.node);
 	dialog.max_label_width = Math.max(dialog.max_label_width, dialog.form.max_label_width);
 	if (dialog.form.uses_wide_inputs) dialog.uses_wide_inputs = true;
+	dialog.form.on('change', ({result}) => {
+		if (dialog.onFormChange) dialog.onFormChange(result);
+	})
 }
 function buildLines(dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')

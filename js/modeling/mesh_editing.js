@@ -1291,6 +1291,7 @@ BARS.defineActions(function() {
 		},
 		onConfirm(result) {
 			let original_selection_group = Group.selected && Group.selected.uuid;
+			let iteration = 0;
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.selected) {
@@ -1624,9 +1625,10 @@ BARS.defineActions(function() {
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				Undo.finishEdit('Add primitive');
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
+				iteration++;
 
 				Vue.nextTick(function() {
-					if (settings.create_rename.value) {
+					if (settings.create_rename.value && iteration == 1) {
 						mesh.rename()
 					}
 				})

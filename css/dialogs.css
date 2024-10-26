@@ -148,12 +148,15 @@
 	}
 	label.name_space_left {
 		float: left;
-		min-width: 140px;
+		min-width: 90px;
 		padding-top: 4px;
 		padding-left: 1px;
 		padding-right: 8px;
 		flex-shrink: 0;
 		overflow-wrap: break-word;
+	}
+	.dialog label.name_space_left {
+		min-width: 140px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;

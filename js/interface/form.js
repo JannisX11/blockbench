@@ -1,9 +1,10 @@
-class InputForm {
+class InputForm extends EventSystem {
     constructor(form_config, options = {}) {
+        super();
         this.uuid = guid();
         this.form_config = form_config;
         this.form_data = {};
-        this.node = Interface.createElement('div');
+        this.node = Interface.createElement('form', {class: 'form'});
         this.max_label_width = 0;
         this.uses_wide_inputs = false;
 
@@ -430,6 +431,7 @@ class InputForm {
                 data.bar = bar;
             }
         }
+        this.node.style.setAttribute
     }
 	updateValues(initial) {
 		let form_result = this.getResult();
@@ -441,8 +443,8 @@ class InputForm {
 				data.bar.toggle(show);
 			}
 		}
-		if (!initial && typeof this.onFormChange == 'function') {
-			this.onFormChange(form_result)
+		if (!initial) {
+            this.dispatchEvent('change', {result: form_result});
 		}
 		return form_result;
 	}
