@@ -1155,7 +1155,7 @@ class Texture {
 			});
 		}
 		if (Format.per_texture_uv_size) {
-			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1};
+			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1, linked_ratio: false};
 		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
@@ -1250,7 +1250,9 @@ class Texture {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
 					dimensions: 2,
+					linked_ratio: false,
 					value: [this.width, this.display_height],
+					step: 1, force_step: true,
 					min: 1
 				},
 				frames: {

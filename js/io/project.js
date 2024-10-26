@@ -1018,6 +1018,7 @@ BARS.defineActions(function() {
 				label: 'dialog.project.texture_size',
 				type: 'vector',
 				dimensions: 2,
+				linked_ratio: false,
 				value: [Project.texture_width, Project.texture_height],
 				min: 1
 			};

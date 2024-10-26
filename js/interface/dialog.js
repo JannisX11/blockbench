@@ -248,15 +248,45 @@ function buildForm(dialog) {
 				case 'vector':
 					let group = $(`<div class="dialog_vector_group half"></div>`)
 					bar.append(group)
+					let vector_inputs = [];
+					let initial_value = data.value instanceof Array ? data.value.slice() : [1, 1, 1];
 					for (let i = 0; i < (data.dimensions || 3); i++) {
 						let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
 							value: data.value ? data.value[i] : 0,
 							min: data.min, max: data.max, step: data.step,
 							onChange() {
-								dialog.updateFormValues()
+								if (data.linked_ratio) {
+									let i2 = -1;
+									for (let vector_input_2 of vector_inputs) {
+										i2++;
+										if (vector_input_2 == numeric_input) continue;
+										let new_value = initial_value[i2] * (numeric_input.value / initial_value[i]);
+										new_value = Math.clamp(new_value, data.min, data.max)
+										if (data.force_step && data.step) {
+											new_value = Math.round(new_value / data.step) * data.step;
+										}
+										vector_input_2.value = new_value;
+									}
+								}
+								dialog.updateFormValues();
 							}
 						});
 						group.append(numeric_input.node)
+						vector_inputs.push(numeric_input);
+					}
+					if (typeof data.linked_ratio == 'boolean') {
+						let icon = Blockbench.getIconNode('link');
+						let linked_ratio_toggle = Interface.createElement('div', {class: 'tool linked_ratio_toggle'}, icon);
+						linked_ratio_toggle.addEventListener('click', event => {
+							data.linked_ratio = !data.linked_ratio;
+							updateState();
+						})
+						function updateState() {
+							icon.textContent = data.linked_ratio ? 'link' : 'link_off';
+							linked_ratio_toggle.classList.toggle('enabled', data.linked_ratio);
+						}
+						updateState();
+						group.append(linked_ratio_toggle)
 					}
 					break;
 

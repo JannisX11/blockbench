@@ -193,7 +193,7 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
-			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [500, 500], toggle_enabled: true, toggle_default: false},
+			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, linked_ratio: false, value: [500, 500], toggle_enabled: true, toggle_default: false},
 			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
@@ -230,7 +230,7 @@ const Screencam = {
 				})
 				return options;
 			}},
-			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
+			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080], linked_ratio: false},
 			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
 			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
 			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
