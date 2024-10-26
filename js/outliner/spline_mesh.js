@@ -465,7 +465,7 @@ new NodePreviewController(SplineMesh, {
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
-        let outline_material = new THREE.LineBasicMaterial( { color: 0xffffff } )
+        let outline_material = new THREE.LineBasicMaterial( { vertexColors: true } )
         let outline = new THREE.LineSegments(new THREE.BufferGeometry(), outline_material);
 		outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         outline.no_export = true;
@@ -513,10 +513,18 @@ new NodePreviewController(SplineMesh, {
                 new THREE.Vector3().fromArray(vertices[data.end_ctrl]),
                 new THREE.Vector3().fromArray(vertices[data.end])
             );
-            let curve_points = curve.getPoints(50)
+            let curve_points = curve.getPoints(element.resolution[1])
 
-            curve_points.forEach(vector => {
+            curve_points.forEach((vector, i) => {
                 line_points.push(...[vector.x, vector.y, vector.z]);
+
+                // Do this weird stuff, because lines don't render properly if
+                // each point that isn't the start or end isn't duplicate.
+                // So we add the same point as above a second time,
+                // except for the very first and very last.
+                if (i > 0 && i < (curve_points.length - 1)) {
+                    line_points.push(...[vector.x, vector.y, vector.z]);
+                }
             })
         }
 

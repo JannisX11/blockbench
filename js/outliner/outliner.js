@@ -1889,6 +1889,7 @@ Interface.definePanels(function() {
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation,
+				Toolbars.spline_resolution,
 			]
 		})
 		Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))

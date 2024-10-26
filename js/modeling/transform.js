@@ -1533,6 +1533,54 @@ BARS.defineActions(function() {
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
 
+	// Spline resolution
+	new NumSlider('slider_spline_resolution_u', {
+		category: 'transform',
+		condition: function() {return SplineMesh.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return SplineMesh.selected[0].resolution[0]
+		},
+		change: function(modify) {
+			SplineMesh.selected.forEach(function(obj, i) {
+				var v = modify(obj.resolution[0]);
+				obj.resolution[0] = v;
+				obj.preview_controller.updateGeometry(obj);
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: SplineMesh.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Adjust resolution of splines')
+		}
+	})
+	new NumSlider('slider_spline_resolution_v', {
+		category: 'transform',
+		condition: function() {return SplineMesh.selected.length && Modes.edit},
+		getInterval: getSpatialInterval,
+		get: function() {
+			return SplineMesh.selected[0].resolution[1]
+		},
+		change: function(modify) {
+			SplineMesh.selected.forEach(function(obj, i) {
+				var v = modify(obj.resolution[1]);
+				obj.resolution[1] = v;
+				obj.preview_controller.updateGeometry(obj);
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function() {
+			Undo.initEdit({elements: SplineMesh.selected})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Adjust resolution of splines')
+		}
+	})
+	let slider_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v];
+	slider_spline_resolution.forEach(slider => slider.slider_vector = slider_spline_resolution);
+
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),
 		icon: 'rotate_right',

@@ -78,6 +78,11 @@ function updateNslideValues() {
 		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}
+
+		if (Condition(BarItems.slider_spline_resolution_u)) {
+			BarItems.slider_spline_resolution_u.update()
+			BarItems.slider_spline_resolution_v.update()
+		}
 	}
 	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
 		BarItems.slider_origin_x.update()

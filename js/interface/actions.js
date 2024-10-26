@@ -2245,12 +2245,22 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
+		Toolbars.spline_resolution = new Toolbar({
+			id: 'spline_resolution',
+			name: 'panel.spline.resolution',
+			label: true,
+			children: [
+				'slider_spline_resolution_u',
+				'slider_spline_resolution_v'
+			]
+		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
-				Toolbars.element_rotation
+				Toolbars.element_rotation,
+				Toolbars.spline_resolution
 			].forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;
