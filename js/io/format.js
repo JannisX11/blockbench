@@ -194,7 +194,7 @@ class ModelFormat {
 		}
 
 		//Splines
-		if (!Format.meshes && old_format.meshes) {
+		if (!Format.splines && old_format.splines) {
 			SplineMesh.all.slice().forEach(spline => {
 				spline.remove()
 			})
@@ -281,6 +281,7 @@ new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
+new Property(ModelFormat, 'boolean', 'splines');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');

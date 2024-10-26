@@ -12,6 +12,7 @@ Blockbench.TextureMesh = TextureMesh;
 Blockbench.Face = Face;
 Blockbench.CubeFace = CubeFace;
 Blockbench.MeshFace = MeshFace;
+Blockbench.SplineHandle = SplineHandle;
 Blockbench.NodePreviewController = NodePreviewController;
 
 Blockbench.Animator = Animator;
