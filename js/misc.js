@@ -132,6 +132,17 @@ function updateSelection(options = {}) {
 				})
 			}
 		}
+		if (obj instanceof SplineMesh && Project.spline_selection[obj.uuid]) {
+			if (!included) {
+				delete Project.spline_selection[obj.uuid];
+			} else {
+				Project.spline_selection[obj.uuid].vertices.forEachReverse(vkey => {
+					if (vkey in obj.vertices == false) {
+						Project.spline_selection[obj.uuid].vertices.remove(vkey);
+					}
+				})
+			}
+		}
 	})
 	if (Modes.pose && !Group.selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
 		Outliner.selected[0].parent.select();

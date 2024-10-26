@@ -27,12 +27,25 @@ BARS.defineActions(function() {
 		}
 	})
     
-	new BarSelect('selection_mode', {
+	let previous_selection_mode = 'object';
+	new BarSelect('spline_selection_mode', {
 		options: {
-			object: {name: true, icon: 'far.fa-gem'},
-			vertex: {name: true, icon: 'fas.fa-bezier-curve'},
+			object: {name: true, icon: 'fas.fa-circle-nodes'},
+			handles: {name: true, icon: 'fas.fa-bezier-curve'},
+			tilt: {name: true, icon: 'fas.fa-compass-drafting'},
 		},
 		icon_mode: true,
+		condition: () => Modes.edit && SplineMesh.hasAny(),
+        onChange({value}) {
+			if (value === previous_selection_mode) return;
+			if (value === 'object') {
+				SplineMesh.selected.forEach(spline => {
+					delete Project.spline_selection[spline.uuid];
+				})
+			} 
+			updateSelection();
+			previous_selection_mode = value;
+        }
 	})
 	
 	new Action('apply_spline_rotation', {

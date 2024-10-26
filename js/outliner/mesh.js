@@ -1213,7 +1213,7 @@ new NodePreviewController(Mesh, {
 	},
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection.call(this, element);
-	
+
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
 		let join = new THREE.Color(0x16d606);

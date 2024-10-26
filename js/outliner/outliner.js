@@ -74,6 +74,14 @@ const Outliner = {
 					return 'alt'
 				}
 			}
+		},
+		cyclic: {
+			id: 'cyclic',
+			title: tl('switches.cyclic'),
+			icon: ' fas fa-circle-nodes',
+			icon_off: ' fas fa-diagram-project',
+			advanced_option: false,
+			condition: {modes: ['edit']},
 		}
 	}
 }

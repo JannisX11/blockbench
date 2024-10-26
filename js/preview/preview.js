@@ -786,6 +786,11 @@ class Preview {
 				select_mode = 'object';
 			}
 
+			let spline_select_mode = BarItems.spline_selection_mode.value
+			if (!Condition(BarItems.spline_selection_mode.condition)) {
+				spline_select_mode = 'object';
+			}
+
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
@@ -943,17 +948,32 @@ class Preview {
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 
+				let isSPline = data.element instanceof SplineMesh
+
 				let list = data.element.getSelectedVertices(true);
-				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedEdges(true);
+				let edges;
+				let faces;
+
+				// Check if this is a spline or a normal mesh
+				if (isSPline) {
+				}
+				else {
+					edges = data.element.getSelectedEdges(true);
+					faces = data.element.getSelectedEdges(true);
+				}
 
 				if (multi_select || group_select) {
 					list.toggle(data.vertex);
 				} else {
 					unselectOtherNodes();
 					list.replace([data.vertex]);
-					edges.empty();
-					faces.empty();
+					if (isSPline) {
+
+					}
+					else {
+						edges.empty();
+						faces.empty();
+					}
 				}
 				updateSelection();
 			} else if (data.type == 'line') {
@@ -1183,6 +1203,21 @@ class Preview {
 			} else {
 				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 			}
+		} else if (Condition(BarItems.spline_selection_mode.condition) && SplineMesh.hasAny() && data && data.element instanceof SplineMesh) {
+			if (BarItems.spline_selection_mode.value == 'handle' && data.type == 'vertex') {
+				let pos = Reusable.vec1.fromArray(data.element.vertices[data.vertex]);
+				data.element.mesh.localToWorld(pos);
+
+				let scale = Preview.selected.calculateControlScale(pos);
+				let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
+				z_offset.multiplyScalar(-scale / 3);
+				pos.add(z_offset);
+				Canvas.hover_helper_vertex.position.copy(pos);
+
+				Canvas.scene.add(Canvas.hover_helper_vertex);
+			} else {
+				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
+			}
 		} else {
 			if (Canvas.hover_helper_line.parent) Canvas.hover_helper_line.parent.remove(Canvas.hover_helper_line);
 			if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
@@ -1278,6 +1313,7 @@ class Preview {
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
+			this.selection.old_spline_selection = JSON.parse(JSON.stringify(Project.spline_selection));
 
 			this.moveSelRect(event)
 		}
@@ -1313,6 +1349,7 @@ class Preview {
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
 				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
 		let selection_mode = BarItems.selection_mode.value;
+		let spline_selection_mode = BarItems.spline_selection_mode.value;
 
 		let widthHalf = 0.5 * scope.canvas.width / window.devicePixelRatio;
 		let heightHalf = 0.5 * scope.canvas.height / window.devicePixelRatio;
@@ -1328,14 +1365,50 @@ class Preview {
 		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
+			if (extend_selection && scope.selection.old_selected.includes(element) && ((element instanceof Mesh == false || selection_mode == 'object') || (element instanceof SplineMesh == false || spline_selection_mode == "object"))) {
 				isSelected = true
 
 			} else if (element.visibility) {
 				if (element.mesh && element.resizable) {
 					let {mesh} = element;
 					
-					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
+					if (element instanceof SplineMesh && (spline_selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
+
+						let spline_selection;
+						if (spline_selection_mode != 'object') {
+							isSelected = true;
+							if (!Project.spline_selection[element.uuid]) {
+								spline_selection = Project.spline_selection[element.uuid] = {vertices: [], handles: []};
+							} else {
+								spline_selection = Project.spline_selection[element.uuid];
+							}
+							if (!extend_selection) spline_selection.vertices.empty();
+						}
+
+						let vertex_points = {};
+						let is_on_screen = false;
+						for (let vkey in element.vertices) {
+							let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
+							vertex_points[vkey] = point;
+							if (point[0] >= 0 && point[0] <= scope.width && point[1] >= 0 && point[1] <= scope.height) {
+								is_on_screen = true;
+							}
+						}
+						if (extend_selection && this.selection.old_spline_selection[element.uuid]) {
+							spline_selection.vertices.safePush(...this.selection.old_spline_selection[element.uuid].vertices);
+							spline_selection.handles.safePush(...this.selection.old_spline_selection[element.uuid].handles);
+						}
+						if (!is_on_screen) {
+						} else if (spline_selection_mode == 'handles') {
+							for (let vkey in element.vertices) {
+								let point = vertex_points[vkey];
+								if (!spline_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+									spline_selection.vertices.push(vkey);
+								}
+							}
+						} 
+						
+					} else if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
 
 						let mesh_selection;
 						if (selection_mode != 'object') {

@@ -231,7 +231,7 @@ const Vertexsnap = {
 		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
 			if (element.mesh && element.mesh.vertex_points) {
 				element.mesh.vertex_points.visible = false;
-				if (element instanceof Mesh == false) {
+				if (element instanceof Mesh == false && element instanceof SplineMesh == false) {
 					element.mesh.vertex_points.parent.remove(element.mesh.vertex_points);
 					delete element.mesh.vertex_points;
 				}
@@ -307,6 +307,10 @@ const Vertexsnap = {
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.group = Group.selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
+				let vertices = data.element.getSelectedVertices(true);
+				vertices.safePush(data.vertex);
+			}
+			if (data.element instanceof SplineMesh && BarItems.spline_selection_mode.value == 'handles') {
 				let vertices = data.element.getSelectedVertices(true);
 				vertices.safePush(data.vertex);
 			}

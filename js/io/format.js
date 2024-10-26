@@ -193,6 +193,13 @@ class ModelFormat {
 			})
 		}
 
+		//Splines
+		if (!Format.meshes && old_format.meshes) {
+			SplineMesh.all.slice().forEach(spline => {
+				spline.remove()
+			})
+		}
+
 		//Locators
 		if (!Format.locators && old_format.locators) {
 			Locator.all.slice().forEach(locator => {
