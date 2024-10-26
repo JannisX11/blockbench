@@ -57,7 +57,23 @@ class SplineHandle {
 	}
 }
 new Property(SplineHandle, 'number', 'tilt');
+new Property(SplineHandle, 'number', 'size');
 
+//TODO (in order of roadmap)
+// - Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...).
+
+// - Add ability to scale & tilt handles.
+// - Add ability to extrude points from the curve.
+// - Add ability to delete points from the curve.
+// - Add ability to remove segments from the curve.
+// - Add ability to dissolve points from the curve.
+
+// - Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
+// - Implement primitive tube drawing, using resolution U as the number of points per slice.
+//   - Needs to respect tilt & size.
+//   - Would ideally generate a special version of.
+//     UV islands that would correspond to slices.
+//     of the resulting tube (one per U edge).
 
 class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
@@ -293,7 +309,7 @@ class SplineMesh extends OutlinerElement {
 
 		return selection;
 	}
-    // Bounding box??? idk
+    // Aza assumption: Bounding box??? idk
 	getSize(axis, selection_only) {
 		if (selection_only) {
 			let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -316,7 +332,7 @@ class SplineMesh extends OutlinerElement {
 			return range[1] - range[0];
 		}
 	}
-    // Determines Gizmo locations
+    // Aza assumption: Determines Gizmo locations
 	getWorldCenter(ignore_mesh_selection) {
 		let m = this.mesh;
 		let pos = new THREE.Vector3();
@@ -344,6 +360,7 @@ class SplineMesh extends OutlinerElement {
 		}
 		return pos;
 	}
+    // Code smell, from mesh.js
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
@@ -364,6 +381,7 @@ class SplineMesh extends OutlinerElement {
 		this.preview_controller.updateGeometry(this);
 		return this;
 	}
+    // Code smell, from mesh.js
 	resize(val, axis, negative, allow_negative, bidirectional) {
 		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
 		let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -437,7 +455,7 @@ SplineMesh.prototype.buttons = [
     Outliner.buttons.visibility,
 ];
 
-
+// Unused atm, due to THREEjs being based and bundling a native cubic bézier utility.
 function cubicBezierCurve(P0, P1, P2, P3, t) {
     return (1 - t) ^ (3) * P0 + 3 * (1 - t) ^ (2) * t * P1 + 3 * (1 - t) * t ^ (2) * P2 + t ^ (3) * P3;
 }
