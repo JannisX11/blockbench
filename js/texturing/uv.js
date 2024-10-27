@@ -3649,15 +3649,28 @@ Interface.definePanels(function() {
 								}
 								scan_value = false;
 							}
-							let value = op_mode == 'subtract' ? 0 : 1;
+							let value = op_mode == 'subtract' ? 0 : (op_mode == 'intersect' ? 2 : 1);
 							for (let x in map) {
 								for (let y in map[x]) {
 									if (map[x][y] == scan_value) {
 										x = parseInt(x);
 										y = parseInt(y);
+										if (op_mode == 'intersect') {
+											let previous = texture.selection.get(x + offset[0], y + offset[1]);
+											if (!previous) continue;
+										}
 										texture.selection.set(x + offset[0], y + offset[1], value);
 									}
 								}
+							}
+							if (op_mode == 'intersect') {
+								texture.selection.forEachPixel((x, y, value, i) => {
+									if (value == 2) {
+										texture.selection.array[i] = 1;
+									} else {
+										texture.selection.array[i] = 0;
+									}
+								})
 							}
 							UVEditor.updateSelectionOutline();
 							return;
