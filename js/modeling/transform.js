@@ -1564,7 +1564,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			SplineMesh.selected.forEach(function(obj, i) {
 				var v = modify(obj.resolution[0]);
-				obj.resolution[0] = v;
+				obj.resolution[0] = Math.max(v, 3);
 				obj.preview_controller.updateGeometry(obj);
 			})
 			Canvas.updatePositions()
@@ -1586,7 +1586,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			SplineMesh.selected.forEach(function(obj, i) {
 				var v = modify(obj.resolution[1]);
-				obj.resolution[1] = v;
+				obj.resolution[1] = Math.max(v, 1);
 				obj.preview_controller.updateGeometry(obj);
 			})
 			Canvas.updatePositions()
@@ -1815,6 +1815,12 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: {modes: ['edit']},
 		click() {toggleCubeProperty('autouv')}
+	})
+	new Action('toggle_cyclic', {
+		icon: 'timeline',
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.hasSelected(),
+		click() {toggleCubeProperty('cyclic')}
 	})
 	new Action('toggle_shade', {
 		icon: 'wb_sunny',

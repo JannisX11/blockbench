@@ -59,10 +59,9 @@ class SplineHandle {
 new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
+
 //TODO (in order of roadmap)
 
-// [ ] Add cyclic functionality, closes the spline from 
-//     the first to last handle with an additional segment.
 // [ ] Add ability to scale & tilt handles.
 // [ ] Add ability to extrude points from the curve.
 // [ ] Add ability to delete points from the curve.
@@ -76,8 +75,12 @@ new Property(SplineHandle, 'number', 'size');
 //     of the resulting tube (one per U edge).
 
 //DONE:
-// [x] Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...). -> key modifier replaced by on-ui option.
+// [x] Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...). 
+//     -> key modifier replaced by on-ui option.
 // [x] Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
+// [x] Add cyclic functionality, closes the spline from 
+//     the first to last handle with an additional segment. 
+//     -> Basic functionality for this added, but will likely need updating later on
 
 
 class SplineMesh extends OutlinerElement {
@@ -296,7 +299,7 @@ class SplineMesh extends OutlinerElement {
         this.color = index;
     }
 	getSelectedVertices(make) {
-		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: [], handles: []};
+		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: []};
         let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
 
         // Force select control points when an handle origin is selected
@@ -314,6 +317,29 @@ class SplineMesh extends OutlinerElement {
 
 		return selection;
 	}
+    // Might never be used, but still here just in case
+    getSelectedHandles() {
+        let selection = this.getSelectedVertices();
+
+        let selected_handles = [];
+        if (selection.length > 0) {
+            for (let hkey in this.handles) {
+                let handle = this.handles[hkey];
+                if (selection.includes(handle.origin)) selected_handles.push(hkey);
+            }
+        }
+
+        return selected_handles;
+    }
+    getLastHandle() {
+        let index = Object.keys(this.handles).length - 1;
+        let lastKey = Object.keys(this.handles)[index];
+        return this.handles[lastKey];
+    }
+    getFirstHandle() {
+        let firstKey = Object.keys(this.handles)[0];
+        return this.handles[firstKey];
+    }
     // Aza assumption: Bounding box??? idk
 	getSize(axis, selection_only) {
 		if (selection_only) {
@@ -365,7 +391,7 @@ class SplineMesh extends OutlinerElement {
 		}
 		return pos;
 	}
-    // Code smell, from mesh.js
+    // Code smell (not sure how this works), from mesh.js
 	transferOrigin(origin, update = true) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
@@ -386,7 +412,7 @@ class SplineMesh extends OutlinerElement {
 		this.preview_controller.updateGeometry(this);
 		return this;
 	}
-    // Code smell, from mesh.js
+    // Code smell (not sure how this works), from mesh.js
 	resize(val, axis, negative, allow_negative, bidirectional) {
 		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
 		let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -548,6 +574,7 @@ new NodePreviewController(SplineMesh, {
 
         // Bezier Curves
         let curve_color = [gizmo_colors.solid.r, gizmo_colors.solid.g, gizmo_colors.solid.b];
+        let curvePath = new THREE.CurvePath()
         for (let key in curves) {
             let data = curves[key];
             let curve = new THREE.CubicBezierCurve3(
@@ -556,7 +583,8 @@ new NodePreviewController(SplineMesh, {
                 new THREE.Vector3().fromArray(vertices[data.end_ctrl]),
                 new THREE.Vector3().fromArray(vertices[data.end])
             );
-            let curve_points = curve.getPoints(element.resolution[1])
+            curvePath.curves.push(curve);
+            let curve_points = curvePath.getPoints(element.resolution[1])
 
             curve_points.forEach((vector, i) => {
                 line_points.push(...[vector.x, vector.y, vector.z]);
@@ -566,25 +594,52 @@ new NodePreviewController(SplineMesh, {
                 // each point that isn't the start or end isn't duplicate.
                 // So we add the same point as above a second time,
                 // except for the very first and very last.
+                // ----
+                // Later note: this is likely because I don't inject any 
+                // indices, thus my vertices cannot be re-used. TODO
                 if (i > 0 && i < (curve_points.length - 1)) {
                     line_points.push(...[vector.x, vector.y, vector.z]);
                     line_colors.push(...curve_color)
                 }
             })
         }
+        if (element.cyclic) {
+            let firsthandle = element.getFirstHandle();
+            let lasthandle = element.getLastHandle();
+            let curve = new THREE.CubicBezierCurve3(
+                new THREE.Vector3().fromArray(vertices[lasthandle.origin]),
+                new THREE.Vector3().fromArray(vertices[lasthandle.control2]),
+                new THREE.Vector3().fromArray(vertices[firsthandle.control1]),
+                new THREE.Vector3().fromArray(vertices[firsthandle.origin])
+            );
+            let curve_points = curve.getPoints(element.resolution[1])    ;       
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
+            curve_points.forEach((vector, i) => {
+                line_points.push(...[vector.x, vector.y, vector.z]);
+                line_colors.push(...curve_color);
 
-		mesh.geometry.computeBoundingBox();
-		mesh.geometry.computeBoundingSphere();
+                if (i > 0 && i < (curve_points.length - 1)) {
+                    line_points.push(...[vector.x, vector.y, vector.z]);
+                    line_colors.push(...curve_color);
+                }
+            })
+        }
+        let tube = new THREE.TubeGeometry(curvePath, element.resolution[1] * curvePath.curves.length, 2, element.resolution[0]);
+
+		// mesh.geometry = tube;
+        
+		// mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_points), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(line_colors), 3));
 
+		mesh.geometry.computeBoundingBox();
+		mesh.geometry.computeBoundingSphere();
+
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();
-		SplineMesh.preview_controller.updateHighlight(element);
+		// SplineMesh.preview_controller.updateHighlight(element);
 
         this.dispatchEvent('update_geometry', { element });
     },
@@ -625,6 +680,7 @@ new NodePreviewController(SplineMesh, {
 			!force_off
 		) ? 1 : 0;
 
+        /*
 		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
 		let selection_mode = BarItems.selection_mode.value;
 		let selected_vertices = element.getSelectedVertices();
@@ -640,6 +696,7 @@ new NodePreviewController(SplineMesh, {
 
 		mesh.geometry.attributes.highlight.array.set(array);
 		mesh.geometry.attributes.highlight.needsUpdate = true;
+        */
 
 		this.dispatchEvent('update_highlight', {element});
 	},

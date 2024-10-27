@@ -303,6 +303,7 @@ const MenuBar = {
 				'toggle_locked',
 				'toggle_export',
 				'toggle_autouv',
+				'toggle_cyclic',
 				'toggle_shade',
 				'toggle_mirror_uv'
 			]}
