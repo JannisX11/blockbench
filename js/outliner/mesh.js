@@ -352,6 +352,7 @@ class MeshFace extends Face {
 
 		let matrix = new THREE.Matrix4();
 		matrix.makeBasis(texelRight, texelUp, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texelP1);
 		return matrix;
 	}
 	UVToLocal(uv, vertices = this.getSortedVertices(), truncateOffset) {
