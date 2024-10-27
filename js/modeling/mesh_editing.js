@@ -2430,7 +2430,7 @@ BARS.defineActions(function() {
 					'z+': 'Z+',
 					'z-': 'Z-',
 				}},
-				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.extend'},
+				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.even_extend'},
 			}, form => {
 				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})

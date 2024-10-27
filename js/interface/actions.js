@@ -308,6 +308,8 @@ class Action extends BarItem {
 				e.stopPropagation();
 				if (this.side_menu instanceof Menu) {
 					this.side_menu.open(e.target.parentElement);
+				} else if (this.side_menu instanceof ToolConfig) {
+					this.side_menu.show(this.node);
 				} else if (this.side_menu instanceof Dialog) {
 					this.side_menu.show();
 				}
@@ -367,6 +369,8 @@ class Action extends BarItem {
 					e.stopPropagation();
 					if (this.side_menu instanceof Menu) {
 						this.side_menu.open(e.target.parentElement);
+					} else if (this.side_menu instanceof ToolConfig) {
+						this.side_menu.show(clone);
 					} else if (this.side_menu instanceof Dialog) {
 						this.side_menu.show();
 					}

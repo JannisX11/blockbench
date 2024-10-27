@@ -131,6 +131,10 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
+	.dialog.tool_config {
+		margin-right: 0;
+		margin-left: 0;
+	}
 	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);
 		max-width: min(960px, 100%);

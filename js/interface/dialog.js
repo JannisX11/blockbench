@@ -663,6 +663,84 @@ window.MessageBox = class MessageBox extends Dialog {
 	}
 }
 
+window.ToolConfig = class ToolConfig extends Dialog {
+	constructor(id, options) {
+		super(id, options);
+
+		this.config = {};
+		let config_saved_data = localStorage.getItem(`tool_config.${this.id}`);
+		try {
+			config_saved_data = JSON.parse(config_saved_data);
+			if (!config_saved_data) config_saved_data = {};
+		} catch (err) {
+			config_saved_data = {};
+		}
+		for (let key in options.form) {
+			this.config[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
+		}
+	}
+	save() {
+		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.config));
+	}
+	close(button, event) {
+		let result = this.getFormResult();
+		console.log(result);
+		for (let key in result) {
+			this.config[key] = result[key];
+		}
+		this.save();
+		this.hide();
+	}
+	show(anchor) {
+		super.show()
+		//$(this.object).show();
+		$('#blackout').hide();
+
+		this.setFormValues(this.config);
+
+		let anchor_position = $(anchor).offset();
+		this.object.style.top = (anchor_position.top+anchor.clientHeight) + 'px';
+		this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth) + 'px';
+	}
+	build() {
+		if (this.object) this.object.remove();
+		this.object = document.createElement('dialog');
+		this.object.className = 'dialog tool_config';
+
+		this.max_label_width = 140;
+		this.uses_wide_inputs = false;
+
+		let wrapper = document.createElement('div');
+		wrapper.className = 'dialog_wrapper';
+
+		let content = document.createElement('content');
+		content.className = 'dialog_content';
+		this.object.append(wrapper);
+		
+		wrapper.append(content);
+
+		buildForm(this);
+
+		let close_button = document.createElement('div');
+		close_button.classList.add('dialog_close_button');
+		close_button.innerHTML = '<i class="material-icons">clear</i>';
+		this.object.append(close_button);
+		close_button.addEventListener('click', (e) => {
+			this.cancel();
+		})
+
+		if (typeof this.onBuild == 'function') {
+			this.onBuild(this.object);
+		}
+
+		return this;
+	}
+	delete() {
+		if (this.object) this.object.remove()
+		this.object = null;
+	}
+}
+
 })()
 
 // Legacy Dialog
