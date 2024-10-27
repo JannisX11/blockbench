@@ -677,6 +677,7 @@
 	"dialog.create_gif.bg_image": "Background Image",
 	"dialog.create_gif.turn": "Turntable Speed",
 	"dialog.create_gif.turn.desc": "Rotate the model while recording. Use negative values to turn the model clockwise. A value of 60 corresponds to one rotation every second.",
+	"dialog.create_gif.turn.sync_to_anim_length": "Sync to animation length",
 	"dialog.create_gif.play": "Play Animation",
 
 	"dialog.advanced_screenshot.angle_preset": "Angle Preset",

@@ -407,6 +407,8 @@ window.Dialog = class Dialog {
 
 		if (!this.object) {
 			this.build();
+		} else if (this.form) {
+			this.form.updateValues(true);
 		}
 
 		let jq_dialog = $(this.object);

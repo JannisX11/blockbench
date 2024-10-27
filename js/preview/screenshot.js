@@ -199,8 +199,11 @@ const Screencam = {
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#000000', toggle_enabled: true, toggle_default: false},
 			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
-			turnspeed:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+			turnspeed:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
+			turnspeed_o:{type: 'buttons', condition: (form) => (Animation.selected && form.play), buttons: ['dialog.create_gif.turn.sync_to_anim_length'], click: (index) => {
+				Dialog.open.setFormValues({turnspeed: 60 / (Animation.selected.length||1)});
+			}},
 		},
 		onConfirm(formData) {
 			formData.background = (formData.color && formData.color.toHex8String() != '#00000000') ? formData.color.toHexString() : undefined;
