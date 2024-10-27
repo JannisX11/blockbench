@@ -1700,38 +1700,53 @@ BARS.defineActions(function() {
 		click(e) {moveElementsRelative(1, 1, e)}
 	})
 
-	new Action('toggle_visibility', {
+	new Toggle('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
-		click() {toggleCubeProperty('visibility')}
+		onChange() {toggleCubeProperty('visibility')}
 	})
-	new Action('toggle_locked', {
+	new Toggle('toggle_locked', {
 		icon: 'fas.fa-lock',
 		category: 'transform',
-		click() {toggleCubeProperty('locked')}
+		onChange() {toggleCubeProperty('locked')}
 	})
-	new Action('toggle_export', {
+	new Toggle('toggle_export', {
 		icon: 'save',
 		category: 'transform',
-		click() {toggleCubeProperty('export')}
+		onChange() {toggleCubeProperty('export')}
 	})
-	new Action('toggle_autouv', {
+	new Toggle('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		condition: {modes: ['edit']},
-		click() {toggleCubeProperty('autouv')}
+		onChange() {toggleCubeProperty('autouv')}
 	})
-	new Action('toggle_shade', {
+	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => Format.java_cube_shading_properties && Modes.edit,
-		click() {toggleCubeProperty('shade')}
+		onChange() {toggleCubeProperty('shade')}
 	})
-	new Action('toggle_mirror_uv', {
+	new Toggle('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
-		click() {toggleCubeProperty('mirror_uv')}
+		onChange() {toggleCubeProperty('mirror_uv')}
+	})
+	function updateToggle(toggle, key) {
+		if (!Condition(toggle.condition)) return;
+		let first = Outliner.selected.find(element => element[key] != undefined);
+		let value = first && first[key];
+		toggle.value = !!value;
+		toggle.updateEnabledState();
+	}
+	Blockbench.on('update_selection', () => {
+		updateToggle(BarItems.toggle_visibility, 'visibility');
+		updateToggle(BarItems.toggle_locked, 'locked');
+		updateToggle(BarItems.toggle_export, 'export');
+		updateToggle(BarItems.toggle_autouv, 'autouv');
+		updateToggle(BarItems.toggle_shade, 'shade');
+		updateToggle(BarItems.toggle_mirror_uv, 'mirror_uv');
 	})
 	new Action('update_autouv', {
 		icon: 'brightness_auto',
