@@ -248,6 +248,8 @@
 	"message.screenshot.title": "Screenshot",
 	"message.screenshot.clipboard": "Clipboard",
 	"message.screenshot.right_click": "Right click or long press the screenshot to copy",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
 	"message.invalid_file.title": "Invalid File",
 	"message.invalid_file.message": "Could not open json file: %0",
 	"message.invalid_file.merge_conflict": "The file contains unresolved Git merge conflicts.",
