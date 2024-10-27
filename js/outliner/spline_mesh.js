@@ -60,22 +60,25 @@ new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
 //TODO (in order of roadmap)
-// - Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...).
 
-// - Add cyclic functionality, closes the spline from 
-//   the first to last handle with an additional segment.
-// - Add ability to scale & tilt handles.
-// - Add ability to extrude points from the curve.
-// - Add ability to delete points from the curve.
-// - Add ability to remove segments from the curve.
-// - Add ability to dissolve points from the curve.
+// [ ] Add cyclic functionality, closes the spline from 
+//     the first to last handle with an additional segment.
+// [ ] Add ability to scale & tilt handles.
+// [ ] Add ability to extrude points from the curve.
+// [ ] Add ability to delete points from the curve.
+// [ ] Add ability to remove segments from the curve.
+// [ ] Add ability to dissolve points from the curve.
 
-// - Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
-// - Implement primitive tube drawing, using resolution U as the number of points per slice.
+// [ ] Implement primitive tube drawing, using resolution U as the number of points per slice.
 //   - Needs to respect tilt & size.
 //   - Would ideally generate a special version of.
 //     UV islands that would correspond to slices.
 //     of the resulting tube (one per U edge).
+
+//DONE:
+// [x] Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...). -> key modifier replaced by on-ui option.
+// [x] Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
+
 
 class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
@@ -485,7 +488,7 @@ new NodePreviewController(SplineMesh, {
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
-        let outline_material = new THREE.LineBasicMaterial( { vertexColors: true } )
+        let outline_material = new THREE.LineBasicMaterial( { vertexColors: true, linewidth: 4 } )
         let outline = new THREE.LineSegments(new THREE.BufferGeometry(), outline_material);
 		outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         outline.no_export = true;
@@ -514,17 +517,37 @@ new NodePreviewController(SplineMesh, {
         let { mesh } = element;
         let point_positions = [];
         let line_points = [];
+        let line_colors = [];
         let { curves, handles, vertices } = element;
 
-        // Individual handle points
+        // Handle geometry
+        let handle_color_aligned = [1.0, 1.0, 0.0];
+        let handle_color_free = [1.0, 0.0, 1.0];
         for (let key in handles) {
             let handle = handles[key];
             point_positions.push(...vertices[handle.control1]);
             point_positions.push(...vertices[handle.origin]);
             point_positions.push(...vertices[handle.control2]);
+
+            // Add handle lines
+            if (BarItems.spline_selection_mode.value == 'handles') {
+                line_points.push(...vertices[handle.control1]);
+                line_points.push(...vertices[handle.origin]);
+                line_points.push(...vertices[handle.origin]);
+                line_points.push(...vertices[handle.control2]);
+    
+                // Handle color
+                let color = handle_color_aligned;
+                if (BarItems.spline_handle_mode.value === "free") color = handle_color_free;
+                line_colors.push(...color);
+                line_colors.push(...color);
+                line_colors.push(...color);
+                line_colors.push(...color);
+            }
         }
 
         // Bezier Curves
+        let curve_color = [gizmo_colors.solid.r, gizmo_colors.solid.g, gizmo_colors.solid.b];
         for (let key in curves) {
             let data = curves[key];
             let curve = new THREE.CubicBezierCurve3(
@@ -537,6 +560,7 @@ new NodePreviewController(SplineMesh, {
 
             curve_points.forEach((vector, i) => {
                 line_points.push(...[vector.x, vector.y, vector.z]);
+                line_colors.push(...curve_color)
 
                 // Do this weird stuff, because lines don't render properly if
                 // each point that isn't the start or end isn't duplicate.
@@ -544,17 +568,19 @@ new NodePreviewController(SplineMesh, {
                 // except for the very first and very last.
                 if (i > 0 && i < (curve_points.length - 1)) {
                     line_points.push(...[vector.x, vector.y, vector.z]);
+                    line_colors.push(...curve_color)
                 }
             })
         }
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(point_positions.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
+		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_points), 3));
+        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(line_colors), 3));
 
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();

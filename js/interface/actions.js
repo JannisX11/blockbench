@@ -2175,6 +2175,7 @@ const BARS = {
 				'transform_pivot_space',
 				'selection_mode',
 				'spline_selection_mode',
+				'spline_handle_mode',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',

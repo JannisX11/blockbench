@@ -590,6 +590,26 @@ function moveElementsInSpace(difference, axis) {
 
 			selected_vertices.forEach(vkey => {
 				el.vertices[vkey].V3_add(difference_vec);
+
+				// "linked" handle behavior, opposite ends of a given
+				// spline handle "mirror" each other.
+				if (BarItems.spline_handle_mode.value === "aligned") {
+					let getInverseOfCtrl = function(handle) {
+						let control = el.vertices[vkey];
+						let origin = el.vertices[handle.origin];
+						let local = [ control[0] - origin[0], control[1] - origin[1], control[2] - origin[2] ];
+						let final = [ -local[0] + origin[0], -local[1] + origin[1], -local[2] + origin[2] ]
+						return final;
+					}
+
+					for (let hkey in el.handles) {
+						let handle = el.handles[hkey];
+						if (handle.control1 == vkey && !selected_vertices.includes(handle.control2))
+							el.vertices[handle.control2] = getInverseOfCtrl(handle);
+						else if (handle.control2 == vkey && !selected_vertices.includes(handle.control1))
+							el.vertices[handle.control1] = getInverseOfCtrl(handle);
+					}
+				}
 			})
 
 		

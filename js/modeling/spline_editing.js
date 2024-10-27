@@ -42,7 +42,13 @@ BARS.defineActions(function() {
 				SplineMesh.selected.forEach(spline => {
 					delete Project.spline_selection[spline.uuid];
 				})
-			} 
+			}
+
+            // Hide/Show handle lines, didn't find a better way to do this
+            // updateSelection() felt like a harder place to control this.
+			SplineMesh.selected.forEach(spline => {
+                spline.preview_controller.updateGeometry(spline);
+			})
 			updateSelection();
 			previous_selection_mode = value;
         }
@@ -75,6 +81,22 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Merge splines');
 			updateSelection();
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+		}
+	}),
+    new BarSelect('spline_handle_mode', {
+		condition: () => Modes.edit && SplineMesh.hasAny() && BarItems.spline_selection_mode.value === "handles",
+		category: 'transform',
+		value: 'aligned',
+		options: {
+			aligned: true,
+			free: true,
+		},
+		onChange() {
+            // Update handle line color, didn't find a simpler way to do this.
+			SplineMesh.selected.forEach(spline => {
+                spline.preview_controller.updateGeometry(spline);
+			})
+			updateSelection();
 		}
 	})
 })
