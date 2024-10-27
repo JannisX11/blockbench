@@ -832,6 +832,15 @@ class Animation extends AnimationItem {
 				showItemInFolder(animation.path);
 			}
 		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
+			}
+		},
 		'rename',
 		{
 			id: 'reload',

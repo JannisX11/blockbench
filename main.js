@@ -250,6 +250,9 @@ ipcMain.on('request-color-picker', async (event, arg) => {
 ipcMain.on('show-item-in-folder', async (event, path) => {
 	shell.showItemInFolder(path);
 })
+ipcMain.on('open-in-default-app', async (event, path) => {
+	shell.openPath(path);
+})
 
 app.on('ready', () => {
 
