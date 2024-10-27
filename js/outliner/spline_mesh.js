@@ -62,13 +62,14 @@ new Property(SplineHandle, 'number', 'size');
 
 //TODO (in order of roadmap)
 
-// [ ] Add ability to scale & tilt handles.
-// [ ] Add ability to extrude points from the curve.
-// [ ] Add ability to delete points from the curve.
-// [ ] Add ability to remove segments from the curve.
-// [ ] Add ability to dissolve points from the curve.
+// [ ] Add ability to extrude points from the curve. /!\ Priority
+// [ ] Add ability to delete points from the curve. /!\ Priority
+// [ ] Add ability to remove segments from the curve. /!\ Priority
+// [ ] Add ability to dissolve points from the curve. /!\ Priority
 
+// [ ] Add ability to scale & tilt handles.
 // [ ] Implement primitive tube drawing, using resolution U as the number of points per slice.
+// /!\ This will require more R&D, THREE.js implements a kind of solution for this, but with very little control over how it renders.
 //   - Needs to respect tilt & size.
 //   - Would ideally generate a special version of.
 //     UV islands that would correspond to slices.
@@ -78,9 +79,8 @@ new Property(SplineHandle, 'number', 'size');
 // [x] Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...). 
 //     -> key modifier replaced by on-ui option.
 // [x] Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
-// [x] Add cyclic functionality, closes the spline from 
-//     the first to last handle with an additional segment. 
-//     -> Basic functionality for this added, but will likely need updating later on
+// [x] Add cyclic functionality, closes the spline from the first to last handle with an additional segment. 
+//     -> Basic functionality for this added, but might need updating later on
 
 
 class SplineMesh extends OutlinerElement {
