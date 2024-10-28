@@ -1139,7 +1139,6 @@ class Preview {
 			brush_matrix.scale(scale);
 
 			brush_matrix.multiply(intersect.object.matrix, brush_matrix);
-			Canvas.brush_outline.matrixAutoUpdate = false;
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
