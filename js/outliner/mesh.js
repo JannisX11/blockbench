@@ -355,7 +355,7 @@ class MeshFace extends Face {
 		matrix.setPosition(texelP1);
 		return matrix;
 	}
-	UVToLocal(uv, vertices = this.getSortedVertices(), truncateOffset) {
+	UVToLocal(uv, vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
@@ -376,11 +376,6 @@ class MeshFace extends Face {
 		let vertexa = this.mesh.vertices[vert_a];
 		let vertexb = this.mesh.vertices[vert_b];
 		let vertexc = this.mesh.vertices[vert_c];
-
-		if (typeof truncateOffset !== "undefined") {
-			uv[0] = Math.round(uv[0] + truncateOffset) - truncateOffset;
-			uv[1] = Math.round(uv[1] + truncateOffset) - truncateOffset;
-		}
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
 		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
