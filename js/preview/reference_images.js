@@ -659,7 +659,7 @@ class ReferenceImage {
 					global: 'reference_image.scope.global',
 				}},
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
-				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
+				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},

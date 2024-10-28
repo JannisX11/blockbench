@@ -422,6 +422,7 @@ const Settings = {
 			Canvas.updateShading()
 		}});
 		new Setting('antialiasing', 	{category: 'preview', value: true});
+		new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: true});
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', min: 1, max: 120, onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});

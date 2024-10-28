@@ -251,6 +251,7 @@ const MenuBar = {
 			'find_replace',
 			'unlock_everything',
 			'delete',
+			'apply_mirror_modeling',
 			new MenuSeparator('mesh_specific'),
 			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
 				'extrude_mesh_selection',

@@ -165,6 +165,16 @@ function removeEventListeners(el, events, func, option) {
 		el.removeEventListener(e, func, option)
 	})
 }
+function getStringWidth(string, size) {
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
+	if (size && size !== 16) {
+		node.style.fontSize = size + 'pt';
+	}
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
+	return width + 1;
+};
 
 function patchedAtob(base64) {
 	if (typeof Buffer == 'function') {

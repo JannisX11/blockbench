@@ -75,6 +75,41 @@ const UVEditor = {
 				result.y = (tex.display_height + result.y) % tex.display_height;
 			}
 		}
+		// Snap line tool
+		if (UVEditor.vue.mouse_coords.line_preview && event.ctrlOrCmd && UVEditor.vue.last_brush_position) {
+			let original_pos = UVEditor.vue.last_brush_position.slice();
+			let offset = [result.x - original_pos[0], result.y - original_pos[1]];
+			let length = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2));
+			let angle = Math.radToDeg(Math.atan2(offset[1], offset[0]));
+			// Snapping
+			let x_2 = Math.radToDeg(Math.atan(1/2));
+			let x_3 = Math.radToDeg(Math.atan(1/3));
+			let x_6 = Math.radToDeg(Math.atan(1/6));
+			let snap_values = [0, 45];
+			if (length > 16) {
+				snap_values = [0, x_6, x_3, x_2, 33.75, 45, 90-33.75, 90-x_2, 90-x_3, 90 - x_6];
+			} else if (length > 10) {
+				snap_values = [0, x_3, x_2, , 45, 90-x_2, 90-x_3];
+			} else if (length > 4) {
+				snap_values = [0, x_2, 45, 90-x_2];
+			}
+			let osv = snap_values.slice();
+			for (let i of [1, -1, -2]) {
+				snap_values.push(...osv.map(v => v + i*90));
+			}
+			angle = Math.snapToValues(angle, snap_values, 90);
+			angle = Math.degToRad(angle);
+			result.x = original_pos[0] + Math.cos(angle) * length;
+			result.y = original_pos[1] + Math.sin(angle) * length;
+			// Round
+			let px_offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+			result.x = Math.round(result.x) + px_offset;
+			result.y = Math.round(result.y) + px_offset;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				result.x = Math.floor(result.x);
+				result.y = Math.floor(result.y);
+			}
+		}
 		return result;
 	},
 	startPaintTool(event) {

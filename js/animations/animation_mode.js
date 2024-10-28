@@ -1299,7 +1299,6 @@ BARS.defineActions(function() {
 			Animator.updateOnionSkin();
 		}
 	})
-	// Motion Trail
 	new Toggle('animation_onion_skin_selective', {
 		icon: 'animation',
 		category: 'animation',
