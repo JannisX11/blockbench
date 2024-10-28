@@ -1096,17 +1096,13 @@ class Preview {
 				y -= texture.display_height * texture.currentFrame;
 			}
 			// Position
-			let brush_coord = face.UVToLocal([mouse_uv_x, mouse_uv_y], face.getSortedVertices(), offset);
-			let brush_coord_difference_x = face.UVToLocal([mouse_uv_x + 1 * uv_factor_x, mouse_uv_y], face.getSortedVertices(), offset);
-			let brush_coord_difference_y = face.UVToLocal([mouse_uv_x, mouse_uv_y + 1 * uv_factor_y], face.getSortedVertices(), offset);
-			brush_coord_difference_x.sub(brush_coord);
-			brush_coord_difference_y.sub(brush_coord);
+			let brush_matrix = face.TexelToLocalMatrix([mouse_uv_x, mouse_uv_y], face.getSortedVertices(), offset);
+			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
 				brush_coord.x += 8;
 				brush_coord.z += 8;
 			}
-			Canvas.brush_outline.position.copy(brush_coord);
 
 			// z fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
@@ -1114,12 +1110,15 @@ class Preview {
 			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
 				world_normal.multiplyScalar(-1);
 			}
-			Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
+
+			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
+			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
+			brush_matrix.multiply(matrix_offset, brush_matrix);
 
 			//size
-			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_x.length();
-			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_y.length();
-			Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
+			let brush_scale = new THREE.Vector3().setFromMatrixScale(brush_matrix);
+			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.x;
+			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.y;
 
 			let uv = Canvas.brush_outline.geometry.attributes.uv;
 			if (BarItems.brush_shape.value == 'square') {
@@ -1136,16 +1135,12 @@ class Preview {
 				uv.needsUpdate = true;
 			}
 
-			// rotation
-			Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
+			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
+			brush_matrix.scale(scale);
 
-			Canvas.brush_outline.rotation.z = 0;
-			let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
-			brush_coord_difference_y.applyQuaternion(inverse);
-			let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
-			Canvas.brush_outline.rotation.z = rotation;
-			
-			Canvas.brush_outline.quaternion.premultiply(world_quaternion);
+			brush_matrix.multiply(intersect.object.matrix, brush_matrix);
+			Canvas.brush_outline.matrixAutoUpdate = false;
+			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
 		if (Toolbox.selected.onCanvasMouseMove) {
