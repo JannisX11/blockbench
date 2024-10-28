@@ -2921,7 +2921,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	StateMemory.init('mirror_painting_options', 'object');
+	/*StateMemory.init('mirror_painting_options', 'object');
 	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
 	if (!Painter.mirror_painting_options.axis) {
 		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
@@ -2931,7 +2931,7 @@ BARS.defineActions(function() {
 	}
 	if (!Painter.mirror_painting_options.texture_center) {
 		Painter.mirror_painting_options.texture_center = [0, 0];
-	}
+	}*/
 	function toggleMirrorPaintingAxis(axis) {
 		let axes = Painter.mirror_painting_options.axis
 		axes[axis] = !axes[axis];
@@ -2990,7 +2990,17 @@ BARS.defineActions(function() {
 			Painter.mirror_painting = value;
 			highlightMirrorPaintingAxes();
 		},
-		side_menu: new Menu('mirror_painting', [
+		side_menu: new ToolConfig('mirror_painting', {
+			form: {
+				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'Y', z: 'Z'}, value: {x: true, z: false}},
+				global_space: {type: 'checkbox', label: 'menu.mirror_painting.global', value: true},
+				local_space: {type: 'checkbox', label: 'menu.mirror_painting.local'},
+				texture_space: {type: 'checkbox', label: 'menu.mirror_painting.texture'},
+				texture_center: {type: 'vector', label: 'menu.mirror_painting.configure_texture_center', dimensions: 2},
+				texture_frames: {type: 'checkbox', label: 'menu.mirror_painting.texture_frames'},
+			}
+		})
+		/*new Menu('mirror_painting', [
 			new MenuSeparator('options'),
 			// Enabled
 			{
@@ -3077,8 +3087,9 @@ BARS.defineActions(function() {
 				icon: () => !!Painter.mirror_painting_options.texture_frames,
 				click() {toggleMirrorPaintingSpace('texture_frames')}
 			},
-		], {keep_open: true})
+		], {keep_open: true})*/
 	})
+	Painter.mirror_painting_options = BarItems.mirror_painting.side_menu.config;
 	new Toggle('color_erase_mode', {
 		icon: 'remove_circle',
 		category: 'paint',

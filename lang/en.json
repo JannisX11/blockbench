@@ -69,6 +69,7 @@
 	"generic.select_all": "Select All",
 	"generic.select_none": "Select None",
 	"generic.delete_all": "Delete All",
+	"generic.edit_externally": "Edit Externally",
 	"generic.on": "On",
 	"generic.off": "Off",
 	"generic.left": "Left",
@@ -676,6 +677,7 @@
 	"dialog.create_gif.bg_image": "Background Image",
 	"dialog.create_gif.turn": "Turntable Speed",
 	"dialog.create_gif.turn.desc": "Rotate the model while recording. Use negative values to turn the model clockwise. A value of 60 corresponds to one rotation every second.",
+	"dialog.create_gif.turn.sync_to_anim_length": "Sync to animation length",
 	"dialog.create_gif.play": "Play Animation",
 
 	"dialog.advanced_screenshot.angle_preset": "Angle Preset",
@@ -2183,6 +2185,10 @@
 	"edit.loop_cut.offset": "Offset",
 	"edit.loop_cut.cuts": "Cuts",
 	"edit.extrude_mesh_selection.extend": "Extend",
+	"edit.extrude_mesh_selection.direction": "Direction",
+	"edit.extrude_mesh_selection.direction.outwards": "Outwards",
+	"edit.extrude_mesh_selection.direction.average": "Average",
+	"edit.extrude_mesh_selection.even_extend": "Even Extend",
 	"edit.solidify_mesh_selection.thickness": "Thickness",
 
 	"web.download_app": "Download App",

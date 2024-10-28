@@ -1291,6 +1291,7 @@ BARS.defineActions(function() {
 		},
 		onConfirm(result) {
 			let original_selection_group = Group.selected && Group.selected.uuid;
+			let iteration = 0;
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.selected) {
@@ -1624,9 +1625,10 @@ BARS.defineActions(function() {
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				Undo.finishEdit('Add primitive');
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
+				iteration++;
 
 				Vue.nextTick(function() {
-					if (settings.create_rename.value) {
+					if (settings.create_rename.value && iteration == 1) {
 						mesh.rename()
 					}
 				})
@@ -2181,7 +2183,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = 1, direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -2225,23 +2227,53 @@ BARS.defineActions(function() {
 
 						combined_direction = normal.toArray();
 					}
+					if (direction_mode == 'average' && selected_faces.length) {
+						combined_direction = [0, 0, 0];
+						for (let face of selected_faces) {
+							let normal = face.getNormal(true);
+							combined_direction.V3_add(normal);
+						}
+						combined_direction.V3_divide(selected_faces.length);
+					}
 
 					new_vertices = mesh.addVertices(...original_vertices.map(key => {
 						let vector = mesh.vertices[key].slice();
 						let direction;
 						let count = 0;
-						selected_faces.forEach(face => {
-							if (face.vertices.includes(key)) {
-								count++;
-								if (!direction) {
-									direction = face.getNormal(true);
-								} else {
-									direction.V3_add(face.getNormal(true));
+						switch (direction_mode) {
+							case 'average': direction = combined_direction; break;
+							case 'y+': direction = [0, 1, 0]; break;
+							case 'y-': direction = [0, -1, 0]; break;
+							case 'x+': direction = [1, 0, 0]; break;
+							case 'x-': direction = [-1, 0, 0]; break;
+							case 'z+': direction = [0, 0, 1]; break;
+							case 'z-': direction = [0, 0, -1]; break;
+						}
+						if (!direction) {
+							let directions = [];
+							selected_faces.forEach(face => {
+								if (face.vertices.includes(key)) {
+									count++;
+									let face_normal = face.getNormal(true);
+									directions.push(face_normal);
+									if (!direction) {
+										direction = face_normal
+									} else {
+										direction.V3_add(face_normal);
+									}
+								}
+							})
+							console.log(count, direction.slice());
+							if (count > 1) {
+								let magnitude = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
+								direction.V3_divide(magnitude);
+								if (even_extend) {
+									let a = new THREE.Vector3().fromArray(directions[0]);
+									let b = new THREE.Vector3().fromArray(directions[1]);
+									let angle = a.angleTo(b);
+									direction.V3_divide(Math.cos(angle));
 								}
 							}
-						})
-						if (count > 1) {
-							direction.V3_divide(count);
 						}
 						if (!direction) {
 							let match;
@@ -2388,8 +2420,19 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
+				direction_mode: {type: 'select', label: 'edit.extrude_mesh_selection.direction', options: {
+					outwards: 'edit.extrude_mesh_selection.direction.outwards',
+					average: 'edit.extrude_mesh_selection.direction.average',
+					'y+': 'Y+',
+					'y-': 'Y-',
+					'x+': 'X+',
+					'x-': 'X-',
+					'z+': 'Z+',
+					'z-': 'Z-',
+				}},
+				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.even_extend'},
 			}, form => {
-				runEdit(true, form.extend);
+				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})
 		}
 	})

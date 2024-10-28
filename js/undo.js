@@ -76,13 +76,11 @@ class UndoSystem {
 		}
 	}
 	amendEdit(form, callback) {
-		let scope = this;
-		let input_elements = {};
 		let dialog = document.createElement('div');
 		dialog.id = 'amend_edit_menu';
 		this.amend_edit_menu = {
 			node: dialog,
-			form: {}
+			form: null
 		};
 
 		let close_button = document.createElement('div');
@@ -94,72 +92,16 @@ class UndoSystem {
 		})
 		dialog.append(close_button);
 
-		function updateValue() {
-			let form_values = {};
-			for (let key in form) {
-				let input = scope.amend_edit_menu.form[key];
-				if (input) {
-					if (input.type == 'number') {
-						form_values[key] = input.slider.get();
-					} else if (input.type == 'checkbox') {
-						form_values[key] = !!input.node.checked;
-					}
-				}
-			}
+		this.amend_edit_menu.form = new InputForm(form);
+		this.amend_edit_menu.form.on('change', ({result}) => {
 			if (Undo.history.length != Undo.index) {
 				console.error('Detected error in amending edit. Skipping this edit.');
 				return;
 			}
 			Undo.undo(null, true);
-			callback(form_values, scope.amend_edit_menu.form);
-		}
-
-		for (let key in form) {
-			let form_line = form[key];
-			if (!Condition(form_line.condition)) continue;
-			let line = document.createElement('div');
-			line.className = 'amend_edit_line';
-			dialog.append(line);
-			this.amend_edit_menu.form[key] = {
-				type: form_line.type || 'number',
-				label: form_line.label
-			}
-
-			if (this.amend_edit_menu.form[key].type == 'number') {
-				let getInterval = form_line.getInterval;
-				if (form_line.interval_type == 'position') getInterval = getSpatialInterval;
-				if (form_line.interval_type == 'rotation') getInterval = getRotationInterval;
-				let slider = new NumSlider({
-					id: 'amend_edit_slider',
-					name: tl(form_line.label),
-					private: true,
-					onChange: updateValue,
-					getInterval,
-					settings: {
-						default: form_line.value || 0,
-						min: form_line.min,
-						max: form_line.max,
-						step: form_line.step||1,
-					},
-				});
-				line.append(slider.node);
-				input_elements[key] = slider;
-				this.amend_edit_menu.form[key].slider = slider
-				slider.update();
-
-			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
-				
-				let toggle = Interface.createElement('input', {type: 'checkbox', checked: form_line.value ? true : undefined});
-				toggle.addEventListener('input', updateValue);
-				line.append(toggle);
-				input_elements[key] = toggle;
-				this.amend_edit_menu.form[key].node = toggle;
-			}
-
-			let label = document.createElement('label');
-			label.innerText = tl(form_line.label);
-			line.append(label);
-		}
+			callback(result, this.amend_edit_menu.form);
+		})
+		dialog.append(this.amend_edit_menu.form.node);
 
 		let preview_container = document.getElementById('preview');
 		preview_container.append(dialog);
