@@ -1,42 +1,42 @@
 class SplineHandle {
     constructor(spline, data) {
-		for (var key in this.constructor.properties) {
-			this.constructor.properties[key].reset(this);
-		}
-		this.spline = spline;
+        for (var key in this.constructor.properties) {
+            this.constructor.properties[key].reset(this);
+        }
+        this.spline = spline;
         this.origin = '';
         this.control1 = '';
         this.control2 = '';
         this.tilt = 0.0;
         this.size = 1.0;
-		if (data) {
-			this.extend(data);
-		}
+        if (data) {
+            this.extend(data);
+        }
     }
-	get element() {
-		return this.spline;
-	}
-	extend(data) {
-		for (var key in this.constructor.properties) {
-			this.constructor.properties[key].merge(this, data)
-		}
+    get element() {
+        return this.spline;
+    }
+    extend(data) {
+        for (var key in this.constructor.properties) {
+            this.constructor.properties[key].merge(this, data)
+        }
         if (data.control1) this.control1 = data.control1;
         if (data.control2) this.control2 = data.control2;
         if (data.origin) this.origin = data.origin;
         if (data.tilt) this.tilt = data.tilt;
         if (data.size) this.size = data.size;
-		return this;
-	}
-	getHandleKey() {
-		for (let hkey in this.spline.handles) {
-			if (this.spline.handles[hkey] == this) return hkey;
-		}
-	}
-	isSelected() {
-		return !!Project.spline_selection[this.mesh.uuid] && Project.spline_selection[this.mesh.uuid].vertices.includes(this.origin);
-	}
-	getSaveCopy() {
-		let copy = {
+        return this;
+    }
+    getHandleKey() {
+        for (let hkey in this.spline.handles) {
+            if (this.spline.handles[hkey] == this) return hkey;
+        }
+    }
+    isSelected() {
+        return !!Project.spline_selection[this.mesh.uuid] && Project.spline_selection[this.mesh.uuid].vertices.includes(this.origin);
+    }
+    getSaveCopy() {
+        let copy = {
             control1: this.control1,
             origin: this.origin,
             control2: this.control2,
@@ -44,64 +44,66 @@ class SplineHandle {
             size: this.size
         };
 
-		for (let key in this.constructor.properties) {
-			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
-		}
+        for (let key in this.constructor.properties) {
+            if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
+        }
 
-		return copy;
-	}
-	getUndoCopy() {
-		let copy = new this.constructor(this.spline, this);
-		delete copy.spline;
-		return copy;
-	}
+        return copy;
+    }
+    getUndoCopy() {
+        let copy = new this.constructor(this.spline, this);
+        delete copy.spline;
+        return copy;
+    }
 }
 new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
+// This is currently unused, a path of reflection for futur polish passes
+/*
 class SplineFace {
     constructor(spline, data) {
-		for (var key in this.constructor.properties) {
-			this.constructor.properties[key].reset(this);
-		}
-		this.spline = spline;
-		this.texture = false;
-		if (data) {
-			this.extend(data);
-		}
+        for (var key in this.constructor.properties) {
+            this.constructor.properties[key].reset(this);
+        }
+        this.spline = spline;
+        this.texture = false;
+        if (data) {
+            this.extend(data);
+        }
     }
-	get element() {
-		return this.spline;
-	}
-	extend(data) {
-		for (var key in this.constructor.properties) {
-			this.constructor.properties[key].merge(this, data)
-		}
+    get element() {
+        return this.spline;
+    }
+    extend(data) {
+        for (var key in this.constructor.properties) {
+            this.constructor.properties[key].merge(this, data)
+        }
         if (data.vertices) this.vertices = data.vertices;
         if (data.normals) this.normals = data.normals;
         if (data.indices) this.indices = data.indices;
-		return this;
-	}
-	getSaveCopy() {
-		let copy = {
+        return this;
+    }
+    getSaveCopy() {
+        let copy = {
             vertices: this.vertices,
             normals: this.normals,
             indices: this.indices
         };
 
-		for (let key in this.constructor.properties) {
-			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
-		}
+        for (let key in this.constructor.properties) {
+            if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
+        }
 
-		return copy;
-	}
-	getUndoCopy() {
-		let copy = new this.constructor(this.spline, this);
-		delete copy.spline;
-		return copy;
-	}
+        return copy;
+    }
+    getUndoCopy() {
+        let copy = new this.constructor(this.spline, this);
+        delete copy.spline;
+        return copy;
+    }
 }
-
+*/
 
 //TODO (in order of roadmap)
 
@@ -111,7 +113,8 @@ class SplineFace {
 // [ ] Add ability to dissolve points from the curve. /!\ Priority
 
 // [ ] Add ability to scale & tilt handles.
-// [ ] Implement primitive tube drawing, using resolution U as the number of points per slice.
+// [~] Implement primitive tube drawing, using resolution U as the number of points per slice.
+//     -> in Progress, will need a lot more refinement
 // /!\ This will require more R&D, THREE.js implements a kind of solution for this, but with very little control over how it renders.
 //   - Needs to respect tilt & size.
 //   - Would ideally generate a special version of.
@@ -135,8 +138,8 @@ class SplineMesh extends OutlinerElement {
                 handles: {}, // Main component of the spline
                 vertices: {}, // Control points of the handles
                 curves: {}, // Segments of the spline
-                curve_vertices: {},
-                faces: {} // Uses curve_vertices
+                curve_vertices: {}, // TODO, should store the tube's vertices
+                faces: {} // TODO, should store the tube's faces
             }
         }
         Object.freeze(this._static);
@@ -156,11 +159,11 @@ class SplineMesh extends OutlinerElement {
 
             // Spline handles are made of two control points & one position point, forming patters as follows (. = point, ! = control, - = curve):
             // !.!-!.!-!.!
-            this.addHandles( new SplineHandle( this, { control1: vertex_keys[0], origin: vertex_keys[1], control2: vertex_keys[2] } ) )
-            this.addHandles( new SplineHandle( this, { control1: vertex_keys[3], origin: vertex_keys[4], control2: vertex_keys[5] } ) )
-            this.addHandles( new SplineHandle( this, { control1: vertex_keys[6], origin: vertex_keys[7], control2: vertex_keys[8] } ) )
-            this.addHandles( new SplineHandle( this, { control1: vertex_keys[9], origin: vertex_keys[10], control2: vertex_keys[11] } ) )
-            this.addHandles( new SplineHandle( this, { control1: vertex_keys[12], origin: vertex_keys[13], control2: vertex_keys[14] } ) )
+            this.addHandles(new SplineHandle(this, { control1: vertex_keys[0], origin: vertex_keys[1], control2: vertex_keys[2] }))
+            this.addHandles(new SplineHandle(this, { control1: vertex_keys[3], origin: vertex_keys[4], control2: vertex_keys[5] }))
+            this.addHandles(new SplineHandle(this, { control1: vertex_keys[6], origin: vertex_keys[7], control2: vertex_keys[8] }))
+            this.addHandles(new SplineHandle(this, { control1: vertex_keys[9], origin: vertex_keys[10], control2: vertex_keys[11] }))
+            this.addHandles(new SplineHandle(this, { control1: vertex_keys[12], origin: vertex_keys[13], control2: vertex_keys[14] }))
             let handle_keys = Object.keys(this.handles);
 
             // Objects representing Cubic bézier curves (P1, P2, P3, P4)
@@ -207,23 +210,23 @@ class SplineMesh extends OutlinerElement {
     get vertice_list() {
         return Object.keys(this.vertices).map(key => this.vertices[key]);
     }
-	addVertices(...vectors) {
-		return vectors.map(vector => {
-			let key;
-			while (!key || this.vertices[key]) {
-				key = bbuid(4);
-			}
-			this.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
-			return key;
-		})
-	}
+    addVertices(...vectors) {
+        return vectors.map(vector => {
+            let key;
+            while (!key || this.vertices[key]) {
+                key = bbuid(4);
+            }
+            this.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
+            return key;
+        })
+    }
     addHandles(...handles) {
         return handles.map(handle => {
             let key;
             while (!key || this.handles[key]) {
                 key = bbuid(8);
             }
-            this.handles[key] = handle 
+            this.handles[key] = handle
             return key;
         })
     }
@@ -254,42 +257,42 @@ class SplineMesh extends OutlinerElement {
         let point = new THREE.Vector3();
         let normal = new THREE.Vector3();
         let radius = 2;
-        
+
         return curve_keys.map(key => {
             let curve = this.getCurveAsBezier(key);
             let tubularSegments = element.resolution[1];
             let frames = curve.computeFrenetFrames(tubularSegments, false);
 
             for (let i = 0; i <= tubularSegments; i++) {
-			    // we use getPointAt to sample evenly distributed points from the given path
-			    point = curve.getPointAt( i / tubularSegments, point );
+                // we use getPointAt to sample evenly distributed points from the given path
+                point = curve.getPointAt(i / tubularSegments, point);
 
-			    // retrieve corresponding normal and binormal
-			    let frameNormal = frames.normals[ i ];
-			    let frameBiNormal = frames.binormals[ i ];
+                // retrieve corresponding normal and binormal
+                let frameNormal = frames.normals[i];
+                let frameBiNormal = frames.binormals[i];
 
-			    // generate normals and vertices for the current segment
-			    for ( let j = 0; j <= radialSegments; j ++ ) {
-			    	let v = j / radialSegments * Math.PI * 2;
-			    	let sin = Math.sin( v );
-			    	let cos = - Math.cos( v );
+                // generate normals and vertices for the current segment
+                for (let j = 0; j <= radialSegments; j++) {
+                    let v = j / radialSegments * Math.PI * 2;
+                    let sin = Math.sin(v);
+                    let cos = - Math.cos(v);
 
-			    	// normal
-			    	normal.x = ( cos * frameNormal.x + sin * frameBiNormal.x );
-			    	normal.y = ( cos * frameNormal.y + sin * frameBiNormal.y );
-			    	normal.z = ( cos * frameNormal.z + sin * frameBiNormal.z );
+                    // normal
+                    normal.x = (cos * frameNormal.x + sin * frameBiNormal.x);
+                    normal.y = (cos * frameNormal.y + sin * frameBiNormal.y);
+                    normal.z = (cos * frameNormal.z + sin * frameBiNormal.z);
 
-			    	// vertex
-			    	vertex.x = point.x + radius * normal.x;
-			    	vertex.y = point.y + radius * normal.y;
-			    	vertex.z = point.z + radius * normal.z;
+                    // vertex
+                    vertex.x = point.x + radius * normal.x;
+                    vertex.y = point.y + radius * normal.y;
+                    vertex.z = point.z + radius * normal.z;
 
                     // Add to object
                     while (!key || this.curve_vertices[key]) {
                         key = bbuid(4);
                     }
-			    	this.curve_vertices[key] = vertex.toArray();
-			    }
+                    this.curve_vertices[key] = vertex.toArray();
+                }
             }
         })
     }
@@ -298,47 +301,47 @@ class SplineMesh extends OutlinerElement {
             SplineMesh.properties[key].merge(this, object)
         }
         // Identical to mesh
-		if (typeof object.vertices == 'object') {
-			for (let key in this.vertices) {
-				if (!object.vertices[key]) {
-					delete this.vertices[key];
-				}
-			}
-			if (object.vertices instanceof Array) {
-				this.addVertices(...object.vertices);
-			} else {
-				for (let key in object.vertices) {
-					if (!this.vertices[key]) this.vertices[key] = [];
-					this.vertices[key].replace(object.vertices[key]);
-				}
-			}
-		}
+        if (typeof object.vertices == 'object') {
+            for (let key in this.vertices) {
+                if (!object.vertices[key]) {
+                    delete this.vertices[key];
+                }
+            }
+            if (object.vertices instanceof Array) {
+                this.addVertices(...object.vertices);
+            } else {
+                for (let key in object.vertices) {
+                    if (!this.vertices[key]) this.vertices[key] = [];
+                    this.vertices[key].replace(object.vertices[key]);
+                }
+            }
+        }
         // Essentially the same as a mesh face, but holds different data
-		if (typeof object.handles == 'object') {
-			for (let key in this.handles) {
-				if (!object.handles[key]) {
-					delete this.handles[key];
-				}
-			}
-			for (let key in object.handles) {
-				if (this.handles[key]) {
-					this.handles[key].extend(object.handles[key])
-				} else {
-					this.handles[key] = new SplineHandle(this, object.handles[key]);
-				}
-			}
-		}
+        if (typeof object.handles == 'object') {
+            for (let key in this.handles) {
+                if (!object.handles[key]) {
+                    delete this.handles[key];
+                }
+            }
+            for (let key in object.handles) {
+                if (this.handles[key]) {
+                    this.handles[key].extend(object.handles[key])
+                } else {
+                    this.handles[key] = new SplineHandle(this, object.handles[key]);
+                }
+            }
+        }
         // Similar to mesh vertices
-		if (typeof object.curves == 'object') {
-			for (let key in this.curves) {
-				if (!object.curves[key]) {
-					delete this.curves[key];
-				}
-			}
+        if (typeof object.curves == 'object') {
+            for (let key in this.curves) {
+                if (!object.curves[key]) {
+                    delete this.curves[key];
+                }
+            }
             for (let key in object.curves) {
                 if (!this.curves[key]) this.curves[key] = object.curves[key];
             }
-		}
+        }
         this.sanitizeName();
         return this;
     }
@@ -348,20 +351,20 @@ class SplineMesh extends OutlinerElement {
             SplineMesh.properties[key].copy(this, copy);
         }
 
-		copy.vertices = {};
-		for (let key in this.vertices) {
-			copy.vertices[key] = this.vertices[key].slice();
-		}
+        copy.vertices = {};
+        for (let key in this.vertices) {
+            copy.vertices[key] = this.vertices[key].slice();
+        }
 
         copy.handles = {};
         for (let key in this.handles) {
             copy.handles[key] = this.handles[key].getUndoCopy();
         }
 
-		copy.curves = {};
-		for (let key in this.curves) {
-			copy.curves[key] = this.curves[key];
-		}
+        copy.curves = {};
+        for (let key in this.curves) {
+            copy.curves[key] = this.curves[key];
+        }
 
         copy.type = 'spline';
         copy.uuid = this.uuid
@@ -373,20 +376,20 @@ class SplineMesh extends OutlinerElement {
             SplineMesh.properties[key].copy(this, copy)
         }
 
-		copy.vertices = {};
-		for (let key in this.vertices) {
-			copy.vertices[key] = this.vertices[key].slice();
-		}
+        copy.vertices = {};
+        for (let key in this.vertices) {
+            copy.vertices[key] = this.vertices[key].slice();
+        }
 
         copy.handles = {};
         for (let key in this.handles) {
             copy.handles[key] = this.handles[key].getSaveCopy();
         }
 
-		copy.curves = {};
-		for (let key in this.curves) {
-			copy.curves[key] = this.curves[key];
-		}
+        copy.curves = {};
+        for (let key in this.curves) {
+            copy.curves[key] = this.curves[key];
+        }
 
         copy.type = 'spline';
         copy.uuid = this.uuid
@@ -394,9 +397,9 @@ class SplineMesh extends OutlinerElement {
     }
     setColor(index) {
         this.color = index;
-		if (this.visibility) {
-			this.preview_controller.updateFaces(this);
-		}
+        if (this.visibility) {
+            this.preview_controller.updateFaces(this);
+        }
     }
     getCurvePath() {
         let curvePath = new THREE.CurvePath()
@@ -408,20 +411,20 @@ class SplineMesh extends OutlinerElement {
     }
     getCurveAsBezier(key) {
         let points = this.curves[key];
-        let curve = this.getBezierForVertices( points.start, points.start_ctrl, points.end_ctrl, points.end );
+        let curve = this.getBezierForVertices(points.start, points.start_ctrl, points.end_ctrl, points.end);
         return curve;
     }
     getBezierForVertices(start_key, start_control_key, end_control_key, end_key) {
-        let curve = new THREE.CubicBezierCurve3( 
-            new THREE.Vector3().fromArray(this.vertices[start_key]), 
-            new THREE.Vector3().fromArray(this.vertices[start_control_key]), 
-            new THREE.Vector3().fromArray(this.vertices[end_control_key]), 
-            new THREE.Vector3().fromArray(this.vertices[end_key]) 
+        let curve = new THREE.CubicBezierCurve3(
+            new THREE.Vector3().fromArray(this.vertices[start_key]),
+            new THREE.Vector3().fromArray(this.vertices[start_control_key]),
+            new THREE.Vector3().fromArray(this.vertices[end_control_key]),
+            new THREE.Vector3().fromArray(this.vertices[end_key])
         );
         return curve;
     }
-	getSelectedVertices(make) {
-		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: [], handles: []};
+    getSelectedVertices(make) {
+        if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [], handles: [] };
         let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
 
         // Force select control points when an handle origin is selected
@@ -437,8 +440,8 @@ class SplineMesh extends OutlinerElement {
             }
         }
 
-		return selection;
-	}
+        return selection;
+    }
     // Might never be used, but still here just in case
     getSelectedHandles() {
         let selection = this.getSelectedVertices();
@@ -463,109 +466,109 @@ class SplineMesh extends OutlinerElement {
         return this.handles[firstKey];
     }
     // Aza assumption: Bounding box??? idk
-	getSize(axis, selection_only) {
-		if (selection_only) {
-			let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
-			if (!selected_vertices.length) return 0;
-			let range = [Infinity, -Infinity];
-			let {vec1, vec2} = Reusable;
-			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
-			selected_vertices.forEach(key => {
-				vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
-				range[0] = Math.min(range[0], vec1.getComponent(axis));
-				range[1] = Math.max(range[1], vec1.getComponent(axis));
-			})
-			return range[1] - range[0];
-		} else {
-			let range = [Infinity, -Infinity];
-			for (let vkey in this.vertices) {
-				range[0] = Math.min(range[0], this.vertices[vkey][axis]);
-				range[1] = Math.max(range[1], this.vertices[vkey][axis]);
-			}
-			return range[1] - range[0];
-		}
-	}
+    getSize(axis, selection_only) {
+        if (selection_only) {
+            let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+            if (!selected_vertices.length) return 0;
+            let range = [Infinity, -Infinity];
+            let { vec1, vec2 } = Reusable;
+            let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+            selected_vertices.forEach(key => {
+                vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+                range[0] = Math.min(range[0], vec1.getComponent(axis));
+                range[1] = Math.max(range[1], vec1.getComponent(axis));
+            })
+            return range[1] - range[0];
+        } else {
+            let range = [Infinity, -Infinity];
+            for (let vkey in this.vertices) {
+                range[0] = Math.min(range[0], this.vertices[vkey][axis]);
+                range[1] = Math.max(range[1], this.vertices[vkey][axis]);
+            }
+            return range[1] - range[0];
+        }
+    }
     // Aza assumption: Determines Gizmo locations
-	getWorldCenter(ignore_mesh_selection) {
-		let m = this.mesh;
-		let pos = new THREE.Vector3();
-		let vertex_count = 0;
+    getWorldCenter(ignore_mesh_selection) {
+        let m = this.mesh;
+        let pos = new THREE.Vector3();
+        let vertex_count = 0;
 
-		for (let key in this.vertices) {
-			if (ignore_mesh_selection || !Project.spline_selection[this.uuid] || (Project.spline_selection[this.uuid] && Project.spline_selection[this.uuid].vertices.includes(key))) {
-				let vector = this.vertices[key];
-				pos.x += vector[0];
-				pos.y += vector[1];
-				pos.z += vector[2];
-				vertex_count++;
-			}
-		}
-		if (vertex_count) {
-			pos.x /= vertex_count;
-			pos.y /= vertex_count;
-			pos.z /= vertex_count;
-		}
+        for (let key in this.vertices) {
+            if (ignore_mesh_selection || !Project.spline_selection[this.uuid] || (Project.spline_selection[this.uuid] && Project.spline_selection[this.uuid].vertices.includes(key))) {
+                let vector = this.vertices[key];
+                pos.x += vector[0];
+                pos.y += vector[1];
+                pos.z += vector[2];
+                vertex_count++;
+            }
+        }
+        if (vertex_count) {
+            pos.x /= vertex_count;
+            pos.y /= vertex_count;
+            pos.z /= vertex_count;
+        }
 
-		if (m) {
-			let r = m.getWorldQuaternion(Reusable.quat1);
-			pos.applyQuaternion(r);
-			pos.add(THREE.fastWorldPosition(m, Reusable.vec2));
-		}
-		return pos;
-	}
+        if (m) {
+            let r = m.getWorldQuaternion(Reusable.quat1);
+            pos.applyQuaternion(r);
+            pos.add(THREE.fastWorldPosition(m, Reusable.vec2));
+        }
+        return pos;
+    }
     // Code smell (not sure how this works), from mesh.js
-	transferOrigin(origin, update = true) {
-		if (!this.mesh) return;
-		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
-		var shift = new THREE.Vector3(
-			this.origin[0] - origin[0],
-			this.origin[1] - origin[1],
-			this.origin[2] - origin[2],
-		)
-		shift.applyQuaternion(q.invert());
-		shift = shift.toArray();
-		
-		for (let vkey in this.vertices) {
-			this.vertices[vkey].V3_add(shift);
-		}
-		this.origin.V3_set(origin);
+    transferOrigin(origin, update = true) {
+        if (!this.mesh) return;
+        var q = new THREE.Quaternion().copy(this.mesh.quaternion);
+        var shift = new THREE.Vector3(
+            this.origin[0] - origin[0],
+            this.origin[1] - origin[1],
+            this.origin[2] - origin[2],
+        )
+        shift.applyQuaternion(q.invert());
+        shift = shift.toArray();
 
-		this.preview_controller.updateTransform(this);
-		this.preview_controller.updateGeometry(this);
-		return this;
-	}
+        for (let vkey in this.vertices) {
+            this.vertices[vkey].V3_add(shift);
+        }
+        this.origin.V3_set(origin);
+
+        this.preview_controller.updateTransform(this);
+        this.preview_controller.updateGeometry(this);
+        return this;
+    }
     // Code smell (not sure how this works), from mesh.js
-	resize(val, axis, negative, allow_negative, bidirectional) {
-		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
-		let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
-		let range = [Infinity, -Infinity];
-		let {vec1, vec2} = Reusable;
-		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
-		selected_vertices.forEach(key => {
-			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
-			range[0] = Math.min(range[0], vec1.getComponent(axis));
-			range[1] = Math.max(range[1], vec1.getComponent(axis));
-		})
-		
-		let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
-		let size = Math.abs(range[1] - range[0]);
-		if (typeof val !== 'number') {
-			val = val(size) - size;
-			if (bidirectional) val /= 2;
-		}
-		let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
-		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
-		if (scale < 0 && !allow_negative) scale = 0;
-		
-		selected_vertices.forEach(key => {
-			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
-			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
-			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
-			vec2.applyEuler(Transformer.rotation_selection);
-			this.vertices[key].replace(vec2.toArray())
-		})
-		this.preview_controller.updateGeometry(this);
-	}
+    resize(val, axis, negative, allow_negative, bidirectional) {
+        let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
+        let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+        let range = [Infinity, -Infinity];
+        let { vec1, vec2 } = Reusable;
+        let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+        selected_vertices.forEach(key => {
+            vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+            range[0] = Math.min(range[0], vec1.getComponent(axis));
+            range[1] = Math.max(range[1], vec1.getComponent(axis));
+        })
+
+        let center = bidirectional ? (range[0] + range[1]) / 2 : (negative ? range[1] : range[0]);
+        let size = Math.abs(range[1] - range[0]);
+        if (typeof val !== 'number') {
+            val = val(size) - size;
+            if (bidirectional) val /= 2;
+        }
+        let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
+        if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
+        if (scale < 0 && !allow_negative) scale = 0;
+
+        selected_vertices.forEach(key => {
+            vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
+            vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+            vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
+            vec2.applyEuler(Transformer.rotation_selection);
+            this.vertices[key].replace(vec2.toArray())
+        })
+        this.preview_controller.updateGeometry(this);
+    }
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
 SplineMesh.prototype.type = 'spline';
@@ -634,11 +637,11 @@ new NodePreviewController(SplineMesh, {
         mesh.type = element.type;
         mesh.isElement = true;
 
-		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
+        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
-        let outline_material = new THREE.LineBasicMaterial( { vertexColors: true, linewidth: 4 } )
+        let outline_material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 4 })
         let outline = new THREE.LineSegments(new THREE.BufferGeometry(), outline_material);
-		outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
+        outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         outline.no_export = true;
         outline.name = element.uuid + '_outline';
         outline.renderOrder = 2;
@@ -649,7 +652,7 @@ new NodePreviewController(SplineMesh, {
 
         let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
         points.element_uuid = element.uuid;
-		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
+        points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
         mesh.vertex_points = points;
         outline.add(points);
 
@@ -683,7 +686,7 @@ new NodePreviewController(SplineMesh, {
             // Add handle lines
             if (BarItems.spline_selection_mode.value == 'handles') {
                 line_points.push(...vertices[ctrl1], ...vertices[origin], ...vertices[origin], ...vertices[ctrl2]);
-    
+
                 // Handle color
                 let color = handle_color_aligned;
                 if (BarItems.spline_handle_mode.value === "free") color = handle_color_free;
@@ -693,7 +696,7 @@ new NodePreviewController(SplineMesh, {
 
         // Bezier Curves
         let curve_color = [gizmo_colors.solid.r, gizmo_colors.solid.g, gizmo_colors.solid.b];
-        let addPoints = function(points) {
+        let addPoints = function (points) {
             points.forEach((vector, i) => {
                 let shouldDouble = i > 0 && i < (points.length - 1); // Band-aid because I don't calculate indices for outlines.
                 line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
@@ -708,7 +711,7 @@ new NodePreviewController(SplineMesh, {
         if (element.cyclic) {
             let firsthandle = element.getFirstHandle();
             let lasthandle = element.getLastHandle();
-            let curve = element.getBezierForVertices( lasthandle.origin, lasthandle.control2, firsthandle.control1, firsthandle.origin );
+            let curve = element.getBezierForVertices(lasthandle.origin, lasthandle.control2, firsthandle.control1, firsthandle.origin);
             let curve_points = curve.getPoints(element.resolution[1]);
             addPoints(curve_points);
         }
@@ -717,29 +720,28 @@ new NodePreviewController(SplineMesh, {
         let tube = this.generateTube(element);
 
         // Finalize
-		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-		mesh.geometry.setIndex(tube.indices);
-		// mesh.geometry.computeVertexNormals(false);
-        
-		// mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
+        mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+        mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+        mesh.geometry.setIndex(tube.indices);
+        // mesh.geometry.computeVertexNormals(false);
+
+        // mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_points), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(line_colors), 3));
 
-		mesh.geometry.computeBoundingBox();
-		mesh.geometry.computeBoundingSphere();
+        mesh.geometry.computeBoundingBox();
+        mesh.geometry.computeBoundingSphere();
 
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();
-		// SplineMesh.preview_controller.updateHighlight(element);
+        // SplineMesh.preview_controller.updateHighlight(element);
 
         this.dispatchEvent('update_geometry', { element });
     },
-	generateTube(element) {
+    generateTube(element) {
         let radialSegments = element.resolution[0];
-        let { curves } = element; 
         let normals = [];
         let vertices = [];
         let indices = [];
@@ -747,54 +749,48 @@ new NodePreviewController(SplineMesh, {
         let point = new THREE.Vector3();
         let normal = new THREE.Vector3();
         let radius = 2;
-        
-        let totalTubularSegments = 0;
-        for (let key in curves) {
-            let curve = element.getCurveAsBezier(key);
-            let localTubularSegments = element.resolution[1];
-            let frames = curve.computeFrenetFrames(localTubularSegments, false);
 
-            for (let i = 0; i <= localTubularSegments; i++) {
-			    // we use getPointAt to sample evenly distributed points from the given path
-			    point = curve.getPointAt( i / localTubularSegments, point );
+        let curve = element.getCurvePath();
+        let tubePoints = curve.getPoints(element.resolution[1]);
+        let frames = curve.computeFrenetFrames(tubePoints.length, false);
 
-			    // retrieve corresponding normal and binormal
-			    let frameNormal = frames.normals[ i ];
-			    let frameBiNormal = frames.binormals[ i ];
+        // These loop are a reproduction of a part inside THREEjs's "TubeGeometry" class
+        //
+        for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
+            // we use getPointAt to sample evenly distributed points from the given path
+            point = tubePoints[ts];
 
-			    // generate normals and vertices for the current segment
-			    for ( let j = 0; j <= radialSegments; j ++ ) {
-			    	let v = j / radialSegments * Math.PI * 2;
-			    	let sin = Math.sin( v );
-			    	let cos = - Math.cos( v );
+            // retrieve corresponding normal and binormal
+            let frameNormal = frames.normals[ts];
+            let frameBiNormal = frames.binormals[ts];
 
-			    	// normal
-			    	normal.x = ( cos * frameNormal.x + sin * frameBiNormal.x );
-			    	normal.y = ( cos * frameNormal.y + sin * frameBiNormal.y );
-			    	normal.z = ( cos * frameNormal.z + sin * frameBiNormal.z );
-			    	normal.normalize();
-			    	normals.push( normal.x, normal.y, normal.z );
+            // generate normals and vertices for the current point
+            for (let rs = 0; rs <= radialSegments; rs++) {
+                let v = rs / radialSegments * Math.PI * 2;
+                let sin = Math.sin(v);
+                let cos = - Math.cos(v);
 
-			    	// vertex
-			    	vertex.x = point.x + radius * normal.x;
-			    	vertex.y = point.y + radius * normal.y;
-			    	vertex.z = point.z + radius * normal.z;
-			    	vertices.push( vertex.x, vertex.y, vertex.z );
-			    }
-            }
-            totalTubularSegments += localTubularSegments + 1;
-        }
+                // normal
+                normal.x = (cos * frameNormal.x + sin * frameBiNormal.x);
+                normal.y = (cos * frameNormal.y + sin * frameBiNormal.y);
+                normal.z = (cos * frameNormal.z + sin * frameBiNormal.z);
+                normal.normalize();
+                normals.push(normal.x, normal.y, normal.z);
 
-        for (let ts = 1; ts <= totalTubularSegments - 1; ts++) {
-            for (let rs = 1; rs <= radialSegments; rs++) {
-                let a = (radialSegments + 1) * ( ts - 1 ) + ( rs - 1 );
-                let b = (radialSegments + 1) * ts + ( rs - 1 );
+                // vertex
+                vertex.x = point.x + radius * normal.x;
+                vertex.y = point.y + radius * normal.y;
+                vertex.z = point.z + radius * normal.z;
+                vertices.push(vertex.x, vertex.y, vertex.z);
+
+                // face indices, so we can render them properly
+                if (ts == 0 || rs == 0) continue; // indice counters need to start at 1
+                let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
+                let b = (radialSegments + 1) * ts + (rs - 1);
                 let c = (radialSegments + 1) * ts + rs;
-                let d = (radialSegments + 1) * ( ts - 1 ) + rs;
-
-                // faces
-                indices.push( a, b, d );
-                indices.push( b, c, d );
+                let d = (radialSegments + 1) * (ts - 1) + rs;
+                indices.push(a, b, d);
+                indices.push(b, c, d);
             }
         }
 
@@ -804,73 +800,73 @@ new NodePreviewController(SplineMesh, {
             indices: indices
         };
 
-	},
-	updateFaces(element) {
-		let {mesh} = element;
+    },
+    updateFaces(element) {
+        let { mesh } = element;
 
-		if (Project.view_mode === 'solid')                  mesh.material = Canvas.monochromaticSolidMaterial
-		else if (Project.view_mode === 'colored_solid')     mesh.material = Canvas.coloredSolidMaterials[element.color]
-		else if (Project.view_mode === 'wireframe')         mesh.material = Canvas.wireframeMaterial
-		else if (Project.view_mode === 'normal')            mesh.material = Canvas.normalHelperMaterial
-		else if (Project.view_mode === 'uv')                mesh.material = Canvas.uvHelperMaterial
+        if (Project.view_mode === 'solid') mesh.material = Canvas.monochromaticSolidMaterial
+        else if (Project.view_mode === 'colored_solid') mesh.material = Canvas.coloredSolidMaterials[element.color]
+        else if (Project.view_mode === 'wireframe') mesh.material = Canvas.wireframeMaterial
+        else if (Project.view_mode === 'normal') mesh.material = Canvas.normalHelperMaterial
+        else if (Project.view_mode === 'uv') mesh.material = Canvas.uvHelperMaterial
 
-		this.dispatchEvent('update_faces', {element});
-	},
+        this.dispatchEvent('update_faces', { element });
+    },
     // This is code smell, majorly copied from mesh.js, I'm still unsure of how it works
-	updateSelection(element) {
-		NodePreviewController.prototype.updateSelection.call(this, element);
-	
-		let mesh = element.mesh;
-		let white = new THREE.Color(0xffffff);
-		let selected_vertices = element.getSelectedVertices();
+    updateSelection(element) {
+        NodePreviewController.prototype.updateSelection.call(this, element);
 
-		if (BarItems.spline_selection_mode.value == 'handles') {
-			let colors = [];
-			for (let key in element.vertices) {
-				let color;
-				if (selected_vertices.includes(key)) {
-					color = white;
-				} else {
-					color = gizmo_colors.grid;
-				}
-				colors.push(color.r, color.g, color.b);
-			}
-			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			mesh.outline.geometry.needsUpdate = true;
-		}
-		
-		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.spline_selection_mode.value == 'handles');
+        let mesh = element.mesh;
+        let white = new THREE.Color(0xffffff);
+        let selected_vertices = element.getSelectedVertices();
 
-		this.dispatchEvent('update_selection', {element});
-	},
+        if (BarItems.spline_selection_mode.value == 'handles') {
+            let colors = [];
+            for (let key in element.vertices) {
+                let color;
+                if (selected_vertices.includes(key)) {
+                    color = white;
+                } else {
+                    color = gizmo_colors.grid;
+                }
+                colors.push(color.r, color.g, color.b);
+            }
+            mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            mesh.outline.geometry.needsUpdate = true;
+        }
+
+        mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.spline_selection_mode.value == 'handles');
+
+        this.dispatchEvent('update_selection', { element });
+    },
     // This is also code smell, from mesh.js, unsure too
-	updateHighlight(element, hover_cube, force_off) {
-		var mesh = element.mesh;
-		let highlighted = (
-			Settings.get('highlight_cubes') &&
-			((hover_cube == element && !Transformer.dragging) || element.selected) &&
-			Modes.edit &&
-			!force_off
-		) ? 1 : 0;
+    updateHighlight(element, hover_cube, force_off) {
+        var mesh = element.mesh;
+        let highlighted = (
+            Settings.get('highlight_cubes') &&
+            ((hover_cube == element && !Transformer.dragging) || element.selected) &&
+            Modes.edit &&
+            !force_off
+        ) ? 1 : 0;
 
         /*
-		let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
-		let selection_mode = BarItems.selection_mode.value;
-		let selected_vertices = element.getSelectedVertices();
-		
-		if (!force_off && element.selected && Modes.edit) {
-			let vertices = element.vertices;
-			for (let vkey in vertices) {
-				if (selected_vertices.indexOf(vkey) != -1 && (selection_mode == 'handles')) {
+        let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
+        let selection_mode = BarItems.selection_mode.value;
+        let selected_vertices = element.getSelectedVertices();
+    	
+        if (!force_off && element.selected && Modes.edit) {
+            let vertices = element.vertices;
+            for (let vkey in vertices) {
+                if (selected_vertices.indexOf(vkey) != -1 && (selection_mode == 'handles')) {
                     array[selected_vertices.indexOf(vkey)] = 2;
-				}
-			}
-		}
+                }
+            }
+        }
 
-		mesh.geometry.attributes.highlight.array.set(array);
-		mesh.geometry.attributes.highlight.needsUpdate = true;
+        mesh.geometry.attributes.highlight.array.set(array);
+        mesh.geometry.attributes.highlight.needsUpdate = true;
         */
 
-		this.dispatchEvent('update_highlight', {element});
-	},
+        this.dispatchEvent('update_highlight', { element });
+    },
 })
