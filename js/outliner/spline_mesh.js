@@ -59,6 +59,49 @@ class SplineHandle {
 new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
+class SplineFace {
+    constructor(spline, data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].reset(this);
+		}
+		this.spline = spline;
+		this.texture = false;
+		if (data) {
+			this.extend(data);
+		}
+    }
+	get element() {
+		return this.spline;
+	}
+	extend(data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].merge(this, data)
+		}
+        if (data.vertices) this.vertices = data.vertices;
+        if (data.normals) this.normals = data.normals;
+        if (data.indices) this.indices = data.indices;
+		return this;
+	}
+	getSaveCopy() {
+		let copy = {
+            vertices: this.vertices,
+            normals: this.normals,
+            indices: this.indices
+        };
+
+		for (let key in this.constructor.properties) {
+			if (this[key] != this.constructor.properties[key].default) this.constructor.properties[key].copy(this, copy);
+		}
+
+		return copy;
+	}
+	getUndoCopy() {
+		let copy = new this.constructor(this.spline, this);
+		delete copy.spline;
+		return copy;
+	}
+}
+
 
 //TODO (in order of roadmap)
 
@@ -89,9 +132,11 @@ class SplineMesh extends OutlinerElement {
 
         this._static = {
             properties: {
-                handles: {}, // Points & controls of the spline
+                handles: {}, // Main component of the spline
+                vertices: {}, // Control points of the handles
                 curves: {}, // Segments of the spline
-                vertices: {} // Dummy for raycaster to be able to grab handle points (broken atm ??)
+                curve_vertices: {},
+                faces: {} // Uses curve_vertices
             }
         }
         Object.freeze(this._static);
@@ -118,12 +163,17 @@ class SplineMesh extends OutlinerElement {
             this.addHandles( new SplineHandle( this, { control1: vertex_keys[12], origin: vertex_keys[13], control2: vertex_keys[14] } ) )
             let handle_keys = Object.keys(this.handles);
 
+            // Objects representing Cubic bézier curves (P1, P2, P3, P4)
             this.addCurves(
                 [handle_keys[0], handle_keys[1]], //  )
                 [handle_keys[1], handle_keys[2]], // (
                 [handle_keys[2], handle_keys[3]], //  )
                 [handle_keys[3], handle_keys[4]]  // (
             );
+            let curve_keys = Object.keys(this.curves);
+
+            // Vertices to be used in the curve's tube mesh
+            // this.addCurveVertices(curve_keys);
         }
         for (var key in SplineMesh.properties) {
             SplineMesh.properties[key].reset(this);
@@ -131,6 +181,7 @@ class SplineMesh extends OutlinerElement {
         if (data && typeof data === 'object') {
             this.extend(data)
         }
+        // console.log(this.curve_vertices);
     }
     get vertices() {
         return this._static.properties.vertices;
@@ -176,8 +227,8 @@ class SplineMesh extends OutlinerElement {
             return key;
         })
     }
-    addCurves(...data) {
-        return data.map(handles => {
+    addCurves(...handle_arrays) {
+        return handle_arrays.map(array => {
             let key;
             while (!key || this.curves[key]) {
                 key = bbuid(4);
@@ -186,14 +237,60 @@ class SplineMesh extends OutlinerElement {
             // Curves are defined by their handles
             // point & control 2 of handle 1 at the start
             // point & control 1 of handle 2 at the end
-            let handle1 = this.handles[handles[0]];
-            let handle2 = this.handles[handles[1]];
+            let handle1 = this.handles[array[0]];
+            let handle2 = this.handles[array[1]];
             this.curves[key] = {
                 start: handle1.origin,
                 start_ctrl: handle1.control2,
                 end_ctrl: handle2.control1,
                 end: handle2.origin
             };
+            return key;
+        })
+    }
+    addCurveVertices(...curve_keys) {
+        let radialSegments = this.resolution[0];
+        let vertex = new THREE.Vector3();
+        let point = new THREE.Vector3();
+        let normal = new THREE.Vector3();
+        let radius = 2;
+        
+        return curve_keys.map(key => {
+            let curve = this.getCurveAsBezier(key);
+            let tubularSegments = element.resolution[1];
+            let frames = curve.computeFrenetFrames(tubularSegments, false);
+
+            for (let i = 0; i <= tubularSegments; i++) {
+			    // we use getPointAt to sample evenly distributed points from the given path
+			    point = curve.getPointAt( i / tubularSegments, point );
+
+			    // retrieve corresponding normal and binormal
+			    let frameNormal = frames.normals[ i ];
+			    let frameBiNormal = frames.binormals[ i ];
+
+			    // generate normals and vertices for the current segment
+			    for ( let j = 0; j <= radialSegments; j ++ ) {
+			    	let v = j / radialSegments * Math.PI * 2;
+			    	let sin = Math.sin( v );
+			    	let cos = - Math.cos( v );
+
+			    	// normal
+			    	normal.x = ( cos * frameNormal.x + sin * frameBiNormal.x );
+			    	normal.y = ( cos * frameNormal.y + sin * frameBiNormal.y );
+			    	normal.z = ( cos * frameNormal.z + sin * frameBiNormal.z );
+
+			    	// vertex
+			    	vertex.x = point.x + radius * normal.x;
+			    	vertex.y = point.y + radius * normal.y;
+			    	vertex.z = point.z + radius * normal.z;
+
+                    // Add to object
+                    while (!key || this.curve_vertices[key]) {
+                        key = bbuid(4);
+                    }
+			    	this.curve_vertices[key] = vertex.toArray();
+			    }
+            }
         })
     }
     extend(object) {
@@ -297,9 +394,34 @@ class SplineMesh extends OutlinerElement {
     }
     setColor(index) {
         this.color = index;
+		if (this.visibility) {
+			this.preview_controller.updateFaces(this);
+		}
+    }
+    getCurvePath() {
+        let curvePath = new THREE.CurvePath()
+        for (let key in this.curves) {
+            let curve = this.getCurveAsBezier(key);
+            curvePath.curves.push(curve);
+        }
+        return curvePath;
+    }
+    getCurveAsBezier(key) {
+        let points = this.curves[key];
+        let curve = this.getBezierForVertices( points.start, points.start_ctrl, points.end_ctrl, points.end );
+        return curve;
+    }
+    getBezierForVertices(start_key, start_control_key, end_control_key, end_key) {
+        let curve = new THREE.CubicBezierCurve3( 
+            new THREE.Vector3().fromArray(this.vertices[start_key]), 
+            new THREE.Vector3().fromArray(this.vertices[start_control_key]), 
+            new THREE.Vector3().fromArray(this.vertices[end_control_key]), 
+            new THREE.Vector3().fromArray(this.vertices[end_key]) 
+        );
+        return curve;
     }
 	getSelectedVertices(make) {
-		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: []};
+		if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = {vertices: [], handles: []};
         let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
 
         // Force select control points when an handle origin is selected
@@ -534,6 +656,7 @@ new NodePreviewController(SplineMesh, {
         // Update
         this.updateTransform(element);
         this.updateGeometry(element);
+        this.updateFaces(element);
         this.updateRenderOrder(element);
         mesh.visible = element.visibility;
 
@@ -547,86 +670,57 @@ new NodePreviewController(SplineMesh, {
         let { curves, handles, vertices } = element;
 
         // Handle geometry
+        // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
         let handle_color_aligned = [1.0, 1.0, 0.0];
         let handle_color_free = [1.0, 0.0, 1.0];
         for (let key in handles) {
             let handle = handles[key];
-            point_positions.push(...vertices[handle.control1]);
-            point_positions.push(...vertices[handle.origin]);
-            point_positions.push(...vertices[handle.control2]);
+            let ctrl1 = handle.control1;
+            let origin = handle.origin;
+            let ctrl2 = handle.control2;
+            point_positions.push(...vertices[ctrl1], ...vertices[origin], ...vertices[ctrl2]);
 
             // Add handle lines
             if (BarItems.spline_selection_mode.value == 'handles') {
-                line_points.push(...vertices[handle.control1]);
-                line_points.push(...vertices[handle.origin]);
-                line_points.push(...vertices[handle.origin]);
-                line_points.push(...vertices[handle.control2]);
+                line_points.push(...vertices[ctrl1], ...vertices[origin], ...vertices[origin], ...vertices[ctrl2]);
     
                 // Handle color
                 let color = handle_color_aligned;
                 if (BarItems.spline_handle_mode.value === "free") color = handle_color_free;
-                line_colors.push(...color);
-                line_colors.push(...color);
-                line_colors.push(...color);
-                line_colors.push(...color);
+                line_colors.push(...color, ...color, ...color, ...color);
             }
         }
 
         // Bezier Curves
         let curve_color = [gizmo_colors.solid.r, gizmo_colors.solid.g, gizmo_colors.solid.b];
-        let curvePath = new THREE.CurvePath()
-        for (let key in curves) {
-            let data = curves[key];
-            let curve = new THREE.CubicBezierCurve3(
-                new THREE.Vector3().fromArray(vertices[data.start]),
-                new THREE.Vector3().fromArray(vertices[data.start_ctrl]),
-                new THREE.Vector3().fromArray(vertices[data.end_ctrl]),
-                new THREE.Vector3().fromArray(vertices[data.end])
-            );
-            curvePath.curves.push(curve);
-            let curve_points = curvePath.getPoints(element.resolution[1])
-
-            curve_points.forEach((vector, i) => {
-                line_points.push(...[vector.x, vector.y, vector.z]);
-                line_colors.push(...curve_color)
-
-                // Do this weird stuff, because lines don't render properly if
-                // each point that isn't the start or end isn't duplicate.
-                // So we add the same point as above a second time,
-                // except for the very first and very last.
-                // ----
-                // Later note: this is likely because I don't inject any 
-                // indices, thus my vertices cannot be re-used. TODO
-                if (i > 0 && i < (curve_points.length - 1)) {
-                    line_points.push(...[vector.x, vector.y, vector.z]);
-                    line_colors.push(...curve_color)
-                }
+        let addPoints = function(points) {
+            points.forEach((vector, i) => {
+                let shouldDouble = i > 0 && i < (points.length - 1); // Band-aid because I don't calculate indices for outlines.
+                line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
+                line_colors.push(...curve_color, ...(shouldDouble ? curve_color : []))
             })
         }
+        let curvePath = element.getCurvePath();
+        let curve_points = curvePath.getPoints(element.resolution[1])
+        addPoints(curve_points);
+
+        // Add another curve to the mesh if this spline is cyclic
         if (element.cyclic) {
             let firsthandle = element.getFirstHandle();
             let lasthandle = element.getLastHandle();
-            let curve = new THREE.CubicBezierCurve3(
-                new THREE.Vector3().fromArray(vertices[lasthandle.origin]),
-                new THREE.Vector3().fromArray(vertices[lasthandle.control2]),
-                new THREE.Vector3().fromArray(vertices[firsthandle.control1]),
-                new THREE.Vector3().fromArray(vertices[firsthandle.origin])
-            );
-            let curve_points = curve.getPoints(element.resolution[1])    ;       
-
-            curve_points.forEach((vector, i) => {
-                line_points.push(...[vector.x, vector.y, vector.z]);
-                line_colors.push(...curve_color);
-
-                if (i > 0 && i < (curve_points.length - 1)) {
-                    line_points.push(...[vector.x, vector.y, vector.z]);
-                    line_colors.push(...curve_color);
-                }
-            })
+            let curve = element.getBezierForVertices( lasthandle.origin, lasthandle.control2, firsthandle.control1, firsthandle.origin );
+            let curve_points = curve.getPoints(element.resolution[1]);
+            addPoints(curve_points);
         }
-        let tube = new THREE.TubeGeometry(curvePath, element.resolution[1] * curvePath.curves.length, 2, element.resolution[0]);
 
-		// mesh.geometry = tube;
+        // Build tube geometry
+        let tube = this.generateTube(element);
+
+        // Finalize
+		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+		mesh.geometry.setIndex(tube.indices);
+		// mesh.geometry.computeVertexNormals(false);
         
 		// mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
@@ -643,6 +737,85 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_geometry', { element });
     },
+	generateTube(element) {
+        let radialSegments = element.resolution[0];
+        let { curves } = element; 
+        let normals = [];
+        let vertices = [];
+        let indices = [];
+        let vertex = new THREE.Vector3();
+        let point = new THREE.Vector3();
+        let normal = new THREE.Vector3();
+        let radius = 2;
+        
+        let totalTubularSegments = 0;
+        for (let key in curves) {
+            let curve = element.getCurveAsBezier(key);
+            let localTubularSegments = element.resolution[1];
+            let frames = curve.computeFrenetFrames(localTubularSegments, false);
+
+            for (let i = 0; i <= localTubularSegments; i++) {
+			    // we use getPointAt to sample evenly distributed points from the given path
+			    point = curve.getPointAt( i / localTubularSegments, point );
+
+			    // retrieve corresponding normal and binormal
+			    let frameNormal = frames.normals[ i ];
+			    let frameBiNormal = frames.binormals[ i ];
+
+			    // generate normals and vertices for the current segment
+			    for ( let j = 0; j <= radialSegments; j ++ ) {
+			    	let v = j / radialSegments * Math.PI * 2;
+			    	let sin = Math.sin( v );
+			    	let cos = - Math.cos( v );
+
+			    	// normal
+			    	normal.x = ( cos * frameNormal.x + sin * frameBiNormal.x );
+			    	normal.y = ( cos * frameNormal.y + sin * frameBiNormal.y );
+			    	normal.z = ( cos * frameNormal.z + sin * frameBiNormal.z );
+			    	normal.normalize();
+			    	normals.push( normal.x, normal.y, normal.z );
+
+			    	// vertex
+			    	vertex.x = point.x + radius * normal.x;
+			    	vertex.y = point.y + radius * normal.y;
+			    	vertex.z = point.z + radius * normal.z;
+			    	vertices.push( vertex.x, vertex.y, vertex.z );
+			    }
+            }
+            totalTubularSegments += localTubularSegments + 1;
+        }
+
+        for (let ts = 1; ts <= totalTubularSegments - 1; ts++) {
+            for (let rs = 1; rs <= radialSegments; rs++) {
+                let a = (radialSegments + 1) * ( ts - 1 ) + ( rs - 1 );
+                let b = (radialSegments + 1) * ts + ( rs - 1 );
+                let c = (radialSegments + 1) * ts + rs;
+                let d = (radialSegments + 1) * ( ts - 1 ) + rs;
+
+                // faces
+                indices.push( a, b, d );
+                indices.push( b, c, d );
+            }
+        }
+
+        return {
+            normals: normals,
+            vertices: vertices,
+            indices: indices
+        };
+
+	},
+	updateFaces(element) {
+		let {mesh} = element;
+
+		if (Project.view_mode === 'solid')                  mesh.material = Canvas.monochromaticSolidMaterial
+		else if (Project.view_mode === 'colored_solid')     mesh.material = Canvas.coloredSolidMaterials[element.color]
+		else if (Project.view_mode === 'wireframe')         mesh.material = Canvas.wireframeMaterial
+		else if (Project.view_mode === 'normal')            mesh.material = Canvas.normalHelperMaterial
+		else if (Project.view_mode === 'uv')                mesh.material = Canvas.uvHelperMaterial
+
+		this.dispatchEvent('update_faces', {element});
+	},
     // This is code smell, majorly copied from mesh.js, I'm still unsure of how it works
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection.call(this, element);
