@@ -740,47 +740,39 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_geometry', { element });
     },
+    // TODO: Implement ring orientation, based on the previous point & next point's angle with for center the current point.
+    // https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
     generateTube(element) {
         let radialSegments = element.resolution[0];
-        let normals = [];
         let vertices = [];
         let indices = [];
         let vertex = new THREE.Vector3();
         let point = new THREE.Vector3();
-        let normal = new THREE.Vector3();
         let radius = 2;
 
         let curve = element.getCurvePath();
         let tubePoints = curve.getPoints(element.resolution[1]);
-        let frames = curve.computeFrenetFrames(tubePoints.length, false);
 
-        // These loop are a reproduction of a part inside THREEjs's "TubeGeometry" class
-        //
         for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
             // we use getPointAt to sample evenly distributed points from the given path
             point = tubePoints[ts];
+            
+            // Check if we're at a sub-curve extremity
+            let isCurveExtremity = ts % element.resolution[1] == 0;
 
-            // retrieve corresponding normal and binormal
-            let frameNormal = frames.normals[ts];
-            let frameBiNormal = frames.binormals[ts];
+            // Angle between prev & next tube points, centered on the current point
+            let pointAngle = arccos((P12^2 + P13^2 - P23^2) / (2 * P12 * P13))
 
             // generate normals and vertices for the current point
             for (let rs = 0; rs <= radialSegments; rs++) {
-                let v = rs / radialSegments * Math.PI * 2;
-                let sin = Math.sin(v);
-                let cos = - Math.cos(v);
-
-                // normal
-                normal.x = (cos * frameNormal.x + sin * frameBiNormal.x);
-                normal.y = (cos * frameNormal.y + sin * frameBiNormal.y);
-                normal.z = (cos * frameNormal.z + sin * frameBiNormal.z);
-                normal.normalize();
-                normals.push(normal.x, normal.y, normal.z);
+                let angle = rs / radialSegments * Math.PI * 2;
+                let cos = -Math.cos(angle);
+                let sin = Math.sin(angle);
 
                 // vertex
-                vertex.x = point.x + radius * normal.x;
-                vertex.y = point.y + radius * normal.y;
-                vertex.z = point.z + radius * normal.z;
+                vertex.x = point.x + 0.0;
+                vertex.y = point.y + cos * radius;
+                vertex.z = point.z + sin * radius;
                 vertices.push(vertex.x, vertex.y, vertex.z);
 
                 // face indices, so we can render them properly
@@ -795,7 +787,6 @@ new NodePreviewController(SplineMesh, {
         }
 
         return {
-            normals: normals,
             vertices: vertices,
             indices: indices
         };
