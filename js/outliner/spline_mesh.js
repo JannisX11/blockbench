@@ -265,28 +265,30 @@ class SplineMesh extends OutlinerElement {
         let tubePoints = curve.getPoints(this.resolution[1]);
 
         for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
-            // we use getPointAt to sample evenly distributed points from the given path
+            // Grab the current point from the points array
             point = tubePoints[ts];
             
             // Check if we're at a sub-curve extremity
             let isCurveExtremity = ts % this.resolution[1] == 0;
 
-            // Angle between prev & next tube points, centered on the current point
+            // TODO: Angle between prev & next tube points, centered on the current point
             // let pointAngle = arccos((P12^2 + P13^2 - P23^2) / (2 * P12 * P13))
 
-            // generate normals and vertices for the current point
+            // generate normals (TODO), Face Indices and Vertices for the current point
             for (let rs = 0; rs <= radialSegments; rs++) {
                 let angle = rs / radialSegments * Math.PI * 2;
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
 
-                // vertex
+                // Generate base rings, all aligned on the same axis for now.
                 vertex.x = point.x + 0.0;
                 vertex.y = point.y + cos * radius;
                 vertex.z = point.z + sin * radius;
+
+                // Finalize vertices & push em
                 vertices.push(vertex.x, vertex.y, vertex.z);
 
-                // face indices, so we can render them properly
+                // Face indices, so we can render them properly
                 if (ts == 0 || rs == 0) continue; // indice counters need to start at 1
                 let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
                 let b = (radialSegments + 1) * ts + (rs - 1);
@@ -677,7 +679,7 @@ new NodePreviewController(SplineMesh, {
         let point_positions = [];
         let line_points = [];
         let line_colors = [];
-        let { curves, handles, vertices } = element;
+        let { handles, vertices } = element;
 
         // Handle geometry
         // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
