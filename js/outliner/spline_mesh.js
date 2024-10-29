@@ -251,50 +251,57 @@ class SplineMesh extends OutlinerElement {
             return key;
         })
     }
-    addCurveVertices(...curve_keys) {
+    // TODO: Implement ring orientation, based on the previous point & next point's angle with for center the current point.
+    // https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
+    getTubeGeo() {
         let radialSegments = this.resolution[0];
+        let vertices = [];
+        let indices = [];
         let vertex = new THREE.Vector3();
         let point = new THREE.Vector3();
-        let normal = new THREE.Vector3();
         let radius = 2;
 
-        return curve_keys.map(key => {
-            let curve = this.getCurveAsBezier(key);
-            let tubularSegments = element.resolution[1];
-            let frames = curve.computeFrenetFrames(tubularSegments, false);
+        let curve = this.getCurvePath();
+        let tubePoints = curve.getPoints(this.resolution[1]);
 
-            for (let i = 0; i <= tubularSegments; i++) {
-                // we use getPointAt to sample evenly distributed points from the given path
-                point = curve.getPointAt(i / tubularSegments, point);
+        for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
+            // we use getPointAt to sample evenly distributed points from the given path
+            point = tubePoints[ts];
+            
+            // Check if we're at a sub-curve extremity
+            let isCurveExtremity = ts % this.resolution[1] == 0;
 
-                // retrieve corresponding normal and binormal
-                let frameNormal = frames.normals[i];
-                let frameBiNormal = frames.binormals[i];
+            // Angle between prev & next tube points, centered on the current point
+            // let pointAngle = arccos((P12^2 + P13^2 - P23^2) / (2 * P12 * P13))
 
-                // generate normals and vertices for the current segment
-                for (let j = 0; j <= radialSegments; j++) {
-                    let v = j / radialSegments * Math.PI * 2;
-                    let sin = Math.sin(v);
-                    let cos = - Math.cos(v);
+            // generate normals and vertices for the current point
+            for (let rs = 0; rs <= radialSegments; rs++) {
+                let angle = rs / radialSegments * Math.PI * 2;
+                let cos = -Math.cos(angle);
+                let sin = Math.sin(angle);
 
-                    // normal
-                    normal.x = (cos * frameNormal.x + sin * frameBiNormal.x);
-                    normal.y = (cos * frameNormal.y + sin * frameBiNormal.y);
-                    normal.z = (cos * frameNormal.z + sin * frameBiNormal.z);
+                // vertex
+                vertex.x = point.x + 0.0;
+                vertex.y = point.y + cos * radius;
+                vertex.z = point.z + sin * radius;
+                vertices.push(vertex.x, vertex.y, vertex.z);
 
-                    // vertex
-                    vertex.x = point.x + radius * normal.x;
-                    vertex.y = point.y + radius * normal.y;
-                    vertex.z = point.z + radius * normal.z;
-
-                    // Add to object
-                    while (!key || this.curve_vertices[key]) {
-                        key = bbuid(4);
-                    }
-                    this.curve_vertices[key] = vertex.toArray();
-                }
+                // face indices, so we can render them properly
+                if (ts == 0 || rs == 0) continue; // indice counters need to start at 1
+                let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
+                let b = (radialSegments + 1) * ts + (rs - 1);
+                let c = (radialSegments + 1) * ts + rs;
+                let d = (radialSegments + 1) * (ts - 1) + rs;
+                indices.push(a, b, d);
+                indices.push(b, c, d);
             }
-        })
+        }
+
+        return {
+            vertices: vertices,
+            indices: indices
+        };
+
     }
     extend(object) {
         for (var key in SplineMesh.properties) {
@@ -717,7 +724,7 @@ new NodePreviewController(SplineMesh, {
         }
 
         // Build tube geometry
-        let tube = this.generateTube(element);
+        let tube = element.getTubeGeo();
 
         // Finalize
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
@@ -739,58 +746,6 @@ new NodePreviewController(SplineMesh, {
         // SplineMesh.preview_controller.updateHighlight(element);
 
         this.dispatchEvent('update_geometry', { element });
-    },
-    // TODO: Implement ring orientation, based on the previous point & next point's angle with for center the current point.
-    // https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
-    generateTube(element) {
-        let radialSegments = element.resolution[0];
-        let vertices = [];
-        let indices = [];
-        let vertex = new THREE.Vector3();
-        let point = new THREE.Vector3();
-        let radius = 2;
-
-        let curve = element.getCurvePath();
-        let tubePoints = curve.getPoints(element.resolution[1]);
-
-        for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
-            // we use getPointAt to sample evenly distributed points from the given path
-            point = tubePoints[ts];
-            
-            // Check if we're at a sub-curve extremity
-            let isCurveExtremity = ts % element.resolution[1] == 0;
-
-            // Angle between prev & next tube points, centered on the current point
-            let pointAngle = arccos((P12^2 + P13^2 - P23^2) / (2 * P12 * P13))
-
-            // generate normals and vertices for the current point
-            for (let rs = 0; rs <= radialSegments; rs++) {
-                let angle = rs / radialSegments * Math.PI * 2;
-                let cos = -Math.cos(angle);
-                let sin = Math.sin(angle);
-
-                // vertex
-                vertex.x = point.x + 0.0;
-                vertex.y = point.y + cos * radius;
-                vertex.z = point.z + sin * radius;
-                vertices.push(vertex.x, vertex.y, vertex.z);
-
-                // face indices, so we can render them properly
-                if (ts == 0 || rs == 0) continue; // indice counters need to start at 1
-                let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
-                let b = (radialSegments + 1) * ts + (rs - 1);
-                let c = (radialSegments + 1) * ts + rs;
-                let d = (radialSegments + 1) * (ts - 1) + rs;
-                indices.push(a, b, d);
-                indices.push(b, c, d);
-            }
-        }
-
-        return {
-            vertices: vertices,
-            indices: indices
-        };
-
     },
     updateFaces(element) {
         let { mesh } = element;
