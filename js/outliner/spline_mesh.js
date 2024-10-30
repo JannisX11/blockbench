@@ -267,12 +267,21 @@ class SplineMesh extends OutlinerElement {
         for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
             // Grab the current point from the points array
             point = tubePoints[ts];
-            
+
             // Check if we're at a sub-curve extremity
             let isCurveExtremity = ts % this.resolution[1] == 0;
 
-            // TODO: Angle between prev & next tube points, centered on the current point
-            // let pointAngle = arccos((P12^2 + P13^2 - P23^2) / (2 * P12 * P13))
+            // Build a matrix between prev & next tube points
+            let P1 = new THREE.Vector3().copy(tubePoints[ts - 1] || point); // Copy previous point into new vector
+            let P2 = new THREE.Vector3().copy(tubePoints[ts + 1] || point); // Copy next point into new vector
+            let direction = P2.sub(P1).normalize();
+            let angleY = -Math.atan(direction.z / direction.x);
+            // if (direction.z < 0) angleY += Math.PI;
+            let angleZ = Math.atan(direction.y / direction.x);
+            // if (direction.y < 0) angleZ += Math.PI;
+            let matrixY = new THREE.Matrix4().makeRotationY(angleY);
+            let matrixZ = new THREE.Matrix4().makeRotationZ(angleZ);
+            let matrix = matrixZ.multiply(matrixY);
 
             // generate normals (TODO), Face Indices and Vertices for the current point
             for (let rs = 0; rs <= radialSegments; rs++) {
@@ -280,12 +289,14 @@ class SplineMesh extends OutlinerElement {
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
 
-                // Generate base rings, all aligned on the same axis for now.
-                vertex.x = point.x + 0.0;
-                vertex.y = point.y + cos * radius;
-                vertex.z = point.z + sin * radius;
+                // Generate base rings, at scene origin, all aligned on one axis.
+                vertex.x = 0.0;
+                vertex.y = cos * radius;
+                vertex.z = sin * radius;
 
                 // Finalize vertices & push em
+                vertex.applyMatrix4(matrix);
+                vertex.add(point);
                 vertices.push(vertex.x, vertex.y, vertex.z);
 
                 // Face indices, so we can render them properly
