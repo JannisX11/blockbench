@@ -1113,7 +1113,7 @@ class Preview {
 
 			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
-			brush_matrix.multiply(matrix_offset, brush_matrix);
+			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
 			//size
 			let brush_scale = new THREE.Vector3().setFromMatrixScale(brush_matrix);
@@ -1138,7 +1138,7 @@ class Preview {
 			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
 			brush_matrix.scale(scale);
 
-			brush_matrix.multiply(intersect.object.matrix, brush_matrix);
+			brush_matrix.multiplyMatrices(intersect.object.matrix, brush_matrix);
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
