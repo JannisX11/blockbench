@@ -356,6 +356,10 @@
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
 
+		--color-spline-handle-aligned: #fb09fb;
+		--color-spline-handle-mirrored: #ffc400;
+		--color-spline-handle-free: #04f1ce;
+
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';

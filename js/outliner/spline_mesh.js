@@ -237,9 +237,7 @@ class SplineMesh extends OutlinerElement {
             let P2 = new THREE.Vector3().copy(tubePoints[ts + 1] || point); // Copy next point into new vector
             let direction = P2.sub(P1).normalize();
             let angleY = -Math.atan(direction.z / direction.x);
-            // if (direction.z < 0) angleY += Math.PI;
             let angleZ = Math.atan(direction.y / direction.x);
-            // if (direction.y < 0) angleZ += Math.PI;
             let matrixY = new THREE.Matrix4().makeRotationY(angleY);
             let matrixZ = new THREE.Matrix4().makeRotationZ(angleZ);
             let matrix = matrixZ.multiply(matrixY);
@@ -277,6 +275,7 @@ class SplineMesh extends OutlinerElement {
         }
 
         // Normals (broken atm)
+        /*
         for (let ts = 1; ts <= tubePoints.length - 1; ts++) {
             for (let rs = 1; rs <= radialSegments; rs++) {
                 let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
@@ -306,6 +305,7 @@ class SplineMesh extends OutlinerElement {
                 normals.push(...faceNormal, ...faceNormal, ...faceNormal, ...faceNormal);
             }
         }
+        */
 
         return {
             vertices: vertices,
@@ -692,9 +692,6 @@ new NodePreviewController(SplineMesh, {
 
         // Handle geometry
         // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
-        let handle_color_mirror = [0.25, 1.0, 0.0];
-        let handle_color_aligned = [1.0, 0.75, 0.0];
-        let handle_color_free = [1.0, 0.25, 0.0];
         for (let key in handles) {
             let handle = handles[key];
             let ctrl1 = handle.control1;
@@ -707,9 +704,23 @@ new NodePreviewController(SplineMesh, {
                 line_points.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
 
                 // Handle color
-                let color = handle_color_aligned;
-                if (BarItems.spline_handle_mode.value === "free") color = handle_color_free;
-                else if (BarItems.spline_handle_mode.value === "mirrored") color = handle_color_mirror;
+                let color = [
+                    gizmo_colors.spline_handle_aligned.r, 
+                    gizmo_colors.spline_handle_aligned.g, 
+                    gizmo_colors.spline_handle_aligned.b
+                ];
+                if (BarItems.spline_handle_mode.value === "free")
+                    color = [
+                        gizmo_colors.spline_handle_free.r, 
+                        gizmo_colors.spline_handle_free.g, 
+                        gizmo_colors.spline_handle_free.b
+                    ];
+                else if (BarItems.spline_handle_mode.value === "mirrored")
+                    color = [
+                        gizmo_colors.spline_handle_mirrored.r, 
+                        gizmo_colors.spline_handle_mirrored.g, 
+                        gizmo_colors.spline_handle_mirrored.b
+                    ];
                 line_colors.push(...color, ...color, ...color, ...color);
             }
         }
@@ -738,9 +749,9 @@ new NodePreviewController(SplineMesh, {
 
         // Tube geometry
         let tube = element.getTubeGeo();
-        // mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-        // mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-        // mesh.geometry.setIndex(tube.indices);
+        mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+        mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+        mesh.geometry.setIndex(tube.indices);
 
         mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 

@@ -447,6 +447,9 @@ const CustomTheme = {
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
 			update(Canvas.brush_outline.material.color, '--color-brush-outline');
+			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
+			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
+			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();

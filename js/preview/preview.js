@@ -14,7 +14,10 @@ var gizmo_colors = {
 	grid: new THREE.Color(),
 	solid: new THREE.Color(),
 	outline: new THREE.Color(),
-	gizmo_hover: new THREE.Color()
+	gizmo_hover: new THREE.Color(),
+	spline_handle_aligned: new THREE.Color(),
+	spline_handle_mirrored: new THREE.Color(),
+	spline_handle_free: new THREE.Color(),
 }
 const DefaultCameraPresets = [
 	{
