@@ -61,16 +61,16 @@ class CubeFace extends Face {
 		uv[0] *= truncate_factor[0];
 		uv[1] *= truncate_factor[1];
 
-		let texelPos = this.UVToLocal(uv);
-		let texelRight = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
-		let texelUp = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+		let texel_pos = this.UVToLocal(uv);
+		let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
 
-		texelRight.sub(texelPos);
-		texelUp.sub(texelPos);
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
 
 		let matrix = new THREE.Matrix4();
-		matrix.makeBasis(texelRight, texelUp, new THREE.Vector3(0, 0, 1));
-		matrix.setPosition(texelPos);
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
 		return matrix;
 	}
 	UVToLocal(point) {
