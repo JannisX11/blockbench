@@ -634,10 +634,10 @@ function moveElementsInSpace(difference, axis) {
 							let to = V2.clone().normalize()
 							let quat = new THREE.Quaternion().setFromUnitVectors(from, to);
 							let aligned = V3.applyQuaternion(quat).add(V1);
-							let newVert = getInverseOfVec(aligned.toArray(), V1.toArray())
 
+							// Invert position to opposite orientation from selected handle
+							let newVert = getInverseOfVec(aligned.toArray(), V1.toArray())
 							el.vertices[oppositeKey] = newVert.toArray();
-							console.log(V3, newVert);
 						}
 					}
 				}
