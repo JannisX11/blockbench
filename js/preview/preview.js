@@ -1091,6 +1091,7 @@ class Preview {
 			if (texture.currentFrame) {
 				y -= texture.display_height * texture.currentFrame;
 			}
+
 			// Position
 			let brush_matrix = face.texelToLocalMatrix([x, y], offset, [uv_factor_x, uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
@@ -1100,7 +1101,7 @@ class Preview {
 				brush_coord.z += 8;
 			}
 
-			// z fighting
+			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
 			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
 			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
@@ -1111,7 +1112,7 @@ class Preview {
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
-			//size
+			// Size
 			let brush_scale = new THREE.Vector3().setFromMatrixScale(brush_matrix);
 			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.x;
 			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.y;
