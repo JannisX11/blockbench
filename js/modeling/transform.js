@@ -615,7 +615,7 @@ function moveElementsInSpace(difference, axis) {
 				for (let hkey in el.handles) {
 					let handle = el.handles[hkey];
 					let oppositeKey = getOppositeCtrl(handle);
-					if (vkey == handle.joint || !el.vertices[oppositeKey]) continue; // if OppositeKey is undefined, something went wrong
+					if (vkey == handle.joint || !el.vertices[oppositeKey]) continue; // if OppositeKey is undefined, something went wrong somehow.
 
 					// "mirrored" handle behavior, both controls mirror one another about the joint
 					if (BarItems.spline_handle_mode.value === "mirrored") {
