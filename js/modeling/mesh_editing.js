@@ -2990,6 +2990,11 @@ BARS.defineActions(function() {
 								}
 							})
 							mesh.addFaces(new_face);
+
+							// Multiple loop cuts
+							if (cut_no+1 < cuts) {
+								splitFace(face, [center_vertex, side_vertices[0]], double_side, cut_no+1);
+							}
 						}
 					}
 
