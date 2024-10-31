@@ -320,44 +320,34 @@ class MeshFace extends Face {
 			uv[1] *= truncate_factor[1];
 		}
 
-		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
-		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
+		function UVToLocal(uv) {
+			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
+			let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0;
+			let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0;
+			let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0;
 
-		let texelP1 = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
+			return new THREE.Vector3(
+				vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+				vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+				vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3
+			)
+		}
+
+		let texelPos = UVToLocal(uv);
 
 		uv[0] += 1 * truncate_factor[0];
-		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
-		let texelRight = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
+		let texelRight = UVToLocal(uv);
 
 		uv[0] -= 1 * truncate_factor[0];
 		uv[1] += 1 * truncate_factor[1];
-		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
-		let texelUp = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
+		let texelUp = UVToLocal(uv);
 
-		texelRight.sub(texelP1);
-		texelUp.sub(texelP1);
+		texelRight.sub(texelPos);
+		texelUp.sub(texelPos);
 
 		let matrix = new THREE.Matrix4();
 		matrix.makeBasis(texelRight, texelUp, new THREE.Vector3(0, 0, 1));
-		matrix.setPosition(texelP1);
+		matrix.setPosition(texelPos);
 		return matrix;
 	}
 	UVToLocal(uv, vertices = this.getSortedVertices()) {
