@@ -7168,7 +7168,68 @@ skin_presets.wolf = {
 skin_presets.zombie = {
 	display_name: 'Zombie',
 	pose: true,
-	model: `{
+	model_java: `{
+		"name": "zombie",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[9, 12, 2, 1],
+			[13, 12, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "Body",
+				"pivot": [0, 24, 0],
+				"cubes": [
+					{"name": "Body", "origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}
+				]
+			},
+			{
+				"name": "Head",
+				"pivot": [0, 24, 0],
+				"pose": [3, -10, 0],
+				"cubes": [
+					{"name": "Head", "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]},
+					{"name": "Hat Layer", "visibility": false, "origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [32, 0], "inflate": 0.5}
+				]
+			},
+			{
+				"name": "RightArm",
+				"pivot": [-5, 22, 0],
+				"pose": [-80, -5, 0],
+				"cubes": [
+					{"name": "RightArm", "origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+				]
+			},
+			{
+				"name": "LeftArm",
+				"pivot": [5, 22, 0],
+				"pose": [-75, 5, 0],
+				"mirror": true,
+				"cubes": [
+					{"name": "LeftArm", "origin": [4, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}
+				]
+			},
+			{
+				"name": "RightLeg",
+				"pivot": [-1.9, 12, 0],
+				"pose": [-25, 0, 5],
+				"cubes": [
+					{"name": "RightLeg", "origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
+				]
+			},
+			{
+				"name": "LeftLeg",
+				"pivot": [1.9, 12, 0],
+				"pose": [20, 0, 0],
+				"mirror": true,
+				"cubes": [
+					{"name": "LeftLeg", "origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}
+				]
+			}
+		]
+	}`,
+	model_bedrock: `{
 		"name": "zombie",
 		"texturewidth": 64,
 		"textureheight": 32,
