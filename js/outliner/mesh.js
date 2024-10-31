@@ -310,6 +310,7 @@ class MeshFace extends Face {
 		let vertexb = this.mesh.vertices[vert_b];
 		let vertexc = this.mesh.vertices[vert_c];
 
+		uv = [...uv];
 		if (typeof truncateOffset !== "undefined") {
 			uv[0] = Math.round(uv[0] + truncateOffset) - truncateOffset;
 			uv[1] = Math.round(uv[1] + truncateOffset) - truncateOffset;
