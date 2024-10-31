@@ -690,7 +690,49 @@ const Canvas = {
 			map: brush_img.tex,
 			transparent: true,
 			side: THREE.DoubleSide,
-			alphaTest: 0.2
+			alphaTest: 0.2,
+			polygonOffset: true,
+			polygonOffsetUnits: 1,
+			polygonOffsetFactor: -1,
+
+			onBeforeCompile: (shader) => {
+				shader.fragmentShader = 'uniform bool circleShape;\n' + shader.fragmentShader
+					.replace(`#include <map_fragment>`,
+					`
+					#ifdef USE_MAP
+						float outlineWidthMultiplier = 2.;
+						vec2 shapeUv = vUv.xy * 2. - 1.;
+
+						float circleDistOuter = 1. - length(shapeUv);
+						float circleOuter = circleDistOuter / (fwidth(circleDistOuter) == 0. ? 1. : fwidth(circleDistOuter));
+
+						vec2 squareDistOuter = 1. - abs(shapeUv);
+						vec2 squareTrimsOuter = squareDistOuter / fwidth(squareDistOuter);
+						float squareOuter = min(squareTrimsOuter.x, squareTrimsOuter.y);
+
+						vec2 dx = dFdx(vUv);
+						vec2 dy = dFdy(vUv);
+						float dxL = length(vec2(dx.x, dy.x));
+						float dyL = length(vec2(dx.y, dy.y));
+						vec2 adjust = 1. - vec2(dxL, dyL) * outlineWidthMultiplier;
+
+						float circleDistInner = 1. - length(shapeUv / adjust);
+						float circleInner = circleDistInner / (fwidth(circleDistInner) == 0. ? 1. : fwidth(circleDistInner));
+
+						vec2 squareDistInner = 1. - abs(shapeUv / adjust);
+						vec2 squareTrimsInner = squareDistInner / fwidth(squareDistInner);
+						float squareInner = min(squareTrimsInner.x, squareTrimsInner.y);
+
+						float circleOutline = clamp(min(circleOuter, 1. - circleInner), 0., 1.);
+						float squareOutline = clamp(min(squareOuter, 1. - squareInner), 0., 1.);
+
+						vec4 texelColor = vec4(1.);
+						texelColor.a = circleShape ? circleOutline : squareOutline;
+
+						diffuseColor *= texelColor;
+					#endif
+					`);
+			}
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 		Canvas.gizmos.push(Canvas.brush_outline);
