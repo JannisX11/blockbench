@@ -62,13 +62,8 @@ class CubeFace extends Face {
 		uv[1] *= truncate_factor[1];
 
 		let texelPos = this.UVToLocal(uv);
-
-		uv[0] += truncate_factor[0];
-		let texelRight = this.UVToLocal(uv);
-
-		uv[0] -= truncate_factor[0];
-		uv[1] += truncate_factor[1];
-		let texelUp = this.UVToLocal(uv);
+		let texelRight = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texelUp = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
 
 		texelRight.sub(texelPos);
 		texelUp.sub(texelPos);

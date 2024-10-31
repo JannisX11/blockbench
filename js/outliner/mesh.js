@@ -334,13 +334,8 @@ class MeshFace extends Face {
 		}
 
 		let texelPos = UVToLocal(uv);
-
-		uv[0] += 1 * truncate_factor[0];
-		let texelRight = UVToLocal(uv);
-
-		uv[0] -= 1 * truncate_factor[0];
-		uv[1] += 1 * truncate_factor[1];
-		let texelUp = UVToLocal(uv);
+		let texelRight = UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texelUp = UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
 
 		texelRight.sub(texelPos);
 		texelUp.sub(texelPos);
