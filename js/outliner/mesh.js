@@ -315,10 +315,10 @@ class MeshFace extends Face {
 		uv = [...uv];
 		if (typeof truncate_offset !== "undefined") {
 			uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
-			uv[0] *= truncate_factor[0];
 			uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
-			uv[1] *= truncate_factor[1];
 		}
+		uv[0] *= truncate_factor[0];
+		uv[1] *= truncate_factor[1];
 
 		function UVToLocal(uv) {
 			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
