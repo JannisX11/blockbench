@@ -288,13 +288,15 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	texelToLocalMatrix(uv, vertices = this.getSortedVertices(), truncate_offset) {
+	texelToLocalMatrix(uv, vertices = this.getSortedVertices(), truncate_offset, truncate_factor) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
 
+		let normalized_uv = [uv[0] * truncate_factor[0], uv[1] * truncate_factor[1]];
+
 		if (vertices[3]) {
-			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
+			let is_in_tri = pointInTriangle(normalized_uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
 
 			if (!is_in_tri) {
 				vert_a = vertices[0];
@@ -313,7 +315,9 @@ class MeshFace extends Face {
 		uv = [...uv];
 		if (typeof truncate_offset !== "undefined") {
 			uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
+			uv[0] *= truncate_factor[0];
 			uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
+			uv[1] *= truncate_factor[1];
 		}
 
 		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
@@ -327,7 +331,7 @@ class MeshFace extends Face {
 			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
 		)
 
-		uv[0] += 1;
+		uv[0] += 1 * truncate_factor[0];
 		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
 		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
 		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
@@ -337,8 +341,8 @@ class MeshFace extends Face {
 			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
 		)
 
-		uv[0] -= 1;
-		uv[1] += 1;
+		uv[0] -= 1 * truncate_factor[0];
+		uv[1] += 1 * truncate_factor[1];
 		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
 		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
 		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
