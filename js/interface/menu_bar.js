@@ -509,7 +509,6 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
@@ -528,6 +527,7 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
 		], {icon: 'help'})
 		MenuBar.update();
