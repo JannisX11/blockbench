@@ -2336,14 +2336,24 @@
 		align-items: center;
 		cursor: pointer;
 		padding: 2px;
+		position: relative;
 	}
 	.flipbook_frame:hover {
-		background-color: var(--color-hover);
 		color: var(--color-light);
+		background-color: var(--color-back);
+	}
+	.flipbook_frame.viewing::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 10px;
+		bottom: 10px;
+		border-top: 40px solid transparent;
+		border-bottom: 40px solid transparent;
+		border-left: 8px solid var(--color-accent);
 	}
 	.flipbook_frame.viewing {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
+		background-color: var(--color-back);
 	}
 	.flipbook_frame.selected {
 		background-color: var(--color-accent);
