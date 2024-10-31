@@ -52,6 +52,32 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
+	texelToLocalMatrix(uv, truncate_offset, truncate_factor) {
+		uv = [...uv];
+		if (typeof truncate_offset !== "undefined") {
+			uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
+			uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
+		}
+		uv[0] *= truncate_factor[0];
+		uv[1] *= truncate_factor[1];
+
+		let texelPos = this.UVToLocal(uv);
+
+		uv[0] += truncate_factor[0];
+		let texelRight = this.UVToLocal(uv);
+
+		uv[0] -= truncate_factor[0];
+		uv[1] += truncate_factor[1];
+		let texelUp = this.UVToLocal(uv);
+
+		texelRight.sub(texelPos);
+		texelUp.sub(texelPos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texelRight, texelUp, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texelPos);
+		return matrix;
+	}
 	UVToLocal(point) {
 		let from = this.cube.from.slice()
 		let to = this.cube.to.slice()
