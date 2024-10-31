@@ -683,6 +683,17 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('setup', { element });
     },
+    getHandleColor() {
+        let color = gizmo_colors.spline_handle_aligned;
+
+        if (BarItems.spline_handle_mode.value === "free")
+            color = gizmo_colors.spline_handle_free;
+        else if (BarItems.spline_handle_mode.value === "mirrored")
+            color = gizmo_colors.spline_handle_mirrored;
+
+        let colorArray = [ color.r, color.g, color.b ];
+        return [ colorArray, color ];
+    },
     updateGeometry(element) {
         let { mesh } = element;
         let point_positions = [];
@@ -704,34 +715,18 @@ new NodePreviewController(SplineMesh, {
                 line_points.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
 
                 // Handle color
-                let color = [
-                    gizmo_colors.spline_handle_aligned.r, 
-                    gizmo_colors.spline_handle_aligned.g, 
-                    gizmo_colors.spline_handle_aligned.b
-                ];
-                if (BarItems.spline_handle_mode.value === "free")
-                    color = [
-                        gizmo_colors.spline_handle_free.r, 
-                        gizmo_colors.spline_handle_free.g, 
-                        gizmo_colors.spline_handle_free.b
-                    ];
-                else if (BarItems.spline_handle_mode.value === "mirrored")
-                    color = [
-                        gizmo_colors.spline_handle_mirrored.r, 
-                        gizmo_colors.spline_handle_mirrored.g, 
-                        gizmo_colors.spline_handle_mirrored.b
-                    ];
+                let color = this.getHandleColor()[0];
                 line_colors.push(...color, ...color, ...color, ...color);
             }
         }
 
         // Bezier Curves
-        let curve_color = [gizmo_colors.solid.r, gizmo_colors.solid.g, gizmo_colors.solid.b];
+        let path_color = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
         let addPoints = function (points) {
             points.forEach((vector, i) => {
                 let shouldDouble = i > 0 && i < (points.length - 1); // Band-aid because I don't calculate indices for outlines.
                 line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
-                line_colors.push(...curve_color, ...(shouldDouble ? curve_color : []))
+                line_colors.push(...path_color, ...(shouldDouble ? path_color : []))
             })
         }
         let curvePath = element.getCurvePath();
@@ -764,7 +759,7 @@ new NodePreviewController(SplineMesh, {
 
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();
-        // SplineMesh.preview_controller.updateHighlight(element);
+        SplineMesh.preview_controller.updateHighlight(element);
 
         this.dispatchEvent('update_geometry', { element });
     },
@@ -794,7 +789,7 @@ new NodePreviewController(SplineMesh, {
                 if (selected_vertices.includes(key)) {
                     color = white;
                 } else {
-                    color = gizmo_colors.grid;
+                    color = this.getHandleColor()[1];
                 }
                 colors.push(color.r, color.g, color.b);
             }

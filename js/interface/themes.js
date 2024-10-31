@@ -450,6 +450,7 @@ const CustomTheme = {
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
 			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
 			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
+			update(gizmo_colors.spline_path, '--color-spline-path');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();
