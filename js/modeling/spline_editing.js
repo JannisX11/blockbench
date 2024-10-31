@@ -89,6 +89,7 @@ BARS.defineActions(function() {
 		value: 'aligned',
 		options: {
 			aligned: true,
+			mirrored: true,
 			free: true,
 		},
 		onChange() {

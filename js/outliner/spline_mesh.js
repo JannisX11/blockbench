@@ -304,7 +304,6 @@ class SplineMesh extends OutlinerElement {
                 let length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
                 let faceNormal = direction.map(dir => dir / length || 0);
                 normals.push(...faceNormal, ...faceNormal, ...faceNormal, ...faceNormal);
-                console.log(faceVertices);
             }
         }
 
@@ -693,8 +692,9 @@ new NodePreviewController(SplineMesh, {
 
         // Handle geometry
         // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
-        let handle_color_aligned = [1.0, 1.0, 0.0];
-        let handle_color_free = [1.0, 0.0, 1.0];
+        let handle_color_mirror = [0.25, 1.0, 0.0];
+        let handle_color_aligned = [1.0, 0.75, 0.0];
+        let handle_color_free = [1.0, 0.25, 0.0];
         for (let key in handles) {
             let handle = handles[key];
             let ctrl1 = handle.control1;
@@ -709,6 +709,7 @@ new NodePreviewController(SplineMesh, {
                 // Handle color
                 let color = handle_color_aligned;
                 if (BarItems.spline_handle_mode.value === "free") color = handle_color_free;
+                else if (BarItems.spline_handle_mode.value === "mirrored") color = handle_color_mirror;
                 line_colors.push(...color, ...color, ...color, ...color);
             }
         }
@@ -737,9 +738,9 @@ new NodePreviewController(SplineMesh, {
 
         // Tube geometry
         let tube = element.getTubeGeo();
-        mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-        mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-        mesh.geometry.setIndex(tube.indices);
+        // mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+        // mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+        // mesh.geometry.setIndex(tube.indices);
 
         mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
