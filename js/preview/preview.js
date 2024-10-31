@@ -1085,19 +1085,14 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
-			let mouse_uv_x = x;
-			let mouse_uv_y = y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
-				x = Math.round(x + offset) - offset;
-				y = Math.round(y + offset) - offset;
 			}
 			if (texture.currentFrame) {
 				y -= texture.display_height * texture.currentFrame;
-				mouse_uv_y -= texture.display_height * texture.currentFrame;
 			}
 			// Position
-			let brush_matrix = face.texelToLocalMatrix([mouse_uv_x, mouse_uv_y], face.getSortedVertices(), offset, [uv_factor_x, uv_factor_y]);
+			let brush_matrix = face.texelToLocalMatrix([x, y], face.getSortedVertices(), offset, [uv_factor_x, uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
