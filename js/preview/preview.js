@@ -1092,7 +1092,7 @@ class Preview {
 				y -= texture.display_height * texture.currentFrame;
 			}
 			// Position
-			let brush_matrix = face.texelToLocalMatrix([x, y], face.getSortedVertices(), offset, [uv_factor_x, uv_factor_y]);
+			let brush_matrix = face.texelToLocalMatrix([x, y], offset, [uv_factor_x, uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
