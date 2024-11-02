@@ -1922,7 +1922,7 @@ class Texture {
 						tex2.select();
 					} else {
 						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy();
+						let copy = texture.getUndoCopy(true);
 						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
 						// Sync
 						texture.sync_to_project = Project.uuid;
