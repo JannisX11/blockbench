@@ -719,24 +719,23 @@ const Canvas = {
 
 						float circleOutlineAA = circleOuterAA - circleInnerAA;
 
-						vec2 squareDistOuter = 1. - abs(shapeUv);
-						vec2 squareTrimsOuter = squareDistOuter / fwidth(squareDistOuter);
-						float squareOuter = min(squareTrimsOuter.x, squareTrimsOuter.y);
+						vec2 squareDist = 1. - abs(shapeUv);
+						vec2 squareDistX = 1. - abs(shapeUvX);
+						vec2 squareDistY = 1. - abs(shapeUvY);
+						vec2 squareDxX = squareDistX - squareDist;
+						vec2 squareDxY = squareDistY - squareDist;
 
-						vec2 dx = dFdx(vUv);
-						vec2 dy = dFdy(vUv);
-						float dxL = length(vec2(dx.x, dy.x));
-						float dyL = length(vec2(dx.y, dy.y));
-						vec2 adjust = 1. - vec2(dxL, dyL) * outlineWidthMultiplier;
+						vec2 squareSliceAA = squareDist / vec2(length(vec2(squareDxX.x, squareDxY.x)), length(vec2(squareDxX.y, squareDxY.y)));
 
-						vec2 squareDistInner = 1. - abs(shapeUv / adjust);
-						vec2 squareTrimsInner = squareDistInner / fwidth(squareDistInner);
-						float squareInner = min(squareTrimsInner.x, squareTrimsInner.y);
+						float squareOuterAA = min(squareSliceAA.x, squareSliceAA.y);
+						float squareInnerAA = min(squareSliceAA.x - outlineWidthMultiplier, squareSliceAA.y - outlineWidthMultiplier);
+						squareOuterAA = clamp(squareOuterAA, 0., 1.);
+						squareInnerAA = clamp(squareInnerAA, 0., 1.);
 
-						float squareOutline = clamp(min(squareOuter, 1. - squareInner), 0., 1.);
+						float squareOutlineAA = squareOuterAA - squareInnerAA;
 
 						vec4 texelColor = vec4(1.);
-						texelColor.a = circleShape ? circleOutlineAA : squareOutline;
+						texelColor.a = circleShape ? circleOutlineAA : squareOutlineAA;
 
 						diffuseColor *= texelColor;
 					#endif
