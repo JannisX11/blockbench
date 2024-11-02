@@ -703,8 +703,21 @@ const Canvas = {
 						float outlineWidthMultiplier = 2.;
 						vec2 shapeUv = vUv.xy * 2. - 1.;
 
-						float circleDistOuter = 1. - length(shapeUv);
-						float circleOuter = circleDistOuter / (fwidth(circleDistOuter) == 0. ? 1. : fwidth(circleDistOuter));
+						vec2 shapeUvX = shapeUv - dFdx(shapeUv);
+						vec2 shapeUvY = shapeUv - dFdy(shapeUv);
+
+						float circleDist = 1. - length(shapeUv);
+						float circleDistX = 1. - length(shapeUvX);
+						float circleDistY = 1. - length(shapeUvY);
+						float circleDx = circleDistX - circleDist;
+						float circleDy = circleDistY - circleDist;
+
+						float circleOuterAA = circleDist / length(vec2(circleDx, circleDy));
+						float circleInnerAA = circleOuterAA - outlineWidthMultiplier;
+						circleOuterAA = clamp(circleOuterAA, 0., 1.);
+						circleInnerAA = clamp(circleInnerAA, 0., 1.);
+
+						float circleOutlineAA = circleOuterAA - circleInnerAA;
 
 						vec2 squareDistOuter = 1. - abs(shapeUv);
 						vec2 squareTrimsOuter = squareDistOuter / fwidth(squareDistOuter);
@@ -716,18 +729,14 @@ const Canvas = {
 						float dyL = length(vec2(dx.y, dy.y));
 						vec2 adjust = 1. - vec2(dxL, dyL) * outlineWidthMultiplier;
 
-						float circleDistInner = 1. - length(shapeUv / adjust);
-						float circleInner = circleDistInner / (fwidth(circleDistInner) == 0. ? 1. : fwidth(circleDistInner));
-
 						vec2 squareDistInner = 1. - abs(shapeUv / adjust);
 						vec2 squareTrimsInner = squareDistInner / fwidth(squareDistInner);
 						float squareInner = min(squareTrimsInner.x, squareTrimsInner.y);
 
-						float circleOutline = clamp(min(circleOuter, 1. - circleInner), 0., 1.);
 						float squareOutline = clamp(min(squareOuter, 1. - squareInner), 0., 1.);
 
 						vec4 texelColor = vec4(1.);
-						texelColor.a = circleShape ? circleOutline : squareOutline;
+						texelColor.a = circleShape ? circleOutlineAA : squareOutline;
 
 						diffuseColor *= texelColor;
 					#endif
