@@ -2225,5 +2225,8 @@
 	"settings.java_export_pivots.desc": "Save pivot points in Java block/item models on cubes without rotation",
 	"animation_controllers.state.blend_transition_curve": "Blend Transition Curve",
 	"menu.slider.reset_vector": "Reset Vector",
-	"dialog.blend_transition_edit.extended": "Extended Graph"
+	"dialog.blend_transition_edit.extended": "Extended Graph",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection."
 }

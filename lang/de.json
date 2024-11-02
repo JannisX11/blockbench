@@ -2225,5 +2225,8 @@
 	"settings.java_export_pivots.desc": "Speichere Angelpunkte von Quadern ohne Drehung in Java Block/Item-Modellen",
 	"animation_controllers.state.blend_transition_curve": "Übergangskurve",
 	"menu.slider.reset_vector": "Vektor zurücksetzen",
-	"dialog.blend_transition_edit.extended": "Erweiterter Graph"
+	"dialog.blend_transition_edit.extended": "Erweiterter Graph",
+	"message.screenshot_too_large.title": "Problem mit der Auflösung",
+	"message.screenshot_too_large.message": "Das Bildschirmfoto konnte nicht korrekt aufgezeichnet werden. Versuche es mit einer geringeren Auflösung oder ohne Supersampling.",
+	"message.rename_elements.numbering": "Verwende Sonderzeichen, um eine Zahlenfolge zu generieren: % wird ersetzt durch den Index des Elements in dessen Gruppe, $ wird ersetzt durch den Index des Elements in der Auswahl."
 }
