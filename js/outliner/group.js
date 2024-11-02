@@ -311,6 +311,47 @@ class Group extends OutlinerNode {
 		Canvas.updatePositions()
 		return this;
 	}
+	roll(axis, steps, origin_arg) {
+		function rotateCoord(array, rotation_origin) {
+			var a, b;
+			array.forEach((s, i) => {
+				if (i == axis) return;
+				if (a == undefined) {
+					a = s - rotation_origin[i]
+					b = i
+				} else {
+					array[b] = s - rotation_origin[i]
+					array[b] = rotation_origin[b] - array[b]
+					array[i] = rotation_origin[i] + a;
+				}
+			})
+			return array
+		}
+		while (steps > 0) {
+			steps--;
+			if (origin_arg) {
+				rotateCoord(this.origin, origin_arg)
+			}
+		}
+		//Rotations
+		var i = 0;
+		var temp_rot = undefined;
+		var temp_i = undefined;
+		while (i < 3) {
+			if (i !== axis) {
+				if (temp_rot === undefined) {
+					temp_rot = this.rotation[i]
+					temp_i = i
+				} else {
+					this.rotation[temp_i] = -this.rotation[i]
+					this.rotation[i] = temp_rot
+				}
+			}
+			i++;
+		}
+		this.preview_controller.updateTransform(this);
+		return this;
+	}
 	sortContent() {
 		Undo.initEdit({outliner: true})
 		if (this.children.length < 1) return;

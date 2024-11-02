@@ -76,10 +76,11 @@ function moveElementsRelative(difference, index, event) { //Multiple
 //Rotate
 function rotateSelected(axis, steps) {
 	let affected = [...Cube.selected, ...Mesh.selected];
-	if (!affected.length) return;
-	Undo.initEdit({elements: affected});
+	let affect_groups = Group.selected && Format.bone_rig;
+	if (!affected.length && !affect_groups) return;
+	Undo.initEdit({elements: affected, outliner: affect_groups});
 	if (!steps) steps = 1
-	var origin = [8, 8, 8]
+	var origin = [8, 8, 8];
 	if (Group.selected && Format.bone_rig) {
 		origin = Group.selected.origin.slice()
 	} else if (Format.centered_grid) {
@@ -89,7 +90,11 @@ function rotateSelected(axis, steps) {
 	}
 	affected.forEach(function(obj) {
 		obj.roll(axis, steps, origin)
-	})
+	});
+	Group.all.forEach(group => {
+		if (!group.selected) return;
+		group.roll(axis, steps, origin);
+	});
 	updateSelection();
 	Undo.finishEdit('Rotate elements')
 }
