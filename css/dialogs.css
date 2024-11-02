@@ -1559,8 +1559,9 @@
 		overflow: hidden;
 		max-width: unset;
 	}
-	#plugin_browser_details {
+	.plugin_browser_tabbed_page {
 		padding: 8px 24px;
+		overflow-y: auto;
 	}
 	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
@@ -1568,10 +1569,6 @@
 	#plugin_browser_details td {
 		padding: 5px 2px;
 		line-height: 20px;
-	}
-	#plugin_browser_changelog {
-		padding: 4px 20px;
-		overflow-y: auto;
 	}
 	#plugin_browser_changelog > li {
 		padding: 7px 8px;
@@ -1607,12 +1604,6 @@
 		vertical-align: sub;
 		font-size: 20px;
 		margin-right: 2px;
-	}
-	#plugin_browser_page .settings_list {
-		padding: 4px 20px;
-	}
-	#plugin_browser_page .features_list {
-		padding: 4px 20px;
 	}
 	li.plugin_feature_entry {
 		display: flex;

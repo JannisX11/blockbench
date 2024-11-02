@@ -1402,7 +1402,7 @@ BARS.defineActions(function() {
 						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
 						</div>
 
-						<table v-if="page_tab == 'details'" id="plugin_browser_details">
+						<table v-if="page_tab == 'details'" id="plugin_browser_details" class="plugin_browser_tabbed_page">
 							<tbody>
 								<tr>
 									<td>Author</td>
@@ -1455,7 +1455,7 @@ BARS.defineActions(function() {
 							</tbody>
 						</table>
 
-						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog">
+						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog" class="plugin_browser_tabbed_page">
 							<li v-for="(version, key) in selected_plugin.changelog">
 								<h3>{{ version.title || key }}</h3>
 								<label class="plugin_changelog_author" v-if="version.author">{{ tl('dialog.plugins.author', [version.author]) }}</label>
@@ -1474,56 +1474,54 @@ BARS.defineActions(function() {
 							</li>
 						</ul>
 						
-						<div v-if="page_tab == 'settings'">
-							<ul class="settings_list">
-								<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
-									v-on="setting.click ? {click: setting.click} : {}"
-									@contextmenu="settingContextMenu(setting, $event)"
-								>
-									<template v-if="setting.type === 'number'">
-										<div class="setting_element"><numeric-input v-model.number="setting.master_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
-									</template>
-									<template v-else-if="setting.type === 'click'">
-										<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
-									</template>
-									<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-										<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
-									</template>
+						<ul class="settings_list plugin_browser_tabbed_page" v-if="page_tab == 'settings'">
+							<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
+								v-on="setting.click ? {click: setting.click} : {}"
+								@contextmenu="settingContextMenu(setting, $event)"
+							>
+								<template v-if="setting.type === 'number'">
+									<div class="setting_element"><numeric-input v-model.number="setting.master_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
+								</template>
+								<template v-else-if="setting.type === 'click'">
+									<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+								</template>
+								<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+									<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
+								</template>
 
-									<div class="setting_label">
-										<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
-										<div class="setting_profile_value_indicator"
-											v-for="profile_here in getProfileValuesForSetting(key)"
-											:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
-											:class="{active: profile_here.isActive()}"
-											:title="tl('Has override in profile ' + profile_here.name)"
-											@click.stop="openSettingInSettings(key, profile_here)"
-										/>
-										<div class="setting_description">{{ setting.description }}</div>
+								<div class="setting_label">
+									<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+									<div class="setting_profile_value_indicator"
+										v-for="profile_here in getProfileValuesForSetting(key)"
+										:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+										:class="{active: profile_here.isActive()}"
+										:title="tl('Has override in profile ' + profile_here.name)"
+										@click.stop="openSettingInSettings(key, profile_here)"
+									/>
+									<div class="setting_description">{{ setting.description }}</div>
+								</div>
+
+								<template v-if="setting.type === 'text'">
+									<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.master_value" @input="changePluginSetting(setting)">
+								</template>
+
+								<template v-if="setting.type === 'password'">
+									<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.master_value" @input="changePluginSetting(setting)">
+									<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+										<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+										<i class="fas fa-eye" v-else></i>
 									</div>
+								</template>
 
-									<template v-if="setting.type === 'text'">
-										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.master_value" @input="changePluginSetting(setting)">
-									</template>
-
-									<template v-if="setting.type === 'password'">
-										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.master_value" @input="changePluginSetting(setting)">
-										<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
-											<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
-											<i class="fas fa-eye" v-else></i>
-										</div>
-									</template>
-
-									<template v-else-if="setting.type === 'select'">
-										<div class="bar_select">
-											<select-input v-model="setting.master_value" :options="setting.options" @change="changePluginSetting"setting />
-										</div>
-									</template>
-								</li>
-							</ul>
-						</div>
+								<template v-else-if="setting.type === 'select'">
+									<div class="bar_select">
+										<select-input v-model="setting.master_value" :options="setting.options" @change="changePluginSetting"setting />
+									</div>
+								</template>
+							</li>
+						</ul>
 						
-						<ul v-if="page_tab == 'features'" class="features_list">
+						<ul v-if="page_tab == 'features'" class="features_list plugin_browser_tabbed_page">
 							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
 								<h4>{{ type.name }}</h4>
 								<ul>
