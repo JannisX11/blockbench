@@ -738,14 +738,11 @@
 		display: inline-block;
 		width: 20px;
 		height: 24px;
-		margin-top: -28px;
+		margin-top: -29px;
 		user-select: none;
 		margin-left: -42px;
 		overflow: hidden;
 		text-align: center;
-	}
-	div.nslide_arrow.na_right {
-		margin-left: 16px;
 	}
 	div.nslide.editing {
 		cursor: text;

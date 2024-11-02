@@ -23,6 +23,7 @@ class Panel extends EventSystem {
 		this.toolbars = [];
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
+		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
 		this.position_data = Interface.getModeData().panels[this.id];
 		let defaultp = this.default_position = data.default_position || 0;
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;

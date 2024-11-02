@@ -618,9 +618,8 @@ class Cube extends OutlinerElement {
 		return vertices.map(coords => {
 			vec.set(...coords.V3_subtract(this.origin));
 			vec.applyMatrix4( this.mesh.matrixWorld );
-			let arr = vec.toArray();
-			arr.V3_add(8, 0, 8);
-			return arr;
+			vec.sub(scene.position)
+			return vec.toArray();
 		})
 	}
 	setUVMode(box_uv) {

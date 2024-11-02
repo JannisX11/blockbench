@@ -389,11 +389,12 @@ const MenuBar = {
 
 		new BarMenu('timeline', Timeline.menu.structure, {
 			name: 'panel.timeline',
+			icon: 'timeline',
 			condition: {modes: ['animate'], method: () => !AnimationController.selected},
 			onOpen() {
 				setActivePanel('timeline');
 			}
-		}, {icon: 'timeline'})
+		})
 
 		new BarMenu('display', [
 			new MenuSeparator('copypaste'),
@@ -455,6 +456,7 @@ const MenuBar = {
 			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
+			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
 			new MenuSeparator('interface'),
@@ -507,7 +509,6 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
@@ -526,6 +527,7 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
 		], {icon: 'help'})
 		MenuBar.update();

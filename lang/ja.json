@@ -2054,8 +2054,8 @@
 	"message.plugin_deprecated.message": "このプラグインは推奨されていません、インストールしてもよろしいですか？",
 	"message.plugin_deprecated.install_anyway": "無視してインストール",
 	"message.image_editor.not_found": "選択した画像エディタが見つかりませんでした。別のオプションを選択してください。",
-	"message.knife_tool.confirm": "Press %0 or click here to apply Knife Tool",
-	"message.knife_tool.skipped_face": "Cannot cut between different faces. Include the edges or vertices between them!",
+	"message.knife_tool.confirm": "ナイフツールを使うには、%0 を押すか、こちらをクリックしてください",
+	"message.knife_tool.skipped_face": "異なるフェイス同士をカットすることはできません。カットする場合は、エッジや頂点を選択してください",
 	"message.optimize_animation.keyframes_removed": "%0 個の余分なキーフレームを削除しました",
 	"message.optimize_animation.nothing_to_optimize": "すでに最適化されています",
 	"message.duplicate_bone_copy_animation.title": "アニメーションをコピー",
@@ -2225,5 +2225,8 @@
 	"settings.java_export_pivots.desc": "Save pivot points in Java block/item models on cubes without rotation",
 	"animation_controllers.state.blend_transition_curve": "Blend Transition Curve",
 	"menu.slider.reset_vector": "Reset Vector",
-	"dialog.blend_transition_edit.extended": "Extended Graph"
+	"dialog.blend_transition_edit.extended": "Extended Graph",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection."
 }

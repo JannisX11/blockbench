@@ -2190,6 +2190,9 @@ BARS.defineActions(function() {
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
+					if (original_vertices.length && (BarItems.selection_mode.value == 'vertex' || BarItems.selection_mode.value == 'edge')) {
+						selected_face_keys.empty();
+					}
 					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
 					let combined_direction;
 
@@ -2987,6 +2990,11 @@ BARS.defineActions(function() {
 								}
 							})
 							mesh.addFaces(new_face);
+
+							// Multiple loop cuts
+							if (cut_no+1 < cuts) {
+								splitFace(face, [center_vertex, side_vertices[0]], double_side, cut_no+1);
+							}
 						}
 					}
 

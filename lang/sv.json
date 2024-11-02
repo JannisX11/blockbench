@@ -1069,7 +1069,7 @@
 	"generic.all": "Alla",
 	"message.small_face_dimensions.title": "Incompatible Face Dimensions",
 	"message.small_face_dimensions.message": "The selection contains faces that are smaller than 1 unit in one direction. The Box UV mapping system considers any faces below that threshold as 0 pixels wide. The texture on those faces therefore may not work correctly.",
-	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Go to \"File\" > \"Project...\" and change \"UV Mode\" to \"Per-face UV\".",
+	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Right click the affected cubes and change \"UV Mode\" to \"Per-face UV\".",
 	"dialog.plugins.outdated_client": "Requires a newer version of Blockbench",
 	"dialog.plugins.outdated_plugin": "Plugin is outdated and does not work with this version of Blockbench",
 	"settings.motion_trails": "Motion Trails",
@@ -2225,5 +2225,8 @@
 	"settings.java_export_pivots.desc": "Save pivot points in Java block/item models on cubes without rotation",
 	"animation_controllers.state.blend_transition_curve": "Blend Transition Curve",
 	"menu.slider.reset_vector": "Reset Vector",
-	"dialog.blend_transition_edit.extended": "Extended Graph"
+	"dialog.blend_transition_edit.extended": "Extended Graph",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection."
 }
