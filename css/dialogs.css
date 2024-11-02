@@ -1559,8 +1559,9 @@
 		overflow: hidden;
 		max-width: unset;
 	}
-	#plugin_browser_details {
+	.plugin_browser_tabbed_page {
 		padding: 8px 24px;
+		overflow-y: auto;
 	}
 	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
@@ -1568,10 +1569,6 @@
 	#plugin_browser_details td {
 		padding: 5px 2px;
 		line-height: 20px;
-	}
-	#plugin_browser_changelog {
-		padding: 4px 20px;
-		overflow-y: auto;
 	}
 	#plugin_browser_changelog > li {
 		padding: 7px 8px;
@@ -1607,12 +1604,6 @@
 		vertical-align: sub;
 		font-size: 20px;
 		margin-right: 2px;
-	}
-	#plugin_browser_page .settings_list {
-		padding: 4px 20px;
-	}
-	#plugin_browser_page .features_list {
-		padding: 4px 20px;
 	}
 	li.plugin_feature_entry {
 		display: flex;
@@ -2336,14 +2327,24 @@
 		align-items: center;
 		cursor: pointer;
 		padding: 2px;
+		position: relative;
 	}
 	.flipbook_frame:hover {
-		background-color: var(--color-hover);
 		color: var(--color-light);
+		background-color: var(--color-back);
+	}
+	.flipbook_frame.viewing::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 10px;
+		bottom: 10px;
+		border-top: 40px solid transparent;
+		border-bottom: 40px solid transparent;
+		border-left: 8px solid var(--color-accent);
 	}
 	.flipbook_frame.viewing {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
+		background-color: var(--color-back);
 	}
 	.flipbook_frame.selected {
 		background-color: var(--color-accent);

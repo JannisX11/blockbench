@@ -85,6 +85,7 @@ const Timeline = {
 				return
 			};
 
+			if (Timeline.selector.interval) clearInterval(Timeline.selector.interval);
 			Timeline.selector.interval = setInterval(Timeline.selector.move, 1000/60);
 			document.addEventListener('mouseup', Timeline.selector.end, false);
 
@@ -195,8 +196,8 @@ const Timeline = {
 		end(e) {
 			e.stopPropagation();
 			document.removeEventListener('mousemove', Timeline.selector.move);
-			clearInterval(Timeline.selector.interval);
 			document.removeEventListener('mouseup', Timeline.selector.end);
+			clearInterval(Timeline.selector.interval);
 
 			if (!Timeline.selector.selecting) {
 				if (settings.canvas_unselect.value) {

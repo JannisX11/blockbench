@@ -65,7 +65,7 @@ const UVEditor = {
 		}
 		if (tex) {
 			if (tex.frameCount) result.y += (tex.height / tex.frameCount) * tex.currentFrame;
-			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight()) result.y /= tex.ratio;
+			if (!tex.frameCount && tex.ratio != tex.getUVWidth() / tex.getUVHeight() && UVEditor.vue.mode != 'paint') result.y /= tex.ratio;
 			if (BarItems.image_tiled_view.value == true) {
 				if (Painter.image_tiled_view_options.mirrored) {
 					if (result.x < 0 || result.x >= tex.width) result.x = tex.width - result.x - 1;
@@ -2306,15 +2306,22 @@ Interface.definePanels(function() {
 			}},
 			computed: {
 				inner_width() {
-					let axis = this.uv_resolution[0] / this.uv_resolution[1] < this.width / this.height;
+					let axis = this.applicable_aspect_ratio < this.width / this.height;
 					if (axis) {
-						return this.height * this.zoom * (this.uv_resolution[0] / this.uv_resolution[1]);
+						return this.height * this.zoom * (this.applicable_aspect_ratio);
 					} else {
 						return this.width * this.zoom;
 					}
 				},
 				inner_height() {
-					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.uv_resolution[0] / this.uv_resolution[1]));
+					return Math.min(this.height * this.zoom, this.width * this.zoom / (this.applicable_aspect_ratio));
+				},
+				applicable_aspect_ratio() {
+					if (this.mode == 'paint' && this.texture && this.texture.width) {
+						return this.texture.width / this.texture.display_height;
+					} else {
+						return this.uv_resolution[0] / this.uv_resolution[1];
+					}
 				},
 				mappable_elements() {
 					return this.elements.filter(element => element.faces && !element.locked);
@@ -3642,15 +3649,28 @@ Interface.definePanels(function() {
 								}
 								scan_value = false;
 							}
-							let value = op_mode == 'subtract' ? 0 : 1;
+							let value = op_mode == 'subtract' ? 0 : (op_mode == 'intersect' ? 2 : 1);
 							for (let x in map) {
 								for (let y in map[x]) {
 									if (map[x][y] == scan_value) {
 										x = parseInt(x);
 										y = parseInt(y);
+										if (op_mode == 'intersect') {
+											let previous = texture.selection.get(x + offset[0], y + offset[1]);
+											if (!previous) continue;
+										}
 										texture.selection.set(x + offset[0], y + offset[1], value);
 									}
 								}
+							}
+							if (op_mode == 'intersect') {
+								texture.selection.forEachPixel((x, y, value, i) => {
+									if (value == 2) {
+										texture.selection.array[i] = 1;
+									} else {
+										texture.selection.array[i] = 0;
+									}
+								})
 							}
 							UVEditor.updateSelectionOutline();
 							return;
