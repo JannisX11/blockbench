@@ -52,7 +52,7 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
-	texelToLocalMatrix(uv, truncated_uv, truncate_factor = [1, 1]) {
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
 		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
 
 		let texel_pos = this.UVToLocal(uv);

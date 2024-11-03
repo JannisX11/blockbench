@@ -288,7 +288,7 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	texelToLocalMatrix(uv, truncated_uv, truncate_factor = [1, 1], vertices = this.getSortedVertices()) {
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv, vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
