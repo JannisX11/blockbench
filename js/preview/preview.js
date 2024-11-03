@@ -1085,8 +1085,8 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
-			let truncated_x;
-			let truncated_y;
+			let truncated_x = x;
+			let truncated_y = y;
 			let floor_coordinates = Condition(Toolbox.selected.brush.floor_coordinates);
 			if (floor_coordinates) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
@@ -1099,7 +1099,7 @@ class Preview {
 			}
 
 			// Position
-			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], floor_coordinates ? [truncated_x * uv_factor_x, truncated_y * uv_factor_y] : null, [uv_factor_x, uv_factor_y]);
+			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], [truncated_x * uv_factor_x, truncated_y * uv_factor_y], [uv_factor_x, uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
