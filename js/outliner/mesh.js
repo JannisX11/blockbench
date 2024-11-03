@@ -294,10 +294,8 @@ class MeshFace extends Face {
 		let vert_c = vertices[2];
 
 		// Use non-truncated uv coordinates to select the correct triangle of a face.
-		let uv_coord = [uv[0] * truncate_factor[0], uv[1] * truncate_factor[1]];
-
 		if (vertices[3]) {
-			let is_in_tri = pointInTriangle(uv_coord, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
+			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
 
 			if (!is_in_tri) {
 				vert_a = vertices[0];
@@ -314,8 +312,6 @@ class MeshFace extends Face {
 		let vertexc = this.mesh.vertices[vert_c];
 
 		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
-		uv[0] *= truncate_factor[0];
-		uv[1] *= truncate_factor[1];
 
 		function UVToLocal(uv) {
 			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);

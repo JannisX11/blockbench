@@ -1098,7 +1098,7 @@ class Preview {
 			}
 
 			// Position
-			let brush_matrix = face.texelToLocalMatrix([x, y], [truncated_x, truncated_y], [uv_factor_x, uv_factor_y]);
+			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], floor_coordinates ? [truncated_x * uv_factor_x, truncated_y * uv_factor_y] : null, [uv_factor_x, uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {

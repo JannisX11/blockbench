@@ -54,8 +54,6 @@ class CubeFace extends Face {
 	}
 	texelToLocalMatrix(uv, truncated_uv, truncate_factor = [1, 1]) {
 		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
-		uv[0] *= truncate_factor[0];
-		uv[1] *= truncate_factor[1];
 
 		let texel_pos = this.UVToLocal(uv);
 		let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
