@@ -1095,6 +1095,7 @@ class Preview {
 			}
 			if (texture.currentFrame) {
 				y -= texture.display_height * texture.currentFrame;
+				truncated_y -= texture.display_height * texture.currentFrame;
 			}
 
 			// Position
