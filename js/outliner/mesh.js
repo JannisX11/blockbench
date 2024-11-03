@@ -288,7 +288,7 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	texelToLocalMatrix(uv, truncate_offset = [0, 0], truncate_factor = [1, 1], truncate, vertices = this.getSortedVertices()) {
+	texelToLocalMatrix(uv, truncated_uv, truncate_factor = [1, 1], vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
@@ -313,11 +313,7 @@ class MeshFace extends Face {
 		let vertexb = this.mesh.vertices[vert_b];
 		let vertexc = this.mesh.vertices[vert_c];
 
-		uv = [...uv];
-		if (truncate) {
-			uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
-			uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
-		}
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
 		uv[0] *= truncate_factor[0];
 		uv[1] *= truncate_factor[1];
 
