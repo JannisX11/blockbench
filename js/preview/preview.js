@@ -1087,8 +1087,7 @@ class Preview {
 			let y = (1-intersect.uv.y) * texture.height;
 			let truncated_x = x;
 			let truncated_y = y;
-			let floor_coordinates = Condition(Toolbox.selected.brush.floor_coordinates);
-			if (floor_coordinates) {
+			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
 				truncated_x = Math.round(x + offset) - offset;
 				truncated_y = Math.round(y + offset) - offset;
