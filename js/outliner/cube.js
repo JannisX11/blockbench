@@ -52,10 +52,12 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
-	texelToLocalMatrix(uv, truncate_offset = [0, 0], truncate_factor = [1, 1]) {
+	texelToLocalMatrix(uv, truncate_offset = [0, 0], truncate_factor = [1, 1], truncate) {
 		uv = [...uv];
-		uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
-		uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
+		if (truncate) {
+			uv[0] = Math.round(uv[0] + truncate_offset) - truncate_offset;
+			uv[1] = Math.round(uv[1] + truncate_offset) - truncate_offset;
+		}
 		uv[0] *= truncate_factor[0];
 		uv[1] *= truncate_factor[1];
 
