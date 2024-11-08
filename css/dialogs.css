@@ -158,6 +158,7 @@
 		padding-right: 8px;
 		flex-shrink: 0;
 		overflow-wrap: break-word;
+		box-sizing: content-box;
 	}
 	.dialog label.name_space_left {
 		min-width: 140px;

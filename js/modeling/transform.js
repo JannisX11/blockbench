@@ -326,10 +326,16 @@ const Vertexsnap = {
 		element.mesh.localToWorld(vector);
 		return vector;
 	},
-	snap: function(data) {
-		Undo.initEdit({elements: Vertexsnap.elements, outliner: !!Vertexsnap.group});
+	snap: function(data, options = 0, amended) {
+		Undo.initEdit({elements: Vertexsnap.elements, outliner: !!Vertexsnap.group}, amended);
 
 		let mode = BarItems.vertex_snap_mode.get();
+
+		function ignoreVectorAxes(vector) {
+			if (options.ignore_x) vector.x = 0;
+			if (options.ignore_y) vector.y = 0;
+			if (options.ignore_z) vector.z = 0;
+		}
 
 		if (Vertexsnap.move_origin) {
 			if (Vertexsnap.group) {
@@ -357,8 +363,8 @@ const Vertexsnap = {
 			}
 		} else {
 
-			var global_delta = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
-			global_delta.sub(Vertexsnap.vertex_pos)
+			let global_target_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
+			let global_delta = new THREE.Vector3().copy(global_target_pos).sub(Vertexsnap.vertex_pos)
 
 			if (mode === 'scale' && !Format.integer_size && Vertexsnap.elements[0] instanceof Cube) {
 				//Scale
@@ -378,13 +384,14 @@ const Vertexsnap = {
 				Vertexsnap.elements.forEach(function(obj) {
 					if (obj instanceof Cube == false) return;
 					var q = obj.mesh.getWorldQuaternion(new THREE.Quaternion()).invert()
-					var cube_pos = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
+					var local_offset = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
+					ignoreVectorAxes(local_offset);
 
 					for (i=0; i<3; i++) {
 						if (m[i] === 1) {
-							obj.to[i] = obj.to[i] + cube_pos.getComponent(i);
+							obj.to[i] = obj.to[i] + local_offset.getComponent(i);
 						} else {
-							obj.from[i] = obj.from[i] + cube_pos.getComponent(i);
+							obj.from[i] = obj.from[i] + local_offset.getComponent(i);
 						}
 					}
 					if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -396,39 +403,70 @@ const Vertexsnap = {
 				})
 			} else if (mode === 'move') {
 				Vertexsnap.elements.forEach(function(obj) {
-					var cube_pos = new THREE.Vector3().copy(global_delta)
+					var local_offset = new THREE.Vector3().copy(global_delta)
 
 					if (obj instanceof Mesh && Vertexsnap.selected_vertices && Vertexsnap.selected_vertices[obj.uuid]) {
 						let vertices = Vertexsnap.selected_vertices[obj.uuid].vertices;
 						var q = obj.mesh.getWorldQuaternion(Reusable.quat1).invert();
-						cube_pos.applyQuaternion(q);
-						let cube_pos_array = cube_pos.toArray();
+						local_offset.applyQuaternion(q);
+						ignoreVectorAxes(local_offset);
+						let local_offset_array = local_offset.toArray();
 						vertices.forEach(vkey => {
-							if (obj.vertices[vkey]) obj.vertices[vkey].V3_add(cube_pos_array);
+							if (obj.vertices[vkey]) obj.vertices[vkey].V3_add(local_offset_array);
 						})
 
 					} else {
 						if (Format.bone_rig && obj.parent instanceof Group) {
 							var q = obj.mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
-							cube_pos.applyQuaternion(q);
+							local_offset.applyQuaternion(q);
 						}
 						if (obj instanceof Cube && Format.rotate_cubes) {
-							obj.origin.V3_add(cube_pos);
+							obj.origin.V3_add(local_offset);
 						}
-						var in_box = obj.moveVector(cube_pos.toArray());
+						ignoreVectorAxes(local_offset);
+						var in_box = obj.moveVector(local_offset.toArray());
 						if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
 						}
 					}
 				})
-			}
+			} else if (mode == 'rotate') {
+				Vertexsnap.elements.forEach((obj) => {
+					let local_start = obj.mesh.worldToLocal(new THREE.Vector3().copy(Vertexsnap.vertex_pos));
+					let local_target = obj.mesh.worldToLocal(new THREE.Vector3().copy(global_target_pos));
 
+					ignoreVectorAxes(local_start);
+					ignoreVectorAxes(local_target);
+
+					if (options.align != 'direction' || !amended) {
+						let target_distance = local_target.length();
+						let longest_axis = 'x';
+						if ('xyz'.includes(options.align)) {
+							longest_axis = options.align;
+						} else {
+							if (local_start.y > local_start.x) longest_axis = 'y';
+							if (local_start.z > local_start.y) longest_axis = 'z';
+						}
+
+						let off_axes = ['x', 'y', 'z'].filter(l => l != longest_axis);
+						local_start[longest_axis] = Math.sqrt(target_distance**2 - local_start[off_axes[0]]**2 - local_start[off_axes[1]]**2);
+					}
+					local_start.normalize();
+					local_target.normalize();
+					let rot_diff = new THREE.Quaternion().setFromUnitVectors(local_start, local_target);
+					
+					obj.mesh.quaternion.multiply(rot_diff);
+					let modified_rotation = obj.mesh.rotation.toArray().slice(0, 3).map(Math.radToDeg);
+					obj.extend({rotation: modified_rotation});
+				})
+			}
 		}
 
 		Vertexsnap.clearVertexGizmos()
 		let update_options = {
 			elements: Vertexsnap.elements,
 			element_aspects: {transform: true, geometry: true},
+			selection: true
 		};
 		if (Vertexsnap.group) {
 			update_options.elements = [...update_options.elements];
@@ -440,8 +478,25 @@ const Vertexsnap = {
 		}
 		Canvas.updateView(update_options);
 		Undo.finishEdit('Use vertex snap');
-		autoFixMeshEdit()
+		autoFixMeshEdit();
 		Vertexsnap.step1 = true;
+		
+		if (!amended) {
+			Undo.amendEdit({
+				align: {type: 'select', condition: mode == 'rotate', label: 'edit.vertex_snap.align', options: {
+					longest: 'edit.vertex_snap.align.longest',
+					direction: 'edit.vertex_snap.align.direction',
+					x: tl('edit.vertex_snap.align.align_axis', 'X'),
+					y: tl('edit.vertex_snap.align.align_axis', 'Y'),
+					z: tl('edit.vertex_snap.align.align_axis', 'Z'),
+				}},
+				ignore_x: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'X'), value: false},
+				ignore_y: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'Y'), value: false},
+				ignore_z: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'Z'), value: false},
+			}, form => {
+				Vertexsnap.snap(data, form, true);
+			})
+		}
 	}
 }
 
@@ -938,7 +993,8 @@ BARS.defineActions(function() {
 	new BarSelect('vertex_snap_mode', {
 		options: {
 			move: true,
-			scale: {condition: () => !Format.integer_size, name: true}
+			scale: {condition: () => !Format.integer_size, name: true},
+			rotate: true
 		},
 		category: 'edit'
 	})

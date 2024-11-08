@@ -858,12 +858,6 @@
 	"about.version": "Version:",
 	"about.version.up_to_date": "Up to date",
 	"about.version.update_available": "Version %0 is available",
-	"about.creator": "Creator:",
-	"about.website": "Website:",
-	"about.repository": "Repository:",
-	"about.vertex_snap": "Vertex Snapping is based on a plugin by SirBenet",
-	"about.icons": "Icon Packs:",
-	"about.libraries": "Libraries:",
 
 	"settings_profile.confirm_delete": "Are you sure you want to delete this settings profile?",
 	"settings_profile.condition": "Condition",
@@ -1236,6 +1230,7 @@
 	"action.vertex_snap_mode.desc": "Select if Vertex Snap moves elements to the selected position or resizes them",
 	"action.vertex_snap_mode.move": "Move",
 	"action.vertex_snap_mode.scale": "Scale",
+	"action.vertex_snap_mode.rotate": "Rotate",
 
 	"action.move_tool": "Move",
 	"action.move_tool.desc": "Tool to select and move elements",
@@ -2190,6 +2185,11 @@
 	"edit.extrude_mesh_selection.direction.average": "Average",
 	"edit.extrude_mesh_selection.even_extend": "Even Extend",
 	"edit.solidify_mesh_selection.thickness": "Thickness",
+	"edit.vertex_snap.align": "Align",
+	"edit.vertex_snap.align.longest": "Longest Axis",
+	"edit.vertex_snap.align.direction": "Direction from Pivot",
+	"edit.vertex_snap.align.align_axis": "%0 Axis",
+	"edit.vertex_snap.ignore_axis": "Ignore %0 Axis",
 
 	"web.download_app": "Download App",
 
