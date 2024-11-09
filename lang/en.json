@@ -499,6 +499,10 @@
 	"dialog.export_emission_map.round_up": "Round Up to %0 x %1",
 	"dialog.export_emission_map.flip_y": "Flip Y Axis",
 
+	"dialog.material_config.title": "Material Config",
+	"dialog.material_config.color_value": "Color Value",
+	"dialog.material_config.mer_value": "Metal-Emissive-Roughness",
+
 	"dialog.edit_texture.preview": "Preview",
 
 	"dialog.expand_texture_selection.radius": "Amount",

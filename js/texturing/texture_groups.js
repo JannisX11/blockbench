@@ -3,6 +3,8 @@ class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
+		this.material_config = new TextureGroupMaterialConfig(this);
+
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].reset(this);
 		}
@@ -17,6 +19,9 @@ class TextureGroup {
 	extend(data) {
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].merge(this, data)
+		}
+		if (data.material_config) {
+			this.material_config.extend(data.material_config);
 		}
 		return this;
 	}
@@ -59,7 +64,8 @@ class TextureGroup {
 	getUndoCopy() {
 		let copy = {
 			uuid: this.uuid,
-			index: TextureGroup.all.indexOf(this)
+			index: TextureGroup.all.indexOf(this),
+			material_config: this.material_config.getUndoCopy()
 		};
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].copy(this, copy)
@@ -68,7 +74,8 @@ class TextureGroup {
 	}
 	getSaveCopy() {
 		let copy = {
-			uuid: this.uuid
+			uuid: this.uuid,
+			material_config: this.material_config.getSaveCopy()
 		};
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].copy(this, copy)
@@ -84,6 +91,7 @@ class TextureGroup {
 			// https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
 				//envMap: pmrem_render_target
+				alphaTest: 0.05,
 			});
 		}
 		let textures = this.getTextures();
@@ -210,6 +218,175 @@ Blockbench.on('edit_texture', ({texture}) => {
 	}
 })
 
+class TextureGroupMaterialConfig {
+	constructor(texture_group, data) {
+		this.texture_group = texture_group;
+		this.saved = true;
+		for (let key in TextureGroupMaterialConfig.properties) {
+			TextureGroupMaterialConfig.properties[key].reset(this);
+		}
+
+		if (data) this.extend(data);
+	}
+	extend(data) {
+		for (let key in TextureGroupMaterialConfig.properties) {
+			TextureGroupMaterialConfig.properties[key].merge(this, data)
+		}
+		return this;
+	}
+	getUndoCopy() {
+		let copy = {};
+		for (let key in TextureGroupMaterialConfig.properties) {
+			TextureGroupMaterialConfig.properties[key].copy(this, copy)
+		}
+		return copy;
+	}
+	getSaveCopy() {
+		let copy = {};
+		for (let key in TextureGroupMaterialConfig.properties) {
+			TextureGroupMaterialConfig.properties[key].copy(this, copy)
+		}
+		return copy;
+	}
+	compileForBedrock() {
+		let texture_set = {};
+		
+		let textures = this.texture_group.getTextures();
+		let color_tex = textures.find(t => t.pbr_channel == 'color');
+		let normal_tex = textures.find(t => t.pbr_channel == 'normal');
+		let height_tex = textures.find(t => t.pbr_channel == 'height');
+		let mer_tex = textures.find(t => t.pbr_channel == 'mer');
+
+		let getTextureName = texture => {
+			return texture.name.replace(/\.\w{2,4}$/, '');
+		}
+
+		if (color_tex) {
+			texture_set.color = getTextureName(color_tex);
+		} else {
+			texture_set.color = this.color_value.slice();
+		}
+		if (mer_tex) {
+			texture_set.metalness_emissive_roughness = getTextureName(mer_tex);
+		} else if (!this.mer_value.allEqual(0)) {
+			texture_set.metalness_emissive_roughness = this.mer_value.slice();
+		}
+		if (normal_tex) {
+			texture_set.normal = getTextureName(normal_tex);
+		} else if (height_tex) {
+			texture_set.heightmap = getTextureName(height_tex);
+		}
+
+		let file = {
+			format_version: "1.16.100",
+			"minecraft:texture_set": texture_set
+		}
+		return file;
+	}
+	getFilePath() {
+		let main_texture = this.texture_group.getTextures().find(t => t.pbr_channel == 'color');
+		if (!main_texture) return '';
+		let path = main_texture.path.replace(/\.\w{2,4}$/, '') + '.texture_set.json';
+		return path;
+	}
+	getFileName(extension = true) {
+		return pathToName(this.getFilePath(), extension);
+	}
+	save() {
+		let file = autoStringify(this.compileForBedrock());
+		let path = this.getFilePath();
+		if (!path) return;
+		if (isApp) {
+			fs.writeFileSync(path, file, {encoding: 'utf-8'});
+			this.saved = true;
+		} else {
+			Blockbench.export({
+				content: file,
+				name: pathToName(path),
+				type: 'text'
+			})
+		}
+	}
+	showContextMenu(event) {
+		Prop.active_panel = 'textures';
+		this.menu.open(event, this);
+	}
+	propertiesDialog() {
+		new Dialog('material_config', {
+			title: 'dialog.material_config.title',
+			form: {
+				color_value: {
+					label: 'dialog.material_config.color_value',
+					type: 'vector', dimensions: 4,
+					min: 0, max: 255, step: 1, force_step: true,
+					value: this.color_value.map(v => Math.clamp(v, 0, 255)),
+				},
+				mer_value: {
+					label: 'dialog.material_config.mer_value',
+					type: 'vector', dimensions: 3,
+					min: 0, max: 255, step: 1, force_step: true,
+					value: this.mer_value.map(v => Math.clamp(v, 0, 255)),
+					//toggle_enabled: true, toggle_default: this.mer_value.allEqual(0),
+				}
+			},
+			onConfirm: (result) => {
+				Undo.initEdit({texture_groups: [this.texture_group]});
+				this.color_value.replace(result.color_value);
+				if (result.mer_value) {
+					this.mer_value.replace(result.mer_value);
+				} else {
+					this.mer_value.V3_set(0, 0, 0);
+				}
+				this.saved = false;
+				Undo.finishEdit('Change material config properties')
+				this.texture_group.updateMaterial();
+			}
+		}).show();
+	}
+}
+new Property(TextureGroupMaterialConfig, 'vector4', 'color_value');
+new Property(TextureGroupMaterialConfig, 'vector', 'mer_value');
+new Property(TextureGroupMaterialConfig, 'boolean', 'saved', {default: true});
+TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_config', [
+	new MenuSeparator('file'),
+	{
+		icon: 'folder',
+		name: 'menu.texture.folder',
+		condition: isApp,
+		click(tgmc) {
+			let path = tgmc.getFilePath();
+			if (!isApp || !path) return;
+			if (!fs.existsSync(path)) {
+				Blockbench.showQuickMessage('texture.error.file')
+				return;
+			}
+			showItemInFolder(path);
+		}
+	},
+	{
+		icon: 'save',
+		name: 'menu.texture.save',
+		condition: function(tgmc) {return !tgmc.saved},
+		click(tgmc) {
+			tgmc.save();
+		}
+	},
+	new MenuSeparator('properties'),
+	{
+		icon: 'list',
+		name: 'menu.texture.properties',
+		click(tgmc) {
+			tgmc.propertiesDialog();
+		}
+	},
+], {
+	onClose() {
+		setTimeout(() => {
+			TextureGroup.active_menu_group = null;
+		}, 10);
+	}
+})
+
 function importTextureSet(file) {
 	let new_textures = [], new_texture_groups = [];
 	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
@@ -229,7 +406,7 @@ function importTextureSet(file) {
 			};
 			for (let key in channels) {
 				let source = content_json['minecraft:texture_set'][key];
-				if (typeof source == 'string') {
+				if (typeof source == 'string' && !source.startsWith('#')) {
 					let path = PathModule.resolve(file.path, '../' + source + '.png');
 					Blockbench.read([path], {
 						readtype: 'image',
@@ -241,9 +418,26 @@ function importTextureSet(file) {
 						new_textures.push(t);
 						t.group = texture_group.uuid;
 					})
+				} else {
+					let color_array = source;
+					if (typeof source == 'string') {
+						let color = tinycolor(source);
+						color_array = [color._r, color._g, color._b, color._a * 255];
+					}
+					if (color_array instanceof Array) {
+						if (key == 'color') {
+							texture_group.material_config.color_value.replace(color_array);
+							while (texture_group.material_config.color_value.length < 4) {
+								texture_group.material_config.color_value.push(255);
+							}
+						} else if (key == 'metalness_emissive_roughness') {
+							texture_group.material_config.mer_value.V3_set(color_array);
+						}
+					}
 				}
 			}
 		}
+		if (isApp) texture_group.material_config.saved = true;
 		new_texture_groups.push(texture_group);
 		texture_group.add(false);
 	}

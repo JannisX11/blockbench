@@ -9,7 +9,7 @@ function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'texture_set',
-		{extensions: ['texture_set.json'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		{extensions: ['texture_set.json'], propagate: true, readtype: 'image', condition: () => Format.pbr && !Dialog.open},
 		function(files, event) {
 			importTextureSet(files[0]);
 		}

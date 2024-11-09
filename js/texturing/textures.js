@@ -2935,6 +2935,17 @@ Interface.definePanels(function() {
 								</div>
 							</div>
 							<ul class="texture_group_list" v-if="!texture_group.folded">
+								<li v-if="texture_group.is_material" class="texture_group_material_config"
+									@dblclick="texture_group.material_config.propertiesDialog()"
+									@contextmenu.prevent.stop="texture_group.material_config.showContextMenu($event)"
+								>
+									<i class="material-icons icon">tune</i>
+									<label>{{ texture_group.material_config.getFileName() }}</label>
+									<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture_group.material_config.saved}" @click.stop="texture_group.material_config.save()">
+										<template v-if="texture_group.material_config.saved">check_circle</template>
+										<template v-else>save</template>
+									</i>
+								</li>
 								<Texture
 									v-for="texture in texture_group.getTextures()"
 									:key="texture.uuid"

@@ -613,7 +613,8 @@
 	.texture > i.icon_off.clickable:hover {
 		color: var(--color-text);
 	}
-	.texture > i:not(.clickable) {
+	.texture > i:not(.clickable),
+	.texture_group_material_config > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
@@ -797,6 +798,22 @@
 		margin-left: 14px;
 		padding-left: 6px;
 		border-left: 2px solid var(--color-guidelines);
+	}
+	.texture_group_material_config {
+		display: flex;
+		align-items: center;
+		height: 30px;
+		padding: 4px 8px;
+		gap: 3px;
+	}
+	.texture_group_material_config i:first-child {
+		width: 50px;
+		max-width: unset;
+		text-align: center;
+	}
+	.texture_group_material_config label {
+		width: 0;
+		flex-grow: 1;
 	}
 
 	#texture_animation_playback {
