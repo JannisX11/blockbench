@@ -213,7 +213,7 @@ ToDo:
  */
 
 Blockbench.on('edit_texture', ({texture}) => {
-	if (texture.pbr_channel == 'mer' && texture.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+	if ((texture.pbr_channel == 'mer' || texture.pbr_channel == 'height') && texture.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
 		texture.getGroup().updateMaterial();
 	}
 })
