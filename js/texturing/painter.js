@@ -2102,7 +2102,12 @@ SharedActions.add('paste', {
 				texture.flags.add('temporary_layers');
 				texture.activateLayers(false);
 			}
-			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let offset;
+			if (Clipbench.image) {
+				offset = [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)];
+				offset[0] = Math.clamp(offset[0], 0, texture.width-frame.width);
+				offset[1] = Math.clamp(offset[1], 0, texture.height-frame.height);
+			}
 			let old_frame = Clipbench.image?.frame || 0;
 			if (old_frame || texture.currentFrame) {
 				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
