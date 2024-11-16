@@ -689,7 +689,7 @@ const Canvas = {
 		let brush_outline_material = new THREE.ShaderMaterial({
 			transparent: true,
 			side: THREE.DoubleSide,
-			alphaTest: 0.2,
+			alphaTest: 0.01,
 			polygonOffset: true,
 			polygonOffsetUnits: 1,
 			polygonOffsetFactor: -1,
