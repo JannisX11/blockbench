@@ -678,14 +678,6 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 
-		let brush_img = new Image();
-		brush_img.src = 'assets/brush_outline.png';
-		brush_img.tex = new THREE.Texture(brush_img);
-		brush_img.tex.magFilter = THREE.NearestFilter;
-		brush_img.tex.minFilter = THREE.NearestFilter;
-		brush_img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
 		let brush_outline_material = new THREE.ShaderMaterial({
 			transparent: true,
 			side: THREE.DoubleSide,
