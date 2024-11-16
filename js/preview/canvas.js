@@ -686,8 +686,7 @@ const Canvas = {
 		brush_img.onload = function() {
 			this.tex.needsUpdate = true;
 		}
-		let brush_outline_material = new THREE.MeshBasicMaterial({
-			map: brush_img.tex,
+		let brush_outline_material = new THREE.ShaderMaterial({
 			transparent: true,
 			side: THREE.DoubleSide,
 			alphaTest: 0.2,
@@ -695,52 +694,81 @@ const Canvas = {
 			polygonOffsetUnits: 1,
 			polygonOffsetFactor: -1,
 
-			onBeforeCompile: (shader) => {
-				shader.fragmentShader = 'uniform bool circleShape;\n' + shader.fragmentShader
-					.replace(`#include <map_fragment>`,
-					`
-					#ifdef USE_MAP
-						float outlineWidthMultiplier = 2.;
-						vec2 shapeUv = vUv.xy * 2. - 1.;
+			uniforms: {
+				color: { value: new THREE.Color() },
+				SHAPE: { value: 0 },
+			},
 
-						vec2 shapeUvX = shapeUv - dFdx(shapeUv);
-						vec2 shapeUvY = shapeUv - dFdy(shapeUv);
+			vertexShader: `
+				varying vec2 vUv;
+				void main()
+				{
+					vUv = uv;
+					vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+					gl_Position = projectionMatrix * mvPosition;
+				}`,
 
-						float circleDist = 1. - length(shapeUv);
-						float circleDistX = 1. - length(shapeUvX);
-						float circleDistY = 1. - length(shapeUvY);
-						float circleDx = circleDistX - circleDist;
-						float circleDy = circleDistY - circleDist;
+			fragmentShader: `
+				uniform int SHAPE;
 
-						float circleOuterAA = circleDist / length(vec2(circleDx, circleDy));
-						float circleInnerAA = circleOuterAA - outlineWidthMultiplier;
-						circleOuterAA = clamp(circleOuterAA, 0., 1.);
-						circleInnerAA = clamp(circleInnerAA, 0., 1.);
+				uniform vec3 color;
 
-						float circleOutlineAA = circleOuterAA - circleInnerAA;
+				varying vec2 vUv;
 
-						vec2 squareDist = 1. - abs(shapeUv);
-						vec2 squareDistX = 1. - abs(shapeUvX);
-						vec2 squareDistY = 1. - abs(shapeUvY);
-						vec2 squareDxX = squareDistX - squareDist;
-						vec2 squareDxY = squareDistY - squareDist;
+				float DrawSquareOutline(vec2 shapeUv, float width)
+				{
+					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
+					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
 
-						vec2 squareSliceAA = squareDist / vec2(length(vec2(squareDxX.x, squareDxY.x)), length(vec2(squareDxX.y, squareDxY.y)));
+					vec2 squareDist = 1. - abs(shapeUv);
+					vec2 squareDistX = 1. - abs(shapeUvX);
+					vec2 squareDistY = 1. - abs(shapeUvY);
+					vec2 squareDxX = squareDistX - squareDist;
+					vec2 squareDxY = squareDistY - squareDist;
 
-						float squareOuterAA = min(squareSliceAA.x, squareSliceAA.y);
-						float squareInnerAA = min(squareSliceAA.x - outlineWidthMultiplier, squareSliceAA.y - outlineWidthMultiplier);
-						squareOuterAA = clamp(squareOuterAA, 0., 1.);
-						squareInnerAA = clamp(squareInnerAA, 0., 1.);
+					vec2 squareSliceAA = squareDist / vec2(length(vec2(squareDxX.x, squareDxY.x)), length(vec2(squareDxX.y, squareDxY.y)));
 
-						float squareOutlineAA = squareOuterAA - squareInnerAA;
+					float squareOuterAA = min(squareSliceAA.x, squareSliceAA.y);
+					float squareInnerAA = min(squareSliceAA.x - width, squareSliceAA.y - width);
+					squareOuterAA = clamp(squareOuterAA, 0., 1.);
+					squareInnerAA = clamp(squareInnerAA, 0., 1.);
 
-						vec4 texelColor = vec4(1.);
-						texelColor.a = circleShape ? circleOutlineAA : squareOutlineAA;
+					return squareOuterAA - squareInnerAA;
+				}
 
-						diffuseColor *= texelColor;
-					#endif
-					`);
-			}
+				float DrawCircleOutline(vec2 shapeUv, float width)
+				{
+					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
+					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
+
+					float circleDist = 1. - length(shapeUv);
+					float circleDistX = 1. - length(shapeUvX);
+					float circleDistY = 1. - length(shapeUvY);
+					float circleDx = circleDistX - circleDist;
+					float circleDy = circleDistY - circleDist;
+
+					float circleOuterAA = circleDist / length(vec2(circleDx, circleDy));
+					float circleInnerAA = circleOuterAA - width;
+					circleOuterAA = clamp(circleOuterAA, 0., 1.);
+					circleInnerAA = clamp(circleInnerAA, 0., 1.);
+
+					return circleOuterAA - circleInnerAA;
+				}
+
+				void main(void)
+				{
+					float outlineWidthMultiplier = 2.;
+					vec2 shapeUv = vUv.xy * 2. - 1.;
+
+					vec4 finalColor = vec4(color, 1.);
+					if (SHAPE == 0)
+						finalColor.a = DrawSquareOutline(shapeUv, outlineWidthMultiplier);
+					else if (SHAPE == 1)
+						finalColor.a = DrawCircleOutline(shapeUv, outlineWidthMultiplier);
+
+					gl_FragColor = finalColor;
+				}
+			`,
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 		Canvas.gizmos.push(Canvas.brush_outline);
