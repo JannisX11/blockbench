@@ -766,6 +766,8 @@ const Canvas = {
 					else if (SHAPE == 1)
 						finalColor.a = DrawCircleOutline(shapeUv, outlineWidthMultiplier);
 
+					if (finalColor.a < 0.01) discard;
+
 					gl_FragColor = finalColor;
 				}
 			`,
