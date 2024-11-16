@@ -709,7 +709,7 @@ const Canvas = {
 
 				varying vec2 vUv;
 
-				float DrawSquareOutline(vec2 shapeUv, float width)
+				float drawSquareOutline(vec2 shapeUv, float width)
 				{
 					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
 					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
@@ -730,7 +730,7 @@ const Canvas = {
 					return squareOuterAA - squareInnerAA;
 				}
 
-				float DrawCircleOutline(vec2 shapeUv, float width)
+				float drawCircleOutline(vec2 shapeUv, float width)
 				{
 					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
 					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
@@ -755,9 +755,9 @@ const Canvas = {
 
 					vec4 finalColor = vec4(color, 1.);
 					if (SHAPE == 0)
-						finalColor.a = DrawSquareOutline(shapeUv, width);
+						finalColor.a = drawSquareOutline(shapeUv, width);
 					else if (SHAPE == 1)
-						finalColor.a = DrawCircleOutline(shapeUv, width);
+						finalColor.a = drawCircleOutline(shapeUv, width);
 
 					if (finalColor.a < 0.01) discard;
 
