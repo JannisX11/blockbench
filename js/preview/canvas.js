@@ -696,6 +696,7 @@ const Canvas = {
 
 			uniforms: {
 				color: { value: new THREE.Color() },
+				width: { value: 2. },
 				SHAPE: { value: 0 },
 			},
 
@@ -712,6 +713,7 @@ const Canvas = {
 				uniform int SHAPE;
 
 				uniform vec3 color;
+				uniform float width;
 
 				varying vec2 vUv;
 
@@ -757,14 +759,13 @@ const Canvas = {
 
 				void main(void)
 				{
-					float outlineWidthMultiplier = 2.;
 					vec2 shapeUv = vUv.xy * 2. - 1.;
 
 					vec4 finalColor = vec4(color, 1.);
 					if (SHAPE == 0)
-						finalColor.a = DrawSquareOutline(shapeUv, outlineWidthMultiplier);
+						finalColor.a = DrawSquareOutline(shapeUv, width);
 					else if (SHAPE == 1)
-						finalColor.a = DrawCircleOutline(shapeUv, outlineWidthMultiplier);
+						finalColor.a = DrawCircleOutline(shapeUv, width);
 
 					if (finalColor.a < 0.01) discard;
 
