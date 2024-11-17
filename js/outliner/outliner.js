@@ -952,11 +952,15 @@ function renameOutliner(element) {
 				if (name) {
 					Undo.initEdit({elements: selected})
 					selected.forEach(function(obj, i) {
-						obj.name = name.replace(/%/g, obj.index).replace(/\$/g, i)
+						obj.name = name.replace(/%+/g, val => {
+							return (obj.getParentArray().indexOf(obj)+1).toDigitString(val.length)
+						}).replace(/\$+/g, val => {
+							return (i+1).toDigitString(val.length)
+						});
 					})
 					Undo.finishEdit('Rename')
 				}
-			})
+			}, {description: tl('message.rename_elements.numbering')})
 		}
 	}
 }

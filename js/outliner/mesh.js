@@ -13,7 +13,12 @@ class MeshFace extends Face {
 	}
 	extend(data) {
 		super.extend(data);
-		this.vertices.forEach(key => {
+		this.vertices.forEachReverse((key, i) => {
+			if (typeof key != 'string' || !key.length) {
+				this.vertices.splice(i, 1);
+				delete this.uv[key];
+				return;
+			}
 			if (!this.uv[key]) this.uv[key] = [0, 0];
 			if (data.uv && data.uv[key] instanceof Array) {
 				this.uv[key].replace(data.uv[key]);

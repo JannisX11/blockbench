@@ -298,6 +298,11 @@ class refModel {
 					setDisplayArea(0, 0, -6, 90, 180, 0, 1, 1, 1);
 				}
 				break;
+			case 'block':
+				this.updateBasePosition = function() {
+					setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
+				}
+				break;
 			case 'zombie':
 				this.updateBasePosition = function() {
 					if (display_slot === 'thirdperson_righthand') {

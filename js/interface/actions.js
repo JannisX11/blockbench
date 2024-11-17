@@ -857,15 +857,15 @@ class NumSlider extends Widget {
 				'<div class="nslide_arrow na_right"><i class="material-icons">navigate_next</i></div>'
 			)
 
-			var n = limitNumber(scope.node.clientWidth/2-24, 6, 1000)
+			var n = limitNumber(scope.node.clientWidth/2-22, 6, 1000)
 
 			scope.jq_outer.find('.nslide_arrow.na_left').click(function(e) {
 				scope.arrow(-1, e)
-			}).css('margin-left', (-n-24)+'px')
+			}).css('margin-left', (-n-22)+'px')
 
 			scope.jq_outer.find('.nslide_arrow.na_right').click(function(e) {
 				scope.arrow(1, e)
-			}).css('margin-left', n+'px')
+			}).css('margin-left', (n)+'px')
 		})
 		.on('mouseleave', function() {
 			scope.jq_outer.find('.nslide_arrow').remove()
