@@ -450,11 +450,18 @@ const Settings = {
 		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
 		new Setting('save_view_per_tab',		{category: 'preview', value: true});
 		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
+
+		new Setting('viewport_rotate_speed',	{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
+			Preview.all.forEach(viewport => viewport.controls.rotateSpeed = value / 100)
+		}});
+		new Setting('viewport_zoom_speed',		{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
+			Preview.all.forEach(viewport => viewport.controls.zoomSpeed = value / 100 * 1.5)
+		}});
+		new Setting('double_click_switch_tools',{category: 'controls', value: true});
+		new Setting('canvas_unselect',  		{category: 'controls', value: false});
 		
 		//Edit
 		new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
-		new Setting('canvas_unselect',  		{category: 'edit', value: false});
-		new Setting('double_click_switch_tools',{category: 'edit', value: true});
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
 		}});

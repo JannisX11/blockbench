@@ -199,7 +199,8 @@ class Preview {
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
-		this.controls.zoomSpeed = 1.5;
+		this.controls.zoomSpeed = settings.viewport_zoom_speed.value / 100 * 1.5;
+		this.controls.rotateSpeed = settings.viewport_rotate_speed.value / 100;
 		this.controls.onUpdate(() => {
 			if (this.angle != null) {
 				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
