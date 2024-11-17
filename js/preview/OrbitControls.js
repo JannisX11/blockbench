@@ -448,12 +448,11 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleMouseWheel( event ) {
-
+		let modifier = Math.abs(event.deltaY) >= 50 ? 1 : 0.25;
 		if ( event.deltaY < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(modifier) );
 		} else if ( event.deltaY > 0 ) {
-			dollyIn( getZoomScale() );
-
+			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
 		scope.updateSceneScale();
