@@ -28,6 +28,7 @@ class InputForm extends EventSystem {
 					label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(input_config.label)+((input_config.nocolon || !input_config.label)?'':':'))
 					bar.append(label);
 					if (!input_config.full_width && input_config.condition !== false) {
+						console.log(getStringWidth(label.textContent), label.textContent)
 						this.max_label_width = Math.max(getStringWidth(label.textContent), this.max_label_width)
 					}
 				}

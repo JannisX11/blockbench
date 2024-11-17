@@ -1085,18 +1085,20 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
-			let mouse_uv_x = x * uv_factor_x;
-			let mouse_uv_y = y * uv_factor_y;
+			let truncated_x = x;
+			let truncated_y = y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
-				x = Math.round(x + offset) - offset;
-				y = Math.round(y + offset) - offset;
+				truncated_x = Math.round(x + offset) - offset;
+				truncated_y = Math.round(y + offset) - offset;
 			}
 			if (texture.currentFrame) {
 				y -= texture.display_height * texture.currentFrame;
+				truncated_y -= texture.display_height * texture.currentFrame;
 			}
+
 			// Position
-			let brush_matrix = face.TexelToLocalMatrix([mouse_uv_x, mouse_uv_y], face.getSortedVertices(), offset);
+			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], [uv_factor_x, uv_factor_y], [truncated_x * uv_factor_x, truncated_y * uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
@@ -1104,7 +1106,7 @@ class Preview {
 				brush_coord.z += 8;
 			}
 
-			// z fighting
+			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
 			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
 			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
@@ -1115,7 +1117,7 @@ class Preview {
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
-			//size
+			// Size
 			let brush_scale = new THREE.Vector3().setFromMatrixScale(brush_matrix);
 			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.x;
 			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.y;

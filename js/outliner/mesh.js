@@ -288,11 +288,12 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	TexelToLocalMatrix(uv, vertices = this.getSortedVertices(), truncateOffset) {
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv, vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
 
+		// Use non-truncated uv coordinates to select the correct triangle of a face.
 		if (vertices[3]) {
 			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
 
@@ -310,49 +311,31 @@ class MeshFace extends Face {
 		let vertexb = this.mesh.vertices[vert_b];
 		let vertexc = this.mesh.vertices[vert_c];
 
-		if (typeof truncateOffset !== "undefined") {
-			uv[0] = Math.round(uv[0] + truncateOffset) - truncateOffset;
-			uv[1] = Math.round(uv[1] + truncateOffset) - truncateOffset;
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		function UVToLocal(uv) {
+			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
+			let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0;
+			let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0;
+			let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0;
+
+			return new THREE.Vector3(
+				vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+				vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+				vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3
+			)
 		}
 
-		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
-		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
+		let texel_pos = UVToLocal(uv);
+		let texel_x_axis = UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
 
-		let texelP1 = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
-
-		uv[0] += 1;
-		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
-		let texelRight = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
-
-		uv[0] -= 1;
-		uv[1] += 1;
-		b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
-		let texelUp = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
-
-		texelRight.sub(texelP1);
-		texelUp.sub(texelP1);
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
 
 		let matrix = new THREE.Matrix4();
-		matrix.makeBasis(texelRight, texelUp, new THREE.Vector3(0, 0, 1));
-		matrix.setPosition(texelP1);
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
 		return matrix;
 	}
 	UVToLocal(uv, vertices = this.getSortedVertices()) {
