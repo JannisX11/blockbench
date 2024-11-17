@@ -2753,10 +2753,9 @@ BARS.defineActions(function() {
 		onChange() {
 			BARS.updateConditions();
 			UVEditor.vue.brush_type = this.value;
-			let img = Canvas.brush_outline.material.map.image;
 			switch (this.value) {
-				case 'square': img.src = 'assets/brush_outline.png'; break;
-				case 'circle': img.src = 'assets/brush_outline_circle.png'; break;
+				case 'square': Canvas.brush_outline.material.uniforms.SHAPE.value = 0; break;
+				case 'circle': Canvas.brush_outline.material.uniforms.SHAPE.value = 1; break;
 			}
 		},
 		icon_mode: true,

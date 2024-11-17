@@ -446,7 +446,7 @@ const CustomTheme = {
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.color, '--color-brush-outline');
+			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();

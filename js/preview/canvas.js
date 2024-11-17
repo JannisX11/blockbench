@@ -678,19 +678,92 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 
-		let brush_img = new Image();
-		brush_img.src = 'assets/brush_outline.png';
-		brush_img.tex = new THREE.Texture(brush_img);
-		brush_img.tex.magFilter = THREE.NearestFilter;
-		brush_img.tex.minFilter = THREE.NearestFilter;
-		brush_img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
-		let brush_outline_material = new THREE.MeshBasicMaterial({
-			map: brush_img.tex,
+		let brush_outline_material = new THREE.ShaderMaterial({
 			transparent: true,
 			side: THREE.DoubleSide,
-			alphaTest: 0.2
+			alphaTest: 0.01,
+			polygonOffset: true,
+			polygonOffsetUnits: 1,
+			polygonOffsetFactor: -1,
+
+			uniforms: {
+				color: { value: new THREE.Color() },
+				width: { value: 2. },
+				SHAPE: { value: 0 },
+			},
+
+			vertexShader: `
+				varying vec2 vUv;
+				void main()
+				{
+					vUv = uv;
+					vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+					gl_Position = projectionMatrix * mvPosition;
+				}`,
+
+			fragmentShader: `
+				uniform int SHAPE;
+
+				uniform vec3 color;
+				uniform float width;
+
+				varying vec2 vUv;
+
+				float drawSquareOutline(vec2 shapeUv, float width)
+				{
+					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
+					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
+
+					vec2 squareDist = 1. - abs(shapeUv);
+					vec2 squareDistX = 1. - abs(shapeUvX);
+					vec2 squareDistY = 1. - abs(shapeUvY);
+					vec2 squareDxX = squareDistX - squareDist;
+					vec2 squareDxY = squareDistY - squareDist;
+
+					vec2 squareSliceAA = squareDist / vec2(length(vec2(squareDxX.x, squareDxY.x)), length(vec2(squareDxX.y, squareDxY.y)));
+
+					float squareOuterAA = min(squareSliceAA.x, squareSliceAA.y);
+					float squareInnerAA = min(squareSliceAA.x - width, squareSliceAA.y - width);
+					squareOuterAA = clamp(squareOuterAA, 0., 1.);
+					squareInnerAA = clamp(squareInnerAA, 0., 1.);
+
+					return squareOuterAA - squareInnerAA;
+				}
+
+				float drawCircleOutline(vec2 shapeUv, float width)
+				{
+					vec2 shapeUvX = shapeUv - dFdx(shapeUv);
+					vec2 shapeUvY = shapeUv - dFdy(shapeUv);
+
+					float circleDist = 1. - length(shapeUv);
+					float circleDistX = 1. - length(shapeUvX);
+					float circleDistY = 1. - length(shapeUvY);
+					float circleDx = circleDistX - circleDist;
+					float circleDy = circleDistY - circleDist;
+
+					float circleOuterAA = circleDist / length(vec2(circleDx, circleDy));
+					float circleInnerAA = circleOuterAA - width;
+					circleOuterAA = clamp(circleOuterAA, 0., 1.);
+					circleInnerAA = clamp(circleInnerAA, 0., 1.);
+
+					return circleOuterAA - circleInnerAA;
+				}
+
+				void main(void)
+				{
+					vec2 shapeUv = vUv.xy * 2. - 1.;
+
+					vec4 finalColor = vec4(color, 1.);
+					if (SHAPE == 0)
+						finalColor.a = drawSquareOutline(shapeUv, width);
+					else if (SHAPE == 1)
+						finalColor.a = drawCircleOutline(shapeUv, width);
+
+					if (finalColor.a < 0.01) discard;
+
+					gl_FragColor = finalColor;
+				}
+			`,
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
 		Canvas.brush_outline.matrixAutoUpdate = false;
