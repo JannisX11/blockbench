@@ -1486,6 +1486,9 @@
 		flex-wrap: wrap;
 		justify-content: flex-end;
 	}
+	.drag_hover[order]::before {
+		z-index: 7;
+	}
 	.channel_axis_selector {
 		height: 26px;
 		margin-right: 1px;

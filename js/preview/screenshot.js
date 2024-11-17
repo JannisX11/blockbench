@@ -352,6 +352,14 @@ const Screencam = {
 				img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
 				frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
 
+				if (frame.isEmpty() && options.resolution[0] * options.resolution[1] > 2_000_000) {
+					Blockbench.showMessageBox({
+						translateKey: 'screenshot_too_large',
+						icon: 'broken_image'
+					})
+					return false;
+				}
+
 				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
 
 			} else {

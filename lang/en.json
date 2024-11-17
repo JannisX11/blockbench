@@ -249,6 +249,8 @@
 	"message.screenshot.title": "Screenshot",
 	"message.screenshot.clipboard": "Clipboard",
 	"message.screenshot.right_click": "Right click or long press the screenshot to copy",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
 	"message.invalid_file.title": "Invalid File",
 	"message.invalid_file.message": "Could not open json file: %0",
 	"message.invalid_file.merge_conflict": "The file contains unresolved Git merge conflicts.",
@@ -394,7 +396,7 @@
 
 	"message.small_face_dimensions.title": "Incompatible Face Dimensions",
 	"message.small_face_dimensions.message": "The selection contains faces that are smaller than 1 unit in one direction. The Box UV mapping system considers any faces below that threshold as 0 pixels wide. The texture on those faces therefore may not work correctly.",
-	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Go to \"File\" > \"Project...\" and change \"UV Mode\" to \"Per-face UV\".",
+	"message.small_face_dimensions.face_uv": "The current format supports per-face UV maps which can handle small face dimensions. Right click the affected cubes and change \"UV Mode\" to \"Per-face UV\".",
 
 	"message.auto_fix_mesh_edit.title": "Auto Fix",
 	"message.auto_fix_mesh_edit.revert": "Revert Edit",
@@ -420,6 +422,8 @@
 
 	"message.invalid_session.title": "Invalid Session Token",
 	"message.invalid_session.message": "The session you are trying to join has expired or the token provided is invalid.",
+
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection.",
 
 	"dialog.project.title": "Project",
 	"dialog.project.name": "File Name",
@@ -867,6 +871,7 @@
 	"settings.category.general": "General",
 	"settings.category.interface": "Interface",
 	"settings.category.preview": "Preview",
+	"settings.category.controls": "Controls",
 	"settings.category.grid": "Grid",
 	"settings.category.edit": "Edit",
 	"settings.category.snapping": "Snapping",
@@ -951,6 +956,10 @@
 	"settings.timecode_frame_number.desc": "Display fraction timecodes in the timeline as frame number instead of centisecond",
 	"settings.only_selected_bezier_handles": "Show Only Selected Bézier Handles",
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
+	"settings.viewport_rotate_speed": "Viewport Rotate Speed",
+	"settings.viewport_rotate_speed.desc": "Input sensitivity when rotating in the viewport",
+	"settings.viewport_zoom_speed": "Viewport Zoom Speed",
+	"settings.viewport_zoom_speed.desc": "Input sensitivity when zooming in the viewport",
 	"settings.stretch_linked": "Link Stretching",
 	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
 	"settings.auto_keyframe": "Auto Keyframe",

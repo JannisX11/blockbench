@@ -292,23 +292,26 @@ class InputForm extends EventSystem {
 						bar.append(group)
 						let vector_inputs = [];
 						let initial_value = input_config.value instanceof Array ? input_config.value.slice() : [1, 1, 1];
+						function updateInputs(changed_input) {
+							let i2 = -1;
+							for (let vector_input_2 of vector_inputs) {
+								i2++;
+								if (vector_input_2 == changed_input) continue;
+								let new_value = initial_value[i2] * (changed_input.value / initial_value[vector_inputs.indexOf(changed_input)]);
+								new_value = Math.clamp(new_value, input_config.min, input_config.max)
+								if (input_config.force_step && input_config.step) {
+									new_value = Math.round(new_value / input_config.step) * input_config.step;
+								}
+								vector_input_2.value = new_value;
+							}
+						}
 						for (let i = 0; i < (input_config.dimensions || 3); i++) {
 							let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
 								value: input_config.value ? input_config.value[i] : 0,
 								min: input_config.min, max: input_config.max, step: input_config.step,
 								onChange() {
 									if (data.linked_ratio) {
-										let i2 = -1;
-										for (let vector_input_2 of vector_inputs) {
-											i2++;
-											if (vector_input_2 == numeric_input) continue;
-											let new_value = initial_value[i2] * (numeric_input.value / initial_value[i]);
-											new_value = Math.clamp(new_value, input_config.min, input_config.max)
-											if (input_config.force_step && input_config.step) {
-												new_value = Math.round(new_value / input_config.step) * input_config.step;
-											}
-											vector_input_2.value = new_value;
-										}
+										updateInputs(numeric_input);
 									}
 									scope.updateValues();
 								}
@@ -322,6 +325,10 @@ class InputForm extends EventSystem {
 							let linked_ratio_toggle = Interface.createElement('div', {class: 'tool linked_ratio_toggle'}, icon);
 							linked_ratio_toggle.addEventListener('click', event => {
 								data.linked_ratio = !data.linked_ratio;
+								if (data.linked_ratio) {
+									updateInputs(vector_inputs[0]);
+									scope.updateValues();
+								}
 								updateState();
 							})
 							function updateState() {

@@ -52,6 +52,21 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		let texel_pos = this.UVToLocal(uv);
+		let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
+		return matrix;
+	}
 	UVToLocal(point) {
 		let from = this.cube.from.slice()
 		let to = this.cube.to.slice()
@@ -618,9 +633,8 @@ class Cube extends OutlinerElement {
 		return vertices.map(coords => {
 			vec.set(...coords.V3_subtract(this.origin));
 			vec.applyMatrix4( this.mesh.matrixWorld );
-			let arr = vec.toArray();
-			arr.V3_add(8, 0, 8);
-			return arr;
+			vec.sub(scene.position)
+			return vec.toArray();
 		})
 	}
 	setUVMode(box_uv) {

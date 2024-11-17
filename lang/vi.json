@@ -2225,5 +2225,8 @@
 	"settings.java_export_pivots.desc": "Lưu tâm quay trong mô hình Java khối/Vật phẩm trên các khối mà không xoay",
 	"animation_controllers.state.blend_transition_curve": "Đường cong pha trộn chuyển tiếp",
 	"menu.slider.reset_vector": "Đặt lại Véc tơ",
-	"dialog.blend_transition_edit.extended": "Đồ thị được mở rộng"
+	"dialog.blend_transition_edit.extended": "Đồ thị được mở rộng",
+	"message.screenshot_too_large.title": "Screenshot Resolution Issue",
+	"message.screenshot_too_large.message": "The screenshot could not be rendered successfully. Please try again with a lower resolution or without supersampling.",
+	"message.rename_elements.numbering": "You can use special characters to generate sequential numbers: % to get the index of the element within its group, $ to get the index within the selection."
 }

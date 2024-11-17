@@ -1056,10 +1056,13 @@ BARS.defineActions(function() {
 				panel.resetCustomLayout();
 			}
 
+			Prop.show_left_bar = true;
+			Prop.show_right_bar = true;
+
 			Blockbench.dispatchEvent('reset_layout', {});
 
-			updateInterface();
 			updateSidebarOrder();
+			resizeWindow();
 		}
 	})
 })

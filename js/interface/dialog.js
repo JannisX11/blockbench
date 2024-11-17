@@ -208,11 +208,11 @@ window.Dialog = class Dialog {
 		this.form.setToggles(values, update);
 	}
 	getFormResult() {
-		return this.form.getResult();
+		return this.form?.getResult();
 	}
 	close(button, event) {
 		if (button == this.confirmIndex && typeof this.onConfirm == 'function') {
-			let formResult = this.getFormResult();
+			let formResult = this.getFormResult() ?? {};
 			let result = this.onConfirm(formResult, event);
 			if (result === false) return;
 		}

@@ -766,6 +766,7 @@ const Canvas = {
 			`,
 		})
 		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
+		Canvas.brush_outline.matrixAutoUpdate = false;
 		Canvas.gizmos.push(Canvas.brush_outline);
 
 		Canvas.gizmos.push(Canvas.hover_helper_line);

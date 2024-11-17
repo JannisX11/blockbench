@@ -211,8 +211,9 @@ class Texture {
 
 			if (this.flags.has('update_uv_size_from_resolution')) {
 				this.flags.delete('update_uv_size_from_resolution');
-				this.uv_width = scope.width;
-				this.uv_height = scope.display_height;
+				let size = [scope.width, scope.display_height];
+				this.uv_width = size[0];
+				this.uv_height = size[1];
 			}
 
 			if (scope.isDefault) {
@@ -1923,7 +1924,7 @@ class Texture {
 						tex2.select();
 					} else {
 						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy();
+						let copy = texture.getUndoCopy(true);
 						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
 						// Sync
 						texture.sync_to_project = Project.uuid;
