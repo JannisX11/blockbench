@@ -2555,11 +2555,12 @@ Interface.definePanels(function() {
 				
 						let original_margin = this.getFrameMargin();
 						let old_zoom = this.zoom;
-						var n = (event.deltaY < 0) ? 0.1 : -0.1;
-						n *= this.zoom
+						let n = (event.deltaY < 0) ? 0.15 : -0.15;
+						if (Math.abs(event.deltaY) < 10) n *= 0.25;
+						n *= this.zoom * settings.editor_2d_zoom_speed.value/100;
 
 						let zoom = this.zoom + n;
-						if (zoom > 0.91 && zoom < 1.1) zoom = 1;
+						if (zoom > (1 - Math.abs(n)) && zoom < (1 + Math.abs(n))) zoom = 1;
 						UVEditor.setZoom(zoom);
 						
 						let updateScroll = () => {

@@ -960,6 +960,8 @@
 	"settings.viewport_rotate_speed.desc": "Input sensitivity when rotating in the viewport",
 	"settings.viewport_zoom_speed": "Viewport Zoom Speed",
 	"settings.viewport_zoom_speed.desc": "Input sensitivity when zooming in the viewport",
+	"settings.editor_2d_zoom_speed": "2D Editor Zoom Speed",
+	"settings.editor_2d_zoom_speed.desc": "Input sensitivity when zooming in the UV and 2D paint editor",
 	"settings.stretch_linked": "Link Stretching",
 	"settings.stretch_linked.desc": "Stretch the cube in all directions with the same value",
 	"settings.auto_keyframe": "Auto Keyframe",

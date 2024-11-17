@@ -457,9 +457,10 @@ const Settings = {
 		new Setting('viewport_zoom_speed',		{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
 			Preview.all.forEach(viewport => viewport.controls.zoomSpeed = value / 100 * 1.5)
 		}});
+		new Setting('editor_2d_zoom_speed',		{category: 'controls', value: 100, min: 10, max: 1000, type: 'number'});
 		new Setting('double_click_switch_tools',{category: 'controls', value: true});
 		new Setting('canvas_unselect',  		{category: 'controls', value: false});
-		
+
 		//Edit
 		new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
@@ -480,6 +481,32 @@ const Settings = {
 		}});
 		new Setting('stretch_linked',		{category: 'edit', value: true});
 		new Setting('auto_keyframe',		{category: 'edit', value: true});
+
+		//Paint
+		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
+			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
+		}});
+		new Setting('brush_cursor_2d',			{category: 'paint', value: true});
+		new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
+			if (!value) scene.remove(Canvas.brush_outline);
+		}});
+		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
+		new Setting('move_with_selection_tool',		{category: 'paint', value: true});
+		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('paint_through_transparency',	{category: 'paint', value: true});
+		new Setting('paint_side_restrict',			{category: 'paint', value: true});
+		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
+		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
+			'pressure': tl('settings.brush_modifier.pressure'),
+			'tilt': tl('settings.brush_modifier.tilt'),
+			'none': tl('settings.brush_modifier.none'),
+		}});
+		new Setting('brush_size_modifier', {category: 'paint', value: 'none', type: 'select', options: {
+			'pressure': tl('settings.brush_modifier.pressure'),
+			'tilt': tl('settings.brush_modifier.tilt'),
+			'none': tl('settings.brush_modifier.none'),
+		}});
+		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -515,32 +542,6 @@ const Settings = {
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number', min: 1, max: 8192});
 		new Setting('negative_size',	{category: 'snapping', value: false});
 		new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
-
-		//Paint
-		new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
-			Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
-		}});
-		new Setting('brush_cursor_2d',			{category: 'paint', value: true});
-		new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
-			if (!value) scene.remove(Canvas.brush_outline);
-		}});
-		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
-		new Setting('move_with_selection_tool',		{category: 'paint', value: true});
-		new Setting('pick_color_opacity',			{category: 'paint', value: false});
-		new Setting('paint_through_transparency',	{category: 'paint', value: true});
-		new Setting('paint_side_restrict',			{category: 'paint', value: true});
-		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
-		new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
-			'pressure': tl('settings.brush_modifier.pressure'),
-			'tilt': tl('settings.brush_modifier.tilt'),
-			'none': tl('settings.brush_modifier.none'),
-		}});
-		new Setting('brush_size_modifier', {category: 'paint', value: 'none', type: 'select', options: {
-			'pressure': tl('settings.brush_modifier.pressure'),
-			'tilt': tl('settings.brush_modifier.tilt'),
-			'none': tl('settings.brush_modifier.none'),
-		}});
-		new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
 		
 		//Defaults
 		new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
