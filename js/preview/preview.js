@@ -1119,10 +1119,6 @@ class Preview {
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
 			// Size
-			let brush_scale = new THREE.Vector3().setFromMatrixScale(brush_matrix);
-			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.x;
-			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_scale.y;
-
 			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
 			brush_matrix.scale(scale);
 
