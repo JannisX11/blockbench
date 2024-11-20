@@ -6,6 +6,7 @@ daysUntilClose: 28
 exemptLabels:
   - suggestion
   - bug
+  - improvement
   - upstream issue
   - wontfix
   - to investigate
