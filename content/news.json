@@ -26,5 +26,15 @@
 				"text": "Use the knife tool to cut cubes and speed up your workflow!"
 			}
 		]
+	},
+	"psa": {
+		"color": "#0085ff",
+		"text_color": "#ffffff",
+		"graphic": {"source": "https://web.blockbench.net/content/bluesky_logo.svg", "width": 100},
+		"text": [
+			{"type": "h3", "text": "Blockbench is now on Bluesky!"},
+			{"text": "Follow Blockbench on Bluesky for news and cool models! [bsky.app/profile/blockbench.net](https://bsky.app/profile/blockbench.net/)"}
+		],
+		"last": true
 	}
 }
