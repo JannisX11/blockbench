@@ -260,7 +260,12 @@ const UVEditor = {
 		$(viewport).animate({
 			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
 			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
-		}, 100)
+		}, {
+			duration: 100,
+			complete: () => {
+				UVEditor.vue.uv_navigator_needs_update = true;
+			}
+		})
 	},
 
 	updateOverlayCanvas() {
@@ -2284,6 +2289,7 @@ Interface.definePanels(function() {
 				all_elements: [],
 				display_uv: 'selected_elements',
 				selection_outline: '',
+				uv_navigator_needs_update: false,
 
 				face_names: {
 					north: tl('face.north'),
@@ -2431,6 +2437,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport) {
 						this.$refs.viewport.scrollLeft = this.width/2;
 						this.$refs.viewport.scrollTop = this.height/2;
+						this.uv_navigator_needs_update = true;
 					}
 					this.centered_view = true;
 				},
@@ -2608,6 +2615,7 @@ Interface.definePanels(function() {
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
+							UVEditor.vue.uv_navigator_needs_update = true;
 						}
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
@@ -3895,6 +3903,7 @@ Interface.definePanels(function() {
 					};
 				},
 				getUVNavigatorPosition() {
+					this.uv_navigator_needs_update = false;
 					let early_return = {display: 'none'};
 					let mappable_element = this.mappable_elements.find(el => el.getSelectedFaces && el.getSelectedFaces()?.length)
 					if (!mappable_element) return early_return;
@@ -3924,33 +3933,35 @@ Interface.definePanels(function() {
 						Math.lerp(y1_2, y2_2, 0.5) - Math.lerp(y1_1, y2_1, 0.5),
 						Math.lerp(x1_2, x2_2, 0.5) - Math.lerp(x1_1, x2_1, 0.5),
 					);
+					let direction_degrees = Math.radToDeg(direction);
 					let screen_offset = uv_viewport.getBoundingClientRect();
 					let style = {
-						'--rotation': Math.radToDeg(direction) + 'deg',
+						'--rotation': (direction_degrees-90) + 'deg',
 						left: (screen_offset.x) + 'px',
 						top: (screen_offset.y) + 'px',
 					};
 					let rotation_range = Math.round(2 * direction / Math.PI);
-					console.log(rotation_range);
+					let rotation_modulo = ((direction_degrees + 540 + 45) % 90) / 90;
+					rotation_modulo = Math.hermiteBlend(rotation_modulo);
 					switch (rotation_range) {
 						case 2: case -2: {
 							style.left = (screen_offset.x + this.width - 25) + 'px';
-							style.top = (screen_offset.x + this.height/2 - 12) + 'px';
+							style.top = (screen_offset.y + rotation_modulo*(this.height - 25)) + 'px';
 							break;
 						}
 						case -1: {
-							style.left = (screen_offset.x + this.width/2 - 12) + 'px';
-							style.top = (screen_offset.x + this.height - 25) + 'px';
+							style.left = (screen_offset.x + (1-rotation_modulo)*(this.width - 25)) + 'px';
+							style.top = (screen_offset.y + this.height - 25) + 'px';
 							break;
 						}
 						case 0: {
 							style.left = (screen_offset.x) + 'px';
-							style.top = (screen_offset.x + this.height/2 - 12) + 'px';
+							style.top = (screen_offset.y + (1-rotation_modulo)*(this.height - 25)) + 'px';
 							break;
 						}
 						case 1: {
-							style.left = (screen_offset.x + this.width/2 - 12) + 'px';
-							style.top = (screen_offset.x) + 'px';
+							style.left = (screen_offset.x + rotation_modulo*(this.width - 25)) + 'px';
+							style.top = (screen_offset.y) + 'px';
 							break;
 						}
 					}
@@ -4358,8 +4369,8 @@ Interface.definePanels(function() {
 							</svg>
 						</div>
 
-						<div class="uv_navigator" :style="getUVNavigatorPosition()" @click="focusOnSelection()">
-							<i class="material-icons icon">line_start_arrow</i>
+						<div class="uv_navigator" :style="getUVNavigatorPosition(uv_navigator_needs_update)" @click="focusOnSelection()">
+							<i class="material-icons icon">navigation</i>
 						</div>
 
 						<div class="uv_transparent_face" v-else-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>

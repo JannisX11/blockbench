@@ -2231,7 +2231,7 @@ span.controller_state_section_info {
 		cursor: pointer;
 		z-index: 16;
 		border-radius: 50%;
-		background-color: var(--color-accent);
+		color: var(--color-accent);
 		padding: 1px;
 	}
 	.uv_navigator:hover {
@@ -2240,6 +2240,7 @@ span.controller_state_section_info {
 	.uv_navigator > .icon {
 		transform-origin: center;
 		transform: rotate(var(--rotation));
+		text-shadow: 1px 1px 2px black;
 	}
 	#uv_selection_outline {
 		--color-selection-outline-a: black;
