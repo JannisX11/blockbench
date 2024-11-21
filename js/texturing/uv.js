@@ -263,7 +263,7 @@ const UVEditor = {
 		}, {
 			duration: 100,
 			complete: () => {
-				UVEditor.vue.uv_navigator_needs_update = true;
+				UVEditor.updateUVNavigator();
 			}
 		})
 	},
@@ -562,6 +562,7 @@ const UVEditor = {
 			UVEditor.getUVWidth(),
 			UVEditor.getUVHeight()
 		);
+		this.updateUVNavigator();
 		this.vue.$forceUpdate();
 		return this;
 	},
@@ -738,6 +739,83 @@ const UVEditor = {
 		setTimeout(() => {
 			UVEditor.loadViewportOffset();
 		}, 0);
+	},
+	updateUVNavigator() {
+		let style = UVEditor.getUVNavigatorStyle();
+		let element = UVEditor.vue.$el.querySelector('.uv_navigator');
+		if (!element) return;
+		if (style) {
+			for (let key in style) {
+				element.style.setProperty(key, style[key]);
+			}
+			element.style.display = 'block';
+		} else {
+			element.style.display = 'none';
+		}
+	},
+	getUVNavigatorStyle() {
+		let vue = UVEditor.vue;
+		let mappable_element = vue.mappable_elements.find(el => (el.box_uv || (UVEditor.getSelectedFaces(el)?.length)));
+		if (!mappable_element) return;
+		let box = vue.getSelectedUVBoundingBox();
+		if (!box) return;
+
+		let uv_viewport = vue.$refs.viewport;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return;
+		let offset = [
+			(uv_viewport.scrollLeft - vue.width/2) / vue.inner_width,
+			(uv_viewport.scrollTop - vue.height/2) / vue.inner_height
+		];
+		let {zoom, uv_resolution} = vue;
+		let view_box = [
+			offset[0] * uv_resolution[0],
+			offset[1] * uv_resolution[1],
+			(offset[0] + vue.width/vue.inner_width) * uv_resolution[0],
+			(offset[1] + vue.width/vue.inner_width) * uv_resolution[1],
+		];
+
+		let [x1_1, y1_1, x2_1, y2_1] = box;
+		let [x1_2, y1_2, x2_2, y2_2] = view_box;
+		let out_of_view = (x2_1 < x1_2 || x1_1 > x2_2 || y2_1 < y1_2 || y1_1 > y2_2);
+		if (!out_of_view) return;
+
+		let direction = Math.atan2(
+			Math.lerp(y1_2, y2_2, 0.5) - Math.lerp(y1_1, y2_1, 0.5),
+			Math.lerp(x1_2, x2_2, 0.5) - Math.lerp(x1_1, x2_1, 0.5),
+		);
+		let direction_degrees = Math.radToDeg(direction);
+		let screen_offset = uv_viewport.getBoundingClientRect();
+		let style = {
+			'--rotation': (direction_degrees-90) + 'deg',
+			left: (screen_offset.x) + 'px',
+			top: (screen_offset.y) + 'px',
+		};
+		let rotation_range = Math.round(2 * direction / Math.PI);
+		let rotation_modulo = ((direction_degrees + 540 + 45) % 90) / 90;
+		rotation_modulo = Math.hermiteBlend(rotation_modulo);
+		switch (rotation_range) {
+			case 2: case -2: {
+				style.left = (screen_offset.x + vue.width - 25) + 'px';
+				style.top = (screen_offset.y + rotation_modulo*(vue.height - 25)) + 'px';
+				break;
+			}
+			case -1: {
+				style.left = (screen_offset.x + (1-rotation_modulo)*(vue.width - 25)) + 'px';
+				style.top = (screen_offset.y + vue.height - 25) + 'px';
+				break;
+			}
+			case 0: {
+				style.left = (screen_offset.x) + 'px';
+				style.top = (screen_offset.y + (1-rotation_modulo)*(vue.height - 25)) + 'px';
+				break;
+			}
+			case 1: {
+				style.left = (screen_offset.x + rotation_modulo*(vue.width - 25)) + 'px';
+				style.top = (screen_offset.y) + 'px';
+				break;
+			}
+		}
+		return style;
 	},
 
 	//Events
@@ -2289,7 +2367,6 @@ Interface.definePanels(function() {
 				all_elements: [],
 				display_uv: 'selected_elements',
 				selection_outline: '',
-				uv_navigator_needs_update: false,
 
 				face_names: {
 					north: tl('face.north'),
@@ -2437,7 +2514,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport) {
 						this.$refs.viewport.scrollLeft = this.width/2;
 						this.$refs.viewport.scrollTop = this.height/2;
-						this.uv_navigator_needs_update = true;
+						UVEditor.updateUVNavigator();
 					}
 					this.centered_view = true;
 				},
@@ -2511,6 +2588,9 @@ Interface.definePanels(function() {
 							  (Toolbox.selected.id == 'selection_tool' && settings.move_with_selection_tool.value && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
+				onScroll() {
+					UVEditor.updateUVNavigator();
+				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
 				
@@ -2546,6 +2626,7 @@ Interface.definePanels(function() {
 							}
 
 							this.updateTextureCanvas();
+							UVEditor.updateUVNavigator();
 							
 							if (this.mode == 'paint') {
 								this.mouse_coords.active = false;
@@ -2615,7 +2696,7 @@ Interface.definePanels(function() {
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
-							UVEditor.vue.uv_navigator_needs_update = true;
+							UVEditor.updateUVNavigator();
 						}
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
@@ -3902,71 +3983,6 @@ Interface.definePanels(function() {
 						height: this.toPixels(box[3] - box[1], 0),
 					};
 				},
-				getUVNavigatorPosition() {
-					this.uv_navigator_needs_update = false;
-					let early_return = {display: 'none'};
-					let mappable_element = this.mappable_elements.find(el => el.getSelectedFaces && el.getSelectedFaces()?.length)
-					if (!mappable_element) return early_return;
-					let box = this.getSelectedUVBoundingBox();
-					if (!box) return early_return;
-
-					let uv_viewport = this.$refs.viewport;
-					if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return early_return;
-					let offset = [
-						(uv_viewport.scrollLeft - this.width/2) / this.inner_width,
-						(uv_viewport.scrollTop - this.height/2) / this.inner_height
-					];
-					let {zoom, uv_resolution} = this;
-					let view_box = [
-						offset[0] * uv_resolution[0],
-						offset[1] * uv_resolution[1],
-						(offset[0] + this.width/this.inner_width) * uv_resolution[0],
-						(offset[1] + this.width/this.inner_width) * uv_resolution[1],
-					];
-
-					let [x1_1, y1_1, x2_1, y2_1] = box;
-					let [x1_2, y1_2, x2_2, y2_2] = view_box;
-					let out_of_view = (x2_1 < x1_2 || x1_1 > x2_2 || y2_1 < y1_2 || y1_1 > y2_2);
-					if (!out_of_view) return early_return;
-
-					let direction = Math.atan2(
-						Math.lerp(y1_2, y2_2, 0.5) - Math.lerp(y1_1, y2_1, 0.5),
-						Math.lerp(x1_2, x2_2, 0.5) - Math.lerp(x1_1, x2_1, 0.5),
-					);
-					let direction_degrees = Math.radToDeg(direction);
-					let screen_offset = uv_viewport.getBoundingClientRect();
-					let style = {
-						'--rotation': (direction_degrees-90) + 'deg',
-						left: (screen_offset.x) + 'px',
-						top: (screen_offset.y) + 'px',
-					};
-					let rotation_range = Math.round(2 * direction / Math.PI);
-					let rotation_modulo = ((direction_degrees + 540 + 45) % 90) / 90;
-					rotation_modulo = Math.hermiteBlend(rotation_modulo);
-					switch (rotation_range) {
-						case 2: case -2: {
-							style.left = (screen_offset.x + this.width - 25) + 'px';
-							style.top = (screen_offset.y + rotation_modulo*(this.height - 25)) + 'px';
-							break;
-						}
-						case -1: {
-							style.left = (screen_offset.x + (1-rotation_modulo)*(this.width - 25)) + 'px';
-							style.top = (screen_offset.y + this.height - 25) + 'px';
-							break;
-						}
-						case 0: {
-							style.left = (screen_offset.x) + 'px';
-							style.top = (screen_offset.y + (1-rotation_modulo)*(this.height - 25)) + 'px';
-							break;
-						}
-						case 1: {
-							style.left = (screen_offset.x + rotation_modulo*(this.width - 25)) + 'px';
-							style.top = (screen_offset.y) + 'px';
-							break;
-						}
-					}
-					return style;
-				},
 				focusOnSelection() {
 					UVEditor.focusOnSelection();
 				},
@@ -4186,6 +4202,7 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@wheel="onMouseWheel($event)"
+						@scroll="onScroll($event)"
 						@mousemove="updateMouseCoords($event)"
 						@mouseenter="onMouseEnter($event)"
 						@mouseleave="onMouseLeave($event)"
@@ -4369,7 +4386,7 @@ Interface.definePanels(function() {
 							</svg>
 						</div>
 
-						<div class="uv_navigator" :style="getUVNavigatorPosition(uv_navigator_needs_update)" @click="focusOnSelection()">
+						<div class="uv_navigator" @click="focusOnSelection()">
 							<i class="material-icons icon">navigation</i>
 						</div>
 
