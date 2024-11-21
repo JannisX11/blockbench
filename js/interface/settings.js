@@ -31,6 +31,7 @@ class Setting {
 		this.category = data.category || 'general';
 		this.name = data.name || tl(`settings.${id}`);
 		this.description = data.description || tl(`settings.${id}.desc`);
+		this.requires_restart = data.requires_restart == true;
 		this.launch_setting = data.launch_setting || false;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
@@ -189,6 +190,9 @@ class Setting {
 					setting.set(input);
 					Settings.save();
 					this.hide().delete();
+					if (setting.requires_restart) {
+						Settings.showRestartMessage();
+					}
 				},
 				onCancel() {
 					this.hide().delete();
@@ -355,13 +359,14 @@ const Settings = {
 		}
 		
 		//General
-		new Setting('language', {value: 'en', type: 'select', options: Language.options});
+		new Setting('language', {value: 'en', type: 'select', requires_restart: true, options: Language.options});
 		new Setting('username', {value: '', type: 'text'});
 		new Setting('streamer_mode', {value: false, onChange() {
 			StartScreen.vue._data.redact_names = settings.streamer_mode.value;
 			Interface.status_bar.vue.streamer_mode = settings.streamer_mode.value;
 			updateStreamerModeNotification();
 		}});
+		//new Setting('classroom_mode', {value: false, requires_restart: true});
 		new Setting('cdn_mirror', {value: false});
 		new Setting('recovery_save_interval', {value: 30, type: 'number', min: 0, onChange() {
 			clearTimeout(AutoBackup.loop_timeout);
@@ -369,7 +374,7 @@ const Settings = {
 		}});
 
 		//Interface
-		new Setting('interface_mode', 		{category: 'interface', value: 'auto', type: 'select', options: {
+		new Setting('interface_mode', 		{category: 'interface', value: 'auto', requires_restart: true, type: 'select', options: {
 			'auto': tl('settings.interface_mode.auto'),
 			'desktop': tl('settings.interface_mode.desktop'),
 			'mobile': tl('settings.interface_mode.mobile'),
@@ -421,8 +426,8 @@ const Settings = {
 		new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 			Canvas.updateShading()
 		}});
-		new Setting('antialiasing', 	{category: 'preview', value: true});
-		new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: true});
+		new Setting('antialiasing', 	{category: 'preview', value: true, requires_restart: true});
+		new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: true, requires_restart: true});
 		new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', min: 1, max: 120, onChange(val) {
 			Preview.all.forEach(preview => preview.setFOV(val));
 		}});
@@ -566,7 +571,7 @@ const Settings = {
 		new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 		new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 		new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
-		new Setting('hardware_acceleration', {category: 'application', value: true, condition: isApp, launch_setting: true});
+		new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
 		
 		//Export
 		new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {
@@ -659,10 +664,11 @@ const Settings = {
 		function hasSettingChanged(id) {
 			return (settings[id].value !== Settings.old[id])
 		}
-		updateSelection()
+		updateSelection();
+		let changed_settings = [];
 
-		for (var key in BarItems) {
-			var action = BarItems[key]
+		for (let key in BarItems) {
+			let action = BarItems[key]
 			if (action.linked_setting) {
 				if (settings[action.linked_setting] && action.value != settings[action.linked_setting].value) {
 					action.value = settings[action.linked_setting].value;
@@ -676,15 +682,23 @@ const Settings = {
 		}
 		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
 
-		for (var id in settings) {
-			var setting = settings[id];
+		for (let id in settings) {
+			let setting = settings[id];
 			if (!Condition(setting.condition)) continue;
-			if (setting.onChange && hasSettingChanged(id)) {
-				setting.onChange(setting.value);
+			let has_changed = hasSettingChanged(id);
+			if (has_changed) {
+				changed_settings.push(setting);
+				if (setting.onChange) {
+					setting.onChange(setting.value);
+				}
+				if (isApp && setting.launch_setting) {
+					ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+				}
 			}
-			if (isApp && setting.launch_setting && hasSettingChanged(id)) {
-				ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
-			}
+		}
+		let restart_settings = changed_settings.filter(setting => setting.requires_restart);
+		if (restart_settings.length) {
+			Settings.showRestartMessage(restart_settings);
 		}
 		Settings.updateProfileButton();
 		Blockbench.dispatchEvent('update_settings');
@@ -734,6 +748,35 @@ const Settings = {
 		if (options.search_term) Settings.dialog.content_vue.search_term = options.search_term;
 		if (options.profile) Settings.dialog.content_vue.profile = options.profile;
 		Settings.dialog.content_vue.$forceUpdate();
+	},
+	showRestartMessage(settings) {
+		let message;
+		if (settings instanceof Array) {
+			message = tl('message.settings_require_restart.message') + '\n\n';
+			for (let plugin of settings) {
+				message += '* ' + plugin.name + '\n'
+			}
+		}
+		Blockbench.showMessageBox({
+			icon: 'fa-power-off',
+			translateKey: 'settings_require_restart',
+			message,
+			commands: {
+				restart_now: {text: 'message.settings_require_restart.restart_now'}
+			},
+			buttons: ['message.settings_require_restart.restart_later']
+		}, result => {
+			if (result == 'restart_now') {
+				if (isApp) {
+					Blockbench.once('before_closing', () => {
+						ipcRenderer.send('new-window');
+					})
+					currentwindow.close();
+				} else {
+					location.reload();
+				}
+			}
+		})
 	},
 	old: {}
 }
