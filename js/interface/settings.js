@@ -142,6 +142,9 @@ class Setting {
 		if (type == 'toggle') {
 			this.set(!this.value);
 			Settings.save();
+			if (setting.requires_restart) {
+				Settings.showRestartMessage();
+			}
 
 		} else if (type == 'click') {
 			this.click(e)
@@ -158,6 +161,9 @@ class Setting {
 					click: () => {
 						this.set(key);
 						Settings.save();
+						if (setting.requires_restart) {
+							Settings.showRestartMessage();
+						}
 					}
 				})
 			}
@@ -366,7 +372,7 @@ const Settings = {
 			Interface.status_bar.vue.streamer_mode = settings.streamer_mode.value;
 			updateStreamerModeNotification();
 		}});
-		//new Setting('classroom_mode', {value: false, requires_restart: true});
+		new Setting('classroom_mode', {value: false, requires_restart: true});
 		new Setting('cdn_mirror', {value: false});
 		new Setting('recovery_save_interval', {value: 30, type: 'number', min: 0, onChange() {
 			clearTimeout(AutoBackup.loop_timeout);
@@ -404,7 +410,9 @@ const Settings = {
 				scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
 			}
 		}});
-		new Setting('seethrough_outline', 	{category: 'interface', value: false});
+		new Setting('seethrough_outline', 	{category: 'interface', value: false, onChange(value) {
+			Canvas.outlineMaterial.depthTest = !value;
+		}});
 		new Setting('outliner_colors', 		{category: 'interface', value: true});
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
 			$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
@@ -515,11 +523,11 @@ const Settings = {
 		
 		//Grid
 		new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
-		new Setting('base_grid',			{category: 'grid', value: true});
-		new Setting('large_grid', 			{category: 'grid', value: true});
-		new Setting('full_grid',			{category: 'grid', value: false});
-		new Setting('large_box',			{category: 'grid', value: false});
-		new Setting('large_grid_size',		{category: 'grid', value: 3, type: 'number', min: 0, max: 2000});
+		new Setting('base_grid',			{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
+		new Setting('large_grid', 			{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
+		new Setting('full_grid',			{category: 'grid', value: false, onChange() {Canvas.buildGrid()}});
+		new Setting('large_box',			{category: 'grid', value: false, onChange() {Canvas.buildGrid()}});
+		new Setting('large_grid_size',		{category: 'grid', value: 3, type: 'number', min: 0, max: 2000, onChange() {Canvas.buildGrid()}});
 		//new Setting('display_grid',		{category: 'grid', value: false});
 		new Setting('pixel_grid',			{category: 'grid', value: false, onChange(value) {
 			Canvas.updatePixelGrid();
@@ -541,7 +549,7 @@ const Settings = {
 		}});
 		
 		//Snapping
-		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number', min: 1, max: 8192});
+		new Setting('edit_size',		{category: 'snapping', value: 16, type: 'number', min: 1, max: 8192, onChange() {Canvas.buildGrid()}});
 		new Setting('shift_size', 		{category: 'snapping', value: 64, type: 'number', min: 1, max: 8192});
 		new Setting('ctrl_size',		{category: 'snapping', value: 160, type: 'number', min: 1, max: 8192});
 		new Setting('ctrl_shift_size',	{category: 'snapping', value: 640, type: 'number', min: 1, max: 8192});
@@ -661,12 +669,7 @@ const Settings = {
 	},
 	save() {
 		Settings.saveLocalStorages()
-		function hasSettingChanged(id) {
-			return (settings[id].value !== Settings.old[id])
-		}
 		updateSelection();
-		let changed_settings = [];
-
 		for (let key in BarItems) {
 			let action = BarItems[key]
 			if (action.linked_setting) {
@@ -675,30 +678,6 @@ const Settings = {
 					action.updateEnabledState();
 				}
 			}
-		}
-		if (hasSettingChanged('base_grid') || hasSettingChanged('large_grid') || hasSettingChanged('full_grid') || hasSettingChanged('large_grid_size')
-			||hasSettingChanged('large_box') || hasSettingChanged('edit_size')) {
-			Canvas.buildGrid()
-		}
-		Canvas.outlineMaterial.depthTest = !settings.seethrough_outline.value
-
-		for (let id in settings) {
-			let setting = settings[id];
-			if (!Condition(setting.condition)) continue;
-			let has_changed = hasSettingChanged(id);
-			if (has_changed) {
-				changed_settings.push(setting);
-				if (setting.onChange) {
-					setting.onChange(setting.value);
-				}
-				if (isApp && setting.launch_setting) {
-					ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
-				}
-			}
-		}
-		let restart_settings = changed_settings.filter(setting => setting.requires_restart);
-		if (restart_settings.length) {
-			Settings.showRestartMessage(restart_settings);
 		}
 		Settings.updateProfileButton();
 		Blockbench.dispatchEvent('update_settings');
@@ -1095,6 +1074,28 @@ onVueSetup(function() {
 		},
 		onButton() {
 			Settings.save();
+			function hasSettingChanged(id) {
+				return (Settings.old && settings[id].value !== Settings.old[id])
+			}
+			let changed_settings = [];
+			for (let id in settings) {
+				let setting = settings[id];
+				if (!Condition(setting.condition)) continue;
+				let has_changed = hasSettingChanged(id);
+				if (has_changed) {
+					changed_settings.push(setting);
+					if (setting.onChange) {
+						setting.onChange(setting.value);
+					}
+					if (isApp && setting.launch_setting) {
+						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+					}
+				}
+			}
+			let restart_settings = changed_settings.filter(setting => setting.requires_restart);
+			if (restart_settings.length) {
+				Settings.showRestartMessage(restart_settings);
+			}
 		}
 	})
 })

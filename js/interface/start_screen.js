@@ -571,7 +571,7 @@ ModelLoader.loaders = {};
 
 		//Twitter
 		let twitter_ad;
-		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+		if (!settings.classroom_mode.value && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
 			twitter_ad = true;
 			addStartScreenSection('twitter_link', {
 				color: '#1da1f2',
@@ -585,7 +585,7 @@ ModelLoader.loaders = {};
 			})
 		}
 		//Discord
-		if (Blockbench.startup_count < 6 && !twitter_ad) {
+		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !twitter_ad) {
 			addStartScreenSection('discord_link', {
 				color: '#5865F2',
 				text_color: '#ffffff',

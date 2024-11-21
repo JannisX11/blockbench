@@ -481,7 +481,7 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {

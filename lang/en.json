@@ -361,6 +361,7 @@
 	"message.plugin_reload": "Reloaded %0 local plugins",
 	"message.installed_plugin": "Successfully installed the plugin %0",
 	"message.installed_plugin_fail": "Failed to installed the plugin %0",
+	"message.classroom_mode.install_plugin": "Cannot install plugins in Classroom Mode",
 	"message.preset_no_info": "Preset does not contain information for this slot",
 	"message.restart_to_update": "Restart Blockbench to apply changes",
 	"message.save_file": "Saved as %0",

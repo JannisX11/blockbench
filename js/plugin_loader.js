@@ -1572,6 +1572,10 @@ BARS.defineActions(function() {
 			'load_plugin_from_url'
 		]),
 		click(e) {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
@@ -1594,6 +1598,10 @@ BARS.defineActions(function() {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.import({
 				resource_id: 'dev_plugin',
 				extensions: ['js'],
@@ -1607,6 +1615,10 @@ BARS.defineActions(function() {
 		icon: 'cloud_download',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})
