@@ -686,7 +686,6 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	}
 	close(button, event) {
 		let result = this.getFormResult();
-		console.log(result);
 		for (let key in result) {
 			this.config[key] = result[key];
 		}
@@ -695,14 +694,15 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	}
 	show(anchor) {
 		super.show()
-		//$(this.object).show();
 		$('#blackout').hide();
 
 		this.setFormValues(this.config);
-
-		let anchor_position = $(anchor).offset();
-		this.object.style.top = (anchor_position.top+anchor.clientHeight) + 'px';
-		this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth) + 'px';
+		
+		if (anchor instanceof HTMLElement) {
+			let anchor_position = $(anchor).offset();
+			this.object.style.top = (anchor_position.top+anchor.clientHeight) + 'px';
+			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth) + 'px';
+		}
 	}
 	build() {
 		if (this.object) this.object.remove();
@@ -711,6 +711,12 @@ window.ToolConfig = class ToolConfig extends Dialog {
 
 		this.max_label_width = 140;
 		this.uses_wide_inputs = false;
+
+		let title_bar;
+		if (this.title) {
+			title_bar = Interface.createElement('div', {class: 'tool_config_title'}, tl(this.title));
+			this.object.append(title_bar);
+		}
 
 		let wrapper = document.createElement('div');
 		wrapper.className = 'dialog_wrapper';
@@ -726,10 +732,14 @@ window.ToolConfig = class ToolConfig extends Dialog {
 		let close_button = document.createElement('div');
 		close_button.classList.add('dialog_close_button');
 		close_button.innerHTML = '<i class="material-icons">clear</i>';
-		this.object.append(close_button);
 		close_button.addEventListener('click', (e) => {
 			this.cancel();
 		})
+		if (title_bar) {
+			title_bar.append(close_button);
+		} else {
+			this.object.append(close_button);
+		}
 
 		if (typeof this.onBuild == 'function') {
 			this.onBuild(this.object);

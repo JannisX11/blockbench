@@ -135,6 +135,17 @@
 		margin-right: 0;
 		margin-left: 0;
 	}
+	.tool_config_title {
+		padding: 8px 22px;
+		font-weight: 200;
+		font-size: 1.3em;
+		margin-bottom: -14px;
+		text-align: center;
+	}
+	.tool_config_title > .dialog_close_button {
+		right: 6px;
+		top: 8px;
+	}
 	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);
 		max-width: min(960px, 100%);

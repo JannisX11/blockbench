@@ -2920,42 +2920,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	/*StateMemory.init('mirror_painting_options', 'object');
-	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
-	if (!Painter.mirror_painting_options.axis) {
-		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
-	}
-	if (!Painter.mirror_painting_options.global && !Painter.mirror_painting_options.local) {
-		Painter.mirror_painting_options.global = true;
-	}
-	if (!Painter.mirror_painting_options.texture_center) {
-		Painter.mirror_painting_options.texture_center = [0, 0];
-	}*/
-	function toggleMirrorPaintingAxis(axis) {
-		let axes = Painter.mirror_painting_options.axis
-		axes[axis] = !axes[axis];
-		if (!axes.x && !axes.z) {
-			if (axis == 'x') {
-				axes.z = true;
-			} else {
-				axes.x = true;
-			}
-		}
-		highlightMirrorPaintingAxes();
-		StateMemory.save('mirror_painting_options');
-	}
-	function toggleMirrorPaintingSpace(space) {
-		let options = Painter.mirror_painting_options;
-		options[space] = !options[space];
-		if (!options.global && !options.local && !options.texture_frames) {
-			if (space == 'global') {
-				options.local = true;
-			} else {
-				options.global = true;
-			}
-		}
-		StateMemory.save('mirror_painting_options');
-	}
 	function highlightMirrorPaintingAxes() {
 		if (!Painter.mirror_painting) return;
 		
@@ -2978,7 +2942,9 @@ BARS.defineActions(function() {
 		scene.add(grids);
 		setTimeout(() => {
 			scene.remove(grids);
-			grid.geometry.dispose();
+			for (let grid of grids.children) {
+				grid.geometry.dispose();
+			}
 		}, 1000)
 	}
 	new Toggle('mirror_painting', {
@@ -2990,61 +2956,19 @@ BARS.defineActions(function() {
 			highlightMirrorPaintingAxes();
 		},
 		side_menu: new ToolConfig('mirror_painting', {
+			title: 'action.mirror_painting',
+			width: 480,
 			form: {
-				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'Y', z: 'Z'}, value: {x: true, z: false}},
-				global_space: {type: 'checkbox', label: 'menu.mirror_painting.global', value: true},
-				local_space: {type: 'checkbox', label: 'menu.mirror_painting.local'},
-				texture_space: {type: 'checkbox', label: 'menu.mirror_painting.texture'},
-				texture_center: {type: 'vector', label: 'menu.mirror_painting.configure_texture_center', dimensions: 2},
-				texture_frames: {type: 'checkbox', label: 'menu.mirror_painting.texture_frames'},
-			}
-		})
-		/*new Menu('mirror_painting', [
-			new MenuSeparator('options'),
-			// Enabled
-			{
-				name: 'menu.mirror_painting.enabled',
-				icon: () => Painter.mirror_painting,
-				click() {BarItems.mirror_painting.trigger()}
-			},
-			// Axis
-			{
-				name: 'menu.mirror_painting.axis',
-				description: 'menu.mirror_painting.axis.desc',
-				icon: 'call_split',
-				children: [
-					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {toggleMirrorPaintingAxis('x')}},
-					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {toggleMirrorPaintingAxis('y')}},
-					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
-				]
-			},
-			new MenuSeparator('space'),
-			// Global
-			{
-				name: 'menu.mirror_painting.global',
-				description: 'menu.mirror_painting.global.desc',
-				icon: () => !!Painter.mirror_painting_options.global,
-				click() {toggleMirrorPaintingSpace('global')}
-			},
-			// Local
-			{
-				name: 'menu.mirror_painting.local',
-				description: 'menu.mirror_painting.local.desc',
-				icon: () => !!Painter.mirror_painting_options.local,
-				click() {toggleMirrorPaintingSpace('local')}
-			},
-			new MenuSeparator('texture'),
-			// Texture
-			{
-				name: 'menu.mirror_painting.texture',
-				description: 'menu.mirror_painting.texture.desc',
-				icon: () => !!Painter.mirror_painting_options.texture,
-				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
-			},
-			{
-				name: 'menu.mirror_painting.configure_texture_center',
-				icon: 'align_horizontal_center',
-				click() {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: Painter.mirror_painting},
+				_1: '_',
+				global: {type: 'checkbox', label: 'menu.mirror_painting.global', value: true, description: 'menu.mirror_painting.global.desc',},
+				local: {type: 'checkbox', label: 'menu.mirror_painting.local', description: 'menu.mirror_painting.local.desc',},
+				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'X', z: 'Z'}, value: {x: true, z: false}, description: 'menu.mirror_painting.axis.desc'},
+				_2: '_',
+				texture: {type: 'checkbox', label: 'menu.mirror_painting.texture', description: 'menu.mirror_painting.texture.desc'},
+				texture_center: {type: 'vector', label: 'menu.mirror_painting.configure_texture_center', dimensions: 2, condition: form => form.texture},
+				configure_texture_center: {type: 'buttons', buttons: ['menu.mirror_painting.configure_texture_center'], condition: form => form.texture, click(button) {
+					let form = Dialog.open.form;
 					let center = Painter.mirror_painting_options.texture_center;
 					let is_custom = !!(center[0] || center[1]);
 					let default_center = [Project.texture_width/2, Project.texture_height/2];
@@ -3069,24 +2993,32 @@ BARS.defineActions(function() {
 							} else {
 								center.V2_set(0, 0);
 							}
+							form.setValues({texture_center: center});
 							StateMemory.save('mirror_painting_options');
 						}
 					}).show();
 					if (open_menu) {
 						setTimeout(() => open_menu.hide(), 10);
 					}
+				}},
+				_3: '_',
+				texture_frames: {
+					type: 'checkbox',
+					label: 'menu.mirror_painting.texture_frames',
+					description: 'menu.mirror_painting.texture_frames.desc',
+					condition: () => Texture.all.find(tex => tex.frameCount > 1)
+				},
+			},
+			onFormChange(result) {
+				Painter.mirror_painting = result.enabled;
+				if (!result.axis.x && !result.axis.z) {
+					this.setFormValues({axis: {x: true, z: false}});
 				}
-			},
-			new MenuSeparator('animated_texture'),
-			// Animated Texture Frames
-			{
-				name: 'menu.mirror_painting.texture_frames',
-				description: 'menu.mirror_painting.texture_frames.desc',
-				condition: () => Texture.all.find(tex => tex.frameCount > 1),
-				icon: () => !!Painter.mirror_painting_options.texture_frames,
-				click() {toggleMirrorPaintingSpace('texture_frames')}
-			},
-		], {keep_open: true})*/
+				if (!result.global && !result.local) {
+					this.setFormValues({global: true});
+				}
+			}
+		})
 	})
 	Painter.mirror_painting_options = BarItems.mirror_painting.side_menu.config;
 	new Toggle('color_erase_mode', {
