@@ -215,35 +215,30 @@ const Animator = {
 		Animator.motion_trail.add(keyframe_points);
 	},
 	updateOnionSkin() {
-		let mode = BarItems.animation_onion_skin.value;
-		let selective = BarItems.animation_onion_skin_selective.value;
+		let enabled = BarItems.animation_onion_skin.value;
+		let options = BarItems.animation_onion_skin.tool_config.options;
+		let selective = options.selective;
 
 		Animator.onion_skin_object.children.forEach(object => {
 			object.geometry.dispose();
 		});
 		Animator.onion_skin_object.children.empty();
 
-		if (mode == 'off') return;
+		if (!enabled) return;
 
 		let times = [];
-		if (mode == 'previous') {
-			times = [Timeline.time - Timeline.getStep()];
-		} else if (mode == 'next') {
-			times = [Timeline.time + Timeline.getStep()];
-		} else if (mode == 'previous_next') {
-			times = [
-				Timeline.time - Timeline.getStep(),
-				Timeline.time + Timeline.getStep()
-			];
-		} else if (mode == 'previous_next_2') {
-			times = [
-				Timeline.time - Timeline.getStep()*2,
-				Timeline.time - Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*2,
-			];
-		} else if (mode == 'select') {
+
+		if (options.frames == 'select') {
 			times = [Timeline.vue.onion_skin_time];
+		} else {
+			let interval = Timeline.getStep() * (options.interval || 1);
+			let go_pre = options.frames == 'previous', go_nex = options.frames == 'next';
+			if (options.frames == 'previous_next') go_pre = go_nex = true;
+
+			for (let i = 1; i <= options.count; i++) {
+				if (go_pre) times.push(Timeline.time - interval * i);
+				if (go_nex) times.push(Timeline.time + interval * i);
+			}
 		}
 
 		let elements = Outliner.elements;
@@ -1282,29 +1277,37 @@ BARS.defineActions(function() {
 		}
 	})
 	// Onion Skin
-	new BarSelect('animation_onion_skin', {
+	new Toggle('animation_onion_skin', {
 		category: 'view',
 		condition: {modes: ['animate']},
-		value: 'off',
-		options: {
-			off: true,
-			select: true,
-			previous: true,
-			next: true,
-			previous_next: true,
-			previous_next_2: tl('action.animation_onion_skin.previous_next') + ' (2)',
-		},
+		tool_config: new ToolConfig('animation_onion_skin', {
+			title: 'action.animation_onion_skin',
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				frames: {type: 'select', label: 'menu.animation_onion_skin.frames', value: 'previous', options: {
+					select: 'menu.animation_onion_skin.select',
+					previous: 'menu.animation_onion_skin.previous',
+					next: 'menu.animation_onion_skin.next',
+					previous_next: 'menu.animation_onion_skin.previous_next',
+				}},
+				count: {type: 'number', label: 'menu.animation_onion_skin.count', value: 1, condition: form => form.frames != 'select'},
+				interval: {type: 'number', label: 'menu.animation_onion_skin.interval', value: 1, condition: form => form.frames != 'select'},
+				selective: {type: 'checkbox', label: 'menu.animation_onion_skin_selective', value: true},
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.animation_onion_skin.value}, false);
+			},
+			onFormChange(formResult) {
+				if (BarItems.animation_onion_skin.value != formResult.enabled) {
+					BarItems.animation_onion_skin.trigger();
+				} else {
+					Animator.updateOnionSkin();
+				}
+				Timeline.vue.onion_skin_selectable = formResult.enabled && this.options.frames == 'select';
+			}
+		}),
 		onChange() {
-			Timeline.vue.onion_skin_mode = this.value;
-			Animator.updateOnionSkin();
-		}
-	})
-	new Toggle('animation_onion_skin_selective', {
-		icon: 'animation',
-		category: 'animation',
-		default: true,
-		condition: () => Animator.open && BarItems.animation_onion_skin.value != 'off',
-		onChange(value) {
+			Timeline.vue.onion_skin_selectable = this.value && this.tool_config.options.frames == 'select';
 			Animator.updateOnionSkin();
 		}
 	})

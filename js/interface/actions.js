@@ -3,6 +3,7 @@ var Toolbars, BarItems, Toolbox;
 class BarItem extends EventSystem {
 	constructor(id, data) {
 		super();
+		BarItem.constructing = this;
 		this.id = id;
 		if (!data.private) {
 			if (this.id && !BarItems[this.id]) {
@@ -298,6 +299,10 @@ class Action extends BarItem {
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
 
+		if (data.tool_config instanceof ToolConfig) {
+			this.tool_config = data.tool_config;
+			if (!data.side_menu) data.side_menu = data.tool_config;
+		}
 		if (data.side_menu) {
 			this.side_menu = data.side_menu;
 			this.node.classList.add('side_menu_tool');

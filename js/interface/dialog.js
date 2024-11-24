@@ -669,7 +669,7 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	constructor(id, options) {
 		super(id, options);
 
-		this.config = {};
+		this.options = {};
 		let config_saved_data = localStorage.getItem(`tool_config.${this.id}`);
 		try {
 			config_saved_data = JSON.parse(config_saved_data);
@@ -678,17 +678,17 @@ window.ToolConfig = class ToolConfig extends Dialog {
 			config_saved_data = {};
 		}
 		for (let key in options.form) {
-			this.config[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
+			if (key == 'enabled' && BarItem.constructing instanceof Toggle) {
+				this.options[key] = BarItem.constructing.value;
+				continue;
+			}
+			this.options[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
 		}
 	}
 	save() {
-		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.config));
+		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.options));
 	}
 	close(button, event) {
-		let result = this.getFormResult();
-		for (let key in result) {
-			this.config[key] = result[key];
-		}
 		this.save();
 		this.hide();
 	}
@@ -696,12 +696,12 @@ window.ToolConfig = class ToolConfig extends Dialog {
 		super.show()
 		$('#blackout').hide();
 
-		this.setFormValues(this.config);
+		this.setFormValues(this.options, false);
 		
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
-			this.object.style.top = (anchor_position.top+anchor.clientHeight) + 'px';
-			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth) + 'px';
+			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
+			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30)) + 'px';
 		}
 	}
 	build() {
@@ -727,7 +727,16 @@ window.ToolConfig = class ToolConfig extends Dialog {
 		
 		wrapper.append(content);
 
-		buildForm(this);
+		this.form = new InputForm(this.form_config);
+		content.append(this.form.node);
+		this.max_label_width = Math.max(this.max_label_width, this.form.max_label_width);
+		if (this.form.uses_wide_inputs) this.uses_wide_inputs = true;
+		this.form.on('change', ({result}) => {
+			for (let key in result) {
+				this.options[key] = result[key];
+			}
+			if (this.onFormChange) this.onFormChange(result);
+		})
 
 		let close_button = document.createElement('div');
 		close_button.classList.add('dialog_close_button');

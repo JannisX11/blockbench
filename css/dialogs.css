@@ -92,11 +92,12 @@
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
-		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+		box-shadow: 0 0px 20px rgba(0, 0, 0, 0.56);
 		left: unset;
 		right: unset;
 		bottom: unset;
 		display: none;
+		border-radius: 3px;
 	}
 	.shapeless_dialog {
 		position: fixed;
@@ -131,20 +132,30 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
-	.dialog.tool_config {
+	dialog.dialog.tool_config {
 		margin-right: 0;
 		margin-left: 0;
+		width: fit-content;
+		min-width: 200px;
+	}
+	.dialog.tool_config > div > .dialog_content {
+		margin: 4px 12px;
 	}
 	.tool_config_title {
-		padding: 8px 22px;
-		font-weight: 200;
-		font-size: 1.3em;
-		margin-bottom: -14px;
+		padding: 4px 12px;
+		margin-bottom: -6px;
+		margin-right: 18px;
 		text-align: center;
+		font-size: 1.1em;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
 	}
-	.tool_config_title > .dialog_close_button {
-		right: 6px;
-		top: 8px;
+	.dialog .tool_config_title > .dialog_close_button {
+		right: 0;
+		top: 0;
+	}
+	.dialog.tool_config hr {
+		margin: 6px 0;
 	}
 	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);

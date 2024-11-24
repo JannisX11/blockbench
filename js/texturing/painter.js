@@ -794,7 +794,7 @@ const Painter = {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
 			}
 			let center = Painter.mirror_painting_options.texture_center;
-			if (center[0] == 0 && center[1] == 0) {
+			if (!center || (!center[0] && !center[1])) {
 				center = [texture.width/2, texture.display_height/2];
 			}
 			if (Painter.mirror_painting_options.axis.x) {
@@ -2955,9 +2955,9 @@ BARS.defineActions(function() {
 			Painter.mirror_painting = value;
 			highlightMirrorPaintingAxes();
 		},
-		side_menu: new ToolConfig('mirror_painting', {
+		tool_config: new ToolConfig('mirror_painting', {
 			title: 'action.mirror_painting',
-			width: 480,
+			width: 408,
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: Painter.mirror_painting},
 				_1: '_',
@@ -2966,41 +2966,7 @@ BARS.defineActions(function() {
 				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'X', z: 'Z'}, value: {x: true, z: false}, description: 'menu.mirror_painting.axis.desc'},
 				_2: '_',
 				texture: {type: 'checkbox', label: 'menu.mirror_painting.texture', description: 'menu.mirror_painting.texture.desc'},
-				texture_center: {type: 'vector', label: 'menu.mirror_painting.configure_texture_center', dimensions: 2, condition: form => form.texture},
-				configure_texture_center: {type: 'buttons', buttons: ['menu.mirror_painting.configure_texture_center'], condition: form => form.texture, click(button) {
-					let form = Dialog.open.form;
-					let center = Painter.mirror_painting_options.texture_center;
-					let is_custom = !!(center[0] || center[1]);
-					let default_center = [Project.texture_width/2, Project.texture_height/2];
-					let texture = Texture.getDefault();
-					if (texture) {
-						default_center.V2_set(texture.width/2, texture.height/2);
-					}
-					new Dialog({
-						id: 'mirror_painting_texture_center',
-						title: 'menu.mirror_painting.configure_texture_center',
-						width: 400,
-						form: {
-							mode: {type: 'inline_select', value: is_custom ? 'custom' : 'middle', options: {
-								middle: 'dialog.mirror_painting_texture_center.middle',
-								custom: 'dialog.mirror_painting_texture_center.custom',
-							}},
-							center: {type: 'vector', dimensions: 2, value: is_custom ? center : default_center, min: 0, step: 0.5, condition: (result) => result.mode == 'custom'}
-						},
-						onConfirm(result) {
-							if (result.mode == 'custom') {
-								center.replace(result.center.map(v => Math.round(v*2)/2));
-							} else {
-								center.V2_set(0, 0);
-							}
-							form.setValues({texture_center: center});
-							StateMemory.save('mirror_painting_options');
-						}
-					}).show();
-					if (open_menu) {
-						setTimeout(() => open_menu.hide(), 10);
-					}
-				}},
+				texture_center: {type: 'vector', label: 'menu.mirror_painting.texture_center', dimensions: 2, condition: form => form.texture, toggle_enabled: true, toggle_default: false},
 				_3: '_',
 				texture_frames: {
 					type: 'checkbox',
@@ -3011,6 +2977,7 @@ BARS.defineActions(function() {
 			},
 			onFormChange(result) {
 				Painter.mirror_painting = result.enabled;
+				BarItems.mirror_painting.set(result.enabled);
 				if (!result.axis.x && !result.axis.z) {
 					this.setFormValues({axis: {x: true, z: false}});
 				}
@@ -3020,7 +2987,7 @@ BARS.defineActions(function() {
 			}
 		})
 	})
-	Painter.mirror_painting_options = BarItems.mirror_painting.side_menu.config;
+	Painter.mirror_painting_options = BarItems.mirror_painting.tool_config.options;
 	new Toggle('color_erase_mode', {
 		icon: 'remove_circle',
 		category: 'paint',
@@ -3047,9 +3014,6 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
-	Painter.image_tiled_view_options = {
-		mirrored: false
-	};
 	new Toggle('image_tiled_view', { 
 		category: 'paint',
 		icon: 'grid_view',
@@ -3061,21 +3025,23 @@ BARS.defineActions(function() {
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
 		},
-		side_menu: new Menu('image_tiled_view', [
-			{
-				name: 'menu.image_tiled_view.mirrored',
-				icon: () => !!Painter.image_tiled_view_options.mirrored,
-				click() {
-					Painter.image_tiled_view_options.mirrored = !Painter.image_tiled_view_options.mirrored;
-					UVEditor.updateOverlayCanvas();
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				mirrored: {
+					label: 'menu.image_tiled_view.mirrored',
+					type: 'checkbox',
+					value: false
 				}
 			},
-		])
+			onFormChange(result) {
+				console.log('abaw')
+				UVEditor.updateOverlayCanvas();
+			}
+		})
 	})
-	Painter.image_onion_skin_view_options = {
-		frame: 'last_viewed',
-		display: 'pixels'
-	};
+	Painter.image_tiled_view_options = BarItems.image_tiled_view.tool_config.options;
+
 	new Toggle('image_onion_skin_view', { 
 		category: 'paint',
 		icon: 'animation',
@@ -3088,55 +3054,40 @@ BARS.defineActions(function() {
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
 		},
-		side_menu: new Menu('image_onion_skin_view', [
-			{
-				name: 'menu.image_onion_skin_view.frame',
-				icon: 'list',
-				children() {
-					let options = [
-						'last_viewed',
-						'previous',
-						'next',
-						'both',
-					];
-					return options.map(id => ({
-						name: 'menu.image_onion_skin_view.frame.' + id,
-						icon: () => Painter.image_onion_skin_view_options.frame == id ? 'far.fa-dot-circle' : 'far.fa-circle',
-						click() {
-							Painter.image_onion_skin_view_options.frame = id;
-							UVEditor.updateOverlayCanvas();
-						}
-					}))
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				frame: {
+					label: 'menu.image_onion_skin_view.frame',
+					type: 'select',
+					value: 'last_viewed',
+					options: {
+						last_viewed: 'menu.image_onion_skin_view.frame.last_viewed',
+						previous: 'menu.image_onion_skin_view.frame.previous',
+						next: 'menu.image_onion_skin_view.frame.next',
+						both: 'menu.image_onion_skin_view.frame.both',
+					}
+				},
+				display: {
+					label: 'menu.image_onion_skin_view.display',
+					type: 'select',
+					value: 'pixels',
+					options: {
+						pixels: 'menu.image_onion_skin_view.display.pixels',
+						transparent: 'menu.image_onion_skin_view.display.transparent',
+					}
+				},
+				above: {
+					label: 'menu.image_onion_skin_view.above',
+					type: 'checkbox'
 				},
 			},
-			{
-				name: 'menu.image_onion_skin_view.display',
-				icon: 'list',
-				children() {
-					let options = [
-						'pixels',
-						'transparent',
-					];
-					return options.map(id => ({
-						name: 'menu.image_onion_skin_view.display.' + id,
-						icon: () => Painter.image_onion_skin_view_options.display == id ? 'far.fa-dot-circle' : 'far.fa-circle',
-						click() {
-							Painter.image_onion_skin_view_options.display = id;
-							UVEditor.updateOverlayCanvas();
-						}
-					}));
-				}
-			},
-			{
-				name: 'menu.image_onion_skin_view.above',
-				icon: () => !!Painter.image_onion_skin_view_options.above,
-				click() {
-					Painter.image_onion_skin_view_options.above = !Painter.image_onion_skin_view_options.above;
-					UVEditor.updateOverlayCanvas();
-				}
-			},
-		], {keep_open: true})
+			onFormChange(result) {
+				UVEditor.updateOverlayCanvas();
+			}
+		})
 	})
+	Painter.image_onion_skin_view_options = BarItems.image_onion_skin_view.tool_config.options;
 
 	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ((Toolbox.selected.brush?.size == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),

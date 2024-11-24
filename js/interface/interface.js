@@ -464,7 +464,7 @@ function unselectInterface(event) {
 		}
 		document.addEventListener('click', mouseUp);
 	}
-	if (Dialog.open instanceof ToolConfig && $(Dialog.open.object).find(event.target).length === 0) {
+	if (Dialog.open instanceof ToolConfig && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
 		Dialog.open.close();
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {

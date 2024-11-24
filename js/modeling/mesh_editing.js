@@ -8,7 +8,7 @@ const ProportionalEdit = {
 		if (!BarItems.proportional_editing.value) return;
 	
 		let selected_vertices = mesh.getSelectedVertices();
-		let {range, falloff, selection} = StateMemory.proportional_editing_options;
+		let {range, falloff, selection} = ProportionalEdit.config;
 		let linear_distance = selection == 'linear';
 		
 		let all_mesh_connections;
@@ -3591,47 +3591,35 @@ BARS.defineActions(function() {
 		}
 	})
 
-
-	StateMemory.init('proportional_editing_options', 'object');
-	if (!StateMemory.proportional_editing_options.range) {
-		StateMemory.proportional_editing_options.range = 8;
-	}
-	if (!StateMemory.proportional_editing_options.falloff) {
-		StateMemory.proportional_editing_options.falloff = 'linear';
-	}
-	if (!StateMemory.proportional_editing_options.selection) {
-		StateMemory.proportional_editing_options.selection = 'linear';
-	}
 	new NumSlider('proportional_editing_range', {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes']},
 		get() {
-			return StateMemory.proportional_editing_options.range
+			return ProportionalEdit.config.range
 		},
 		change(modify) {
-			StateMemory.proportional_editing_options.range = modify(StateMemory.proportional_editing_options.range);
+			ProportionalEdit.config.range = modify(ProportionalEdit.config.range);
 		},
 		onAfter() {
-			StateMemory.save('proportional_editing_options');
+			BarItems.proportional_editing.side_menu.save();
 		}
 	})
 	new Toggle('proportional_editing', {
 		icon: 'wifi_tethering',
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 0)},
-		side_menu: new Dialog('proportional_editing_options', {
+		tool_config: new ToolConfig('proportional_editing_options', {
 			title: 'action.proportional_editing',
 			width: 400,
-			singleButton: true,
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
-				range: {type: 'number', label: 'dialog.proportional_editing.range', value: StateMemory.proportional_editing_options.range},
-				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: StateMemory.proportional_editing_options.falloff, options: {
+				range: {type: 'number', label: 'dialog.proportional_editing.range', value: 8},
+				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: 'linear', options: {
 					linear: 'dialog.proportional_editing.falloff.linear',
 					hermite_spline: 'dialog.proportional_editing.falloff.hermite_spline',
 					constant: 'dialog.proportional_editing.falloff.constant',
 				}},
-				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: StateMemory.proportional_editing_options.selection, options: {
+				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: 'linear', options: {
 					linear: 'dialog.proportional_editing.selection.linear',
 					connections: 'dialog.proportional_editing.selection.connections',
 					//path: 'Connection Path',
@@ -3644,12 +3632,9 @@ BARS.defineActions(function() {
 				if (BarItems.proportional_editing.value != formResult.enabled) {
 					BarItems.proportional_editing.trigger();
 				}
-				StateMemory.proportional_editing_options.range = formResult.range;
-				StateMemory.proportional_editing_options.falloff = formResult.falloff;
-				StateMemory.proportional_editing_options.selection = formResult.selection;
-				StateMemory.save('proportional_editing_options');
 				BarItems.proportional_editing_range.update();
 			}
 		})
 	})
+	ProportionalEdit.config = BarItems.proportional_editing.tool_config.options;
 })

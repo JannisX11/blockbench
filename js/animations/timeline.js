@@ -767,7 +767,7 @@ Interface.definePanels(() => {
 				show_all_handles: !Settings.get('only_selected_bezier_handles'),
 				loop_graphs: [''],
 
-				onion_skin_mode: BarItems.animation_onion_skin.value,
+				onion_skin_selectable: BarItems.animation_onion_skin.value,
 				onion_skin_time: 0,
 
 				channels: {
@@ -1599,7 +1599,7 @@ Interface.definePanels(() => {
 									v-bind:style="{left: (playhead * size) + 'px'}"
 								/>
 								<div id="timeline_onion_skin_point"
-									v-if="onion_skin_mode == 'select'"
+									v-if="onion_skin_selectable"
 									v-bind:style="{left: (onion_skin_time * size) + 'px'}"
 								/>
 								<div id="timeline_endbracket"

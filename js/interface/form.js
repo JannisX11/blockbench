@@ -28,7 +28,6 @@ class InputForm extends EventSystem {
 					label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(input_config.label)+((input_config.nocolon || !input_config.label)?'':':'))
 					bar.append(label);
 					if (!input_config.full_width && input_config.condition !== false) {
-						console.log(getStringWidth(label.textContent), label.textContent)
 						this.max_label_width = Math.max(getStringWidth(label.textContent), this.max_label_width)
 					}
 				}
@@ -488,6 +487,7 @@ class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			let data = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
+			console.log(form_id, values[form_id])
 			if (values[form_id] != undefined && typeof input_config == 'object' && data.bar) {
 				let value = values[form_id];
 				switch (input_config.type) {
@@ -532,6 +532,7 @@ class InputForm extends EventSystem {
 						data.colorpicker.set(value);
 						break;
 					case 'checkbox':
+						console.log(data.bar.find('input'), value)
 						data.bar.find('input').prop('checked', value);
 						break;
 					case 'file':
@@ -567,7 +568,10 @@ class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
 			let data = this.form_data[form_id];
-			if (data && data.input_toggle && data.input_toggle.checked == false) continue;
+			if (data && data.input_toggle && data.input_toggle.checked == false) {
+				result[form_id] = null;
+				continue;
+			}
 
 			if (typeof input_config === 'object') {
 				switch (input_config.type) {
