@@ -1044,15 +1044,8 @@ const Canvas = {
 	updatePositions(leave_selection) {
 		updateNslideValues()
 		var arr = selected.slice()
-		if (Format.bone_rig && Group.selected) {
-			Group.selected.forEachChild(obj => {
-				if (obj instanceof OutlinerElement) {
-					arr.safePush(obj)
-				}
-			})
-			if (arr.length === selected.length) {
-				Canvas.updateAllBones()
-			}
+		if (Format.bone_rig && Group.first_selected) {
+			Canvas.updateAllBones();
 		}
 		Canvas.updateView({elements: arr, element_aspects: {transform: true, geometry: true}})
 		if (leave_selection !== true) {
@@ -1132,9 +1125,9 @@ const Canvas = {
 			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
 		if (settings.origin_size.value > 0) {
-			if (Group.selected && Format.bone_rig) {
-				if (Group.selected.visibility) {
-					Group.selected.mesh.add(Canvas.pivot_marker)
+			if (Group.first_selected && Format.bone_rig) {
+				if (Group.first_selected.visibility) {
+					Group.first_selected.mesh.add(Canvas.pivot_marker)
 				}
 			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
 				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];

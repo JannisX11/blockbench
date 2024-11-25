@@ -803,7 +803,7 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flipSelection(axis, center) {
-		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.selected;
+		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.first_selected;
 		let selected_vertices = this.getSelectedVertices();
 		for (let vkey in this.vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {

@@ -1290,14 +1290,14 @@ BARS.defineActions(function() {
 			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['beveled_cuboid'].includes(shape)},
 		},
 		onConfirm(result) {
-			let original_selection_group = Group.selected && Group.selected.uuid;
+			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
 			function runEdit(amended, result) {
 				let elements = [];
-				if (original_selection_group && !Group.selected) {
+				if (original_selection_group && !Group.first_selected) {
 					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
 					if (group_to_select) {
-						Group.selected = group_to_select;
+						Group.first_selected = group_to_select;
 					}
 				}
 				Undo.initEdit({elements, selection: true}, amended);
@@ -1620,7 +1620,7 @@ BARS.defineActions(function() {
 
 				elements.push(mesh);
 				mesh.init()
-				if (Group.selected) Group.selected.unselect()
+				unselectAll()
 				mesh.select()
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				Undo.finishEdit('Add primitive');

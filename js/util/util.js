@@ -49,8 +49,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
 			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
 			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
-			if (condition.selected.group === true && !Group.selected) return false;
-			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.group === true && !Group.first_selected) return false;
+			if (condition.selected.group === false && Group.first_selected) return false;
 			if (condition.selected.texture === true && !Texture.selected) return false;
 			if (condition.selected.texture === false && Texture.selected) return false;
 			if (condition.selected.element === true && !Outliner.selected.length) return false;
@@ -65,8 +65,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.null_object === false && NullObject.selected.length) return false;
 			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
 			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
-			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
-			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.first_selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.first_selected)) return false;
 		}
 		if (condition.project && !Project) return false;
 

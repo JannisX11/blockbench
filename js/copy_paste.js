@@ -170,9 +170,9 @@ const Clipbench = {
 		}
 		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
 			Clipbench.setElements();
-			Clipbench.setGroup();
-			if (Group.selected) {
-				Clipbench.setGroup(Group.selected);
+			Clipbench.setGroups();
+			if (Group.selected.length) {
+				Clipbench.setGroups(Group.selected);
 			} else {
 				Clipbench.setElements(selected);
 			}
@@ -221,14 +221,14 @@ const Clipbench = {
 				break;
 		}
 	},
-	setGroup(group) {
-		if (!group) {
+	setGroups(groups) {
+		if (!groups || !groups.length) {
 			Clipbench.group = undefined
 			return;
 		}
-		Clipbench.group = group.getSaveCopy()
+		Clipbench.groups = groups.map(g => group.getSaveCopy())
 		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'group', content: Clipbench.group}))
+			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.group}))
 		}
 	},
 	setElements(arr) {
@@ -308,9 +308,9 @@ const Clipbench = {
 		Undo.initEdit({outliner: true, elements: [], selection: true});
 		//Group
 		var target = 'root'
-		if (Group.selected) {
-			target = Group.selected
-			Group.selected.isOpen = true
+		if (Group.first_selected) {
+			target = Group.first_selected
+			Group.first_selected.isOpen = true
 		} else if (selected[0]) {
 			target = selected[0]
 		}

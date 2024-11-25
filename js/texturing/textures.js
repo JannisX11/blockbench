@@ -1040,7 +1040,7 @@ class Texture {
 	apply(all) {
 		let affected_elements;
 		if (Format.per_group_texture) {
-			let groups = [Group.selected];
+			let groups = Group.selected;
 			Outliner.selected.forEach(el => {
 				if (el.faces) {
 					groups.safePush(el.parent);
@@ -2490,7 +2490,7 @@ Interface.definePanels(function() {
 
 							if (Format.per_group_texture) {
 								elements = [];
-								let groups = Group.selected ? [Group.selected] : [];
+								let groups = Group.selected;
 								Outliner.selected.forEach(el => {
 									if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 								});

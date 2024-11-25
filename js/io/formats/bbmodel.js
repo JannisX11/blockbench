@@ -160,7 +160,7 @@ var codec = new Codec('project', {
 				previews: JSON.parse(JSON.stringify(Project.previews)),
 
 				selected_elements: Project.selected_elements.map(e => e.uuid),
-				selected_group: Project.selected_group?.uuid,
+				selected_groups: Project.selected_groups.map(g => g.uuid),
 				mesh_selection: JSON.parse(JSON.stringify(Project.mesh_selection)),
 				selected_texture: Project.selected_texture?.uuid,
 			};
@@ -475,7 +475,9 @@ var codec = new Codec('project', {
 				let el = Outliner.elements.find(el2 => el2.uuid == uuid);
 				Project.selected_elements.push(el);
 			})
-			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
+			if (state.selected_groups) {
+				Group.selected = state.selected_groups.map(uuid => Group.all.find(g => g.uuid == uuid)).filter(g => g instanceof Group);
+			}
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
 
 			Project.loadEditorState();

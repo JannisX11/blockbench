@@ -212,7 +212,7 @@ class UndoSystem {
 		}
 
 		if (save.outliner) {
-			Group.selected = undefined
+			Group.selected.empty();
 			parseGroups(save.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -230,11 +230,13 @@ class UndoSystem {
 			}
 		}
 
-		if (save.selection_group && !is_session) {
-			Group.selected = undefined
-			var sel_group = OutlinerNode.uuids[save.selection_group]
-			if (sel_group) {
-				sel_group.select()
+		if (save.selected_groups && !is_session) {
+			Group.selected.empty();
+			for (let uuid of save.selected_groups) {
+				let sel_group = OutlinerNode.uuids[uuid];
+				if (sel_group) {
+					Group.selected.push(sel_group)
+				}
 			}
 		}
 
@@ -250,13 +252,14 @@ class UndoSystem {
 			})
 		}
 
-		if (save.group) {
-			var group = OutlinerNode.uuids[save.group.uuid]
-			if (group) {
+		if (save.groups) {
+			for (let saved_group of save.groups) {
+				let group = OutlinerNode.uuids[saved_group.uuid];
+				if (!group) continue;
 				if (is_session) {
-					delete save.group.isOpen;
+					delete saved_group.isOpen;
 				}
-				group.extend(save.group)
+				group.extend(saved_group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
 						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
@@ -506,7 +509,7 @@ class UndoSystem {
 		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
 
 		updateSelection()
-		if ((save.outliner || save.group) && Format.bone_rig) {
+		if ((save.outliner || save.groups?.length) && Format.bone_rig) {
 			Canvas.updateAllBones();
 		}
 		if (save.outliner && Format.per_group_texture) {
@@ -532,8 +535,8 @@ UndoSystem.save = class {
 					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
-			if (Group.selected) {
-				this.selection_group = Group.selected.uuid
+			if (Group.selected.length) {
+				this.selected_groups = Group.selected.map(g => g.uuid);
 			}
 
 		}
@@ -549,8 +552,10 @@ UndoSystem.save = class {
 			this.outliner = compileGroups(true)
 		}
 
-		if (aspects.group) {
-			this.group = aspects.group.getChildlessCopy(true)
+		if (aspects.groups) {
+			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
+		} else if (aspects.group) {
+			this.groups = [aspects.group.getChildlessCopy(true)];
 		}
 
 		if (aspects.textures) {

@@ -452,7 +452,7 @@ BARS.defineActions(() => {
 		click() {
 			let value_before = BarItems.mirror_modeling.value;
 			BarItems.mirror_modeling.value = true;
-			Undo.initEdit({elements: Outliner.selected, outliner: !!Group.selected});
+			Undo.initEdit({elements: Outliner.selected, outliner: !!Group.first_selected});
 			Undo.finishEdit('Applied mirror modeling');
 			BarItems.mirror_modeling.value = value_before;
 		}

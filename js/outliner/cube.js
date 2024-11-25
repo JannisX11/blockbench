@@ -1511,7 +1511,7 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			base_cube.select()
 			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});

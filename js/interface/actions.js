@@ -1938,7 +1938,7 @@ const BARS = {
 					let elements = Outliner.selected.filter(element => element.setColor)
 					Undo.initEdit({outliner: true, elements: elements, selection: true})
 					Group.all.forEach(group => {
-						if (group.selected) {
+						if (group.first_selected) {
 							let lastColor = group.color
 							// Ensure chosen group color is never the same as before
 							do group.color = randomColor();
@@ -2023,7 +2023,7 @@ const BARS = {
 						})
 					}
 					if (form.target == 'group_names') {
-						let groups = Group.selected ? Group.all.filter(g => g.selected) : Group.all;
+						let groups = Group.first_selected ? Group.all.filter(g => g.selected) : Group.all;
 						Undo.initEdit({outliner: true});
 						groups.forEach(group => {
 							group.name = replace(group.name);

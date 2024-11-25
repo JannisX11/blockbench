@@ -206,14 +206,14 @@ class BoneAnimator extends GeneralAnimator {
 			this.group.select();
 		}
 		Group.all.forEach(group => {
-			if (group.name == group.selected.name && group != Group.selected) {
+			if (group.name == Group.first_selected.name && group != Group.first_selected) {
 				duplicates = true;
 			}
 		})
 		function iterate(arr) {
 			arr.forEach((it) => {
 				if (it.type === 'group' && !duplicates) {
-					if (it.name === Group.selected.name && it !== Group.selected) {
+					if (it.name === Group.first_selected.name && it !== Group.first_selected) {
 						duplicates = true;
 					} else if (it.children && it.children.length) {
 						iterate(it.children);

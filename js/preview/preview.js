@@ -371,10 +371,10 @@ class Preview {
 				objects.push(element.mesh.sprite);
 			}
 		})
-		if (Group.selected && Group.selected.mesh.vertex_points) {
-			objects.push(Group.selected.mesh.vertex_points);
+		for (let group of Group.selected) {
+			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
-		if (Animator.open && settings.motion_trails.value && Group.selected) {
+		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
 			Animator.motion_trail.children.forEach(object => {
 				if (object.isKeyframe === true) {
 					objects.push(object)
@@ -776,7 +776,7 @@ class Preview {
 			}
 
 			function unselectOtherNodes() {
-				if (Group.selected) Group.selected.unselect();
+				unselectAllElements();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})
@@ -811,7 +811,11 @@ class Preview {
 							node_to_select = node_to_select.parent;
 						}
 					}
-					node_to_select.select();
+					if (multi_select) {
+						node_to_select.multiSelect();
+					} else {
+						node_to_select.select();
+					}
 					if (settings.outliner_reveal_on_select.value) {
 						node_to_select.showInOutliner();
 					}

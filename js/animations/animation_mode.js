@@ -60,8 +60,8 @@ const Animator = {
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
-		if (Group.selected) {
-			Group.selected.select();
+		if (Group.first_selected) {
+			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
 		Animator.preview();
@@ -113,7 +113,7 @@ const Animator = {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) {
-				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+				target = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 			}
 		}
 		if (!target) return;
@@ -136,10 +136,10 @@ const Animator = {
 		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+		let keyframe_source = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
-			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
+			let channel = target == Group.first_selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
 			})
@@ -406,7 +406,7 @@ const Animator = {
 			Project.model_3d.scale.z = scale;
 		}
 
-		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+		if (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1266,10 +1266,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
+		condition: () => Animator.open && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
 		onChange(value) {
-			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
-				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
+			if (value && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.first_selected ? Group.first_selected.uuid : Outliner.selected[0].uuid;
 			} else {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
