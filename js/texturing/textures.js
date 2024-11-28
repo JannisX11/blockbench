@@ -734,6 +734,13 @@ class Texture {
 
 		// Map
 		mat.map.needsUpdate = true;
+
+		// PBR material
+		if (this.group && (this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+			setTimeout(() => {
+				this.getGroup()?.updateMaterial();
+			}, 40);
+		}
 		return this;
 	}
 	reopen(force) {
@@ -913,7 +920,7 @@ class Texture {
 		Texture.all.forEach(s => {
 			if (s.selected) s.selected = false;
 			if (s.multi_selected) s.multi_selected = false;
-		})
+		});
 		this.selected = true;
 		Texture.selected = this;
 		Texture.last_selected = Texture.all.indexOf(this);
@@ -931,7 +938,14 @@ class Texture {
 			Canvas.updateAllFaces()
 		}
 		updateSelection()
-		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
+		if (
+			(Texture.all.length > 1 || !Format.edit_mode) &&
+			Modes.paint &&
+			(
+				!UVEditor.getReferenceFace() ||
+				(BarItems.view_mode.value == 'material' && UVEditor.getReferenceFace().getTexture()?.getGroup()?.getTextures()?.includes(this))
+			)
+		) {
 			UVEditor.vue.updateTexture();
 		}
 		Panels.layers.inside_vue.layers = this.layers;
@@ -1909,6 +1923,7 @@ class Texture {
 			},
 			'resize_texture',
 			'animated_texture_editor',
+			'create_material',
 			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',

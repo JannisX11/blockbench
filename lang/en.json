@@ -501,7 +501,9 @@
 
 	"dialog.material_config.title": "Material Config",
 	"dialog.material_config.color_value": "Color Value",
-	"dialog.material_config.mer_value": "Metal-Emissive-Roughness",
+	"dialog.material_config.mer": "Metal-Emissive-Roughness",
+	"dialog.material_config.mer_value": "MER Value",
+	"dialog.material_config.depth_type": "Depth Type",
 
 	"dialog.edit_texture.preview": "Preview",
 
@@ -1725,6 +1727,8 @@
 	"action.create_texture.desc": "Create a blank texture or template texture",
 	"action.create_texture_group": "Create Texture Group",
 	"action.create_texture_group.desc": "Create a group for your textures",
+	"action.create_material": "Create Material",
+	"action.create_material.desc": "Create a new PBR material out of the selected texture",
 	"action.append_to_template": "Append Elements to Template...",
 	"action.append_to_template.desc": "Add the currently selected elements to the texture template",
 	"action.save_textures": "Save Textures",
