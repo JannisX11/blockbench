@@ -327,9 +327,9 @@ class Menu {
 
 			if (s instanceof Action) {
 
-				entry = s.menu_node
+				entry = s.menu_node;
 
-				entry.classList.remove('focused');
+				entry.classList.remove('focused', 'opened');
 
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {

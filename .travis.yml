@@ -1,9 +1,9 @@
 sudo: required
-dist: trusty
+dist: focal
 
 language: node_js
 node:
-  - 16
+  - 20
 
 if: tag IS blank AND commit_message =~ ci-build
 

@@ -106,7 +106,7 @@ class PreviewScene {
 		Canvas.global_light_side = this.light_side;
 		scene.background = this.cubemap;
 		scene.fog = this.fog;
-		if (this.fov) {
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
 		// Update independent models
@@ -129,7 +129,7 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
-		if (this.fov) {
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});

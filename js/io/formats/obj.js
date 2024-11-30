@@ -71,7 +71,7 @@ var codec = new Codec('obj', {
 				output.push(`o ${element.name||'cube'}`)
 
 				element.getGlobalVertexPositions().forEach((coords) => {
-					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(export_scale);
+					vertex.set(...coords).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				})

@@ -42,7 +42,7 @@ class Locator extends OutlinerElement {
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
-			this.addTo(Group.selected)
+			this.addTo(Group.first_selected)
 		}
 		super.init();
 		return this;
@@ -193,7 +193,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var locator = new Locator().addTo(Group.selected||selected[0]).init();
+			var locator = new Locator().addTo(Group.first_selected||selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('Add locator');

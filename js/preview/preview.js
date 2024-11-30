@@ -199,7 +199,8 @@ class Preview {
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
-		this.controls.zoomSpeed = 1.5;
+		this.controls.zoomSpeed = settings.viewport_zoom_speed.value / 100 * 1.5;
+		this.controls.rotateSpeed = settings.viewport_rotate_speed.value / 100;
 		this.controls.onUpdate(() => {
 			if (this.angle != null) {
 				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
@@ -370,10 +371,10 @@ class Preview {
 				objects.push(element.mesh.sprite);
 			}
 		})
-		if (Group.selected && Group.selected.mesh.vertex_points) {
-			objects.push(Group.selected.mesh.vertex_points);
+		for (let group of Group.selected) {
+			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
-		if (Animator.open && settings.motion_trails.value && Group.selected) {
+		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
 			Animator.motion_trail.children.forEach(object => {
 				if (object.isKeyframe === true) {
 					objects.push(object)
@@ -760,7 +761,7 @@ class Preview {
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
@@ -770,8 +771,12 @@ class Preview {
 			let group_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'group_select');
 			let loop_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'loop_select');
 
+			if (Toolbox.selected.paintTool) {
+				multi_select = group_select = loop_select = false;
+			}
+
 			function unselectOtherNodes() {
-				if (Group.selected) Group.selected.unselect();
+				unselectAllElements();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})
@@ -806,7 +811,11 @@ class Preview {
 							node_to_select = node_to_select.parent;
 						}
 					}
-					node_to_select.select();
+					if (multi_select) {
+						node_to_select.multiSelect();
+					} else {
+						node_to_select.select();
+					}
 					if (settings.outliner_reveal_on_select.value) {
 						node_to_select.showInOutliner();
 					}
@@ -1081,65 +1090,44 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
+			let truncated_x = x;
+			let truncated_y = y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
-				x = Math.round(x + offset) - offset;
-				y = Math.round(y + offset) - offset;
+				truncated_x = Math.round(x + offset) - offset;
+				truncated_y = Math.round(y + offset) - offset;
 			}
 			if (texture.currentFrame) {
 				y -= texture.display_height * texture.currentFrame;
+				truncated_y -= texture.display_height * texture.currentFrame;
 			}
+
 			// Position
-			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
-			brush_coord_difference_x.sub(brush_coord);
-			brush_coord_difference_y.sub(brush_coord);
+			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], [uv_factor_x, uv_factor_y], [truncated_x * uv_factor_x, truncated_y * uv_factor_y]);
+			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
 				brush_coord.x += 8;
 				brush_coord.z += 8;
 			}
-			Canvas.brush_outline.position.copy(brush_coord);
 
-			// z fighting
+			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
 			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
 			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
 				world_normal.multiplyScalar(-1);
 			}
-			Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
 
-			//size
-			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_x.length();
-			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_y.length();
-			Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
+			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
+			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
+			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
-			let uv = Canvas.brush_outline.geometry.attributes.uv;
-			if (BarItems.brush_shape.value == 'square') {
-				let view_factor = z_fight_offset * 20;
-				uv.array[0] = uv.array[4] = (1 - (1 / radius_x * view_factor)) / 32;
-				uv.array[5] = uv.array[7] = (1 - (1 / radius_y * view_factor)) / 32;
-				uv.array[2] = uv.array[6] = (31 + (1 / radius_x * view_factor)) / 32;
-				uv.array[1] = uv.array[3] = (31 + (1 / radius_y * view_factor)) / 32;
-				uv.needsUpdate = true;
+			// Size
+			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
+			brush_matrix.scale(scale);
 
-			} else if (uv.array[0] != 0) {
-				uv.array[0] = uv.array[4] = uv.array[5] = uv.array[7] = 0;
-				uv.array[2] = uv.array[6] = uv.array[1] = uv.array[3] = 1;
-				uv.needsUpdate = true;
-			}
-
-			// rotation
-			Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
-
-			Canvas.brush_outline.rotation.z = 0;
-			let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
-			brush_coord_difference_y.applyQuaternion(inverse);
-			let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
-			Canvas.brush_outline.rotation.z = rotation;
-			
-			Canvas.brush_outline.quaternion.premultiply(world_quaternion);
+			brush_matrix.multiplyMatrices(intersect.object.matrix, brush_matrix);
+			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
 		if (Toolbox.selected.onCanvasMouseMove) {

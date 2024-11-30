@@ -209,14 +209,35 @@ const Blockbench = {
 	showMessageBox(options = 0, cb) {
 		return new MessageBox(options, cb).show();
 	},
-	async textPrompt(title, value, callback, placeholder = null) {
+	/**
+	 * 
+	 * @param {*} title 
+	 * @param {*} value 
+	 * @param {*} callback 
+	 * @param {object} options Options
+	 * @param {string} options.info Info text
+	 * @param {string} options.description Description for the text input
+	 * @returns {Promise<string>} Input value
+	 */
+	async textPrompt(title, value, callback, options = 0) {
+		if (typeof options == 'string') {
+			options = {placeholder: options};
+			console.warn('textPrompt: 4th argument is expected to be a string');
+		}
 		let answer = await new Promise((resolve) => {
+			let form = {
+				text: {full_width: true, placeholder: options.placeholder, value, description: options.description}
+			};
+			if (options.info) {
+				form.description = {
+					type: 'info',
+					text: tl(options.info)
+				}
+			}
 			new Dialog({
 				id: 'text_input',
 				title: title || 'dialog.input.title',
-				form: {
-					text: {full_width: true, placeholder, value}
-				},
+				form,
 				onConfirm({text}) {
 					if (callback) callback(text);
 					resolve(text);
@@ -357,7 +378,7 @@ const StateMemory = {
 			try {
 				saved = JSON.parse(saved)
 			} catch (err) {
-				localStorage.clearItem(`StateMemory.${key}`)
+				localStorage.removeItem(`StateMemory.${key}`);
 			}
 		}
 		if ( saved !== null && (typeof saved == type || (type == 'array' && saved instanceof Array)) ) {

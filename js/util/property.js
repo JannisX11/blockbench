@@ -116,6 +116,17 @@ class Property {
 		if (this.isArray || this.isVector || this.isVector2) {
 			if (instance[this.name] instanceof Array) {
 				target[this.name] = instance[this.name].slice();
+				if (this.isArray) {
+					try {
+						instance[this.name].forEach((item, i) => {
+							if (typeof item == 'object') {
+								instance[this.name][i] = JSON.parse(JSON.stringify(item));
+							}
+						})
+					} catch (err) {
+						console.error(err);
+					}
+				}
 			}
 		} else {
 			target[this.name] = instance[this.name];

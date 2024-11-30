@@ -436,7 +436,7 @@ class Animation extends AnimationItem {
 		var scope = this;
 		Prop.active_panel = 'animations';
 		if (this == Animation.selected) return;
-		var selected_bone = Group.selected;
+		var selected_bone = Group.first_selected;
 		AnimationItem.all.forEach((a) => {
 			a.selected = false;
 			if (a.playing == true) a.playing = false;
@@ -551,8 +551,8 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	getBoneAnimator(group) {
-		if (!group && Group.selected) {
-			group = Group.selected;
+		if (!group && Group.first_selected) {
+			group = Group.first_selected;
 		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			group = Outliner.selected[0];
 		} else if (!group) {
@@ -830,6 +830,15 @@ class Animation extends AnimationItem {
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
 				showItemInFolder(animation.path);
+			}
+		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
 			}
 		},
 		'rename',

@@ -92,11 +92,12 @@
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
-		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+		box-shadow: 0 0px 20px rgba(0, 0, 0, 0.56);
 		left: unset;
 		right: unset;
 		bottom: unset;
 		display: none;
+		border-radius: 3px;
 	}
 	.shapeless_dialog {
 		position: fixed;
@@ -131,6 +132,31 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
+	dialog.dialog.tool_config {
+		margin-right: 0;
+		margin-left: 0;
+		width: fit-content;
+		min-width: 200px;
+	}
+	.dialog.tool_config > div > .dialog_content {
+		margin: 4px 12px;
+	}
+	.tool_config_title {
+		padding: 4px 12px;
+		margin-bottom: -6px;
+		margin-right: 18px;
+		text-align: center;
+		font-size: 1.1em;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
+	}
+	.dialog .tool_config_title > .dialog_close_button {
+		right: 0;
+		top: 0;
+	}
+	.dialog.tool_config hr {
+		margin: 6px 0;
+	}
 	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);
 		max-width: min(960px, 100%);
@@ -148,12 +174,16 @@
 	}
 	label.name_space_left {
 		float: left;
-		min-width: 140px;
+		min-width: 90px;
 		padding-top: 4px;
 		padding-left: 1px;
 		padding-right: 8px;
 		flex-shrink: 0;
 		overflow-wrap: break-word;
+		box-sizing: content-box;
+	}
+	.dialog label.name_space_left {
+		min-width: 140px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;
@@ -1559,8 +1589,9 @@
 		overflow: hidden;
 		max-width: unset;
 	}
-	#plugin_browser_details {
+	.plugin_browser_tabbed_page {
 		padding: 8px 24px;
+		overflow-y: auto;
 	}
 	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
@@ -1568,10 +1599,6 @@
 	#plugin_browser_details td {
 		padding: 5px 2px;
 		line-height: 20px;
-	}
-	#plugin_browser_changelog {
-		padding: 4px 20px;
-		overflow-y: auto;
 	}
 	#plugin_browser_changelog > li {
 		padding: 7px 8px;
@@ -1607,12 +1634,6 @@
 		vertical-align: sub;
 		font-size: 20px;
 		margin-right: 2px;
-	}
-	#plugin_browser_page .settings_list {
-		padding: 4px 20px;
-	}
-	#plugin_browser_page .features_list {
-		padding: 4px 20px;
 	}
 	li.plugin_feature_entry {
 		display: flex;
@@ -2336,14 +2357,24 @@
 		align-items: center;
 		cursor: pointer;
 		padding: 2px;
+		position: relative;
 	}
 	.flipbook_frame:hover {
-		background-color: var(--color-hover);
 		color: var(--color-light);
+		background-color: var(--color-back);
+	}
+	.flipbook_frame.viewing::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 10px;
+		bottom: 10px;
+		border-top: 40px solid transparent;
+		border-bottom: 40px solid transparent;
+		border-left: 8px solid var(--color-accent);
 	}
 	.flipbook_frame.viewing {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
+		background-color: var(--color-back);
 	}
 	.flipbook_frame.selected {
 		background-color: var(--color-accent);

@@ -65,34 +65,34 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	select(event, is_outliner_click) {
-		var scope = this;
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
 
 		//Clear Old Group
-		if (Group.selected) Group.selected.unselect();
 		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
-			selected.length = 0
+			unselectAll();
+			Project.groups.forEach(function(s) {
+				s.selected = false;
+			})
 		}
 		//Select This Group
-		Project.groups.forEach(function(s) {
-			s.selected = false
-		})
-		this.selected = true
-		Group.selected = this;
+		this.selected = true;
+		Group.selected.safePush(this);
 
 		//Select / Unselect Children
 		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
 			//Select Only Group, unselect Children
-			selected.length = 0
+			this.forEachChild(child => {
+				child.unselect();
+			});
 		} else {
 			// Fix for #2401
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
 				selected.push(previous_first_selected);
 			}
-			scope.children.forEach(function(s) {
+			this.children.forEach(function(s) {
 				s.selectLow()
 			})
 		}
@@ -102,31 +102,20 @@ class Group extends OutlinerNode {
 		updateSelection()
 		return this;
 	}
-	selectChildren(event) {
-		var scope = this;
-		if (Blockbench.hasFlag('renaming')) return;
-		if (!event) event = {shiftKey: false}
-		var firstChildSelected = false
-
-		//Clear Old Group
-		if (Group.selected) Group.selected.unselect()
-		selected.length = 0
-
-		//Select This Group
-		Project.groups.forEach(function(s) {
-			s.selected = false
-		})
-		this.selected = true
-		Group.selected = this
-
-		scope.children.forEach(function(s) {
+	multiSelect() {
+		if (this.locked) return this;
+		this.selected = true;
+		Group.selected.safePush(this);
+		this.children.forEach(function(s) {
 			s.selectLow()
 		})
-		updateSelection()
+		TickUpdates.selection = true;
 		return this;
 	}
+	selectChildren(event) {
+		console.warn('Group#selectChildren is deprecated');
+	}
 	selectLow(highlight) {
-		//Group.selected = this;
 		//Only Select
 		if (highlight !== false) {
 			this.selected = true
@@ -138,19 +127,19 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	unselect() {
-		if (this.selected === false) return;
 		if (Animator.open && Animation.selected) {
 			var ba = Animation.selected.animators[this.uuid];
 			if (ba) {
 				ba.selected = false
 			}
 		}
-		Group.selected = undefined;
-		this.selected = false
+		Group.selected.remove(this);
+		this.selected = false;
 		TickUpdates.selection = true;
 		return this;
 	}
 	matchesSelection() {
+		if (Group.selected.length != 1 || this != Group.selected) return false;
 		var scope = this;
 		var match = true;
 		for (var i = 0; i < selected.length; i++) {
@@ -213,7 +202,7 @@ class Group extends OutlinerNode {
 			Undo.finishEdit('Delete group')
 		}
 	}
-	resolve() {
+	resolve(undo = true) {
 		var array = this.children.slice();
 		var index = this.getParentArray().indexOf(this)
 		let all_elements = [];
@@ -223,7 +212,7 @@ class Group extends OutlinerNode {
 			}
 		})
 
-		Undo.initEdit({outliner: true, elements: all_elements})
+		if (undo) Undo.initEdit({outliner: true, elements: all_elements})
 
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
@@ -268,12 +257,12 @@ class Group extends OutlinerNode {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		Undo.finishEdit('Resolve group')
+		if (undo) Undo.finishEdit('Resolve group')
 		return array;
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (Group.selected != this) this.select(event);
+		if (!Group.selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -458,7 +447,8 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		"randomize_marker_colors",
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(a, b, c) {
+			console.log({context, b, c});
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
 				Undo.initEdit({outliner: true});
@@ -477,7 +467,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					marked: t.uuid == Group.selected.texture,
+					marked: t.uuid == /*Group.selected*/context.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -503,10 +493,21 @@ class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'selected', {
 		get() {
-			return Project.selected_group
+			return Project.selected_groups
+		},
+		set(arr) {
+			if (arr instanceof Array == false) {
+				console.warn('"Group.selected" is now an array!')
+			}
+			Project.selected_groups.replace(arr)
+		}
+	})
+	Object.defineProperty(Group, 'first_selected', {
+		get() {
+			return Project.selected_groups[0]
 		},
 		set(group) {
-			Project.selected_group = group;
+			Project.selected_groups.replace([groups]);
 		}
 	})
 
@@ -541,8 +542,8 @@ new NodePreviewController(Group, {
 
 
 function getCurrentGroup() {
-	if (Group.selected) {
-		return Group.selected
+	if (Group.first_selected) {
+		return Group.first_selected
 	} else if (selected.length) {
 		var g1 = selected[0].parent;
 		if (g1 instanceof Group) {
@@ -569,8 +570,8 @@ function getAllGroups() {
 	return ta;
 }
 window.__defineGetter__('selected_group', () => {
-	console.warn('selected_group is deprecated. Please use Group.selected instead.')
-	return Group.selected
+	console.warn('selected_group is deprecated. Please use Group.first_selected instead.')
+	return Group.first_selected
 })
 
 BARS.defineActions(function() {
@@ -581,7 +582,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			var add_group = Group.selected
+			var add_group = Group.first_selected
 			if (!add_group && selected.length) {
 				add_group = selected.last()
 			}
@@ -614,11 +615,11 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.selected),
+		condition: () => Modes.edit && (selected.length || Group.first_selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			let add_group = Group.selected
+			let add_group = Group.first_selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
@@ -677,7 +678,7 @@ BARS.defineActions(function() {
 	new Action('edit_bedrock_binding', {
 		icon: 'fa-paperclip',
 		category: 'edit',
-		condition: () => Format.bone_binding_expression && Group.selected,
+		condition: () => Format.bone_binding_expression && Group.first_selected,
 		click: function() {
 
 			let dialog = new Dialog({
@@ -686,7 +687,7 @@ BARS.defineActions(function() {
 				component: {
 					components: {VuePrismEditor},
 					data: {
-						binding: Group.selected.bedrock_binding,
+						binding: Group.first_selected.bedrock_binding,
 					},
 					methods: {
 						showPresetMenu(event) {
@@ -743,10 +744,12 @@ BARS.defineActions(function() {
 					dialog.hide().delete();
 					let value = dialog.component.data.binding.replace(/\n/g, '');
 					if (
-						value != Group.selected.bedrock_binding
+						value != Group.first_selected.bedrock_binding
 					) {
-						Undo.initEdit({group: Group.selected});
-						Group.selected.bedrock_binding = value;
+						Undo.initEdit({groups: Group.selected});
+						for (let group of Group.selected) {
+							group.bedrock_binding = value;
+						}
 						Undo.finishEdit('Edit group binding');
 					}
 				},
@@ -758,9 +761,13 @@ BARS.defineActions(function() {
 	})
 	new Action('resolve_group', {
 		icon: 'fa-leaf',
-		condition: {modes: ['edit'], method: () => Group.selected},
+		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
-			Group.selected.resolve();
+			Undo.initEdit({outliner: true, elements: all_elements})
+			for (let group of Group.selected) {
+				group.resolve(false);
+			}
+			Undo.finishEdit('Resolve group')
 		}
 	})
 })
@@ -769,7 +776,7 @@ Interface.definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
 		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},
-		display_condition: () => Group.selected,
+		display_condition: () => Group.first_selected,
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],

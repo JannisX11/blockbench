@@ -345,6 +345,7 @@ const MenuBar = {
 			new MenuSeparator('edit_options'),
 			'animation_onion_skin',
 			'animation_onion_skin_selective',
+			'toggle_motion_trails',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
@@ -390,11 +391,12 @@ const MenuBar = {
 
 		new BarMenu('timeline', Timeline.menu.structure, {
 			name: 'panel.timeline',
+			icon: 'timeline',
 			condition: {modes: ['animate'], method: () => !AnimationController.selected},
 			onOpen() {
 				setActivePanel('timeline');
 			}
-		}, {icon: 'timeline'})
+		})
 
 		new BarMenu('display', [
 			new MenuSeparator('copypaste'),
@@ -449,13 +451,13 @@ const MenuBar = {
 			new MenuSeparator('viewport'),
 			'view_mode',
 			'toggle_shading',
-			'toggle_motion_trails',
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
 			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
+			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
 			new MenuSeparator('interface'),
@@ -490,7 +492,7 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
@@ -519,7 +521,6 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
@@ -538,6 +539,7 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
 		], {icon: 'help'})
 		MenuBar.update();

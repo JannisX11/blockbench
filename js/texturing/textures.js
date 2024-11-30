@@ -67,7 +67,7 @@ class Texture {
 			uniform bool SHADE;
 			uniform int LIGHTSIDE;
 
-			varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
@@ -138,7 +138,7 @@ class Texture {
 			uniform bool EMISSIVE;
 			uniform vec3 LIGHTCOLOR;
 
-			varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
@@ -211,8 +211,9 @@ class Texture {
 
 			if (this.flags.has('update_uv_size_from_resolution')) {
 				this.flags.delete('update_uv_size_from_resolution');
-				this.uv_width = scope.width;
-				this.uv_height = scope.display_height;
+				let size = [scope.width, scope.display_height];
+				this.uv_width = size[0];
+				this.uv_height = size[1];
 			}
 
 			if (scope.isDefault) {
@@ -1039,7 +1040,7 @@ class Texture {
 	apply(all) {
 		let affected_elements;
 		if (Format.per_group_texture) {
-			let groups = [Group.selected];
+			let groups = Group.selected;
 			Outliner.selected.forEach(el => {
 				if (el.faces) {
 					groups.safePush(el.parent);
@@ -1155,7 +1156,7 @@ class Texture {
 			});
 		}
 		if (Format.per_texture_uv_size) {
-			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1};
+			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1, linked_ratio: false};
 		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
@@ -1250,7 +1251,9 @@ class Texture {
 					label: 'dialog.project.texture_size',
 					type: 'vector',
 					dimensions: 2,
+					linked_ratio: false,
 					value: [this.width, this.display_height],
+					step: 1, force_step: true,
 					min: 1
 				},
 				frames: {
@@ -1921,7 +1924,7 @@ class Texture {
 						tex2.select();
 					} else {
 						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy();
+						let copy = texture.getUndoCopy(true);
 						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
 						// Sync
 						texture.sync_to_project = Project.uuid;
@@ -2487,7 +2490,7 @@ Interface.definePanels(function() {
 
 							if (Format.per_group_texture) {
 								elements = [];
-								let groups = Group.selected ? [Group.selected] : [];
+								let groups = Group.selected;
 								Outliner.selected.forEach(el => {
 									if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 								});

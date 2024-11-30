@@ -76,13 +76,11 @@ class UndoSystem {
 		}
 	}
 	amendEdit(form, callback) {
-		let scope = this;
-		let input_elements = {};
 		let dialog = document.createElement('div');
 		dialog.id = 'amend_edit_menu';
 		this.amend_edit_menu = {
 			node: dialog,
-			form: {}
+			form: null
 		};
 
 		let close_button = document.createElement('div');
@@ -94,72 +92,16 @@ class UndoSystem {
 		})
 		dialog.append(close_button);
 
-		function updateValue() {
-			let form_values = {};
-			for (let key in form) {
-				let input = scope.amend_edit_menu.form[key];
-				if (input) {
-					if (input.type == 'number') {
-						form_values[key] = input.slider.get();
-					} else if (input.type == 'checkbox') {
-						form_values[key] = !!input.node.checked;
-					}
-				}
-			}
+		this.amend_edit_menu.form = new InputForm(form);
+		this.amend_edit_menu.form.on('change', ({result}) => {
 			if (Undo.history.length != Undo.index) {
 				console.error('Detected error in amending edit. Skipping this edit.');
 				return;
 			}
 			Undo.undo(null, true);
-			callback(form_values, scope.amend_edit_menu.form);
-		}
-
-		for (let key in form) {
-			let form_line = form[key];
-			if (!Condition(form_line.condition)) continue;
-			let line = document.createElement('div');
-			line.className = 'amend_edit_line';
-			dialog.append(line);
-			this.amend_edit_menu.form[key] = {
-				type: form_line.type || 'number',
-				label: form_line.label
-			}
-
-			if (this.amend_edit_menu.form[key].type == 'number') {
-				let getInterval = form_line.getInterval;
-				if (form_line.interval_type == 'position') getInterval = getSpatialInterval;
-				if (form_line.interval_type == 'rotation') getInterval = getRotationInterval;
-				let slider = new NumSlider({
-					id: 'amend_edit_slider',
-					name: tl(form_line.label),
-					private: true,
-					onChange: updateValue,
-					getInterval,
-					settings: {
-						default: form_line.value || 0,
-						min: form_line.min,
-						max: form_line.max,
-						step: form_line.step||1,
-					},
-				});
-				line.append(slider.node);
-				input_elements[key] = slider;
-				this.amend_edit_menu.form[key].slider = slider
-				slider.update();
-
-			} else if (this.amend_edit_menu.form[key].type == 'checkbox') {
-				
-				let toggle = Interface.createElement('input', {type: 'checkbox', checked: form_line.value ? true : undefined});
-				toggle.addEventListener('input', updateValue);
-				line.append(toggle);
-				input_elements[key] = toggle;
-				this.amend_edit_menu.form[key].node = toggle;
-			}
-
-			let label = document.createElement('label');
-			label.innerText = tl(form_line.label);
-			line.append(label);
-		}
+			callback(result, this.amend_edit_menu.form);
+		})
+		dialog.append(this.amend_edit_menu.form.node);
 
 		let preview_container = document.getElementById('preview');
 		preview_container.append(dialog);
@@ -270,7 +212,7 @@ class UndoSystem {
 		}
 
 		if (save.outliner) {
-			Group.selected = undefined
+			Group.selected.empty();
 			parseGroups(save.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -288,11 +230,13 @@ class UndoSystem {
 			}
 		}
 
-		if (save.selection_group && !is_session) {
-			Group.selected = undefined
-			var sel_group = OutlinerNode.uuids[save.selection_group]
-			if (sel_group) {
-				sel_group.select()
+		if (save.selected_groups && !is_session) {
+			Group.selected.empty();
+			for (let uuid of save.selected_groups) {
+				let sel_group = OutlinerNode.uuids[uuid];
+				if (sel_group) {
+					Group.selected.push(sel_group)
+				}
 			}
 		}
 
@@ -308,13 +252,14 @@ class UndoSystem {
 			})
 		}
 
-		if (save.group) {
-			var group = OutlinerNode.uuids[save.group.uuid]
-			if (group) {
+		if (save.groups) {
+			for (let saved_group of save.groups) {
+				let group = OutlinerNode.uuids[saved_group.uuid];
+				if (!group) continue;
 				if (is_session) {
-					delete save.group.isOpen;
+					delete saved_group.isOpen;
 				}
-				group.extend(save.group)
+				group.extend(saved_group)
 				if (Format.bone_rig) {
 					group.forEachChild(function(obj) {
 						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
@@ -564,7 +509,7 @@ class UndoSystem {
 		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
 
 		updateSelection()
-		if ((save.outliner || save.group) && Format.bone_rig) {
+		if ((save.outliner || save.groups?.length) && Format.bone_rig) {
 			Canvas.updateAllBones();
 		}
 		if (save.outliner && Format.per_group_texture) {
@@ -590,8 +535,8 @@ UndoSystem.save = class {
 					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
-			if (Group.selected) {
-				this.selection_group = Group.selected.uuid
+			if (Group.selected.length) {
+				this.selected_groups = Group.selected.map(g => g.uuid);
 			}
 
 		}
@@ -607,8 +552,10 @@ UndoSystem.save = class {
 			this.outliner = compileGroups(true)
 		}
 
-		if (aspects.group) {
-			this.group = aspects.group.getChildlessCopy(true)
+		if (aspects.groups) {
+			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
+		} else if (aspects.group) {
+			this.groups = [aspects.group.getChildlessCopy(true)];
 		}
 
 		if (aspects.textures) {

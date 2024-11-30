@@ -55,7 +55,7 @@ class ModelProject {
 		this.elements = [];
 		this.groups = [];
 		this.selected_elements = [];
-		this.selected_group = null;
+		this.selected_groups = [];
 		this.mesh_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
@@ -1021,6 +1021,7 @@ BARS.defineActions(function() {
 				label: 'dialog.project.texture_size',
 				type: 'vector',
 				dimensions: 2,
+				linked_ratio: false,
 				value: [Project.texture_width, Project.texture_height],
 				min: 1
 			};

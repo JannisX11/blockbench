@@ -442,6 +442,8 @@
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
+	}
+	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
 	}
 	.outliner_object:active {
@@ -472,6 +474,7 @@
 	}
 	#cubes_list .outliner_line_guide {
 		position: absolute;
+		left: calc(var(--indentation) * var(--indentation-offset) - 1px);
 		top: -4px;
 		bottom: 4px;
 		width: 4px;
@@ -1483,6 +1486,9 @@
 		flex-wrap: wrap;
 		justify-content: flex-end;
 	}
+	.drag_hover[order]::before {
+		z-index: 7;
+	}
 	.channel_axis_selector {
 		height: 26px;
 		margin-right: 1px;
@@ -2224,6 +2230,24 @@ span.controller_state_section_info {
 		transform: scaleY(-1);
 		font-size: 16px;
 		padding-top: 2px;
+	}
+	.uv_navigator {
+		position: fixed;
+		height: 25px;
+		width: 25px;
+		cursor: pointer;
+		z-index: 16;
+		border-radius: 50%;
+		color: var(--color-accent);
+		padding: 1px;
+	}
+	.uv_navigator:hover {
+		color: var(--color-light);
+	}
+	.uv_navigator > .icon {
+		transform-origin: center;
+		transform: rotate(var(--rotation));
+		text-shadow: 1px 1px 2px black;
 	}
 	#uv_selection_outline {
 		--color-selection-outline-a: black;
