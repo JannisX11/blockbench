@@ -454,7 +454,8 @@ const UVEditor = {
 	//Set
 	setZoom(zoom) {
 		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
-		zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64))
+		// zoom = Math.clamp(zoom, UVEditor.height > 800 ? 0.2 : 0.5, Math.clamp(max_zoom, 16, 64));
+		zoom = Math.clamp(zoom, 0.0, Math.clamp(max_zoom, 16, 64));
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
@@ -1407,13 +1408,21 @@ const UVEditor = {
 			return options.map(option => {return {
 				id: option,
 				name: `menu.uv.display_uv.${option}`,
-				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle',
+				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle', // Affected by current.
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
-					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
-					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
+					// Affect settings.
+					settings.display_uv.set(option);
 					Settings.saveLocalStorages();
+					// Affect other tools.
+					BarItems.edit_mode_uv_overlay.value = option == 'all_elements';
+					BarItems.edit_mode_uv_overlay.updateEnabledState();
+					if (BarItems.paint_mode_uv_overlay.value && option == 'selected_faces') {
+						UVEditor.vue.uv_overlay = false;
+						BarItems.paint_mode_uv_overlay.value = false;
+						BarItems.paint_mode_uv_overlay.updateEnabledState();
+					}
 				}
 			}})
 		}},
@@ -1439,6 +1448,7 @@ const UVEditor = {
 		'uv_maximize',
 		'uv_auto',
 		'uv_rel_auto',
+		'unwrap_mesh_faces',
 		'uv_project_from_view',
 		'connect_uv_faces',
 		'merge_uv_vertices',
@@ -1695,6 +1705,14 @@ BARS.defineActions(function() {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			UVEditor.forSelection('setAutoSize', event)
 			Undo.finishEdit('Auto UV')
+		}
+	})
+	new Action('unwrap_mesh_faces', {
+		icon: 'map',
+		category: 'uv',
+		condition: () => Mesh.selected.length,
+		click() {
+			TextureGenerator.unwrapMeshFacesDialog()
 		}
 	})
 	new Action('uv_project_from_view', {
@@ -2156,31 +2174,42 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Cycle reverse UV')
 		}
 	})
-	new Toggle('edit_mode_uv_overlay', {
-		name: 'action.paint_mode_uv_overlay',
-		description: 'action.edit_mode_uv_overlay.desc',
-		icon: 'stack',
+	new Toggle('snap_uv_to_image_bounds', {
+		icon: 'grid_goldenratio',
 		category: 'uv',
 		condition: {modes: ['edit']},
+		value: true
+	})
+	new Toggle('edit_mode_uv_overlay', {
+		icon: 'stack',
+		category: 'uv',
+		condition: {modes: ['edit', 'paint']},
 		onChange(value) {
 			if (value) {
 				Project.display_uv = UVEditor.vue.display_uv = 'all_elements';
-				settings.show_only_selected_uv.set(true);
+				// Affect settings.
+				settings.display_uv.set('all_elements');
+				Settings.saveLocalStorages();
 			} else {
-				if (settings.show_only_selected_uv.value) {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_faces';
-				} else {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
-				}
+				Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
+				// Affect settings.
+				settings.display_uv.set('selected_elements');
+				Settings.saveLocalStorages();
 			}
 		}
 	})
 	new Toggle('paint_mode_uv_overlay', {
-		icon: 'stack',
+		icon: 'preview',
 		category: 'uv',
 		condition: {modes: ['paint'], method: () => !Format.image_editor},
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
+			if (value && UVEditor.vue.display_uv == 'selected_faces') {
+				Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
+				// Affect settings.
+				settings.display_uv.set('selected_elements');
+				Settings.saveLocalStorages();
+			}
 		}
 	})
 	new Toggle('move_texture_with_uv', {
@@ -2283,7 +2312,7 @@ Interface.definePanels(function() {
 				uv_resolution: [16, 16],
 				elements: [],
 				all_elements: [],
-				display_uv: 'selected_elements',
+				display_uv: settings.display_uv.value,
 				selection_outline: '',
 
 				face_names: {
@@ -3019,36 +3048,38 @@ Interface.definePanels(function() {
 						event,
 						snap: UVEditor.isBoxUV() ? 1 : undefined,
 						onDrag: (diff_x, diff_y) => {
-							elements.forEach(element => {
-								if (element instanceof Mesh) {
-									UVEditor.getSelectedFaces(element).forEach(key => {
-										let face = element.faces[key];
-										if (!face) return;
-										face.vertices.forEach(vertex_key => {
-											diff_x = Math.clamp(diff_x, -face.uv[vertex_key][0], UVEditor.getUVWidth()  - face.uv[vertex_key][0]);
-											diff_y = Math.clamp(diff_y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+							// Snap UV to Image Bounds
+							if (BarItems.snap_uv_to_image_bounds.value) {
+								elements.forEach(element => {
+									if (element instanceof Mesh) {
+										UVEditor.getSelectedFaces(element).forEach(key => {
+											let face = element.faces[key];
+											if (!face) return;
+											face.vertices.forEach(vertex_key => {
+												diff_x = Math.clamp(diff_x, -face.uv[vertex_key][0], UVEditor.getUVWidth()  - face.uv[vertex_key][0]);
+												diff_y = Math.clamp(diff_y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+											})
 										})
-									})
-								} else if (element.box_uv) {
-									let size = element.size(undefined, Format.box_uv_float_size != true);
-									let uv_size = [
-										size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
-										size[2] + size[1],
-									]
-									diff_x = Math.clamp(diff_x, -element.uv_offset[0] - (size[1] ? 0 : size[2]), UVEditor.getUVWidth()  - element.uv_offset[0] - uv_size[0]);
-									diff_y = Math.clamp(diff_y, -element.uv_offset[1] - (size[0] ? 0 : size[2]), UVEditor.getUVHeight() - element.uv_offset[1] - uv_size[1]);
-
-								} else {
-									UVEditor.getSelectedFaces(element).forEach(key => {
-										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
-											diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], UVEditor.getUVWidth()  - element.faces[key].uv[0]);
-											diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], UVEditor.getUVHeight() - element.faces[key].uv[1]);
-											diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], UVEditor.getUVWidth()  - element.faces[key].uv[2]);
-											diff_y = Math.clamp(diff_y, -element.faces[key].uv[3], UVEditor.getUVHeight() - element.faces[key].uv[3]);
-										}
-									})
-								}
-							})
+									} else if (element.box_uv) {
+										let size = element.size(undefined, Format.box_uv_float_size != true);
+										let uv_size = [
+											size[2] + size[0] + (size[1] ? size[2] : 0) + size[0],
+											size[2] + size[1],
+										]
+										diff_x = Math.clamp(diff_x, -element.uv_offset[0] - (size[1] ? 0 : size[2]), UVEditor.getUVWidth()  - element.uv_offset[0] - uv_size[0]);
+										diff_y = Math.clamp(diff_y, -element.uv_offset[1] - (size[0] ? 0 : size[2]), UVEditor.getUVHeight() - element.uv_offset[1] - uv_size[1]);
+									} else {
+										UVEditor.getSelectedFaces(element).forEach(key => {
+											if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
+												diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], UVEditor.getUVWidth()  - element.faces[key].uv[0]);
+												diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], UVEditor.getUVHeight() - element.faces[key].uv[1]);
+												diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], UVEditor.getUVWidth()  - element.faces[key].uv[2]);
+												diff_y = Math.clamp(diff_y, -element.faces[key].uv[3], UVEditor.getUVHeight() - element.faces[key].uv[3]);
+											}
+										})
+									}
+								})
+							}
 							elements.forEach(element => {
 								if (element instanceof Mesh) {
 									UVEditor.getSelectedFaces(element).forEach(key => {
@@ -3114,6 +3145,7 @@ Interface.definePanels(function() {
 						}
 					})
 				},
+				// Drag UV edge from Cube with Per-Face-UV
 				resizeFace(face_key, event, x_side, y_side) {
 					if (event.which == 2 || event.which == 3) return;
 					event.stopPropagation();
@@ -3137,11 +3169,18 @@ Interface.definePanels(function() {
 						onDrag: (x, y) => {
 							elements.forEach(element => {
 								UVEditor.getSelectedFaces(element).forEach(key => {
-									if (element.faces[key] && element instanceof Cube) {
-										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, UVEditor.getUVWidth());
-										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, UVEditor.getUVHeight());
-										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, UVEditor.getUVWidth());
-										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = Math.clamp(element.faces[key].uv[3] + y, 0, UVEditor.getUVHeight());
+									if (BarItems.snap_uv_to_image_bounds.value) {
+										if (element.faces[key] && element instanceof Cube) {
+											if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, UVEditor.getUVWidth());
+											if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, UVEditor.getUVHeight());
+											if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, UVEditor.getUVWidth());
+											if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = Math.clamp(element.faces[key].uv[3] + y, 0, UVEditor.getUVHeight());
+										}
+									} else {
+										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = element.faces[key].uv[0] + x;
+										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = element.faces[key].uv[1] + y;
+										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = element.faces[key].uv[2] + x;
+										if (y_side && (y_side ==  1) != inverted[element.uuid][key][1]) element.faces[key].uv[3] = element.faces[key].uv[3] + y;
 									}
 								})
 							})
@@ -3236,8 +3275,13 @@ Interface.definePanels(function() {
 												face.uv[vkey][1] = face.old_uv[vkey][1] - face_center[1];
 												let a = (face.uv[vkey][0] * cos - face.uv[vkey][1] * sin);
 												let b = (face.uv[vkey][0] * sin + face.uv[vkey][1] * cos);
-												face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
-												face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
+												if (BarItems.snap_uv_to_image_bounds.value) {
+													face.uv[vkey][0] = Math.clamp(a + face_center[0], 0, UVEditor.getUVWidth());
+													face.uv[vkey][1] = Math.clamp(b + face_center[1], 0, UVEditor.getUVHeight());
+												} else {
+													face.uv[vkey][0] = a + face_center[0]
+													face.uv[vkey][1] = b + face_center[1]
+												}
 											})
 										})
 									}
@@ -3352,7 +3396,6 @@ Interface.definePanels(function() {
 						}
 					})
 				},
-
 				dragVertices(element, vertex_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
@@ -3381,12 +3424,14 @@ Interface.definePanels(function() {
 								UVEditor.getSelectedFaces(element).forEach(key => {
 									let face = element.faces[key];
 									if (!face) return;
-									face.vertices.forEach(vertex_key => {
-										if (vertices.includes(vertex_key)) {
-											x = Math.clamp(x, -face.uv[vertex_key][0], UVEditor.getUVWidth() - face.uv[vertex_key][0]);
-											y = Math.clamp(y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
-										}
-									})
+									if (BarItems.snap_uv_to_image_bounds.value) {
+										face.vertices.forEach(vertex_key => {
+											if (vertices.includes(vertex_key)) {
+												x = Math.clamp(x, -face.uv[vertex_key][0], UVEditor.getUVWidth() - face.uv[vertex_key][0]);
+												y = Math.clamp(y, -face.uv[vertex_key][1], UVEditor.getUVHeight() - face.uv[vertex_key][1]);
+											}
+										})
+									}
 								})
 							})
 							elements.forEach(element => {
@@ -3427,7 +3472,6 @@ Interface.definePanels(function() {
 						}
 					})
 				},
-
 				toPixels(uv_coord, offset = 0) {
 					return (uv_coord / this.uv_resolution[0] * this.inner_width + offset) + 'px';
 				},
@@ -3439,10 +3483,14 @@ Interface.definePanels(function() {
 					}
 				},
 				getDisplayedUVElements() {
-					if (this.mode == 'uv' || this.uv_overlay) {
-						return (this.display_uv === 'all_elements' || this.mode == 'paint')
-							 ? this.all_mappable_elements
-							 : this.mappable_elements;
+					if (this.mode == 'uv') {
+						return (this.display_uv === 'all_elements')
+							? this.all_mappable_elements
+							: this.mappable_elements;
+					} else if (this.mode == 'paint' && this.uv_overlay) {
+						return (this.display_uv === 'all_elements')
+							? this.all_mappable_elements
+							: this.mappable_elements;
 					} else {
 						return [];
 					}
@@ -4370,11 +4418,11 @@ Interface.definePanels(function() {
 
 	Toolbars.uv_editor.toPlace()
 
+	// Force show tool in the 'locked toolbar'.
 	BarItems.paint_mode_uv_overlay.toElement('#toggle_uv_overlay_anchor');
-	BarItems.edit_mode_uv_overlay.toElement('#toggle_edit_uv_overlay_anchor');
+
 
 	let {slider_bar} = UVEditor.vue.$refs;
-
 	var onBefore = function() {
 		Undo.initEdit({elements: UVEditor.getMappableElements()})
 	}
@@ -4508,5 +4556,4 @@ Interface.definePanels(function() {
 		onAfter
 
 	}).toElement(slider_bar);
-	BarItems.edit_mode_uv_overlay.toElement(slider_bar);
 })

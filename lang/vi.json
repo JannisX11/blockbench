@@ -1963,6 +1963,7 @@
 	"message.texture_refresh_conflict.keep_theirs": "Tải tệp và loại bỏ tất cả các thay đổi và lớp trong Blockbench",
 	"message.group_required_to_animate": "Bạn không thể tạo hiệu ứng chuyển động cho phần tử này. Hãy tạo một nhóm để tạo hiệu ứng chuyển động.",
 	"dialog.texture.uv_size": "Kích cỡ UV",
+	"dialog.texture.repeating": "Repeat",
 	"dialog.advanced_screenshot.angle_preset": "Góc giá trị cài sẵn",
 	"dialog.advanced_screenshot.resolution": "Độ phân giải",
 	"dialog.advanced_screenshot.zoom_to_fit": "Thu phóng tới khi vừa",

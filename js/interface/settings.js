@@ -539,7 +539,21 @@ const Settings = {
 		new Setting('autouv',					{category: 'defaults', value: true});
 		new Setting('inherit_parent_color',		{category: 'defaults', value: false});
 		new Setting('create_rename', 			{category: 'defaults', value: false});
-		new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
+		new Setting('display_uv',		{category: 'defaults', value: 'none', type: 'select', description: '', options: {
+			'selected_faces': tl('menu.uv.display_uv.selected_faces'),
+			'selected_elements': tl('menu.uv.display_uv.selected_elements'),
+			'all_elements': tl('menu.uv.display_uv.all_elements'),
+		}, onChange(value) {
+			Project.display_uv = UVEditor.vue.display_uv = value;
+			// Affect other tools.
+			BarItems.edit_mode_uv_overlay.value = value == 'all_elements';
+			BarItems.edit_mode_uv_overlay.updateEnabledState();
+			if (BarItems.paint_mode_uv_overlay.value && value == 'selected_faces') {
+				UVEditor.vue.uv_overlay = false;
+				BarItems.paint_mode_uv_overlay.value = false;
+				BarItems.paint_mode_uv_overlay.updateEnabledState();
+			}
+		}});
 		new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
 		new Setting('animation_snap',			{category: 'defaults', value: 24, type: 'number'});
 		new Setting('uniform_keyframe',			{category: 'defaults', value: true});
