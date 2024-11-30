@@ -111,6 +111,7 @@ class NullObject extends OutlinerElement {
 			new MenuSeparator('ik'),
 			'set_ik_target',
 			'set_ik_source',
+			'set_ik_pole',
 			{
 				id: 'lock_ik_target_rotation',
 				name: 'menu.null_object.lock_ik_target_rotation',
@@ -136,6 +137,7 @@ class NullObject extends OutlinerElement {
 	new Property(NullObject, 'vector', 'position')
 	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
 	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
+	new Property(NullObject, 'string', 'ik_pole', { condition: () => Format.animation_mode });
 	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
@@ -297,5 +299,52 @@ BARS.defineActions(function() {
 			new Menu('set_ik_source', this.children(this), {searchable: true}).show(event.target, this);
 		}
 
+	})
+
+	new Action('set_ik_pole', {
+		icon: 'fa-paperclip',
+		category: 'edit',
+		condition() {
+			let action = BarItems.set_ik_pole;
+			return NullObject.selected.length && action.children(action).length
+		},
+		searchable: true,
+		children() {
+			let nodes = [];
+			iterate(NullObject.selected[0].parent.children);
+
+			function iterate(arr) {
+				arr.forEach(node => {
+					if (node instanceof Group) {
+						nodes.push(node);
+						iterate(node.children);
+					}
+					if (node instanceof Locator) {
+						nodes.push(node);
+					}
+				})
+			}
+			return nodes.map(node => {
+				return {
+					name: node.name + (node.uuid == NullObject.selected[0].ik_pole ? ' (✔)' : ''),
+					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
+					click() {
+						Undo.initEdit({ elements: NullObject.selected });
+						NullObject.selected.forEach(null_object => {
+							if (null_object.ik_pole == node.uuid) {
+								null_object.ik_pole = undefined;
+							} else {
+								null_object.ik_pole = node.uuid;
+							}
+						})
+						Undo.finishEdit('Set IK pole');
+					}
+				}
+			})
+		},
+		click(event) {
+			new Menu('set_ik_pole', this.children(this), { searchable: true }).show(event.target, this);
+		}
 	})
 })

@@ -1921,6 +1921,8 @@
 	"action.set_ik_target.desc": "Select the target bone that should be moved by this null object via Inverse Kinematics",
 	"action.set_ik_source": "Set IK Root",
 	"action.set_ik_source.desc": "Select the root bone of the chain that should be moved by this null object via Inverse Kinematics",
+	"action.set_ik_pole": "Set IK Pole",
+	"action.set_ik_pole.desc": "Select the pole that the chain will attempt to face towards while moving",
 	"action.lock_motion_trail": "Lock Motion Trail",
 	"action.lock_motion_trail.desc": "Lock the motion trail to the currently selected group",
 	"action.animation_onion_skin": "Animation Onion Skin",
