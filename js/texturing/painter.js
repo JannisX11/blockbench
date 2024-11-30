@@ -1247,6 +1247,15 @@ const Painter = {
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'overlay':
+					if (base[ch] < 128) {
+						mix[ch] = (((2*normal_base*normal_added)) * added.a) + (normal_base * (1-added.a));
+					}
+					else{
+						mix[ch] = ((1 - 2*((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
+					}
+				break;
+
 				//case 'hard_light':
 				//mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
 				//break;
@@ -1330,6 +1339,7 @@ const Painter = {
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
 			case 'screen': return 'screen';
+			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
 			default: return 'source-over';
 		}
@@ -1668,6 +1678,7 @@ const Painter = {
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
 					screen: 'action.blend_mode.screen',
+					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
 				}},
 				size: {
@@ -2793,6 +2804,7 @@ BARS.defineActions(function() {
 			add: true,
 			//subtract: true,
 			screen: true,
+			overlay: true,
 			difference: true,
 		}
 	})
