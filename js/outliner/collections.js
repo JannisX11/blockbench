@@ -146,6 +146,34 @@ Collection.prototype.menu = new Menu([
 	'copy',
 	'duplicate',
 	'delete',
+	new MenuSeparator('export'),
+	{
+		id: 'export',
+		name: 'generic.export',
+		icon: 'insert_drive_file',
+		children: (collection) => {
+			let actions = [];
+			for (let id in Codecs) {
+				let codec = Codecs[id];
+				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
+				console.log(id)
+
+				let export_action = codec.export_action;
+				let new_action = {
+					name: export_action.name,
+					icon: export_action.icon,
+					description: export_action.description,
+					description: export_action.description,
+					click() {
+						codec.exportCollection(collection);
+					}
+				}
+				actions.push(new_action);
+			}
+			console.log(actions)
+			return actions;
+		}
+	},
 	new MenuSeparator('properties'),
 	{
 		icon: 'list',

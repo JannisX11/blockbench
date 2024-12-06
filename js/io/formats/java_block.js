@@ -11,6 +11,7 @@ var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],

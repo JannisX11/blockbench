@@ -4,6 +4,7 @@ var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
 	extension: 'jpm',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['jpm']
