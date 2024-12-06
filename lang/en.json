@@ -1612,6 +1612,13 @@
 	"action.proportional_editing_range": "Proportional Editing Range",
 	"action.proportional_editing_range.desc": "Adjust the range for proportional editing",
 
+	"action.create_collection": "Create Collection",
+	"action.create_collection.desc": "Create a collection out of the outliner selection",
+	"action.set_collection_content_to_selection": "Set Collection Content to Selected",
+	"action.set_collection_content_to_selection.desc": "Set the selected groups and elements as the content of the collection",
+	"action.add_to_collection": "Add Selected to Collection",
+	"action.add_to_collection.desc": "Add the selected groups and elements to the collection",
+
 	"action.adjust_brightness_contrast": "Adjust Brightness & Contrast...",
 	"action.adjust_brightness_contrast.desc": "Adjust the brightness and contrast of the selected texture",
 	"action.adjust_saturation_hue": "Adjust Saturation & Hue...",
@@ -2276,6 +2283,7 @@
 	"panel.color.both": "Both",
 	"panel.color.picker_options": "Color Picker Options",
 	"panel.outliner": "Outliner",
+	"panel.collections": "Collections",
 	"panel.chat": "Chat",
 	"panel.animations": "Animations",
 	"panel.animation_controllers": "Animation Controller",

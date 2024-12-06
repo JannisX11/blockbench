@@ -584,6 +584,54 @@
 	#options .bar .nslide, #options .bar .tool.wide {
 		width: 83px;
 	}
+/*Collections*/
+	.collection {
+		display: flex;
+		padding: 2px 10px;
+		gap: 5px;
+		align-items: center;
+	}
+	.collection:active {
+		background-color: var(--color-ui);
+	}
+	.collection:hover {
+		color: var(--color-light);
+	}
+	.collection.selected {
+		color: var(--color-light);
+		background-color: var(--color-selected);
+	}
+	.collection > i {
+		width: 30px;
+		max-width: unset;
+	}
+	.collection_center_wrapper {
+		height: 48px;
+		flex-grow: 1;
+	}
+	.collection_content_list {
+		display: flex;
+		gap: 4px;
+		margin: 0 -5px;
+	}
+	.collection_content_list > li {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		border-radius: 10px;
+    	background-color: var(--color-ui);
+		height: 22px;
+		padding: 0 7px;
+	}
+	.collection_content_list > li > i {
+		scale: 0.9;
+	}
+	.collection_content_list > li > i.fa_big {
+		transform-origin: bottom;
+	}
+	.collection i.toggle_disabled {
+		color: var(--color-subtle_text);
+	}
 
 /*Textures*/
 	#texture_list {

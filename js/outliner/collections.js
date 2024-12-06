@@ -2,40 +2,124 @@
  * Collection purposes
  * 
 
-Toggle visibility of related elements
-Combine with exporting selections?
-Quick way to select and do all other stuff
+Export collections individually
+
 Create selection based on regex filter? Like element prefixes
 Auto-suggest creating such collections when opening the panel
 
 
+TODO:
+Panel hidden by default
+properties dialog
+draggable
+suggested collections
+alt+click visibility icon to only make collection visible
 
  */
 
-
-
-
 class Collection {
-	constructor(data, texture = Texture.selected, uuid) {
+	constructor(data, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.selected = false;
+		this.children = [];
+		for (let key in Collection.properties) {
+			Collection.properties[key].reset(this);
+		}
 		if (data) this.extend(data);
 	}
 	extend(data) {
 		for (var key in Collection.properties) {
 			Collection.properties[key].merge(this, data)
 		}
+		return this;
 	}
-	select() {
+	select(event) {
 		this.selected = true;
 		Outliner.selected.empty();
+		if (!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
+			unselectAll();
+			Collection.all.forEach(c => c.selected = false);
+		}
+		this.selected = true;
 		for (let uuid of this.children) {
 			let node = OutlinerNode.uuids[uuid];
+			if (node instanceof Group) {
+				node.multiSelect();
+			} else {
+				Outliner.selected.push(node);
+			}
 		}
+		updateSelection();
+		return this;
+	}
+	getChildren() {
+		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
+	}
+	add() {
+		Collection.all.safePush(this);
+		return this;
+	}
+	addSelection() {
+		if (Group.selected.length) {
+			for (let group of Group.selected) {
+				this.children.push(group.uuid);
+			}
+		}
+		for (let element of Outliner.selected) {
+			if (!element.parent.selected) {
+				this.children.push(element.uuid);
+			}
+		}
+		return this;
+	}
+	getVisibility() {
+		return this.getChildren().find(node => {
+			return node && typeof node.visibility == 'boolean';
+		})?.visibility;
+	}
+	getAllChildren() {
+		let children = this.getChildren();
+		let nodes = [];
+		for (let child of children) {
+			nodes.safePush(child);
+			if (typeof child.forEachChild == 'function') {
+				child.forEachChild(subchild => nodes.safePush(subchild));
+			}
+		}
+		return nodes;
+	}
+	toggleVisibility() {
+		let children = this.getChildren();
+		if (!children.length) return;
+		let groups = [];
+		let elements = [];
+		function update(node) {
+			if (typeof node.visibility != 'boolean') return;
+			if (node instanceof Group) {
+				groups.push(node);
+			} else {
+				elements.push(node);
+			}
+		}
+		for (let child of children) {
+			update(child);
+			if (typeof child.forEachChild == 'function') {
+				child.forEachChild(update);
+			}
+		}
+		let all = groups.concat(elements);
+		let state = all[0]?.visibility != true;
+		Undo.initEdit({groups, elements});
+		all.forEach(node => {
+			node.visibility = state;
+		})
+		Canvas.updateView({elements, element_aspects: {visibility: true}});
+		Undo.finishEdit('Toggle collection visibility');
 	}
 	showContextMenu(event) {
 		if (!this.selected) this.select();
 		this.menu.open(event, this);
+		return this;
 	}
 	getUndoCopy(image_data) {
 		let copy = {};
@@ -56,6 +140,8 @@ class Collection {
 Collection.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	new MenuSeparator('edit'),
+	'set_collection_content_to_selection',
+	'add_to_collection',
 	new MenuSeparator('copypaste'),
 	'copy',
 	'duplicate',
@@ -89,69 +175,94 @@ SharedActions.add('delete', {
 		let selected = Collection.selected.slice();
 		Undo.initEdit({collections: selected});
 		for (let c of selected) {
-			Collection.all.remove()
+			Collection.all.remove(c)
 		}
 		selected.empty();
 		Undo.finishEdit('Remove collection');
 	}
 })
-/*SharedActions.add('duplicate', {
+SharedActions.add('duplicate', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Texture.selected?.selected_collection,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
-		let texture = Texture.selected;
-		let original = texture.getActiveCollection();
-		let copy = original.getUndoCopy(true);
-		copy.name += '-copy';
-		Undo.initEdit({collections: [texture]});
-		let collection = new Collection(copy);
+		let new_collections = [];
+		Undo.initEdit({collections: new_collections});
+		for (let original of Collection.selected.slice()) {
+			let copy = new Collection(original);
+			copy.name += ' - copy';
+			copy.add(false);
+			new_collections.push(copy);
+		}
 		Undo.finishEdit('Duplicate collection');
 	}
 })
 SharedActions.add('copy', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
-		let collection = Collection.selected;
-		let copy = collection.getUndoCopy(true);
-		Clipbench.collection = copy;
+		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy());
 	}
 })
 SharedActions.add('paste', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Texture.selected && Clipbench.collection,
+	condition: () => Prop.active_panel == 'collections' && Clipbench.collections?.length,
 	run() {
-		let texture = Texture.selected;
-		Undo.initEdit({collections: [texture]});
-		let collection = new Collection(Clipbench.collection);
+		let new_collections = [];
+		Undo.initEdit({collections: new_collections});
+		for (let data of Clipbench.collections) {
+			let copy = new Collection(data);
+			copy.name += ' - copy';
+			copy.add(false);
+			new_collections.push(copy);
+		}
 		Undo.finishEdit('Paste collection');
 	}
-})*/
+})
 
 BARS.defineActions(() => {
 	new Action('create_collection', {
 		icon: 'inventory_2',
-		category: 'outliner',
+		category: 'select',
 		click() {
 			Undo.initEdit({collections: []});
 			let collection = new Collection({});
+			collection.add().addSelection();
 			Undo.finishEdit('Create collection', {collections: [collection]});
 			updateSelection();
+		}
+	})
+	new Action('set_collection_content_to_selection', {
+		icon: 'unarchive',
+		category: 'select',
+		condition: () => Collection.selected.length,
+		click() {
+			let collections = Collection.selected;
+			Undo.initEdit({collections});
+			for (let collection of collections) {
+				collection.children.empty();
+				collection.addSelection();
+			}
+			Undo.finishEdit('Set collection content to selection');
+		}
+	})
+	new Action('add_to_collection', {
+		icon: 'box_add',
+		category: 'select',
+		condition: () => Collection.selected.length,
+		click() {
+			let collections = Collection.selected;
+			Undo.initEdit({collections});
+			for (let collection of collections) {
+				collection.addSelection();
+			}
+			Undo.finishEdit('Add selection to collection');
 		}
 	})
 })
 
 Interface.definePanels(function() {
-	Vue.component('collection-icon', {
-		props: {
-			collection: Collection
-		},
-		template: '<div class="collection_icon_wrapper"></div>',
-		mounted() {
-			this.$el.append(this.collection.canvas);
-		}
-	})
-	function eventTargetToCollection(target, texture) {
+
+	function eventTargetToCollection(target, collection) {
 		let target_node = target;
 		let i = 0;
 		while (target_node && target_node.classList && !target_node.classList.contains('collection')) {
@@ -162,7 +273,7 @@ Interface.definePanels(function() {
 				return [];
 			}
 		}
-		return [texture.collections.find(collection => collection.uuid == target_node.attributes.collection_id.value), target_node];
+		return [Collection.all.find(collection => collection.uuid == target_node.attributes.collection_id.value), target_node];
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {
@@ -198,13 +309,11 @@ Interface.definePanels(function() {
 				openMenu(event) {
 					Interface.Panels.collections.menu.show(event)
 				},
-				dragCollection(e1) {
+				dragCollection(e1, clicked_collection) {
 					if (getFocusedTextInput()) return;
 					if (e1.button == 1 || e1.button == 2) return;
 					convertTouchEvent(e1);
 
-					let texture = Texture.selected;
-					if (!texture) return;
 					let [collection] = eventTargetToCollection(e1.target, texture);
 					if (!collection || collection.locked) return;
 
@@ -302,6 +411,31 @@ Interface.definePanels(function() {
 
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				unselect(event) {
+					Collection.all.forEach(collection => {
+						collection.selected = false;
+					})
+					updateSelection();
+				},
+				getContentList(collection) {
+					let types = {
+						group: []
+					}
+					for (let child of collection.getChildren()) {
+						if (!types[child.type]) types[child.type] = [];
+						types[child.type].push(child);
+					}
+					let list = [];
+					for (let key in types) {
+						if (!types[key].length) continue;
+						list.push({
+							count: types[key].length == 1 ? '' : types[key].length,
+							name: types[key].length == 1 ? types[key][0].name : '',
+							icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+						})
+					}
+					return list;
 				}
 			},
 			template: `
@@ -311,6 +445,7 @@ Interface.definePanels(function() {
 					@contextmenu.stop.prevent="openMenu($event)"
 					@mousedown="dragCollection($event)"
 					@touchstart="dragCollection($event)"
+					@click.stop="unselect($event)"
 				>
 					<li
 						v-for="collection in collections"
@@ -324,12 +459,21 @@ Interface.definePanels(function() {
 					>
 						<i class="material-icons">inventory_2</i>
 
-						<label>
-							{{ collection.name }}
-						</label>
+						<div class="collection_center_wrapper">
+							<label>
+								{{ collection.name }}
+							</label>
+							<ul class="collection_content_list">
+								<li v-for="content_stat of getContentList(collection)">
+									{{ content_stat.count }}
+									<dynamic-icon :icon="content_stat.icon.replace('fa ', '').replace(/ /g, '.')" />
+									{{ content_stat.name }}
+								</li>
+							</ul>
+						</div>
 
 						<div class="in_list_button" @click.stop="collection.toggleVisibility()" @dblclick.stop>
-							<i v-if="collection.visible" class="material-icons icon">visibility</i>
+							<i v-if="collection.getVisibility()" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>
 					</li>
@@ -338,6 +482,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'create_collection',
+			'copy',
 		])
 	})
 })
