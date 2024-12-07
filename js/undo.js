@@ -24,7 +24,7 @@ class UndoSystem {
 		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
-	finishEdit(action, aspects) {
+	finishEdit(message, aspects) {
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
@@ -36,7 +36,8 @@ class UndoSystem {
 		var entry = {
 			before: this.current_save,
 			post: new UndoSystem.save(aspects),
-			action: action,
+			action: message,
+			type: 'edit',
 			time: Date.now()
 		}
 		this.current_save = entry.post
@@ -58,6 +59,42 @@ class UndoSystem {
 		if (Project.EditSession && Project.EditSession.active) {
 			Project.EditSession.sendEdit(entry)
 		}
+		return entry;
+	}
+	initSelection(aspects) {
+		if (!settings.undo_selections.value) return;
+
+		this.current_selection_save = new UndoSystem.selectionSave(aspects);
+		Blockbench.dispatchEvent('init_selection_change', {aspects, save: this.current_selection_save})
+		return this.current_selection_save;
+	}
+	finishSelection(message, aspects) {
+		if (!settings.undo_selections.value) return;
+
+		if (!this.current_selection_save) return;
+		aspects = aspects || this.current_selection_save.aspects
+		//After
+		Blockbench.dispatchEvent('finish_selection_change', {aspects})
+		var entry = {
+			selection_before: this.current_selection_save,
+			selection_post: new UndoSystem.selectionSave(aspects),
+			action: message,
+			type: 'selection',
+			time: Date.now()
+		}
+		this.current_selection_save = entry.selection_post
+		if (this.history.length > this.index) {
+			this.history.length = this.index;
+		}
+		delete this.current_selection_save;
+	 
+		this.history.push(entry)
+
+		if (this.history.length > settings.undo_limit.value) {
+			this.history.shift()
+		}
+		this.index = this.history.length
+		Blockbench.dispatchEvent('finished_selection_change', {aspects})
 		return entry;
 	}
 	cancelEdit(revert_changes = true) {
@@ -125,8 +162,9 @@ class UndoSystem {
 		Project.saved = false;
 		this.index--;
 
-		var entry = this.history[this.index]
-		this.loadSave(entry.before, entry.post)
+		var entry = this.history[this.index];
+		if (entry.before) entry.before.load(entry.post);
+		if (entry.selection_before) entry.selection_before.load(entry.selection_post);
 		if (Project.EditSession && remote !== true) {
 			Project.EditSession.sendAll('command', 'undo')
 		}
@@ -142,7 +180,8 @@ class UndoSystem {
 
 		var entry = this.history[this.index]
 		this.index++;
-		this.loadSave(entry.post, entry.before)
+		if (entry.post) entry.post.load(entry.before);
+		if (entry.selection_post) entry.selection_post.load(entry.selection_before);
 		if (Project.EditSession && remote !== true) {
 			Project.EditSession.sendAll('command', 'redo')
 		}
@@ -647,6 +686,9 @@ UndoSystem.save = class {
 
 		Blockbench.dispatchEvent('create_undo_save', {save: this, aspects})
 	}
+	load(reference, mode) {
+		Undo.loadSave(this, reference, mode);
+	}
 	addTexture(texture) {
 		if (!this.textures) return;
 		if (this.aspects.textures.safePush(texture)) {
@@ -674,6 +716,73 @@ UndoSystem.save = class {
 		elements.forEach(el => {
 			this.elements[el.uuid] = el.getUndoCopy(aspects);
 		})
+	}
+}
+UndoSystem.selectionSave = class {
+	constructor(aspects) {
+		this.elements = Outliner.selected.map(element => element.uuid);
+		this.groups = Group.selected.map(element => element.uuid);
+		this.geometry = {};
+		this.mesh_selection_mode = BarItems.selection_mode.value;
+
+		for (let element of Outliner.selected) {
+			if (element instanceof Mesh) {
+				this.geometry[element.uuid] = {
+					faces: element.getSelectedFaces(),
+					edges: element.getSelectedEdges(),
+					vertices: element.getSelectedVertices(),
+				}
+			} else if (element instanceof Cube && !element.box_uv) {
+				this.geometry[element.uuid] = {
+					faces: UVEditor.getSelectedFaces(Cube.selected[0])
+				}
+			}
+		}
+
+		if (Texture.selected) {
+			this.texture = Texture.selected?.uuid;
+			let texture_selection = Texture.selected.selection;
+			if (texture_selection.is_custom) {
+				this.texture_selection = new Int8Array(texture_selection.array);
+			} else {
+				this.texture_selection = texture_selection.override;
+			}
+		}
+	}
+	load(reference) {
+		if (this.mesh_selection_mode) {
+			BarItems.selection_mode.set(this.mesh_selection_mode);
+		}
+
+		if (this.elements) {
+			Outliner.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]));
+		}
+		if (this.groups) {
+			Group.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]));
+		}
+
+		if (this.texture) {
+			let texture = Texture.all.find(t => t.uuid == this.texture);
+			if (texture) {
+				texture.select();
+
+				if (texture.selection && this.texture_selection) {
+					if (typeof this.texture_selection == 'boolean') {
+						texture.selection.setOverride(this.texture_selection);
+					} else if (texture.selection.height * texture.selection.width == this.texture_selection.length) {
+						texture.selection.override = null;
+						if (!texture.selection.array || texture.selection.array.length != this.texture_selection.length) {
+							texture.selection.array = new Int8Array(this.texture_selection);
+						} else {
+							texture.selection.array.set(this.texture_selection);
+						}
+					}
+					UVEditor.updateSelectionOutline();
+				}
+			}
+		}
+
+		updateSelection();
 	}
 }
 
@@ -707,10 +816,11 @@ BARS.defineActions(function() {
 			let steps = [];
 			Undo.history.forEachReverse((entry, index) => {
 				index++;
-				step = {
+				let step = {
 					name: entry.action,
 					time: new Date(entry.time).toLocaleTimeString(),
 					index,
+					type: entry.type,
 					current: index == Undo.index
 				};
 				steps.push(step);
@@ -719,6 +829,7 @@ BARS.defineActions(function() {
 				name: 'Original',
 				time: '',
 				index: 0,
+				type: 'original',
 				current: Undo.index == 0
 			})
 			let step_selected = null;
@@ -728,7 +839,12 @@ BARS.defineActions(function() {
 				component: {
 					data() {return {
 						steps,
-						selected: null
+						selected: null,
+						icons: {
+							original: 'draft',
+							selection: 'arrow_selector_tool',
+							edit: 'construction',
+						}
 					}},
 					methods: {
 						select(index) {
@@ -742,7 +858,8 @@ BARS.defineActions(function() {
 						<div id="edit_history_list">
 							<ul>
 								<li v-for="step in steps" :class="{current: step.current, selected: step.index == selected}" @click="select(step.index)" @dblclick="confirm()">
-									{{ step.name }}
+									<dynamic-icon :icon="icons[step.type]" />
+									<label>{{ step.name }}</label>
 									<div class="edit_history_time">{{ step.time }}</div>
 								</li>
 							</ul>

@@ -441,6 +441,7 @@ class OutlinerElement extends OutlinerNode {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
+		Undo.initSelection();
 		//Shift
 		var just_selected = [];
 		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements'));
@@ -502,6 +503,7 @@ class OutlinerElement extends OutlinerNode {
 		})
 		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
 		TickUpdates.selection = true;
+		Undo.finishSelection('Select element');
 		return this;
 	}
 	selectLow() {
@@ -1111,6 +1113,7 @@ SharedActions.add('select_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
+		Undo.initSelection();
 		let selectable_elements = Outliner.elements.filter(element => !element.locked);
 		if (Outliner.selected.length < selectable_elements.length) {
 			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
@@ -1121,8 +1124,10 @@ SharedActions.add('select_all', {
 				})
 				TickUpdates.selection = true;
 			}
+			Undo.finishSelection('Select all elements');
 		} else {
 			unselectAllElements()
+			Undo.finishSelection('Unselect all elements');
 		}
 	}
 })
@@ -1131,7 +1136,9 @@ SharedActions.add('unselect_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
-		unselectAllElements()
+		Undo.initSelection();
+		unselectAllElements();
+		Undo.finishSelection('Unselect all elements');
 	}
 })
 SharedActions.add('invert_selection', {

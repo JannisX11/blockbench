@@ -1690,7 +1690,9 @@ const UVEditor = {
 SharedActions.add('select_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.edit,
 	run() {
+		Undo.initSelection();
 		UVEditor.selectAll()
+		Undo.finishSelection('Select all UV');
 	}
 })
 SharedActions.add('select_all', {
@@ -1704,10 +1706,13 @@ SharedActions.add('select_all', {
 SharedActions.add('unselect_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.edit,
 	run() {
+		Undo.initSelection();
 		UVEditor.getMappableElements().forEach(element => {
 			UVEditor.getSelectedFaces(element, true).empty();
 		})
 		UVEditor.displayTools();
+		Undo.initSelection();
+		Undo.finishSelection('Unselect all UV');
 	}
 })
 SharedActions.add('unselect_all', {
@@ -3734,6 +3739,7 @@ Interface.definePanels(function() {
 					start_y = y;
 
 					if (create_selection) {
+						Undo.initSelection();
 						if (op_mode == 'create') {
 							texture.selection.clear();
 						}
@@ -3959,8 +3965,10 @@ Interface.definePanels(function() {
 							if (!texture.selection.hasSelection()) {
 								texture.selection.clear();
 							}
+							Undo.finishSelection('Select texture area');
 							UVEditor.updateSelectionOutline();
 							Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+
 						} else if (!started_movement) {
 							if (TextureLayer.selected?.in_limbo) {
 								TextureLayer.selected.resolveLimbo();

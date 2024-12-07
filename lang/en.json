@@ -999,6 +999,8 @@
 	"settings.ground_plane_double_side": "Ground Plane Double-sided",
 	"settings.ground_plane_double_side.desc": "Make the ground plane visible from below",
 
+	"settings.undo_selections": "Undo Selection",
+	"settings.undo_selections.desc": "Track selection changes as a step in the undo history",
 	"settings.undo_limit": "Undo Limit",
 	"settings.undo_limit.desc": "Number of steps you can undo",
 	"settings.local_move": "Move on Relative Axes",

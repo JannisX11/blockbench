@@ -1982,7 +1982,7 @@
 		cursor: pointer;
 		border: 2px solid transparent;
 		display: flex;
-		justify-content: space-between;
+		gap: 5px;
 	}
 	#edit_history_list ul li.current {
 		border-color: var(--color-accent);
@@ -2008,6 +2008,9 @@
 	}
 	#edit_history_list .edit_history_time {
 		color: var(--color-subtle_text);
+	}
+	#edit_history_list > ul > li label  {
+		margin-right: auto;
 	}
 	#edit_history_list ul li.selected .edit_history_time {
 		color: inherit;

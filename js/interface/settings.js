@@ -475,6 +475,7 @@ const Settings = {
 		new Setting('canvas_unselect',  		{category: 'controls', value: false});
 
 		//Edit
+		new Setting('undo_selections',			{category: 'edit', value: false});
 		new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 		new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
 			updateCubeHighlights();
