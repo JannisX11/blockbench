@@ -776,7 +776,7 @@ class Preview {
 			}
 
 			function unselectOtherNodes() {
-				unselectAllElements();
+				Group.selected.empty();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})
