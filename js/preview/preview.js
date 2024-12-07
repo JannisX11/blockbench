@@ -1110,6 +1110,7 @@ class Preview {
 				brush_coord.x += 8;
 				brush_coord.z += 8;
 			}
+			brush_matrix.multiplyMatrices(intersect.object.parent.matrixWorld, brush_matrix);
 
 			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
