@@ -184,6 +184,7 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_minecraft_skin',
+				'export_image',
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
