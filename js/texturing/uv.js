@@ -776,6 +776,7 @@ const UVEditor = {
 		}, 0);
 	},
 	updateUVNavigator() {
+		if (UVEditor.vue.mode != 'uv') return;
 		let style = UVEditor.getUVNavigatorStyle();
 		let element = UVEditor.vue.$el.querySelector('.uv_navigator');
 		if (!element) return;
@@ -4443,7 +4444,7 @@ Interface.definePanels(function() {
 							</svg>
 						</div>
 
-						<div class="uv_navigator" @click="focusOnSelection()">
+						<div class="uv_navigator" @click="focusOnSelection()" v-show="mode == 'uv'">
 							<i class="material-icons icon">navigation</i>
 						</div>
 
