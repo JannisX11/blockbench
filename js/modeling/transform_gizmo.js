@@ -1171,7 +1171,7 @@
 					}
 
 					if (rotate_group) {
-						Undo.initEdit({groups: Group.selected})
+						Undo.initEdit({groups: Group.multi_selected})
 					} else if (_has_groups) {
 						Undo.initEdit({elements: selected, outliner: true, selection: true})
 					} else {
@@ -1427,7 +1427,7 @@
 							}
 							
 							if (Format.bone_rig && Group.first_selected) {
-								for (let group of Group.selected) {
+								for (let group of Group.multi_selected) {
 									group.transferOrigin(origin);
 								}
 							} else {

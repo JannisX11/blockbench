@@ -1,6 +1,6 @@
 //Actions
 function getSelectionCenter(all = false) {
-	if (Group.first_selected && Group.selected.length == 1 && selected.length == 0 && !all) {
+	if (Group.first_selected && Group.multi_selected.length == 1 && selected.length == 0 && !all) {
 		let vec = THREE.fastWorldPosition(Group.first_selected.mesh, new THREE.Vector3());
 		return vec.toArray();
 	}
@@ -9,7 +9,7 @@ function getSelectionCenter(all = false) {
 	let min = [ Infinity,  Infinity,  Infinity];
 	let elements = Outliner.selected.length ? Outliner.selected : Outliner.elements;
 	if (Group.first_selected) {
-		elements = elements.concat(Group.selected);
+		elements = elements.concat(Group.multi_selected);
 	}
 	elements.forEach(element => {
 		if (element.getWorldCenter) {
@@ -150,7 +150,7 @@ function mirrorSelected(axis) {
 		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.first_selected, selection: true})
 		let center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
-			for (let group of Group.selected) {
+			for (let group of Group.multi_selected) {
 				function flipGroup(group) {
 					for (let i = 0; i < 3; i++) {
 						if (i === axis) {
@@ -292,7 +292,7 @@ const Vertexsnap = {
 		Outliner.selected.forEach(function(element) {
 			Vertexsnap.addVertices(element)
 		})
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			Vertexsnap.addVertices(group);
 		}
 		if (Outliner.selected.length) {
@@ -308,7 +308,7 @@ const Vertexsnap = {
 			Vertexsnap.vertex_index = data.vertex_index;
 			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
 			Vertexsnap.elements = Outliner.selected.slice();
-			Vertexsnap.groups = Group.selected;
+			Vertexsnap.groups = Group.multi_selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
 				let vertices = data.element.getSelectedVertices(true);
 				vertices.safePush(data.vertex);
@@ -526,7 +526,7 @@ function centerElements(axis, update) {
 		}
 	})
 	Group.all.forEach(group => {
-		if (!group.selected) return;
+		if (!Group.multi_selected) return;
 		group.origin[axis] += difference;
 	})
 	Canvas.updateView({
@@ -541,7 +541,7 @@ function centerElements(axis, update) {
 //Move
 function moveElementsInSpace(difference, axis) {
 	let space = Transformer.getTransformSpace()
-	let groups = Format.bone_rig && Group.selected.length == 1 && Group.first_selected.matchesSelection() && Group.selected;
+	let groups = Format.bone_rig && Group.multi_selected.length == 1 && Group.first_selected.matchesSelection() && Group.multi_selected;
 	var group_m;
 	let quaternion = new THREE.Quaternion();
 	let vector = new THREE.Vector3();
@@ -576,7 +576,7 @@ function moveElementsInSpace(difference, axis) {
 				}, Group, true)
 			}
 		}
-		Canvas.updateAllBones(Group.selected);
+		Canvas.updateAllBones(Group.multi_selected);
 	}
 
 	Outliner.selected.forEach(el => {
@@ -731,7 +731,7 @@ function getRotationInterval(event) {
 	}
 }
 function getRotationObject() {
-	if (Format.bone_rig && Group.first_selected) return Group.selected;
+	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
 	let elements = Outliner.selected.filter(element => {
 		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
 	})
@@ -1341,7 +1341,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1369,7 +1369,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1397,7 +1397,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1459,7 +1459,7 @@ BARS.defineActions(function() {
 			moveOriginOnAxis(modify, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.selected})
+			Undo.initEdit({elements: selected, groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change pivot point')
@@ -1486,7 +1486,7 @@ BARS.defineActions(function() {
 			moveOriginOnAxis(modify, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.selected})
+			Undo.initEdit({elements: selected, groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change pivot point')
@@ -1513,7 +1513,7 @@ BARS.defineActions(function() {
 			moveOriginOnAxis(modify, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.selected})
+			Undo.initEdit({elements: selected, groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change pivot point')
@@ -1790,9 +1790,9 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit', 'animate'], selected: {outliner: true}},
 		click() {
 			if (Format.bone_rig && Group.first_selected) {
-				Undo.initEdit({groups: Group.selected})
+				Undo.initEdit({groups: Group.multi_selected})
 
-				for (let group of Group.selected) {
+				for (let group of Group.multi_selected) {
 					if (group.children.length === 0) continue;
 					let position = new THREE.Vector3();
 					let amount = 0;
@@ -1836,7 +1836,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({
 				elements: Outliner.selected,
 				element_aspects: {transform: true, geometry: true},
-				groups: Group.selected,
+				groups: Group.multi_selected,
 				selection: true
 			});
 			Undo.finishEdit('Center pivot');
@@ -1849,7 +1849,7 @@ BARS.defineActions(function() {
 		click() {
 			Undo.initEdit({outliner: true, elements: Outliner.selected})
 			for (let group of Group.all) {
-				if (!group.selected) continue;
+				if (!Group.multi_selected) continue;
 				let position = new THREE.Vector3();
 				let amount = 0;
 				group.children.forEach((obj) => {
@@ -1888,7 +1888,7 @@ BARS.defineActions(function() {
 			Canvas.updateView({
 				elements: Outliner.selected,
 				element_aspects: {transform: true, geometry: true},
-				groups: Group.selected,
+				groups: Group.multi_selected,
 				selection: true
 			});
 			Undo.finishEdit('Center individual pivots');
@@ -1914,8 +1914,8 @@ BARS.defineActions(function() {
 		category: 'transform',
 		condition: function() {return Format.bone_rig && Group.first_selected;},
 		click() {
-			Undo.initEdit({groups: Group.selected})
-			for (let group of Group.selected) {
+			Undo.initEdit({groups: Group.multi_selected})
+			for (let group of Group.multi_selected) {
 				group.reset = !Group.first_selected.reset
 			}
 			updateNslideValues()

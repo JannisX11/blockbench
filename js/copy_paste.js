@@ -171,8 +171,8 @@ const Clipbench = {
 		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
 			Clipbench.setElements();
 			Clipbench.setGroups();
-			if (Group.selected.length) {
-				Clipbench.setGroups(Group.selected);
+			if (Group.multi_selected.length) {
+				Clipbench.setGroups(Group.multi_selected);
 			} else {
 				Clipbench.setElements(selected);
 			}

@@ -67,7 +67,7 @@ class Group extends OutlinerNode {
 	select(event, is_outliner_click) {
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
 
 		//Clear Old Group
@@ -79,7 +79,7 @@ class Group extends OutlinerNode {
 		}
 		//Select This Group
 		this.selected = true;
-		Group.selected.safePush(this);
+		Group.multi_selected.safePush(this);
 
 		//Select / Unselect Children
 		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
@@ -105,7 +105,7 @@ class Group extends OutlinerNode {
 	multiSelect() {
 		if (this.locked) return this;
 		this.selected = true;
-		Group.selected.safePush(this);
+		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
 			s.selectLow()
 		})
@@ -133,13 +133,13 @@ class Group extends OutlinerNode {
 				ba.selected = false
 			}
 		}
-		Group.selected.remove(this);
+		Group.multi_selected.remove(this);
 		this.selected = false;
 		TickUpdates.selection = true;
 		return this;
 	}
 	matchesSelection() {
-		if (Group.selected.length != 1 || this != Group.selected) return false;
+		if (Group.multi_selected.length != 1 || this != Group.multi_selected) return false;
 		var scope = this;
 		var match = true;
 		for (var i = 0; i < selected.length; i++) {
@@ -262,7 +262,7 @@ class Group extends OutlinerNode {
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (!Group.selected.includes(this)) this.select(event);
+		if (!Group.multi_selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -423,7 +423,7 @@ class Group extends OutlinerNode {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})
 		Group.all.forEach(group => {
-			if (group.selected) {
+			if (Group.multi_selected) {
 				group.color = color;
 			}
 		})
@@ -467,7 +467,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					marked: t.uuid == /*Group.selected*/context.texture,
+					marked: t.uuid == /*Group.multi_selected*/context.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -491,15 +491,25 @@ class Group extends OutlinerNode {
 			Project.groups.replace(arr);
 		}
 	})
-	Object.defineProperty(Group, 'selected', {
+	Object.defineProperty(Group, 'multi_selected', {
 		get() {
 			return Project.selected_groups
 		},
 		set(arr) {
 			if (arr instanceof Array == false) {
-				console.warn('"Group.selected" is now an array!')
+				console.warn('Not an array!')
 			}
 			Project.selected_groups.replace(arr)
+		}
+	})
+	Object.defineProperty(Group, 'selected', {
+		get() {
+			console.warn('"Group.selected" will be an array in the future!');
+			return Project.selected_groups[0]
+		},
+		set(group) {
+			console.warn('"Group.selected" will be an array in the future!');
+			Project.selected_groups.replace([groups]);
 		}
 	})
 	Object.defineProperty(Group, 'first_selected', {
@@ -746,8 +756,8 @@ BARS.defineActions(function() {
 					if (
 						value != Group.first_selected.bedrock_binding
 					) {
-						Undo.initEdit({groups: Group.selected});
-						for (let group of Group.selected) {
+						Undo.initEdit({groups: Group.multi_selected});
+						for (let group of Group.multi_selected) {
 							group.bedrock_binding = value;
 						}
 						Undo.finishEdit('Edit group binding');
@@ -764,7 +774,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
 			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.selected) {
+			for (let group of Group.multi_selected) {
 				group.resolve(false);
 			}
 			Undo.finishEdit('Resolve group')

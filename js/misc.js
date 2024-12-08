@@ -136,7 +136,7 @@ function updateSelection(options = {}) {
 	if (Modes.pose && !Group.first_selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
 		Outliner.selected[0].parent.select();
 	}
-	for (let group of Group.selected) {
+	for (let group of Group.multi_selected) {
 		if (group.locked) group.unselect()
 	}
 	UVEditor.vue._computedWatchers.mappable_elements.run();
@@ -214,13 +214,13 @@ function updateSelection(options = {}) {
 }
 function unselectAllElements() {
 	Project.selected_elements.forEachReverse(obj => obj.unselect())
-	for (let group of Group.selected) {
+	for (let group of Group.multi_selected) {
 		group.unselect();
 	}
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
-	Group.selected.empty();
+	Group.multi_selected.empty();
 	for (let key in Project.mesh_selection) {
 		delete Project.mesh_selection[key];
 	}

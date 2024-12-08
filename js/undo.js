@@ -212,7 +212,7 @@ class UndoSystem {
 		}
 
 		if (save.outliner) {
-			Group.selected.empty();
+			Group.multi_selected.empty();
 			parseGroups(save.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -231,11 +231,11 @@ class UndoSystem {
 		}
 
 		if (save.selected_groups && !is_session) {
-			Group.selected.empty();
+			Group.multi_selected.empty();
 			for (let uuid of save.selected_groups) {
 				let sel_group = OutlinerNode.uuids[uuid];
 				if (sel_group) {
-					Group.selected.push(sel_group)
+					Group.multi_selected.push(sel_group)
 				}
 			}
 		}
@@ -535,8 +535,8 @@ UndoSystem.save = class {
 					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
-			if (Group.selected.length) {
-				this.selected_groups = Group.selected.map(g => g.uuid);
+			if (Group.multi_selected.length) {
+				this.selected_groups = Group.multi_selected.map(g => g.uuid);
 			}
 
 		}

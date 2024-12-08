@@ -494,7 +494,7 @@ class OutlinerElement extends OutlinerNode {
 				this.showInOutliner()
 			}
 		}
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.unselect();
 		}
 		Group.all.forEach(function(s) {
@@ -853,7 +853,7 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 			}
 		})
 	} else if (item instanceof Group) {
-		var items = Group.selected.filter(g => !g.parent.selected);
+		var items = Group.multi_selected.filter(g => !g.parent.selected);
 	} else {
 		var items = [item];
 	}
@@ -937,8 +937,8 @@ function renameOutliner(element) {
 			Blockbench.textPrompt('generic.rename', Group.first_selected.name, function (name) {
 				name = name.trim();
 				if (name) {
-					Undo.initEdit({groups: Group.selected});
-					for (let group of Group.selected) {
+					Undo.initEdit({groups: Group.multi_selected});
+					for (let group of Group.multi_selected) {
 						group.name = name;
 						if (Format.bone_rig) {
 							group.createUniqueName();
@@ -1033,7 +1033,7 @@ SharedActions.add('delete', {
 		array.forEach(function(s) {
 			s.remove(false)
 		})
-		for (let group of Group.selected.slice()) {
+		for (let group of Group.multi_selected.slice()) {
 			group.remove(false);
 		}
 		TickUpdates.selection = true;
@@ -1047,14 +1047,14 @@ SharedActions.add('duplicate', {
 	run() {
 		let cubes_before = elements.length;
 		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let original = Group.selected.slice();
+		let original = Group.multi_selected.slice();
 		let all_original = [];
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.forEachChild(g => all_original.safePush(g), Group, true);
 		}
 
 		let all_new = [];
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			let new_group = group.duplicate();
 			new_group.forEachChild(g => all_new.push(g), Group, true);
 		}
@@ -1146,7 +1146,7 @@ SharedActions.add('invert_selection', {
 				element.selectLow()
 			}
 		})
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.unselect();
 		}
 		updateSelection();
@@ -1218,7 +1218,7 @@ BARS.defineActions(function() {
 			if (Animator.open) {
 				var sel = 0;
 				for (let group of Group.all) {
-					if (group.selected) sel++;
+					if (Group.multi_selected) sel++;
 				}
 				this.set(stringifyLargeInt(sel)+' / '+stringifyLargeInt(Group.all.length));
 			} else {
@@ -1332,7 +1332,7 @@ BARS.defineActions(function() {
 					if (formData.mode == 'new' || formData.mode == 'in_selection') {
 						selected.empty();
 					}
-					let selected_groups = Group.selected;
+					let selected_groups = Group.multi_selected;
 					if (selected_groups.length) {
 						selected_groups.forEach(group => group.unselect());
 					}

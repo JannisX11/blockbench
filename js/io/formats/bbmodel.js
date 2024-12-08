@@ -476,7 +476,7 @@ var codec = new Codec('project', {
 				Project.selected_elements.push(el);
 			})
 			if (state.selected_groups) {
-				Group.selected = state.selected_groups.map(uuid => Group.all.find(g => g.uuid == uuid)).filter(g => g instanceof Group);
+				Group.multi_selected = state.selected_groups.map(uuid => Group.all.find(g => g.uuid == uuid)).filter(g => g instanceof Group);
 			}
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
 

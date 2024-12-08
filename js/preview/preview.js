@@ -371,7 +371,7 @@ class Preview {
 				objects.push(element.mesh.sprite);
 			}
 		})
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
 		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
@@ -776,7 +776,7 @@ class Preview {
 			}
 
 			function unselectOtherNodes() {
-				Group.selected.empty();
+				Group.multi_selected.empty();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})

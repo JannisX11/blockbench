@@ -606,7 +606,7 @@ const UVEditor = {
 
 		if (Format.per_group_texture) {
 			elements = [];
-			let groups = Group.selected;
+			let groups = Group.multi_selected;
 			Outliner.selected.forEach(el => {
 				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 			});
@@ -1646,7 +1646,7 @@ const UVEditor = {
 
 					if (Format.per_group_texture) {
 						elements = [];
-						let groups = Group.selected;
+						let groups = Group.multi_selected;
 						Outliner.selected.forEach(el => {
 							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 						});
