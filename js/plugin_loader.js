@@ -264,6 +264,7 @@ class Plugin {
 
 		var scope = this;
 		function register() {
+			if (!Plugins.json[scope.id]) return;
 			jQuery.ajax({
 				url: 'https://blckbn.ch/api/event/install_plugin',
 				type: 'POST',
