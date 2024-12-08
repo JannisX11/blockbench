@@ -2022,6 +2022,7 @@
 	"menu.display.preset_all": "Apply Preset Everywhere",
 	"menu.display.remove_preset": "Remove Preset",
 	"menu.view.zoom": "Zoom",
+	"menu.view.panels": "Panels",
 	"menu.view.background": "Background",
 	"menu.view.screenshot": "Screenshot",
 
@@ -2131,6 +2132,16 @@
 	"menu.uv.flip_x": "Mirror X",
 	"menu.uv.flip_y": "Mirror Y",
 	"menu.uv.texture": "Texture",
+
+	"menu.panel.enable": "Enable",
+	"menu.panel.move_to": "Move To",
+	"menu.panel.move_to.left_bar": "Left Sidebar",
+	"menu.panel.move_to.right_bar": "Right Sidebar",
+	"menu.panel.move_to.top": "Top",
+	"menu.panel.move_to.bottom": "Bottom",
+	"menu.panel.move_to.float": "Float",
+	"menu.panel.move_to.hidden": "Hide",
+	"menu.panel.fold": "Collapse",
 
 	"menu.mirror_painting.enabled": "Enabled",
 	"menu.mirror_painting.axis": "Axis",

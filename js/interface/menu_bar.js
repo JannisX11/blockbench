@@ -463,13 +463,39 @@ const MenuBar = {
 			new MenuSeparator('interface'),
 			{
 				id: 'panels',
-				name: 'Panels',
+				name: 'menu.view.panels',
+				icon: 'web_asset',
 				children() {
 					let entries = [];
 					for (let id in Panels) {
 						let panel = Panels[id];
-						
+						if (!Condition(panel.condition)) continue;
+						let menu_entry = {
+							id,
+							name: panel.name,
+							icon: panel.icon,
+							children: [
+								{
+									id: 'move_to',
+									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
+									icon: 'drag_handle',
+									context: panel,
+									children: panel.snap_menu.structure
+								},
+								{
+									id: 'fold',
+									name: 'menu.panel.fold',
+									icon: panel.folded == true,
+									condition: panel.slot != 'hidden',
+									click() {
+										panel.fold();
+									}
+								}
+							]
+						}
+						entries.push(menu_entry);
 					}
+					return entries;
 				}
 			},
 			'toggle_sidebars',

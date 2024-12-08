@@ -476,7 +476,7 @@ class Menu {
 				}
 				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
-				if (s.marked) {
+				if (s.marked && Condition(s.marked, scope_context)) {
 					entry.classList.add('marked');
 				}
 				if (s.keybind) {

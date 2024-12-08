@@ -315,12 +315,14 @@ Interface.definePanels(function() {
 		icon: 'inventory_2',
 		growable: true,
 		resizable: true,
+		optional: true,
 		default_position: {
-			slot: 'left_bar',
+			slot: 'hidden',
 			float_position: [0, 0],
 			float_size: [300, 300],
 			height: 300
 		},
+		condition: {modes: ['edit', 'paint']},
 		toolbars: [
 			new Toolbar('collections', {
 				children: [
