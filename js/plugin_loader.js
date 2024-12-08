@@ -81,6 +81,7 @@ class Plugin {
 		this.icon = '';
 		this.tags = [];
 		this.dependencies = [];
+		this.contributors = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
@@ -125,6 +126,7 @@ class Plugin {
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
+		if (data.contributors instanceof Array) this.contributors.safePush(...data.contributors);
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
@@ -476,6 +478,7 @@ class Plugin {
 		this.cache_version++;
 		this.unload()
 		this.tags.empty();
+		this.contributors.empty();
 		this.dependencies.empty();
 		Plugins.all.remove(this);
 		this.details = null;
@@ -621,6 +624,7 @@ class Plugin {
 			website: this.website || '',
 			repository: this.repository || '',
 			bug_tracker: this.bug_tracker || '',
+			contributors: this.contributors.join(', '),
 			author: this.author,
 			variant: this.variant == 'both' ? 'All' : this.variant,
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
@@ -1406,16 +1410,20 @@ BARS.defineActions(function() {
 						<table v-if="page_tab == 'details'" id="plugin_browser_details" class="plugin_browser_tabbed_page">
 							<tbody>
 								<tr>
-									<td>Author</td>
-									<td>{{ selected_plugin.getPluginDetails().author }}</td>
-								</tr>
-								<tr>
 									<td>Identifier</td>
 									<td>{{ selected_plugin.id }}</td>
 								</tr>
 								<tr>
 									<td>Version</td>
-									<td>{{ selected_plugin.details.version }}</td>
+									<td>{{ selected_plugin.version }}</td>
+								</tr>
+								<tr>
+									<td>Author</td>
+									<td>{{ selected_plugin.getPluginDetails().author }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.contributors">
+									<td>Contributors</td>
+									<td>{{ selected_plugin.details.contributors }}</td>
 								</tr>
 								<tr>
 									<td>Last updated</td>
