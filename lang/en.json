@@ -953,6 +953,8 @@
 	"settings.particle_tick_rate.desc": "Tick rate for particle effects in ticks per second. Default is 30",
 	"settings.volume": "Volume",
 	"settings.volume.desc": "Volume control for sound effects in animations",
+	"settings.audio_scrubbing": "Timline Scrubbing Audio",
+	"settings.audio_scrubbing.desc": "Play short previews of the audio while scrubbing through time timeline",
 	"settings.outliner_colors": "Outliner Colors",
 	"settings.outliner_colors.desc": "Display element and group colors in the outliner",
 	"settings.preview_checkerboard": "Preview Checkerboard",

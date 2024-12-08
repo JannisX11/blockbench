@@ -759,6 +759,7 @@ class EffectAnimator extends GeneralAnimator {
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;
@@ -852,6 +853,7 @@ class EffectAnimator extends GeneralAnimator {
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;
