@@ -268,6 +268,35 @@ class UndoSystem {
 			}
 		}
 
+		if (save.collections) {
+			for (let uuid in save.collections) {
+				let collection;
+				let data = save.collections[uuid];
+				if (reference.collections[uuid]) {
+					collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						collection.extend(data);
+					}
+				} else {
+					collection = new Collection(data, uuid).add();
+				}
+				//order
+				let index = Collection.all.indexOf(collection);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					Collection.all.remove(collection);
+					Collection.all.splice(data.index, 0, collection);
+				}
+			}
+			for (let uuid in reference.collections) {
+				if (!save.collections[uuid]) {
+					let collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						Collection.all.remove(collection);
+					}
+				}
+			}
+		}
+
 		if (save.texture_groups) {
 			for (let uuid in save.texture_groups) {
 				let group;
@@ -556,6 +585,14 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
+		}
+
+		if (aspects.collections) {
+			this.collections = {};
+			aspects.collections.forEach(tg => {
+				let copy = tg.getUndoCopy();
+				this.collections[tg.uuid] = copy;
+			})
 		}
 
 		if (aspects.textures) {

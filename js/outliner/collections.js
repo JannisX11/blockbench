@@ -1,18 +1,3 @@
-/**
- * Collection purposes
- * 
-
-Export collections individually
-
-Create selection based on regex filter? Like element prefixes
-Auto-suggest creating such collections when opening the panel
-
-
-TODO:
-properties dialog
-
- */
-
 class Collection {
 	constructor(data, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
@@ -123,9 +108,11 @@ class Collection {
 		this.menu.open(event, this);
 		return this;
 	}
-	getUndoCopy(image_data) {
-		let copy = {};
-		copy.uuid = this.uuid;
+	getUndoCopy() {
+		let copy = {
+			uuid: this.uuid,
+			index: Collection.all.indexOf(this)
+		};
 		for (var key in Collection.properties) {
 			Collection.properties[key].copy(this, copy);
 		}
