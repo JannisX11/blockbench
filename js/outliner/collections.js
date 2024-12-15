@@ -9,11 +9,7 @@ Auto-suggest creating such collections when opening the panel
 
 
 TODO:
-Panel hidden by default
 properties dialog
-draggable
-suggested collections
-alt+click visibility icon to only make collection visible
 
  */
 
@@ -62,20 +58,21 @@ class Collection {
 	addSelection() {
 		if (Group.selected.length) {
 			for (let group of Group.selected) {
-				this.children.push(group.uuid);
+				this.children.safePush(group.uuid);
 			}
 		}
 		for (let element of Outliner.selected) {
 			if (!element.parent.selected) {
-				this.children.push(element.uuid);
+				this.children.safePush(element.uuid);
 			}
 		}
 		return this;
 	}
 	getVisibility() {
-		return this.getChildren().find(node => {
+		let match = this.getChildren().find(node => {
 			return node && typeof node.visibility == 'boolean';
-		})?.visibility;
+		});
+		return match ? match.visibility : true;
 	}
 	getAllChildren() {
 		let children = this.getChildren();
@@ -88,7 +85,7 @@ class Collection {
 		}
 		return nodes;
 	}
-	toggleVisibility() {
+	toggleVisibility(event) {
 		let children = this.getChildren();
 		if (!children.length) return;
 		let groups = [];
@@ -106,6 +103,11 @@ class Collection {
 			if (typeof child.forEachChild == 'function') {
 				child.forEachChild(update);
 			}
+		}
+		if (event.altKey) {
+			// invert selection
+			elements = Outliner.elements.filter(e => !elements.includes(e));
+			groups = Group.all.filter(e => !groups.includes(e));
 		}
 		let all = groups.concat(elements);
 		let state = all[0]?.visibility != true;
@@ -136,6 +138,90 @@ class Collection {
 		}
 		return copy;
 	}
+	propertiesDialog() {
+		/**
+		 * Name
+		 * Content
+		 * Export Path
+		 * Export Format
+		 * Offset
+		 */
+		function getContentList(collection) {
+			let types = {
+				group: []
+			}
+			for (let child of collection.getChildren()) {
+				if (!types[child.type]) types[child.type] = [];
+				types[child.type].push(child);
+			}
+			let list = [];
+			for (let key in types) {
+				for (let node of types[key]) {
+					list.push({
+						name: node.name,
+						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+					})
+				}
+			}
+			return list;
+		}
+		let dialog = new Dialog({
+			id: 'collection_properties',
+			title: this.name,
+			resizable: 'x',
+			part_order: ['form', 'component'],
+			form: {
+				name: {label: 'generic.name', value: this.name},
+				path: {
+					label: 'menu.collection.path',
+					value: this.path,
+					type: 'file',
+					extensions: ['json'],
+					filetype: 'JSON collection',
+					condition: isApp
+				}
+			},
+			component: {
+				components: {VuePrismEditor},
+				data: {
+					content: getContentList(this)
+				},
+				template: 
+					`<div id="collection_properties_vue">
+						<ul class="list">
+							<li v-for="content_stat of content">
+								<dynamic-icon :icon="content_stat.icon.replace('fa ', '').replace(/ /g, '.')" />
+								{{ content_stat.name }}
+							</li>
+						</ul>
+					</div>`
+			},
+			onFormChange(form) {
+				this.component.data.loop_mode = form.loop;
+			},
+			onConfirm: form_data => {
+				dialog.hide().delete();
+				if (
+					form_data.name != this.name
+				) {
+					Undo.initEdit({collections: [this]});
+
+					this.extend({
+						name: form_data.name,
+					})
+					if (isApp) this.path = form_data.path;
+
+					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
+
+					Undo.finishEdit('Edit collection properties');
+				}
+			},
+			onCancel() {
+				dialog.hide().delete();
+			}
+		})
+		dialog.show();
+	}
 }
 Collection.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
@@ -156,7 +242,6 @@ Collection.prototype.menu = new Menu([
 			for (let id in Codecs) {
 				let codec = Codecs[id];
 				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
-				console.log(id)
 
 				let export_action = codec.export_action;
 				let new_action = {
@@ -170,7 +255,6 @@ Collection.prototype.menu = new Menu([
 				}
 				actions.push(new_action);
 			}
-			console.log(actions)
 			return actions;
 		}
 	},
@@ -218,7 +302,7 @@ SharedActions.add('duplicate', {
 		for (let original of Collection.selected.slice()) {
 			let copy = new Collection(original);
 			copy.name += ' - copy';
-			copy.add(false);
+			copy.add(false).select();
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Duplicate collection');
@@ -240,7 +324,7 @@ SharedActions.add('paste', {
 		for (let data of Clipbench.collections) {
 			let copy = new Collection(data);
 			copy.name += ' - copy';
-			copy.add(false);
+			copy.add(false).select();
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Paste collection');
@@ -254,7 +338,7 @@ BARS.defineActions(() => {
 		click() {
 			Undo.initEdit({collections: []});
 			let collection = new Collection({});
-			collection.add().addSelection();
+			collection.add().addSelection().select();
 			Undo.finishEdit('Create collection', {collections: [collection]});
 			updateSelection();
 		}
@@ -290,7 +374,7 @@ BARS.defineActions(() => {
 
 Interface.definePanels(function() {
 
-	function eventTargetToCollection(target, collection) {
+	function eventTargetToCollection(target) {
 		let target_node = target;
 		let i = 0;
 		while (target_node && target_node.classList && !target_node.classList.contains('collection')) {
@@ -301,7 +385,8 @@ Interface.definePanels(function() {
 				return [];
 			}
 		}
-		return [Collection.all.find(collection => collection.uuid == target_node.attributes.collection_id.value), target_node];
+		let uuid_value = target_node.attributes?.uuid.value;
+		return [Collection.all.find(collection => collection.uuid == uuid_value), target_node];
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {
@@ -339,14 +424,13 @@ Interface.definePanels(function() {
 				openMenu(event) {
 					Interface.Panels.collections.menu.show(event)
 				},
-				dragCollection(e1, clicked_collection) {
+				dragCollection(e1) {
 					if (getFocusedTextInput()) return;
 					if (e1.button == 1 || e1.button == 2) return;
 					convertTouchEvent(e1);
 
-					let [collection] = eventTargetToCollection(e1.target, texture);
-					if (!collection || collection.locked) return;
-
+					let [collection] = eventTargetToCollection(e1.target);
+					if (!collection) return;
 					let active = false;
 					let helper;
 					let timeout;
@@ -379,9 +463,10 @@ Interface.definePanels(function() {
 							if (!helper) {
 								helper = document.createElement('div');
 								helper.id = 'animation_drag_helper';
-								let icon = document.createElement('i');		icon.className = 'material-icons'; icon.innerText = 'image'; helper.append(icon);
+								let icon = Blockbench.getIconNode('inventory_2'); helper.append(icon);
 								let span = document.createElement('span');	span.innerText = collection.name;	helper.append(span);
 								document.body.append(helper);
+								Blockbench.addFlag('dragging_collections');
 							}
 							helper.style.left = `${e2.clientX}px`;
 							helper.style.top = `${e2.clientY}px`;
@@ -391,7 +476,7 @@ Interface.definePanels(function() {
 							$('.collection[order]').attr('order', null);
 
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[drop_target, drop_target_node] = eventTargetToCollection(target, texture);
+							[drop_target, drop_target_node] = eventTargetToCollection(target);
 							if (drop_target) {
 								var location = e2.clientY - $(drop_target_node).offset().top;
 								order = getOrder(location, drop_target)
@@ -408,26 +493,28 @@ Interface.definePanels(function() {
 						$('.drag_hover').removeClass('drag_hover');
 						$('.collection[order]').attr('order', null);
 						if (Blockbench.isTouch) clearTimeout(timeout);
+						
+						setTimeout(() => {
+							Blockbench.removeFlag('dragging_collections');
+						}, 10);
 
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_collection] = eventTargetToCollection(target, texture);
+							[target_collection] = eventTargetToCollection(target);
 							if (!target_collection || target_collection == collection ) return;
 
 							let index = Collection.all.indexOf(target_collection);
-
 							if (index == -1) return;
-							if (texture.collections.indexOf(collection) < index) index--;
-							if (order == -1) index++;
-							if (texture.collections[index] == collection) return;
+							if (Collection.all.indexOf(collection) < index) index--;
+							if (order == 1) index++;
+							if (Collection.all[index] == collection) return;
 							
-							Undo.initEdit({collections: [texture]});
+							Undo.initEdit({collections: [collection]});
 
-							texture.collections.remove(collection);
-							texture.collections.splice(index, 0, collection);
+							Collection.all.remove(collection);
+							Collection.all.splice(index, 0, collection);
 
-							texture.updateChangesAfterEdit();
 							Undo.finishEdit('Reorder collections');
 						}
 					}
@@ -443,6 +530,7 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				},
 				unselect(event) {
+					if (Blockbench.hasFlag('dragging_collections')) return;
 					Collection.all.forEach(collection => {
 						collection.selected = false;
 					})
@@ -481,7 +569,7 @@ Interface.definePanels(function() {
 						v-for="collection in collections"
 						:class="{ selected: collection.selected, in_limbo: collection.in_limbo }"
 						:key="collection.uuid"
-						:collection_id="collection.uuid"
+						:uuid="collection.uuid"
 						class="collection"
 						@click.stop="collection.select()"
 						@dblclick.stop="collection.propertiesDialog()"
@@ -502,7 +590,7 @@ Interface.definePanels(function() {
 							</ul>
 						</div>
 
-						<div class="in_list_button" @click.stop="collection.toggleVisibility()" @dblclick.stop>
+						<div class="in_list_button" @click.stop="collection.toggleVisibility($event)" @dblclick.stop>
 							<i v-if="collection.getVisibility()" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>
