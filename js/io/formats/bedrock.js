@@ -913,6 +913,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	name: 'Bedrock Entity',
 	extension: 'json',
 	remember: false,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1057,6 +1058,7 @@ var codec = new Codec('bedrock', {
 	extension: 'json',
 	remember: true,
 	multiple_per_file: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],

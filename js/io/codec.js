@@ -15,12 +15,14 @@ class Codec extends EventSystem {
 		Merge.function(this, data, 'write');
 		Merge.function(this, data, 'overwrite');
 		Merge.function(this, data, 'export');
+		Merge.function(this, data, 'exportCollection');
 		Merge.function(this, data, 'fileName');
 		Merge.function(this, data, 'afterSave');
 		Merge.function(this, data, 'afterDownload');
 		Merge.string(this, data, 'extension');
 		Merge.boolean(this, data, 'remember');
 		Merge.boolean(this, data, 'multiple_per_file');
+		Merge.boolean(this, data, 'support_partial_export');
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
@@ -118,6 +120,28 @@ class Codec extends EventSystem {
 			content: this.compile(),
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
+	}
+	async exportCollection(collection) {
+		let element_export_values = {};
+		let all = Outliner.elements.concat(Group.all);
+		for (let node of all) {
+			if (typeof node.export != 'boolean') continue;
+			element_export_values[node.uuid] = node.export;
+			node.export = false;
+		}
+		for (let node of collection.getAllChildren()) {
+			if (node.export == false) node.export = true;
+		}
+		try {
+			await this.export();
+		} catch (error) {
+			throw error;
+		} finally {
+			for (let node of all) {
+				if (element_export_values[node.uuid] === undefined) continue;
+				node.export = element_export_values[node.uuid];
+			}
+		}
 	}
 	fileName() {
 		return Project.name||'model';

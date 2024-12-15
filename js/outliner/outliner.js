@@ -830,7 +830,7 @@ function parseGroups(array, import_reference, startIndex) {
 // Dropping
 function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
-	if (item.type === 'group' && target && target.parent) {
+	if (item.type === 'group' && target instanceof OutlinerNode && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
 			if (!(is_parent = g === item) && g.parent.type === 'group') {
@@ -856,6 +856,15 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		var items = Group.multi_selected.filter(g => !g.parent.selected);
 	} else {
 		var items = [item];
+	}
+	if (target instanceof Collection) {
+		Undo.initEdit({collections: [target]});
+		for (let item of items) {
+			target.children.safePush(item.uuid);
+		}
+		Undo.finishEdit('Add to collection');
+		updateSelection();
+		return;
 	}
 	if (duplicate) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
@@ -1430,7 +1439,11 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i
+					v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))"
+					@click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa"
+					:class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'
+				></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
 				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
@@ -1779,6 +1792,13 @@ Interface.definePanels(function() {
 
 							} else if ($('#cubes_list').is(':hover')) {
 								$('#cubes_list').addClass('drag_hover');
+							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
+								for (let node of document.querySelectorAll('.collection')) {
+									if (node.contains(target)) {
+										node.classList.add('drag_hover');
+										break;
+									}
+								}
 							}
 						}
 						last_event = e2;
@@ -1793,6 +1813,7 @@ Interface.definePanels(function() {
 						$('.drag_hover_level').removeClass('drag_hover_level');
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
+						console.log(active, open_menu);
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
@@ -1801,6 +1822,14 @@ Interface.definePanels(function() {
 								moveOutlinerSelectionTo(item, drop_target, e2, order);
 							} else if ($('#cubes_list').is(':hover')) {
 								moveOutlinerSelectionTo(item, undefined, e2);
+							} else if (document.querySelector('.collection:hover')) {
+								let collection_node = document.querySelector('.collection:hover');
+								let collection_uuid = collection_node.attributes.uuid?.value;
+								let collection = Collection.all.find(c => c.uuid == collection_uuid);
+								console.log({collection_node, collection_uuid, collection})
+								if (collection) {
+									moveOutlinerSelectionTo(item, collection, e2);
+								}
 							}
 						}
 					}

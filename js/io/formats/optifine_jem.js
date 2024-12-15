@@ -4,6 +4,7 @@ var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['jem'],

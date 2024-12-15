@@ -310,6 +310,7 @@ function buildSkinnedMesh(root_group, scale) {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
+	support_partial_export: true,
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},

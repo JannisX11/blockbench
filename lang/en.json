@@ -1616,6 +1616,13 @@
 	"action.proportional_editing_range": "Proportional Editing Range",
 	"action.proportional_editing_range.desc": "Adjust the range for proportional editing",
 
+	"action.create_collection": "Create Collection",
+	"action.create_collection.desc": "Create a collection out of the outliner selection",
+	"action.set_collection_content_to_selection": "Set Collection Content to Selected",
+	"action.set_collection_content_to_selection.desc": "Set the selected groups and elements as the content of the collection",
+	"action.add_to_collection": "Add Selected to Collection",
+	"action.add_to_collection.desc": "Add the selected groups and elements to the collection",
+
 	"action.adjust_brightness_contrast": "Adjust Brightness & Contrast...",
 	"action.adjust_brightness_contrast.desc": "Adjust the brightness and contrast of the selected texture",
 	"action.adjust_saturation_hue": "Adjust Saturation & Hue...",
@@ -2019,6 +2026,7 @@
 	"menu.display.preset_all": "Apply Preset Everywhere",
 	"menu.display.remove_preset": "Remove Preset",
 	"menu.view.zoom": "Zoom",
+	"menu.view.panels": "Panels",
 	"menu.view.background": "Background",
 	"menu.view.screenshot": "Screenshot",
 
@@ -2098,6 +2106,8 @@
 
 	"menu.texture_group.resolve": "Resolve",
 
+	"menu.collection.path": "Export Path",
+
 	"menu.preview.background": "Background",
 	"menu.preview.background.load": "Load",
 	"menu.preview.background.clipboard": "Load from Clipboard",
@@ -2128,6 +2138,16 @@
 	"menu.uv.flip_x": "Mirror X",
 	"menu.uv.flip_y": "Mirror Y",
 	"menu.uv.texture": "Texture",
+
+	"menu.panel.enable": "Enable",
+	"menu.panel.move_to": "Move To",
+	"menu.panel.move_to.left_bar": "Left Sidebar",
+	"menu.panel.move_to.right_bar": "Right Sidebar",
+	"menu.panel.move_to.top": "Top",
+	"menu.panel.move_to.bottom": "Bottom",
+	"menu.panel.move_to.float": "Float",
+	"menu.panel.move_to.hidden": "Hide",
+	"menu.panel.fold": "Collapse",
 
 	"menu.mirror_painting.enabled": "Enabled",
 	"menu.mirror_painting.axis": "Axis",
@@ -2282,6 +2302,7 @@
 	"panel.color.both": "Both",
 	"panel.color.picker_options": "Color Picker Options",
 	"panel.outliner": "Outliner",
+	"panel.collections": "Collections",
 	"panel.chat": "Chat",
 	"panel.animations": "Animations",
 	"panel.animation_controllers": "Animation Controller",
