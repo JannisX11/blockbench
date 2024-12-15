@@ -323,7 +323,7 @@ class Menu {
 			if (typeof s === 'function') {
 				s = s(scope_context);
 			}
-			if (!Condition(s.condition, scope_context)) return;
+			if (s == undefined || !Condition(s.condition, scope_context)) return;
 
 			if (s instanceof Action) {
 

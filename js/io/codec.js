@@ -27,6 +27,7 @@ class Codec extends EventSystem {
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
+		this.context = null;
 	}
 	getExportOptions() {
 		let options = {};
@@ -132,11 +133,13 @@ class Codec extends EventSystem {
 		for (let node of collection.getAllChildren()) {
 			if (node.export == false) node.export = true;
 		}
+		this.context = collection;
 		try {
 			await this.export();
 		} catch (error) {
 			throw error;
 		} finally {
+			this.context = null;
 			for (let node of all) {
 				if (element_export_values[node.uuid] === undefined) continue;
 				node.export = element_export_values[node.uuid];
@@ -144,10 +147,18 @@ class Codec extends EventSystem {
 		}
 	}
 	fileName() {
-		return Project.name||'model';
+		if (this.context instanceof Collection) {
+			return this.context.name;
+		} else {
+			return Project.name||'model';
+		}
 	}
 	startPath() {
-		return Project.export_path;
+		if (this.context instanceof Collection) {
+			return this.context.export_path;
+		} else {
+			return Project.export_path;
+		}
 	}
 	write(content, path) {
 		if (fs.existsSync(path) && this.overwrite) {
@@ -165,7 +176,11 @@ class Codec extends EventSystem {
 	}
 	afterSave(path) {
 		var name = pathToName(path, true)
-		if (Format.codec == this || this.id == 'project') {
+		if (this.context instanceof Collection) {
+			this.context.export_path = path;
+			this.context.codec = this.id;
+
+		} else if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
 				Project.save_path = path;
 			} else {

@@ -56,8 +56,8 @@ class Collection {
 		return this;
 	}
 	addSelection() {
-		if (Group.selected.length) {
-			for (let group of Group.selected) {
+		if (Group.multi_selected.length) {
+			for (let group of Group.multi_selected) {
 				this.children.safePush(group.uuid);
 			}
 		}
@@ -146,7 +146,8 @@ class Collection {
 		 * Export Format
 		 * Offset
 		 */
-		function getContentList(collection) {
+		let collection = this;
+		function getContentList() {
 			let types = {
 				group: []
 			}
@@ -159,6 +160,7 @@ class Collection {
 				for (let node of types[key]) {
 					list.push({
 						name: node.name,
+						uuid: node.uuid,
 						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
 					})
 				}
@@ -169,13 +171,22 @@ class Collection {
 			id: 'collection_properties',
 			title: this.name,
 			resizable: 'x',
+			keyboard_actions: {
+				delete: {
+					keybind: new Keybind({key: 46}),
+					run() {
+						this.content_vue.remove();
+					}
+				}
+			},
 			part_order: ['form', 'component'],
 			form: {
 				name: {label: 'generic.name', value: this.name},
-				path: {
-					label: 'menu.collection.path',
-					value: this.path,
+				export_path: {
+					label: 'dialog.collection.export_path',
+					value: this.export_path,
 					type: 'file',
+					condition: this.codec,
 					extensions: ['json'],
 					filetype: 'JSON collection',
 					condition: isApp
@@ -184,37 +195,78 @@ class Collection {
 			component: {
 				components: {VuePrismEditor},
 				data: {
-					content: getContentList(this)
+					content: getContentList(),
+					selected: []
+				},
+				methods: {
+					selectAll() {
+						for (let node of this.content) {
+							this.selected.safePush(node.uuid);
+						}
+					},
+					selectNone() {
+						this.selected.empty();
+					},
+					remove() {
+						for (let uuid of this.selected) {
+							this.content.remove(this.content.find(node => node.uuid == uuid));
+						}
+						this.selected.empty();
+					},
+					addWithFilter(event) {
+						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
+							for (let node of elements.concat(groups)) {
+								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
+									this.content.push({
+										uuid: node.uuid,
+										name: node.name,
+										icon: node.icon
+									})
+								}
+							}
+						}})
+					},
 				},
 				template: 
 					`<div id="collection_properties_vue">
 						<ul class="list">
-							<li v-for="content_stat of content">
-								<dynamic-icon :icon="content_stat.icon.replace('fa ', '').replace(/ /g, '.')" />
-								{{ content_stat.name }}
+							<li v-for="node of content" :class="{selected: selected.includes(node.uuid)}" @click="selected.toggle(node.uuid)">
+								<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" />
+								{{ node.name }}
 							</li>
 						</ul>
+						<div class="dialog_bar">
+							<button @click="selectAll()">${tl('dialog.collection.select_all')}</button>
+							<button @click="selectNone()">${tl('dialog.collection.select_none')}</button>
+							<button @click="addWithFilter()">${tl('dialog.collection.add_with_filter')}</button>
+							<button @click="remove()" v-if="selected.length">${tl('dialog.collection.remove')}</button>
+						</div>
 					</div>`
 			},
 			onFormChange(form) {
 				this.component.data.loop_mode = form.loop;
 			},
 			onConfirm: form_data => {
-				dialog.hide().delete();
 				if (
-					form_data.name != this.name
+					form_data.name != this.name ||
+					form_data.export_path != this.export_path ||
+					dialog.content_vue.content.find(node => !collection.children.includes(node.uuid)) ||
+					collection.children.find(uuid => !dialog.content_vue.content.find(node => node.uuid == uuid))
 				) {
 					Undo.initEdit({collections: [this]});
 
 					this.extend({
 						name: form_data.name,
+						export_path: form_data.export_path,
 					})
 					if (isApp) this.path = form_data.path;
+					this.children.replace(dialog.content_vue.content.map(node => node.uuid));
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
 
 					Undo.finishEdit('Edit collection properties');
 				}
+				dialog.hide().delete();
 			},
 			onCancel() {
 				dialog.hide().delete();
@@ -233,6 +285,21 @@ Collection.prototype.menu = new Menu([
 	'duplicate',
 	'delete',
 	new MenuSeparator('export'),
+	(collection) => {
+		let codec = Codecs[collection.codec];
+		if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
+			let export_action = codec.export_action;
+			return {
+				id: 'export_as',
+				name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
+				icon: export_action.icon,
+				description: export_action.description,
+				click() {
+					codec.exportCollection(collection);
+				}
+			}
+		}
+	},
 	{
 		id: 'export',
 		name: 'generic.export',
@@ -247,7 +314,6 @@ Collection.prototype.menu = new Menu([
 				let new_action = {
 					name: export_action.name,
 					icon: export_action.icon,
-					description: export_action.description,
 					description: export_action.description,
 					click() {
 						codec.exportCollection(collection);
@@ -266,6 +332,8 @@ Collection.prototype.menu = new Menu([
 	}
 ])
 new Property(Collection, 'string', 'name', {default: 'collection'});
+new Property(Collection, 'string', 'export_codec');
+new Property(Collection, 'string', 'export_path');
 new Property(Collection, 'array', 'children');
 new Property(Collection, 'boolean', 'visibility', {default: false});
 
@@ -335,6 +403,8 @@ BARS.defineActions(() => {
 	new Action('create_collection', {
 		icon: 'inventory_2',
 		category: 'select',
+		keybind: new Keybind({key: 'l', ctrl: true}),
+		condition: {modes: ['edit', 'paint']},
 		click() {
 			Undo.initEdit({collections: []});
 			let collection = new Collection({});

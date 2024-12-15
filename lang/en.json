@@ -463,6 +463,12 @@
 	"dialog.unsaved_work.discard_all": "Discard All",
 	"dialog.unsaved_work.save_all": "Save All",
 
+	"dialog.collection.export_path": "Export Path",
+	"dialog.collection.select_all": "Select All",
+	"dialog.collection.select_none": "Select None",
+	"dialog.collection.add_with_filter": "Add with Filter",
+	"dialog.collection.remove": "Remove",
+
 	"dialog.texture.title": "Texture",
 	"dialog.texture.variable": "Variable",
 	"dialog.texture.namespace": "Namespace",
@@ -2106,7 +2112,7 @@
 
 	"menu.texture_group.resolve": "Resolve",
 
-	"menu.collection.path": "Export Path",
+	"menu.collection.export_as": "Export as \"%0\"",
 
 	"menu.preview.background": "Background",
 	"menu.preview.background.load": "Load",

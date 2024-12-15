@@ -2090,6 +2090,9 @@
 		max-width: 165px;
 		min-width: 149px;
 	}
+	#collection_properties_vue > ul > li.selected {
+		background-color: var(--color-selected);
+	}
 	#collection_properties_vue > ul > li > i {
 		scale: 0.9;
 	}

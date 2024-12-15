@@ -1302,7 +1302,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 'f', ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
-		click: function () {
+		click: function(event, options) {
 			let color_options = {
 				'-1': 'generic.all'
 			}
@@ -1348,9 +1348,10 @@ BARS.defineActions(function() {
 					var name_seg = formData.name.toUpperCase()
 					var tex_seg = formData.texture.toLowerCase()
 				
-					var array = Outliner.elements;
+					let array = Outliner.elements.slice();
 					if (formData.group && selected_groups.length) {
 						array = [];
+						group.multiSelect();
 						for (let group of selected_groups) {
 							group.forEachChild(child => array.safePush(child), OutlinerElement, false);
 						}
@@ -1383,10 +1384,12 @@ BARS.defineActions(function() {
 						}
 					})
 					updateSelection()
-					if (selected.length) {
+					if (options && options.returnResult) {
+						options.returnResult({elements: selected, groups: selected_groups});
+
+					} else if (selected.length) {
 						selected[0].showInOutliner()
 					}
-					this.hide()
 				}
 			}).show()
 			$('.dialog#selection_creator .form_bar_name > input').focus()
@@ -1462,7 +1465,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.multi_selected.includes(node)"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1813,7 +1816,6 @@ Interface.definePanels(function() {
 						$('.drag_hover_level').removeClass('drag_hover_level');
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
-						console.log(active, open_menu);
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
@@ -1826,7 +1828,6 @@ Interface.definePanels(function() {
 								let collection_node = document.querySelector('.collection:hover');
 								let collection_uuid = collection_node.attributes.uuid?.value;
 								let collection = Collection.all.find(c => c.uuid == collection_uuid);
-								console.log({collection_node, collection_uuid, collection})
 								if (collection) {
 									moveOutlinerSelectionTo(item, collection, e2);
 								}
