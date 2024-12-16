@@ -33,7 +33,7 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;

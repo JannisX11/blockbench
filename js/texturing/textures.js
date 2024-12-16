@@ -349,8 +349,6 @@ class Texture {
 		let group = TextureGroup.all.find(group => group.uuid == this.group);
 		if (group) {
 			return group;
-		} else {
-			this.group = '';
 		}
 	}
 	getUndoCopy(bitmap) {

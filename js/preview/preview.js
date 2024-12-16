@@ -289,6 +289,7 @@ class Preview {
 		}
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
+		this.updateToneMapping();
 
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
@@ -345,6 +346,17 @@ class Preview {
 			}
 		}
 		return this;
+	}
+	updateToneMapping() {
+		switch (settings.tone_mapping.value) {
+			case 'none': this.renderer.toneMapping = THREE.NoToneMapping; break;
+			case 'linear': this.renderer.toneMapping = THREE.LinearToneMapping; break;
+			case 'reinhard': this.renderer.toneMapping = THREE.ReinhardToneMapping; break;
+			case 'cineon': this.renderer.toneMapping = THREE.CineonToneMapping; break;
+			case 'aces_filmic': this.renderer.toneMapping = THREE.ACESFilmicToneMapping; break;
+			case 'agx': this.renderer.toneMapping = THREE.AgXToneMapping; break;
+			case 'neutral': this.renderer.toneMapping = THREE.NeutralToneMapping; break;
+		}
 	}
 	raycast(event, options = Toolbox.selected.raycast_options) {
 		if (!options) options = 0;
@@ -2075,15 +2087,25 @@ function updateShading() {
 
 	if (view_mode == 'material') {
 
-		let light = Canvas.material_light ?? new THREE.DirectionalLight(0xffffca, 0.7 * settings_brightness);
-		Canvas.material_light = light;
-		scene.add(light);
-		light.position.y = 100
-		light.position.x = 60
-		light.position.z = 2
+		let light = Canvas.material_light;
+		if (!light) {
+			Canvas.material_light = light = new THREE.DirectionalLight();
+		}
+		light.color.copy(Canvas.global_light_color);
+		light.intensity = 0.7 * settings_brightness;
+
+		Canvas.scene.add(light);
+		switch (Canvas.global_light_side) {
+			case 0: light.position.set(60, 100, 20); break;
+			case 1: light.position.set(-10, 20, 100); break;
+			case 2: light.position.set(10, 20, -100); break;
+			case 3: light.position.set(100, 20, -10); break;
+			case 4: light.position.set(-100, 20, 10); break;
+			case 5: light.position.set(20, -100, 0); break;
+		}
 
 		scene.add(Sun);
-		Sun.intensity *= 0.3;
+		Sun.intensity *= 0.5;
 
 		TextureGroup.all.forEach(tg => {
 			if (tg.is_material) tg.updateMaterial();
@@ -2095,6 +2117,9 @@ function updateShading() {
 			let parent = scene;
 			parent.add(lights);
 			lights.position.copy(parent.position).multiplyScalar(-1);
+		}
+		if (Canvas.material_light) {
+			Canvas.scene.remove(Canvas.material_light);
 		}
 		lights.add(Sun);
 		Texture.all.forEach(tex => {

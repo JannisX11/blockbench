@@ -16,6 +16,9 @@ class TextureGroup {
 			}
 		})
 	}
+	get material() {
+		return this._static.properties.material
+	}
 	extend(data) {
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].merge(this, data)
@@ -91,7 +94,7 @@ class TextureGroup {
 			// https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
 				envMap: PreviewScene.active?.cubemap ?? null,
-				envMapIntensity: 0.5,
+				envMapIntensity: 0.8,
 				alphaTest: 0.05,
 			});
 		}
@@ -167,7 +170,7 @@ class TextureGroup {
 			generateMap(1, 0, 'emissiveMap');
 			generateMap(2, 1, 'roughnessMap');
 			material.emissive.set(0xffffff);
-			material.emissiveIntensity = 1;
+			material.emissiveIntensity = 5;
 			material.metalness = 1;
 		} else {
 			material.metalnessMap = null;
@@ -199,6 +202,8 @@ new Property(TextureGroup, 'string', 'name', {default: tl('data.texture_group')}
 new Property(TextureGroup, 'boolean', 'is_material', {default: false});
 
 TextureGroup.prototype.menu = new Menu('texture_group', [
+	new MenuSeparator('create'),
+	'generate_pbr_map',
 	new MenuSeparator('manage'),
 	'rename',
 	{
@@ -403,7 +408,6 @@ class TextureGroupMaterialConfig {
 				},
 			},
 			onConfirm: (result) => {
-				console.log(result)
 				Undo.initEdit({texture_groups: [this.texture_group], textures});
 
 				if (result.color == 'uniform') {
@@ -584,7 +588,6 @@ BARS.defineActions(function() {
 			for (let texture of textures_to_add) {
 				texture.group = texture_group.uuid;
 				if (texture != Texture.selected) {
-					console.log(texture.name)
 					if (texture.name.match(/height/i)) {
 						texture.pbr_channel = 'height';
 					} else if (texture.name.match(/[._-]normal/i)) {
@@ -601,9 +604,9 @@ BARS.defineActions(function() {
 	new Action('generate_pbr_map', {
 		icon: 'texture_add',
 		category: 'textures',
-		condition: () => Texture.selected,
+		condition: () => Texture.all[0],
 		click() {
-			let texture = Texture.selected;
+			let texture = Texture.selected ?? Texture.all[0];
 			let texture_group = texture.getGroup();
 
 			let canvas = document.createElement('canvas');
@@ -613,10 +616,60 @@ BARS.defineActions(function() {
 			let original_data = texture.canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 			let new_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 			canvas.style.width = 256 + 'px';
+			canvas.style.height = 256 + 'px';
 			let original_image = new CanvasFrame(texture.canvas);
+			original_image.canvas.style.width = 256 + 'px';
+			original_image.canvas.style.height = 256 + 'px';
+
+			function getPixelInput(result, r, g, b, a) {
+				switch (result.method) {
+					case 'value': {
+						return ((r + g + b) / 3) * (a/255);
+					}
+					case 'brightness': {
+						//http://www.w3.org/TR/AERT#color-contrast
+						return (r * 299 + g * 587 + b * 114) / 1000;
+					}
+					case 'saturation':
+					case 'hue': {
+						r /= 255;
+						g /= 255;
+						b /= 255;
+						let max = Math.max(r, g, b);
+						let min = Math.min(r, g, b);
+						if (max == min) {
+							return 0;
+						} else {
+							let d = max - min;
+							if (result.method == 'saturation') {
+								let avg = (max + min) / 2;
+								let s = avg > 0.5 ? d / (2 - max - min) : d / (max + min);
+								return s * a;
+							} else {
+								switch (max) {
+									case r:
+									h = (g - b) / d + (g < b ? 6 : 0);
+									break;
+									case g:
+									h = (b - r) / d + 2;
+									break;
+									case b:
+									h = (r - g) / d + 4;
+									break;
+								}
+								h /= 6;
+								return h * a;
+							}
+						}
+					}
+					case 'red': return r * (a/255);
+					case 'green': return g * (a/255);
+					case 'blue': return b * (a/255);
+				}
+			}
 
 			function updateCanvas(result) {
-				ctx.clearRect(canvas.width, canvas.height);
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
 				for (let i = 0; i < original_data.data.length; i+=4) {
 					let source = [
 						original_data.data[i+0],
@@ -624,49 +677,86 @@ BARS.defineActions(function() {
 						original_data.data[i+2],
 						original_data.data[i+3],
 					];
-					if (true) {
-						let value = ((source[0] + source[1] + source[2]) / 3) * source[3];
-						value = Math.clamp(Math.getLerp(result.range[0], result.range[1], value) * 255, 0, 255);
-						new_data.data[i+0] = value;
-						new_data.data[i+1] = value;
-						new_data.data[i+2] = value;
-						new_data.data[i+3] = 255;
+					let input = getPixelInput(result, ...source);
+					let input_1 = Math.getLerp(result.in_range[0], result.in_range[1], input);
+					if (result.invert) input_1 = 1-input_1;
+					
+					let output = Math.clamp(Math.lerp(result.out_range[0], result.out_range[1], input_1), 0, 255);
+
+					new_data.data[i+3] = 255;
+
+					switch (result.channel) {
+						case 'height': {
+							new_data.data[i+0] = output;
+							new_data.data[i+1] = output;
+							new_data.data[i+2] = output;
+							break;
+						}
+						case 'metalness': {
+							new_data.data[i+0] = output;
+							break;
+						}
+						case 'emissive': {
+							new_data.data[i+1] = output;
+							break;
+						}
+						case 'roughness': {
+							new_data.data[i+2] = output;
+							break;
+						}
 					}
 				}
 				ctx.putImageData(new_data, 0, 0);
 			}
 
+			let preview = Interface.createElement('div', {style: 'display: flex; justify-content: space-between;'}, [original_image.canvas, canvas])
 			new Dialog('generate_pbr_map', {
-				title: 'dialog.generate_pbr_map.title',
+				title: 'action.generate_pbr_map',
+				width: 564,
+				lines: [preview],
 				form: {
+					method: {
+						type: 'select',
+						label: 'Source',
+						options: {
+							value: 'Value',
+							brightness: 'Brightness',
+							saturation: 'Saturation',
+							hue: 'Hue',
+							red: 'Red',
+							green: 'Green',
+							blue: 'Blue',
+						}
+					},
 					channel: {
 						type: 'select',
+						label: 'PBR Channel',
 						options: {
-							normal: 'menu.texture.pbr_channel.normal',
+							//normal: 'menu.texture.pbr_channel.normal',
 							height: 'menu.texture.pbr_channel.height',
 							metalness: 'Metalness',
 							emissive: 'Emissive',
 							roughness: 'Roughness',
 						}
 					},
-					method: {
-						type: 'select',
-						options: {
-							value: 'Value',
-							saturation: 'Value',
-						}
-					},
-					range: {
+					in_range: {
 						type: 'vector',
+						label: 'Input Range',
+						value: [0, 255],
 						dimensions: 2, min: 0, max: 255
 					},
-					invert: {type: 'checkbox', value: false},
+					out_range: {
+						type: 'vector',
+						label: 'Output Range',
+						value: [0, 255],
+						dimensions: 2, min: 0, max: 255
+					},
+					invert: {type: 'checkbox', label: 'Invert', value: false},
 				},
-				lines: [original_image.canvas, canvas],
 				onFormChange(result) {
 					updateCanvas(result)
 				},
-				onConfirm() {
+				onConfirm(result) {
 					updateCanvas(result);
 					let textures = [];
 					Undo.initEdit({texture_groups: [texture_group], textures});
@@ -676,13 +766,13 @@ BARS.defineActions(function() {
 						pbr_channel,
 						group: texture_group.uuid,
 					}).fromDataURL(canvas.toDataURL()).add(false);
-					textures.push(texture)
-					Undo.finishEdit('Add material', {texture_groups: [texture_group], textures: textures_to_add});
+					textures.push(texture);
+					Undo.finishEdit('Create PBR map');
+				},
+				onOpen() {
+					updateCanvas(this.getFormResult());
 				}
 			}).show();
-
-
-
 		}
 	})
 });
