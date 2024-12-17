@@ -1356,6 +1356,7 @@ var entity_format = new ModelFormat({
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {
@@ -1393,6 +1394,7 @@ var block_format = new ModelFormat({
 	animation_mode: false,
 	display_mode: true,
 	texture_meshes: true,
+	pbr: true,
 	cube_size_limiter: {
 		rotation_affected: true,
 		box_marker_size: [30, 30, 30],

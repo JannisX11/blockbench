@@ -214,7 +214,7 @@ function buildSkinnedMesh(root_group, scale) {
 				if (face.texture === null) continue;
 				let tex = face.getTexture();
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[child.color])
 				}

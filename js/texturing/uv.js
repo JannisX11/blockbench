@@ -2585,6 +2585,11 @@ Interface.definePanels(function() {
 					}
 					if (texture === null) {
 						this.texture = null;
+					} else if (texture instanceof Texture && BarItems.view_mode.value == 'material' && texture?.getGroup()?.getTextures()?.includes(Texture.selected)) {
+						this.texture = texture = Texture.selected;
+						if (!UVEditor.isBoxUV() && UVEditor.auto_grid) {
+							UVEditor.grid = texture.width / UVEditor.getUVWidth();
+						}
 					} else if (texture instanceof Texture) {
 						this.texture = texture;
 						if (!UVEditor.isBoxUV() && UVEditor.auto_grid) {

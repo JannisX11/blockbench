@@ -682,7 +682,8 @@
 	.texture > i.icon_off.clickable:hover {
 		color: var(--color-text);
 	}
-	.texture > i:not(.clickable) {
+	.texture > i:not(.clickable),
+	.texture_group_material_config > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
@@ -797,6 +798,11 @@
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
 	}
+	.pbr_channel_icon {
+		position: absolute;
+		left: -17px;
+		z-index: 1;
+	}
 	
 	.texture_group {
 		padding-bottom: 4px;
@@ -817,6 +823,14 @@
 		width: 21px;
 		margin-top: 4px;
 		flex-shrink: 0;
+	}
+	.texture_group_head .texture_group_material_icon {
+		height: 20px;
+		width: 20px;
+		margin-top: 2px;
+		border-radius: 50%;
+		background: rgb(108,174,235);
+		background: linear-gradient(137deg, rgba(108, 174, 235, 1) 0%, rgb(198 55 215) 100%);
 	}
 	.texture_group_head > label {
 		flex-shrink: 1;
@@ -854,6 +868,22 @@
 		margin-left: 14px;
 		padding-left: 6px;
 		border-left: 2px solid var(--color-guidelines);
+	}
+	.texture_group_material_config {
+		display: flex;
+		align-items: center;
+		height: 30px;
+		padding: 4px 8px;
+		gap: 3px;
+	}
+	.texture_group_material_config i:first-child {
+		width: 50px;
+		max-width: unset;
+		text-align: center;
+	}
+	.texture_group_material_config label {
+		width: 0;
+		flex-grow: 1;
 	}
 
 	#texture_animation_playback {

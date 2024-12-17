@@ -33,7 +33,7 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;
@@ -104,8 +104,12 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+		
+		let pmremGenerator = new THREE.PMREMGenerator( Preview.selected.renderer );
+		Canvas.scene.environment = pmremGenerator.fromCubemap(this.cubemap).texture;
+
 		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
