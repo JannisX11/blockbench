@@ -282,7 +282,7 @@ Collection.prototype.menu = new Menu([
 				icon: export_action.icon,
 				description: export_action.description,
 				click() {
-					codec.exportCollection(collection);
+					codec.writeCollection(collection);
 				}
 			}
 		}
@@ -304,6 +304,15 @@ Collection.prototype.menu = new Menu([
 					description: export_action.description,
 					click() {
 						codec.exportCollection(collection);
+					}
+				}
+				if (id == 'project') {
+					new_action = {
+						name: 'menu.collection.export_project',
+						icon: 'icon-blockbench_file',
+						click() {
+							codec.exportCollection(collection);
+						}
 					}
 				}
 				actions.push(new_action);

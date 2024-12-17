@@ -16,6 +16,7 @@ class Codec extends EventSystem {
 		Merge.function(this, data, 'overwrite');
 		Merge.function(this, data, 'export');
 		Merge.function(this, data, 'exportCollection');
+		Merge.function(this, data, 'writeCollection');
 		Merge.function(this, data, 'fileName');
 		Merge.function(this, data, 'afterSave');
 		Merge.function(this, data, 'afterDownload');
@@ -122,7 +123,8 @@ class Codec extends EventSystem {
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
 	}
-	async exportCollection(collection) {
+	async patchCollectionExport(collection, callback) {
+		this.context = collection;
 		let element_export_values = {};
 		let all = Outliner.elements.concat(Group.all);
 		for (let node of all) {
@@ -133,9 +135,8 @@ class Codec extends EventSystem {
 		for (let node of collection.getAllChildren()) {
 			if (node.export == false) node.export = true;
 		}
-		this.context = collection;
 		try {
-			await this.export();
+			await callback();
 		} catch (error) {
 			throw error;
 		} finally {
@@ -145,6 +146,16 @@ class Codec extends EventSystem {
 				node.export = element_export_values[node.uuid];
 			}
 		}
+	}
+	async exportCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			await this.export();
+		})
+	}
+	async writeCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			await this.export();
+		})
 	}
 	fileName() {
 		if (this.context instanceof Collection) {

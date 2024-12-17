@@ -2112,6 +2112,7 @@
 
 	"menu.texture_group.resolve": "Resolve",
 
+	"menu.collection.export_project": "Export Project",
 	"menu.collection.export_as": "Export as \"%0\"",
 
 	"menu.preview.background": "Background",
