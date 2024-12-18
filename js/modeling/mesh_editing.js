@@ -3061,20 +3061,24 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
+				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, /*max: length,*/ interval_type: 'position'},
+				unit: {type: 'inline_select', label: 'edit.loop_cut.unit', options: {size: 'edit.loop_cut.unit.size_units', percent: 'edit.loop_cut.unit.percent'}},
 			}, (form, form_options) => {
 				let direction = form.direction || 0;
 				length = getLength(direction);
+				let offset = form.offset;
+				if (form.unit == 'percent') {
+					offset = (offset/100) * length;
+				}
+				offset = Math.clamp(offset, 0, length);
 
-				form_options.offset.slider.settings.max = length;
-				if(saved_direction !== direction)
-				{
-					form_options.offset.slider.value = length/2;
-					form_options.offset.slider.update();
+				if (saved_direction !== direction) {
+					offset = length/2;
+					form_options.setValues({offset}, false);
 					saved_direction = direction;
 				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction ? direction : 0, form.cuts);
+				runEdit(true, offset, direction, form.cuts);
 			})
 		}
 	})
