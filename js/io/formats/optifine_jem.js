@@ -22,15 +22,19 @@ var codec = new Codec('optifine_entity', {
 		function getTexturePath(tex) {
 			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
+		function isAppliedInModel(texture) {
+			return Group.all.find(group => {
+				return group.export && group.texture == texture.uuid;
+			})
+		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		let default_texture = Texture.getDefault();
-		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
-			default_texture = null;
-		}
-		if (default_texture) {
+		if (default_texture?.use_as_default || (settings.optifine_save_default_texture.value && !isAppliedInModel(default_texture))) {
 			let texture = Texture.getDefault();
 			entitymodel.texture = getTexturePath(Texture.getDefault());
 			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
+		} else {
+			default_texture = null;
 		}
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
