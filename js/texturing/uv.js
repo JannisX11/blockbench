@@ -2938,7 +2938,7 @@ Interface.definePanels(function() {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
 							if (add_to_list) {
 								if (element.faces[key]) {
-									element_selected_faces.push(key);
+									element_selected_faces.safePush(key);
 								}
 							} else {
 								if (!element.faces[key]) {
