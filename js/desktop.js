@@ -1,5 +1,5 @@
 const electron = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
+const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
