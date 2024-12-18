@@ -1091,7 +1091,7 @@ class Texture {
 				}
 			})
 		}
-		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true}})
+		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true, uv: true}})
 		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
