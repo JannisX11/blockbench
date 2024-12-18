@@ -2041,6 +2041,7 @@
 	"menu.transform.flip": "Flip",
 	"menu.transform.center": "Center",
 	"menu.transform.properties": "Properties",
+	"menu.tools.main_tools": "Toolbox",
 	"menu.display.preset": "Apply Preset",
 	"menu.display.preset_all": "Apply Preset Everywhere",
 	"menu.display.remove_preset": "Remove Preset",

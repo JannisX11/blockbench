@@ -448,7 +448,6 @@ class Group extends OutlinerNode {
 		}},
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(a, b, c) {
-			console.log({context, b, c});
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
 				Undo.initEdit({outliner: true});
