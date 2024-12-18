@@ -346,10 +346,15 @@ var part_format = new ModelFormat({
 		category: 'minecraft',
 		show_on_start_screen: false,
 		model_identifier: false,
-		single_texture: true,
-		integer_size: true,
-		rotate_cubes: true,
+		box_uv: true,
 		optional_box_uv: true,
+		per_group_texture: true,
+		single_texture_default: true,
+		per_texture_uv_size: true,
+		integer_size: true,
+		bone_rig: true,
+		centered_grid: true,
+		texture_folder: true,
 		codec: part_codec
 })
 Object.defineProperty(part_format, 'integer_size', {get: _ => Project.box_uv})
