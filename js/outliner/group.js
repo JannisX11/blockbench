@@ -69,17 +69,41 @@ class Group extends OutlinerNode {
 		if (!event) event = true
 		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
+		let multi_select = event.ctrlOrCmd || Pressing.overrides.ctrl;
+		let shift_select = event.shiftKey || Pressing.overrides.shift;
 
-		//Clear Old Group
-		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
+		//Unselect others
+		if (!multi_select && !shift_select) {
 			unselectAll();
 			Project.groups.forEach(function(s) {
 				s.selected = false;
 			})
 		}
-		//Select This Group
-		this.selected = true;
-		Group.multi_selected.safePush(this);
+
+		if (event && shift_select && this.getParentArray().includes(Group.multi_selected.last()) && is_outliner_click) {
+			let selecting;
+			let last_selected = Group.multi_selected.last();
+			this.getParentArray().forEach((s, i) => {
+				let select_this = false;
+				if (s === last_selected || s === this) {
+					selecting = !selecting;
+					select_this = true;
+				} else if (selecting) {
+					select_this = true;
+				}
+				if (select_this) {
+					if (s instanceof Group) {
+						s.multiSelect()
+					} else if (!Outliner.selected.includes(s)) {
+						s.selectLow()
+					}
+				}
+			})
+		} else {
+			//Select This Group
+			this.selected = true;
+			Group.multi_selected.safePush(this);
+		}
 
 		//Select / Unselect Children
 		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
@@ -139,10 +163,10 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	matchesSelection() {
-		if (Group.multi_selected.length != 1 || this != Group.multi_selected) return false;
-		var scope = this;
-		var match = true;
-		for (var i = 0; i < selected.length; i++) {
+		if (Group.multi_selected.length != 1 || this != Group.first_selected) return false;
+		let scope = this;
+		let match = true;
+		for (let i = 0; i < selected.length; i++) {
 			if (!selected[i].isChildOf(scope, 128)) {
 				return false
 			}

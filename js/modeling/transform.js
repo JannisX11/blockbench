@@ -541,7 +541,10 @@ function centerElements(axis, update) {
 //Move
 function moveElementsInSpace(difference, axis) {
 	let space = Transformer.getTransformSpace()
-	let groups = Format.bone_rig && Group.multi_selected.length == 1 && Group.first_selected.matchesSelection() && Group.multi_selected;
+	let groups;
+	if (Format.bone_rig && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
+		groups = Group.multi_selected;
+	}
 	var group_m;
 	let quaternion = new THREE.Quaternion();
 	let vector = new THREE.Vector3();
@@ -553,7 +556,7 @@ function moveElementsInSpace(difference, axis) {
 				group_m[getAxisLetter(axis)] = difference;
 
 				let rotation = new THREE.Quaternion();
-				group[0].mesh.parent.getWorldQuaternion(rotation);
+				groups[0].mesh.parent.getWorldQuaternion(rotation);
 				group_m.applyQuaternion(rotation.invert());
 
 				group.forEachChild(g => {
