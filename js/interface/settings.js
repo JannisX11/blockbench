@@ -453,7 +453,7 @@ const Settings = {
 			Canvas.updateRenderSides();
 		}});
 		new Setting('tone_mapping', 			{category: 'preview', value: 'none', type: 'select', options: {
-			none: tl('settings.tone_mapping.none'),
+			none: tl('generic.none'),
 			linear: 'Linear',
 			reinhard: 'Reinhard',
 			cineon: 'Cineon',

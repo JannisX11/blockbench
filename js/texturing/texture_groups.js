@@ -760,13 +760,13 @@ BARS.defineActions(function() {
 					updateCanvas(result);
 					let textures = [];
 					Undo.initEdit({texture_groups: [texture_group], textures});
-					let pbr_channel = form.channel;
-					let texture = new Texture({
+					let pbr_channel = result.channel;
+					let new_texture = new Texture({
 						name: texture.name,
 						pbr_channel,
 						group: texture_group.uuid,
 					}).fromDataURL(canvas.toDataURL()).add(false);
-					textures.push(texture);
+					textures.push(new_texture);
 					Undo.finishEdit('Create PBR map');
 				},
 				onOpen() {
