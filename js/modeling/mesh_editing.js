@@ -1074,7 +1074,7 @@ SharedActions.add('delete', {
 			let selected_edges = mesh.getSelectedEdges();
 			let selected_faces = mesh.getSelectedFaces();
 
-			if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
+			if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.length < Object.keys(mesh.faces).length) {
 				let affected_vertices = [];
 				selected_faces.forEach(fkey => {
 					affected_vertices.safePush(...mesh.faces[fkey].vertices);
@@ -1669,6 +1669,7 @@ BARS.defineActions(function() {
 		icon_mode: true,
 		condition: () => Modes.edit && Mesh.hasAny() && Toolbox.selected.id != 'knife_tool',
 		onChange({value}) {
+			if (value == 'cluster') value = 'face';
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
