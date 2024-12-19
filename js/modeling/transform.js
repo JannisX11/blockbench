@@ -540,9 +540,9 @@ function centerElements(axis, update) {
 
 //Move
 function moveElementsInSpace(difference, axis) {
-	let space = Transformer.getTransformSpace()
+	let space = Transformer.getTransformSpace();
 	let groups;
-	if (Format.bone_rig && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
+	if (Format.bone_rig && Group.first_selected && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
 		groups = Group.multi_selected;
 	}
 	var group_m;
