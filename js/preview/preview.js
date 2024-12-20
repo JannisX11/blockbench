@@ -1122,7 +1122,6 @@ class Preview {
 				brush_coord.x += 8;
 				brush_coord.z += 8;
 			}
-			brush_matrix.multiplyMatrices(intersect.object.parent.matrixWorld, brush_matrix);
 
 			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
@@ -1139,7 +1138,7 @@ class Preview {
 			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
 			brush_matrix.scale(scale);
 
-			brush_matrix.multiplyMatrices(intersect.object.matrix, brush_matrix);
+			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
