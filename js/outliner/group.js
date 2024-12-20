@@ -516,7 +516,7 @@ class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'multi_selected', {
 		get() {
-			return Project.selected_groups
+			return Project.selected_groups || []
 		},
 		set(arr) {
 			if (arr instanceof Array == false) {

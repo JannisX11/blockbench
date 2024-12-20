@@ -288,7 +288,7 @@ async function updateRecentProjectThumbnail() {
 	}
 }
 function loadDataFromModelMemory() {
-	let project = Project.getProjectMemory();
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	if (project.textures) {
