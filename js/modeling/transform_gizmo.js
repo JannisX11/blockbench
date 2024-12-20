@@ -805,7 +805,7 @@
 									scope.attach(element);
 								}
 							})
-						} else if (Group.first_selected && getRotationObject() == Group.first_selected) {
+						} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
 							scope.attach(Group.first_selected)
 						} else {
 							this.update()
@@ -896,12 +896,12 @@
 				if (!scope.dragging) Transformer.rotation_selection.set(0, 0, 0);
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
-						var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
-						var rotation_object = getRotationObject()
+						let rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
+						let rotation_object = getRotationObjects()
 						if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
-							var arr = rotation_object instanceof Array ? rotation_object : selected;
+							let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
 							rotation_object = undefined;
-							for (var obj of arr) {
+							for (let obj of arr) {
 								if (obj.visibility !== false) {
 									rotation_object = obj;
 									break;

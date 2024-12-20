@@ -528,7 +528,7 @@ class Group extends OutlinerNode {
 	Object.defineProperty(Group, 'selected', {
 		get() {
 			console.warn('"Group.selected" will be an array in the future!');
-			return Project.selected_groups[0]
+			return Project.selected_groups?.[0]
 		},
 		set(group) {
 			console.warn('"Group.selected" will be an array in the future!');
@@ -541,7 +541,7 @@ class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'first_selected', {
 		get() {
-			return Project.selected_groups[0]
+			return Project.selected_groups?.[0]
 		},
 		set(group) {
 			Project.selected_groups.replace([groups]);

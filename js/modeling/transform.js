@@ -733,7 +733,7 @@ function getRotationInterval(event) {
 		return 2.5;
 	}
 }
-function getRotationObject() {
+function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
 	let elements = Outliner.selected.filter(element => {
 		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
@@ -741,7 +741,7 @@ function getRotationObject() {
 	if (elements.length) return elements;
 }
 function rotateOnAxis(modify, axis, slider) {
-	var things = getRotationObject();
+	var things = getRotationObjects();
 	if (!things) return;
 	if (things instanceof Array == false) things = [things];
 	//Warning
@@ -1329,7 +1329,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObjects()),
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.rotation[0];
@@ -1348,7 +1348,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
-			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
+			Undo.finishEdit(getRotationObjects()?.find(el => el instanceof Group) ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1357,7 +1357,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObjects()),
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.rotation[1];
@@ -1376,7 +1376,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
-			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
+			Undo.finishEdit(getRotationObjects()?.find(el => el instanceof Group) ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1385,7 +1385,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_rotation.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => ((Modes.edit || Modes.pose) && getRotationObject()),
+		condition: () => ((Modes.edit || Modes.pose) && getRotationObjects()),
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.rotation[2];
@@ -1404,7 +1404,7 @@ BARS.defineActions(function() {
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
-			Undo.finishEdit(getRotationObject() instanceof Group ? 'Rotate group' : 'Rotate elements');
+			Undo.finishEdit(getRotationObjects()?.find(el => el instanceof Group) ? 'Rotate group' : 'Rotate elements');
 		},
 		getInterval: getRotationInterval
 	})
@@ -1413,15 +1413,17 @@ BARS.defineActions(function() {
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {
-		var rotation_object = getRotationObject()
+		var rotation_objects = getRotationObjects()
 
-		if (rotation_object instanceof Group) {
-			var val = modify(rotation_object.origin[axis]);
-			rotation_object.origin[axis] = val;
+		if (rotation_objects && rotation_objects[0] instanceof Group) {
 			let elements_to_update = [];
-			rotation_object.forEachChild(element => elements_to_update.push(element), OutlinerElement);
+			for (let group of rotation_objects) {
+				let val = modify(group.origin[axis]);
+				group.origin[axis] = val;
+				group.forEachChild(element => elements_to_update.safePush(element), OutlinerElement);
+			}
 			Canvas.updateView({
-				groups: [rotation_object],
+				groups: rotation_objects,
 				group_aspects: {transform: true},
 				elements: elements_to_update,
 				element_aspects: {transform: true},
@@ -1431,11 +1433,11 @@ BARS.defineActions(function() {
 				Canvas.updateAllBones();
 			}
 		} else {
-			rotation_object.forEach(function(obj, i) {
-				var val = modify(obj.origin[axis]);
+			rotation_objects.forEach(function(obj, i) {
+				let val = modify(obj.origin[axis]);
 				obj.origin[axis] = val;
 			})
-			Canvas.updateView({elements: rotation_object, element_aspects: {transform: true, geometry: true}, selection: true})
+			Canvas.updateView({elements: rotation_objects, element_aspects: {transform: true, geometry: true}, selection: true})
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -1446,7 +1448,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
@@ -1473,7 +1475,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
@@ -1500,7 +1502,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObject() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
