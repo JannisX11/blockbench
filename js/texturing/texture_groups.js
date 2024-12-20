@@ -604,7 +604,7 @@ BARS.defineActions(function() {
 	new Action('generate_pbr_map', {
 		icon: 'texture_add',
 		category: 'textures',
-		condition: () => Texture.all[0],
+		condition: () => Texture.all[0] && Format.pbr,
 		click() {
 			let texture = Texture.selected ?? Texture.all[0];
 			let texture_group = texture.getGroup();
@@ -683,6 +683,9 @@ BARS.defineActions(function() {
 					
 					let output = Math.clamp(Math.lerp(result.out_range[0], result.out_range[1], input_1), 0, 255);
 
+					new_data.data[i+0] = 0;
+					new_data.data[i+1] = 0;
+					new_data.data[i+2] = 0;
 					new_data.data[i+3] = 255;
 
 					switch (result.channel) {
@@ -759,12 +762,12 @@ BARS.defineActions(function() {
 				onConfirm(result) {
 					updateCanvas(result);
 					let textures = [];
-					Undo.initEdit({texture_groups: [texture_group], textures});
+					Undo.initEdit({texture_groups: texture_group ? [texture_group] : null, textures});
 					let pbr_channel = result.channel;
 					let new_texture = new Texture({
 						name: texture.name,
 						pbr_channel,
-						group: texture_group.uuid,
+						group: texture_group?.uuid,
 					}).fromDataURL(canvas.toDataURL()).add(false);
 					textures.push(new_texture);
 					Undo.finishEdit('Create PBR map');

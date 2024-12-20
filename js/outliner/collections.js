@@ -473,7 +473,7 @@ Interface.definePanels(function() {
 			float_size: [300, 300],
 			height: 300
 		},
-		condition: {modes: ['edit', 'paint']},
+		condition: {modes: ['edit', 'paint'], method: () => (!Format.image_editor)},
 		toolbars: [
 			new Toolbar('collections', {
 				children: [

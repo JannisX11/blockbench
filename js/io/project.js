@@ -71,7 +71,6 @@ class ModelProject {
 
 		ProjectData[this.uuid] = {
 			model_3d: new THREE.Object3D(),
-			materials: {},
 			nodes_3d: {}
 		}
 	}
@@ -134,9 +133,6 @@ class ModelProject {
 	}
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
-	}
-	get materials() {
-		return ProjectData[this.uuid].materials;
 	}
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;

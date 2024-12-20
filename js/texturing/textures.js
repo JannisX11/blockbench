@@ -185,7 +185,7 @@ class Texture {
 		});
 		mat.map = tex;
 		mat.name = this.name;
-		Project.materials[this.uuid] = mat;
+		this.material = mat;
 
 		var size_control = {};
 
@@ -328,6 +328,12 @@ class Texture {
 	}
 	get selection() {
 		return this._static.properties.selection;
+	}
+	get material() {
+		return this._static.properties.material;
+	}
+	set material(material) {
+		this._static.properties.material = material;
 	}
 	getUVWidth() {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
@@ -891,10 +897,10 @@ class Texture {
 		if (group?.is_material && BarItems.view_mode.value == 'material') {
 			return group.getMaterial();
 		}
-		return Project.materials[this.uuid];
+		return this.material;
 	}
 	getOwnMaterial() {
-		return Project.materials[this.uuid];
+		return this.material;
 	}
 	//Management
 	select(event) {
@@ -995,7 +1001,6 @@ class Texture {
 			Texture.selected = undefined;
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
-		delete Project.materials[this.uuid];
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
