@@ -532,7 +532,11 @@ class Group extends OutlinerNode {
 		},
 		set(group) {
 			console.warn('"Group.selected" will be an array in the future!');
-			Project.selected_groups.replace([groups]);
+			if (group instanceof Group) {
+				Project.selected_groups.replace([group]);
+			} else {
+				Project.selected_groups.empty();
+			}
 		}
 	})
 	Object.defineProperty(Group, 'first_selected', {

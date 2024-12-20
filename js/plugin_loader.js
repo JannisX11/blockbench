@@ -405,7 +405,7 @@ class Plugin {
 			Plugins.sort()
 			// Save
 			if (isApp) {
-				await new Promise((resolve) => {
+				await new Promise((resolve, reject) => {
 					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
