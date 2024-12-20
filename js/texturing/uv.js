@@ -4453,7 +4453,7 @@ Interface.definePanels(function() {
 							<i class="material-icons icon">navigation</i>
 						</div>
 
-						<div class="uv_transparent_face" v-else-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>
+						<div class="uv_transparent_face" v-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>
 					</div>
 
 					<div class="uv_layer_limbo_options" v-if="isTransformingLayer()">

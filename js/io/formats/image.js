@@ -1,6 +1,7 @@
 (function() {
 
 let codec = new Codec('image', {
+	name: tl('format.name'),
 	extension: 'png',
 	remember: true,
 	load_filter: {
@@ -117,6 +118,9 @@ let codec = new Codec('image', {
 			savetype: 'image',
 			content,
 		}, path => this.afterDownload(path));
+	},
+	write(content, path) {
+		Blockbench.writeFile(path, {content, savetype: 'image'}, path => this.afterSave(path));
 	}
 })
 codec.parse = null;
