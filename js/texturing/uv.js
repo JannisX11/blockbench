@@ -797,7 +797,7 @@ const UVEditor = {
 		if (!box) return;
 
 		let uv_viewport = vue.$refs.viewport;
-		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth) return;
 		let offset = [
 			(uv_viewport.scrollLeft - vue.width/2) / vue.inner_width,
 			(uv_viewport.scrollTop - vue.height/2) / vue.inner_height
