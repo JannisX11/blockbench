@@ -1426,6 +1426,9 @@ DisplayMode.applyPreset = function(preset, all) {
 			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
 			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
 			Project.display_settings[sl].extend(preset.areas[sl]);
+			if (preset.id == 'block' && Format.id == 'bedrock_block' && sl == 'gui') {
+				Project.display_settings[sl].rotation[1] = 45;
+			}
 		}
 	})
 	DisplayMode.updateDisplayBase()
