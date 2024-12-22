@@ -100,7 +100,7 @@ class TextureGroup {
 				envMap,
 				envMapIntensity: 0.8,
 				alphaTest: 0.05,
-				normalScale: new THREE.Vector2(-1, -1),
+				normalScale: new THREE.Vector2(-1),
 			});
 		}
 		let textures = this.getTextures();
