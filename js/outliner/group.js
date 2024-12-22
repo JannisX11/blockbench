@@ -433,7 +433,7 @@ class Group extends OutlinerNode {
 	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
 	Group.prototype.rotatable = true;
-	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
 		Outliner.buttons.mirror_uv,

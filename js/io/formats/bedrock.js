@@ -1342,6 +1342,7 @@ var entity_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
@@ -1381,6 +1382,7 @@ var block_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,

@@ -1071,6 +1071,7 @@ var format = new ModelFormat({
 		]
 	},
 	codec,
+	node_name_regex: '\\w',
 	box_uv: true,
 	box_uv_float_size: true,
 	single_texture: true,
