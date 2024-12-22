@@ -409,8 +409,10 @@ var Merge = {
 		}
 	},
 	molang(obj, source, index) {
-		if (['string', 'number'].includes(typeof source[index])) {
+		if (typeof source[index] == 'string') {
 			obj[index] = source[index];
+		} else if (typeof source[index] == 'number') {
+			obj[index] = source[index].toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
