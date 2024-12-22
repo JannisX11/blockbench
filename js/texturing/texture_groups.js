@@ -92,12 +92,9 @@ class TextureGroup {
 		 * @type {THREE.MeshStandardMaterial}
 		 */
 		let material = this._static.properties.material;
+		
 		if (!material) {
-			const g = new THREE.PMREMGenerator(Preview.selected.renderer);
-			const { texture: envMap } = g.fromCubemap(PreviewScene.active?.cubemap);
-
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
-				envMap,
 				envMapIntensity: 0.8,
 				alphaTest: 0.05,
 				normalScale: new THREE.Vector2(-1),
