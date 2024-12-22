@@ -103,6 +103,12 @@ class TextureGroup {
 				normalScale: new THREE.Vector2(-1),
 			});
 		}
+
+		if (PreviewScene.active) {
+			const g = new THREE.PMREMGenerator(Preview.selected.renderer);
+			material.envMap = g.fromScene(Canvas.scene, 0.0, 100, 1024).texture;
+		}
+
 		let textures = this.getTextures();
 		let color_tex = textures.find(t => t.pbr_channel == 'color');
 		let normal_tex = textures.find(t => t.pbr_channel == 'normal');
