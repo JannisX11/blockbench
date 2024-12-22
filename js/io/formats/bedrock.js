@@ -718,6 +718,11 @@ function calculateVisibleBox() {
 
 		if (data.object.item_display_transforms !== undefined) {
 			DisplayMode.loadJSON(data.object.item_display_transforms)
+			if (data.object.item_display_transforms.gui) {
+				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
+					Project.display_settings.gui.fit_to_frame = true;
+				}
+			}
 		}
 
 		var bones = {}
@@ -1033,7 +1038,6 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 
 function getFormatVersion() {
 	if (Format.display_mode) {
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
 			if (Project.display_settings[key] && Project.display_settings[key].export) {
@@ -1150,15 +1154,14 @@ var codec = new Codec('bedrock', {
 		}
 
 		let new_display = {};
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
-			if (Project.display_settings[key] && Project.display_settings[key].export) {
-				new_display[key] = Project.display_settings[key].export();
-				if (new_display[key]) has_new_displays = true;
+			if (Project.display_settings[key] && Project.display_settings[key].exportBedrock) {
+				let data = Project.display_settings[key].exportBedrock();
+				if (data) new_display[key] = data;
 			}
 		}
-		if (has_new_displays) {
+		if (Object.keys(new_display).length) {
 			entitymodel.item_display_transforms = new_display
 		}
 

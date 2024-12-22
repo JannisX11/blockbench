@@ -520,7 +520,7 @@ class UndoSystem {
 				let data = save.display_slots[slot]
 
 				if (!Project.display_settings[slot] && data) {
-					Project.display_settings[slot] = new DisplaySlot()
+					Project.display_settings[slot] = new DisplaySlot(slot)
 				} else if (data === null && Project.display_settings[slot]) {
 					Project.display_settings[slot].default()
 				}

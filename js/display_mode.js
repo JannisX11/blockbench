@@ -9,6 +9,7 @@ const DisplayMode = {};
 
 class DisplaySlot {
 	constructor(id, data) {
+		this.slot_id = id;
 		this.default()
 		if (data) this.extend(data)
 	}
@@ -19,6 +20,7 @@ class DisplaySlot {
 		this.rotation_pivot = [0, 0, 0];
 		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
+		this.fit_to_frame = false;
 		return this;
 	}
 	copy() {
@@ -51,6 +53,32 @@ class DisplaySlot {
 			return build;
 		}
 	}
+	exportBedrock() {
+		let has_data = !this.rotation.allEqual(0)
+			|| !this.translation.allEqual(0)
+			|| !this.scale.allEqual(1)
+			|| !this.mirror.allEqual(false)
+			|| !this.rotation_pivot.allEqual(0)
+			|| !this.scale_pivot.allEqual(0);
+		if (!has_data) return;
+
+		let build = {
+			rotation: this.rotation.slice(),
+			translation: this.translation.slice(),
+			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot,
+			scale_pivot: this.scale_pivot,
+		}
+		if (this.slot_id == 'gui') {
+			build.fit_to_frame = this.fit_to_frame;
+		}
+		if (!this.mirror.allEqual(false)) {
+			for (let i = 0; i < 3; i++) {
+				build.scale[i] *= this.mirror[i] ? -1 : 1;
+			}
+		}
+		return build;
+	}
 	extend(data) {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
@@ -63,6 +91,7 @@ class DisplaySlot {
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
+		if (typeof data.fit_to_frame == 'boolean') this.fit_to_frame = data.fit_to_frame;
 		this.update()
 		return this;
 	}
@@ -1419,7 +1448,7 @@ DisplayMode.applyPreset = function(preset, all) {
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
 		if (!Project.display_settings[sl]) {
-			Project.display_settings[sl] = new DisplaySlot()
+			Project.display_settings[sl] = new DisplaySlot(sl)
 		}
 		let preset_values = preset.areas[sl];
 		if (preset_values) {
@@ -1437,7 +1466,7 @@ DisplayMode.applyPreset = function(preset, all) {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
 		}
 	}
 }
@@ -1498,7 +1527,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.camPers.setFocalLength(45)
 
 	if (Project.display_settings[key] == undefined) {
-		Project.display_settings[key] = new DisplaySlot()
+		Project.display_settings[key] = new DisplaySlot(key)
 	}
 	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
@@ -1919,7 +1948,7 @@ Interface.definePanels(function() {
 				axes: [0, 1, 2],
 				reference_model: 'player',
 				pose_angle: 0,
-				slot: new DisplaySlot(),
+				slot: new DisplaySlot(''),
 				allow_mirroring: Settings.get('allow_display_slot_mirror')
 			}},
 			watch: {
@@ -1987,12 +2016,18 @@ Interface.definePanels(function() {
 					DisplayMode.slot.update()
 					Undo.finishEdit('Mirror display setting')
 				},
-				start: (axis, channel) => {
+				start: () => {
 					Undo.initEdit({display_slots: [display_slot]});
 					Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
-				save: (axis, channel) => {
+				save: () => {
 					Undo.finishEdit('Change display setting');
+					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+				},
+				toggleFitToFrame() {
+					Undo.initEdit({display_slots: [display_slot]});
+					this.slot.fit_to_frame = !this.slot.fit_to_frame;
+					Undo.finishEdit('Change display setting fit-to-frame property');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
 				showMirroringSetting() {
@@ -2073,6 +2108,10 @@ Interface.definePanels(function() {
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
 							<numeric-input class="tool disp_text" v-model.number="slot.scale[axis]" :min="0" :max="4" :step="0.01" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()" />
+						</div>
+						<div class="bar" v-if="isBedrockStyle() && slot.slot_id == 'gui'" @click="toggleFitToFrame()">
+							<input type="checkbox" :checked="slot.fit_to_frame == true">
+							<label style="padding-top: 3px;">Fit to Frame</label>
 						</div>
 						
 						<template v-if="reference_model == 'player'">
