@@ -87,15 +87,20 @@ class TextureGroup {
 	}
 
 	updateMaterial() {
+		/**
+		 * @link https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
+		 * @type {THREE.MeshStandardMaterial}
+		 */
 		let material = this._static.properties.material;
 		if (!material) {
-			//let g = new THREE.PMREMGenerator(Preview.selected.renderer);
-			//let pmrem_render_target = g.fromScene(Canvas.scene);
-			// https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
+			const g = new THREE.PMREMGenerator(Preview.selected.renderer);
+			const { texture: envMap } = g.fromCubemap(PreviewScene.active?.cubemap);
+
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
-				envMap: PreviewScene.active?.cubemap ?? null,
+				envMap,
 				envMapIntensity: 0.8,
 				alphaTest: 0.05,
+				normalScale: new THREE.Vector2(-1, -1),
 			});
 		}
 		let textures = this.getTextures();
