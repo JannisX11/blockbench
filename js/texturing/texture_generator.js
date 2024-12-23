@@ -36,29 +36,33 @@ const TextureGenerator = {
 			title: tl('action.create_texture'),
 			width: 610,
 			form: {
-				name: 		{label: 'generic.name', value: 'texture'},
-				folder: 	{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
-				type:	{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
-				section2:    "_",
+				name: 			{label: 'generic.name', value: 'texture'},
+				folder: 		{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
+				type:			{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
+				section2:    	"_",
 
-				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
+				resolution: 	{label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
+				color: 			{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 
-				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
-				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
-				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: ((form) => (form.type == 'template' && form.rearrange_uv))},
-				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 36, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				rearrange_uv:	{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
+				box_uv: 		{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
+				power: 			{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
+				double_use: 	{label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: ((form) => (form.type == 'template' && form.rearrange_uv))},
+				combine_polys:	{label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				max_edge_angle:	{label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 36, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
+				padding:		{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
+				disable_mirror_uv:{label: 'dialog.create_texture.disable_mirror_uv', description: 'dialog.create_texture.disable_mirror_uv.desc', type: 'checkbox', value: true, condition: (form) => BarItems.mirror_modeling.value && BarItems.mirror_modeling.tool_config.options.mirror_uv},
 
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
 				if (results.type == 'blank') {
 					results.resolution = results.resolution_vec;
+				}
+				if (results.disable_mirror_uv) {
+					BarItems.mirror_modeling.tool_config.changeOptions({mirror_uv: false});
 				}
 				dialog.hide()
 				if (Format.edit_mode && Outliner.selected.length == 0) {

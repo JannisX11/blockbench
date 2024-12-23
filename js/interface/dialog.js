@@ -688,6 +688,15 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	save() {
 		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.options));
 	}
+	changeOptions(options) {
+		for (let key in options) {
+			this.options[key] = options[key];
+		}
+		if (this.form) {
+			this.form.setValues(options);
+		}
+		this.save();
+	}
 	close(button, event) {
 		this.save();
 		this.hide();

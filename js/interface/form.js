@@ -487,7 +487,6 @@ class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			let data = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
-			console.log(form_id, values[form_id])
 			if (values[form_id] != undefined && typeof input_config == 'object' && data.bar) {
 				let value = values[form_id];
 				switch (input_config.type) {
@@ -532,7 +531,6 @@ class InputForm extends EventSystem {
 						data.colorpicker.set(value);
 						break;
 					case 'checkbox':
-						console.log(data.bar.find('input'), value)
 						data.bar.find('input').prop('checked', value);
 						break;
 					case 'file':
