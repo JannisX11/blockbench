@@ -97,7 +97,7 @@ class TextureGroup {
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
 				envMapIntensity: 0.8,
 				alphaTest: 0.05,
-				normalScale: new THREE.Vector2(-1),
+				normalScale: new THREE.Vector2(-1, -1),
 			});
 		}
 
