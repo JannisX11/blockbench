@@ -123,7 +123,7 @@ class TextureGroup {
 		if (normal_tex) {
 			material.normalMap = normal_tex.getOwnMaterial().map;
 			material.bumpMap = null;
-			// Use DirectX normal maps for RenderDragon. Flips the "handiness" of the normal map.
+			// Use DirectX normal maps for RenderDragon. Flips the "handedness" of the normal map.
 			material.normalScale = Project.format.id.includes('bedrock') ? new THREE.Vector2(1, -1) : new THREE.Vector2(1, 1);
 		} else if (height_tex) {
 			material.bumpMap = height_tex.getOwnMaterial().map;
@@ -145,7 +145,7 @@ class TextureGroup {
 
 			const extractEmissiveChannel = () => {
 				// The green channel is the emissive level.
-				// Use it as an alpha mask on the color texture to create the emissive map.
+				// Use it as an mask on the color texture to create the emissive map.
 				const color_data = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
 				let emissive_data = new Uint8ClampedArray(color_data.data.length);
 				for (let i = 0; i < image_data.data.length; i += 4) {
