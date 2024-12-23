@@ -2189,6 +2189,8 @@
 	"menu.mirror_painting.texture_center": "Origin",
 	"menu.mirror_painting.texture_frames": "Repeat on Flipbook Frames",
 	"menu.mirror_painting.texture_frames.desc": "Mirror paint strokes to every frame of animated textures",
+	
+	"menu.mirror_modeling.mirror_uv": "Mirror UV",
 
 	"menu.image_tiled_view.mirrored": "Mirrored Edges",
 

@@ -121,11 +121,14 @@ const MirrorModeling = {
 			faces: {},
 			vertices: {},
 		}
+		// Detect vertex counterparts
 		for (let vkey in mesh.vertices) {
 			if (data.vertices[vkey]) continue;
+			let vector = Reusable.vec1.fromArray(mesh.vertices[vkey]);
+			vector.x *= -1;
 			for (let vkey2 in mesh.vertices) {
-				if (vkey == vkey2) continue;
-				let distance = Reusable.vec1.fromArray(mesh.vertices[vkey]).distanceTo(Reusable.vec2.fromArray(mesh.vertices[vkey2]));
+				//if (vkey == vkey2) continue;
+				let distance = vector.distanceTo(Reusable.vec2.fromArray(mesh.vertices[vkey2]));
 				if (distance < 0.001) {
 					data.vertices[vkey] = vkey2;
 					data.vertices[vkey2] = vkey;
@@ -133,14 +136,15 @@ const MirrorModeling = {
 				}
 			}
 		}
+		// Detect face counterparts
 		for (let fkey in mesh.faces) {
 			if (data.faces[fkey]) continue;
 			for (let fkey2 in mesh.faces) {
 				if (fkey == fkey2) continue;
 				let match = mesh.faces[fkey].vertices.allAre(vkey => {
 					let other_vkey = data.vertices[vkey];
-					if (!other_vkey) return;
-					return mesh.faces[fkey].vertices.includes(other_vkey);
+					if (!other_vkey) return false;
+					return mesh.faces[fkey2].vertices.includes(other_vkey);
 				})
 				if (match) {
 					data.faces[fkey] = fkey2;
@@ -151,10 +155,12 @@ const MirrorModeling = {
 		}
 		return data;
 	},
-	createLocalSymmetry(mesh) {
+	createLocalSymmetry(mesh, cached_data) {
 		// Create or update clone
 		let edit_side = MirrorModeling.getEditSide();
-		let mirror_uv = false;
+		let options = BarItems.mirror_modeling.tool_config.options;
+		let mirror_uv = options.mirror_uv;
+		let pre_part_connections = cached_data?.pre_part_connections;
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
 		let deleted_vertices_by_position = {};
@@ -202,6 +208,7 @@ const MirrorModeling = {
 			}
 		}
 
+		// Create mirrored faces
 		let original_fkeys = Object.keys(mesh.faces);
 		for (let fkey of original_fkeys) {
 			let face = mesh.faces[fkey];
@@ -238,18 +245,8 @@ const MirrorModeling = {
 
 			} else if (deleted_face_vertices.length == 0 && face.vertices.find((vkey) => vkey != vertex_counterpart[vkey])) {
 				// Recreate face as mirrored
-				let new_face_key, original_face;
-				console.log(deleted_faces, vertex_counterpart)
-				for (let key in deleted_faces) {
-					let deleted_face = deleted_faces[key];
-					console.log(face.vertices, face.vertices.filter(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey])))
-					if (face.vertices.allAre(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey]))) {
-						new_face_key = key;
-						original_face = deleted_face;
-						break;
-					}
-				}
-				console.log(new_face_key, original_face)
+				let new_face_key = pre_part_connections && pre_part_connections.faces[fkey];
+				let original_face = deleted_faces[new_face_key];
 
 				let new_face = new MeshFace(mesh, face);
 				face.vertices.forEach((vkey, i) => {
@@ -260,8 +257,7 @@ const MirrorModeling = {
 						new_face.uv[new_vkey] = face.uv[vkey].slice();
 					} else {
 						// change
-						let original_vkey = original_face.vertices[i];
-						console.log('y', {vkey, new_vkey, original_vkey})
+						let original_vkey = pre_part_connections.vertices[vkey];
 						new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
 					}
 				})
@@ -423,15 +419,16 @@ Blockbench.on('finish_edit', ({aspects}) => {
 		aspects.elements = aspects.elements.slice();
 		let static_elements_copy = aspects.elements.slice();
 		static_elements_copy.forEach((element) => {
+			let cached_data = MirrorModeling.cached_elements[element.uuid]
 			if (element.allow_mirror_modeling && !element.locked) {
 				let is_centered = MirrorModeling.isCentered(element);
 
 				if (is_centered && element instanceof Mesh) {
 					// Complete other side of mesh
-					MirrorModeling.createLocalSymmetry(element);
+					MirrorModeling.createLocalSymmetry(element, cached_data);
 				}
 				if (is_centered) {
-					let mirror_element = MirrorModeling.cached_elements[element.uuid]?.counterpart;
+					let mirror_element = cached_data?.counterpart;
 					if (mirror_element && mirror_element.uuid != element.uuid) {
 						MirrorModeling.insertElementIntoUndo(mirror_element, Undo.current_save.aspects, mirror_element.getUndoCopy());
 						mirror_element.remove();
@@ -475,7 +472,22 @@ BARS.defineActions(() => {
 			Project.mirror_modeling_enabled = this.value;
 			MirrorModeling.cached_elements = {};
 			updateSelection();
-		}
+		},
+		tool_config: new ToolConfig('proportional_editing_options', {
+			title: 'action.mirror_modeling',
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				mirror_uv: {type: 'checkbox', label: 'menu.mirror_modeling.mirror_uv', value: true}
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.mirror_modeling.value});
+			},
+			onFormChange(formResult) {
+				if (BarItems.mirror_modeling.value != formResult.enabled) {
+					BarItems.mirror_modeling.trigger();
+				}
+			}
+		})
 	})
 	let allow_toggle = new Toggle('allow_element_mirror_modeling', {
 		icon: 'align_horizontal_center',
