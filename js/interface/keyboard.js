@@ -190,6 +190,13 @@ class Keybind {
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
 
+			case 106: return tl('keys.numpad', ['*']);
+			case 107: return tl('keys.numpad', ['+']);
+			case 108: return tl('keys.numpad', ['+']);
+			case 109: return tl('keys.numpad', ['-']);
+			case 110: return tl('keys.numpad', [',']);
+			case 111: return tl('keys.numpad', ['/']);
+
 			case 188: return ',';
 			case 190: return '.';
 			case 189: return '-';
@@ -237,9 +244,10 @@ class Keybind {
 			(this.meta 	=== event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	)
 		)
 	}
-	additionalModifierTriggered(event) {
+	additionalModifierTriggered(event, variation) {
 		if (!this.variations) return;
 		for (let option in this.variations) {
+			if (variation && option != variation) continue;
 			let key = this.variations[option];
 			if (
 				(key == 'ctrl' && (event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
@@ -247,7 +255,7 @@ class Keybind {
 				(key == 'alt' && (event.altKey || Pressing.overrides.alt)) ||
 				(key == 'meta' && (event.metaKey || Pressing.overrides.meta))
 			) {
-				return option;
+				return variation ? true : option;
 			}
 		}
 	}
@@ -531,7 +539,7 @@ onVueSetup(function() {
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
 					alt: tl('keys.alt'),
-					none: '',
+					'': '-',
 				} 
 			}},
 			methods: {
@@ -582,6 +590,9 @@ onVueSetup(function() {
 				},
 				hasSubKeybinds(item) {
 					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
+				},
+				hasVariationConflict(keybind, variation_key) {
+					return keybind[keybind.variations[variation_key]];
 				},
 				getVariationText(action, variation) {
 					return tl(action.variations?.[variation]?.name, null, variation);
@@ -655,7 +666,8 @@ onVueSetup(function() {
 							<ul class="keybind_item_variations" v-if="action.keybind.variations">
 								<li v-for="(value, option_key) in action.keybind.variations">
 									<label :title="getVariationDescription(action, option_key)">{{ getVariationText(action, option_key) }}</label>
-									<select-input v-model="action.keybind.variations[option_key]" @change="action.keybind.save(true)" :options="modifier_options" />
+									<select-input v-model="action.keybind.variations[option_key]" @input="action.keybind.save(true)" :options="modifier_options" />
+									<i v-if="hasVariationConflict(action.keybind, option_key)" class="material-icons icon keybind_variation_conflict" title="${tl('keybindings.variation_conflict')}">warning</i>
 								</li>
 							</ul>
 
@@ -698,7 +710,7 @@ window.addEventListener('blur', event => {
 	Pressing.alt = false;
 	Pressing.ctrl = false;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
 
@@ -742,7 +754,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (modifiers_changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 
 	if (e.which === 16) {
@@ -868,8 +880,10 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 					for (let sub_id in action.sub_keybinds) {
 						let sub = action.sub_keybinds[sub_id];
 						if (sub.keybind.isTriggered(e)) {
+							let value_before = action.value;
 							sub.trigger(e)
 							used = true;
+							if (action instanceof BarSelect && value_before != action.value) break;
 						}
 					}
 				}
@@ -990,6 +1004,6 @@ $(document).keyup(function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })

@@ -33,7 +33,7 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;
@@ -68,7 +68,7 @@ class PreviewScene {
 		}
 	}
 	async lazyLoadFromWeb() {
-		let repo = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+		let repo = PreviewScene.source_repository;
 		// repo = './../blockbench-scenes'
 		this.loaded = true;
 		let response = await fetch(`${repo}/${this.web_config_path}`);
@@ -104,9 +104,13 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
-		if (this.fov) {
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+		
+		let pmremGenerator = new THREE.PMREMGenerator( Preview.selected.renderer );
+		Canvas.scene.environment = pmremGenerator.fromCubemap(this.cubemap).texture;
+
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
 		// Update independent models
@@ -129,7 +133,7 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
-		if (this.fov) {
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
@@ -144,6 +148,7 @@ class PreviewScene {
 PreviewScene.scenes = {};
 PreviewScene.active = null;
 PreviewScene.select_options = {};
+PreviewScene.source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
 PreviewScene.menu_categories = {
 	main: {
 		none: tl('generic.none')
@@ -215,6 +220,8 @@ class PreviewModel {
 			tex = new THREE.Texture(img);
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
 			img.crossOrigin = '';
 			img.onload = function() {
 				tex.needsUpdate = true;

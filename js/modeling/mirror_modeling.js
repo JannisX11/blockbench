@@ -38,7 +38,7 @@ const MirrorModeling = {
 			function updateParent(child, child_b) {
 				let parent = child.parent;
 				let parent_b = child_b.parent;
-				if (parent instanceof Group == false || parent == parent_b) return;
+				if (parent instanceof Group == false || parent_b instanceof Group == false || parent == parent_b) return;
 
 				MirrorModeling.updateGroupCounterpart(parent_b, parent);
 
@@ -66,7 +66,7 @@ const MirrorModeling = {
 					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
 					let match = parent_list.find(node => {
 						if (node instanceof Group == false) return false;
-						if (node.name == mirror_group.name && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+						if ((node.name == mirror_group.name || Condition(mirror_group.needsUniqueName)) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
 							return true;
 						}
 					})
@@ -340,7 +340,7 @@ const MirrorModeling = {
 					}
 				}
 			}
-			return element;
+			return false;
 		}
 	},
 	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
@@ -494,6 +494,18 @@ BARS.defineActions(() => {
 		if (allow_toggle.value != !disabled) {
 			allow_toggle.value = !disabled;
 			allow_toggle.updateEnabledState();
+		}
+	})
+	new Action('apply_mirror_modeling', {
+		icon: 'align_horizontal_right',
+		category: 'edit',
+		condition: {modes: ['edit']},
+		click() {
+			let value_before = BarItems.mirror_modeling.value;
+			BarItems.mirror_modeling.value = true;
+			Undo.initEdit({elements: Outliner.selected, outliner: !!Group.first_selected});
+			Undo.finishEdit('Applied mirror modeling');
+			BarItems.mirror_modeling.value = value_before;
 		}
 	})
 })

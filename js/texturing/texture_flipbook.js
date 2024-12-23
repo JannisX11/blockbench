@@ -127,6 +127,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			let slider_tex = getSliderTexture()
 			if (!slider_tex) return;
+			UVEditor.previous_animation_frame = slider_tex.currentFrame;
 			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
 
 			let textures = Texture.all.filter(tex => tex.frameCount > 1);
@@ -210,7 +211,7 @@ BARS.defineActions(function() {
 
 				} else if (Format.id == 'java_block') {
 					docs = 'https://minecraft.wiki/w/Resource_pack#Animation';
-					file_name = texture.name + '.mcmeta';
+					file_name = (texture.name.match(/\.png$/i) ? texture.name : texture.name + '.png') + '.mcmeta';
 					content = texture.getMCMetaContent();
 					text = compileJSON(content);
 				}
@@ -248,9 +249,10 @@ BARS.defineActions(function() {
 				}).show();
 			}
 
-			function splitIntoFrames(stride = texture.display_height) {
+			function splitIntoFrames(stride = texture.display_height, old_frames) {
 				let frames = [];
 				let frame_count = Math.ceil(texture.height / stride);
+				let has_selected = false;
 				for (let i = 0; i < frame_count; i++) {
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
@@ -265,7 +267,14 @@ BARS.defineActions(function() {
 						canvas, ctx,
 						data_url,
 					};
+					if (old_frames && old_frames[i]?.selected) {
+						frame.selected = true;
+						has_selected = true;
+					}
 					frames.push(frame);
+				}
+				if (!has_selected && frames[0]) {
+					frames[0].selected = true;
 				}
 				return frames;
 			}
@@ -390,9 +399,8 @@ BARS.defineActions(function() {
 								},
 								onConfirm(data) {
 									content_vue.stride = Math.clamp(Math.round(data.stride), 1, texture.height);
-									let new_frames = splitIntoFrames(content_vue.stride);
+									let new_frames = splitIntoFrames(content_vue.stride, content_vue.frames);
 									content_vue.frames.replace(new_frames);
-									content_vue.selected_frames.empty();
 								}
 							}).show();
 						},
@@ -658,7 +666,7 @@ BARS.defineActions(function() {
 								</div>
 								<div class="flipbook_options">
 									<label>${'FPS'}</label>
-									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+									<numeric-input v-model.number="fps" :min="1" :step="1" @input="updateFPS()" />
 									<button @click="openCode()" v-if="code_available">${tl('dialog.animated_texture_editor.code_reference')}</button>
 								</div>
 							</div>

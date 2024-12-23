@@ -65,7 +65,7 @@ class ModelFormat {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
-			scene.position.set(-8, -8, -8);
+			scene.position.set(-8, 0, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		PreviewModel.getActiveModels().forEach(model => {
@@ -256,6 +256,7 @@ class ModelFormat {
 	}
 }
 
+new Property(ModelFormat, 'string', 'node_name_regex');
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'box_uv_float_size');
@@ -279,7 +280,9 @@ new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
+new Property(ModelFormat, 'boolean', 'cullfaces');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
@@ -292,3 +295,4 @@ new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
+new Property(ModelFormat, 'boolean', 'pbr');

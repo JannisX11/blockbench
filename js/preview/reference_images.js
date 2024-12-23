@@ -303,11 +303,18 @@ class ReferenceImage {
 			this.node.style.left = pos_x + 'px';
 			this.node.style.top  = pos_y + 'px';
 
+			let offset_top = preview.node.offsetTop - this.node.offsetTop;
+			let offset_right = preview.node.clientWidth + preview.node.offsetLeft - this.node.offsetLeft;
+			let offset_bottom = preview.node.clientHeight + preview.node.offsetTop - this.node.offsetTop;
+			let offset_left = preview.node.offsetLeft - this.node.offsetLeft;
+			this.node.style.clipPath = `rect(${offset_top}px ${offset_right}px ${offset_bottom}px ${offset_left}px) view-box`;
+
 		} else {
 			this.node.style.width = this.size[0] + 'px';
 			this.node.style.height = this.size[1] + 'px';
 			this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
 			this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+			this.node.style.clipPath = '';
 		}
 		return this;
 	}
@@ -541,19 +548,26 @@ class ReferenceImage {
 	projectMouseCursor(x, y) {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
-		let image_content = this.is_video ? this.video : this.img;
-		let rect = image_content.getBoundingClientRect();
-		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
+		let rect = this.node.getBoundingClientRect();
+		let center = [rect.x + rect.width/2, rect.y + rect.height/2];
+		let local_offset = [x - center[0], y - center[1]];
+
+		let s = Math.sin(Math.degToRad(this.rotation));
+		let c = Math.cos(Math.degToRad(this.rotation));
+		let local_x = center[0] + local_offset[0] * c + local_offset[1] * s;
+		let local_y = center[1] - local_offset[0] * s + local_offset[1] * c;
+
+		if (local_x > rect.x && local_y > rect.y && local_x < rect.right && local_y < rect.bottom) {
 			// Check if not clipped behind UI
 			if (this.layer != 'float') {
 				let parent = this.node.parentElement;
 				if (!parent) return false;
 				let parent_rect = parent.getBoundingClientRect();
-				if (!(x > parent_rect.x && y > parent_rect.y && x < parent_rect.right && y < parent_rect.bottom)) return false;
+				if (!(local_x > parent_rect.x && local_y > parent_rect.y && local_x < parent_rect.right && local_y < parent_rect.bottom)) return false;
 			}
 
-			let lerp_x = Math.getLerp(rect.x, rect.right,  x);
-			let lerp_y = Math.getLerp(rect.y, rect.bottom, y);
+			let lerp_x = Math.getLerp(rect.x, rect.right,  local_x);
+			let lerp_y = Math.getLerp(rect.y, rect.bottom, local_y);
 			if (this.flip_x) lerp_x = 1 - lerp_x;
 			if (this.flip_y) lerp_y = 1 - lerp_y;
 			return [
@@ -652,7 +666,7 @@ class ReferenceImage {
 					global: 'reference_image.scope.global',
 				}},
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
-				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
+				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},

@@ -48,7 +48,7 @@ Object.assign(Blockbench, {
 			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
 				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
 			
-			if (isIOS && options.extensions && options.extensions.length > 1) {
+			if ((isIOS || Blockbench.isTouch) && options.extensions && options.extensions.length > 1) {
 				let ext_options = {};
 				options.extensions.forEach(extension => {
 					ext_options[extension] = extension;
@@ -499,12 +499,17 @@ document.body.ondrop = function(event) {
 	}
 
 	forDragHandlers(event, function(handler, el) {
-		var fileNames = event.dataTransfer.files
+		let fileNames = event.dataTransfer.files
 
-		var paths = [];
+		let paths = [];
 		if (isApp) {
-			for (var file of fileNames) {
-				if (file.path) paths.push(file.path)
+			for (let file of fileNames) {
+				if (file.path) {
+					paths.push(file.path)
+				} else if (isApp) {
+					let path = webUtils.getPathForFile(file);
+					paths.push(path);
+				}
 			}
 		} else {
 			paths = fileNames

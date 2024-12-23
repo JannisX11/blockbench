@@ -3,7 +3,7 @@ Animator.MolangParser.global_variables = {
 	true: 1,
 	false: 0,
 	get 'query.delta_time'() {
-		let time = (Date.now() - Timeline.last_frame_timecode) / 1000
+		let time = (performance.now() - Timeline.last_frame_timecode) / 1000
 		if (time < 0) time += 1
 		return Math.clamp(time, 0, 0.1)
 	},
@@ -29,6 +29,12 @@ Animator.MolangParser.global_variables = {
 			return all_finished ? 1 : 0
 		}
 		return 0
+	},
+	get 'query.state_time'() {
+		if (AnimationController.selected?.selected_state) {
+			AnimationController.selected.selected_state.getStateTime();
+		}
+		return Timeline.time
 	},
 	get 'query.any_animation_finished'() {
 		if (AnimationController.selected?.selected_state) {
@@ -355,6 +361,9 @@ function getTemporaryMolangVariables(expression, excluded) {
  */
 function sortAutocompleteResults(results, incomplete) {
 	return results.sort((a, b) => {
+		if (a.priority && b.priority) return b.priority - a.priority
+		else if (a.priority) return -1
+		else if (b.priority) return 1
 		if (a.text.startsWith(incomplete) && !b.text.startsWith(incomplete)) return -1
 		if (b.text.startsWith(incomplete) && !a.text.startsWith(incomplete)) return 1
 		return a.text.localeCompare(b.text)
@@ -364,32 +373,36 @@ function sortAutocompleteResults(results, incomplete) {
 ;(function () {
 	/**
 	 * @typedef MolangAutocompleteResult
-	 * @property {string} text
-	 * @property {string} [label]
-	 * @property {number} overlap
+	 * @property {string} text The text to insert
+	 * @property {string} [label] The label to display in the autocomplete menu
+	 * @property {number} overlap The number of characters to overlap with the incomplete string
+	 * @property {number} [priority] The suggestion priority. A higher number means it will be suggested first
 	 */
 
 	/**
 	 * @typedef RootToken
-	 * @property {string} id
-	 * @property {string[]} [arguments]
+	 * @property {string} id The ID of the new root token
+	 * @property {string[]} [arguments] The arguments of the root token
+	 * @property {number} [priority] The suggestion priority of the root token. A higher number means it will be suggested first
 	 */
 
 	/**
 	 * @typedef Query
-	 * @property {string} id
-	 * @property {string[]} [arguments]
+	 * @property {string} id The ID of the new query
+	 * @property {string[]} [arguments] The arguments of the query
+	 * @property {number} [priority] The suggestion priority of the query. A higher number means it will be suggested first
 	 */
 
 	/**
 	 * @typedef NamespaceOptions
-	 * @property {string} id
-	 * @property {string} [shorthand]
+	 * @property {string} id The ID of the new namespace
+	 * @property {string} [shorthand] The shorthand of the new namespace. Eg. `q` for `query`
+	 * @property {number} [priority] The suggestion priority of the namespace. A higher number means it will be suggested first
 	 */
 
 	MolangAutocomplete.Namespace = class Namespace {
 		/**
-		 * @type {string}
+		 * @type {string} The ID of the namespace.
 		 */
 		id
 		/**
@@ -457,6 +470,30 @@ function sortAutocompleteResults(results, incomplete) {
 		 */
 		removeQueryGetter(id) {
 			this.queryGetters.delete(id)
+		}
+
+		/**
+		 * @typedef NamespaceUnionOptions
+		 * @property {string} id The ID of the new namespace
+		 * @property {string} [shorthand] The shorthand of the new namespace. Eg. `q` for `query`
+		 * @property {number} [priority] The suggestion priority of the namespace. A higher number means it will be suggested first
+		 */
+
+		/**
+		 * Creates a new Namespace that is a union of this namespace and another
+		 * @param {Namespace} other
+		 * @param {NamespaceUnionOptions} [options] Options to override the new namespace's properties. If not provided, the new namespace will inherit this namespace's properties
+		 * @returns {Namespace} The new namespace
+		 */
+		createUnion(other, options) {
+			const union = new MolangAutocomplete.Namespace({
+				id: options?.id || this.id,
+				shorthand: options?.shorthand || this.shorthand,
+				priority: options?.priority || this.priority,
+			})
+			union.queries = new Map([...this.queries, ...other.queries])
+			union.queryGetters = new Map([...this.queryGetters, ...other.queryGetters])
+			return union
 		}
 
 		/**
@@ -570,10 +607,18 @@ function sortAutocompleteResults(results, incomplete) {
 		/**
 		 * Adds a new namespace to the context
 		 * @param {Namespace} namespace
+		 * @param {boolean} [createUnion=true] If true, will create a union of the namespace with any existing namespaces with the same ID. If false, will overwrite any existing namespaces with the same ID. (Default: true)
 		 * @returns {Context} This context
 		 */
-		addNamespace(namespace) {
-			this.namespaces.set(namespace.id, namespace)
+		addNamespace(namespace, createUnion = true) {
+			if (createUnion && this.namespaces.has(namespace.id)) {
+				this.namespaces.set(
+					namespace.id,
+					this.namespaces.get(namespace.id).createUnion(namespace)
+				)
+			} else {
+				this.namespaces.set(namespace.id, namespace)
+			}
 			return this
 		}
 
@@ -585,9 +630,17 @@ function sortAutocompleteResults(results, incomplete) {
 		 * @returns {Namespace} The namespace, or undefined if it does not exist
 		 */
 		getNamespace(namespaceID, recursive = true) {
+			if (recursive && this.inheritedContext) {
+				const subNamespace = this.inheritedContext.getNamespace(namespaceID)
+				if (this.namespaces.has(namespaceID)) {
+					const namespace = this.namespaces.get(namespaceID)
+					if (subNamespace) {
+						return namespace.createUnion(subNamespace)
+					}
+				}
+				return subNamespace
+			}
 			if (this.namespaces.has(namespaceID)) return this.namespaces.get(namespaceID)
-			if (recursive && this.inheritedContext)
-				return this.inheritedContext.getNamespace(namespaceID)
 			return undefined
 		}
 
@@ -609,21 +662,26 @@ function sortAutocompleteResults(results, incomplete) {
 		 * @returns {Namespace[]} The namespaces
 		 */
 		getPossibleNamespaces(incomplete, recursive = true) {
-			const possibleNamespaces = []
+			const possibleNamespaces = new Map()
 			this.namespaces.forEach((namespace) => {
 				if (
 					namespace.id.startsWith(incomplete) ||
 					(namespace.shorthand && namespace.shorthand.startsWith(incomplete))
 				)
-					possibleNamespaces.push(namespace)
+					possibleNamespaces.set(namespace.id, namespace)
 			})
 			if (recursive && this.inheritedContext) {
-				return [
-					...possibleNamespaces,
-					...this.inheritedContext.getPossibleNamespaces(incomplete),
-				]
+				const inheritedNamespaces = this.inheritedContext.getPossibleNamespaces(incomplete)
+				inheritedNamespaces.forEach((namespace) => {
+					if (possibleNamespaces.has(namespace.id)) {
+						const union = possibleNamespaces.get(namespace.id).createUnion(namespace)
+						possibleNamespaces.set(namespace.id, union)
+					} else {
+						possibleNamespaces.set(namespace.id, namespace)
+					}
+				})
 			}
-			return possibleNamespaces
+			return [...possibleNamespaces.values()]
 		}
 
 		/**
@@ -661,7 +719,6 @@ function sortAutocompleteResults(results, incomplete) {
 				.toLowerCase()
 			if (start.length === 0) return result
 			const [space, dir] = start.split('.').slice(-2)
-			console.log(`'${text}' => '${start}' '${space}' '${dir}'`)
 
 			const possibleRootTokens = this.getPossibleRootTokens(start)
 			possibleRootTokens.forEach((token) => {
@@ -671,6 +728,7 @@ function sortAutocompleteResults(results, incomplete) {
 						? `${token.id}( ${token.arguments.join(', ')} )`
 						: undefined,
 					overlap: start.length,
+					priority: token.priority,
 				})
 			})
 
@@ -678,8 +736,13 @@ function sortAutocompleteResults(results, incomplete) {
 			switch (possibleNamespaces.length) {
 				default:
 					possibleNamespaces.forEach((ns) => {
-						result.push({ text: ns.id, overlap: space.length })
-						if (ns.shorthand) result.push({ text: ns.shorthand, overlap: space.length })
+						result.push({ text: ns.id, overlap: space.length, priority: ns.priority })
+						if (ns.shorthand)
+							result.push({
+								text: ns.shorthand,
+								overlap: space.length,
+								priority: ns.priority,
+							})
 					})
 					return sortAutocompleteResults(result, start)
 				case 0:
@@ -688,7 +751,14 @@ function sortAutocompleteResults(results, incomplete) {
 					const namespace = possibleNamespaces[0]
 					if (!dir && !start.endsWith('.')) {
 						return sortAutocompleteResults(
-							[...result, { text: namespace.id, overlap: space.length }],
+							[
+								...result,
+								{
+									text: namespace.id,
+									overlap: space.length,
+									priority: namespace.priority,
+								},
+							],
 							start
 						)
 					}
@@ -704,6 +774,7 @@ function sortAutocompleteResults(results, incomplete) {
 											? `${q.id}( ${q.arguments.join(', ')} )`
 											: undefined,
 										overlap: dir.length,
+										priority: q.priority,
 									})),
 								],
 								dir
@@ -721,6 +792,7 @@ function sortAutocompleteResults(results, incomplete) {
 											? `${query.id}( ${query.arguments.join(', ')} )`
 											: undefined,
 										overlap: dir.length,
+										priority: query.priority,
 									},
 								],
 								dir
@@ -776,6 +848,9 @@ function sortAutocompleteResults(results, incomplete) {
 					id: 'life_time',
 				})
 				.addQuery({
+					id: 'state_time',
+				})
+				.addQuery({
 					id: 'yaw_speed',
 				})
 				.addQuery({
@@ -786,6 +861,7 @@ function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'property',
+					arguments: ['property'],
 				})
 				.addQuery({
 					id: 'has_property',
@@ -1702,7 +1778,20 @@ function sortAutocompleteResults(results, incomplete) {
 	MolangAutocomplete.AnimationControllerContext = new MolangAutocomplete.Context({
 		id: 'animationControllerContext',
 		inheritedContext: MolangAutocomplete.DefaultContext,
-	})
+	}).addNamespace(
+		new MolangAutocomplete.Namespace({
+			id: 'query',
+			shorthand: 'q',
+		})
+			.addQuery({
+				id: 'all_animations_finished',
+				priority: 100,
+			})
+			.addQuery({
+				id: 'any_animation_finished',
+				priority: 100,
+			})
+	)
 
 	MolangAutocomplete.AnimationContext = new MolangAutocomplete.Context({
 		id: 'animationContext',

@@ -3,6 +3,7 @@ var Toolbars, BarItems, Toolbox;
 class BarItem extends EventSystem {
 	constructor(id, data) {
 		super();
+		BarItem.constructing = this;
 		this.id = id;
 		if (!data.private) {
 			if (this.id && !BarItems[this.id]) {
@@ -298,6 +299,10 @@ class Action extends BarItem {
 		this.addLabel(data.label)
 		this.updateKeybindingLabel()
 
+		if (data.tool_config instanceof ToolConfig) {
+			this.tool_config = data.tool_config;
+			if (!data.side_menu) data.side_menu = data.tool_config;
+		}
 		if (data.side_menu) {
 			this.side_menu = data.side_menu;
 			this.node.classList.add('side_menu_tool');
@@ -308,6 +313,8 @@ class Action extends BarItem {
 				e.stopPropagation();
 				if (this.side_menu instanceof Menu) {
 					this.side_menu.open(e.target.parentElement);
+				} else if (this.side_menu instanceof ToolConfig) {
+					this.side_menu.show(this.node);
 				} else if (this.side_menu instanceof Dialog) {
 					this.side_menu.show();
 				}
@@ -367,6 +374,8 @@ class Action extends BarItem {
 					e.stopPropagation();
 					if (this.side_menu instanceof Menu) {
 						this.side_menu.open(e.target.parentElement);
+					} else if (this.side_menu instanceof ToolConfig) {
+						this.side_menu.show(clone);
 					} else if (this.side_menu instanceof Dialog) {
 						this.side_menu.show();
 					}
@@ -823,6 +832,25 @@ class NumSlider extends Widget {
 							this.onAfter()
 						}
 					}
+				},
+				{
+					id: 'round',
+					name: 'menu.slider.reset_vector',
+					icon: 'replay',
+					condition: this.slider_vector instanceof Array,
+					click: () => {
+						if (typeof this.onBefore === 'function') {
+							this.onBefore()
+						}
+						for (let slider of this.slider_vector) {
+							let value = slider.settings?.default ?? 0;
+							slider.change(n => value);
+							slider.update();
+						}
+						if (typeof this.onAfter === 'function') {
+							this.onAfter()
+						}
+					}
 				}
 			]).open(event);
 		});
@@ -834,15 +862,15 @@ class NumSlider extends Widget {
 				'<div class="nslide_arrow na_right"><i class="material-icons">navigate_next</i></div>'
 			)
 
-			var n = limitNumber(scope.node.clientWidth/2-24, 6, 1000)
+			var n = limitNumber(scope.node.clientWidth/2-22, 6, 1000)
 
 			scope.jq_outer.find('.nslide_arrow.na_left').click(function(e) {
 				scope.arrow(-1, e)
-			}).css('margin-left', (-n-24)+'px')
+			}).css('margin-left', (-n-22)+'px')
 
 			scope.jq_outer.find('.nslide_arrow.na_right').click(function(e) {
 				scope.arrow(1, e)
-			}).css('margin-left', n+'px')
+			}).css('margin-left', (n)+'px')
 		})
 		.on('mouseleave', function() {
 			scope.jq_outer.find('.nslide_arrow').remove()
@@ -1764,16 +1792,15 @@ const BARS = {
 		//Extras
 			new KeybindItem('preview_select', {
 				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1, ctrl: null, shift: null, alt: null})
+				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1},
+					{multi_select: 'ctrl', group_select: 'shift', loop_select: 'alt'}
+				),
+				variations: {
+					multi_select: {name: 'keybind.preview_select.multi_select'},
+					group_select: {name: 'keybind.preview_select.group_select'},
+					loop_select: {name: 'keybind.preview_select.loop_select'},
+				}
 			})
-			/*new KeybindItem('preview_select', {
-				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1}, {
-					multiple: 'ctrl',
-					range: 'shift',
-					loop: 'alt',
-				})
-			})*/
 			new KeybindItem('preview_rotate', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1})
@@ -1911,7 +1938,7 @@ const BARS = {
 					let elements = Outliner.selected.filter(element => element.setColor)
 					Undo.initEdit({outliner: true, elements: elements, selection: true})
 					Group.all.forEach(group => {
-						if (group.selected) {
+						if (group.first_selected) {
 							let lastColor = group.color
 							// Ensure chosen group color is never the same as before
 							do group.color = randomColor();
@@ -1942,7 +1969,7 @@ const BARS = {
 				category: 'file',
 				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					shell.showItemInFolder(Project.export_path || Project.save_path);
+					showItemInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('reload', {
@@ -1996,7 +2023,7 @@ const BARS = {
 						})
 					}
 					if (form.target == 'group_names') {
-						let groups = Group.selected ? Group.all.filter(g => g.selected) : Group.all;
+						let groups = Group.first_selected ? Group.all.filter(g => g.selected) : Group.all;
 						Undo.initEdit({outliner: true});
 						groups.forEach(group => {
 							group.name = replace(group.name);
@@ -2263,6 +2290,8 @@ const BARS = {
 				'color_erase_mode',
 				'lock_alpha',
 				'painting_grid',
+				'image_tiled_view',
+				'image_onion_skin_view',
 			]
 		})
 		Toolbars.vertex_snap = new Toolbar({

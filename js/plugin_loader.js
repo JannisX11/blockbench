@@ -81,6 +81,7 @@ class Plugin {
 		this.icon = '';
 		this.tags = [];
 		this.dependencies = [];
+		this.contributors = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
@@ -125,6 +126,7 @@ class Plugin {
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
+		if (data.contributors instanceof Array) this.contributors.safePush(...data.contributors);
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
@@ -264,6 +266,7 @@ class Plugin {
 
 		var scope = this;
 		function register() {
+			if (!Plugins.json[scope.id]) return;
 			jQuery.ajax({
 				url: 'https://blckbn.ch/api/event/install_plugin',
 				type: 'POST',
@@ -402,7 +405,7 @@ class Plugin {
 			Plugins.sort()
 			// Save
 			if (isApp) {
-				await new Promise((resolve) => {
+				await new Promise((resolve, reject) => {
 					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
@@ -475,6 +478,7 @@ class Plugin {
 		this.cache_version++;
 		this.unload()
 		this.tags.empty();
+		this.contributors.empty();
 		this.dependencies.empty();
 		Plugins.all.remove(this);
 		this.details = null;
@@ -620,6 +624,7 @@ class Plugin {
 			website: this.website || '',
 			repository: this.repository || '',
 			bug_tracker: this.bug_tracker || '',
+			contributors: this.contributors.join(', '),
 			author: this.author,
 			variant: this.variant == 'both' ? 'All' : this.variant,
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
@@ -723,7 +728,7 @@ Plugin.prototype.menu = new Menu([
 		icon: 'folder',
 		condition: plugin => (isApp && plugin.source == 'file'),
 		click(plugin) {
-			shell.showItemInFolder(plugin.path);
+			showItemInFolder(plugin.path);
 		}
 	},
 ]);
@@ -1096,6 +1101,9 @@ BARS.defineActions(function() {
 						Settings.saveLocalStorages();
 					}, 20);
 				},
+				openSettingInSettings(key, profile) {
+					Settings.openDialog({search_term: key, profile});
+				},
 				settingContextMenu(setting, event) {
 					new Menu([
 						{
@@ -1301,8 +1309,8 @@ BARS.defineActions(function() {
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
-						<ul class="list" id="plugin_list" ref="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, installed: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
+						<ul class="list" :class="{paginated_list: pages.length > 1}" id="plugin_list" ref="plugin_list">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -1327,7 +1335,7 @@ BARS.defineActions(function() {
 						</ol>
 					</div>
 					
-					<div id="plugin_browser_page" v-if="selected_plugin">
+					<div id="plugin_browser_page" v-if="selected_plugin" :class="{plugin_disabled: selected_plugin.disabled, plugin_installed: selected_plugin.installed}">
 						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>
@@ -1399,19 +1407,23 @@ BARS.defineActions(function() {
 						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
 						</div>
 
-						<table v-if="page_tab == 'details'" id="plugin_browser_details">
+						<table v-if="page_tab == 'details'" id="plugin_browser_details" class="plugin_browser_tabbed_page">
 							<tbody>
-								<tr>
-									<td>Author</td>
-									<td>{{ selected_plugin.getPluginDetails().author }}</td>
-								</tr>
 								<tr>
 									<td>Identifier</td>
 									<td>{{ selected_plugin.id }}</td>
 								</tr>
 								<tr>
 									<td>Version</td>
-									<td>{{ selected_plugin.details.version }}</td>
+									<td>{{ selected_plugin.version }}</td>
+								</tr>
+								<tr>
+									<td>Author</td>
+									<td>{{ selected_plugin.getPluginDetails().author }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.contributors">
+									<td>Contributors</td>
+									<td>{{ selected_plugin.details.contributors }}</td>
 								</tr>
 								<tr>
 									<td>Last updated</td>
@@ -1452,7 +1464,7 @@ BARS.defineActions(function() {
 							</tbody>
 						</table>
 
-						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog">
+						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog" class="plugin_browser_tabbed_page">
 							<li v-for="(version, key) in selected_plugin.changelog">
 								<h3>{{ version.title || key }}</h3>
 								<label class="plugin_changelog_author" v-if="version.author">{{ tl('dialog.plugins.author', [version.author]) }}</label>
@@ -1471,56 +1483,54 @@ BARS.defineActions(function() {
 							</li>
 						</ul>
 						
-						<div v-if="page_tab == 'settings'">
-							<ul class="settings_list">
-								<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
-									v-on="setting.click ? {click: setting.click} : {}"
-									@contextmenu="settingContextMenu(setting, $event)"
-								>
-									<template v-if="setting.type === 'number'">
-										<div class="setting_element"><numeric-input v-model.number="setting.ui_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
-									</template>
-									<template v-else-if="setting.type === 'click'">
-										<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
-									</template>
-									<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-										<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
-									</template>
+						<ul class="settings_list plugin_browser_tabbed_page" v-if="page_tab == 'settings'">
+							<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
+								v-on="setting.click ? {click: setting.click} : {}"
+								@contextmenu="settingContextMenu(setting, $event)"
+							>
+								<template v-if="setting.type === 'number'">
+									<div class="setting_element"><numeric-input v-model.number="setting.master_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
+								</template>
+								<template v-else-if="setting.type === 'click'">
+									<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+								</template>
+								<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+									<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
+								</template>
 
-									<div class="setting_label">
-										<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
-										<div class="setting_profile_value_indicator"
-											v-for="profile_here in getProfileValuesForSetting(key)"
-											:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
-											:class="{active: profile_here.isActive()}"
-											:title="tl('Has override in profile ' + profile_here.name)"
-											@click.stop="profile = (profile == profile_here) ? null : profile_here"
-										/>
-										<div class="setting_description">{{ setting.description }}</div>
+								<div class="setting_label">
+									<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+									<div class="setting_profile_value_indicator"
+										v-for="profile_here in getProfileValuesForSetting(key)"
+										:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+										:class="{active: profile_here.isActive()}"
+										:title="tl('Has override in profile ' + profile_here.name)"
+										@click.stop="openSettingInSettings(key, profile_here)"
+									/>
+									<div class="setting_description">{{ setting.description }}</div>
+								</div>
+
+								<template v-if="setting.type === 'text'">
+									<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.master_value" @input="changePluginSetting(setting)">
+								</template>
+
+								<template v-if="setting.type === 'password'">
+									<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.master_value" @input="changePluginSetting(setting)">
+									<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+										<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+										<i class="fas fa-eye" v-else></i>
 									</div>
+								</template>
 
-									<template v-if="setting.type === 'text'">
-										<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.ui_value" @input="changePluginSetting(setting)">
-									</template>
-
-									<template v-if="setting.type === 'password'">
-										<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.ui_value" @input="changePluginSetting(setting)">
-										<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
-											<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
-											<i class="fas fa-eye" v-else></i>
-										</div>
-									</template>
-
-									<template v-else-if="setting.type === 'select'">
-										<div class="bar_select">
-											<select-input v-model="setting.ui_value" :options="setting.options" @change="changePluginSetting"setting />
-										</div>
-									</template>
-								</li>
-							</ul>
-						</div>
+								<template v-else-if="setting.type === 'select'">
+									<div class="bar_select">
+										<select-input v-model="setting.master_value" :options="setting.options" @change="changePluginSetting"setting />
+									</div>
+								</template>
+							</li>
+						</ul>
 						
-						<ul v-if="page_tab == 'features'" class="features_list">
+						<ul v-if="page_tab == 'features'" class="features_list plugin_browser_tabbed_page">
 							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
 								<h4>{{ type.name }}</h4>
 								<ul>
@@ -1571,6 +1581,10 @@ BARS.defineActions(function() {
 			'load_plugin_from_url'
 		]),
 		click(e) {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
@@ -1593,6 +1607,10 @@ BARS.defineActions(function() {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.import({
 				resource_id: 'dev_plugin',
 				extensions: ['js'],
@@ -1606,6 +1624,10 @@ BARS.defineActions(function() {
 		icon: 'cloud_download',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})

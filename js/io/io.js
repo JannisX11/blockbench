@@ -8,6 +8,13 @@ function setupDragHandlers() {
 		}
 	)
 	Blockbench.addDragHandler(
+		'texture_set',
+		{extensions: ['texture_set.json'], propagate: true, readtype: 'image', condition: () => Format.pbr && !Dialog.open},
+		function(files, event) {
+			importTextureSet(files[0]);
+		}
+	)
+	Blockbench.addDragHandler(
 		'reference_image',
 		{extensions: ReferenceImage.supported_extensions, propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
@@ -147,7 +154,7 @@ async function loadImages(files, event) {
 			let new_textures = [];
 			Undo.initEdit({textures: new_textures});
 			files.forEach(function(f, i) {
-				let tex = new Texture().fromFile(f).add().fillParticle();
+				let tex = new Texture().fromFile(f).add(false, true).fillParticle();
 				new_textures.push(tex);
 				if (Format.image_editor && i == 0) {
 					tex.select();
@@ -676,7 +683,7 @@ BARS.defineActions(function() {
 						Blockbench.showQuickMessage('message.invalid_link')
 					})
 				}
-			}, 'https://blckbn.ch/123abc')
+			}, {placeholder: 'https://blckbn.ch/123abc'});
 		}
 	})
 	new Action('extrude_texture', {

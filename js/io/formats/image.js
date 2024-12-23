@@ -1,6 +1,7 @@
 (function() {
 
 let codec = new Codec('image', {
+	name: tl('format.name'),
 	extension: 'png',
 	remember: true,
 	load_filter: {
@@ -87,11 +88,42 @@ let codec = new Codec('image', {
 			icon: Format.icon
 		});
 		updateRecentProjectThumbnail();
+	},
+	export_options: {
+		format: {type: 'select', label: 'codec.common.format', options: {
+			png: 'PNG',
+			jpeg: 'JPEG',
+			webp: 'WebP',
+		}},
+		quality: {type: 'range', label: 'codec.image.quality', value: 1, min: 0, max: 1, step: 0.05, editable_range_label: true, condition: (result) => result?.format != 'png'}
+	},
+	compile(options) {
+		options = Object.assign(this.getExportOptions(), options);
+		let texture = Texture.getDefault();
+		if (!texture) return;
+		
+		let encoding = 'image/'+(options.format??'png');
+		let data_url = texture.canvas.toDataURL(encoding, options.quality);
+		return data_url;
+	},
+	async export() {
+		let options = await this.promptExportOptions();
+		if (options === null) return;
+		let content = this.compile();
+		Blockbench.export({
+			resource_id: 'image',
+			type: 'Image',
+			extensions: [this.getExportOptions().format],
+			name: this.fileName(),
+			savetype: 'image',
+			content,
+		}, path => this.afterDownload(path));
+	},
+	write(content, path) {
+		Blockbench.writeFile(path, {content, savetype: 'image'}, path => this.afterSave(path));
 	}
 })
-codec.compile = null;
 codec.parse = null;
-codec.export = null;
 
 Codecs.project.on('parsed', () => {
 	if (Texture.all[0] && !Texture.selected) {
@@ -100,7 +132,7 @@ Codecs.project.on('parsed', () => {
 	}
 })
 
-new ModelFormat('image', {
+let format = new ModelFormat('image', {
 	icon: 'image',
 	category: 'general',
 	show_on_start_screen: true,
@@ -176,6 +208,19 @@ new ModelFormat('image', {
 		Panels.textures.handle.firstChild.textContent = tl('panel.textures');
 	},
 	codec
+})
+codec.format = format;
+
+BARS.defineActions(function() {
+	codec.export_action = new Action({
+		id: 'export_image',
+		icon: 'panorama',
+		category: 'file',
+		condition: () => Format == format && Texture.all.length,
+		click: function () {
+			codec.export();
+		}
+	})
 })
 
 })()

@@ -153,6 +153,7 @@ var codec = new Codec('collada', {
 			down: [0, -1, 0],
 		}
 		Cube.all.forEach(cube => {
+			if (!cube.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -357,6 +358,7 @@ var codec = new Codec('collada', {
 
 		// Mesh Geo
 		Mesh.all.forEach(mesh => {
+			if (!mesh.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -585,6 +587,7 @@ var codec = new Codec('collada', {
 			}
 			if (node instanceof Group) {
 				node.children.forEach(node => {
+					if (node.export === false) return;
 					tag.content.push(processNode(node));
 				})
 			}
@@ -592,6 +595,7 @@ var codec = new Codec('collada', {
 		}
 
 		Outliner.root.forEach(node => {
+			if (node.export === false) return;
 			root.push(processNode(node))
 		})
 

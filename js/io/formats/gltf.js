@@ -214,7 +214,7 @@ function buildSkinnedMesh(root_group, scale) {
 				if (face.texture === null) continue;
 				let tex = face.getTexture();
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[child.color])
 				}
@@ -229,8 +229,8 @@ function buildSkinnedMesh(root_group, scale) {
 		let bone = new THREE.Bone();
 		bone.name = group.name;
 		bone.uuid = group.mesh.uuid;
-		let parent_offset = THREE.fastWorldPosition(group.mesh.parent, Reusable.vec3);
-		THREE.fastWorldPosition(group.mesh, bone.position).sub(parent_offset);
+		bone.position.copy(group.mesh.position);
+		bone.rotation.copy(group.mesh.rotation)
 		if (group == root_group) {
 			bone.position.set(0, 0, 0);
 		}
@@ -310,6 +310,7 @@ function buildSkinnedMesh(root_group, scale) {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
+	support_partial_export: true,
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
@@ -334,7 +335,6 @@ var codec = new Codec('gltf', {
 			Outliner.root.forEach(node => {
 				if (node instanceof Group) {
 					let armature = buildSkinnedMesh(node, options.scale);
-					console.log(armature)
 					gl_scene.add(armature);
 				} else {
 					gl_scene.add(node.mesh);

@@ -451,6 +451,7 @@
 		cursor: default;
 		float: left;
 		color: var(--color-text);
+		flex-shrink: 0;
 	}
 	.tool i {
 		display: block;
@@ -709,6 +710,9 @@
 	.contextMenu li > span {
 		pointer-events: none;
 		flex: 1 0 auto;
+	}
+	.contextMenu li.marked > span {
+		text-decoration: underline;
 	}
 	.contextMenu li.parent.focused > .contextMenu.sub {
 		display: block;

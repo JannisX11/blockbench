@@ -49,8 +49,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
 			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
 			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
-			if (condition.selected.group === true && !Group.selected) return false;
-			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.group === true && !Group.first_selected) return false;
+			if (condition.selected.group === false && Group.first_selected) return false;
 			if (condition.selected.texture === true && !Texture.selected) return false;
 			if (condition.selected.texture === false && Texture.selected) return false;
 			if (condition.selected.element === true && !Outliner.selected.length) return false;
@@ -65,8 +65,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.null_object === false && NullObject.selected.length) return false;
 			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
 			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
-			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
-			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.first_selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.first_selected)) return false;
 		}
 		if (condition.project && !Project) return false;
 
@@ -165,6 +165,16 @@ function removeEventListeners(el, events, func, option) {
 		el.removeEventListener(e, func, option)
 	})
 }
+function getStringWidth(string, size) {
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
+	if (size && size !== 16) {
+		node.style.fontSize = size + 'pt';
+	}
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
+	return width + 1;
+};
 
 function patchedAtob(base64) {
 	if (typeof Buffer == 'function') {
@@ -399,8 +409,10 @@ var Merge = {
 		}
 	},
 	molang(obj, source, index) {
-		if (['string', 'number'].includes(typeof source[index])) {
+		if (typeof source[index] == 'string') {
 			obj[index] = source[index];
+		} else if (typeof source[index] == 'number') {
+			obj[index] = source[index].toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
@@ -479,6 +491,17 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+
+// HTML
+function isNodeUnderCursor(node, event) {
+	if (!node) return;
+	let rect = node.getBoundingClientRect();
+	return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right+1, rect.bottom+1]);
+}
+function findNodeUnderCursor(selector, event) {
+	return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isNodeUnderCursor(node, event));
+}
+
 
 //Color
 tinycolor.prototype.toInt = function() {

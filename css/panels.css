@@ -111,7 +111,7 @@
 	.panel.fixed_height {
 		flex-grow: 0;
 	}
-	.panel.bottommost_panel {
+	.panel.bottommost_panel:not(.topmost_panel) {
 		margin-top: auto;
 	}
 
@@ -363,6 +363,10 @@
 		flex-grow: 1;
 		margin-top: 6px;
 	}
+	.bar.display_inline_inputs {
+		display: flex;
+		gap: 1px;
+	}
 
 	input#preset_name {
 		background-color: var(--color-back);
@@ -438,6 +442,8 @@
 		width: 100%;
 		padding: 2px;
 		box-sizing: border-box;
+	}
+	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
 	}
 	.outliner_object:active {
@@ -468,6 +474,7 @@
 	}
 	#cubes_list .outliner_line_guide {
 		position: absolute;
+		left: calc(var(--indentation) * var(--indentation-offset) - 1px);
 		top: -4px;
 		bottom: 4px;
 		width: 4px;
@@ -577,6 +584,72 @@
 	#options .bar .nslide, #options .bar .tool.wide {
 		width: 83px;
 	}
+/*Collections*/
+	.collection {
+		display: flex;
+		padding: 2px 10px;
+		gap: 5px;
+		align-items: center;
+		position: relative;
+	}
+	.collection:active {
+		background-color: var(--color-ui);
+	}
+	.collection:hover {
+		color: var(--color-light);
+	}
+	.collection.selected {
+		color: var(--color-light);
+		background-color: var(--color-selected);
+	}
+	.collection.drag_hover::before {
+		content: '';
+		display: block;
+		position: absolute;
+		background: var(--color-accent);
+		width: 5px;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		margin-left: 0;
+		border-top-right-radius: 4px;
+		border-bottom-right-radius: 4px;
+		z-index: 7;
+	}
+	.collection > i {
+		width: 25px;
+		max-width: unset;
+	}
+	.collection_center_wrapper {
+		height: 48px;
+		flex-grow: 1;
+		overflow: hidden;
+	}
+	.collection_center_wrapper > label {
+		padding-left: 5px;
+	}
+	.collection_content_list {
+		display: flex;
+		gap: 4px;
+	}
+	.collection_content_list > li {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		border-radius: 10px;
+    	background-color: var(--color-ui);
+		height: 22px;
+		padding: 0 7px;
+	}
+	.collection_content_list > li > i {
+		scale: 0.9;
+	}
+	.collection_content_list > li > i.fa_big {
+		transform-origin: bottom;
+	}
+	.collection i.toggle_disabled {
+		color: var(--color-subtle_text);
+	}
 
 /*Textures*/
 	#texture_list {
@@ -609,7 +682,8 @@
 	.texture > i.icon_off.clickable:hover {
 		color: var(--color-text);
 	}
-	.texture > i:not(.clickable) {
+	.texture > i:not(.clickable),
+	.texture_group_material_config > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
@@ -622,6 +696,7 @@
 		flex-shrink: 0;
 		overflow: hidden;
 		position: relative;
+		pointer-events: none;
 	}
 	.texture.selected img.texture_icon {
 		margin-top: 0;
@@ -686,12 +761,10 @@
 	}
 	.texture_error {
 		position: absolute;
-		color: red;
+		color: var(--color-error);
 		margin-left: 21px;
 		margin-top: 21px;
 		text-shadow: 0 0 5px #000;
-		font-size: 20pt;
-		left: 0;
 	}
 	.texture_movie {
 		position: absolute;
@@ -725,6 +798,11 @@
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
 	}
+	.pbr_channel_icon {
+		position: absolute;
+		left: -17px;
+		z-index: 1;
+	}
 	
 	.texture_group {
 		padding-bottom: 4px;
@@ -746,6 +824,14 @@
 		margin-top: 4px;
 		flex-shrink: 0;
 	}
+	.texture_group_head .texture_group_material_icon {
+		height: 20px;
+		width: 20px;
+		margin-top: 2px;
+		border-radius: 50%;
+		background: rgb(108,174,235);
+		background: linear-gradient(137deg, rgba(108, 174, 235, 1) 0%, rgb(198 55 215) 100%);
+	}
 	.texture_group_head > label {
 		flex-shrink: 1;
 		overflow: hidden;
@@ -765,6 +851,7 @@
 		margin-left: 4px;
 		max-width: 36%;
 		overflow: hidden;
+		padding-right: 7px;
 	}
 	.texture_group_mini_icon_list > .texture_mini_icon {
 		width: 24px;
@@ -781,6 +868,22 @@
 		margin-left: 14px;
 		padding-left: 6px;
 		border-left: 2px solid var(--color-guidelines);
+	}
+	.texture_group_material_config {
+		display: flex;
+		align-items: center;
+		height: 30px;
+		padding: 4px 8px;
+		gap: 3px;
+	}
+	.texture_group_material_config i:first-child {
+		width: 50px;
+		max-width: unset;
+		text-align: center;
+	}
+	.texture_group_material_config label {
+		width: 0;
+		flex-grow: 1;
 	}
 
 	#texture_animation_playback {
@@ -1365,7 +1468,7 @@
 		width: 144px;
 		flex-shrink: 0;
 		background-color: var(--color-back);
-		z-index: 4;
+		z-index: 6;
 		border-bottom: 1px solid var(--color-border);
 		height: calc(100% + 1px);
 	}
@@ -1479,6 +1582,9 @@
 		flex-wrap: wrap;
 		justify-content: flex-end;
 	}
+	.drag_hover[order]::before {
+		z-index: 7;
+	}
 	.channel_axis_selector {
 		height: 26px;
 		margin-right: 1px;
@@ -1500,7 +1606,7 @@
 	#timeline_body li > .animator_head_bar .channel_head:hover {
 		color: var(--color-light);
 	}
-	#timeline_body li > .animator_channel_bar .channel_head {
+	body:not(.is_mobile) #timeline_body li > .animator_channel_bar .channel_head {
 		padding-left: 16px;
 	}
 	.animator.selected .channel_head {
@@ -1573,7 +1679,6 @@
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
-		pointer-events: initial;
 	}
 	.keyframe .keyframe_waveform > polygon:hover {
 		fill: var(--color-accent);
@@ -1818,6 +1923,17 @@
 .controller_transition .controller_item_drag_handle {
 	background-color: var(--color-marker);
 }
+.blend_transition_curve_button {
+    margin-left: 4px;
+    cursor: pointer;
+    display: flex;
+    width: 42px;
+    justify-content: start;
+    align-items: center;
+}
+.blend_transition_curve_button > span {
+    color: var(--color-subtle_text);
+}
 span.controller_state_section_info {
     margin: 0 8px;
     color: var(--color-subtle_text);
@@ -2058,7 +2174,8 @@ span.controller_state_section_info {
 		pointer-events: none;
 	}
 
-	body[mode=paint] #uv_frame {
+	body[mode=paint] #uv_frame,
+	body[mode=paint] #uv_viewport.tiled_mode {
 		cursor: crosshair;
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas,
@@ -2071,6 +2188,19 @@ span.controller_state_section_info {
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=tiled] {
+		width: 300%;
+		height: 300%;
+		margin-top: calc(-1 * var(--inner-height));
+		margin-left: calc(-1 * var(--inner-width));
+	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=onion_skin] {
+		width: 100%;
+		height: 100%;
+	}
+	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas.above {
+		z-index: 1;
 	}
 	/* Fix in Firefox + iPadOS */
 	#uv_frame_spacer {
@@ -2088,6 +2218,8 @@ span.controller_state_section_info {
 		left: 0;
 		object-fit: cover;
 		object-position: 0 0;
+		margin: -1px;
+		border: 1px solid var(--color-grid);
 	}
 	#uv_texture_grid path {
 		fill: none;
@@ -2194,6 +2326,24 @@ span.controller_state_section_info {
 		font-size: 16px;
 		padding-top: 2px;
 	}
+	.uv_navigator {
+		position: fixed;
+		height: 25px;
+		width: 25px;
+		cursor: pointer;
+		z-index: 16;
+		border-radius: 50%;
+		color: var(--color-accent);
+		padding: 1px;
+	}
+	.uv_navigator:hover {
+		color: var(--color-light);
+	}
+	.uv_navigator > .icon {
+		transform-origin: center;
+		transform: rotate(var(--rotation));
+		text-shadow: 1px 1px 2px black;
+	}
 	#uv_selection_outline {
 		--color-selection-outline-a: black;
 		--color-selection-outline-b: white;
@@ -2261,6 +2411,7 @@ span.controller_state_section_info {
 		flex-grow: 1;
 		flex-shrink: 1;
 		width: 50px;
+		overflow: hidden;
 	}
 	.uv_face_properties_labels label > i {
 		vertical-align: top;

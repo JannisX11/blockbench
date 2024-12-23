@@ -433,14 +433,20 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	select() {
-		var scope = this;
 		Prop.active_panel = 'animations';
+		let previous_animation = Animation.selected;
 		if (this == Animation.selected) return;
-		var selected_bone = Group.selected;
 		AnimationItem.all.forEach((a) => {
 			a.selected = false;
 			if (a.playing == true) a.playing = false;
 		})
+		let animator_keys = previous_animation && Object.keys(previous_animation.animators);
+		let selected_animator_key;
+		let timeline_animator_keys = previous_animation && Timeline.animators.map(a => {
+			let key = animator_keys.find(key => previous_animation.animators[key] == a);
+			if (a.selected) selected_animator_key = key;
+			return key;
+		});
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
@@ -453,15 +459,21 @@ class Animation extends AnimationItem {
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
-			scope.getBoneAnimator(group);
+			this.getBoneAnimator(group);
 		})
 		Outliner.elements.forEach(element => {
 			if (!element.constructor.animator) return;
-			scope.getBoneAnimator(element);
+			this.getBoneAnimator(element);
 		})
 
-		if (selected_bone) {
-			selected_bone.select();
+		if (timeline_animator_keys) {
+			timeline_animator_keys.forEachReverse(key => {
+				let animator = this.animators[key];
+				if (animator) {
+					animator.addToTimeline();
+					if (selected_animator_key == key) animator.select(false);
+				}
+			});
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -506,7 +518,7 @@ class Animation extends AnimationItem {
 		if (check(this.name)) {
 			return this.name;
 		}
-		for (var num = 2; num < 8e3; num++) {
+		for (var num = 2; num < 8e2; num++) {
 			if (check(name+num)) {
 				scope.name = name+num;
 				return scope.name;
@@ -551,8 +563,8 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	getBoneAnimator(group) {
-		if (!group && Group.selected) {
-			group = Group.selected;
+		if (!group && Group.first_selected) {
+			group = Group.first_selected;
 		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			group = Outliner.selected[0];
 		} else if (!group) {
@@ -829,10 +841,36 @@ class Animation extends AnimationItem {
 			icon: 'folder',
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
-				shell.showItemInFolder(animation.path);
+				showItemInFolder(animation.path);
+			}
+		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
 			}
 		},
 		'rename',
+		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			click(animation) {
+				Blockbench.read([animation.path], {}, ([file]) => {
+					Undo.initEdit({animations: [animation]})
+					let anim_index = Animation.all.indexOf(animation);
+					animation.remove(false, false);
+					let [new_animation] = Animator.loadFile(file, [animation.name]);
+					Animation.all.remove(new_animation);
+					Animation.all.splice(anim_index, 0, new_animation);
+					Undo.finishEdit('Reload animation', {animations: [new_animation]})
+				})
+			}
+		},
 		{
 			id: 'unload',
 			name: 'menu.animation.unload',
@@ -852,18 +890,10 @@ class Animation extends AnimationItem {
 	])
 	Animation.prototype.file_menu = new Menu([
 		{name: 'menu.animation_file.unload', icon: 'remove', click(id) {
-			let animations_to_remove = [];
-			let controllers_to_remove = [];
-			AnimationItem.all.forEach(animation => {
-				if (animation.path == id && animation.saved) {
-					if (animation instanceof AnimationController) {
-						controllers_to_remove.push(animation);
-					} else {
-						animations_to_remove.push(animation);
-					}
-				}
-			})
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
 			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
 			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
 			animations_to_remove.forEach(animation => {
 				animation.remove(false, false);
@@ -872,6 +902,34 @@ class Animation extends AnimationItem {
 				animation.remove(false, false);
 			})
 			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
+		}},
+		{name: 'menu.animation.reload', icon: 'refresh', click(id) {
+			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
+			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
+			if (!animations_to_remove.length && !controllers_to_remove.length) return;
+
+			Undo.initEdit({animations: animations_to_remove, animation_controllers: controllers_to_remove});
+			let names = [];
+			let selected_name = AnimationItem.selected?.name;
+			animations_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+			controllers_to_remove.forEach(animation => {
+				names.push(animation.name);
+				animation.remove(false, false);
+			})
+
+			Blockbench.read([id], {}, ([file]) => {
+				let new_animations = Animator.loadFile(file, names);
+				let selected = new_animations.find(item => item.name == selected_name);
+				if (selected) selected.select();
+				if (new_animations[0] instanceof AnimationController) {
+					Undo.finishEdit('Reload animation controller file', {animation_controllers: new_animations, animations: []});
+				} else {
+					Undo.finishEdit('Reload animation file', {animations: new_animations, animation_controllers: []});
+				}
+			})
 		}},
 		{name: 'menu.animation_file.import_remaining', icon: 'playlist_add', click(id) {
 			Blockbench.read([id], {}, files => {
@@ -1677,18 +1735,47 @@ BARS.defineActions(function() {
 			if (!form_result) return;
 			Undo.initEdit({animations: [animation]});
 
+			let temp_animators = {};
+
+			function copyAnimator(target, source) {
+				for (let channel in target.channels) {
+					target[channel].splice(0, Infinity, ...source[channel]);
+					for (let kf of target[channel]) {
+						kf.animator = target;
+					}
+				}
+				target.rotation_global = source.rotation_global;
+			}
+			function resetAnimator(animator) {
+				for (let channel in animator.channels) {
+					animator[channel].empty();
+				}
+				animator.rotation_global = false;
+			}
+
 			for (let animator of all_animators) {
 				if (animator == '_') continue;
 
-				let new_target = form_result[animator.uuid];
-				if (new_target == animator.uuid) continue;
+				let target_uuid = form_result[animator.uuid];
+				if (target_uuid == animator.uuid) continue;
+				let target_animator = animation.animators[target_uuid];
 
-				delete animation.animators[animator.uuid];
-				animation.animators[new_target] = animator;
-				animator.uuid = new_target;
+				if (!temp_animators[target_uuid]) {
+					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
+					copyAnimator(temp_animators[target_uuid], target_animator);
+				}
+				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
+				
+				// Reset animator
+				if (!temp_animators[animator.uuid]) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+					resetAnimator(animator)
+				}
 			}
 
 			Undo.finishEdit('Retarget animations');
+			Animator.preview();
 		}
 	})
 })
@@ -2072,181 +2159,5 @@ Interface.definePanels(function() {
 			'paste',
 			'save_all_animations',
 		])
-	})
-
-	new Panel('variable_placeholders', {
-		icon: 'fas.fa-stream',
-		condition: {modes: ['animate']},
-		growable: true,
-		resizable: true,
-		default_position: {
-			slot: 'left_bar',
-			float_position: [0, 0],
-			float_size: [300, 400],
-			height: 400
-		},
-		component: {
-			name: 'panel-placeholders',
-			components: {VuePrismEditor},
-			data() { return {
-				text: '',
-				buttons: []
-			}},
-			methods: {
-				updateButtons() {
-					let old_values = {};
-					this.buttons.forEach(b => old_values[b.id] = b.value);
-					this.buttons.empty();
-
-					let text = this.text//.toLowerCase();
-					let matches = text.matchAll(/(slider|toggle|impulse)\(.+\)/gi);
-
-					for (let match of matches) {
-						let [type, content] = match[0].substring(0, match[0].length - 1).split(/\(/);
-						let [id, ...args] = content.split(/\(|, */);
-						id = id.replace(/['"]/g, '');
-						if (this.buttons.find(b => b.id == id)) return;
-
-						let variable = text.substring(0, match.index).match(/[\w.-]+ *= *$/);
-						variable = variable ? variable[0].replace(/[ =]+/g, '').replace(/^v\./i, 'variable.').replace(/^q\./i, 'query.').replace(/^t\./i, 'temp.').replace(/^c\./i, 'context.') : undefined;
-
-						if (type == 'slider') {
-							this.buttons.push({
-								type,
-								id,
-								value: old_values[id] || 0,
-								variable,
-								step: isNaN(args[0]) ? undefined : parseFloat(args[0]),
-								min: isNaN(args[1]) ? undefined : parseFloat(args[1]),
-								max: isNaN(args[2]) ? undefined : parseFloat(args[2])
-							})
-						} else if (type == 'toggle') {
-							this.buttons.push({
-								type,
-								id,
-								value: old_values[id] || 0,
-								variable,
-							})
-						} else if (type == 'impulse') {
-							this.buttons.push({
-								type,
-								id,
-								value: 0,
-								variable,
-								duration: parseFloat(args[0]) || 0.1
-							})
-						}
-					}
-				},
-				changeButtonValue(button, event) {
-					if (button.type == 'toggle') {
-						button.value = event.target.checked ? 1 : 0;
-					}
-					if (button.type == 'impulse') {
-						button.value = 1;
-						setTimeout(() => {
-							button.value = 0;
-						}, Math.clamp(button.duration, 0, 1) * 1000);
-					}
-					if (button.variable) {
-						delete Animator.MolangParser.variables[button.variable];
-					}
-					Animator.preview();
-				},
-				slideButton(button, e1) {
-					convertTouchEvent(e1);
-					let last_event = e1;
-					let started = false;
-					let move_calls = 0;
-					let last_val = 0;
-					let total = 0;
-					let clientX = e1.clientX;
-					function start() {
-						started = true;
-						if (!e1.touches && last_event == e1 && e1.target.requestPointerLock) e1.target.requestPointerLock();
-					}
-		
-					function move(e2) {
-						convertTouchEvent(e2);
-						if (!started && Math.abs(e2.clientX - e1.clientX) > 5) {
-							start()
-						}
-						if (started) {
-							if (e1.touches) {
-								clientX = e2.clientX;
-							} else {
-								let limit = move_calls <= 2 ? 1 : 100;
-								clientX += Math.clamp(e2.movementX, -limit, limit);
-							}
-							let val = Math.round((clientX - e1.clientX) / 45);
-							let difference = (val - last_val);
-							if (!difference) return;
-							if (button.step) {
-								difference *= button.step;
-							} else {
-								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
-							}
-
-							
-							button.value = Math.clamp(Math.roundTo((parseFloat(button.value) || 0) + difference, 4), button.min, button.max);
-
-							last_val = val;
-							last_event = e2;
-							total += difference;
-							move_calls++;
-
-							Animator.preview()
-							Blockbench.setStatusBarText(trimFloatNumber(total));
-						}
-					}
-					function off(e2) {
-						if (document.exitPointerLock) document.exitPointerLock()
-						removeEventListeners(document, 'mousemove touchmove', move);
-						removeEventListeners(document, 'mouseup touchend', off);
-					}
-					addEventListeners(document, 'mouseup touchend', off);
-					addEventListeners(document, 'mousemove touchmove', move);
-				},
-				autocomplete(text, position) {
-					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
-					return test;
-				}
-			},
-			watch: {
-				text(text) {
-					if (Project && typeof text == 'string') {
-						Project.variable_placeholders = text;
-						this.updateButtons();
-						Project.variable_placeholder_buttons.replace(this.buttons);
-					}
-				}
-			},
-			template: `
-				<div style="flex-grow: 1; display: flex; flex-direction: column; overflow: visible;">
-
-					<ul id="placeholder_buttons">
-						<li v-for="button in buttons" :key="button.id" :class="{placeholder_slider: button.type == 'slider'}" @click="button.type == 'impulse' && changeButtonValue(button, $event)" :buttontype="button.type">
-							<i v-if="button.type == 'impulse'" class="material-icons">play_arrow</i>
-							<input v-if="button.type == 'toggle'" type="checkbox" class="tab_target" :value="button.value == 1" @change="changeButtonValue(button, $event)" :id="'placeholder_button_'+button.id">
-							<numeric-input v-if="button.type == 'slider'" class="dark_bordered tab_target" :step="button.step" :min="button.min" :max="button.max" v-model="button.value" @input="changeButtonValue(button, $event)" />
-							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
-						</li>
-					</ul>
-
-					<p>${tl('panel.variable_placeholders.info')}</p>
-
-					<vue-prism-editor
-						id="var_placeholder_area"
-						class="molang_input tab_target capture_tab_key"
-						v-model="text"
-						language="molang"
-						:autocomplete="autocomplete"
-						:line-numbers="false"
-						style="flex-grow: 1;"
-						onkeyup="Animator.preview()"
-					/>
-				</div>
-			`
-		}
 	})
 })

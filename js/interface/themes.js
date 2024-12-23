@@ -193,6 +193,9 @@ const CustomTheme = {
 					},
 					getThemeThumbnailStyle(theme) {
 						let style = {};
+						for (let key in CustomTheme.defaultColors) {
+							style[`--color-${key}`] = CustomTheme.defaultColors[key];
+						}
 						for (let key in theme.colors) {
 							style[`--color-${key}`] = theme.colors[key];
 						}
@@ -325,7 +328,8 @@ const CustomTheme = {
 						<div v-if="open_category == 'css'">
 							<h2 class="i_b">${tl('layout.css')}</h2>
 							<div id="css_editor">
-								<vue-prism-editor v-model="data.css" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
+								<p v-if="data.css && data.css.length > 65000">Hidden due to performance limitations of the built-in CSS editor</p>
+								<vue-prism-editor v-else v-model="data.css" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
 							</div>
 	
 						</div>
@@ -442,7 +446,7 @@ const CustomTheme = {
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.color, '--color-brush-outline');
+			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();

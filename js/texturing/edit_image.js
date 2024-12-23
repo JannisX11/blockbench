@@ -19,13 +19,13 @@ BARS.defineActions(function() {
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
-				texture.edit((canvas) => {
-
+				texture.edit((canvas, env) => {
+					let copy_canvas = Painter.copyCanvas(canvas);
 					let ctx = canvas.getContext('2d');
-					texture.selection.maskCanvas(ctx);
-					ctx.clearRect(0, 0, texture.width, texture.height);
+					texture.selection.maskCanvas(ctx, env.offset);
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.filter = 'invert(1)';
-					ctx.drawImage(texture.img, 0, 0);
+					ctx.drawImage(copy_canvas, 0, 0);
 					ctx.restore();
 
 				}, {no_undo: true});
@@ -39,8 +39,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -59,21 +59,23 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
-									texture.selection.maskCanvas(ctx);
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									} else {
 										ctx.filter = `brightness(1.0) contrast(1.0)`;
 									}
-									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.drawImage(original_canvases[i], 0, 0);
 									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})
@@ -132,8 +134,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -152,21 +154,23 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
-									texture.selection.maskCanvas(ctx);
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									} else {
 										ctx.filter = `brightness(1.0)`;
 									}
-									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.drawImage(original_canvases[i], 0, 0);
 									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})
@@ -226,8 +230,8 @@ BARS.defineActions(function() {
 		click() {
 			let textures = getTextures();
 			let original_image_data = textures.map(tex => {
-				let canvas = Painter.getCanvas(tex);
-				let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+				let {canvas, ctx} = tex.getActiveCanvas();
+				let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				image_data.original_data = image_data.data.slice();
 				return image_data;
 			})
@@ -338,13 +342,13 @@ BARS.defineActions(function() {
 							}
 
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, {offset}) => {
 									let ctx = canvas.getContext('2d');
 									let image_data = original_image_data[i];
 
 									if (this.preview_changes) {
 										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											
 											let R = image_data.original_data[i+0]
 											let G = image_data.original_data[i+1]
@@ -366,7 +370,7 @@ BARS.defineActions(function() {
 										}
 									} else {
 										for (let i = 0; i < image_data.data.length; i += 4) {
-											if (!texture.selection.allow((i/4) % image_data.width, Math.floor((i/4) / image_data.width))) continue;
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											image_data.data[i+0] = image_data.original_data[i+0];
 											image_data.data[i+1] = image_data.original_data[i+1];
 											image_data.data[i+2] = image_data.original_data[i+2];
@@ -507,8 +511,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -526,27 +530,29 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
 									ctx.save();
-									texture.selection.maskCanvas(ctx);
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `opacity(${this.opacity}%)`;
-										ctx.drawImage(original_imgs[i], 0, 0);
+										ctx.drawImage(original_canvases[i], 0, 0);
 										if (this.opacity > 100 && this.preview_changes) {
 											ctx.filter = `opacity(${this.opacity-100}%)`;
-											ctx.drawImage(original_imgs[i], 0, 0);
+											ctx.drawImage(original_canvases[i], 0, 0);
 										}
 									} else {
 										ctx.filter = `opacity(100%)`;
-										ctx.drawImage(original_imgs[i], 0, 0);
+										ctx.drawImage(original_canvases[i], 0, 0);
 									}
 									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})

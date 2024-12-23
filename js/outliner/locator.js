@@ -42,7 +42,7 @@ class Locator extends OutlinerElement {
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
-			this.addTo(Group.selected)
+			this.addTo(Group.first_selected)
 		}
 		super.init();
 		return this;
@@ -78,7 +78,7 @@ class Locator extends OutlinerElement {
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
 	Locator.prototype.icon = 'fa-anchor';
-	Locator.prototype.name_regex = 'a-z0-9_'
+	Locator.prototype.name_regex = () => Format.node_name_regex ?? 'a-zA-Z0-9_',
 	Locator.prototype.movable = true;
 	Locator.prototype.rotatable = true;
 	Locator.prototype.visibility = true;
@@ -193,7 +193,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var locator = new Locator().addTo(Group.selected||selected[0]).init();
+			var locator = new Locator().addTo(Group.first_selected||selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('Add locator');

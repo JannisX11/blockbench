@@ -271,7 +271,8 @@ const Templates = {
 				}
 			}`,
 		field: `private final ModelPart %(bone);`,
-		model_part: `this.%(bone) = root.getChild("%(bone)");`,
+		model_part: `?(has_no_parent)this.%(bone) = root.getChild("%(bone)");
+			?(has_parent)this.%(bone) = this.%(parent).getChild("%(bone)");`,
 		bone:
 			`?(has_no_parent)PartDefinition %(bone) = partdefinition.addOrReplaceChild("%(bone)", CubeListBuilder.create()
 			?(has_parent)PartDefinition %(bone) = %(parent).addOrReplaceChild("%(bone)", CubeListBuilder.create()
@@ -312,7 +313,8 @@ const Templates = {
 				}
 			}`,
 		field: `private final ModelPart %(bone);`,
-		model_part: `this.%(bone) = root.getChild("%(bone)");`,
+		model_part: `?(has_no_parent)this.%(bone) = root.getChild("%(bone)");
+					?(has_parent)this.%(bone) = this.%(parent).getChild("%(bone)");`,
 		bone:
 			`?(has_no_parent)ModelPartData %(bone) = modelPartData.addChild("%(bone)", ModelPartBuilder.create()
 			?(has_parent)ModelPartData %(bone) = %(parent).addChild("%(bone)", ModelPartBuilder.create()
@@ -421,6 +423,7 @@ var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'text',
 		extensions: ['java']
@@ -433,6 +436,7 @@ var codec = new Codec('modded_entity', {
 		let all_groups = getAllGroups();
 		let loose_cubes = [];
 		Cube.all.forEach(cube => {
+			if (cube.export == false) return;
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
@@ -446,6 +450,7 @@ var codec = new Codec('modded_entity', {
 		}
 
 		all_groups.slice().forEach(group => {
+			if (group.export == false) return;
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
@@ -609,7 +614,12 @@ var codec = new Codec('modded_entity', {
 				if (group.is_rotation_subgroup) continue;
 				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let modelPart = snippet
-					.replace(R('bone'), group.name);
+					.replace(R('bone'), group.name)
+					.replace(/\t+/, '')
+					.replace(/(?:\n|^)\?\(has_parent\).+/, group.parent instanceof Group ? Templates.keepLine : '')
+					.replace(/(?:\n|^)\?\(has_no_parent\).+/, group.parent instanceof Group ? '' : Templates.keepLine)
+					.trim()
+					.replace(R('parent'), group.parent.name)
 				group_snippets.push(modelPart);
 			}
 			return group_snippets.join('\n\t\t')
@@ -1061,6 +1071,7 @@ var format = new ModelFormat({
 		]
 	},
 	codec,
+	node_name_regex: '\\w',
 	box_uv: true,
 	box_uv_float_size: true,
 	single_texture: true,

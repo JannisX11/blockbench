@@ -23,13 +23,15 @@ const Painter = {
 
 		callback(canvas, Painter.current);
 
+		Blockbench.dispatchEvent('edit_texture', {texture, options, canvas, ctx, offset});
+
 		if (options.use_cache && options.no_update === true) {
 			return;
 		}
 
 		if (options.no_undo && options.use_cache) {
 			texture.updateLayerChanges();
-			let map = texture.getMaterial().map;
+			let map = texture.getOwnMaterial().map;
 			map.needsUpdate = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
@@ -58,6 +60,19 @@ const Painter = {
 			&& Painter.current.alpha_matrix[texture.uuid][x][y];
 	},
 	// Preview Brush
+	getTextureToEdit(input_texture) {
+		if (BarItems.view_mode.value == 'material' && input_texture) {
+			if (input_texture.selected) return input_texture;
+			let texture_group = input_texture.getGroup();
+			if (texture_group) {
+				let textures = texture_group.getTextures();
+				if (textures.includes(Texture.selected)) {
+					return Texture.selected;
+				}
+			}
+		}
+		return input_texture;
+	},
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			let projections = {};
@@ -90,7 +105,7 @@ const Painter = {
 			}
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
-		var texture = data.element.faces[data.face].getTexture()
+		var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture())
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
@@ -108,7 +123,7 @@ const Painter = {
 		convertTouchEvent(event);
 		if (!data) data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked && data.face) {
-			var texture = data.element.faces[data.face].getTexture();
+			var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture());
 			if (!texture) return;
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
@@ -249,7 +264,16 @@ const Painter = {
 
 		} else {
 			texture.edit(canvas => {
-				Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+				let is_line = true;
+				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
+					is_line = false;
+				}
+				if (is_line) {
+					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
+				} else {
+					Painter.current.x = Painter.current.y = 0
+					Painter.useBrushlike(texture, x, y, event, uv)
+				}
 			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
@@ -264,7 +288,7 @@ const Painter = {
 		let texture = Painter.current.texture;
 
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeEnd) {
-			let result = Toolbox.selected.brush.onStrokeEnd({texture, x, y, uv, event, raycast_data: data});
+			let result = Toolbox.selected.brush.onStrokeEnd({texture});
 			if (result == false) return;
 		}
 		if (Painter.brushChanges) {
@@ -285,6 +309,7 @@ const Painter = {
 		delete Painter.current.texture;
 		delete Painter.current.textures;
 		delete Painter.current.uv_rects;
+		delete Painter.current.uv_islands;
 		Painter.painting = false;
 		Painter.currentPixel = [-1, -1];
 	},
@@ -331,6 +356,7 @@ const Painter = {
 					let island = Painter.getMeshUVIsland(Painter.current.face, current_face);
 					island.forEach(fkey => {
 						let face = Mesh.selected[0].faces[fkey];
+						if (!face) return;
 						for (let vkey in face.uv) {
 							min_x = Math.min(min_x, face.uv[vkey][0]); max_x = Math.max(max_x, face.uv[vkey][0]);
 							min_y = Math.min(min_y, face.uv[vkey][1]); max_y = Math.max(max_y, face.uv[vkey][1]);
@@ -486,7 +512,7 @@ const Painter = {
 				ctx.beginPath();
 				for (var face in element.faces) {
 					var tag = element.faces[face]
-					if (tag.getTexture() === texture) {
+					if (Painter.getTextureToEdit(tag.getTexture()) === texture) {
 						var face_rect = getRectangle(
 							tag.uv[0] * uvFactorX,
 							tag.uv[1] * uvFactorY,
@@ -509,7 +535,7 @@ const Painter = {
 				for (var fkey in element.faces) {
 					var face = element.faces[fkey];
 					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
-					if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+					if (face.vertices.length <= 2 || Painter.getTextureToEdit(face.getTexture()) !== texture) continue;
 					
 					let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
 					Painter.current.face_matrices[element.uuid + fkey] = matrix;
@@ -783,7 +809,7 @@ const Painter = {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
 			}
 			let center = Painter.mirror_painting_options.texture_center;
-			if (center[0] == 0 && center[1] == 0) {
+			if (!center || (!center[0] && !center[1])) {
 				center = [texture.width/2, texture.display_height/2];
 			}
 			if (Painter.mirror_painting_options.axis.x) {
@@ -1236,6 +1262,15 @@ const Painter = {
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'overlay':
+					if (base[ch] < 128) {
+						mix[ch] = (((2*normal_base*normal_added)) * added.a) + (normal_base * (1-added.a));
+					}
+					else{
+						mix[ch] = ((1 - 2*((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
+					}
+				break;
+
 				//case 'hard_light':
 				//mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
 				//break;
@@ -1319,6 +1354,7 @@ const Painter = {
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
 			case 'screen': return 'screen';
+			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
 			default: return 'source-over';
 		}
@@ -1588,16 +1624,18 @@ const Painter = {
 						this.selected_preset = preset;
 						current_preset = preset;
 						dialog.object.classList.add('preset_selected');
+						dialog.setFormToggles({
+							size: preset.size !== null,
+							softness: preset.softness !== null,
+							opacity: preset.opacity !== null,
+							color: preset.color !== null,
+						}, false);
 						dialog.setFormValues({
 							name: preset.name,
-							use_size: preset.size !== null,
 							size: preset.size == null ? BarItems.slider_brush_size.get() : preset.size,
-							use_softness: preset.softness !== null,
 							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
-							use_opacity: preset.opacity !== null,
 							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
 							pixel_perfect: preset.pixel_perfect == null ? BarItems.pixel_perfect_drawing.value : preset.pixel_perfect,
-							use_color: preset.color !== null,
 							color: preset.color == null ? ColorPanel.get() : preset.color,
 							shape: preset.shape ? preset.shape : 'unset',
 							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
@@ -1655,46 +1693,80 @@ const Painter = {
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
 					screen: 'action.blend_mode.screen',
+					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
 				}},
-				use_size: {label: 'action.slider_brush_size', description: 'action.slider_brush_size.desc', type: 'checkbox'},
-				size: {label: '', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
-				use_opacity: {label: 'action.slider_brush_opacity', description: 'action.slider_brush_opacity.desc', type: 'checkbox'},
-				opacity: {label: '', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
-				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
-				softness: {label: '', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
-				pixel_perfect: {label: 'action.pixel_perfect_drawing', type: 'checkbox'},
-				use_color: {label: 'data.color', type: 'checkbox'},
-				color: {label: '', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
+				size: {
+					label: 'action.slider_brush_size', nocolon: true,
+					description: 'action.slider_brush_size.desc',
+					type: 'number',
+					value: 1, min: 1, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				opacity: {
+					label: 'action.slider_brush_opacity', nocolon: true,
+					description: 'action.slider_brush_opacity.desc', type: 'number',
+					value: 255, min: 0, max: 255,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				softness: {
+					label: 'action.slider_brush_softness', nocolon: true,
+					description: 'action.slider_brush_softness.desc', type: 'number',
+					value: 0, min: 0, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				pixel_perfect: {
+					label: 'action.pixel_perfect_drawing',
+					type: 'checkbox',
+				},
+				color: {
+					label: 'data.color', nocolon: true,
+					description: 'action.brush_shape.desc', type: 'color',
+					toggle_enabled: true,
+					toggle_default: true
+				},
 				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
 					dialog.content_vue.removePreset();
 				}}
 			},
+			/**
+			use_size
+			use_opacity
+			use_softness
+			use_color
+			 */
 			onFormChange(form) {
 				let preset = this.content_vue.selected_preset;
 				preset.name = form.name;
 
-				if (form.use_size) {
+				if (form.size != undefined) {
 					preset.size = form.size;
 				} else {
 					preset.size = null;
 				}
-				if (form.use_softness) {
+				if (form.softness != undefined) {
 					preset.softness = form.softness;
 				} else {
 					preset.softness = null;
 				}
-				if (form.use_opacity) {
+				if (form.opacity != undefined) {
 					preset.opacity = form.opacity;
 				} else {
 					preset.opacity = null;
 				}
-				if (form.use_color) {
+				if (form.color != undefined) {
 					preset.color = form.color.toHexString();
 				} else {
 					preset.color = null;
 				}
-				
+				if (form.pixel_perfect) {
+					preset.pixel_perfect = true;
+				} else {
+					preset.pixel_perfect = false;
+				}
 				if (form.shape !== 'unset') {
 					preset.shape = form.shape;
 				} else {
@@ -1953,7 +2025,7 @@ class IntMatrix {
 				}
 				if (can_exp_h && y + i >= this.height) can_exp_h = false;
 				if (can_exp_h) {
-					for (let j = 0; j < h; j++) {
+					for (let j = 0; j < w; j++) {
 						if (this.getDirect(x+j, y+i) != 1) {
 							can_exp_h = false;
 							break;
@@ -2056,7 +2128,12 @@ SharedActions.add('paste', {
 				texture.flags.add('temporary_layers');
 				texture.activateLayers(false);
 			}
-			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let offset;
+			if (Clipbench.image) {
+				offset = [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)];
+				offset[0] = Math.clamp(offset[0], 0, texture.width-frame.width);
+				offset[1] = Math.clamp(offset[1], 0, texture.height-frame.height);
+			}
 			let old_frame = Clipbench.image?.frame || 0;
 			if (old_frame || texture.currentFrame) {
 				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
@@ -2066,8 +2143,8 @@ SharedActions.add('paste', {
 			layer.setSize(frame.width, frame.height);
 			layer.ctx.putImageData(image_data, 0, 0);
 			if (!offset) layer.center();
-			texture.layers.push(layer);
-			layer.select();
+
+			layer.addForEditing();
 			layer.setLimbo();
 			texture.updateChangesAfterEdit();
 
@@ -2171,7 +2248,7 @@ BARS.defineActions(function() {
 		cursor: 'grab',
 		selectFace: false,
 		transformerMode: 'hidden',
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
@@ -2247,7 +2324,7 @@ BARS.defineActions(function() {
 				}
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		side_menu: new Menu('brush_tool', () => {
@@ -2397,7 +2474,7 @@ BARS.defineActions(function() {
 				return result_color;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
@@ -2426,7 +2503,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2476,7 +2553,7 @@ BARS.defineActions(function() {
 				return pxcolor;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
@@ -2498,7 +2575,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2526,7 +2603,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'u'}),
@@ -2550,7 +2627,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		//keybind: new Keybind({key: 'u'}),
@@ -2574,7 +2651,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
@@ -2589,6 +2666,13 @@ BARS.defineActions(function() {
 			}
 		}
 	})*/
+	let selection_tools = {
+		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
+		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
+		//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+		wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
+		color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
+	};
 	let selection_tool = new Tool('selection_tool', {
 		icon: 'select',
 		category: 'tools',
@@ -2597,25 +2681,24 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
-		keybind: new Keybind({key: 'm'}),
+		keybind: new Keybind({key: 'm'}, {
+			create: '',
+			add: 'shift',
+			subtract: 'ctrl',
+			intersect: '',
+		}),
 		side_menu: new Menu('selection_tool', () => {
-			let modes = {
-				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
-				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-				//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
-				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
-				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
-			};
 			let entries = [];
-			for (let id in modes) {
+			for (let id in selection_tools) {
 				let entry = {
 					id,
-					name: modes[id].name,
-					icon: modes[id].icon,
+					name: selection_tools[id].name,
+					icon: selection_tools[id].icon,
+					keybind: BarItems.selection_tool.sub_keybinds[id]?.keybind || undefined,
 					click() {
-						selection_tool.setIcon(modes[id].icon);
+						selection_tool.setIcon(selection_tools[id].icon);
 						selection_tool.mode = id;
 						selection_tool.select();
 						BARS.updateConditions();
@@ -2626,6 +2709,12 @@ BARS.defineActions(function() {
 			}
 			return entries;
 		}),
+		variations: {
+			create: {name: 'action.selection_tool_operation_mode.create'},
+			add: {name: 'action.selection_tool_operation_mode.add'},
+			subtract: {name: 'action.selection_tool_operation_mode.subtract'},
+			intersect: {name: 'action.selection_tool_operation_mode.intersect'},
+		},
 		onCanvasClick(data) {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
@@ -2648,6 +2737,15 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
+	for (let id in selection_tools) {
+		selection_tool.addSubKeybind(id, selection_tools[id].name, null, event => {
+			selection_tool.setIcon(selection_tools[id].icon);
+			selection_tool.mode = id;
+			selection_tool.select();
+			BARS.updateConditions();
+			BarItems.slider_color_select_threshold.update();
+		});
+	}
 	selection_tool.mode = 'rectangle';
 
 	new Tool('move_layer_tool', {
@@ -2658,7 +2756,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({shift: true, key: 'v'}),
 		onCanvasClick(data) {
@@ -2686,10 +2784,9 @@ BARS.defineActions(function() {
 		onChange() {
 			BARS.updateConditions();
 			UVEditor.vue.brush_type = this.value;
-			let img = Canvas.brush_outline.material.map.image;
 			switch (this.value) {
-				case 'square': img.src = 'assets/brush_outline.png'; break;
-				case 'circle': img.src = 'assets/brush_outline_circle.png'; break;
+				case 'square': Canvas.brush_outline.material.uniforms.SHAPE.value = 0; break;
+				case 'circle': Canvas.brush_outline.material.uniforms.SHAPE.value = 1; break;
 			}
 		},
 		icon_mode: true,
@@ -2726,6 +2823,7 @@ BARS.defineActions(function() {
 			add: true,
 			//subtract: true,
 			screen: true,
+			overlay: true,
 			difference: true,
 		}
 	})
@@ -2762,18 +2860,31 @@ BARS.defineActions(function() {
 		}
 	})
 	let last_mode = null;
-	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+	let last_changed_to = null;
+	Blockbench.on('update_pressed_modifier_keys', ({before, now, event}) => {
 		let tool = BarItems.selection_tool_operation_mode;
+		let selection_tool = BarItems.selection_tool;
 		if (!Condition(tool.condition)) return;
 		if (UVEditor.vue.selection_rect.active) return;
-		if (now.shift) {
+
+		if (selection_tool.keybind.additionalModifierTriggered(event) == 'add') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('add');
-		} else if (now.ctrl) {
+			last_changed_to = 'add';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'subtract') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('subtract');
-		} else if (before.ctrl || before.shift) {
+			last_changed_to = 'subtract';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'intersect') {
+			if (!last_mode) last_mode = tool.value;
+			tool.set('intersect');
+			last_changed_to = 'intersect';
+
+		} else if (last_changed_to == tool.value) {
 			tool.set(last_mode);
+			last_changed_to = last_mode;
 			last_mode = null;
 		}
 	});
@@ -2841,42 +2952,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	StateMemory.init('mirror_painting_options', 'object');
-	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
-	if (!Painter.mirror_painting_options.axis) {
-		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
-	}
-	if (!Painter.mirror_painting_options.global && !Painter.mirror_painting_options.local) {
-		Painter.mirror_painting_options.global = true;
-	}
-	if (!Painter.mirror_painting_options.texture_center) {
-		Painter.mirror_painting_options.texture_center = [0, 0];
-	}
-	function toggleMirrorPaintingAxis(axis) {
-		let axes = Painter.mirror_painting_options.axis
-		axes[axis] = !axes[axis];
-		if (!axes.x && !axes.z) {
-			if (axis == 'x') {
-				axes.z = true;
-			} else {
-				axes.x = true;
-			}
-		}
-		highlightMirrorPaintingAxes();
-		StateMemory.save('mirror_painting_options');
-	}
-	function toggleMirrorPaintingSpace(space) {
-		let options = Painter.mirror_painting_options;
-		options[space] = !options[space];
-		if (!options.global && !options.local && !options.texture_frames) {
-			if (space == 'global') {
-				options.local = true;
-			} else {
-				options.global = true;
-			}
-		}
-		StateMemory.save('mirror_painting_options');
-	}
 	function highlightMirrorPaintingAxes() {
 		if (!Painter.mirror_painting) return;
 		
@@ -2899,7 +2974,9 @@ BARS.defineActions(function() {
 		scene.add(grids);
 		setTimeout(() => {
 			scene.remove(grids);
-			grid.geometry.dispose();
+			for (let grid of grids.children) {
+				grid.geometry.dispose();
+			}
 		}, 1000)
 	}
 	new Toggle('mirror_painting', {
@@ -2910,95 +2987,39 @@ BARS.defineActions(function() {
 			Painter.mirror_painting = value;
 			highlightMirrorPaintingAxes();
 		},
-		side_menu: new Menu('mirror_painting', [
-			new MenuSeparator('options'),
-			// Enabled
-			{
-				name: 'menu.mirror_painting.enabled',
-				icon: () => Painter.mirror_painting,
-				click() {BarItems.mirror_painting.trigger()}
+		tool_config: new ToolConfig('mirror_painting', {
+			title: 'action.mirror_painting',
+			width: 408,
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: Painter.mirror_painting},
+				_1: '_',
+				global: {type: 'checkbox', label: 'menu.mirror_painting.global', value: true, description: 'menu.mirror_painting.global.desc',},
+				local: {type: 'checkbox', label: 'menu.mirror_painting.local', description: 'menu.mirror_painting.local.desc',},
+				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'X', z: 'Z'}, value: {x: true, z: false}, description: 'menu.mirror_painting.axis.desc'},
+				_2: '_',
+				texture: {type: 'checkbox', label: 'menu.mirror_painting.texture', description: 'menu.mirror_painting.texture.desc'},
+				texture_center: {type: 'vector', label: 'menu.mirror_painting.texture_center', dimensions: 2, condition: form => form.texture, toggle_enabled: true, toggle_default: false},
+				_3: '_',
+				texture_frames: {
+					type: 'checkbox',
+					label: 'menu.mirror_painting.texture_frames',
+					description: 'menu.mirror_painting.texture_frames.desc',
+					condition: () => Texture.all.find(tex => tex.frameCount > 1)
+				},
 			},
-			// Axis
-			{
-				name: 'menu.mirror_painting.axis',
-				description: 'menu.mirror_painting.axis.desc',
-				icon: 'call_split',
-				children: [
-					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {toggleMirrorPaintingAxis('x')}},
-					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {toggleMirrorPaintingAxis('y')}},
-					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
-				]
-			},
-			new MenuSeparator('space'),
-			// Global
-			{
-				name: 'menu.mirror_painting.global',
-				description: 'menu.mirror_painting.global.desc',
-				icon: () => !!Painter.mirror_painting_options.global,
-				click() {toggleMirrorPaintingSpace('global')}
-			},
-			// Local
-			{
-				name: 'menu.mirror_painting.local',
-				description: 'menu.mirror_painting.local.desc',
-				icon: () => !!Painter.mirror_painting_options.local,
-				click() {toggleMirrorPaintingSpace('local')}
-			},
-			new MenuSeparator('texture'),
-			// Texture
-			{
-				name: 'menu.mirror_painting.texture',
-				description: 'menu.mirror_painting.texture.desc',
-				icon: () => !!Painter.mirror_painting_options.texture,
-				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
-			},
-			{
-				name: 'menu.mirror_painting.configure_texture_center',
-				icon: 'align_horizontal_center',
-				click() {
-					let center = Painter.mirror_painting_options.texture_center;
-					let is_custom = !!(center[0] || center[1]);
-					let default_center = [Project.texture_width/2, Project.texture_height/2];
-					let texture = Texture.getDefault();
-					if (texture) {
-						default_center.V2_set(texture.width/2, texture.height/2);
-					}
-					new Dialog({
-						id: 'mirror_painting_texture_center',
-						title: 'menu.mirror_painting.configure_texture_center',
-						width: 400,
-						form: {
-							mode: {type: 'inline_select', value: is_custom ? 'custom' : 'middle', options: {
-								middle: 'dialog.mirror_painting_texture_center.middle',
-								custom: 'dialog.mirror_painting_texture_center.custom',
-							}},
-							center: {type: 'vector', dimensions: 2, value: is_custom ? center : default_center, min: 0, step: 0.5, condition: (result) => result.mode == 'custom'}
-						},
-						onConfirm(result) {
-							if (result.mode == 'custom') {
-								center.replace(result.center.map(v => Math.round(v*2)/2));
-							} else {
-								center.V2_set(0, 0);
-							}
-							StateMemory.save('mirror_painting_options');
-						}
-					}).show();
-					if (open_menu) {
-						setTimeout(() => open_menu.hide(), 10);
-					}
+			onFormChange(result) {
+				Painter.mirror_painting = result.enabled;
+				BarItems.mirror_painting.set(result.enabled);
+				if (!result.axis.x && !result.axis.z) {
+					this.setFormValues({axis: {x: true, z: false}});
 				}
-			},
-			new MenuSeparator('animated_texture'),
-			// Animated Texture Frames
-			{
-				name: 'menu.mirror_painting.texture_frames',
-				description: 'menu.mirror_painting.texture_frames.desc',
-				condition: () => Texture.all.find(tex => tex.frameCount > 1),
-				icon: () => !!Painter.mirror_painting_options.texture_frames,
-				click() {toggleMirrorPaintingSpace('texture_frames')}
-			},
-		], {keep_open: true})
+				if (!result.global && !result.local) {
+					this.setFormValues({global: true});
+				}
+			}
+		})
 	})
+	Painter.mirror_painting_options = BarItems.mirror_painting.tool_config.options;
 	new Toggle('color_erase_mode', {
 		icon: 'remove_circle',
 		category: 'paint',
@@ -3019,12 +3040,86 @@ BARS.defineActions(function() {
 	})
 
 	new Toggle('painting_grid', {
-		icon: 'grid_on',
+		icon: 'grid_3x3',
 		category: 'view',
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
+	new Toggle('image_tiled_view', { 
+		category: 'paint',
+		icon: 'grid_view',
+		onChange(value) {
+			if (value && BarItems.image_onion_skin_view.value) {
+				BarItems.image_onion_skin_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'tiled' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		},
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				mirrored: {
+					label: 'menu.image_tiled_view.mirrored',
+					type: 'checkbox',
+					value: false
+				}
+			},
+			onFormChange(result) {
+				console.log('abaw')
+				UVEditor.updateOverlayCanvas();
+			}
+		})
+	})
+	Painter.image_tiled_view_options = BarItems.image_tiled_view.tool_config.options;
+
+	new Toggle('image_onion_skin_view', { 
+		category: 'paint',
+		icon: 'animation',
+		condition: () => Panels.textures.vue.maxFrameCount(),
+		onChange(value) {
+			if (value && BarItems.image_tiled_view.value) {
+				BarItems.image_tiled_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'onion_skin' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		},
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				frame: {
+					label: 'menu.image_onion_skin_view.frame',
+					type: 'select',
+					value: 'last_viewed',
+					options: {
+						last_viewed: 'menu.image_onion_skin_view.frame.last_viewed',
+						previous: 'menu.image_onion_skin_view.frame.previous',
+						next: 'menu.image_onion_skin_view.frame.next',
+						both: 'menu.image_onion_skin_view.frame.both',
+					}
+				},
+				display: {
+					label: 'menu.image_onion_skin_view.display',
+					type: 'select',
+					value: 'pixels',
+					options: {
+						pixels: 'menu.image_onion_skin_view.display.pixels',
+						transparent: 'menu.image_onion_skin_view.display.transparent',
+					}
+				},
+				above: {
+					label: 'menu.image_onion_skin_view.above',
+					type: 'checkbox'
+				},
+			},
+			onFormChange(result) {
+				UVEditor.updateOverlayCanvas();
+			}
+		})
+	})
+	Painter.image_onion_skin_view_options = BarItems.image_onion_skin_view.tool_config.options;
 
 	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ((Toolbox.selected.brush?.size == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),

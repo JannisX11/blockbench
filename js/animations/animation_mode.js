@@ -26,7 +26,7 @@ const Animator = {
 			if (paths.length) {
 				Blockbench.read(paths, {}, files => {
 					files.forEach(file => {
-						Animator.importFile(file);
+						Animator.importFile(file, true);
 					})
 				})
 			}
@@ -60,8 +60,8 @@ const Animator = {
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
-		if (Group.selected) {
-			Group.selected.select();
+		if (Group.first_selected) {
+			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
 		Animator.preview();
@@ -113,7 +113,7 @@ const Animator = {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) {
-				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+				target = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 			}
 		}
 		if (!target) return;
@@ -136,10 +136,10 @@ const Animator = {
 		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+		let keyframe_source = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
-			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
+			let channel = target == Group.first_selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
 			})
@@ -215,35 +215,30 @@ const Animator = {
 		Animator.motion_trail.add(keyframe_points);
 	},
 	updateOnionSkin() {
-		let mode = BarItems.animation_onion_skin.value;
-		let selective = BarItems.animation_onion_skin_selective.value;
+		let enabled = BarItems.animation_onion_skin.value;
+		let options = BarItems.animation_onion_skin.tool_config.options;
+		let selective = options.selective;
 
 		Animator.onion_skin_object.children.forEach(object => {
 			object.geometry.dispose();
 		});
 		Animator.onion_skin_object.children.empty();
 
-		if (mode == 'off') return;
+		if (!enabled) return;
 
 		let times = [];
-		if (mode == 'previous') {
-			times = [Timeline.time - Timeline.getStep()];
-		} else if (mode == 'next') {
-			times = [Timeline.time + Timeline.getStep()];
-		} else if (mode == 'previous_next') {
-			times = [
-				Timeline.time - Timeline.getStep(),
-				Timeline.time + Timeline.getStep()
-			];
-		} else if (mode == 'previous_next_2') {
-			times = [
-				Timeline.time - Timeline.getStep()*2,
-				Timeline.time - Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*2,
-			];
-		} else if (mode == 'select') {
+
+		if (options.frames == 'select') {
 			times = [Timeline.vue.onion_skin_time];
+		} else {
+			let interval = Timeline.getStep() * (options.interval || 1);
+			let go_pre = options.frames == 'previous', go_nex = options.frames == 'next';
+			if (options.frames == 'previous_next') go_pre = go_nex = true;
+
+			for (let i = 1; i <= options.count; i++) {
+				if (go_pre) times.push(Timeline.time - interval * i);
+				if (go_nex) times.push(Timeline.time + interval * i);
+			}
 		}
 
 		let elements = Outliner.elements;
@@ -283,15 +278,26 @@ const Animator = {
 		scene.add(Animator.onion_skin_object);
 	},
 	stackAnimations(animations, in_loop, controller_blend_values = 0) {
+		if (animations.length > 1 && Animation.selected && animations.includes(Animation.selected)) {
+			// Ensure selected animation is applied last so that transform gizmo gets correct pre rotation
+			animations = animations.slice();
+			animations.remove(Animation.selected);
+			animations.push(Animation.selected);
+		}
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
-			animations.forEach(animation => {
+			animations.forEach((animation, anim_i) => {
 				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
 					return;
 				}
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
+				if (anim_i == animations.length - 1) {
+					let mesh = node.mesh;
+					if (!mesh.pre_rotation) mesh.pre_rotation = new THREE.Euler();
+					mesh.pre_rotation.copy(mesh.rotation);
+				}
 				animation.getBoneAnimator(node).displayFrame(multiplier);
 			})
 		})
@@ -318,6 +324,7 @@ const Animator = {
 			let {selected_state, last_state} = controller;
 			let state_time = selected_state.getStateTime();
 			let blend_progress = (last_state && last_state.blend_transition) ? Math.clamp(state_time / last_state.blend_transition, 0, 1) : 1;
+			let blend_value = last_state?.calculateBlendValue(blend_progress) ?? blend_progress;
 
 			// Active State
 			Timeline.time = state_time;
@@ -328,13 +335,13 @@ const Animator = {
 				let animation = Animation.all.find(anim => a.animation == anim.uuid);
 				if (!animation) return;
 				let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
-				controller_blend_values[animation.uuid] = user_blend_value * blend_progress;
+				controller_blend_values[animation.uuid] = user_blend_value * blend_value;
 				animations_to_play.push(animation);
 			})
 			Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
 
 			// Last State
-			if (blend_progress < 1 && last_state) {
+			if (blend_value < 1 && last_state) {
 				Timeline.time = last_state.getStateTime();
 				controller_blend_values = {};
 				animations_to_play = [];
@@ -344,7 +351,7 @@ const Animator = {
 					if (!animation) return;
 					let user_blend_value = a.blend_value.trim() ? Animator.MolangParser.parse(a.blend_value) : 1;
 					if (!controller_blend_values[animation.uuid]) controller_blend_values[animation.uuid] = 0;
-					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_progress);
+					controller_blend_values[animation.uuid] += user_blend_value * (1-blend_value);
 					animations_to_play.push(animation);
 				})
 				Animator.stackAnimations(animations_to_play, in_loop, controller_blend_values);
@@ -399,7 +406,7 @@ const Animator = {
 			Project.model_3d.scale.z = scale;
 		}
 
-		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+		if (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -445,7 +452,7 @@ const Animator = {
 		let new_animations = [];
 		function multilinify(string) {
 			return typeof string == 'string'
-						? string.replace(/;(?!$)/, ';\n')
+						? string.replace(/;\s*(?!$)/g, ';\n')
 						: string
 		}
 		if (!json) return new_animations;
@@ -689,8 +696,11 @@ const Animator = {
 			animation_controllers: controllers
 		}
 	},
-	importFile(file) {
+	importFile(file, auto_loaded) {
 		let form = {};
+		if (auto_loaded && file.path) {
+			form['_path'] = {type: 'info', text: file.path};
+		}
 		let json = autoParseJSON(file.content)
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
@@ -707,7 +717,7 @@ const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form[key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
 			keys.push(key);
 		}
 		file.json = json;
@@ -721,15 +731,21 @@ const Animator = {
 
 		} else {
 			return new Promise(resolve => {
+				let buttons = ['dialog.ok', 'dialog.ignore'];
+				if (auto_loaded && Project?.memory_animation_files_to_load?.length > 1) {
+					buttons.push('dialog.ignore_all');
+				}
 				let dialog = new Dialog({
 					id: 'animation_import',
 					title: 'dialog.animation_import.title',
 					form,
+					buttons,
+					cancelIndex: 1,
 					onConfirm(form_result) {
 						this.hide();
 						let names = [];
 						for (var key of keys) {
-							if (form_result[key.hashCode()]) {
+							if (form_result['anim' + key.hashCode()]) {
 								names.push(key);
 							}
 						}
@@ -738,7 +754,14 @@ const Animator = {
 						Undo.finishEdit('Import animations', {animations: new_animations})
 						resolve();
 					},
-					onCancel() {
+					onCancel(index) {
+						Project.memory_animation_files_to_load.remove(file.path);
+						resolve();
+					},
+					onButton(index) {
+						if (auto_loaded && index == 2) {
+							Project.memory_animation_files_to_load.empty();
+						}
 						resolve();
 					}
 				});
@@ -747,7 +770,7 @@ const Animator = {
 					buttons: ['generic.select_all', 'generic.select_none'],
 					click(index) {
 						let values = {};
-						keys.forEach(key => values[key.hashCode()] = (index == 0));
+						keys.forEach(key => values['anim' + key.hashCode()] = (index == 0));
 						dialog.setFormValues(values);
 					}
 				}
@@ -1243,10 +1266,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
+		condition: () => Animator.open && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
 		onChange(value) {
-			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
-				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
+			if (value && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.first_selected ? Group.first_selected.uuid : Outliner.selected[0].uuid;
 			} else {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
@@ -1254,30 +1277,37 @@ BARS.defineActions(function() {
 		}
 	})
 	// Onion Skin
-	new BarSelect('animation_onion_skin', {
+	new Toggle('animation_onion_skin', {
 		category: 'view',
 		condition: {modes: ['animate']},
-		value: 'off',
-		options: {
-			off: true,
-			select: true,
-			previous: true,
-			next: true,
-			previous_next: true,
-			previous_next_2: tl('action.animation_onion_skin.previous_next') + ' (2)',
-		},
+		tool_config: new ToolConfig('animation_onion_skin', {
+			title: 'action.animation_onion_skin',
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				frames: {type: 'select', label: 'menu.animation_onion_skin.frames', value: 'previous', options: {
+					select: 'menu.animation_onion_skin.select',
+					previous: 'menu.animation_onion_skin.previous',
+					next: 'menu.animation_onion_skin.next',
+					previous_next: 'menu.animation_onion_skin.previous_next',
+				}},
+				count: {type: 'number', label: 'menu.animation_onion_skin.count', value: 1, condition: form => form.frames != 'select'},
+				interval: {type: 'number', label: 'menu.animation_onion_skin.interval', value: 1, condition: form => form.frames != 'select'},
+				selective: {type: 'checkbox', label: 'menu.animation_onion_skin_selective', value: true},
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.animation_onion_skin.value}, false);
+			},
+			onFormChange(formResult) {
+				if (BarItems.animation_onion_skin.value != formResult.enabled) {
+					BarItems.animation_onion_skin.trigger();
+				} else {
+					Animator.updateOnionSkin();
+				}
+				Timeline.vue.onion_skin_selectable = formResult.enabled && this.options.frames == 'select';
+			}
+		}),
 		onChange() {
-			Timeline.vue.onion_skin_mode = this.value;
-			Animator.updateOnionSkin();
-		}
-	})
-	// Motion Trail
-	new Toggle('animation_onion_skin_selective', {
-		icon: 'animation',
-		category: 'animation',
-		default: true,
-		condition: () => Animator.open && BarItems.animation_onion_skin.value != 'off',
-		onChange(value) {
+			Timeline.vue.onion_skin_selectable = this.value && this.tool_config.options.frames == 'select';
 			Animator.updateOnionSkin();
 		}
 	})
@@ -1415,6 +1445,7 @@ Interface.definePanels(function() {
 						if (document.exitPointerLock) document.exitPointerLock()
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
+						Blockbench.setStatusBarText();
 					}
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);

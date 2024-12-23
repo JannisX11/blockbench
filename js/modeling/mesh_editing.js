@@ -8,7 +8,7 @@ const ProportionalEdit = {
 		if (!BarItems.proportional_editing.value) return;
 	
 		let selected_vertices = mesh.getSelectedVertices();
-		let {range, falloff, selection} = StateMemory.proportional_editing_options;
+		let {range, falloff, selection} = ProportionalEdit.config;
 		let linear_distance = selection == 'linear';
 		
 		let all_mesh_connections;
@@ -692,10 +692,11 @@ class KnifeToolCubeContext {
 
 			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
 			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
-			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl)
+			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl);
+			let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
 
-			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - this.cube.from[off_axes[0]]) / snap) * snap + this.cube.from[off_axes[0]];
-			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - this.cube.from[off_axes[1]]) / snap) * snap + this.cube.from[off_axes[1]];
+			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - modified_from[off_axes[0]]) / snap) * snap + modified_from[off_axes[0]];
+			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - modified_from[off_axes[1]]) / snap) * snap + modified_from[off_axes[1]];
 
 		} else {
 			this.mesh_3d.add(this.preview_mesh);
@@ -746,15 +747,15 @@ class KnifeToolCubeContext {
 	
 			let pos = THREE.fastWorldPosition(this.preview_mesh);
 			let size = Preview.selected.calculateControlScale(pos) / 8;
-			this.preview_mesh.scale.set(...this.cube.size().map(v => v += size));
+			this.preview_mesh.scale.set(...this.cube.size().map(v => v + this.cube.inflate * 2 + size));
 			this.preview_mesh.scale[this.axis_letter] = size;
 		}
 	}
 	addPoint(data) {
+		if (!data?.element) return;
 		if (!this.first_point_set) {
 			this.first_point_set = true;
 		} else {
-			//this.hover(data);
 			this.apply();
 		}
 	}
@@ -770,12 +771,15 @@ class KnifeToolCubeContext {
 			this.cube.box_uv = false;
 		}
 		let duplicate = this.cube.duplicate();
-		selected.push(duplicate);
-		elements.push(duplicate);
-		let offset_lerp = Math.getLerp(this.cube.from[this.axis], this.cube.to[this.axis], this.offset);
+		Outliner.selected.safePush(duplicate);
+		elements.safePush(duplicate);
+		let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
+		let modified_to = this.cube.to.slice().V3_subtract(this.cube.inflate);
+		let offset = this.offset + this.cube.origin[this.axis];
+		let offset_lerp = Math.getLerp(modified_from[this.axis], modified_to[this.axis], offset);
 
-		this.cube.to[this.axis] = this.offset;
-		duplicate.from[this.axis] = this.offset;
+		this.cube.to[this.axis] = offset - this.cube.inflate;
+		duplicate.from[this.axis] = offset + this.cube.inflate;
 
 		function modifyUV(face, index, inverted) {
 			index = (index - (face.rotation/90) + 8) % 4;
@@ -1012,7 +1016,11 @@ async function autoFixMeshEdit() {
 							return true;
 						})
 						let off_corners = edges.find(edge => !edge.includes(concave_vkey))
-						if (!off_corners) return;
+						if (!off_corners) {
+							// not sure if this always works, but its only required in special cases (if the quad edge that should be split is already connected to another face).
+							let concave_index = sorted_vertices.indexOf(concave_vkey);
+							off_corners = (concave_index%2) ? [sorted_vertices[1], sorted_vertices[3]] : [sorted_vertices[0], sorted_vertices[2]];
+						}
 
 						let new_face = new MeshFace(mesh, face);
 						new_face.vertices.remove(off_corners[0]);
@@ -1066,7 +1074,7 @@ SharedActions.add('delete', {
 			let selected_edges = mesh.getSelectedEdges();
 			let selected_faces = mesh.getSelectedFaces();
 
-			if (BarItems.selection_mode.value == 'face' && selected_faces.length < Object.keys(mesh.faces).length) {
+			if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.length < Object.keys(mesh.faces).length) {
 				let affected_vertices = [];
 				selected_faces.forEach(fkey => {
 					affected_vertices.safePush(...mesh.faces[fkey].vertices);
@@ -1282,13 +1290,14 @@ BARS.defineActions(function() {
 			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['beveled_cuboid'].includes(shape)},
 		},
 		onConfirm(result) {
-			let original_selection_group = Group.selected && Group.selected.uuid;
+			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
+			let iteration = 0;
 			function runEdit(amended, result) {
 				let elements = [];
-				if (original_selection_group && !Group.selected) {
+				if (original_selection_group && !Group.first_selected) {
 					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
 					if (group_to_select) {
-						Group.selected = group_to_select;
+						Group.first_selected = group_to_select;
 					}
 				}
 				Undo.initEdit({elements, selection: true}, amended);
@@ -1611,14 +1620,15 @@ BARS.defineActions(function() {
 
 				elements.push(mesh);
 				mesh.init()
-				if (Group.selected) Group.selected.unselect()
+				unselectAll()
 				mesh.select()
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				Undo.finishEdit('Add primitive');
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
+				iteration++;
 
 				Vue.nextTick(function() {
-					if (settings.create_rename.value) {
+					if (settings.create_rename.value && iteration == 1) {
 						mesh.rename()
 					}
 				})
@@ -1659,6 +1669,7 @@ BARS.defineActions(function() {
 		icon_mode: true,
 		condition: () => Modes.edit && Mesh.hasAny() && Toolbox.selected.id != 'knife_tool',
 		onChange({value}) {
+			if (value == 'cluster') value = 'face';
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
 				Mesh.selected.forEach(mesh => {
@@ -2173,7 +2184,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = 1, direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -2182,6 +2193,9 @@ BARS.defineActions(function() {
 					let new_vertices;
 					let new_face_keys = [];
 					let selected_face_keys = mesh.getSelectedFaces();
+					if (original_vertices.length && (BarItems.selection_mode.value == 'vertex' || BarItems.selection_mode.value == 'edge')) {
+						selected_face_keys.empty();
+					}
 					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
 					let combined_direction;
 
@@ -2217,23 +2231,53 @@ BARS.defineActions(function() {
 
 						combined_direction = normal.toArray();
 					}
+					if (direction_mode == 'average' && selected_faces.length) {
+						combined_direction = [0, 0, 0];
+						for (let face of selected_faces) {
+							let normal = face.getNormal(true);
+							combined_direction.V3_add(normal);
+						}
+						combined_direction.V3_divide(selected_faces.length);
+					}
 
 					new_vertices = mesh.addVertices(...original_vertices.map(key => {
 						let vector = mesh.vertices[key].slice();
 						let direction;
 						let count = 0;
-						selected_faces.forEach(face => {
-							if (face.vertices.includes(key)) {
-								count++;
-								if (!direction) {
-									direction = face.getNormal(true);
-								} else {
-									direction.V3_add(face.getNormal(true));
+						switch (direction_mode) {
+							case 'average': direction = combined_direction; break;
+							case 'y+': direction = [0, 1, 0]; break;
+							case 'y-': direction = [0, -1, 0]; break;
+							case 'x+': direction = [1, 0, 0]; break;
+							case 'x-': direction = [-1, 0, 0]; break;
+							case 'z+': direction = [0, 0, 1]; break;
+							case 'z-': direction = [0, 0, -1]; break;
+						}
+						if (!direction) {
+							let directions = [];
+							selected_faces.forEach(face => {
+								if (face.vertices.includes(key)) {
+									count++;
+									let face_normal = face.getNormal(true);
+									directions.push(face_normal);
+									if (!direction) {
+										direction = face_normal
+									} else {
+										direction.V3_add(face_normal);
+									}
+								}
+							})
+							console.log(count, direction.slice());
+							if (count > 1) {
+								let magnitude = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
+								direction.V3_divide(magnitude);
+								if (even_extend) {
+									let a = new THREE.Vector3().fromArray(directions[0]);
+									let b = new THREE.Vector3().fromArray(directions[1]);
+									let angle = a.angleTo(b);
+									direction.V3_divide(Math.cos(angle));
 								}
 							}
-						})
-						if (count > 1) {
-							direction.V3_divide(count);
 						}
 						if (!direction) {
 							let match;
@@ -2380,8 +2424,19 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
+				direction_mode: {type: 'select', label: 'edit.extrude_mesh_selection.direction', options: {
+					outwards: 'edit.extrude_mesh_selection.direction.outwards',
+					average: 'edit.extrude_mesh_selection.direction.average',
+					'y+': 'Y+',
+					'y-': 'Y-',
+					'x+': 'X+',
+					'x-': 'X-',
+					'z+': 'Z+',
+					'z-': 'Z-',
+				}},
+				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.even_extend'},
 			}, form => {
-				runEdit(true, form.extend);
+				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})
 		}
 	})
@@ -2979,6 +3034,11 @@ BARS.defineActions(function() {
 								}
 							})
 							mesh.addFaces(new_face);
+
+							// Multiple loop cuts
+							if (cut_no+1 < cuts) {
+								splitFace(face, [center_vertex, side_vertices[0]], double_side, cut_no+1);
+							}
 						}
 					}
 
@@ -3002,20 +3062,24 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
 				cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, max: length, interval_type: 'position'},
+				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, /*max: length,*/ interval_type: 'position'},
+				unit: {type: 'inline_select', label: 'edit.loop_cut.unit', options: {size: 'edit.loop_cut.unit.size_units', percent: 'edit.loop_cut.unit.percent'}},
 			}, (form, form_options) => {
 				let direction = form.direction || 0;
 				length = getLength(direction);
+				let offset = form.offset;
+				if (form.unit == 'percent') {
+					offset = (offset/100) * length;
+				}
+				offset = Math.clamp(offset, 0, length);
 
-				form_options.offset.slider.settings.max = length;
-				if(saved_direction !== direction)
-				{
-					form_options.offset.slider.value = length/2;
-					form_options.offset.slider.update();
+				if (saved_direction !== direction) {
+					offset = length/2;
+					form_options.setValues({offset}, false);
 					saved_direction = direction;
 				}
 				
-				runEdit(true, form_options.offset.slider.value, form_options.direction ? direction : 0, form.cuts);
+				runEdit(true, offset, direction, form.cuts);
 			})
 		}
 	})
@@ -3532,47 +3596,35 @@ BARS.defineActions(function() {
 		}
 	})
 
-
-	StateMemory.init('proportional_editing_options', 'object');
-	if (!StateMemory.proportional_editing_options.range) {
-		StateMemory.proportional_editing_options.range = 8;
-	}
-	if (!StateMemory.proportional_editing_options.falloff) {
-		StateMemory.proportional_editing_options.falloff = 'linear';
-	}
-	if (!StateMemory.proportional_editing_options.selection) {
-		StateMemory.proportional_editing_options.selection = 'linear';
-	}
 	new NumSlider('proportional_editing_range', {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes']},
 		get() {
-			return StateMemory.proportional_editing_options.range
+			return ProportionalEdit.config.range
 		},
 		change(modify) {
-			StateMemory.proportional_editing_options.range = modify(StateMemory.proportional_editing_options.range);
+			ProportionalEdit.config.range = modify(ProportionalEdit.config.range);
 		},
 		onAfter() {
-			StateMemory.save('proportional_editing_options');
+			BarItems.proportional_editing.side_menu.save();
 		}
 	})
 	new Toggle('proportional_editing', {
 		icon: 'wifi_tethering',
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 0)},
-		side_menu: new Dialog('proportional_editing_options', {
+		tool_config: new ToolConfig('proportional_editing_options', {
 			title: 'action.proportional_editing',
 			width: 400,
-			singleButton: true,
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
-				range: {type: 'number', label: 'dialog.proportional_editing.range', value: StateMemory.proportional_editing_options.range},
-				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: StateMemory.proportional_editing_options.falloff, options: {
+				range: {type: 'number', label: 'dialog.proportional_editing.range', value: 8},
+				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: 'linear', options: {
 					linear: 'dialog.proportional_editing.falloff.linear',
 					hermite_spline: 'dialog.proportional_editing.falloff.hermite_spline',
 					constant: 'dialog.proportional_editing.falloff.constant',
 				}},
-				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: StateMemory.proportional_editing_options.selection, options: {
+				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: 'linear', options: {
 					linear: 'dialog.proportional_editing.selection.linear',
 					connections: 'dialog.proportional_editing.selection.connections',
 					//path: 'Connection Path',
@@ -3585,12 +3637,9 @@ BARS.defineActions(function() {
 				if (BarItems.proportional_editing.value != formResult.enabled) {
 					BarItems.proportional_editing.trigger();
 				}
-				StateMemory.proportional_editing_options.range = formResult.range;
-				StateMemory.proportional_editing_options.falloff = formResult.falloff;
-				StateMemory.proportional_editing_options.selection = formResult.selection;
-				StateMemory.save('proportional_editing_options');
 				BarItems.proportional_editing_range.update();
 			}
 		})
 	})
+	ProportionalEdit.config = BarItems.proportional_editing.tool_config.options;
 })

@@ -140,6 +140,7 @@ const MenuBar = {
 			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
+			'save_project_incremental',
 			'convert_project',
 			'close_project',
 			new MenuSeparator('import_export'),
@@ -183,6 +184,7 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_minecraft_skin',
+				'export_image',
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
@@ -250,6 +252,7 @@ const MenuBar = {
 			'find_replace',
 			'unlock_everything',
 			'delete',
+			'apply_mirror_modeling',
 			new MenuSeparator('mesh_specific'),
 			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
 				'extrude_mesh_selection',
@@ -343,12 +346,14 @@ const MenuBar = {
 			new MenuSeparator('edit_options'),
 			'animation_onion_skin',
 			'animation_onion_skin_selective',
+			'toggle_motion_trails',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
 			'optimize_animation',
+			'retarget_animators',
 			'bake_ik_animation',
 			'bake_animation_into_model',
 			'merge_animation',
@@ -387,11 +392,12 @@ const MenuBar = {
 
 		new BarMenu('timeline', Timeline.menu.structure, {
 			name: 'panel.timeline',
+			icon: 'timeline',
 			condition: {modes: ['animate'], method: () => !AnimationController.selected},
 			onOpen() {
 				setActivePanel('timeline');
 			}
-		}, {icon: 'timeline'})
+		})
 
 		new BarMenu('display', [
 			new MenuSeparator('copypaste'),
@@ -407,7 +413,7 @@ const MenuBar = {
 		
 		new BarMenu('tools', [
 			new MenuSeparator('overview'),
-			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
+			{id: 'main_tools', icon: 'construction', name: 'menu.tools.main_tools', condition: () => Project, children() {
 				let tools = Toolbox.children.filter(tool => tool instanceof Tool && tool.condition !== false);
 				tools.forEach(tool => {
 					let old_condition = tool.condition;
@@ -446,16 +452,53 @@ const MenuBar = {
 			new MenuSeparator('viewport'),
 			'view_mode',
 			'toggle_shading',
-			'toggle_motion_trails',
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
 			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
+			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
 			new MenuSeparator('interface'),
+			{
+				id: 'panels',
+				name: 'menu.view.panels',
+				icon: 'web_asset',
+				children() {
+					let entries = [];
+					for (let id in Panels) {
+						let panel = Panels[id];
+						if (!Condition(panel.condition)) continue;
+						let menu_entry = {
+							id,
+							name: panel.name,
+							icon: panel.icon,
+							children: [
+								{
+									id: 'move_to',
+									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
+									icon: 'drag_handle',
+									context: panel,
+									children: panel.snap_menu.structure
+								},
+								{
+									id: 'fold',
+									name: 'menu.panel.fold',
+									icon: panel.folded == true,
+									condition: panel.slot != 'hidden',
+									click() {
+										panel.fold();
+									}
+								}
+							]
+						}
+						entries.push(menu_entry);
+					}
+					return entries;
+				}
+			},
 			'toggle_sidebars',
 			'split_screen',
 			new MenuSeparator('model'),
@@ -476,7 +519,7 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
@@ -505,7 +548,6 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
@@ -524,6 +566,7 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
 		], {icon: 'help'})
 		MenuBar.update();

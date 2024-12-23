@@ -25,6 +25,7 @@ const cube_face_normals = {
 var codec = new Codec('obj', {
 	name: 'OBJ Wavefront Model',
 	extension: 'obj',
+	support_partial_export: true,
 	compile(options) {
 		if (!options) options = 0;
 
@@ -71,7 +72,7 @@ var codec = new Codec('obj', {
 				output.push(`o ${element.name||'cube'}`)
 
 				element.getGlobalVertexPositions().forEach((coords) => {
-					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(export_scale);
+					vertex.set(...coords).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				})

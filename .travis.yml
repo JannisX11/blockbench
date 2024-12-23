@@ -1,9 +1,9 @@
 sudo: required
-dist: trusty
+dist: focal
 
 language: node_js
 node:
-  - 16
+  - 20
 
 if: tag IS blank AND commit_message =~ ci-build
 
@@ -22,10 +22,6 @@ jobs:
         - npm run prepublish
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
-
-cache:
-  directories:
-    - node_modules
 
 install:
   - npm install

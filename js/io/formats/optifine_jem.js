@@ -4,6 +4,7 @@ var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['jem'],
@@ -21,15 +22,19 @@ var codec = new Codec('optifine_entity', {
 		function getTexturePath(tex) {
 			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
+		function isAppliedInModel(texture) {
+			return Group.all.find(group => {
+				return group.export && group.texture == texture.uuid;
+			})
+		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		let default_texture = Texture.getDefault();
-		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
-			default_texture = null;
-		}
-		if (default_texture) {
+		if (default_texture?.use_as_default || (settings.optifine_save_default_texture.value && !isAppliedInModel(default_texture))) {
 			let texture = Texture.getDefault();
 			entitymodel.texture = getTexturePath(Texture.getDefault());
 			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
+		} else {
+			default_texture = null;
 		}
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
@@ -381,49 +386,6 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
-})
-
-new ValidatorCheck('optifine_jem_uv', {
-	condition: {formats: ['optifine_entity']},
-	update_triggers: ['update_selection'],
-	run() {
-		for (let cube of Cube.all) {
-			let select_cube_button = {
-				name: 'Select Cube',
-				icon: 'fa-cube',
-				click() {
-					Validator.dialog.hide();
-					cube.select();
-				}
-			};
-			for (let fkey in cube.faces) {
-				let face = cube.faces[fkey];
-				let uv_size = face.uv_size;
-				let size_issue, offset_issue;
-				for (let i of [0, 1]) {
-					let size = uv_size[i];
-					if (Math.roundTo(size, 4) && Math.abs(size) < 1) {
-						size_issue = true;
-					}
-					if (Math.roundTo(face.uv[i], 4) % 1) {
-						offset_issue = true;
-					}
-				}
-				if (size_issue) {
-					this.warn({
-						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes with an absolute value below 1 but not 0 are invalid in OptiFine models.`,
-						buttons: [select_cube_button]
-					})
-				}
-				if (offset_issue) {
-					this.warn({
-						message: `The face "${fkey}" on cube "${cube.name}" has an invalid UV offset. OptiFine only supports integer values as UV offset.`,
-						buttons: [select_cube_button]
-					})
-				}
-			}
-		}
-	}
 })
 
 })()

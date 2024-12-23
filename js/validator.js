@@ -335,3 +335,43 @@ new ValidatorCheck('catmullrom_keyframes', {
 		})
 	}
 })
+
+new ValidatorCheck('zero_wide_uv_faces', {
+	condition: {formats: ['optifine_entity', 'java_block']},
+	update_triggers: ['update_selection'],
+	run() {
+		for (let cube of Cube.all) {
+			if (cube.box_uv && Format.id == 'optifine_entity') continue;
+			let affected_faces = [];
+			let select_cube_button = {
+				name: 'Select Cube',
+				icon: 'fa-cube',
+				click() {
+					Validator.dialog.hide();
+					cube.select();
+					UVEditor.getSelectedFaces(cube, true).replace(affected_faces);
+					updateSelection();
+				}
+			};
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
+				let uv_size = face.uv_size;
+				let size_issue;
+				for (let i of [0, 1]) {
+					let size = uv_size[i];
+					if (Math.abs(size) < 0.00005) {
+						size_issue = true;
+					}
+				}
+				if (size_issue) {
+					affected_faces.push(fkey);
+					this.warn({
+						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes should not be 0.`,
+						buttons: [select_cube_button]
+					})
+				}
+			}
+		}
+	}
+})
