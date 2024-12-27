@@ -2376,6 +2376,33 @@ span.controller_state_section_info {
 			stroke-dashoffset: -10px;
 		}
 	}
+	#texture_selection_polygon {
+		position: absolute;
+		pointer-events: none;
+		width: calc(100% + 2px);
+		height: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#texture_selection_polygon path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-light);
+		stroke-dasharray: 5px 3px;
+		stroke-dashoffset: 0;
+		animation: selection-outline-shift 700ms linear infinite;
+		animation-timing-function: steps(3, end);
+	}
+	#texture_selection_polygon circle {
+		fill: var(--color-ui);
+		stroke-width: 1;
+		stroke: var(--color-border);
+	}
+	#texture_selection_polygon circle.closed {
+		fill: var(--color-accent);
+	}
 
 	.face_properties_toggle {
 		width: 32px;

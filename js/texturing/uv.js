@@ -44,7 +44,10 @@ const UVEditor = {
 		}
 
 		if (Toolbox.selected.id === 'selection_tool') {
-			if (settings.nearest_rectangle_select.value) {
+			if (BarItems.selection_tool.mode == 'lasso') {
+				result.x = mouse_coords[0]/pixel_size;
+				result.y = mouse_coords[1]/pixel_size;
+			} else if (settings.nearest_rectangle_select.value) {
 				result.x = Math.round(mouse_coords[0]/pixel_size*1);
 				result.y = Math.round(mouse_coords[1]/pixel_size*1);
 			} else {
@@ -2398,6 +2401,7 @@ Interface.definePanels(function() {
 					active: false,
 					ellipse: false
 				},
+				texture_selection_polygon: [],
 
 				uv_resolution: [16, 16],
 				elements: [],
@@ -3716,6 +3720,22 @@ Interface.definePanels(function() {
 					];
 					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				},
+				getTextureSelectionPolygon() {
+					return this.texture_selection_polygon.map((point, i) => {
+						let x = point[0] / this.texture.width * this.inner_width;
+						let y = point[1] / this.texture.width * this.inner_width;
+						return `${i?'L':'M'}${x+1} ${y+1}`;
+					}).join(' ');
+				},
+				isSelectionPolygonClosed() {
+					let polygon = this.texture_selection_polygon;
+					if (polygon.length <= 3) return false;
+					let first = polygon[0];
+					let last = polygon.last()
+					let distance = Math.sqrt(Math.pow(first[0]-last[0], 2) + Math.pow(first[1]-last[1], 2));
+					let radius = Blockbench.isTouch ? 12 : 7;
+					return distance < (radius/UVEditor.getPixelSize());
+				},
 
 				startTextureSelection(x, y, event) {
 					let texture = UVEditor.texture;
@@ -3727,6 +3747,8 @@ Interface.definePanels(function() {
 					let selection_mode = BarItems.selection_tool.mode;
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
+					let selection_polygon = this.texture_selection_polygon;
+					let scope = this;
 					let start_x, start_y, calcrect;
 					let layer = texture.selected_layer;
 					let move_with_selection_tool = Toolbox.selected.id == 'selection_tool' && op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer?.in_limbo)
@@ -3735,11 +3757,15 @@ Interface.definePanels(function() {
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
+					if (!create_selection) {
+						x = Math.round(x);
+						y = Math.round(y);
+					}
 					start_x = x;
 					start_y = y;
 
 					if (create_selection) {
-						if (op_mode == 'create') {
+						if (op_mode == 'create' && (selection_mode != 'lasso' || selection_polygon.length == 0)) {
 							texture.selection.clear();
 						}
 						
@@ -3805,6 +3831,8 @@ Interface.definePanels(function() {
 							}
 							UVEditor.updateSelectionOutline();
 							return;
+						} else if (selection_mode == 'lasso') {
+							selection_polygon.push([x, y]);
 						}
 					}
 
@@ -3812,11 +3840,18 @@ Interface.definePanels(function() {
 					let started_movement = false;
 					function drag(e1) {
 
-						var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
+						let {x, y} = UVEditor.getBrushCoordinates(e1, texture);
+						if (!create_selection) {
+							x = Math.round(x);
+							y = Math.round(y);
+						}
 						if (last_x == x && last_y == y) return;
 						last_x = x, last_y = y;
+						
+						if (create_selection && selection_mode == 'lasso') {
+							selection_polygon.push([x, y]);
 
-						if (create_selection) {
+						} else if (create_selection) {
 							let start_x_here = start_x;
 							let start_y_here = start_y;
 							if (!settings.nearest_rectangle_select.value) {
@@ -3869,6 +3904,7 @@ Interface.definePanels(function() {
 								} else {
 									Undo.initEdit({layers: [layer], bitmap: true});
 								}
+								selection_polygon.empty();
 								texture.selection.clear();
 								UVEditor.updateSelectionOutline();
 							}
@@ -3887,7 +3923,7 @@ Interface.definePanels(function() {
 						Blockbench.setCursorTooltip();
 
 						if (create_selection) {
-							if (!calcrect || selection_rect.width == 0 || selection_rect.height == 0) {
+							if ((!calcrect || selection_rect.width == 0 || selection_rect.height == 0) && selection_mode != 'lasso') {
 								if (!texture.selection.hasSelection()) {
 									texture.selection.clear();
 									UVEditor.updateSelectionOutline();
@@ -3898,7 +3934,7 @@ Interface.definePanels(function() {
 								return;
 							}
 
-							if (op_mode == 'create') {
+							if (op_mode == 'create' && selection_mode != 'lasso') {
 								texture.selection.clear();
 							}
 							if (selection_mode == 'rectangle') {
@@ -3948,6 +3984,39 @@ Interface.definePanels(function() {
 										}
 									}
 								}
+							}
+							if (selection_mode == 'lasso' && scope.isSelectionPolygonClosed()) {
+								selection_polygon.pop();
+								let min_x = Infinity, min_y = Infinity, max_x = 0, max_y = 0;
+								for (let point of selection_polygon) {
+									min_x = Math.min(point[0], min_x);
+									min_y = Math.min(point[1], min_y);
+									max_x = Math.max(point[0], max_x);
+									max_y = Math.max(point[1], max_y);
+								}
+								for (let x = Math.floor(min_x); x < max_x; x++) {
+									for (let y = Math.floor(min_y); y < max_y; y++) {
+										let is_inside = pointInPolygon([x+0.5, y+0.5], selection_polygon);
+										if (!is_inside) continue;
+										switch (op_mode) {
+											case 'create': case 'add': {
+												texture.selection.set(x, y, 1);
+												break;
+											}
+											case 'subtract': {
+												texture.selection.set(x, y, 0);
+												break;
+											}
+											case 'intersect': {
+												if (texture.selection.get(x, y)) {
+													texture.selection.set(x, y, 2);
+												}
+												break;
+											}
+										}
+									}
+								}
+								selection_polygon.empty();
 							}
 							if (op_mode == 'intersect') {
 								for (let x = 0; x < texture.width; x++) {
@@ -4442,6 +4511,11 @@ Interface.definePanels(function() {
 									height: toTexturePixels(texture_selection_rect.height, 3, 0),
 								}">
 							</div>
+
+							<svg id="texture_selection_polygon" v-if="texture_selection_polygon.length">
+								<path :d="getTextureSelectionPolygon()" />
+								<circle :cx="texture_selection_polygon[0][0] / texture.width * inner_width + 1" :cy="texture_selection_polygon[0][1] / texture.width * inner_width + 1" r="7" :class="{closed: isSelectionPolygonClosed()}" />
+							</svg>
 
 							<svg id="uv_selection_outline" v-if="mode == 'paint'">
 								<path :d="selection_outline" />

@@ -2669,7 +2669,7 @@ BARS.defineActions(function() {
 	let selection_tools = {
 		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
 		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-		//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+		lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
 		wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
 		color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
 	};
@@ -2734,6 +2734,7 @@ BARS.defineActions(function() {
 			if (TextureLayer.selected?.in_limbo) {
 				TextureLayer.selected.resolveLimbo();
 			}
+			UVEditor.vue.texture_selection_polygon.empty();
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
