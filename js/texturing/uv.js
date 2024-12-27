@@ -3994,6 +3994,10 @@ Interface.definePanels(function() {
 									max_x = Math.max(point[0], max_x);
 									max_y = Math.max(point[1], max_y);
 								}
+								min_x = Math.clamp(min_x, 0, UVEditor.texture.img.naturalWidth);
+								min_y = Math.clamp(min_y, 0, UVEditor.texture.img.naturalHeight);
+								max_x = Math.clamp(max_x, 0, UVEditor.texture.img.naturalWidth);
+								max_y = Math.clamp(max_y, 0, UVEditor.texture.img.naturalHeight);
 								for (let x = Math.floor(min_x); x < max_x; x++) {
 									for (let y = Math.floor(min_y); y < max_y; y++) {
 										let is_inside = pointInPolygon([x+0.5, y+0.5], selection_polygon);
