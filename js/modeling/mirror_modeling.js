@@ -18,6 +18,8 @@ const MirrorModeling = {
 	},
 	createClone(original, undo_aspects) {
 		// Create or update clone
+		let options = BarItems.mirror_modeling.tool_config.options;
+		let mirror_uv = options.mirror_uv;
 		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
 		let element_before_snapshot;
@@ -33,6 +35,30 @@ const MirrorModeling = {
 			mirror_element.extend({
 				name: element_before_snapshot.name
 			});
+			if (!mirror_uv) {
+				if (original instanceof Mesh) {
+					for (let fkey in mirror_element.faces) {
+						let face = mirror_element.faces[fkey];
+						let face_before = element_before_snapshot.faces[fkey];
+						if (face_before) {
+							face.texture = face_before.texture;
+							for (let vkey of face_before.vertices) {
+								if (face.vertices.includes(vkey) && face_before.uv[vkey]) {
+									face.uv[vkey] = face_before.uv[vkey].slice();
+								}
+							}
+						}
+					}
+				} else {
+					mirror_element.extend({
+						faces: element_before_snapshot.faces,
+						uv_offset: element_before_snapshot.uv_offset,
+						mirror_uv: element_before_snapshot.mirror_uv,
+						box_uv: element_before_snapshot.box_uv,
+						autouv: element_before_snapshot.autouv
+					});
+				}
+			}
 
 			// Update hierarchy up
 			function updateParent(child, child_b) {
@@ -473,14 +499,14 @@ BARS.defineActions(() => {
 			MirrorModeling.cached_elements = {};
 			updateSelection();
 		},
-		tool_config: new ToolConfig('proportional_editing_options', {
+		tool_config: new ToolConfig('mirror_modeling_options', {
 			title: 'action.mirror_modeling',
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
 				mirror_uv: {type: 'checkbox', label: 'menu.mirror_modeling.mirror_uv', value: true}
 			},
 			onOpen() {
-				this.setFormValues({enabled: BarItems.mirror_modeling.value});
+				this.setFormValues({enabled: BarItems.mirror_modeling.value}, false);
 			},
 			onFormChange(formResult) {
 				if (BarItems.mirror_modeling.value != formResult.enabled) {
