@@ -2267,7 +2267,6 @@ BARS.defineActions(function() {
 									}
 								}
 							})
-							console.log(count, direction.slice());
 							if (count > 1) {
 								let magnitude = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
 								direction.V3_divide(magnitude);

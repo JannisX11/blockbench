@@ -4,7 +4,7 @@ class InputForm extends EventSystem {
 		this.uuid = guid();
 		this.form_config = form_config;
 		this.form_data = {};
-		this.node = Interface.createElement('form', {class: 'form'});
+		this.node = Interface.createElement('div', {class: 'form'});
 		this.max_label_width = 0;
 		this.uses_wide_inputs = false;
 

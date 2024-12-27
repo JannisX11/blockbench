@@ -1228,7 +1228,7 @@
 		width: fit-content;
 		z-index: 3;
 	}
-	#amend_edit_menu > form {
+	#amend_edit_menu > div.form {
 		background-color: var(--color-ui);
 		padding: 2px 10px;
 	}

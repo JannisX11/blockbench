@@ -935,6 +935,9 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			ReferenceImageMode.deactivate();
 			used = true;
 		}
+	} else if (Undo.amend_edit_menu && (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e))) {
+		Undo.closeAmendEditMenu();
+
 	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected && Texture.selected.selection.is_custom) {
 		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			SharedActions.run('unselect_all', e);
