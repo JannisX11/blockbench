@@ -85,7 +85,7 @@ const Clipbench = {
 		}
 		if (Modes.edit && p == 'preview') {
 			let options = [];
-			if (Clipbench.elements.length || Clipbench.group) {
+			if (Clipbench.elements.length || Clipbench.groups) {
 				options.push(Clipbench.types.outliner);
 			}
 			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
@@ -153,7 +153,7 @@ const Clipbench = {
 			case 'face':
 				UVEditor.copy(event);
 				if (Prop.active_panel == 'uv') {
-					Clipbench.group = undefined;
+					Clipbench.groups = undefined;
 					Clipbench.elements = [];
 				}
 				break;
@@ -171,8 +171,8 @@ const Clipbench = {
 		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
 			Clipbench.setElements();
 			Clipbench.setGroups();
-			if (Group.selected.length) {
-				Clipbench.setGroups(Group.selected);
+			if (Group.multi_selected.length) {
+				Clipbench.setGroups(Group.multi_selected);
 			} else {
 				Clipbench.setElements(selected);
 			}
@@ -223,12 +223,12 @@ const Clipbench = {
 	},
 	setGroups(groups) {
 		if (!groups || !groups.length) {
-			Clipbench.group = undefined
+			Clipbench.groups = undefined
 			return;
 		}
-		Clipbench.groups = groups.map(g => group.getSaveCopy())
+		Clipbench.groups = groups.map(group => group.getSaveCopy())
 		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.group}))
+			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.groups}))
 		}
 	},
 	setElements(arr) {
@@ -320,15 +320,15 @@ const Clipbench = {
 			try {
 				var data = JSON.parse(raw)
 				if (data.type === 'elements' && data.content) {
-					Clipbench.group = undefined;
+					Clipbench.groups = undefined;
 					Clipbench.elements = data.content;
 				} else if (data.type === 'group' && data.content) {
-					Clipbench.group = data.content;
+					Clipbench.groups = data.content;
 					Clipbench.elements = [];
 				}
 			} catch (err) {}
 		}
-		if (Clipbench.group) {
+		if (Clipbench.groups) {
 			function iterate(obj, parent) {
 				if (obj.children) {
 					let copy = new Group(obj).addTo(parent).init();
@@ -350,8 +350,10 @@ const Clipbench = {
 					return copy;
 				}
 			}
-			let copy = iterate(Clipbench.group, target);
-			copy.select();
+			for (let group_template of Clipbench.groups) {
+				let copy = iterate(group_template, target);
+				copy.multiSelect();
+			}
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];

@@ -290,6 +290,7 @@ class Preview {
 		}
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
+		this.updateToneMapping();
 
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
@@ -347,6 +348,17 @@ class Preview {
 		}
 		return this;
 	}
+	updateToneMapping() {
+		switch (settings.tone_mapping.value) {
+			case 'none': this.renderer.toneMapping = THREE.NoToneMapping; break;
+			case 'linear': this.renderer.toneMapping = THREE.LinearToneMapping; break;
+			case 'reinhard': this.renderer.toneMapping = THREE.ReinhardToneMapping; break;
+			case 'cineon': this.renderer.toneMapping = THREE.CineonToneMapping; break;
+			case 'aces_filmic': this.renderer.toneMapping = THREE.ACESFilmicToneMapping; break;
+			case 'agx': this.renderer.toneMapping = THREE.AgXToneMapping; break;
+			case 'neutral': this.renderer.toneMapping = THREE.NeutralToneMapping; break;
+		}
+	}
 	raycast(event, options = Toolbox.selected.raycast_options) {
 		if (!options) options = 0;
 		convertTouchEvent(event);
@@ -371,7 +383,7 @@ class Preview {
 				objects.push(element.mesh.sprite);
 			}
 		})
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
 		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
@@ -776,7 +788,7 @@ class Preview {
 			}
 
 			function unselectOtherNodes() {
-				Group.selected.empty();
+				Group.multi_selected.empty();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})
@@ -1110,7 +1122,6 @@ class Preview {
 				brush_coord.x += 8;
 				brush_coord.z += 8;
 			}
-			brush_matrix.multiplyMatrices(intersect.object.parent.matrixWorld, brush_matrix);
 
 			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
@@ -1127,7 +1138,7 @@ class Preview {
 			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
 			brush_matrix.scale(scale);
 
-			brush_matrix.multiplyMatrices(intersect.object.matrix, brush_matrix);
+			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
@@ -2057,28 +2068,64 @@ function animate() {
 
 function updateShading() {
 	Canvas.updateLayeredTextures();
-	scene.remove(lights)
-	Sun.intensity = settings.brightness.value/50;
-	if (settings.shading.value === true) {
+	scene.remove(lights);
+	let settings_brightness = settings.brightness.value/50;
+	Sun.intensity = settings_brightness;
+	let view_mode = window.BarItems ? BarItems.view_mode.value : 'textured';
+
+	if (view_mode == 'material') {
+
+		let light = Canvas.material_light;
+		if (!light) {
+			Canvas.material_light = light = new THREE.DirectionalLight();
+		}
+		light.color.copy(Canvas.global_light_color);
+		light.intensity = 0.7 * settings_brightness;
+
+		Canvas.scene.add(light);
+		switch (Canvas.global_light_side) {
+			case 0: light.position.set(60, 100, 20); break;
+			case 1: light.position.set(-10, 20, 100); break;
+			case 2: light.position.set(10, 20, -100); break;
+			case 3: light.position.set(100, 20, -10); break;
+			case 4: light.position.set(-100, 20, 10); break;
+			case 5: light.position.set(20, -100, 0); break;
+		}
+
+		scene.add(Sun);
 		Sun.intensity *= 0.5;
-		let parent = scene;
-		parent.add(lights);
-		lights.position.copy(parent.position).multiplyScalar(-1);
+
+		TextureGroup.all.forEach(tg => {
+			if (tg.is_material) tg.updateMaterial();
+		})
+
+	} else {
+		if (settings.shading.value === true) {
+			Sun.intensity *= 0.5;
+			let parent = scene;
+			parent.add(lights);
+			lights.position.copy(parent.position).multiplyScalar(-1);
+		}
+		if (Canvas.material_light) {
+			Canvas.scene.remove(Canvas.material_light);
+		}
+		lights.add(Sun);
+		Texture.all.forEach(tex => {
+			let material = tex.getMaterial();
+			if (!material.uniforms) return;
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+			material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
+		})
+		Canvas.emptyMaterials.forEach(material => {
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		})
+		Canvas.coloredSolidMaterials.forEach(material => {
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		})
 	}
-	Texture.all.forEach(tex => {
-		let material = tex.getMaterial();
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
-		material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
-	})
-	Canvas.emptyMaterials.forEach(material => {
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-	})
-	Canvas.coloredSolidMaterials.forEach(material => {
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-	})
 	Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
@@ -2107,10 +2154,11 @@ BARS.defineActions(function() {
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
 			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
+			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.find(tg => tg.is_material))},
 		},
 		onChange() {
 			Project.view_mode = this.value;
-			Canvas.updateAllFaces();
+			Canvas.updateViewMode();
 			if (Modes.id === 'animate') {
 				Animator.preview();
 			}

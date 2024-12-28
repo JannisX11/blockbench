@@ -61,6 +61,7 @@ class ModelProject {
 		this.selected_texture = null;
 		this.texture_groups = [];
 		this.outliner = [];
+		this.collections = [];
 		this.animations = [];
 		this.animation_controllers = [];
 		this.timeline_animators = [];
@@ -70,7 +71,6 @@ class ModelProject {
 
 		ProjectData[this.uuid] = {
 			model_3d: new THREE.Object3D(),
-			materials: {},
 			nodes_3d: {}
 		}
 	}
@@ -134,9 +134,6 @@ class ModelProject {
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
 	}
-	get materials() {
-		return ProjectData[this.uuid].materials;
-	}
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;
 	}
@@ -199,6 +196,7 @@ class ModelProject {
 		})
 		Outliner.root = this.outliner;
 		Panels.outliner.inside_vue.root = this.outliner;
+		Panels.collections.inside_vue.collections = Collection.all;
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
@@ -604,13 +602,14 @@ function selectNoProject() {
 	// Setup Data
 	OutlinerNode.uuids = {};
 	Outliner.root = [];
-	Interface.Panels.outliner.inside_vue.root = [];
+	Panels.outliner.inside_vue.root = [];
+	Panels.collections.inside_vue.collections = [];
 
 	UVEditor.vue.elements = [];
 	UVEditor.vue.all_elements = [];
 
-	Interface.Panels.textures.inside_vue.textures = [];
-	Interface.Panels.textures.inside_vue.texture_groups = [];
+	Panels.textures.inside_vue.textures = [];
+	Panels.textures.inside_vue.texture_groups = [];
 
 	Panels.animations.inside_vue.animations = [];
 	Panels.animations.inside_vue.animation_controllers = [];
@@ -619,10 +618,10 @@ function selectNoProject() {
 	AnimationController.selected = null;
 	Timeline.animators = Timeline.vue.animators = [];
 
-	Interface.Panels.variable_placeholders.inside_vue.text = '';
-	Interface.Panels.variable_placeholders.inside_vue.buttons.empty();
+	Panels.variable_placeholders.inside_vue.text = '';
+	Panels.variable_placeholders.inside_vue.buttons.empty();
 
-	Interface.Panels.skin_pose.inside_vue.pose = '';
+	Panels.skin_pose.inside_vue.pose = '';
 
 	Blockbench.dispatchEvent('select_no_project', {});
 }

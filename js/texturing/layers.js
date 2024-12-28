@@ -359,7 +359,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
-new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'difference']});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'overlay', 'difference']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {

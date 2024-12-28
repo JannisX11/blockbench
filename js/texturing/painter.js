@@ -23,13 +23,15 @@ const Painter = {
 
 		callback(canvas, Painter.current);
 
+		Blockbench.dispatchEvent('edit_texture', {texture, options, canvas, ctx, offset});
+
 		if (options.use_cache && options.no_update === true) {
 			return;
 		}
 
 		if (options.no_undo && options.use_cache) {
 			texture.updateLayerChanges();
-			let map = texture.getMaterial().map;
+			let map = texture.getOwnMaterial().map;
 			map.needsUpdate = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
@@ -58,6 +60,19 @@ const Painter = {
 			&& Painter.current.alpha_matrix[texture.uuid][x][y];
 	},
 	// Preview Brush
+	getTextureToEdit(input_texture) {
+		if (BarItems.view_mode.value == 'material' && input_texture) {
+			if (input_texture.selected) return input_texture;
+			let texture_group = input_texture.getGroup();
+			if (texture_group) {
+				let textures = texture_group.getTextures();
+				if (textures.includes(Texture.selected)) {
+					return Texture.selected;
+				}
+			}
+		}
+		return input_texture;
+	},
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			let projections = {};
@@ -90,7 +105,7 @@ const Painter = {
 			}
 		}
 		if (!data.intersects || (data.element && data.element.locked)) return;
-		var texture = data.element.faces[data.face].getTexture()
+		var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture())
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
@@ -108,7 +123,7 @@ const Painter = {
 		convertTouchEvent(event);
 		if (!data) data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked && data.face) {
-			var texture = data.element.faces[data.face].getTexture();
+			var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture());
 			if (!texture) return;
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
@@ -497,7 +512,7 @@ const Painter = {
 				ctx.beginPath();
 				for (var face in element.faces) {
 					var tag = element.faces[face]
-					if (tag.getTexture() === texture) {
+					if (Painter.getTextureToEdit(tag.getTexture()) === texture) {
 						var face_rect = getRectangle(
 							tag.uv[0] * uvFactorX,
 							tag.uv[1] * uvFactorY,
@@ -520,7 +535,7 @@ const Painter = {
 				for (var fkey in element.faces) {
 					var face = element.faces[fkey];
 					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
-					if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
+					if (face.vertices.length <= 2 || Painter.getTextureToEdit(face.getTexture()) !== texture) continue;
 					
 					let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
 					Painter.current.face_matrices[element.uuid + fkey] = matrix;
@@ -1247,6 +1262,15 @@ const Painter = {
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'overlay':
+					if (base[ch] < 128) {
+						mix[ch] = (((2*normal_base*normal_added)) * added.a) + (normal_base * (1-added.a));
+					}
+					else{
+						mix[ch] = ((1 - 2*((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
+					}
+				break;
+
 				//case 'hard_light':
 				//mix[ch] = ((normal_base / normal_added) * added.a) + (normal_base * (1-added.a));
 				//break;
@@ -1330,6 +1354,7 @@ const Painter = {
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
 			case 'screen': return 'screen';
+			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
 			default: return 'source-over';
 		}
@@ -1668,6 +1693,7 @@ const Painter = {
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
 					screen: 'action.blend_mode.screen',
+					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
 				}},
 				size: {
@@ -2102,7 +2128,12 @@ SharedActions.add('paste', {
 				texture.flags.add('temporary_layers');
 				texture.activateLayers(false);
 			}
-			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let offset;
+			if (Clipbench.image) {
+				offset = [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)];
+				offset[0] = Math.clamp(offset[0], 0, texture.width-frame.width);
+				offset[1] = Math.clamp(offset[1], 0, texture.height-frame.height);
+			}
 			let old_frame = Clipbench.image?.frame || 0;
 			if (old_frame || texture.currentFrame) {
 				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
@@ -2217,7 +2248,7 @@ BARS.defineActions(function() {
 		cursor: 'grab',
 		selectFace: false,
 		transformerMode: 'hidden',
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
@@ -2293,7 +2324,7 @@ BARS.defineActions(function() {
 				}
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		side_menu: new Menu('brush_tool', () => {
@@ -2443,7 +2474,7 @@ BARS.defineActions(function() {
 				return result_color;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
@@ -2472,7 +2503,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2522,7 +2553,7 @@ BARS.defineActions(function() {
 				return pxcolor;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
@@ -2544,7 +2575,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2572,7 +2603,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'u'}),
@@ -2596,7 +2627,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		//keybind: new Keybind({key: 'u'}),
@@ -2620,7 +2651,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'm'}),
@@ -2638,7 +2669,7 @@ BARS.defineActions(function() {
 	let selection_tools = {
 		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
 		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-		//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+		lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
 		wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
 		color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
 	};
@@ -2650,7 +2681,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'm'}, {
 			create: '',
@@ -2703,6 +2734,7 @@ BARS.defineActions(function() {
 			if (TextureLayer.selected?.in_limbo) {
 				TextureLayer.selected.resolveLimbo();
 			}
+			UVEditor.vue.texture_selection_polygon.empty();
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
@@ -2725,7 +2757,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({shift: true, key: 'v'}),
 		onCanvasClick(data) {
@@ -2792,6 +2824,7 @@ BARS.defineActions(function() {
 			add: true,
 			//subtract: true,
 			screen: true,
+			overlay: true,
 			difference: true,
 		}
 	})

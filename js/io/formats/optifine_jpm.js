@@ -4,212 +4,335 @@ var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
 	extension: 'jpm',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['jpm']
 	},
 	compile(options) {
 		if (options === undefined) options = {}
-		var jpm = {}
-		if (Texture.getDefault()) {
-			jpm.texture = pathToName(Texture.getDefault().name, false)
-		}
-		jpm.textureSize = [Project.texture_width, Project.texture_height]
-
+		var entitymodel = {}
 		if (Project.credit || settings.credit.value) {
-			jpm.credit = Project.credit || settings.credit.value
+			entitymodel.credit = Project.credit || settings.credit.value
 		}
+		var geo_code = 'geometry.'+Project.geometry_name
+		function getTexturePath(tex) {
+			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
+		}
+		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
+		let default_texture = Texture.getDefault();
+		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
+			default_texture = null;
+		}
+		if (default_texture) {
+			let texture = Texture.getDefault();
+			entitymodel.texture = getTexturePath(Texture.getDefault());
+			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
+		}
+		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
+		entitymodel.submodels = []
 
-		var submodels = []
-		var boxes = []
+		Outliner.root.forEach(function(g) {
+			if (g instanceof Group == false) return;
+			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
+			//Bone
+			var bone = {
+				part: g.name,
+				id: g.name,
+				invertAxis: 'xy',
+				mirrorTexture: undefined,
+				translate: g.origin.slice()
+			}
+			bone.translate.V3_multiply(-1);
 
-		Cube.all.forEach(function(s) {
-			if (s.export === false) return;
-			var box = {};
-			var originalOrigin = s.origin.slice();
-			s.transferOrigin([0, 0, 0], false)
-			box.coordinates = [
-				-s.to[0], 
-				-s.from[1] - s.size(1), 
-				s.from[2], 
-				s.size(0), 
-				s.size(1), 
-				s.size(2)
-			]
-			for (var face in s.faces) {
-				if (s.faces.hasOwnProperty(face)) {
-					if (s.faces[face].texture !== undefined && s.faces[face].texture !== null) {
-						box['uv'+capitalizeFirstLetter(face)] = [
-							Math.floor(s.faces[face].uv[0]),
-							Math.floor(s.faces[face].uv[1]),
-							Math.ceil(s.faces[face].uv[2]),
-							Math.ceil(s.faces[face].uv[3])
-						]
+			if (!g.rotation.allEqual(0)) {
+				bone.rotate = g.rotation.slice()
+			}
+			if (entityMode.hardcodes[geo_code]) {
+				var codes = entityMode.hardcodes[geo_code]
+				var bone_codes = codes[bone.part] || codes[bone.part+'1']
+				if (bone_codes) {
+					if (!bone.rotate) bone.rotate = [0, 0, 0];
+					bone_codes.rotation.forEach((dft, i) => {
+						bone.rotate[i] += dft;
+					})
+				}
+			}
+			if (g.mirror_uv) {
+				bone.mirrorTexture = 'u'
+			}
+			if (g.cem_attach) {
+				bone.attach = true;
+			}
+			if (g.cem_scale) {
+				bone.scale = g.cem_scale;
+			}
+
+			function populate(p_model, group, depth, parent_texture) {
+
+				if (group.children.length === 0) return;
+				let mirror_sub;
+
+				let child_cubes = group.children.filter(obj => obj.export && obj.type === 'cube')
+				let has_different_mirrored_children = !!child_cubes.find(obj => obj.mirror_uv !== child_cubes[0].mirror_uv);
+				let texture = parent_texture;
+				if (group.texture) {
+					let match = Texture.all.find(t => t.uuid == group.texture);
+					if (match) texture = match;
+				}
+
+				if (texture && texture != parent_texture) {
+					p_model.texture = getTexturePath(texture);
+					if (!parent_texture || texture.uv_width != parent_texture.uv_width || texture.uv_height != parent_texture.uv_height) {
+						p_model.textureSize = [texture.uv_width, texture.uv_height];
 					}
 				}
+
+				group.children.forEach(obj => {
+					if (!obj.export) return;
+					if (obj.type === 'cube') {
+
+						if (obj.box_uv) {
+							var box = new oneLiner()
+						} else {
+							var box = {};
+						}
+						var c_size = obj.size()
+						box.coordinates = [
+							obj.from[0],
+							obj.from[1],
+							obj.from[2],
+							c_size[0],
+							c_size[1],
+							c_size[2]
+						]
+						if (p_model && p_model.part === undefined) {
+							box.coordinates[0] -= p_model.translate[0];
+							box.coordinates[1] -= p_model.translate[1];
+							box.coordinates[2] -= p_model.translate[2];
+						}
+						if (obj.box_uv) {
+							box.textureOffset = obj.uv_offset
+						} else {
+							for (let face in obj.faces) {
+								if (obj.faces[face].texture !== null) {
+									let uv = obj.faces[face].uv;
+									box[`uv${capitalizeFirstLetter(face)}`] = uv;
+								}
+							}
+						}
+
+						if (obj.inflate && typeof obj.inflate === 'number') {
+							box.sizeAdd = obj.inflate
+						}
+
+						if (obj.mirror_uv !== group.mirror_uv && has_different_mirrored_children) {
+							if (!mirror_sub) {
+								mirror_sub = { 
+									invertAxis: 'xy',
+									mirrorTexture: 'u',
+									boxes: []
+								}
+								if (!p_model.submodels) p_model.submodels = [];
+								p_model.submodels.splice(0, 0, mirror_sub)
+							}
+							mirror_sub.boxes.push(box);
+						} else {
+							if (!p_model.boxes) p_model.boxes = [];
+							if (obj.mirror_uv !== group.mirror_uv) {
+								p_model.mirrorTexture = obj.mirror_uv ? 'u' : undefined;
+							}
+							p_model.boxes.push(box)
+						}
+					} else if (obj.type === 'group') {
+
+						var bone = {
+							id: obj.name,
+							invertAxis: 'xy',
+							mirrorTexture: undefined,
+							translate: obj.origin.slice()
+						}
+						if (obj.mirror_uv) {
+							bone.mirrorTexture = 'u';
+						}
+						if (!obj.rotation.allEqual(0)) {
+							bone.rotate = obj.rotation.slice()
+						}
+						populate(bone, obj, depth+1, texture)
+						if (depth >= 1) {
+							bone.translate[0] -= group.origin[0];
+							bone.translate[1] -= group.origin[1];
+							bone.translate[2] -= group.origin[2];
+						}
+
+						if (!p_model.submodels) p_model.submodels = [];
+						p_model.submodels.push(bone)
+					} 
+				})
 			}
-			if (!s.rotation.equals([0, 0, 0])) {
-				var submodel = {
-					id: s.name,
-					rotate: [
-						-s.rotation[0],
-						-s.rotation[1],
-						s.rotation[2],
-					],
-					boxes: [box],
-				}
-				submodels.push(submodel)
-			} else {
-				boxes.push(box)
+			populate(bone, g, 0, default_texture)
+
+			if (g.cem_animations && g.cem_animations.length) {
+				bone.animations = g.cem_animations;
 			}
-			s.transferOrigin(originalOrigin, false)
+
+			entitymodel.submodels.push(bone)
 		})
-		if (boxes.length) {
-			jpm.boxes = boxes
-		}
-		if (submodels.length) {
-			jpm.submodels = submodels
-		}
-		this.dispatchEvent('compile', {model: jpm, options});
+
+		this.dispatchEvent('compile', {entitymodel, options});
 
 		if (options.raw) {
-			return jpm
+			return entitymodel
 		} else {
-			return autoStringify(jpm)
+			return autoStringify(entitymodel)
 		}
 	},
 	parse(model, path, add) {
 		this.dispatchEvent('parse', {model});
 
-		var new_cubes = [];
-		var import_group = add ? new Group({
-			name: pathToName(path)
-		}).init() : 'root';
-		var origin = [0, 0, 0];
-		if (add) {
-			Undo.initEdit({elements: new_cubes, outliner: true, uv_mode: true})
+		const imported_textures =  {};
+		function importTexture(string, uv) {
+			if (typeof string !== 'string') return;
+			if (imported_textures[string]) return imported_textures[string];
+
+			let texture_path = string.replace(/[\\/]/g, osfs);
+			if (texture_path.match(/^textures/) && path.includes('optifine')) {
+				texture_path = path.replace(/[\\/]optifine[\\/].+$/i, osfs+texture_path);
+			} else {
+				texture_path = path.replace(/[\\/][^\\/]+$/, osfs+texture_path);
+			}
+			if (!texture_path.match(/\.\w{3,4}$/)) texture_path = texture_path + '.png';
+			let texture = new Texture().fromPath(texture_path).add(false);
+			imported_textures[string] = texture;
+			if (uv instanceof Array) {
+				texture.extend({
+					uv_width: uv[0],
+					uv_height: uv[1]
+				})
+			}
+			return texture;
 		}
 
 		if (typeof model.credit == 'string') Project.credit = model.credit;
-		var resolution = model.textureSize;
-		if (resolution.length == 2) {
-			Project.texture_width = parseInt(resolution[0])||0;
-			Project.texture_height = parseInt(resolution[1])||0;
+		if (model.textureSize) {
+			Project.texture_width = parseInt(model.textureSize[0])||16;
+			Project.texture_height = parseInt(model.textureSize[1])||16;
 		}
-		if (isApp) {
-			var texture_path = path.replace(/\.jpm$/, '.png')
-			if (model.texture) {
-				var arr = texture_path.split(osfs);
-				arr[arr.length-1] = model.texture
-				if (model.texture.substr(-4) != '.png') arr[arr.length-1] += '.png';
-				texture_path = arr.join(osfs);
-			}
-			if (fs.existsSync(texture_path)) {
-				new Texture().fromPath(texture_path).add(false)
-			}
+		let main_texture = importTexture(model.texture, model.textureSize);
+		if (main_texture) {
+			main_texture.use_as_default = true;
 		}
-		function addSubmodel(submodel) {
-			if (submodel.boxes) {
-				submodel.boxes.forEach(function(box) {
-					var cs = box.coordinates
-					if (cs && cs.length >= 6) {
-						var rotation = submodel.rotate && [
-							-submodel.rotate[0],
-							-submodel.rotate[1],
-							submodel.rotate[2],
-						]
-						var base_cube = new Cube({
-							from: [
-								-cs[0]-cs[3],
-								-cs[1]-cs[4],
-								cs[2]
-							],
-							size: [
-								cs[3],
-								cs[4],
-								cs[5]
-							],
-							name: submodel.id,
-							rotation,
-							origin
-						})
-						if (box.textureOffset) {
-							base_cube.box_uv = true;
-							base_cube.extend({
-								box_uv: true,
-								uv_offset: box.textureOffset
-							})
-						} else {
-							base_cube.box_uv = false;
-							base_cube.extend({
-								box_uv: false,
-								faces: {
-									north: {uv: box.uvNorth},
-									east: {uv: box.uvEast},
-									south: {uv: box.uvSouth},
-									west: {uv: box.uvWest},
-									up: {uv: box.uvUp},
-									down: {uv: box.uvDown},
-								}
-							})
-							if (!box.uvNorth) {
-								base_cube.faces.north.uv = [0, 0, 0, 0]
-								base_cube.faces.north.texture = null;
-							}
-							if (!box.uvEast) {
-								base_cube.faces.east.uv = [0, 0, 0, 0]
-								base_cube.faces.east.texture = null;
-							}
-							if (!box.uvSouth) {
-								base_cube.faces.south.uv = [0, 0, 0, 0]
-								base_cube.faces.south.texture = null;
-							}
-							if (!box.uvWest) {
-								base_cube.faces.west.uv = [0, 0, 0, 0]
-								base_cube.faces.west.texture = null;
-							}
-							if (!box.uvUp) {
-								base_cube.faces.up.uv = [0, 0, 0, 0]
-								base_cube.faces.up.texture = null;
-							}
-							if (!box.uvDown) {
-								base_cube.faces.down.uv = [0, 0, 0, 0]
-								base_cube.faces.down.texture = null;
-							}
-						}
+		if (typeof model.shadowSize == 'number') Project.shadow_size = model.shadowSize;
+		let empty_face = {uv: [0, 0, 0, 0], texture: null}
+		if (model.submodels) {
+			model.submodels.forEach(function(b) {
+				if (typeof b !== 'object') return;
+				let subcount = 0;
 
-						if (submodel.translate) {
-							base_cube.from[0] -= submodel.translate[0];
-							base_cube.from[1] -= submodel.translate[1];
-							base_cube.from[2] += submodel.translate[2];
-							base_cube.to[0] -= submodel.translate[0];
-							base_cube.to[1] -= submodel.translate[1];
-							base_cube.to[2] += submodel.translate[2];
-							base_cube.origin[0] -= submodel.translate[0];
-							base_cube.origin[1] -= submodel.translate[1];
-							base_cube.origin[2] += submodel.translate[2];
-						}
-
-						base_cube.init().addTo(import_group);
-						new_cubes.push(base_cube);
-					}
+				//Bone
+				let texture = importTexture(b.texture, b.textureSize);
+				let group = new Group({
+					name: b.part,
+					origin: b.translate,
+					rotation: b.rotate,
+					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
+					cem_animations: b.animations,
+					cem_attach: b.attach,
+					cem_scale: b.scale,
+					texture: texture ? texture.uuid : undefined,
 				})
-			}
-			if (submodel.submodels) {
-				submodel.submodels.forEach(addSubmodel)
-			}
+				group.origin.V3_multiply(-1);
+
+				function readContent(submodel, p_group, depth, texture) {
+
+					if (submodel.boxes && submodel.boxes.length) {
+						submodel.boxes.forEach(box => {
+
+							var base_cube = new Cube({
+								name: box.name || p_group.name,
+								autouv: 0,
+								uv_offset: box.textureOffset,
+								box_uv: !!box.textureOffset,
+								inflate: box.sizeAdd,
+								mirror_uv: p_group.mirror_uv
+							})
+							/*if (texture) {
+								for (let fkey in base_cube.faces) {
+									base_cube.faces[fkey].texture = texture.uuid;
+								}
+							}*/
+							if (box.coordinates) {
+								base_cube.extend({
+									from: [
+										box.coordinates[0],
+										box.coordinates[1],
+										box.coordinates[2]
+									],
+									to: [
+										box.coordinates[0]+box.coordinates[3],
+										box.coordinates[1]+box.coordinates[4],
+										box.coordinates[2]+box.coordinates[5]
+									]
+								})
+							}
+							if (!box.textureOffset && (
+									box.uvNorth
+								 || box.uvEast
+								 || box.uvSouth
+								 || box.uvWest
+								 || box.uvUp
+								 || box.uvDown
+							)) {
+								base_cube.extend({
+									box_uv: false,
+									faces: {
+										north: box.uvNorth ? {uv: box.uvNorth} : empty_face,
+										east:  box.uvEast  ? {uv: box.uvEast}  : empty_face,
+										south: box.uvSouth ? {uv: box.uvSouth} : empty_face,
+										west:  box.uvWest  ? {uv: box.uvWest}  : empty_face,
+										up:    box.uvUp    ? {uv: box.uvUp}    : empty_face,
+										down:  box.uvDown  ? {uv: box.uvDown}  : empty_face,
+									}
+								})
+							}
+							if (p_group.parent !== 'root') {
+								for (var i = 0; i < 3; i++) {
+									base_cube.from[i] += p_group.origin[i];
+									base_cube.to[i] += p_group.origin[i];
+								}
+							}
+							base_cube.addTo(p_group).init()
+						})
+					}
+					if (submodel.submodels && submodel.submodels.length) {
+						submodel.submodels.forEach(subsub => {
+							if (depth >= 1 && subsub.translate) {
+								subsub.translate[0] += p_group.origin[0];
+								subsub.translate[1] += p_group.origin[1];
+								subsub.translate[2] += p_group.origin[2];
+							}
+							let sub_texture = importTexture(subsub.texture, subsub.textureSize);
+							let group = new Group({
+								name: subsub.id || `${b.part}_sub_${subcount}`,
+								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
+								rotation: subsub.rotate,
+								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u')),
+								texture: (sub_texture || texture)?.uuid,
+							})
+							subcount++;
+							group.addTo(p_group).init()
+							readContent(subsub, group, depth+1, sub_texture || texture)
+						})
+					}
+
+				}
+				group.init().addTo()
+				readContent(b, group, 0, texture || main_texture)
+			})
 		}
-		if (import_group instanceof Group) {
-			import_group.addTo()
-		}
-		if (add) {
-			Undo.finishEdit('Add JPM model')
-		} else {
-			Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
-		}
-		addSubmodel(model)
+		Project.box_uv = Cube.all.filter(cube => cube.box_uv).length > Cube.all.length/2;
 		this.dispatchEvent('parsed', {model});
-		Canvas.updateAllBones()
+		Canvas.updateAllBones();
 		Validator.validate()
 	}
 })
@@ -223,10 +346,15 @@ var part_format = new ModelFormat({
 		category: 'minecraft',
 		show_on_start_screen: false,
 		model_identifier: false,
-		single_texture: true,
-		integer_size: true,
-		rotate_cubes: true,
+		box_uv: true,
 		optional_box_uv: true,
+		per_group_texture: true,
+		single_texture_default: true,
+		per_texture_uv_size: true,
+		integer_size: true,
+		bone_rig: true,
+		centered_grid: true,
+		texture_folder: true,
 		codec: part_codec
 })
 Object.defineProperty(part_format, 'integer_size', {get: _ => Project.box_uv})

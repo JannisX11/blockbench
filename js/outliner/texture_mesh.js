@@ -305,7 +305,7 @@ new NodePreviewController(TextureMesh, {
 		} else {
 			var tex = Texture.getDefault();
 			if (tex && tex.uuid) {
-				mesh.material = Project.materials[tex.uuid]
+				mesh.material = tex.getMaterial()
 			} else {
 				mesh.material = Canvas.emptyMaterials[0]
 			}

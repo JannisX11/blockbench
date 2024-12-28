@@ -31,19 +31,16 @@ class MeshFace extends Face {
 		}
 		return this;
 	}
-	getNormal(normalize) {
+	getNormal(normalize, alt_tri) {
 		let vertices = this.getSortedVertices();
 		if (vertices.length < 3) return [0, 0, 0];
-		let a = [
-			this.mesh.vertices[vertices[1]][0] - this.mesh.vertices[vertices[0]][0],
-			this.mesh.vertices[vertices[1]][1] - this.mesh.vertices[vertices[0]][1],
-			this.mesh.vertices[vertices[1]][2] - this.mesh.vertices[vertices[0]][2],
-		]
-		let b = [
-			this.mesh.vertices[vertices[2]][0] - this.mesh.vertices[vertices[0]][0],
-			this.mesh.vertices[vertices[2]][1] - this.mesh.vertices[vertices[0]][1],
-			this.mesh.vertices[vertices[2]][2] - this.mesh.vertices[vertices[0]][2],
-		]
+		let indices = [0, 1, 2];
+		if (vertices.length == 4 && alt_tri) {
+			indices = [0, 2, 3];
+		}
+		let base = this.mesh.vertices[vertices[indices[0]]];
+		let a = this.mesh.vertices[vertices[indices[1]]].slice().V3_subtract(base);
+		let b = this.mesh.vertices[vertices[indices[2]]].slice().V3_subtract(base);
 		let direction = [
 			a[1] * b[2] - a[2] * b[1],
 			a[2] * b[0] - a[0] * b[2],
@@ -1173,7 +1170,7 @@ new NodePreviewController(Mesh, {
 				if (faces[key].vertices.length < 3) continue;
 				var tex = faces[key].getTexture()
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[element.color])
 				}

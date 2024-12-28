@@ -714,7 +714,7 @@ ModelLoader.loaders = {};
 						if (data.psa.version != Blockbench.version) return;
 					}
 				}
-				addStartScreenSection(data.psa)
+				addStartScreenSection('psa', data.psa);
 			})()
 		}
 

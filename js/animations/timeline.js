@@ -64,6 +64,7 @@ const Timeline = {
 	animators: [],
 	selected: Keyframe.selected,//frames
 	playing_sounds: [],
+	paused_sounds: [],
 	playback_speed: 100,
 	time: 0,
 	get second() {return Timeline.time},
@@ -229,6 +230,35 @@ const Timeline = {
 		}
 		Timeline.revealTime(seconds)
 	},
+	playAudioStutter() {
+		if (!settings.audio_scrubbing.value) return;
+		let effect_animator = Animation.selected?.animators.effects;
+		if (!effect_animator || effect_animator.muted.sound) return;
+		
+		effect_animator.sound.forEach(kf => {
+			if (kf.data_points[0].file) {
+				var diff = kf.time - effect_animator.animation.time;
+				if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
+					let audio_path = kf.data_points[0].file;
+					let media = Timeline.paused_sounds.find(sound => sound.keyframe_id == kf.uuid && audio_path == sound.audio_path) ?? new Audio(audio_path);
+					if (media.stutter_timeout) {
+						clearTimeout(media.stutter_timeout);
+					}
+					media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
+					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+					media.currentTime = -diff;
+					media.keyframe_id = kf.uuid;
+					media.audio_path = audio_path;
+
+					if (media.paused) media.play().catch(() => {});
+					media.stutter_timeout = setTimeout(() => {
+						media.pause();
+						delete media.stutter_timeout;
+					}, 60)
+				} 
+			}
+		})
+	},
 	revealTime(time) {
 		let body = document.getElementById('timeline_body');
 		if (!body) return;
@@ -314,9 +344,16 @@ const Timeline = {
 				
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
+				let rounded = false;
+				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) {
+					time = Timeline.snapTime(time);
+					rounded = true;
+				}
 				Timeline.setTime(time);
 				Animator.preview();
+				if (rounded) {
+					Timeline.playAudioStutter();
+				}
 				Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
 				if (e.shiftKey || Pressing.overrides.shift) {
 					time = Timeline.snapTime(time);
@@ -343,10 +380,17 @@ const Timeline = {
 				convertTouchEvent(e);
 				let offset = e.clientX - $('#timeline_time').offset().left;
 				let time = Math.clamp(offset / Timeline.vue._data.size, 0, Infinity);
-				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) time = Timeline.snapTime(time);
+				let rounded = false;
+				if (!e.ctrlOrCmd && !Pressing.overrides.ctrl) {
+					time = Timeline.snapTime(time);
+					rounded = true;
+				}
 				if (Timeline.time != time) {
 					Timeline.setTime(time)
 					Animator.preview()
+					if (rounded) {
+						Timeline.playAudioStutter();
+					}
 					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 				}
 			} else if (Timeline.dragging_endbracket) {
@@ -594,6 +638,7 @@ const Timeline = {
 				media.pause();
 			}
 		})
+		Timeline.paused_sounds.safePush(...Timeline.playing_sounds);
 		Timeline.playing_sounds.empty();
 		Blockbench.dispatchEvent('timeline_pause', {});
 	},
@@ -1949,6 +1994,7 @@ BARS.defineActions(function() {
 			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time - Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
+				Timeline.playAudioStutter();
 				Animator.preview()
 			} else {
 				BarItems.animated_texture_frame.change(v => v - 1);
@@ -1964,6 +2010,7 @@ BARS.defineActions(function() {
 			if (Modes.animate || Prop.active_panel == 'timeline') {
 				let time = Timeline.snapTime(limitNumber(Timeline.time + Timeline.getStep(), 0, 1e4));
 				Timeline.setTime(time);
+				Timeline.playAudioStutter();
 				Animator.preview()
 			} else {
 				BarItems.animated_texture_frame.change(v => v + 1);

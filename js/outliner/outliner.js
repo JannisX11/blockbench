@@ -495,7 +495,7 @@ class OutlinerElement extends OutlinerNode {
 				this.showInOutliner()
 			}
 		}
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.unselect();
 		}
 		Group.all.forEach(function(s) {
@@ -832,7 +832,7 @@ function parseGroups(array, import_reference, startIndex) {
 // Dropping
 function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
-	if (item.type === 'group' && target && target.parent) {
+	if (item.type === 'group' && target instanceof OutlinerNode && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
 			if (!(is_parent = g === item) && g.parent.type === 'group') {
@@ -855,9 +855,18 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 			}
 		})
 	} else if (item instanceof Group) {
-		var items = Group.selected.filter(g => !g.parent.selected);
+		var items = Group.multi_selected.filter(g => !g.parent.selected);
 	} else {
 		var items = [item];
+	}
+	if (target instanceof Collection) {
+		Undo.initEdit({collections: [target]});
+		for (let item of items) {
+			target.children.safePush(item.uuid);
+		}
+		Undo.finishEdit('Add to collection');
+		updateSelection();
+		return;
 	}
 	if (duplicate) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
@@ -939,8 +948,8 @@ function renameOutliner(element) {
 			Blockbench.textPrompt('generic.rename', Group.first_selected.name, function (name) {
 				name = name.trim();
 				if (name) {
-					Undo.initEdit({groups: Group.selected});
-					for (let group of Group.selected) {
+					Undo.initEdit({groups: Group.multi_selected});
+					for (let group of Group.multi_selected) {
 						group.name = name;
 						if (Format.bone_rig) {
 							group.createUniqueName();
@@ -1035,7 +1044,7 @@ SharedActions.add('delete', {
 		array.forEach(function(s) {
 			s.remove(false)
 		})
-		for (let group of Group.selected.slice()) {
+		for (let group of Group.multi_selected.slice()) {
 			group.remove(false);
 		}
 		TickUpdates.selection = true;
@@ -1049,14 +1058,14 @@ SharedActions.add('duplicate', {
 	run() {
 		let cubes_before = elements.length;
 		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let original = Group.selected.slice();
+		let original = Group.multi_selected.slice();
 		let all_original = [];
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.forEachChild(g => all_original.safePush(g), Group, true);
 		}
 
 		let all_new = [];
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			let new_group = group.duplicate();
 			new_group.forEachChild(g => all_new.push(g), Group, true);
 		}
@@ -1153,7 +1162,7 @@ SharedActions.add('invert_selection', {
 				element.selectLow()
 			}
 		})
-		for (let group of Group.selected) {
+		for (let group of Group.multi_selected) {
 			group.unselect();
 		}
 		updateSelection();
@@ -1225,7 +1234,7 @@ BARS.defineActions(function() {
 			if (Animator.open) {
 				var sel = 0;
 				for (let group of Group.all) {
-					if (group.selected) sel++;
+					if (Group.multi_selected) sel++;
 				}
 				this.set(stringifyLargeInt(sel)+' / '+stringifyLargeInt(Group.all.length));
 			} else {
@@ -1300,7 +1309,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 'f', ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
-		click: function () {
+		click: function(event, options) {
 			let color_options = {
 				'-1': 'generic.all'
 			}
@@ -1339,16 +1348,17 @@ BARS.defineActions(function() {
 					if (formData.mode == 'new' || formData.mode == 'in_selection') {
 						selected.empty();
 					}
-					let selected_groups = Group.selected;
+					let selected_groups = Group.multi_selected;
 					if (selected_groups.length) {
 						selected_groups.forEach(group => group.unselect());
 					}
 					var name_seg = formData.name.toUpperCase()
 					var tex_seg = formData.texture.toLowerCase()
 				
-					var array = Outliner.elements;
+					let array = Outliner.elements.slice();
 					if (formData.group && selected_groups.length) {
 						array = [];
+						group.multiSelect();
 						for (let group of selected_groups) {
 							group.forEachChild(child => array.safePush(child), OutlinerElement, false);
 						}
@@ -1381,10 +1391,12 @@ BARS.defineActions(function() {
 						}
 					})
 					updateSelection()
-					if (selected.length) {
+					if (options && options.returnResult) {
+						options.returnResult({elements: selected, groups: selected_groups});
+
+					} else if (selected.length) {
 						selected[0].showInOutliner()
 					}
-					this.hide()
 				}
 			}).show()
 			$('.dialog#selection_creator .form_bar_name > input').focus()
@@ -1437,7 +1449,11 @@ Interface.definePanels(function() {
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i
+					v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))"
+					@click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa"
+					:class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'
+				></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
 				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
@@ -1456,7 +1472,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.multi_selected.includes(node)"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1786,6 +1802,13 @@ Interface.definePanels(function() {
 
 							} else if ($('#cubes_list').is(':hover')) {
 								$('#cubes_list').addClass('drag_hover');
+							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
+								for (let node of document.querySelectorAll('.collection')) {
+									if (node.contains(target)) {
+										node.classList.add('drag_hover');
+										break;
+									}
+								}
 							}
 						}
 						last_event = e2;
@@ -1808,6 +1831,13 @@ Interface.definePanels(function() {
 								moveOutlinerSelectionTo(item, drop_target, e2, order);
 							} else if ($('#cubes_list').is(':hover')) {
 								moveOutlinerSelectionTo(item, undefined, e2);
+							} else if (document.querySelector('.collection:hover')) {
+								let collection_node = document.querySelector('.collection:hover');
+								let collection_uuid = collection_node.attributes.uuid?.value;
+								let collection = Collection.all.find(c => c.uuid == collection_uuid);
+								if (collection) {
+									moveOutlinerSelectionTo(item, collection, e2);
+								}
 							}
 						}
 					}

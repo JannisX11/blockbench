@@ -251,7 +251,7 @@ class UndoSystem {
 		}
 
 		if (save.outliner) {
-			Group.selected.empty();
+			Group.multi_selected.empty();
 			parseGroups(save.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -270,11 +270,11 @@ class UndoSystem {
 		}
 
 		if (save.selected_groups && !is_session) {
-			Group.selected.empty();
+			Group.multi_selected.empty();
 			for (let uuid of save.selected_groups) {
 				let sel_group = OutlinerNode.uuids[uuid];
 				if (sel_group) {
-					Group.selected.push(sel_group)
+					Group.multi_selected.push(sel_group)
 				}
 			}
 		}
@@ -303,6 +303,35 @@ class UndoSystem {
 					group.forEachChild(function(obj) {
 						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
 					})
+				}
+			}
+		}
+
+		if (save.collections) {
+			for (let uuid in save.collections) {
+				let collection;
+				let data = save.collections[uuid];
+				if (reference.collections[uuid]) {
+					collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						collection.extend(data);
+					}
+				} else {
+					collection = new Collection(data, uuid).add();
+				}
+				//order
+				let index = Collection.all.indexOf(collection);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					Collection.all.remove(collection);
+					Collection.all.splice(data.index, 0, collection);
+				}
+			}
+			for (let uuid in reference.collections) {
+				if (!save.collections[uuid]) {
+					let collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						Collection.all.remove(collection);
+					}
 				}
 			}
 		}
@@ -530,7 +559,7 @@ class UndoSystem {
 				let data = save.display_slots[slot]
 
 				if (!Project.display_settings[slot] && data) {
-					Project.display_settings[slot] = new DisplaySlot()
+					Project.display_settings[slot] = new DisplaySlot(slot)
 				} else if (data === null && Project.display_settings[slot]) {
 					Project.display_settings[slot].default()
 				}
@@ -574,8 +603,8 @@ UndoSystem.save = class {
 					this.mesh_selection[obj.uuid] = JSON.parse(JSON.stringify(Project.mesh_selection[obj.uuid]));
 				}
 			})
-			if (Group.selected.length) {
-				this.selected_groups = Group.selected.map(g => g.uuid);
+			if (Group.multi_selected.length) {
+				this.selected_groups = Group.multi_selected.map(g => g.uuid);
 			}
 
 		}
@@ -595,6 +624,14 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
+		}
+
+		if (aspects.collections) {
+			this.collections = {};
+			aspects.collections.forEach(tg => {
+				let copy = tg.getUndoCopy();
+				this.collections[tg.uuid] = copy;
+			})
 		}
 
 		if (aspects.textures) {

@@ -433,14 +433,20 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	select() {
-		var scope = this;
 		Prop.active_panel = 'animations';
+		let previous_animation = Animation.selected;
 		if (this == Animation.selected) return;
-		var selected_bone = Group.first_selected;
 		AnimationItem.all.forEach((a) => {
 			a.selected = false;
 			if (a.playing == true) a.playing = false;
 		})
+		let animator_keys = previous_animation && Object.keys(previous_animation.animators);
+		let selected_animator_key;
+		let timeline_animator_keys = previous_animation && Timeline.animators.map(a => {
+			let key = animator_keys.find(key => previous_animation.animators[key] == a);
+			if (a.selected) selected_animator_key = key;
+			return key;
+		});
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
@@ -453,15 +459,21 @@ class Animation extends AnimationItem {
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
-			scope.getBoneAnimator(group);
+			this.getBoneAnimator(group);
 		})
 		Outliner.elements.forEach(element => {
 			if (!element.constructor.animator) return;
-			scope.getBoneAnimator(element);
+			this.getBoneAnimator(element);
 		})
 
-		if (selected_bone) {
-			selected_bone.select();
+		if (timeline_animator_keys) {
+			timeline_animator_keys.forEachReverse(key => {
+				let animator = this.animators[key];
+				if (animator) {
+					animator.addToTimeline();
+					if (selected_animator_key == key) animator.select(false);
+				}
+			});
 		}
 		if (Modes.animate) {
 			Animator.preview();

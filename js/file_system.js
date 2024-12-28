@@ -499,12 +499,17 @@ document.body.ondrop = function(event) {
 	}
 
 	forDragHandlers(event, function(handler, el) {
-		var fileNames = event.dataTransfer.files
+		let fileNames = event.dataTransfer.files
 
-		var paths = [];
+		let paths = [];
 		if (isApp) {
-			for (var file of fileNames) {
-				if (file.path) paths.push(file.path)
+			for (let file of fileNames) {
+				if (file.path) {
+					paths.push(file.path)
+				} else if (isApp) {
+					let path = webUtils.getPathForFile(file);
+					paths.push(path);
+				}
 			}
 		} else {
 			paths = fileNames

@@ -185,7 +185,7 @@ class Texture {
 		});
 		mat.map = tex;
 		mat.name = this.name;
-		Project.materials[this.uuid] = mat;
+		this.material = mat;
 
 		var size_control = {};
 
@@ -329,6 +329,12 @@ class Texture {
 	get selection() {
 		return this._static.properties.selection;
 	}
+	get material() {
+		return this._static.properties.material;
+	}
+	set material(material) {
+		this._static.properties.material = material;
+	}
 	getUVWidth() {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
 	}
@@ -350,8 +356,6 @@ class Texture {
 		let group = TextureGroup.all.find(group => group.uuid == this.group);
 		if (group) {
 			return group;
-		} else {
-			this.group = '';
 		}
 	}
 	getUndoCopy(bitmap) {
@@ -726,7 +730,7 @@ class Texture {
 	}
 	updateMaterial() {
 		if (Format.image_editor) return this;
-		let mat = this.getMaterial();
+		let mat = this.getOwnMaterial();
 
 		mat.name = this.name;
 		mat.uniforms.EMISSIVE.value = this.render_mode == 'emissive';
@@ -735,6 +739,13 @@ class Texture {
 
 		// Map
 		mat.map.needsUpdate = true;
+
+		// PBR material
+		if (this.group && (this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+			setTimeout(() => {
+				this.getGroup()?.updateMaterial();
+			}, 40);
+		}
 		return this;
 	}
 	reopen(force) {
@@ -882,7 +893,14 @@ class Texture {
 		return this;
 	}
 	getMaterial() {
-		return Project.materials[this.uuid]
+		let group = this.getGroup();
+		if (group?.is_material && BarItems.view_mode.value == 'material') {
+			return group.getMaterial();
+		}
+		return this.material;
+	}
+	getOwnMaterial() {
+		return this.material;
 	}
 	//Management
 	select(event) {
@@ -907,7 +925,7 @@ class Texture {
 		Texture.all.forEach(s => {
 			if (s.selected) s.selected = false;
 			if (s.multi_selected) s.multi_selected = false;
-		})
+		});
 		this.selected = true;
 		Texture.selected = this;
 		Texture.last_selected = Texture.all.indexOf(this);
@@ -925,7 +943,14 @@ class Texture {
 			Canvas.updateAllFaces()
 		}
 		updateSelection()
-		if ((Texture.all.length > 1 || !Format.edit_mode) && Modes.paint && !UVEditor.getReferenceFace()) {
+		if (
+			(Texture.all.length > 1 || !Format.edit_mode) &&
+			Modes.paint &&
+			(
+				!UVEditor.getReferenceFace() ||
+				(BarItems.view_mode.value == 'material' && UVEditor.getReferenceFace().getTexture()?.getGroup()?.getTextures()?.includes(this))
+			)
+		) {
 			UVEditor.vue.updateTexture();
 		}
 		Panels.layers.inside_vue.layers = this.layers;
@@ -976,7 +1001,6 @@ class Texture {
 			Texture.selected = undefined;
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
-		delete Project.materials[this.uuid];
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
 			Canvas.updateAllFaces()
@@ -1040,7 +1064,7 @@ class Texture {
 	apply(all) {
 		let affected_elements;
 		if (Format.per_group_texture) {
-			let groups = Group.selected;
+			let groups = Group.multi_selected;
 			Outliner.selected.forEach(el => {
 				if (el.faces) {
 					groups.safePush(el.parent);
@@ -1072,7 +1096,7 @@ class Texture {
 				}
 			})
 		}
-		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true}})
+		Canvas.updateView({elements: affected_elements, element_aspects: {faces: true, uv: true}})
 		UVEditor.loadData()
 		Undo.finishEdit('Apply texture')
 		return this;
@@ -1744,7 +1768,7 @@ class Texture {
 		this.ctx.globalCompositeOperation = 'source-over';
 
 		if (!Format.image_editor && this.getMaterial()) {
-			this.getMaterial().map.needsUpdate = true;
+			this.getOwnMaterial().map.needsUpdate = true;
 		}
 		if (update_data_url) {
 			this.internal = true;
@@ -1759,7 +1783,7 @@ class Texture {
 		} else {
 			if (!this.internal) this.convertToInternal();
 			if (!Format.image_editor) {
-				this.getMaterial().map.needsUpdate = true;
+				this.getOwnMaterial().map.needsUpdate = true;
 			}
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
@@ -1849,7 +1873,33 @@ class Texture {
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',
+				name: 'menu.texture.pbr_channel',
+				condition: (texture) => texture.getGroup()?.is_material,
+				children(texture) {
+					function applyChannel(channel) {
+						let group = texture.getGroup();
+						let changed_textures = group.getTextures();
+
+						Undo.initEdit({textures: changed_textures});
+						texture.pbr_channel = channel;
+						changed_textures.forEach(t =>  {
+							t.updateMaterial();
+						});
+						if (group) group.updateMaterial();
+						Undo.finishEdit('Change texture PBR channel');
+					}
+					return [
+						{name: 'menu.texture.pbr_channel.color', icon: texture.pbr_channel == 'color' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('color')}},
+						{name: 'menu.texture.pbr_channel.normal', icon: texture.pbr_channel == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('normal')}},
+						{name: 'menu.texture.pbr_channel.height', icon: texture.pbr_channel == 'height' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('height')}},
+						{name: 'menu.texture.pbr_channel.mer', icon: texture.pbr_channel == 'mer' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {applyChannel('mer')}},
+					]
+				}
+			},
+			{
+				icon: 'list',
 				name: 'menu.texture.render_mode',
+				condition: (texture) => (!texture.getGroup()?.is_material),
 				children(texture) {
 					function setViewMode(mode) {
 						let update_layered = (mode == 'layered' || texture.render_mode == 'layered');
@@ -1879,6 +1929,7 @@ class Texture {
 			},
 			'resize_texture',
 			'animated_texture_editor',
+			'create_material',
 			'append_to_template',
 			{
 				name: 'menu.texture.merge_onto_texture',
@@ -2082,6 +2133,7 @@ class Texture {
 	new Property(Texture, 'string', 'sync_to_project')
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'enum', 'pbr_channel', {default: 'color'})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
@@ -2229,25 +2281,33 @@ BARS.defineActions(function() {
 				arr.push('textures')
 				start_path = arr.join(osfs)
 			}
+			let extensions = ['png', 'tga'];
+			if (isApp) {
+				extensions.push('texture_set.json');
+			}
 			Blockbench.import({
 				resource_id: 'texture',
 				readtype: 'image',
 				type: 'PNG Texture',
-				extensions: ['png', 'tga'],
+				extensions,
 				multiple: true,
 				startpath: start_path
-			}, function(results) {
-				let new_textures = [];
+			}, function(files) {
+				if (files[0].name.endsWith('texture_set.json')) {
+					importTextureSet(files[0]);
+					return;
+				}
+				let new_textures = [], new_texture_groups = [];
 				let texture_group = context instanceof TextureGroup ? context : Texture.selected?.getGroup();
-				Undo.initEdit({textures: new_textures});
-				results.forEach(function(f) {
+				Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
+				files.forEach((f) => {
 					let t = new Texture({name: f.name}).fromFile(f).add(false, true).fillParticle();
 					new_textures.push(t);
 					if (texture_group) {
 						t.group = texture_group.uuid;
 					}
 				})
-				Undo.finishEdit('Add texture')
+				Undo.finishEdit('Add texture');
 			})
 		}
 	})
@@ -2316,6 +2376,13 @@ Interface.definePanels(function() {
 			texture: Texture
 		},
 		data() {return {
+			pbr_channels: {
+				color: {icon: 'palette'},
+				normal: {icon: 'area_chart'},
+				height: {icon: 'landscape'},
+				mer: {icon: 'brightness_5'},
+				mer_subsurface: {icon: 'brightness_6'},
+			},
 			temp_color: null
 		}},
 		methods: {
@@ -2490,7 +2557,7 @@ Interface.definePanels(function() {
 
 							if (Format.per_group_texture) {
 								elements = [];
-								let groups = Group.selected;
+								let groups = Group.multi_selected;
 								Outliner.selected.forEach(el => {
 									if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 								});
@@ -2596,6 +2663,7 @@ Interface.definePanels(function() {
 				@mousedown.stop="dragTexture($event)" @touchstart.stop="dragTexture($event)"
 				@contextmenu.prevent.stop="texture.showContextMenu($event)"
 			>
+				<i v-if="texture.getGroup()?.is_material" class="material-icons icon pbr_channel_icon">{{ pbr_channels[texture.pbr_channel].icon }}</i>
 				<div class="texture_icon_wrapper">
 					<img v-bind:texid="texture.id" v-bind:src="texture.source" class="texture_icon" width="48px" alt="" v-if="texture.show_icon" :style="{marginTop: getTextureIconOffset(texture)}" />
 					<i class="material-icons texture_error" v-bind:title="texture.getErrorMessage()" v-if="texture.error">priority_high</i>
@@ -2872,6 +2940,7 @@ Interface.definePanels(function() {
 									class="icon-open-state fa"
 									:class=\'{"fa-angle-right": texture_group.folded, "fa-angle-down": !texture_group.folded}\'
 								></i>
+								<div class="texture_group_material_icon" v-if="texture_group.is_material"></div>
 								<label :title="texture_group.name">{{ texture_group.name }}</label>
 								<ul class="texture_group_mini_icon_list" v-if="texture_group.folded">
 									<li
@@ -2888,6 +2957,17 @@ Interface.definePanels(function() {
 								</div>
 							</div>
 							<ul class="texture_group_list" v-if="!texture_group.folded">
+								<li v-if="texture_group.is_material" class="texture_group_material_config"
+									@dblclick="texture_group.material_config.propertiesDialog()"
+									@contextmenu.prevent.stop="texture_group.material_config.showContextMenu($event)"
+								>
+									<i class="material-icons icon">tune</i>
+									<label>{{ texture_group.material_config.getFileName() }}</label>
+									<i class="material-icons texture_save_icon" v-bind:class="{clickable: !texture_group.material_config.saved}" @click.stop="texture_group.material_config.save()">
+										<template v-if="texture_group.material_config.saved">check_circle</template>
+										<template v-else>save</template>
+									</i>
+								</li>
 								<Texture
 									v-for="texture in texture_group.getTextures()"
 									:key="texture.uuid"

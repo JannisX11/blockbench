@@ -584,6 +584,72 @@
 	#options .bar .nslide, #options .bar .tool.wide {
 		width: 83px;
 	}
+/*Collections*/
+	.collection {
+		display: flex;
+		padding: 2px 10px;
+		gap: 5px;
+		align-items: center;
+		position: relative;
+	}
+	.collection:active {
+		background-color: var(--color-ui);
+	}
+	.collection:hover {
+		color: var(--color-light);
+	}
+	.collection.selected {
+		color: var(--color-light);
+		background-color: var(--color-selected);
+	}
+	.collection.drag_hover::before {
+		content: '';
+		display: block;
+		position: absolute;
+		background: var(--color-accent);
+		width: 5px;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		margin-left: 0;
+		border-top-right-radius: 4px;
+		border-bottom-right-radius: 4px;
+		z-index: 7;
+	}
+	.collection > i {
+		width: 25px;
+		max-width: unset;
+	}
+	.collection_center_wrapper {
+		height: 48px;
+		flex-grow: 1;
+		overflow: hidden;
+	}
+	.collection_center_wrapper > label {
+		padding-left: 5px;
+	}
+	.collection_content_list {
+		display: flex;
+		gap: 4px;
+	}
+	.collection_content_list > li {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		border-radius: 10px;
+    	background-color: var(--color-ui);
+		height: 22px;
+		padding: 0 7px;
+	}
+	.collection_content_list > li > i {
+		scale: 0.9;
+	}
+	.collection_content_list > li > i.fa_big {
+		transform-origin: bottom;
+	}
+	.collection i.toggle_disabled {
+		color: var(--color-subtle_text);
+	}
 
 /*Textures*/
 	#texture_list {
@@ -616,7 +682,8 @@
 	.texture > i.icon_off.clickable:hover {
 		color: var(--color-text);
 	}
-	.texture > i:not(.clickable) {
+	.texture > i:not(.clickable),
+	.texture_group_material_config > i:not(.clickable) {
 		color: var(--color-subtle_text);
 	}
 	.texture i.icon_off {
@@ -731,6 +798,11 @@
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
 	}
+	.pbr_channel_icon {
+		position: absolute;
+		left: -17px;
+		z-index: 1;
+	}
 	
 	.texture_group {
 		padding-bottom: 4px;
@@ -751,6 +823,14 @@
 		width: 21px;
 		margin-top: 4px;
 		flex-shrink: 0;
+	}
+	.texture_group_head .texture_group_material_icon {
+		height: 20px;
+		width: 20px;
+		margin-top: 2px;
+		border-radius: 50%;
+		background: rgb(108,174,235);
+		background: linear-gradient(137deg, rgba(108, 174, 235, 1) 0%, rgb(198 55 215) 100%);
 	}
 	.texture_group_head > label {
 		flex-shrink: 1;
@@ -788,6 +868,22 @@
 		margin-left: 14px;
 		padding-left: 6px;
 		border-left: 2px solid var(--color-guidelines);
+	}
+	.texture_group_material_config {
+		display: flex;
+		align-items: center;
+		height: 30px;
+		padding: 4px 8px;
+		gap: 3px;
+	}
+	.texture_group_material_config i:first-child {
+		width: 50px;
+		max-width: unset;
+		text-align: center;
+	}
+	.texture_group_material_config label {
+		width: 0;
+		flex-grow: 1;
 	}
 
 	#texture_animation_playback {
@@ -1583,7 +1679,6 @@
 		fill: var(--color-grid);
 		stroke: none;
 		stroke-width: 0;
-		pointer-events: initial;
 	}
 	.keyframe .keyframe_waveform > polygon:hover {
 		fill: var(--color-accent);
@@ -2280,6 +2375,33 @@ span.controller_state_section_info {
 		100% {
 			stroke-dashoffset: -10px;
 		}
+	}
+	#texture_selection_polygon {
+		position: absolute;
+		pointer-events: none;
+		width: calc(100% + 2px);
+		height: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		object-fit: cover;
+		object-position: 0 0;
+	}
+	#texture_selection_polygon path {
+		fill: none;
+		stroke-width: 2px;
+		stroke: var(--color-light);
+		stroke-dasharray: 5px 3px;
+		stroke-dashoffset: 0;
+		animation: selection-outline-shift 700ms linear infinite;
+		animation-timing-function: steps(3, end);
+	}
+	#texture_selection_polygon circle {
+		fill: var(--color-ui);
+		stroke-width: 1;
+		stroke: var(--color-border);
+	}
+	#texture_selection_polygon circle.closed {
+		fill: var(--color-accent);
 	}
 
 	.face_properties_toggle {

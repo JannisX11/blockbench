@@ -2074,7 +2074,34 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-
+/* Collection properties */
+	#collection_properties_vue > ul.list {
+		max-height: 200px;
+		display: flex;
+		flex-wrap: wrap;
+		padding: 6px;
+	}
+	#collection_properties_vue > ul > li {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		border-radius: 6px;
+		background-color: var(--color-ui);
+		height: 27px;
+		padding: 0 7px;
+		margin: 2px;
+		max-width: 165px;
+		min-width: 149px;
+	}
+	#collection_properties_vue > ul > li.selected {
+		background-color: var(--color-selected);
+	}
+	#collection_properties_vue > ul > li > i {
+		scale: 0.9;
+	}
+	#collection_properties_vue > ul > li > i.fa_big {
+		transform-origin: bottom;
+	}
 
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,

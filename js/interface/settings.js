@@ -452,6 +452,23 @@ const Settings = {
 		}, onChange() {
 			Canvas.updateRenderSides();
 		}});
+		new Setting('tone_mapping', 			{category: 'preview', value: 'none', type: 'select', options: {
+			none: tl('generic.none'),
+			linear: 'Linear',
+			reinhard: 'Reinhard',
+			cineon: 'Cineon',
+			aces_filmic: 'ACES Filmic',
+			agx: 'AgX',
+			neutral: 'Neutral',
+		}, onChange() {
+			for (let preview of Preview.all) {
+				preview.updateToneMapping();
+			}
+			Canvas.updateShading();
+			for (let model of PreviewModel.getActiveModels()) {
+				model.material.needsUpdate = true;
+			}
+		}});
 		new Setting('fps_limit',				{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
 		new Setting('background_rendering', 	{category: 'preview', value: true});
 		new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
@@ -461,6 +478,7 @@ const Settings = {
 			WinterskyScene.global_options.tick_rate = this.value;
 		}});
 		new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+		new Setting('audio_scrubbing',			{category: 'preview', value: true});
 		new Setting('save_view_per_tab',		{category: 'preview', value: true});
 		new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 

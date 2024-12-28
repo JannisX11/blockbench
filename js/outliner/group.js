@@ -67,19 +67,43 @@ class Group extends OutlinerNode {
 	select(event, is_outliner_click) {
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
+		let multi_select = (event.ctrlOrCmd || Pressing.overrides.ctrl) && !Modes.animate;
+		let shift_select = (event.shiftKey || Pressing.overrides.shift) && !Modes.animate;
 
-		//Clear Old Group
-		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
-			unselectAll();
+		//Unselect others
+		if (!multi_select && !shift_select) {
+			unselectAllElements();
 			Project.groups.forEach(function(s) {
 				s.selected = false;
 			})
 		}
-		//Select This Group
-		this.selected = true;
-		Group.selected.safePush(this);
+
+		if (event && shift_select && this.getParentArray().includes(Group.multi_selected.last()) && is_outliner_click) {
+			let selecting;
+			let last_selected = Group.multi_selected.last();
+			this.getParentArray().forEach((s, i) => {
+				let select_this = false;
+				if (s === last_selected || s === this) {
+					selecting = !selecting;
+					select_this = true;
+				} else if (selecting) {
+					select_this = true;
+				}
+				if (select_this) {
+					if (s instanceof Group) {
+						s.multiSelect()
+					} else if (!Outliner.selected.includes(s)) {
+						s.selectLow()
+					}
+				}
+			})
+		} else {
+			//Select This Group
+			this.selected = true;
+			Group.multi_selected.safePush(this);
+		}
 
 		//Select / Unselect Children
 		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
@@ -105,7 +129,7 @@ class Group extends OutlinerNode {
 	multiSelect() {
 		if (this.locked) return this;
 		this.selected = true;
-		Group.selected.safePush(this);
+		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
 			s.selectLow()
 		})
@@ -133,16 +157,16 @@ class Group extends OutlinerNode {
 				ba.selected = false
 			}
 		}
-		Group.selected.remove(this);
+		Group.multi_selected.remove(this);
 		this.selected = false;
 		TickUpdates.selection = true;
 		return this;
 	}
 	matchesSelection() {
-		if (Group.selected.length != 1 || this != Group.selected) return false;
-		var scope = this;
-		var match = true;
-		for (var i = 0; i < selected.length; i++) {
+		if (Group.multi_selected.length != 1 || this != Group.first_selected) return false;
+		let scope = this;
+		let match = true;
+		for (let i = 0; i < selected.length; i++) {
 			if (!selected[i].isChildOf(scope, 128)) {
 				return false
 			}
@@ -262,7 +286,7 @@ class Group extends OutlinerNode {
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (!Group.selected.includes(this)) this.select(event);
+		if (!Group.multi_selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -409,7 +433,7 @@ class Group extends OutlinerNode {
 	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
 	Group.prototype.rotatable = true;
-	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
 		Outliner.buttons.mirror_uv,
@@ -423,7 +447,7 @@ class Group extends OutlinerNode {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})
 		Group.all.forEach(group => {
-			if (group.selected) {
+			if (Group.multi_selected) {
 				group.color = color;
 			}
 		})
@@ -448,7 +472,6 @@ class Group extends OutlinerNode {
 		}},
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(a, b, c) {
-			console.log({context, b, c});
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
 				Undo.initEdit({outliner: true});
@@ -467,7 +490,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					marked: t.uuid == /*Group.selected*/context.texture,
+					marked: t.uuid == /*Group.multi_selected*/context.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -491,20 +514,34 @@ class Group extends OutlinerNode {
 			Project.groups.replace(arr);
 		}
 	})
-	Object.defineProperty(Group, 'selected', {
+	Object.defineProperty(Group, 'multi_selected', {
 		get() {
-			return Project.selected_groups
+			return Project.selected_groups || []
 		},
 		set(arr) {
 			if (arr instanceof Array == false) {
-				console.warn('"Group.selected" is now an array!')
+				console.warn('Not an array!')
 			}
 			Project.selected_groups.replace(arr)
 		}
 	})
+	Object.defineProperty(Group, 'selected', {
+		get() {
+			console.warn('"Group.selected" will be an array in the future!');
+			return Project.selected_groups?.[0]
+		},
+		set(group) {
+			console.warn('"Group.selected" will be an array in the future!');
+			if (group instanceof Group) {
+				Project.selected_groups.replace([group]);
+			} else {
+				Project.selected_groups.empty();
+			}
+		}
+	})
 	Object.defineProperty(Group, 'first_selected', {
 		get() {
-			return Project.selected_groups[0]
+			return Project.selected_groups?.[0]
 		},
 		set(group) {
 			Project.selected_groups.replace([groups]);
@@ -746,8 +783,8 @@ BARS.defineActions(function() {
 					if (
 						value != Group.first_selected.bedrock_binding
 					) {
-						Undo.initEdit({groups: Group.selected});
-						for (let group of Group.selected) {
+						Undo.initEdit({groups: Group.multi_selected});
+						for (let group of Group.multi_selected) {
 							group.bedrock_binding = value;
 						}
 						Undo.finishEdit('Edit group binding');
@@ -764,7 +801,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
 			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.selected) {
+			for (let group of Group.multi_selected) {
 				group.resolve(false);
 			}
 			Undo.finishEdit('Resolve group')

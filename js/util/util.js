@@ -409,8 +409,10 @@ var Merge = {
 		}
 	},
 	molang(obj, source, index) {
-		if (['string', 'number'].includes(typeof source[index])) {
+		if (typeof source[index] == 'string') {
 			obj[index] = source[index];
+		} else if (typeof source[index] == 'number') {
+			obj[index] = source[index].toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
@@ -655,6 +657,22 @@ function pointInTriangle(pt, v1, v2, v3) {
 	let has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
 
 	return !(has_neg && has_pos);
+}
+function pointInPolygon(point, polygon_points) {
+	// ray-casting algorithm based on
+    // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    let x = point[0], y = point[1], vs = polygon_points;
+    
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i][0], yi = vs[i][1];
+        let xj = vs[j][0], yj = vs[j][1];
+        
+        let intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
 }
 function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
 	return intersectLines(l1, l2, v1, v2) || intersectLines(l1, l2, v2, v3) || intersectLines(l1, l2, v3, v1);
