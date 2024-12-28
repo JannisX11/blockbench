@@ -800,6 +800,7 @@ class Preview {
 			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
+				Undo.initSelection();
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
 					if (data.element.selected && (multi_select || group_select)) {
@@ -952,14 +953,19 @@ class Preview {
 				} else {
 					data.element.select(event);
 				}
+				Undo.finishSelection('Select from viewport');
+
 			} else if (Animator.open && data.type == 'keyframe') {
 				if (data.keyframe instanceof Keyframe) {
+					Undo.initSelection({timeline: true});
 					data.keyframe.select(event).callPlayhead();
 					updateSelection();
+					Undo.finishSelection('Select keyframe');
 				}
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 
+				Undo.initSelection();
 				let list = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
 				let faces = data.element.getSelectedEdges(true);
@@ -973,8 +979,11 @@ class Preview {
 					faces.empty();
 				}
 				updateSelection();
+				Undo.finishSelection('Select vertex');
+
 			} else if (data.type == 'line') {
 
+				Undo.initSelection();
 				let vertices = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
 				let faces = data.element.getSelectedFaces(true);
@@ -1050,6 +1059,7 @@ class Preview {
 					splitFace(start_face, data.vertices);
 				}
 				updateSelection();
+				Undo.finishSelection('Select edge');
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)

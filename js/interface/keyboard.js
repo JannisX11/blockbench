@@ -935,7 +935,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			ReferenceImageMode.deactivate();
 			used = true;
 		}
-	} else if (Undo.amend_edit_menu && (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e))) {
+	} else if (Project && Undo.amend_edit_menu && (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e))) {
 		Undo.closeAmendEditMenu();
 
 	} else if (UVEditor.vue.texture_selection_polygon.length && Keybinds.extra.cancel.keybind.isTriggered(e)) {

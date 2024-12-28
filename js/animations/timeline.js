@@ -104,6 +104,7 @@ const Timeline = {
 			if (e.shiftKey || Pressing.overrides.shift) {
 				Timeline.selector.selected_before = Timeline.selected.slice();
 			}
+			Undo.initSelection({timeline: true});
 		},
 		move(e) {
 			var R = Timeline.selector;
@@ -204,6 +205,7 @@ const Timeline = {
 				if (settings.canvas_unselect.value) {
 					Timeline.selected.empty();
 					updateKeyframeSelection();
+					Undo.finishSelection('Unselect keyframes');
 				}
 				Timeline.vue.clickGraphEditor(e);
 				return false;
@@ -215,6 +217,7 @@ const Timeline = {
 					.css('width', 0)
 					.css('height', 0)
 					.hide();
+				Undo.finishSelection('Select keyframes');
 			}
 		},
 	},
@@ -1738,7 +1741,7 @@ Interface.definePanels(() => {
 											class="keyframe"
 											v-bind:class="{[keyframe.channel]: true, selected: keyframe.selected, has_expressions: keyframe.has_expressions}"
 											v-bind:id="keyframe.uuid"
-											v-on:click.stop="keyframe.select($event)"
+											v-on:click.stop="keyframe.clickSelect($event)"
 											v-on:dblclick="keyframe.callPlayhead()"
 											:title="tl('timeline.'+keyframe.channel)"
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
@@ -1796,7 +1799,7 @@ Interface.definePanels(() => {
 										class="keyframe graph_keyframe"
 										v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
 										v-bind:id="keyframe.uuid"
-										v-on:click.stop="keyframe.select($event)"
+										v-on:click.stop="keyframe.clickSelect($event)"
 										v-on:dblclick="keyframe.callPlayhead()"
 										:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)"
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"

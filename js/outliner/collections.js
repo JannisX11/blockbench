@@ -18,7 +18,7 @@ class Collection {
 		this.selected = true;
 		Outliner.selected.empty();
 		if (!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
-			unselectAll();
+			unselectAllElements();
 			Collection.all.forEach(c => c.selected = false);
 		}
 		this.selected = true;
@@ -32,6 +32,11 @@ class Collection {
 		}
 		updateSelection();
 		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection({collections: true});
+		this.select(event);
+		Undo.finishSelection('Select collection');
 	}
 	getChildren() {
 		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
@@ -104,7 +109,7 @@ class Collection {
 		Undo.finishEdit('Toggle collection visibility');
 	}
 	showContextMenu(event) {
-		if (!this.selected) this.select();
+		if (!this.selected) this.clickSelect(event);
 		this.menu.open(event, this);
 		return this;
 	}
@@ -637,7 +642,7 @@ Interface.definePanels(function() {
 						:key="collection.uuid"
 						:uuid="collection.uuid"
 						class="collection"
-						@click.stop="collection.select()"
+						@click.stop="collection.clickSelect()"
 						@dblclick.stop="collection.propertiesDialog()"
 						@contextmenu.prevent.stop="collection.showContextMenu($event)"
 					>

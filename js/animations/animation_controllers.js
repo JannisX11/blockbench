@@ -1040,7 +1040,6 @@ class AnimationController extends AnimationItem {
 		return this;
 	}
 	select() {
-		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
@@ -1060,6 +1059,12 @@ class AnimationController extends AnimationItem {
 			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
+	}
+	clickSelect() {
+		Undo.initSelection();
+		Prop.active_panel = 'animations';
+		this.select();
+		Blockbench.finishSelection('Select animation')
 	}
 	createUniqueName(arr) {
 		var scope = this;

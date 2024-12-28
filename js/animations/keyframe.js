@@ -435,12 +435,20 @@ class Keyframe {
 		}
 		Timeline.selected.safePush(this);
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
-			Timeline.selected[0].animator.select()
+			Timeline.selected[0].animator.select();
 		}
-		this.selected = true
+		this.selected = true;
 		TickUpdates.keyframe_selection = true;
 
 		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
+
+		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection({timeline: true});
+		Prop.active_panel = 'animations';
+
+		this.select(event);
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
@@ -453,7 +461,7 @@ class Keyframe {
 				case 'scale': BarItems.resize_tool.select(); break;
 			}
 		}
-		return this;
+		Blockbench.finishSelection('Select keyframe')
 	}
 	callPlayhead() {
 		Timeline.setTime(this.time)

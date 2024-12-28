@@ -1701,8 +1701,10 @@ SharedActions.add('select_all', {
 SharedActions.add('select_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		UVEditor.texture.selection.setOverride(UVEditor.texture.selection.override == true ? false : true);
 		UVEditor.updateSelectionOutline();
+		Undo.finishSelection('Select all');
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
 })
@@ -1714,14 +1716,15 @@ SharedActions.add('unselect_all', {
 			UVEditor.getSelectedFaces(element, true).empty();
 		})
 		UVEditor.displayTools();
-		Undo.initSelection();
 		Undo.finishSelection('Unselect all UV');
 	}
 })
 SharedActions.add('unselect_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		UVEditor.texture.selection.setOverride(false);
+		Undo.finishSelection('Unselect all');
 		UVEditor.updateSelectionOutline();
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
@@ -1729,6 +1732,7 @@ SharedActions.add('unselect_all', {
 SharedActions.add('invert_selection', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		let texture = UVEditor.texture;
 		if (texture.selection.is_custom) {
 			texture.selection.forEachPixel((x, y, val, index) => {
@@ -1738,6 +1742,7 @@ SharedActions.add('invert_selection', {
 			texture.selection.setOverride(!texture.selection.override);
 		}
 		UVEditor.updateSelectionOutline();
+		Undo.finishSelection('Invert selection');
 	}
 })
 
@@ -3770,7 +3775,7 @@ Interface.definePanels(function() {
 					start_y = y;
 
 					if (create_selection) {
-						Undo.initSelection();
+						Undo.initSelection({texture_selection: true});
 						if (op_mode == 'create' && (selection_mode != 'lasso' || selection_polygon.length == 0)) {
 							texture.selection.clear();
 						}

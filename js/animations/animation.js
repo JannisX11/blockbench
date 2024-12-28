@@ -433,7 +433,6 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	select() {
-		Prop.active_panel = 'animations';
 		let previous_animation = Animation.selected;
 		if (this == Animation.selected) return;
 		AnimationItem.all.forEach((a) => {
@@ -481,6 +480,12 @@ class Animation extends AnimationItem {
 		}
 		Blockbench.dispatchEvent('select_animation', {animation: this})
 		return this;
+	}
+	clickSelect() {
+		Undo.initSelection();
+		Prop.active_panel = 'animations';
+		this.select();
+		Blockbench.finishSelection('Select animation')
 	}
 	setLength(len = this.length) {
 		this.length = 0;
@@ -2122,8 +2127,8 @@ Interface.definePanels(function() {
 								v-bind:class="{ selected: animation.selected }"
 								v-bind:anim_id="animation.uuid"
 								class="animation"
-								v-on:click.stop="animation.select()"
-								v-on:dblclick.stop="animation.propertiesDialog()"
+								@click.stop="animation.clickSelect()"
+								@dblclick.stop="animation.propertiesDialog()"
 								:key="animation.uuid"
 								@contextmenu.prevent.stop="animation.showContextMenu($event)"
 							>

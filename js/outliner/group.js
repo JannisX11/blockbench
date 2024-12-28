@@ -126,6 +126,12 @@ class Group extends OutlinerNode {
 		updateSelection()
 		return this;
 	}
+	clickSelect(event) {
+		if (Blockbench.hasFlag('renaming') || this.locked) return this;
+		Undo.initSelection();
+		this.select(event);
+		Undo.finishSelection('Select group');
+	}
 	multiSelect() {
 		if (this.locked) return this;
 		this.selected = true;

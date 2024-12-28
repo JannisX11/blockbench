@@ -58,8 +58,13 @@ class TextureLayer {
 		BarItems.layer_opacity.update();
 		BarItems.layer_blend_mode.set(this.blend_mode);
 	}
+	clickSelect(event) {
+		Undo.initSelection();
+		this.select(event);
+		Undo.finishSelection();
+	}
 	showContextMenu(event) {
-		if (!this.selected) this.select();
+		if (!this.selected) this.clickSelect(event);
 		this.menu.open(event, this);
 	}
 	remove(undo) {
@@ -750,7 +755,7 @@ Interface.definePanels(function() {
 						:key="layer.uuid"
 						:layer_id="layer.uuid"
 						class="texture_layer"
-						@click.stop="layer.select()"
+						@click.stop="layer.clickSelect()"
 						@dblclick.stop="layer.propertiesDialog()"
 						@contextmenu.prevent.stop="layer.showContextMenu($event)"
 					>

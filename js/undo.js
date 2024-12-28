@@ -62,22 +62,29 @@ class UndoSystem {
 		return entry;
 	}
 	initSelection(aspects) {
-		if (!settings.undo_selections.value) return;
+		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save')) return;
 
+		if (this.current_selection_save) return;
 		this.current_selection_save = new UndoSystem.selectionSave(aspects);
 		Blockbench.dispatchEvent('init_selection_change', {aspects, save: this.current_selection_save})
 		return this.current_selection_save;
 	}
 	finishSelection(message, aspects) {
-		if (!settings.undo_selections.value) return;
+		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save')) return;
 
 		if (!this.current_selection_save) return;
-		aspects = aspects || this.current_selection_save.aspects
+		aspects = aspects || this.current_selection_save.aspects;
+		let selection_before = this.current_selection_save;
+		let selection_post = new UndoSystem.selectionSave(aspects);
+		if (selection_before.matches(selection_post)) {
+			this.cancelSelection();
+			return;
+		}
 		//After
 		Blockbench.dispatchEvent('finish_selection_change', {aspects})
 		var entry = {
-			selection_before: this.current_selection_save,
-			selection_post: new UndoSystem.selectionSave(aspects),
+			selection_before,
+			selection_post,
 			action: message,
 			type: 'selection',
 			time: Date.now()
@@ -105,6 +112,11 @@ class UndoSystem {
 			this.loadSave(this.current_save, new UndoSystem.save(this.current_save.aspects))
 		}
 		delete this.current_save;
+	}
+	cancelSelection() {
+		let selection_before = this.current_selection_save;
+		delete this.current_selection_save;
+		Blockbench.dispatchEvent('cancel_selection_change', {selection_before})
 	}
 	closeAmendEditMenu() {
 		if (this.amend_edit_menu) {
@@ -756,10 +768,12 @@ UndoSystem.save = class {
 	}
 }
 UndoSystem.selectionSave = class {
-	constructor(aspects) {
+	constructor(aspects = 0) {
+		this.aspects = aspects;
 		this.elements = Outliner.selected.map(element => element.uuid);
-		this.groups = Group.selected.map(element => element.uuid);
+		this.groups = Group.multi_selected.map(element => element.uuid);
 		this.geometry = {};
+		this.mode = Modes.selected.id;
 		this.mesh_selection_mode = BarItems.selection_mode.value;
 
 		for (let element of Outliner.selected) {
@@ -778,48 +792,127 @@ UndoSystem.selectionSave = class {
 
 		if (Texture.selected) {
 			this.texture = Texture.selected?.uuid;
-			let texture_selection = Texture.selected.selection;
-			if (texture_selection.is_custom) {
-				this.texture_selection = new Int8Array(texture_selection.array);
-			} else {
-				this.texture_selection = texture_selection.override;
+			if (aspects.texture_selection && UVEditor.texture) {
+				let texture_selection = UVEditor.texture.selection;
+				if (texture_selection.is_custom) {
+					this.texture_selection = new Int8Array(texture_selection.array);
+				} else {
+					this.texture_selection = texture_selection.override;
+				}
+			}
+		}
+
+		if (Modes.animate && AnimationItem.selected) {
+			this.animation_item = AnimationItem.selected.uuid;
+		}
+		if (Modes.animate && Animation.selected && aspects.timeline) {
+			this.timeline = {};
+			let animator_keys = Object.keys(Animation.selected.animators);
+			for (let animator of Timeline.animators) {
+				let key = animator_keys.find(key => Animation.selected.animators[key] == animator);
+				this.timeline[key] = {
+					selected: animator.selected,
+					keyframes: animator.keyframes.filter(kf => kf.selected).map(kf => kf.uuid)
+				}
 			}
 		}
 	}
 	load(reference) {
+		Blockbench.addFlag('loading_selection_save');
+		if (this.mode && Modes.options[this.mode]) {
+			Modes.options[this.mode].select();
+		}
 		if (this.mesh_selection_mode) {
 			BarItems.selection_mode.set(this.mesh_selection_mode);
 		}
 
+		unselectAllElements();
 		if (this.elements) {
 			Outliner.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]));
 		}
 		if (this.groups) {
-			Group.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]));
+			for (let uuid of this.groups) {
+				let group = OutlinerNode.uuids[uuid];
+				if (group instanceof Group) {
+					group.multiSelect();
+				}
+			}
 		}
 
 		if (this.texture) {
 			let texture = Texture.all.find(t => t.uuid == this.texture);
 			if (texture) {
 				texture.select();
-
-				if (texture.selection && this.texture_selection) {
-					if (typeof this.texture_selection == 'boolean') {
-						texture.selection.setOverride(this.texture_selection);
-					} else if (texture.selection.height * texture.selection.width == this.texture_selection.length) {
-						texture.selection.override = null;
-						if (!texture.selection.array || texture.selection.array.length != this.texture_selection.length) {
-							texture.selection.array = new Int8Array(this.texture_selection);
-						} else {
-							texture.selection.array.set(this.texture_selection);
-						}
-					}
-					UVEditor.updateSelectionOutline();
+			}
+		}
+		if (UVEditor.texture?.selection && this.texture_selection !== undefined) {
+			let texture_selection = UVEditor.texture.selection;
+			if (typeof this.texture_selection == 'boolean') {
+				texture_selection.setOverride(this.texture_selection);
+			} else if (texture_selection.height * texture_selection.width == this.texture_selection.length) {
+				texture_selection.override = null;
+				if (!texture_selection.array || texture_selection.array.length != this.texture_selection.length) {
+					texture_selection.array = new Int8Array(this.texture_selection);
+				} else {
+					texture_selection.array.set(this.texture_selection);
 				}
 			}
+			UVEditor.updateSelectionOutline();
+		}
+		if (Modes.animate && this.animation_item) {
+			let animation = AnimationItem.all.find(a => a.uuid == this.animation_item);
+			if (animation && animation != AnimationItem.selected) animation.select();
+		}
+		if (Modes.animate && Animation.selected && this.timeline) {
+			Timeline.animators.empty();
+			Keyframe.selected.forEach(kf => kf.selected = false);
+			Keyframe.selected.empty();
+			for (let uuid in this.timeline) {
+				let animator = Animation.selected.animators[uuid];
+				if (!animator) continue;
+				animator.addToTimeline();
+				for (let kf_uuid of this.timeline[uuid].keyframes) {
+					let kf = animator.keyframes.find(kf => kf.uuid == kf_uuid);
+					if (kf) {
+						Keyframe.selected.push(kf);
+						kf.selected = true;
+					}
+				}
+			}
+			updateKeyframeSelection();
 		}
 
 		updateSelection();
+		Blockbench.removeFlag('loading_selection_save');
+	}
+	matches(other) {
+		if (this.texture_selection) return false;
+		let compare = (a, b) => {
+			if (typeof a != typeof b) return false;
+			if (typeof a == 'function') return false;
+			if (a instanceof Array && b instanceof Array) {
+				if (a.length != b.length) return false;
+				let i = 0;
+				for (let item of a) {
+					if (!compare(item, b[i])) return false;
+					i++;
+				}
+				return true;
+			}
+			if (typeof a == 'object') {
+				for (let key in a) {
+					if (!compare(a[key], b[key])) return false;
+				}
+				return true;
+			}
+			return a == b;
+		}
+		for (let key in this) {
+			if (key == 'aspects') continue;
+			let result = compare(this[key], other[key]);
+			if (result == false) return false;
+		}
+		return true;
 	}
 }
 

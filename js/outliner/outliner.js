@@ -379,7 +379,7 @@ class OutlinerElement extends OutlinerNode {
 	showContextMenu(event) {
 		if (this.locked) return this;
 		if (!this.selected) {
-			this.select()
+			this.clickSelect(event)
 		}
 		this.menu.open(event, this)
 		return this;
@@ -488,7 +488,7 @@ class OutlinerElement extends OutlinerNode {
 
 		//Normal
 		} else {
-			unselectAll()
+			unselectAllElements()
 			this.selectLow()
 			just_selected.push(this)
 			if (settings.outliner_reveal_on_select.value) {
@@ -503,8 +503,16 @@ class OutlinerElement extends OutlinerNode {
 		})
 		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
 		TickUpdates.selection = true;
-		Undo.finishSelection('Select element');
 		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection();
+		let result = this.select(event);
+		if (result === false) {
+			Undo.cancelSelection();
+			return;
+		}
+		Undo.finishSelection('Select element');
 	}
 	selectLow() {
 		Project.selected_elements.safePush(this);
@@ -1145,6 +1153,7 @@ SharedActions.add('unselect_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
+		console.trace('TEST')
 		Undo.initSelection();
 		unselectAllElements();
 		Undo.finishSelection('Unselect all elements');
@@ -1443,7 +1452,7 @@ Interface.definePanels(function() {
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
-				@click="node.select($event, true)"
+				@click="node.clickSelect($event, true)"
 				:title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +

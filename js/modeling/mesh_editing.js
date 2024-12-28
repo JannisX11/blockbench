@@ -1620,7 +1620,7 @@ BARS.defineActions(function() {
 
 				elements.push(mesh);
 				mesh.init()
-				unselectAll()
+				unselectAllElements()
 				mesh.select()
 				UVEditor.setAutoSize(null, true, Object.keys(mesh.faces));
 				Undo.finishEdit('Add primitive');
