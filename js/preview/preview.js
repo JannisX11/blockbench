@@ -2268,14 +2268,19 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Format.image_editor,
-		keybind: new Keybind({}, {rotate_only: 'shift'}),
+		keybind: new Keybind({}, {
+			rotate_only: 'shift',
+			zoom: 'ctrl'
+		}),
 		variations: {
-			rotate_only: {name: 'action.focus_on_selection.rotate_only'}
+			rotate_only: {name: 'action.focus_on_selection.rotate_only'},
+			zoom: {name: 'action.focus_on_selection.zoom'}
 		},
 		click(event = 0) {
 			if (!Project) return;
+			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
 			if (Prop.active_panel == 'uv') {
-				UVEditor.focusOnSelection()
+				UVEditor.focusOnSelection(zoom)
 
 			} else {
 				let preview = Preview.selected;
@@ -2288,8 +2293,24 @@ BARS.defineActions(function() {
 					Transformer.getWorldPosition(center)
 				}
 
+				let zoom_offset;
 				let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
-				difference.divideScalar(6)
+				let cam_boom = center.clone().sub(preview.camera.position).add(difference);
+				difference.divideScalar(6);
+
+				if (zoom) {
+					let bounds = Canvas.getSelectionBounds();
+					let radius = Math.max(
+						Math.abs(bounds.min.x-center.x), Math.abs(bounds.max.x-center.x),
+						Math.abs(bounds.min.z-center.z), Math.abs(bounds.max.z-center.z),
+					);
+					let height = Math.max(Math.abs(bounds.min.y-center.y), Math.abs(bounds.max.y-center.y));
+					let focal_length = preview.camera.getFocalLength();
+					let cam_distance = cam_boom.length();
+					let target_distance = Math.max(radius, height) * (focal_length / 10);
+					zoom_factor = target_distance / cam_distance;
+					zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
+				}
 
 				let i = 0;
 				let interval = setInterval(() => {
@@ -2298,6 +2319,10 @@ BARS.defineActions(function() {
 					if (this.keybind.additionalModifierTriggered(event) != 'rotate_only' || preview.angle != null) {
 						preview.camera.position.sub(difference);
 					}
+					if (zoom_offset) {
+						preview.camera.position.sub(zoom_offset);
+					}
+					Transformer.update();
 					i++;
 					if (i == 6) clearInterval(interval);
 

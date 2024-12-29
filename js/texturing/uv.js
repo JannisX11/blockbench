@@ -257,40 +257,20 @@ const UVEditor = {
 		}
 		this.vue.selection_outline = outline;
 	},
-	focusOnSelection() {
-		let min_x = UVEditor.getUVWidth();
-		let min_y = UVEditor.getUVHeight();
-		let max_x = 0;
-		let max_y = 0;
-		let elements = UVEditor.getMappableElements();
-		elements.forEach(element => {
-			if (element instanceof Cube && element.box_uv) {
-				let size = element.size(undefined, Format.box_uv_float_size != true)
-				min_x = Math.min(min_x, element.uv_offset[0]);
-				min_y = Math.min(min_y, element.uv_offset[1]);
-				max_x = Math.max(max_x, element.uv_offset[0] + (size[0] + size[2]) * 2);
-				max_y = Math.max(max_y, element.uv_offset[1] + size[1] + size[2]);
-			} else {
-				for (let fkey in element.faces) {
-					if (!UVEditor.getSelectedFaces(element, false).includes(fkey)) continue;
-					let face = element.faces[fkey];
-					if (element instanceof Cube) {
-						min_x = Math.min(min_x, face.uv[0], face.uv[2]);
-						min_y = Math.min(min_y, face.uv[1], face.uv[3]);
-						max_x = Math.max(max_x, face.uv[0], face.uv[2]);
-						max_y = Math.max(max_y, face.uv[1], face.uv[3]);
-					} else if (element instanceof Mesh) {
-						face.vertices.forEach(vkey => {
-							if (!face.uv[vkey]) return;
-							min_x = Math.min(min_x, face.uv[vkey][0]);
-							min_y = Math.min(min_y, face.uv[vkey][1]);
-							max_x = Math.max(max_x, face.uv[vkey][0]);
-							max_y = Math.max(max_y, face.uv[vkey][1]);
-						})
-					}
-				}
-			}
-		})
+	async focusOnSelection(zoom) {
+		if (zoom instanceof Event) {
+			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
+		}
+		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		if (zoom) {
+			let width = (max_x-min_x) / UVEditor.getUVWidth();
+			let height = (max_y-min_y) / UVEditor.getUVHeight();
+			let target_zoom_factor = 1/Math.max(width, height);
+			let target_zoom = Math.clamp(UVEditor.zoom, target_zoom_factor * 0.618, Math.max(1, target_zoom_factor * 0.84));
+			UVEditor.setZoom(target_zoom);
+			await new Promise(Vue.nextTick);
+		}
+
 		let pixel_size = UVEditor.inner_width / UVEditor.vue.uv_resolution[0];
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
@@ -299,7 +279,7 @@ const UVEditor = {
 			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
 			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
 		}, {
-			duration: 100,
+			duration: zoom ? 0 : 100,
 			complete: () => {
 				UVEditor.updateUVNavigator();
 			}
@@ -4132,8 +4112,8 @@ Interface.definePanels(function() {
 						height: this.toPixels(box[3] - box[1], 0),
 					};
 				},
-				focusOnSelection() {
-					UVEditor.focusOnSelection();
+				focusOnSelection(event) {
+					UVEditor.focusOnSelection(event);
 				},
 				showTransparentFaceText() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
@@ -4540,7 +4520,7 @@ Interface.definePanels(function() {
 							</svg>
 						</div>
 
-						<div class="uv_navigator" @click="focusOnSelection()" v-show="mode == 'uv'">
+						<div class="uv_navigator" @click="focusOnSelection($event)" v-show="mode == 'uv'">
 							<i class="material-icons icon">navigation</i>
 						</div>
 

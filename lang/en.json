@@ -1756,6 +1756,7 @@
 	"action.focus_on_selection": "Center View on Selection",
 	"action.focus_on_selection.desc": "Align the camera to face the center of the current selection",
 	"action.focus_on_selection.rotate_only": "Rotate only",
+	"action.focus_on_selection.zoom": "Zoom to fit",
 
 	"action.edit_reference_images": "Edit Reference Images",
 	"action.edit_reference_images.desc": "Turn on reference image mode to add or edit reference images and blueprints",

@@ -1391,6 +1391,20 @@ const Canvas = {
 		if (height === Infinity) height = 0;
 		
 		return [width, height]
+	},
+	getSelectionBounds() {
+		let pivot_marker_parent = Canvas.pivot_marker.parent;
+		let visible_box = new THREE.Box3();
+		if (pivot_marker_parent) pivot_marker_parent.remove(Canvas.pivot_marker);
+		Canvas.withoutGizmos(() => {
+			Outliner.selected.forEach(element => {
+				if (element.visibility && element.mesh && element.mesh.geometry) {
+					visible_box.expandByObject(element.mesh);
+				}
+			})
+		})
+		if (pivot_marker_parent) pivot_marker_parent.add(Canvas.pivot_marker);
+		return visible_box;
 	}
 }
 var buildGrid = Canvas.buildGrid;
