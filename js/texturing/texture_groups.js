@@ -87,17 +87,24 @@ class TextureGroup {
 	}
 
 	updateMaterial() {
+		/**
+		 * @link https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
+		 * @type {THREE.MeshStandardMaterial}
+		 */
 		let material = this._static.properties.material;
+		
 		if (!material) {
-			//let g = new THREE.PMREMGenerator(Preview.selected.renderer);
-			//let pmrem_render_target = g.fromScene(Canvas.scene);
-			// https://threejs.org/docs/index.html#api/en/materials/MeshStandardMaterial
 			material = this._static.properties.material = new THREE.MeshStandardMaterial({
-				envMap: PreviewScene.active?.cubemap ?? null,
 				envMapIntensity: 0.8,
 				alphaTest: 0.05,
 			});
 		}
+
+		if (PreviewScene.active) {
+			const g = new THREE.PMREMGenerator(Preview.selected.renderer);
+			material.envMap = g.fromScene(Canvas.scene, 0.0, 100, 1024).texture;
+		}
+
 		let textures = this.getTextures();
 		let color_tex = textures.find(t => t.pbr_channel == 'color');
 		let normal_tex = textures.find(t => t.pbr_channel == 'normal');
@@ -116,7 +123,8 @@ class TextureGroup {
 		if (normal_tex) {
 			material.normalMap = normal_tex.getOwnMaterial().map;
 			material.bumpMap = null;
-
+			// Use DirectX normal maps for RenderDragon. Flips the "handedness" of the normal map.
+			material.normalScale = Project.format.id.includes('bedrock') ? new THREE.Vector2(1, -1) : new THREE.Vector2(1, 1);
 		} else if (height_tex) {
 			material.bumpMap = height_tex.getOwnMaterial().map;
 			material.bumpScale = 0.4;
@@ -134,31 +142,52 @@ class TextureGroup {
 		}
 		if (mer_tex && mer_tex.img?.naturalWidth) {
 			let image_data = mer_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
-			let image_data_albedo = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
-			function generateMap(source_channel, target_channel, key) {
+
+			const extractEmissiveChannel = () => {
+				// The green channel is the emissive level.
+				// Use it as an mask on the color texture to create the emissive map.
+				const color_data = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
+				let emissive_data = new Uint8ClampedArray(color_data.data.length);
+				for (let i = 0; i < image_data.data.length; i += 4) {
+					if (image_data.data[i + 1] > 0) {
+						emissive_data[i] = color_data.data[i];
+						emissive_data[i + 1] = color_data.data[i + 1];
+						emissive_data[i + 2] = color_data.data[i + 2];
+						emissive_data[i + 3] = 255;
+						continue;
+					}
+
+					emissive_data[i] = 0;
+					emissive_data[i + 1] = 0;
+					emissive_data[i + 2] = 0;
+					emissive_data[i + 3] = 255;
+				}
+
+				return new ImageData(emissive_data, mer_tex.width, mer_tex.height);
+			}
+
+			const extractGrayscaleValue = (channel) => {
+				let grayscale_data = new Uint8ClampedArray(image_data.data.length);
+				for (let i = 0; i < image_data.data.length; i += 4) {
+					grayscale_data[i + 0] = image_data.data[i + channel];
+					grayscale_data[i + 1] = image_data.data[i + channel];
+					grayscale_data[i + 2] = image_data.data[i + channel];
+					grayscale_data[i + 3] = 255;
+				}
+
+				return new ImageData(grayscale_data, mer_tex.width, mer_tex.height);
+			}
+
+			function generateMap(source_channel, key) {
 				let canvas = material[key]?.image ?? document.createElement('canvas');
 				let ctx = canvas.getContext('2d');
 				canvas.width = mer_tex.width;
 				canvas.height = mer_tex.height;
 				ctx.fillStyle = 'black';
 				ctx.fillRect(0, 0, mer_tex.width, mer_tex.height);
-				document.body.append(canvas)
+				document.body.append(canvas);
 
-				let image_data_new = ctx.getImageData(0, 0, mer_tex.width, mer_tex.height);
-				for (let i = 0; i < image_data.data.length; i += 4) {
-					if (target_channel == 0) {
-						let value = image_data.data[i + source_channel] / 255;
-						image_data_new.data[i + 0] = image_data_albedo.data[i + 0] * value;
-						image_data_new.data[i + 1] = image_data_albedo.data[i + 1] * value;
-						image_data_new.data[i + 2] = image_data_albedo.data[i + 2] * value;
-					} else {
-						image_data_new.data[i + target_channel] = image_data.data[i + source_channel];
-						if (source_channel == 2 && image_data_new.data[i + target_channel] == 0) {
-							//image_data_new.data[i + target_channel] = 255;
-						}
-					}
-				}
-				ctx.putImageData(image_data_new, 0, 0);
+				ctx.putImageData(source_channel === 1 ? extractEmissiveChannel() : extractGrayscaleValue(source_channel), 0, 0);
 
 				if (!material[key] || true) {
 					material[key] = new THREE.Texture(canvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.NearestFilter, THREE.NearestFilter);
@@ -166,12 +195,13 @@ class TextureGroup {
 				}
 				//material.map = material[key];
 			}
-			generateMap(0, 2, 'metalnessMap');
-			generateMap(1, 0, 'emissiveMap');
-			generateMap(2, 1, 'roughnessMap');
+			generateMap(0, 'metalnessMap');
+			generateMap(1, 'emissiveMap');
+			generateMap(2, 'roughnessMap');
 			material.emissive.set(0xffffff);
-			material.emissiveIntensity = 5;
+			material.emissiveIntensity = 1;
 			material.metalness = 1;
+			material.roughness = 1;
 		} else {
 			material.metalnessMap = null;
 			material.emissiveMap = material.map;

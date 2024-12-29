@@ -39,7 +39,11 @@ class PreviewScene {
 		this.cubemap = null;
 		if (data.cubemap) {
 			let urls = data.cubemap;
-			let texture_cube = new THREE.CubeTextureLoader().load( urls );
+			let texture_cube = new THREE.CubeTextureLoader().load(urls, () => {
+				if (PreviewScene.active == this && Project.view_mode == 'material') {
+					Canvas.updateShading();
+				}
+			});
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -106,9 +110,6 @@ class PreviewScene {
 		Canvas.global_light_side = this.light_side;
 		Canvas.scene.background = this.cubemap;
 		Canvas.scene.fog = this.fog;
-		
-		let pmremGenerator = new THREE.PMREMGenerator( Preview.selected.renderer );
-		Canvas.scene.environment = pmremGenerator.fromCubemap(this.cubemap).texture;
 
 		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
