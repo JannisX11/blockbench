@@ -309,7 +309,7 @@ BARS.defineActions(function() {
 		searchable: true,
 		children() {
 			let nodes = [];
-			iterate(NullObject.selected[0].parent.children);
+			iterate(NullObject.selected[0].getParentArray());
 
 			function iterate(arr) {
 				arr.forEach(node => {

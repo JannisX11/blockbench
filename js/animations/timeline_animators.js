@@ -643,7 +643,10 @@ class NullObjectAnimator extends BoneAnimator {
 			}
 		});
 
-		let polePos = pole.mesh.getWorldPosition(new THREE.Vector3());
+		let polePos;
+		if (pole) {
+			polePos = pole.mesh.getWorldPosition(new THREE.Vector3());
+		}
 
 		fabrikIter(bone_pos, ik_target, polePos);
 

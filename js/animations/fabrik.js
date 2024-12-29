@@ -52,7 +52,8 @@ function fabrikIter(bones, target, pole) {
         let b = bases[0];
         let diff = target.distanceTo(bones[n - 1]);
         const TOLERANCE = 0.001;
-        while (diff > TOLERANCE) {
+        let max_iterations = 4_000;
+        while (diff > TOLERANCE && max_iterations > 0) {
             bones[n - 1] = target;
             for (i = n - 2; i >= 0; i--) {
                 let p = bones[i];
@@ -73,6 +74,7 @@ function fabrikIter(bones, target, pole) {
             }
 
             diff = target.distanceTo(bones[n - 1]);
+            max_iterations--;
         }
     }
 }
