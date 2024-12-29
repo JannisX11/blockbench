@@ -29,6 +29,11 @@ class GeneralAnimator {
 		})
 		return this;
 	}
+	clickSelect() {
+		Undo.initSelection();
+		this.select();
+		Undo.finishSelection('Select animator');
+	}
 	addToTimeline() {
 		if (!Timeline.animators.includes(this)) {
 			Timeline.animators.splice(0, 0, this);
@@ -230,7 +235,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		super.select();
 		
-		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this) && !Blockbench.hasFlag('loading_selection_save')) {
 			var nearest;
 			this[Toolbox.selected.animation_channel].forEach(kf => {
 				if (Math.abs(kf.time - Timeline.time) < 0.002) {

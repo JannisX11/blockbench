@@ -461,7 +461,7 @@ class Keyframe {
 				case 'scale': BarItems.resize_tool.select(); break;
 			}
 		}
-		Blockbench.finishSelection('Select keyframe')
+		Undo.finishSelection('Select keyframe')
 	}
 	callPlayhead() {
 		Timeline.setTime(this.time)

@@ -485,7 +485,7 @@ class Animation extends AnimationItem {
 		Undo.initSelection();
 		Prop.active_panel = 'animations';
 		this.select();
-		Blockbench.finishSelection('Select animation')
+		Undo.finishSelection('Select animation')
 	}
 	setLength(len = this.length) {
 		this.length = 0;

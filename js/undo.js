@@ -779,13 +779,13 @@ UndoSystem.selectionSave = class {
 		for (let element of Outliner.selected) {
 			if (element instanceof Mesh) {
 				this.geometry[element.uuid] = {
-					faces: element.getSelectedFaces(),
-					edges: element.getSelectedEdges(),
-					vertices: element.getSelectedVertices(),
+					faces: element.getSelectedFaces().slice(),
+					edges: element.getSelectedEdges().slice(),
+					vertices: element.getSelectedVertices().slice(),
 				}
 			} else if (element instanceof Cube && !element.box_uv) {
 				this.geometry[element.uuid] = {
-					faces: UVEditor.getSelectedFaces(Cube.selected[0])
+					faces: UVEditor.getSelectedFaces(element).slice()
 				}
 			}
 		}
@@ -805,7 +805,7 @@ UndoSystem.selectionSave = class {
 		if (Modes.animate && AnimationItem.selected) {
 			this.animation_item = AnimationItem.selected.uuid;
 		}
-		if (Modes.animate && Animation.selected && aspects.timeline) {
+		if (Modes.animate && Animation.selected) {
 			this.timeline = {};
 			let animator_keys = Object.keys(Animation.selected.animators);
 			for (let animator of Timeline.animators) {
@@ -815,11 +815,14 @@ UndoSystem.selectionSave = class {
 					keyframes: animator.keyframes.filter(kf => kf.selected).map(kf => kf.uuid)
 				}
 			}
+			this.graph_editor_channel = Timeline.vue.graph_editor_channel;
+			this.graph_editor_axis = Timeline.vue.graph_editor_axis;
+			this.graph_editor_open = Timeline.vue.graph_editor_open;
 		}
 	}
 	load(reference) {
 		Blockbench.addFlag('loading_selection_save');
-		if (this.mode && Modes.options[this.mode]) {
+		if (this.mode && Modes.options[this.mode] && Modes.selected.id != this.mode) {
 			Modes.options[this.mode].select();
 		}
 		if (this.mesh_selection_mode) {
@@ -835,6 +838,21 @@ UndoSystem.selectionSave = class {
 				let group = OutlinerNode.uuids[uuid];
 				if (group instanceof Group) {
 					group.multiSelect();
+				}
+			}
+		}
+
+		if (this.geometry) {
+			for (let uuid in this.geometry) {
+				let geo_data = this.geometry[uuid];
+				let element = OutlinerNode.uuids[uuid];
+				if (element instanceof Mesh) {
+					element.getSelectedFaces(true).replace(geo_data.faces);
+					element.getSelectedEdges(true).replace(geo_data.edges);
+					element.getSelectedVertices(true).replace(geo_data.vertices);
+
+				} else if (element instanceof Cube && !element.box_uv) {
+					element.getSelectedFaces(true).replace(geo_data.faces);
 				}
 			}
 		}
@@ -870,7 +888,8 @@ UndoSystem.selectionSave = class {
 			for (let uuid in this.timeline) {
 				let animator = Animation.selected.animators[uuid];
 				if (!animator) continue;
-				animator.addToTimeline();
+				Timeline.animators.push(animator);
+				if (this.timeline[uuid].selected) animator.select();
 				for (let kf_uuid of this.timeline[uuid].keyframes) {
 					let kf = animator.keyframes.find(kf => kf.uuid == kf_uuid);
 					if (kf) {
@@ -879,6 +898,9 @@ UndoSystem.selectionSave = class {
 					}
 				}
 			}
+			Timeline.vue.graph_editor_channel = this.graph_editor_channel;
+			Timeline.vue.graph_editor_axis = this.graph_editor_axis;
+			Timeline.vue.graph_editor_open = this.graph_editor_open;
 			updateKeyframeSelection();
 		}
 

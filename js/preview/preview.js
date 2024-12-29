@@ -1285,7 +1285,8 @@ class Preview {
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
 
-			this.moveSelRect(event)
+			Undo.initSelection();
+			this.moveSelRect(event);
 		}
 
 	}
@@ -1489,6 +1490,7 @@ class Preview {
 		delete this.sr_stop_f;
 		this.selection.box.detach()
 		this.selection.activated = false;
+		Undo.finishSelection('Area select');
 	}
 	// Background
 	loadBackground() {

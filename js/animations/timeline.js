@@ -1042,6 +1042,7 @@ Interface.definePanels(() => {
 				selectChannel(animator, channel) {
 					if (this.graph_editor_channel == channel && animator.selected) return;
 					if (!animator.channels[channel].transform) return;
+					Undo.initSelection();
 					if (!animator.selected) animator.select();
 					// Select keyframe in new channel
 					if (animator[channel].length && Keyframe.selected.length > 0) {
@@ -1056,6 +1057,7 @@ Interface.definePanels(() => {
 						}
 					}
 					this.graph_editor_channel = channel;
+					Undo.finishSelection('Select animation channel');
 				},
 				getColor(index) {
 					if (index == -1 || index == undefined) return;
@@ -1102,6 +1104,7 @@ Interface.definePanels(() => {
 								}
 							} else if (distance > 6) {
 								active = true;
+								Undo.initSelection();
 							}
 						} else {
 							if (e2) e2.preventDefault();
@@ -1154,6 +1157,7 @@ Interface.definePanels(() => {
 							if (Timeline.animators[index] == animator) return;
 							Timeline.animators.remove(animator);
 							Timeline.animators.splice(index, 0, animator);
+							Undo.finishSelection('Rearrange animators in timeline');
 						}
 					}
 
@@ -1675,13 +1679,13 @@ Interface.definePanels(() => {
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
-							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.select();">
+							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
-										<span v-on:click.stop="animator.select();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">{{animator.name}}</span>
+										<span v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">{{animator.name}}</span>
 										<div class="text_button" v-on:click.stop="removeAnimator(animator)">
 											<i class="material-icons">remove</i>
 										</div>

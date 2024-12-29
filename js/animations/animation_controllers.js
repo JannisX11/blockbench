@@ -1064,7 +1064,7 @@ class AnimationController extends AnimationItem {
 		Undo.initSelection();
 		Prop.active_panel = 'animations';
 		this.select();
-		Blockbench.finishSelection('Select animation')
+		Undo.finishSelection('Select animation')
 	}
 	createUniqueName(arr) {
 		var scope = this;
