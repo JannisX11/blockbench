@@ -226,6 +226,10 @@ class UndoSystem {
 	}
 	loadSave(save, reference, mode) {
 		var is_session = mode === 'session';
+
+		if (save.mode && Modes.options[save.mode] && Modes.selected.id != save.mode && mode != 'session') {
+			Modes.options[save.mode].select();
+		}
 		
 		if (save.uv_mode) {
 			Project.box_uv = save.uv_mode.box_uv;
@@ -605,6 +609,8 @@ UndoSystem.save = class {
 
 		var scope = this;
 		this.aspects = aspects;
+
+		this.mode = Modes.selected.id;
 
 		if (aspects.selection) {
 			this.selection = [];
