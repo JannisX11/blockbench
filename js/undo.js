@@ -225,383 +225,7 @@ class UndoSystem {
 		return false;
 	}
 	loadSave(save, reference, mode) {
-		var is_session = mode === 'session';
-
-		if (save.mode && Modes.options[save.mode] && Modes.selected.id != save.mode && mode != 'session') {
-			Modes.options[save.mode].select();
-		}
-		
-		if (save.uv_mode) {
-			Project.box_uv = save.uv_mode.box_uv;
-			Project.texture_width = save.uv_mode.width;
-			Project.texture_height = save.uv_mode.height;
-			Canvas.updateAllUVs()
-		}
-
-		if (save.elements) {
-			for (var uuid in save.elements) {
-				if (save.elements.hasOwnProperty(uuid)) {
-					var element = save.elements[uuid]
-
-					var new_element = OutlinerNode.uuids[uuid]
-					if (new_element) {
-						for (var face in new_element.faces) {
-							new_element.faces[face].reset()
-						}
-						new_element.extend(element)
-						new_element.preview_controller.updateAll(new_element);
-					} else {
-						new_element = OutlinerElement.fromSave(element, true);
-					}
-				}
-			}
-			for (var uuid in reference.elements) {
-				if (reference.elements.hasOwnProperty(uuid) && !save.elements.hasOwnProperty(uuid)) {
-					var obj = OutlinerNode.uuids[uuid]
-					if (obj) {
-						obj.remove()
-					}
-				}
-			}
-			Canvas.updateVisibility()
-		}
-
-		if (save.outliner) {
-			Group.multi_selected.empty();
-			parseGroups(save.outliner)
-			if (is_session) {
-				function iterate(arr) {
-					arr.forEach((obj) => {
-						delete obj.isOpen;
-						if (obj.children) {
-							iterate(obj.children)
-						}
-					})
-				}
-				iterate(save.outliner)
-			}
-			if (Format.bone_rig) {
-				Canvas.updateAllPositions()
-			}
-		}
-
-		if (save.selected_groups && !is_session) {
-			Group.multi_selected.empty();
-			for (let uuid of save.selected_groups) {
-				let sel_group = OutlinerNode.uuids[uuid];
-				if (sel_group) {
-					Group.multi_selected.push(sel_group)
-				}
-			}
-		}
-
-		if (save.selection && !is_session) {
-			selected.length = 0;
-			elements.forEach(function(obj) {
-				if (save.selection.includes(obj.uuid)) {
-					obj.selectLow()
-					if (save.mesh_selection[obj.uuid]) {
-						Project.mesh_selection[obj.uuid] = save.mesh_selection[obj.uuid];
-					}
-				}
-			})
-		}
-
-		if (save.groups) {
-			for (let saved_group of save.groups) {
-				let group = OutlinerNode.uuids[saved_group.uuid];
-				if (!group) continue;
-				if (is_session) {
-					delete saved_group.isOpen;
-				}
-				group.extend(saved_group)
-				if (Format.bone_rig) {
-					group.forEachChild(function(obj) {
-						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
-					})
-				}
-			}
-		}
-
-		if (save.collections) {
-			for (let uuid in save.collections) {
-				let collection;
-				let data = save.collections[uuid];
-				if (reference.collections[uuid]) {
-					collection = Collection.all.find(tg => tg.uuid == uuid);
-					if (collection) {
-						collection.extend(data);
-					}
-				} else {
-					collection = new Collection(data, uuid).add();
-				}
-				//order
-				let index = Collection.all.indexOf(collection);
-				if (index != -1 && index != data.index && typeof data.index == 'number') {
-					Collection.all.remove(collection);
-					Collection.all.splice(data.index, 0, collection);
-				}
-			}
-			for (let uuid in reference.collections) {
-				if (!save.collections[uuid]) {
-					let collection = Collection.all.find(tg => tg.uuid == uuid);
-					if (collection) {
-						Collection.all.remove(collection);
-					}
-				}
-			}
-		}
-
-		if (save.texture_groups) {
-			for (let uuid in save.texture_groups) {
-				let group;
-				let data = save.texture_groups[uuid];
-				if (reference.texture_groups[uuid]) {
-					group = TextureGroup.all.find(tg => tg.uuid == uuid);
-					if (group) {
-						group.extend(data);
-					}
-				} else {
-					group = new TextureGroup(data, uuid).add(false);
-				}
-				//order
-				let index = TextureGroup.all.indexOf(group);
-				if (index != -1 && index != data.index && typeof data.index == 'number') {
-					TextureGroup.all.remove(group);
-					TextureGroup.all.splice(data.index, 0, group);
-				}
-			}
-			for (let uuid in reference.texture_groups) {
-				if (!save.texture_groups[uuid]) {
-					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
-					if (group) {
-						TextureGroup.all.remove(group);
-					}
-				}
-			}
-		}
-		if (save.textures) {
-			Painter.current = {}
-			for (var uuid in save.textures) {
-				if (reference.textures[uuid]) {
-					var tex = Texture.all.find(tex => tex.uuid == uuid)
-					if (tex) {
-						var require_reload = tex.mode !== save.textures[uuid].mode;
-						tex.extend(save.textures[uuid]);
-						if (tex.source_overwritten && save.textures[uuid].image_data) {
-							// If the source file was overwritten by more recent changes, make sure to display the original data
-							tex.convertToInternal(save.textures[uuid].image_data);
-						}
-						if (tex.layers_enabled) {
-							tex.updateLayerChanges(true);
-						}
-						tex.updateSource();
-						tex.keep_size = true;
-						if (require_reload || reference.textures[uuid] === true) {
-							tex.load()
-						}
-						tex.syncToOtherProject();
-					}
-				} else {
-					var tex = new Texture(save.textures[uuid], uuid)
-					tex.load().add(false)
-				}
-			}
-			for (var uuid in reference.textures) {
-				if (!save.textures[uuid]) {
-					var tex = Texture.all.find(tex => tex.uuid == uuid)
-					if (tex) {
-						Texture.all.splice(Texture.all.indexOf(tex), 1)
-					}
-					if (Texture.selected == tex) {
-						Texture.selected = undefined;
-						Blockbench.dispatchEvent('update_texture_selection');
-					}
-				}
-			}
-			Canvas.updateAllFaces();
-			updateInterfacePanels();
-			UVEditor.vue.updateTexture();
-		}
-
-		if (save.layers) {
-			let affected_textures = [];
-			for (let uuid in save.layers) {
-				if (reference.layers[uuid]) {
-					let tex = Texture.all.find(tex => tex.uuid == save.layers[uuid].texture);
-					let layer = tex && tex.layers.find(l => l.uuid == uuid);
-					if (layer) {
-						layer.extend(save.layers[uuid]);
-						affected_textures.safePush(tex);
-					}
-				}
-			}
-			affected_textures.forEach(tex => {
-				/*if (tex.source_overwritten && save.layers[uuid].image_data) {
-					// If the source file was overwritten by more recent changes, make sure to display the original data
-					tex.convertToInternal(save.layers[uuid].image_data);
-				}*/
-				tex.updateLayerChanges(true);
-				tex.updateSource();
-				tex.keep_size = true;
-				tex.syncToOtherProject();
-			})
-			Canvas.updateAllFaces();
-			UVEditor.vue.updateTexture();
-		}
-
-		if (save.texture_order) {
-			Texture.all.sort((a, b) => {
-				return save.texture_order.indexOf(a.uuid) - save.texture_order.indexOf(b.uuid);
-			})
-			Canvas.updateLayeredTextures()
-		}
-
-		if (save.selected_texture) {
-			let tex = Texture.all.find(tex => tex.uuid == save.selected_texture);
-			if (tex instanceof Texture) tex.select()
-		} else if (save.selected_texture === null) {
-			unselectTextures()
-		}
-
-		if (save.settings) {
-			for (var key in save.settings) {
-				settings[key].value = save.settings[key]
-			}
-		}
-
-
-		if (save.animations) {
-			for (var uuid in save.animations) {
-
-				var animation = (reference.animations && reference.animations[uuid]) ? this.getItemByUUID(Animator.animations, uuid) : null;
-				if (!animation) {
-					animation = new Animation()
-					animation.uuid = uuid
-				}
-				animation.extend(save.animations[uuid]).add(false)
-				if (save.animations[uuid].selected) {
-					animation.select()
-				}
-			}
-			for (var uuid in reference.animations) {
-				if (!save.animations[uuid]) {
-					var animation = this.getItemByUUID(Animator.animations, uuid)
-					if (animation) {
-						animation.remove(false)
-					}
-				}
-			}
-		}
-		if (save.animation_controllers) {
-			for (var uuid in save.animation_controllers) {
-
-				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? this.getItemByUUID(AnimationController.all, uuid) : null;
-				if (!controller) {
-					controller = new AnimationController();
-					controller.uuid = uuid;
-				}
-				controller.extend(save.animation_controllers[uuid]).add(false);
-				if (save.animation_controllers[uuid].selected) {
-					controller.select();
-				}
-			}
-			for (var uuid in reference.animation_controllers) {
-				if (!save.animation_controllers[uuid]) {
-					var controller = this.getItemByUUID(AnimationController.all, uuid);
-					if (controller) {
-						controller.remove(false);
-					}
-				}
-			}
-		}
-		if (save.animation_controller_state) {
-			let controller = AnimationController.all.find(controller => save.animation_controller_state.controller == controller.uuid);
-			let state = controller && controller.states.find(state => state.uuid == save.animation_controller_state.uuid);
-			if (state) {
-				state.extend(save.animation_controller_state);
-			}
-		}
-
-		if (save.keyframes) {
-			var animation = Animation.selected;
-			if (!animation || animation.uuid !== save.keyframes.animation) {
-				animation = Animator.animations.findInArray('uuid', save.keyframes.animation)
-				if (animation.select && Animator.open && is_session) {
-					animation.select()
-				}
-			}
-			if (animation) {
-
-				function getKeyframe(uuid, animator) {
-					var i = 0;
-					while (i < animator.keyframes.length) {
-						if (animator.keyframes[i].uuid === uuid) {
-							return animator.keyframes[i];
-						}
-						i++;
-					}
-				}
-				for (var uuid in save.keyframes) {
-					if (uuid.length === 36 && save.keyframes.hasOwnProperty(uuid)) {
-						var data = save.keyframes[uuid];
-						var animator = animation.animators[data.animator];
-						if (!animator) continue;
-						var kf = getKeyframe(uuid, animator);
-						if (kf) {
-							kf.extend(data)
-						} else {
-							animator.addKeyframe(data, uuid);
-						}
-					}
-				}
-				for (var uuid in reference.keyframes) {
-					if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !save.keyframes.hasOwnProperty(uuid)) {
-						var data = reference.keyframes[uuid];
-						var animator = animation.animators[data.animator];
-						if (!animator) continue;
-						var kf = getKeyframe(uuid, animator)
-						if (kf) {
-							kf.remove()
-						}
-					}
-				}
-				updateKeyframeSelection()
-			}
-		}
-
-		if (save.display_slots) {
-			for (let slot in save.display_slots) {
-				let data = save.display_slots[slot]
-
-				if (!Project.display_settings[slot] && data) {
-					Project.display_settings[slot] = new DisplaySlot(slot)
-				} else if (data === null && Project.display_settings[slot]) {
-					Project.display_settings[slot].default()
-				}
-				if (Project.display_settings[slot]) {
-					Project.display_settings[slot].extend(data).update();
-				}
-			}
-		}
-
-		if (save.exploded_view !== undefined) {
-			Project.exploded_view = BarItems.explode_skin_model.value = save.exploded_view;
-			BarItems.explode_skin_model.updateEnabledState();
-		}
-
-		Blockbench.dispatchEvent('load_undo_save', {save, reference, mode})
-
-		updateSelection()
-		if ((save.outliner || save.groups?.length) && Format.bone_rig) {
-			Canvas.updateAllBones();
-		}
-		if (save.outliner && Format.per_group_texture) {
-			Canvas.updateAllFaces();
-		}
-		if (Modes.animate) {
-			Animator.preview();
-		}
+		save.load(reference, mode);
 	}
 }
 UndoSystem.save = class {
@@ -742,7 +366,384 @@ UndoSystem.save = class {
 		Blockbench.dispatchEvent('create_undo_save', {save: this, aspects})
 	}
 	load(reference, mode) {
-		Undo.loadSave(this, reference, mode);
+		let is_session = mode === 'session';
+		let save = this;
+
+		if (this.mode && Modes.options[this.mode] && Modes.selected.id != this.mode && mode != 'session') {
+			Modes.options[this.mode].select();
+		}
+		
+		if (this.uv_mode) {
+			Project.box_uv = this.uv_mode.box_uv;
+			Project.texture_width = this.uv_mode.width;
+			Project.texture_height = this.uv_mode.height;
+			Canvas.updateAllUVs()
+		}
+
+		if (this.elements) {
+			for (var uuid in this.elements) {
+				if (this.elements.hasOwnProperty(uuid)) {
+					var element = this.elements[uuid]
+
+					var new_element = OutlinerNode.uuids[uuid]
+					if (new_element) {
+						for (var face in new_element.faces) {
+							new_element.faces[face].reset()
+						}
+						new_element.extend(element)
+						new_element.preview_controller.updateAll(new_element);
+					} else {
+						new_element = OutlinerElement.fromSave(element, true);
+					}
+				}
+			}
+			for (var uuid in reference.elements) {
+				if (reference.elements.hasOwnProperty(uuid) && !this.elements.hasOwnProperty(uuid)) {
+					var obj = OutlinerNode.uuids[uuid]
+					if (obj) {
+						obj.remove()
+					}
+				}
+			}
+			Canvas.updateVisibility()
+		}
+
+		if (this.outliner) {
+			Group.multi_selected.empty();
+			parseGroups(this.outliner)
+			if (is_session) {
+				function iterate(arr) {
+					arr.forEach((obj) => {
+						delete obj.isOpen;
+						if (obj.children) {
+							iterate(obj.children)
+						}
+					})
+				}
+				iterate(this.outliner)
+			}
+			if (Format.bone_rig) {
+				Canvas.updateAllPositions()
+			}
+		}
+
+		if (this.selected_groups && !is_session) {
+			Group.multi_selected.empty();
+			for (let uuid of this.selected_groups) {
+				let sel_group = OutlinerNode.uuids[uuid];
+				if (sel_group) {
+					Group.multi_selected.push(sel_group)
+				}
+			}
+		}
+
+		if (this.selection && !is_session) {
+			selected.length = 0;
+			elements.forEach(function(obj) {
+				if (this.selection.includes(obj.uuid)) {
+					obj.selectLow()
+					if (this.mesh_selection[obj.uuid]) {
+						Project.mesh_selection[obj.uuid] = this.mesh_selection[obj.uuid];
+					}
+				}
+			})
+		}
+
+		if (this.groups) {
+			for (let saved_group of this.groups) {
+				let group = OutlinerNode.uuids[saved_group.uuid];
+				if (!group) continue;
+				if (is_session) {
+					delete saved_group.isOpen;
+				}
+				group.extend(saved_group)
+				if (Format.bone_rig) {
+					group.forEachChild(function(obj) {
+						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
+					})
+				}
+			}
+		}
+
+		if (this.collections) {
+			for (let uuid in this.collections) {
+				let collection;
+				let data = this.collections[uuid];
+				if (reference.collections[uuid]) {
+					collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						collection.extend(data);
+					}
+				} else {
+					collection = new Collection(data, uuid).add();
+				}
+				//order
+				let index = Collection.all.indexOf(collection);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					Collection.all.remove(collection);
+					Collection.all.splice(data.index, 0, collection);
+				}
+			}
+			for (let uuid in reference.collections) {
+				if (!this.collections[uuid]) {
+					let collection = Collection.all.find(tg => tg.uuid == uuid);
+					if (collection) {
+						Collection.all.remove(collection);
+					}
+				}
+			}
+		}
+
+		if (this.texture_groups) {
+			for (let uuid in this.texture_groups) {
+				let group;
+				let data = this.texture_groups[uuid];
+				if (reference.texture_groups[uuid]) {
+					group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						group.extend(data);
+					}
+				} else {
+					group = new TextureGroup(data, uuid).add(false);
+				}
+				//order
+				let index = TextureGroup.all.indexOf(group);
+				if (index != -1 && index != data.index && typeof data.index == 'number') {
+					TextureGroup.all.remove(group);
+					TextureGroup.all.splice(data.index, 0, group);
+				}
+			}
+			for (let uuid in reference.texture_groups) {
+				if (!this.texture_groups[uuid]) {
+					let group = TextureGroup.all.find(tg => tg.uuid == uuid);
+					if (group) {
+						TextureGroup.all.remove(group);
+					}
+				}
+			}
+		}
+		if (this.textures) {
+			Painter.current = {}
+			for (var uuid in this.textures) {
+				if (reference.textures[uuid]) {
+					var tex = Texture.all.find(tex => tex.uuid == uuid)
+					if (tex) {
+						var require_reload = tex.mode !== this.textures[uuid].mode;
+						tex.extend(this.textures[uuid]);
+						if (tex.source_overwritten && this.textures[uuid].image_data) {
+							// If the source file was overwritten by more recent changes, make sure to display the original data
+							tex.convertToInternal(this.textures[uuid].image_data);
+						}
+						if (tex.layers_enabled) {
+							tex.updateLayerChanges(true);
+						}
+						tex.updateSource();
+						tex.keep_size = true;
+						if (require_reload || reference.textures[uuid] === true) {
+							tex.load()
+						}
+						tex.syncToOtherProject();
+					}
+				} else {
+					var tex = new Texture(this.textures[uuid], uuid)
+					tex.load().add(false)
+				}
+			}
+			for (var uuid in reference.textures) {
+				if (!this.textures[uuid]) {
+					var tex = Texture.all.find(tex => tex.uuid == uuid)
+					if (tex) {
+						Texture.all.splice(Texture.all.indexOf(tex), 1)
+					}
+					if (Texture.selected == tex) {
+						Texture.selected = undefined;
+						Blockbench.dispatchEvent('update_texture_selection');
+					}
+				}
+			}
+			Canvas.updateAllFaces();
+			updateInterfacePanels();
+			UVEditor.vue.updateTexture();
+		}
+
+		if (this.layers) {
+			let affected_textures = [];
+			for (let uuid in this.layers) {
+				if (reference.layers[uuid]) {
+					let tex = Texture.all.find(tex => tex.uuid == this.layers[uuid].texture);
+					let layer = tex && tex.layers.find(l => l.uuid == uuid);
+					if (layer) {
+						layer.extend(this.layers[uuid]);
+						affected_textures.safePush(tex);
+					}
+				}
+			}
+			affected_textures.forEach(tex => {
+				/*if (tex.source_overwritten && this.layers[uuid].image_data) {
+					// If the source file was overwritten by more recent changes, make sure to display the original data
+					tex.convertToInternal(this.layers[uuid].image_data);
+				}*/
+				tex.updateLayerChanges(true);
+				tex.updateSource();
+				tex.keep_size = true;
+				tex.syncToOtherProject();
+			})
+			Canvas.updateAllFaces();
+			UVEditor.vue.updateTexture();
+		}
+
+		if (this.texture_order) {
+			Texture.all.sort((a, b) => {
+				return this.texture_order.indexOf(a.uuid) - this.texture_order.indexOf(b.uuid);
+			})
+			Canvas.updateLayeredTextures()
+		}
+
+		if (this.selected_texture) {
+			let tex = Texture.all.find(tex => tex.uuid == this.selected_texture);
+			if (tex instanceof Texture) tex.select()
+		} else if (this.selected_texture === null) {
+			unselectTextures()
+		}
+
+		if (this.settings) {
+			for (var key in this.settings) {
+				settings[key].value = this.settings[key]
+			}
+		}
+
+
+		if (this.animations) {
+			for (var uuid in this.animations) {
+
+				var animation = (reference.animations && reference.animations[uuid]) ? this.getItemByUUID(Animator.animations, uuid) : null;
+				if (!animation) {
+					animation = new Animation()
+					animation.uuid = uuid
+				}
+				animation.extend(this.animations[uuid]).add(false)
+				if (this.animations[uuid].selected) {
+					animation.select()
+				}
+			}
+			for (var uuid in reference.animations) {
+				if (!this.animations[uuid]) {
+					var animation = this.getItemByUUID(Animator.animations, uuid)
+					if (animation) {
+						animation.remove(false)
+					}
+				}
+			}
+		}
+		if (this.animation_controllers) {
+			for (var uuid in this.animation_controllers) {
+
+				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? this.getItemByUUID(AnimationController.all, uuid) : null;
+				if (!controller) {
+					controller = new AnimationController();
+					controller.uuid = uuid;
+				}
+				controller.extend(this.animation_controllers[uuid]).add(false);
+				if (this.animation_controllers[uuid].selected) {
+					controller.select();
+				}
+			}
+			for (var uuid in reference.animation_controllers) {
+				if (!this.animation_controllers[uuid]) {
+					var controller = this.getItemByUUID(AnimationController.all, uuid);
+					if (controller) {
+						controller.remove(false);
+					}
+				}
+			}
+		}
+		if (this.animation_controller_state) {
+			let controller = AnimationController.all.find(controller => this.animation_controller_state.controller == controller.uuid);
+			let state = controller && controller.states.find(state => state.uuid == this.animation_controller_state.uuid);
+			if (state) {
+				state.extend(this.animation_controller_state);
+			}
+		}
+
+		if (this.keyframes) {
+			var animation = Animation.selected;
+			if (!animation || animation.uuid !== this.keyframes.animation) {
+				animation = Animator.animations.findInArray('uuid', this.keyframes.animation)
+				if (animation.select && Animator.open && is_session) {
+					animation.select()
+				}
+			}
+			if (animation) {
+
+				function getKeyframe(uuid, animator) {
+					var i = 0;
+					while (i < animator.keyframes.length) {
+						if (animator.keyframes[i].uuid === uuid) {
+							return animator.keyframes[i];
+						}
+						i++;
+					}
+				}
+				for (var uuid in this.keyframes) {
+					if (uuid.length === 36 && this.keyframes.hasOwnProperty(uuid)) {
+						var data = this.keyframes[uuid];
+						var animator = animation.animators[data.animator];
+						if (!animator) continue;
+						var kf = getKeyframe(uuid, animator);
+						if (kf) {
+							kf.extend(data)
+						} else {
+							animator.addKeyframe(data, uuid);
+						}
+					}
+				}
+				for (var uuid in reference.keyframes) {
+					if (uuid.length === 36 && reference.keyframes.hasOwnProperty(uuid) && !this.keyframes.hasOwnProperty(uuid)) {
+						var data = reference.keyframes[uuid];
+						var animator = animation.animators[data.animator];
+						if (!animator) continue;
+						var kf = getKeyframe(uuid, animator)
+						if (kf) {
+							kf.remove()
+						}
+					}
+				}
+				updateKeyframeSelection()
+			}
+		}
+
+		if (this.display_slots) {
+			for (let slot in this.display_slots) {
+				let data = this.display_slots[slot]
+
+				if (!Project.display_settings[slot] && data) {
+					Project.display_settings[slot] = new DisplaySlot(slot)
+				} else if (data === null && Project.display_settings[slot]) {
+					Project.display_settings[slot].default()
+				}
+				if (Project.display_settings[slot]) {
+					Project.display_settings[slot].extend(data).update();
+				}
+			}
+		}
+
+		if (this.exploded_view !== undefined) {
+			Project.exploded_view = BarItems.explode_skin_model.value = this.exploded_view;
+			BarItems.explode_skin_model.updateEnabledState();
+		}
+
+		Blockbench.dispatchEvent('load_undo_save', {save: this, reference, mode})
+
+		updateSelection()
+		if ((this.outliner || this.groups?.length) && Format.bone_rig) {
+			Canvas.updateAllBones();
+		}
+		if (this.outliner && Format.per_group_texture) {
+			Canvas.updateAllFaces();
+		}
+		if (Modes.animate) {
+			Animator.preview();
+		}
 	}
 	addTexture(texture) {
 		if (!this.textures) return;
