@@ -346,6 +346,7 @@ function changeImageEditor(texture, not_found) {
 				type: 'file',
 				file_type: 'Program',
 				extensions: app_file_extension[Blockbench.platform],
+				readtype: 'none',
 				description: 'message.image_editor.exe',
 				condition: result => result.editor == 'other'
 			}
