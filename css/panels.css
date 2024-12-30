@@ -1880,9 +1880,6 @@
 	gap: 3px;
 	margin-bottom: 2px;
 }
-.controller_transition.correct {
-	background-color: greenyellow;
-}
 .controller_transition:focus-within,
 .controller_animation:focus-within {
 	width: calc(200% + 20px);
