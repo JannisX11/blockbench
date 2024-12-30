@@ -126,10 +126,10 @@ class Group extends OutlinerNode {
 		updateSelection()
 		return this;
 	}
-	clickSelect(event) {
+	clickSelect(event, is_outliner_click) {
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		Undo.initSelection();
-		this.select(event);
+		this.select(event, is_outliner_click);
 		Undo.finishSelection('Select group');
 	}
 	multiSelect() {
@@ -477,7 +477,7 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		"randomize_marker_colors",
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(a, b, c) {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
 				Undo.initEdit({outliner: true});
@@ -496,7 +496,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					marked: t.uuid == /*Group.multi_selected*/context.texture,
+					marked: t.uuid == context.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -806,11 +806,19 @@ BARS.defineActions(function() {
 		icon: 'fa-leaf',
 		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
+			let all_elements = [];
+			for (let group of Group.multi_selected) {
+				group.forEachChild(obj => {
+					if (obj instanceof Group == false) {
+						all_elements.safePush(obj);
+					}
+				})
+			}
 			Undo.initEdit({outliner: true, elements: all_elements})
 			for (let group of Group.multi_selected) {
 				group.resolve(false);
 			}
-			Undo.finishEdit('Resolve group')
+			Undo.finishEdit('Resolve group');
 		}
 	})
 })
