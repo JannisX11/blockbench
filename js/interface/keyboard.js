@@ -233,7 +233,7 @@ class Keybind {
 		let modifiers_used = new Set();
 		if (this.variations) {
 			for (let option in this.variations) {
-				modifiers_used.add(this.variations[option]);
+				modifiers_used.add(this.variations[option].replace('unless_', ''));
 			}
 		}
 		return (
@@ -250,10 +250,14 @@ class Keybind {
 			if (variation && option != variation) continue;
 			let key = this.variations[option];
 			if (
+				(key == 'always') ||
 				(key == 'ctrl' && (event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
 				(key == 'shift' && (event.shiftKey || Pressing.overrides.shift)) ||
 				(key == 'alt' && (event.altKey || Pressing.overrides.alt)) ||
-				(key == 'meta' && (event.metaKey || Pressing.overrides.meta))
+				(key == 'meta' && (event.metaKey || Pressing.overrides.meta)) ||
+				(key == 'unless_ctrl' && !(event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+				(key == 'unless_shift' && !(event.shiftKey || Pressing.overrides.shift)) ||
+				(key == 'unless_alt' && !(event.altKey || Pressing.overrides.alt))
 			) {
 				return variation ? true : option;
 			}
@@ -531,15 +535,20 @@ onVueSetup(function() {
 			}
 		},
 		component: {
-			data() {return {
+			data() {
+				return {
 				structure: Keybinds.structure,
 				open_category: 'navigate',
 				search_term: '',
 				modifier_options: {
+					'': '-',
+					always: tl('modifier_actions.always'),
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
 					alt: tl('keys.alt'),
-					'': '-',
+					unless_ctrl: tl('modifier_actions.unless', tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')),
+					unless_shift: tl('modifier_actions.unless', tl('keys.shift')),
+					unless_alt: tl('modifier_actions.unless', tl('keys.alt')),
 				} 
 			}},
 			methods: {

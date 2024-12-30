@@ -221,6 +221,8 @@
 	"status_bar.selection.edges": "%0 Edges",
 	"status_bar.selection.vertices": "%0 Vertices",
 
+	"modifier_actions.always": "Always Enabled",
+	"modifier_actions.unless": "Unless %0",
 	"modifier_actions.resize_both_sides": "Resize in both directions",
 	"modifier_actions.resize_one_side": "Resize in one direction",
 	"modifier_actions.draw_line": "Draw line",

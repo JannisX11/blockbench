@@ -2305,11 +2305,13 @@ BARS.defineActions(function() {
 						Math.abs(bounds.min.z-center.z), Math.abs(bounds.max.z-center.z),
 					);
 					let height = Math.max(Math.abs(bounds.min.y-center.y), Math.abs(bounds.max.y-center.y));
-					let focal_length = preview.camera.getFocalLength();
-					let cam_distance = cam_boom.length();
-					let target_distance = Math.max(radius, height) * (focal_length / 10);
-					zoom_factor = target_distance / cam_distance;
-					zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
+					if (Math.abs(height) != Infinity) {
+						let focal_length = preview.camera.getFocalLength();
+						let cam_distance = cam_boom.length();
+						let target_distance = Math.max(radius, height) * (focal_length / 10);
+						zoom_factor = target_distance / cam_distance;
+						zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
+					}
 				}
 
 				let i = 0;
