@@ -1880,6 +1880,9 @@
 	gap: 3px;
 	margin-bottom: 2px;
 }
+.controller_transition.correct {
+	background-color: greenyellow;
+}
 .controller_transition:focus-within,
 .controller_animation:focus-within {
 	width: calc(200% + 20px);
@@ -2031,6 +2034,7 @@ span.controller_state_section_info {
 .controller_state_connection_wrapper_top,
 .controller_state_connection_wrapper_bottom {
 	height: calc(20px + var(--max-layer) * 10px);
+	min-height: calc(20px + var(--max-layer) * 10px);
 	position: relative;
 }
 .controller_state_connection {

@@ -104,7 +104,7 @@ class UndoSystem {
 		Blockbench.dispatchEvent('finished_selection_change', {aspects})
 		return entry;
 	}
-	cancelEdit(revert_changes = true) {
+	cancelEdit(revert_changes = false) {
 		if (!this.current_save) return;
 		this.startChange();
 		if (revert_changes) {
@@ -113,8 +113,11 @@ class UndoSystem {
 		}
 		delete this.current_save;
 	}
-	cancelSelection() {
+	cancelSelection(revert_changes = false) {
 		let selection_before = this.current_selection_save;
+		if (revert_changes) {
+			selection_before.load(new UndoSystem.save(selection_before.aspects));
+		}
 		delete this.current_selection_save;
 		Blockbench.dispatchEvent('cancel_selection_change', {selection_before})
 	}

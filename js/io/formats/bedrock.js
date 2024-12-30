@@ -234,7 +234,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				try {
 					let content = fs.readFileSync(path, 'utf8');
 					Animator.loadFile({path, content}, animation_names);
-				} catch (err) {}
+				} catch (err) {
+					console.err(err)
+				}
 			})
 		}
 	}

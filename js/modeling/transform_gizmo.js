@@ -1023,7 +1023,7 @@
 			}
 			this.cancelMovement = function(event, keep_changes = false) {
 				onPointerUp(event, keep_changes);
-				Undo.cancelEdit();
+				Undo.cancelEdit(true);
 			}
 			function displayDistance(number) {
 				Blockbench.setCursorTooltip(trimFloatNumber(number));

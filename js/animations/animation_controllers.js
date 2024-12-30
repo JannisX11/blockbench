@@ -39,51 +39,51 @@ class AnimationControllerState {
 			}
 		}
 		if (data.animations instanceof Array) {
+			let previous_animations = this.animations.slice();
 			this.animations.empty();
 			data.animations.forEach(a => {
-				let animation;
+				let animation = previous_animations.find(a1 => a1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					key: '',
+					animation: '',
+					blend_value: ''
+				};
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					animation = {
-						uuid: a.uuid || guid(),
-						key: a.key || '',
-						animation: a.animation || '',// UUID
-						blend_value: a.blend_value || ''
-					};
+					Object.assign(animation, a);
 				} else if (typeof a == 'object' || typeof a == 'string') {
 					// Bedrock
 					let key = typeof a == 'object' ? Object.keys(a)[0] : a;
 					let anim_match = Animation.all.find(anim => anim.getShortName() == key);
-					animation = {
-						uuid: guid(),
+					Object.assign(animation, {
 						key: key || '',
 						animation: anim_match ? anim_match.uuid : '',// UUID
 						blend_value: (typeof a == 'object' && a[key]) || ''
-					};
+					});
 				}
 				this.animations.push(animation);
 			})
 		}
 		if (data.transitions instanceof Array) {
+			let previous_transitions = this.transitions.slice();
 			this.transitions.empty();
 			data.transitions.forEach(a => {
-				let transition;
+				let transition = previous_transitions.find(t1 => t1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					target: '',
+					condition: ''
+				};
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					transition = {
-						uuid: a.uuid || guid(),
-						target: a.target || '',
-						condition: a.condition || ''
-					};
+					Object.assign(transition, a);
 				} else if (typeof a == 'object') {
 					// Bedrock
 					let key = Object.keys(a)[0];
 					let state_match = this.controller.states.find(state => state !== this && state.name == key);
-					transition = {
-						uuid: guid(),
+					Object.assign(transition, {
 						target: state_match ? state_match.uuid : '',
 						condition: a[key] || ''
-					};
+					});
 					if (!state_match) {
 						setTimeout(() => {
 							// Delay to after loading controller so that all states can be found
@@ -1504,6 +1504,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							animation = state.animations.find(t => t.uuid == animation.uuid);
 							state.animations.remove(animation);
 							Undo.finishEdit('Remove animation from controller state');
 						}}
@@ -1527,6 +1528,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							transition = state.transitions.find(t => t.uuid == transition.uuid);
 							state.transitions.remove(transition);
 							Undo.finishEdit('Remove transition from controller state');
 						}}
@@ -2143,7 +2145,7 @@ Interface.definePanels(() => {
 								</div>
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-										<li v-for="transition in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition">
+										<li v-for="transition in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
 											<vue-prism-editor 
@@ -2229,7 +2231,7 @@ Interface.definePanels(() => {
 			if (val != molang_edit_value) {
 				Undo.finishEdit('Edit animation controller molang');
 			} else {
-				Undo.cancelEdit();
+				Undo.cancelEdit(false);
 			}
 		}
 	})

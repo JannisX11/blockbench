@@ -123,7 +123,7 @@ BARS.defineActions(function() {
 					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -218,7 +218,7 @@ BARS.defineActions(function() {
 					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -500,7 +500,7 @@ BARS.defineActions(function() {
 					Undo.finishEdit('Adjust curves');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -596,7 +596,7 @@ BARS.defineActions(function() {
 					Undo.finishEdit('Adjust opacity');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
