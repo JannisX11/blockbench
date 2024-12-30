@@ -439,7 +439,7 @@ UndoSystem.save = class {
 
 		if (this.selection && !is_session) {
 			selected.length = 0;
-			elements.forEach(function(obj) {
+			Outliner.elements.forEach((obj) => {
 				if (this.selection.includes(obj.uuid)) {
 					obj.selectLow()
 					if (this.mesh_selection[obj.uuid]) {

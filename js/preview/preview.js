@@ -412,6 +412,11 @@ class Preview {
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
 		}
+		if (settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') {
+			let all_intersects = intersects;
+			intersects = intersects.filter(a => a.object.isLine);
+			if (intersects.length == 0) intersects = all_intersects;
+		}
 
 		let intersect = intersects[0];
 		let intersect_object = intersect.object;

@@ -412,6 +412,7 @@ const Settings = {
 		}});
 		new Setting('seethrough_outline', 	{category: 'interface', value: false, onChange(value) {
 			Canvas.outlineMaterial.depthTest = !value;
+			Canvas.meshOutlineMaterial.depthTest = !value;
 		}});
 		new Setting('outliner_colors', 		{category: 'interface', value: true});
 		new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {

@@ -118,11 +118,14 @@ const Canvas = {
 	gizmos: [rot_origin],
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
+		depthTest: settings.seethrough_outline.value == false,
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
 	meshOutlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true,
 		//color: gizmo_colors.outline,
 		vertexColors: true
 	}),
