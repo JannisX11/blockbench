@@ -128,6 +128,16 @@ Object.assign(Blockbench, {
 		var errant;
 		var i = 0;
 		if (isApp) {
+			if (options.readtype == 'none') {
+				let results = files.map(file => {
+					return {
+						name: pathToName(file, true),
+						path: file
+					}
+				})
+				cb(results);
+				return results;
+			}
 			while (index < files.length) {
 				(function() {
 					var this_i = index;
@@ -176,7 +186,7 @@ Object.assign(Blockbench, {
 						try {
 							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
-							console.log(err)
+							console.error(err)
 							if (!errant && options.errorbox !== false) {
 								Blockbench.showMessageBox({
 									translateKey: 'file_not_found',
