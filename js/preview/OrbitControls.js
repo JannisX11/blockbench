@@ -298,6 +298,10 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}();
 
+	this.panLeft = panLeft;
+	this.panUp = panUp;
+	
+
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function () {
 

@@ -1935,13 +1935,16 @@ class OrbitGizmo {
 
 
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion')) {
+	let is_space_mouse = event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion');
 
-		let interval = setInterval(() => {
-			let gamepad = navigator.getGamepads()[event.gamepad.index];
-			let preview = Preview.selected;
-			if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+	let zoom_timer = 0;
 
+	let interval = setInterval(() => {
+		let gamepad = navigator.getGamepads()[event.gamepad.index];
+		let preview = Preview.selected;
+		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+
+		if (is_space_mouse) {
 			let offset = new THREE.Vector3(
 				gamepad.axes[0],
 				-gamepad.axes[2],
@@ -1967,15 +1970,37 @@ window.addEventListener("gamepadconnected", function(event) {
 			preview.controls.target.copy(camera_diff).add(preview.camera.position);
 
 			main_preview.controls.updateSceneScale();
+		} else {
+			let drift_threshold = 0.2;
+			let axes = gamepad.axes.map(v => Math.abs(v) > drift_threshold ? v - drift_threshold * Math.sign(v) : 0);
+			let camera_matrix = preview.camera.matrixWorld;
+			let rotate_speed = settings.viewport_rotate_speed.value / 100;
+			let zoom_speed = settings.viewport_zoom_speed.value / 100;
 
-		}, 16)
+			if (axes[0]) preview.controls.rotateLeft(Math.signedPow(axes[0]) / 8 * rotate_speed);
+			if (axes[1]) preview.controls.rotateUp(Math.signedPow(axes[1]) / 8 * rotate_speed);
+			if (axes[2]) preview.controls.panLeft(Math.signedPow(axes[2]) * 1.5, camera_matrix);
+			if (axes[3]) preview.controls.panUp(Math.signedPow(axes[3]) * 1.5, camera_matrix);
 
-		window.addEventListener("gamepadconnected", function(event2) {
-			if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
-				clearInterval(interval);
+			let smooth_zoom = 1-Math.exp(-zoom_timer/10)
+			if (gamepad.buttons[6]?.pressed) {
+				preview.controls.dollyOut(1 + 0.03 * zoom_speed * smooth_zoom);
+				zoom_timer++;
+			} else if (gamepad.buttons[7]?.pressed) {
+				preview.controls.dollyIn(1 + 0.03 * zoom_speed * smooth_zoom);
+				zoom_timer++;
+			} else {
+				zoom_timer = 0;
 			}
-		})
-	}
+		}
+
+	}, 16)
+
+	window.addEventListener("gamepadconnected", function(event2) {
+		if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
+			clearInterval(interval);
+		}
+	})
 });
 
 //Init/Update
