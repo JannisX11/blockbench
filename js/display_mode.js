@@ -402,6 +402,13 @@ class refModel {
 						0.8, 0.8, 0.8)
 				}
 				break;
+			case 'tooting':
+				this.updateBasePosition = function() {
+					var side = display_slot.includes('left') ? -1 : 1;
+					//setDisplayArea(side*-0.6, 19.8, 23.8, 31.5, side*22, -11, 1, 1, 1)
+					setDisplayArea(side == 1 ? -2.7 : 2.1, 20.1, Format.id.includes('bedrock') ? 24.5 : 25.6, 36, side*21.5, side*-12, 1, 1, 1)
+				}
+				break;
 		}
 	}
 	buildModel(things, texture, texture_res = [16, 16]) {
@@ -517,6 +524,7 @@ class refModel {
 				case 'crossbow':
 				case 'bow':
 				case 'eating':
+				case 'tooting':
 				case 'monitor': this.buildMonitor(); break;
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
@@ -1251,6 +1259,7 @@ window.displayReferenceObjects = {
 		bow: 				new refModel('bow', {icon: 'icon-bow'}),
 		crossbow: 			new refModel('crossbow', {icon: 'icon-crossbow'}),
 		eating: 			new refModel('eating', {icon: 'fa-apple-whole'}),
+		tooting: 			new refModel('tooting', {icon: 'fa-bullhorn'}),
 		block: 				new refModel('block', {icon: 'fa-cube'}),
 		frame: 				new refModel('frame', {icon: 'filter_frames'}),
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
@@ -1573,7 +1582,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
@@ -1585,7 +1594,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
