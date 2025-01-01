@@ -677,7 +677,7 @@ class KnifeToolCubeContext {
 		return getAxisLetter(this.axis);
 	}
 	hover(data) {
-		if (!data) {
+		if (!data || data.element instanceof Cube == false) {
 			if (this.cross_mesh.parent) {
 				this.cross_mesh.parent.remove(this.cross_mesh);
 			}

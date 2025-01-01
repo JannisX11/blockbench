@@ -16,15 +16,15 @@ const Outliner = {
 		visibility: {
 			id: 'visibility',
 			title: tl('switches.visibility'),
-			icon: ' fa fa-eye',
-			icon_off: ' fa fa-eye-slash',
+			icon: 'visibility',
+			icon_off: 'visibility_off',
 			advanced_option: false
 		},
 		locked: {
 			id: 'locked',
 			title: tl('switches.lock'),
-			icon: ' fas fa-lock',
-			icon_off: ' fas fa-lock-open',
+			icon: 'fa-lock',
+			icon_off: 'fa-lock-open',
 			advanced_option: true,
 			visibilityException(node) {
 				return node.locked
@@ -33,8 +33,8 @@ const Outliner = {
 		export: {
 			id: 'export',
 			title: tl('switches.export'),
-			icon: ' far fa-square-check',
-			icon_off: ' far fa-window-close',
+			icon: 'far.fa-square-check',
+			icon_off: 'far.fa-window-close',
 			advanced_option: true,
 			condition: {modes: ['edit']},
 			visibilityException(node) {
@@ -45,8 +45,8 @@ const Outliner = {
 			id: 'shade',
 			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
 			title: tl('switches.shade'),
-			icon: 'fa fa-star',
-			icon_off: 'far fa-star',
+			icon: 'fa-star',
+			icon_off: 'far.fa-star',
 			advanced_option: true,
 		},
 		mirror_uv: {
@@ -60,9 +60,9 @@ const Outliner = {
 		autouv: {
 			id: 'autouv',
 			title: tl('switches.autouv'),
-			icon: ' fa fa-thumbtack',
-			icon_off: ' far fa-times-circle',
-			icon_alt: ' fa fa-magic',
+			icon: 'fa-thumbtack',
+			icon_off: 'far.fa-times-circle',
+			icon_alt: 'fa-magic',
 			advanced_option: true,
 			condition: {modes: ['edit']},
 			getState(element) {
@@ -1469,14 +1469,15 @@ Interface.definePanels(function() {
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
-				`<i v-for="btn in node.buttons"
+				`<dynamic-icon v-for="btn in node.buttons"
 					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.visibilityException && btn.visibilityException(node)) )"
 					class="outliner_toggle"
-					:class="getBtnClasses(btn, node)"
+					:icon="getButtonIcon(btn, node)"
+					:class="getButtonClasses(btn, node)"
 					:title="getBtnTooltip(btn, node)"
 					:toggle="btn.id"
 					@click.stop
-				></i>` +
+				/>` +
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
@@ -1520,14 +1521,26 @@ Interface.definePanels(function() {
 					return node.closedIcon || node.icon;
 				}
 			},
-			getBtnClasses: function (btn, node) {
+			getButtonIcon: function (btn, node) {
+				let value = node.isIconEnabled(btn);
+				let icon_string = '';
+				if (value === true) {
+					icon_string = typeof btn.icon == 'function' ? btn.icon(node) : btn.icon;
+				} else if (value === false) {
+					icon_string = typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off
+				} else {
+					icon_string = typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt
+				}
+				return icon_string.trim().replace(/fa[rs]* /, '');
+			},
+			getButtonClasses: function (btn, node) {
 				let value = node.isIconEnabled(btn);
 				if (value === true) {
-					return [(typeof btn.icon == 'function' ? btn.icon(node) : btn.icon)];
+					return ''
 				} else if (value === false) {
-					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
+					return 'icon_off';
 				} else {
-					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
+					return 'icon_alt';
 				}
 			},
 			getBtnTooltip: function (btn, node) {
