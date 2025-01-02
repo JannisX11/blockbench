@@ -1636,12 +1636,12 @@ BARS.defineActions(function() {
 			runEdit(false, result);
 
 			Undo.amendEdit({
-				diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: result.diameter, interval_type: 'position'},
-				height: {label: 'dialog.add_primitive.height', type: 'number', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
-				sides: {label: 'dialog.add_primitive.sides', type: 'number', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
-				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'number', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
-				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
-				edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: result.edge_size, condition: ['beveled_cuboid'].includes(result.shape)},
+				diameter: {label: 'dialog.add_primitive.diameter', type: 'num_slider', value: result.diameter, interval_type: 'position'},
+				height: {label: 'dialog.add_primitive.height', type: 'num_slider', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
+				sides: {label: 'dialog.add_primitive.sides', type: 'num_slider', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
+				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'num_slider', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},
+				minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'num_slider', value: result.minor_sides, min: 2, max: 32, condition: ['torus'].includes(result.shape)},
+				edge_size: {label: 'dialog.add_primitive.edge_size', type: 'num_slider', value: result.edge_size, condition: ['beveled_cuboid'].includes(result.shape)},
 			}, form => {
 				Object.assign(result, form);
 				runEdit(true, result);
@@ -2422,7 +2422,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				extend: {type: 'number', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
+				extend: {type: 'num_slider', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
 				direction_mode: {type: 'select', label: 'edit.extrude_mesh_selection.direction', options: {
 					outwards: 'edit.extrude_mesh_selection.direction.outwards',
 					average: 'edit.extrude_mesh_selection.direction.average',
@@ -2435,6 +2435,7 @@ BARS.defineActions(function() {
 				}},
 				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.even_extend'},
 			}, form => {
+				console.log(form)
 				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})
 		}
@@ -2602,7 +2603,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				thickness: {type: 'number', value: 1, label: 'edit.solidify_mesh_selection.thickness', interval_type: 'position'},
+				thickness: {type: 'num_slider', value: 1, label: 'edit.solidify_mesh_selection.thickness', interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.thickness);
 			})
@@ -2726,7 +2727,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				offset: {type: 'number', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100, interval_type: 'position'},
+				offset: {type: 'num_slider', value: 50, label: 'edit.loop_cut.offset', min: 0, max: 100, interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.offset);
 			})
@@ -3059,9 +3060,9 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				direction: {type: 'number', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
-				cuts: {type: 'number', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
-				offset: {type: 'number', value: length/2, label: 'edit.loop_cut.offset', min: 0, /*max: length,*/ interval_type: 'position'},
+				direction: {type: 'num_slider', value: 0, label: 'edit.loop_cut.direction', condition: !!selected_face, min: 0},
+				cuts: {type: 'num_slider', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
+				offset: {type: 'num_slider', value: length/2, label: 'edit.loop_cut.offset', min: 0, /*max: length,*/ interval_type: 'position'},
 				unit: {type: 'inline_select', label: 'edit.loop_cut.unit', options: {size: 'edit.loop_cut.unit.size_units', percent: 'edit.loop_cut.unit.percent'}},
 			}, (form, form_options) => {
 				let direction = form.direction || 0;

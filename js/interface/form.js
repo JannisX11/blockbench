@@ -284,6 +284,29 @@ class InputForm extends EventSystem {
 							scope.updateValues();
 						})
 						break;
+
+					case 'num_slider':
+						let getInterval = input_config.getInterval;
+						if (input_config.interval_type == 'position') getInterval = getSpatialInterval;
+						if (input_config.interval_type == 'rotation') getInterval = getRotationInterval;
+						let slider = new NumSlider({
+							id: 'form_slider_'+form_id,
+							private: true,
+							onChange: () => {
+								scope.updateValues();
+							},
+							getInterval,
+							settings: {
+								default: input_config.value || 0,
+								min: input_config.min,
+								max: input_config.max,
+								step: input_config.step||1,
+							},
+						});
+						bar.append(slider.node);
+						slider.update();
+						data.slider = slider;
+						break;
 	
 	
 					case 'vector':
@@ -522,6 +545,9 @@ class InputForm extends EventSystem {
 					case 'number': case 'range':
 						data.bar.find('input').val(value);
 						break;
+					case 'num_slider':
+						data.slider.setValue(value);
+						break;
 					case 'vector':
 						for (let i = 0; i < (input_config.dimensions || 3); i++) {
 							data.bar.find(`input#${form_id}_${i}`).val(value[i])
@@ -609,6 +635,10 @@ class InputForm extends EventSystem {
 							result[form_id] = Math.round(result[form_id] / input_config.step) * input_config.step;
 						}
 						break;
+					case 'num_slider':
+						console.log(data.slider.get(), data.slider)
+						result[form_id] = data.slider.get();
+						break;
 					case 'vector':
 						result[form_id] = [];
 						for (let i = 0; i < (input_config.dimensions || 3); i++) {
@@ -643,7 +673,7 @@ class InputForm extends EventSystem {
 		switch (input_config.type) {
 			case 'checkbox': return false;
 			case 'text': case 'textarea': return '';
-			case 'number': case 'range': return Math.clamp(0, input_config.min, input_config.max);
+			case 'number': case 'range': case 'num_slider': return Math.clamp(0, input_config.min, input_config.max);
 			case 'select': case 'inline_select': case 'radio': return Object.keys(input_config.options)[0] ?? '';
 			case 'inline_multi_select': return {};
 			case 'file': case 'folder': return '';

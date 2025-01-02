@@ -387,6 +387,9 @@
 		flex-grow: 1;
 		padding: 3px 5px;
 	}
+	.form_bar > .nslide_tool {
+		flex-grow: 1;
+	}
 	.dialog_form_description {
 		margin-left: auto;
 		padding-top: 8px;
