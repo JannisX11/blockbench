@@ -1138,6 +1138,12 @@ class Preview {
 				brush_coord.z += 8;
 			}
 
+			// Size
+			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
+			brush_matrix.scale(scale);
+
+			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
+
 			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
 			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
@@ -1149,11 +1155,6 @@ class Preview {
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
-			// Size
-			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
-			brush_matrix.scale(scale);
-
-			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
