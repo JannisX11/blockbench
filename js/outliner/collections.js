@@ -140,7 +140,9 @@ class Collection {
 		return copy;
 	}
 	getSaveCopy() {
-		let copy = {};
+		let copy = {
+			uuid: this.uuid
+		};
 		for (var key in Collection.properties) {
 			Collection.properties[key].copy(this, copy);
 		}

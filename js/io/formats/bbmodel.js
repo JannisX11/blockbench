@@ -253,6 +253,13 @@ var codec = new Codec('project', {
 			model.texture_groups.push(copy);
 		}
 
+		let collections = [];
+		for (let collection of Collection.all) {
+			let copy = collection.getSaveCopy();
+			collections.push(copy);
+		}
+		if (collections.length) model.collections = collections;
+
 		if (Animation.all.length) {
 			model.animations = [];
 			Animation.all.forEach(a => {
@@ -439,6 +446,12 @@ var codec = new Codec('project', {
 		}
 		if (model.outliner) {
 			parseGroups(model.outliner)
+		}
+		if (model.collections instanceof Array) {
+			for (let collection_data of model.collections) {
+				let collection = new Collection(collection_data, collection_data.uuid);
+				collection.add();
+			}
 		}
 		if (model.animations) {
 			model.animations.forEach(ani => {
@@ -702,6 +715,12 @@ var codec = new Codec('project', {
 			processList(model.outliner);
 
 			parseGroups(model.outliner, true);
+		}
+		if (model.collections instanceof Array) {
+			for (let collection_data of model.collections) {
+				let collection = new Collection(collection_data, collection_data.uuid);
+				collection.add();
+			}
 		}
 		if (model.animations && Format.animation_mode) {
 			model.animations.forEach(ani => {
