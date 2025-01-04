@@ -636,7 +636,6 @@ class InputForm extends EventSystem {
 						}
 						break;
 					case 'num_slider':
-						console.log(data.slider.get(), data.slider)
 						result[form_id] = data.slider.get();
 						break;
 					case 'vector':

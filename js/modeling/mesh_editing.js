@@ -3612,7 +3612,7 @@ BARS.defineActions(function() {
 	new Toggle('proportional_editing', {
 		icon: 'wifi_tethering',
 		category: 'edit',
-		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length > 0)},
+		condition: {modes: ['edit'], features: ['meshes']},
 		tool_config: new ToolConfig('proportional_editing_options', {
 			title: 'action.proportional_editing',
 			width: 400,
