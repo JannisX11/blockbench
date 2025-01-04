@@ -34,9 +34,13 @@ class GeneralAnimator {
 		this.select();
 		Undo.finishSelection('Select animator');
 	}
-	addToTimeline() {
+	addToTimeline(end_of_list = false) {
 		if (!Timeline.animators.includes(this)) {
-			Timeline.animators.splice(0, 0, this);
+			if (end_of_list == true) {
+				Timeline.animators.push(this);
+			} else {
+				Timeline.animators.splice(0, 0, this);
+			}
 		}
 		for (let channel in this.channels) {
 			if (!this[channel]) this[channel] = [];

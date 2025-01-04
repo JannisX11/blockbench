@@ -16,25 +16,41 @@ class Collection {
 	}
 	select(event) {
 		this.selected = true;
-		Outliner.selected.empty();
-		if (!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
+		if ((!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) || Modes.animate) {
 			unselectAllElements();
 			Collection.all.forEach(c => c.selected = false);
 		}
 		this.selected = true;
+		let i = 0;
+		if (Modes.animate && Animation.selected && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
+			Timeline.animators.empty();
+		}
 		for (let uuid of this.children) {
 			let node = OutlinerNode.uuids[uuid];
-			if (node instanceof Group) {
-				node.multiSelect();
+			if (Modes.animate && Animation.selected) {
+				if (node.constructor.animator) {
+					let animator = Animation.selected.getBoneAnimator(node);
+					if (animator) {
+						animator.addToTimeline(true);
+					}
+					if (i == 0) {
+						node.select();
+					}
+				}
 			} else {
-				Outliner.selected.push(node);
+				if (node instanceof Group) {
+					node.multiSelect();
+				} else {
+					Outliner.selected.safePush(node);
+				}
 			}
+			i++;
 		}
 		updateSelection();
 		return this;
 	}
 	clickSelect(event) {
-		Undo.initSelection({collections: true});
+		Undo.initSelection({collections: true, timeline: Modes.animate});
 		this.select(event);
 		Undo.finishSelection('Select collection');
 	}
@@ -405,7 +421,7 @@ BARS.defineActions(() => {
 		icon: 'inventory_2',
 		category: 'select',
 		keybind: new Keybind({key: 'l', ctrl: true}),
-		condition: {modes: ['edit', 'paint']},
+		condition: {modes: ['edit', 'paint', 'animate']},
 		click() {
 			Undo.initEdit({collections: []});
 			let collection = new Collection({});
@@ -478,7 +494,7 @@ Interface.definePanels(function() {
 			float_size: [300, 300],
 			height: 300
 		},
-		condition: {modes: ['edit', 'paint'], method: () => (!Format.image_editor)},
+		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
 		toolbars: [
 			new Toolbar('collections', {
 				children: [
@@ -642,7 +658,7 @@ Interface.definePanels(function() {
 						:key="collection.uuid"
 						:uuid="collection.uuid"
 						class="collection"
-						@click.stop="collection.clickSelect()"
+						@click.stop="collection.clickSelect($event)"
 						@dblclick.stop="collection.propertiesDialog()"
 						@contextmenu.prevent.stop="collection.showContextMenu($event)"
 					>

@@ -495,12 +495,6 @@ class OutlinerElement extends OutlinerNode {
 				this.showInOutliner()
 			}
 		}
-		for (let group of Group.multi_selected) {
-			group.unselect();
-		}
-		Group.all.forEach(function(s) {
-			s.selected = false;
-		})
 		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
 		TickUpdates.selection = true;
 		return this;
