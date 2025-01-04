@@ -83,10 +83,15 @@ BARS.defineActions(() => {
 	new Action('delete', {
 		icon: 'delete',
 		category: 'edit',
-		keybind: new Keybind({key: 46}),
+		keybind: new Keybind({key: 46}, {
+			keep_vertices: 'alt'
+		}),
+		variations: {
+			keep_vertices: {name: 'action.delete.keep_vertices'}
+		},
 		condition: () => !Dialog.open,
-		click() {
-			SharedActions.run('delete');
+		click(event) {
+			SharedActions.run('delete', event);
 		}
 	})
 	new Action('duplicate', {
@@ -94,8 +99,8 @@ BARS.defineActions(() => {
 		category: 'edit',
 		condition: () => SharedActions.condition('duplicate'),
 		keybind: new Keybind({key: 'd', ctrl: true}),
-		click() {
-			SharedActions.run('duplicate');
+		click(event) {
+			SharedActions.run('duplicate', event);
 		}
 	})
 	new Action('select_all', {
@@ -103,8 +108,8 @@ BARS.defineActions(() => {
 		category: 'select',
 		condition: () => !Modes.display,
 		keybind: new Keybind({key: 'a', ctrl: true}),
-		click() {
-			SharedActions.run('select_all');
+		click(event) {
+			SharedActions.run('select_all', event);
 			Blockbench.dispatchEvent('select_all');
 		}
 	})
@@ -112,8 +117,8 @@ BARS.defineActions(() => {
 		icon: 'border_clear',
 		category: 'select',
 		condition: () => !Modes.display,
-		click() {
-			SharedActions.run('unselect_all');
+		click(event) {
+			SharedActions.run('unselect_all', event);
 			Blockbench.dispatchEvent('unselect_all');
 		}
 	})
@@ -121,8 +126,8 @@ BARS.defineActions(() => {
 		icon: 'swap_vert',
 		category: 'select',
 		keybind: new Keybind({key: 'i', ctrl: true}),
-		click() {
-			SharedActions.run('invert_selection');
+		click(event) {
+			SharedActions.run('invert_selection', event);
 			Blockbench.dispatchEvent('invert_selection');
 		}
 	})

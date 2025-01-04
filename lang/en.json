@@ -1486,6 +1486,7 @@
 	"action.duplicate.desc": "Duplicates the selected elements or group",
 	"action.delete": "Delete",
 	"action.delete.desc": "Deletes the selected elements or group",
+	"action.delete.keep_vertices": "Keep Edges/Vertices",
 	"action.move_to_group": "Move to Group",
 	"action.move_to_group.desc": "Move the selected elements to a different outliner group",
 	"action.sort_outliner": "Sort Outliner",

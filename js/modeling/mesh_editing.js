@@ -1067,7 +1067,8 @@ SharedActions.add('delete', {
 	condition: () => Modes.edit && Prop.active_panel == 'preview' && Mesh.selected[0] && Project.mesh_selection[Mesh.selected[0].uuid],
 	run() {
 		let meshes = Mesh.selected.slice();
-		Undo.initEdit({elements: meshes, outliner: true})
+		let keep_vertices = BarItems.delete.keybind.additionalModifierTriggered(event, 'keep_vertices');
+		Undo.initEdit({elements: meshes, outliner: true, selection: true})
 
 		Mesh.selected.forEach(mesh => {
 			let selected_vertices = mesh.getSelectedVertices();
@@ -1076,20 +1077,37 @@ SharedActions.add('delete', {
 
 			if ((BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') && selected_faces.length < Object.keys(mesh.faces).length) {
 				let affected_vertices = [];
+				let affected_edges = [];
 				selected_faces.forEach(fkey => {
-					affected_vertices.safePush(...mesh.faces[fkey].vertices);
+					let face = mesh.faces[fkey];
+					affected_vertices.safePush(...face.vertices);
+					if (keep_vertices) {
+						affected_edges.push(...face.getEdges());
+					}
 					delete mesh.faces[fkey];
 				})
-				affected_vertices.forEach(vertex_key => {
-					let used = false;
-					for (let key in mesh.faces) {
-						let face = mesh.faces[key];
-						if (face.vertices.includes(vertex_key)) used = true;
+				if (keep_vertices) {
+					edges: for (let edge of affected_edges) {
+						for (let fkey in mesh.faces) {
+							let vertices = mesh.faces[fkey].vertices;
+							if (vertices.includes(edge[0]) && vertices.includes(edge[1])) {
+								continue edges;
+							}
+						}
+						mesh.addFaces(new MeshFace(mesh, {vertices: edge}));
 					}
-					if (!used) {
-						delete mesh.vertices[vertex_key];
-					}
-				})
+				} else {
+					affected_vertices.forEach(vertex_key => {
+						let used = false;
+						for (let key in mesh.faces) {
+							let face = mesh.faces[key];
+							if (face.vertices.includes(vertex_key)) used = true;
+						}
+						if (!used) {
+							delete mesh.vertices[vertex_key];
+						}
+					})
+				}
 			} else if (BarItems.selection_mode.value == 'edge') {
 				for (let key in mesh.faces) {
 					let face = mesh.faces[key];
@@ -1110,7 +1128,7 @@ SharedActions.add('delete', {
 							let face = mesh.faces[key];
 							if (face.vertices.includes(vkey)) used = true;
 						}
-						if (!used) {
+						if (!used && !keep_vertices) {
 							delete mesh.vertices[vkey];
 							selected_vertices.remove(vkey);
 							selected_edges.remove(edge);
