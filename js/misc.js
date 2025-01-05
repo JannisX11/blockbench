@@ -209,6 +209,7 @@ function updateSelection(options = {}) {
 	if (Condition(BarItems.layer_blend_mode.condition)) BarItems.layer_blend_mode.set(TextureLayer.selected?.blend_mode);
 
 	BARS.updateConditions();
+	MenuBar.update()
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }

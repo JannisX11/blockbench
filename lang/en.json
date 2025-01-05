@@ -2028,6 +2028,7 @@
 	"menu.file": "File",
 	"menu.edit": "Edit",
 	"menu.transform": "Transform",
+	"menu.mesh": "Mesh",
 	"menu.uv": "UV",
 	"menu.texture": "Texture",
 	"menu.image": "Image",

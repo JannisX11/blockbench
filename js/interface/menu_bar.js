@@ -254,20 +254,6 @@ const MenuBar = {
 			'delete',
 			'apply_mirror_modeling',
 			new MenuSeparator('mesh_specific'),
-			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
-				'extrude_mesh_selection',
-				'inset_mesh_selection',
-				'loop_cut',
-				'create_face',
-				'invert_face',
-				'switch_face_crease',
-				'merge_vertices',
-				'dissolve_edges',
-				'solidify_mesh_selection',
-				'apply_mesh_rotation',
-				'split_mesh',
-				'merge_meshes',
-			]},
 			new MenuSeparator('editing_mode'),
 			'proportional_editing',
 			'mirror_modeling',
@@ -311,6 +297,22 @@ const MenuBar = {
 			icon: 'open_with',
 			condition: {modes: ['edit']},
 		})
+		new BarMenu('mesh', [
+			new MenuSeparator('geometry'),
+			'extrude_mesh_selection',
+			'inset_mesh_selection',
+			'loop_cut',
+			'create_face',
+			'invert_face',
+			'switch_face_crease',
+			'merge_vertices',
+			'dissolve_edges',
+			'solidify_mesh_selection',
+			new MenuSeparator('element'),
+			'apply_mesh_rotation',
+			'split_mesh',
+			'merge_meshes',
+		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
