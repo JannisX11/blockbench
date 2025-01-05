@@ -453,7 +453,7 @@ class Group extends OutlinerNode {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})
 		Group.all.forEach(group => {
-			if (Group.multi_selected) {
+			if (group.selected) {
 				group.color = color;
 			}
 		})

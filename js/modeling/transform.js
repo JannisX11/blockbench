@@ -508,10 +508,6 @@ const Vertexsnap = {
 }
 
 //Center
-function centerElementsAll(axis) {
-	centerElements(0, false);
-	centerElements(2, false);
-}
 function centerElements(axis, update) {
 	if (!Outliner.selected.length) return;
 	let center = getSelectionCenter()[axis];
@@ -526,7 +522,7 @@ function centerElements(axis, update) {
 		}
 	})
 	Group.all.forEach(group => {
-		if (!Group.multi_selected) return;
+		if (!group.selected) return;
 		group.origin[axis] += difference;
 	})
 	Canvas.updateView({
@@ -1617,7 +1613,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
-			centerElements(0);
+			centerElements(0, true);
 			Undo.finishEdit('Center selection on X axis')
 		}
 	})
@@ -1628,7 +1624,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
-			centerElements(1);
+			centerElements(1, true);
 			Undo.finishEdit('Center selection on Y axis')
 		}
 	})
@@ -1639,7 +1635,7 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
-			centerElements(2);
+			centerElements(2, true);
 			Undo.finishEdit('Center selection on Z axis')
 		}
 	})
@@ -1648,7 +1644,8 @@ BARS.defineActions(function() {
 		category: 'transform',
 		click() {
 			Undo.initEdit({elements: Outliner.selected, outliner: true});
-			centerElementsAll();
+			centerElements(0, false);
+			centerElements(2, true);
 			Undo.finishEdit('Center selection')
 		}
 	})
@@ -1854,7 +1851,7 @@ BARS.defineActions(function() {
 		click() {
 			Undo.initEdit({outliner: true, elements: Outliner.selected})
 			for (let group of Group.all) {
-				if (!Group.multi_selected) continue;
+				if (!group.selected) continue;
 				let position = new THREE.Vector3();
 				let amount = 0;
 				group.children.forEach((obj) => {

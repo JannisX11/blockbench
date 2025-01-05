@@ -1237,7 +1237,7 @@ BARS.defineActions(function() {
 			if (Animator.open) {
 				var sel = 0;
 				for (let group of Group.all) {
-					if (Group.multi_selected) sel++;
+					if (group.selected) sel++;
 				}
 				this.set(stringifyLargeInt(sel)+' / '+stringifyLargeInt(Group.all.length));
 			} else {
