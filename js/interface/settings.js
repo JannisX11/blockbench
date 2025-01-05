@@ -492,6 +492,7 @@ const Settings = {
 		new Setting('editor_2d_zoom_speed',		{category: 'controls', value: 100, min: 10, max: 1000, type: 'number'});
 		new Setting('double_click_switch_tools',{category: 'controls', value: true});
 		new Setting('canvas_unselect',  		{category: 'controls', value: false});
+		new Setting('selection_tolerance', 		{category: 'controls', value: 10, type: 'number', min: 1, max: 50});
 
 		//Edit
 		new Setting('undo_selections',			{category: 'edit', value: false});

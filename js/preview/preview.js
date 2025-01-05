@@ -1744,6 +1744,7 @@ Preview.split_screen = {
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
 	if (Blockbench.isTouch) scale *= 1.5;
+	scale *= (settings.selection_tolerance.value / 10);
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.8;
