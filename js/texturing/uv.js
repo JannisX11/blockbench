@@ -3072,78 +3072,82 @@ Interface.definePanels(function() {
 					})
 
 					let overlay_canvas;
-					if (do_move_uv) {
-						Undo.initEdit({
-							elements,
-							uv_only: true,
-							bitmap: true,
-							textures: [this.texture]
-						});
-
-						overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
-						let ctx = overlay_canvas.getContext('2d');
-						overlay_canvas.width = this.texture.width;
-						overlay_canvas.height = this.texture.height;
-						
-						this.texture.edit(canvas => {
-							let tex_ctx = canvas.getContext('2d');
-							ctx.beginPath();
-							tex_ctx.save();
-							tex_ctx.beginPath();
-							UVEditor.getMappableElements().forEach(el => {
-								if (el instanceof Mesh) {
-									for (var fkey in el.faces) {
-										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(el).includes(fkey)) continue;
-										if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
-										
-										let matrix = face.getOccupationMatrix(true, [0, 0]);
-										for (let x in matrix) {
-											for (let y in matrix[x]) {
-												if (!matrix[x][y]) continue;
-												x = parseInt(x); y = parseInt(y);
-												ctx.rect(x, y, 1, 1);
-												tex_ctx.rect(x, y, 1, 1);
-											}
-										}
-									}
-								} else {
-									let factor_x = this.texture.width  / UVEditor.getUVWidth();
-									let factor_y = this.texture.height / UVEditor.getUVHeight();
-									for (var fkey in el.faces) {
-										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
-										if (face.getTexture() !== this.texture) continue;
-										
-										let rect = face.getBoundingRect();
-										let canvasRect = [
-											Math.floor(rect.ax * factor_x),
-											Math.floor(rect.ay * factor_y),
-											Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
-											Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
-										]
-										ctx.rect(...canvasRect);
-										tex_ctx.rect(...canvasRect);
-									}
-								}
-							})
-							ctx.clip();
-							ctx.drawImage(this.texture.img, 0, 0);
-							tex_ctx.clip();
-							tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
-							tex_ctx.restore();
-						}, {no_undo: true})
-
-						UVEditor.vue.$refs.frame.append(overlay_canvas);
-
-					} else {
-						Undo.initEdit({elements, uv_only: true});
-					}
+					let started = false;
 
 					this.drag({
 						event,
 						snap: UVEditor.isBoxUV() ? 1 : undefined,
 						onDrag: (diff_x, diff_y) => {
+							if (!started) {
+								started = true;
+								if (do_move_uv) {
+									Undo.initEdit({
+										elements,
+										uv_only: true,
+										bitmap: true,
+										textures: [this.texture]
+									});
+			
+									overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
+									let ctx = overlay_canvas.getContext('2d');
+									overlay_canvas.width = this.texture.width;
+									overlay_canvas.height = this.texture.height;
+									
+									this.texture.edit(canvas => {
+										let tex_ctx = canvas.getContext('2d');
+										ctx.beginPath();
+										tex_ctx.save();
+										tex_ctx.beginPath();
+										UVEditor.getMappableElements().forEach(el => {
+											if (el instanceof Mesh) {
+												for (var fkey in el.faces) {
+													var face = el.faces[fkey];
+													if (!UVEditor.getSelectedFaces(el).includes(fkey)) continue;
+													if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
+													
+													let matrix = face.getOccupationMatrix(true, [0, 0]);
+													for (let x in matrix) {
+														for (let y in matrix[x]) {
+															if (!matrix[x][y]) continue;
+															x = parseInt(x); y = parseInt(y);
+															ctx.rect(x, y, 1, 1);
+															tex_ctx.rect(x, y, 1, 1);
+														}
+													}
+												}
+											} else {
+												let factor_x = this.texture.width  / UVEditor.getUVWidth();
+												let factor_y = this.texture.height / UVEditor.getUVHeight();
+												for (var fkey in el.faces) {
+													var face = el.faces[fkey];
+													if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
+													if (face.getTexture() !== this.texture) continue;
+													
+													let rect = face.getBoundingRect();
+													let canvasRect = [
+														Math.floor(rect.ax * factor_x),
+														Math.floor(rect.ay * factor_y),
+														Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+														Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+													]
+													ctx.rect(...canvasRect);
+													tex_ctx.rect(...canvasRect);
+												}
+											}
+										})
+										ctx.clip();
+										ctx.drawImage(this.texture.img, 0, 0);
+										tex_ctx.clip();
+										tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
+										tex_ctx.restore();
+									}, {no_undo: true})
+			
+									UVEditor.vue.$refs.frame.append(overlay_canvas);
+			
+								} else {
+									Undo.initEdit({elements, uv_only: true});
+								}
+							}
 							elements.forEach(element => {
 								if (element instanceof Mesh) {
 									UVEditor.getSelectedFaces(element).forEach(key => {
@@ -3223,7 +3227,7 @@ Interface.definePanels(function() {
 						},
 						onAbort: () => {
 							if (do_move_uv) {
-								overlay_canvas.remove();
+								if (overlay_canvas) overlay_canvas.remove();
 							}
 							if (face_key && Mesh.selected[0]) {
 								let selected_faces = UVEditor.getSelectedFaces(element, true);

@@ -53,8 +53,8 @@ const Outliner = {
 			id: 'mirror_uv',
 			condition: {modes: ['edit'], method: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv},
 			title: tl('switches.mirror'),
-			icon: 'icon-mirror_x icon',
-			icon_off: 'icon-mirror_x icon',
+			icon: 'icon-mirror_x',
+			icon_off: 'icon-mirror_x',
 			advanced_option: true,
 		},
 		autouv: {

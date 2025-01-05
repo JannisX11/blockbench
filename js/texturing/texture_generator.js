@@ -416,6 +416,7 @@ const TextureGenerator = {
 			if (mirror_modeling_duplicate) return;
 			if (element instanceof Cube) {
 				if (element.box_uv || options.box_uv) {
+					element.box_uv = true;
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
 					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
@@ -437,7 +438,6 @@ const TextureGenerator = {
 							doubles[double_key] = [template]
 						}
 					}
-					element.box_uv = true;
 					box_uv_templates.push(template)
 					avg_size += box_uv_templates[box_uv_templates.length-1].template_size
 					
