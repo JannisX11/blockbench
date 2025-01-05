@@ -509,15 +509,17 @@ const Painter = {
 
 		function paintElement(element) {
 			if (element instanceof Cube) {
+				texture.selection.maskCanvas(ctx, offset);
 				ctx.beginPath();
-				for (var face in element.faces) {
-					var tag = element.faces[face]
-					if (Painter.getTextureToEdit(tag.getTexture()) === texture) {
+				for (var fkey in element.faces) {
+					var face = element.faces[fkey]
+					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
+					if (Painter.getTextureToEdit(face.getTexture()) === texture) {
 						var face_rect = getRectangle(
-							tag.uv[0] * uvFactorX,
-							tag.uv[1] * uvFactorY,
-							tag.uv[2] * uvFactorX,
-							tag.uv[3] * uvFactorY
+							face.uv[0] * uvFactorX,
+							face.uv[1] * uvFactorY,
+							face.uv[2] * uvFactorX,
+							face.uv[3] * uvFactorY
 						)
 						let animation_offset = texture.currentFrame * texture.display_height;
 						ctx.rect(
@@ -529,6 +531,7 @@ const Painter = {
 					}
 				}
 				ctx.fill()
+				ctx.restore();
 
 			} else if (element instanceof Mesh) {
 				ctx.beginPath();
@@ -542,8 +545,8 @@ const Painter = {
 					for (let x in matrix) {
 						for (let y in matrix[x]) {
 							if (!matrix[x][y]) continue;
-							if (!texture.selection.allow(x, y)) continue;
 							x = parseInt(x); y = parseInt(y);
+							if (!texture.selection.allow(x, y)) continue;
 							ctx.rect(x, y, 1, 1);
 						}
 					}
@@ -552,15 +555,13 @@ const Painter = {
 			}
 		}
 
-		if (element instanceof Cube && fill_mode === 'element') {
-			paintElement(element);
-
-		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
+		if ((element instanceof Cube || element instanceof Mesh) && (fill_mode === 'element' || fill_mode === 'face')) {
 			paintElement(element);
 
 		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {
 			texture.selection.maskCanvas(ctx, offset);
 			ctx.fill();
+			ctx.restore();
 
 		} else if (fill_mode === 'selected_elements') {
 			for (let element of Outliner.selected) {
@@ -2047,9 +2048,8 @@ class IntMatrix {
 		return boxes;
 	}
 	maskCanvas(ctx, offset = [0, 0]) {
-		if (!this.is_custom) return;
-
 		ctx.save();
+		if (!this.is_custom) return;
 		ctx.beginPath();
 		let boxes = this.toBoxes();
 		boxes.forEach(box => {
@@ -3068,7 +3068,6 @@ BARS.defineActions(function() {
 				}
 			},
 			onFormChange(result) {
-				console.log('abaw')
 				UVEditor.updateOverlayCanvas();
 			}
 		})
