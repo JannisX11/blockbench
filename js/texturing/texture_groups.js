@@ -444,6 +444,9 @@ class TextureGroupMaterialConfig {
 					let color = result.color_value.toRgb();
 					let color_array = [color.r, color.g, color.b, Math.round(color.a * 255)];
 					this.color_value.replace(color_array);
+					for (let texture of textures) {
+						if (texture.pbr_channel == 'color') texture.group = '';
+					}
 				} else {
 					let target = textures.find(t => t.uuid == result.color);
 					if (target) target.pbr_channel = 'color';
@@ -451,6 +454,9 @@ class TextureGroupMaterialConfig {
 
 				if (result.mer == 'uniform') {
 					this.mer_value.replace(result.mer_value);
+					for (let texture of textures) {
+						if (texture.pbr_channel == 'mer') texture.group = '';
+					}
 				} else {
 					this.mer_value.replace([0, 0, 0]);
 					let target = textures.find(t => t.uuid == result.mer);

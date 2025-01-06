@@ -2991,7 +2991,7 @@ Interface.definePanels(function() {
 						}
 					}
 				},
-				drag({event, onDrag, onEnd, onAbort, snap, uv_grid}) {
+				drag({event, onStart, onDrag, onEnd, onAbort, snap, uv_grid}) {
 					if (event.which == 2 || event.which == 3) return;
 					convertTouchEvent(event);
 					let scope = this;
@@ -3001,6 +3001,7 @@ Interface.definePanels(function() {
 					let viewport = this.$refs.viewport;
 					let initial_scroll_offset = [viewport.scrollLeft, viewport.scrollTop];
 					let original_snap = snap;
+					let on_start_ran = false;
 					function drag(e1) {
 						convertTouchEvent(e1);
 						let step_x, step_y;
@@ -3024,6 +3025,10 @@ Interface.definePanels(function() {
 						pos[1] = Math.round((e1.clientY - event.clientY + viewport.scrollTop  - initial_scroll_offset[1]) / step_y) / snap;
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
+							if (onStart && !on_start_ran) {
+								on_start_ran = true;
+								onStart();
+							}
 							let applied_difference = onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
 							last_pos[0] += applied_difference[0];
 							last_pos[1] += applied_difference[1];
