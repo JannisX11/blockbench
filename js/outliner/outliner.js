@@ -488,7 +488,7 @@ class OutlinerElement extends OutlinerNode {
 
 		//Normal
 		} else {
-			unselectAllElements()
+			unselectAllElements([this]);
 			this.selectLow()
 			just_selected.push(this)
 			if (settings.outliner_reveal_on_select.value) {

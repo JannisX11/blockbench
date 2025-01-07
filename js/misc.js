@@ -213,8 +213,11 @@ function updateSelection(options = {}) {
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function unselectAllElements() {
-	Project.selected_elements.forEachReverse(obj => obj.unselect())
+function unselectAllElements(exceptions) {
+	Project.selected_elements.forEachReverse(obj => {
+		if (exceptions instanceof Array && exceptions.includes(obj)) return;
+		obj.unselect()
+	})
 	for (let group of Group.multi_selected) {
 		group.unselect();
 	}
