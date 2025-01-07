@@ -1064,7 +1064,6 @@ class AnimationController extends AnimationItem {
 	}
 	clickSelect() {
 		Undo.initSelection();
-		Prop.active_panel = 'animations';
 		this.select();
 		Undo.finishSelection('Select animation')
 	}

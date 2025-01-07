@@ -446,7 +446,6 @@ class Keyframe {
 	}
 	clickSelect(event) {
 		Undo.initSelection({timeline: true});
-		Prop.active_panel = 'animations';
 
 		this.select(event);
 
