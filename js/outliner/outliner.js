@@ -1067,12 +1067,16 @@ SharedActions.add('duplicate', {
 		}
 
 		let all_new = [];
-		for (let group of Group.multi_selected) {
+		let old_selected_groups = Group.multi_selected.slice();
+		Group.multi_selected.empty();
+		for (let group of old_selected_groups) {
+			group.selected = false;
 			let new_group = group.duplicate();
 			new_group.forEachChild(g => all_new.push(g), Group, true);
+			new_group.multiSelect();
 		}
-		new_group.multiSelect();
 
+		updateSelection();
 		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true});
 
 		if (Animation.all.length) {
