@@ -3830,6 +3830,7 @@ Interface.definePanels(function() {
 								})
 							}
 							UVEditor.updateSelectionOutline();
+							Undo.finishSelection('Select color');
 							return;
 						} else if (selection_mode == 'lasso') {
 							selection_polygon.push([x, y]);
