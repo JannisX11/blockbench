@@ -499,9 +499,9 @@ class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
-	clickSelect(event) {
+	clickSelect(event, outliner_click) {
 		Undo.initSelection();
-		let result = this.select(event);
+		let result = this.select(event, outliner_click);
 		if (result === false) {
 			Undo.cancelSelection();
 			return;
