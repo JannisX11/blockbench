@@ -128,7 +128,7 @@
 	"devDependencies": {
 		"@electron/notarize": "^2.3.0",
 		"blockbench-types": "^4.6.1",
-		"electron": "^33.2.1",
+		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
 		"webpack": "^5.74.0",
 		"webpack-cli": "^4.5.0",
