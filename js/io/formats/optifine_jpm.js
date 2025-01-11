@@ -20,6 +20,8 @@ var part_codec = new Codec('optifine_part', {
 		if (!part_model.textureSize) {
 			part_model.textureSize = entitymodel.textureSize;
 		}
+		if (part_model.id == '') delete part_model.id;
+		delete part_model.part;
 
 		this.dispatchEvent('compile', {model: part_model, original_options});
 

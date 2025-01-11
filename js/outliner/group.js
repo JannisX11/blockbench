@@ -679,7 +679,9 @@ BARS.defineActions(function() {
 				base_group.createUniqueName()
 			}
 			if (add_group instanceof Group) {
-				add_group.addTo(base_group);
+				for (let group of Group.multi_selected) {
+					group.addTo(base_group);
+				}
 			} else if (add_group instanceof OutlinerElement) {
 				Outliner.selected.forEach(function(s, i) {
 					s.addTo(base_group);

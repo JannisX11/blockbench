@@ -190,7 +190,7 @@ var codec = new Codec('optifine_entity', {
 				name: Project.name,
 				origin: [0, 0, 0],
 				rotation: [0, 0, 0],
-				children: Outliner.root.filter(g => g instanceof Group && g.export)
+				children: Outliner.root.filter(g => g.export)
 			});
 		} else {
 			for (let group of Outliner.root) {
