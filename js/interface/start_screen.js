@@ -182,15 +182,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [BonoGakure](https://twitter.com/bonogakure) & [GlenFebrian](https://twitter.com/glenn_turu)",
+					description: "Splash Art 1st Place by [Handon_撼动](https://x.com/_2Lein) & [PICASSO](https://twitter.com/Picasso114514)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [Wanwin](https://wan-win.com/#3darts) & Artem x",
+					description: "Splash Art 2nd Place by [guzuper](https://x.com/guzuper200?s=21) & [rainyday](https://x.com/YuTian131)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [FairyZelz](https://x.com/FairyZelz) & [AnolXD](https://x.com/_AnolXD_)",
+					description: "Splash Art 3rd Place by [PeacedoveWum丨無名.](https://twitter.com/PeacedoveWum) & mccaca",
+				},
+				{
+					source: "./assets/splash_art/4.webp",
+					description: "Splash Art 3rd Place by [Orange](https://twitter.com/OrangewithMC)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),

@@ -1,7 +1,6 @@
 {
 	"new_version": {
-		"color": "var(--color-bright_ui)",
-		"text_color": "var(--color-bright_ui_text)",
+		"color": "var(--color-dark)",
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
@@ -11,27 +10,27 @@
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/texture_groups.png",
-				"title": "Collections",
-				"text": "A new way to organize your model!"
-			},
-			{
-				"image": "https://web.blockbench.net/content/tiled_view.png",
+				"image": "https://web.blockbench.net/content/pbr.png",
 				"title": "PBR Editing + Preview",
 				"text": "Create, edit, and view physically based materials"
 			},
 			{
-				"image": "https://web.blockbench.net/content/tiled_view.png",
+				"image": "https://web.blockbench.net/content/collections.png",
+				"title": "Collections",
+				"text": "A new way to organize your model!"
+			},
+			{
+				"image": "https://web.blockbench.net/content/lasso.png",
 				"title": "Lasso Selection Tool",
 				"text": "Select free-form shapes in the 2D Editor"
 			},
 			{
-				"image": "https://web.blockbench.net/content/cube_knife.png",
+				"image": "https://web.blockbench.net/content/group_multi_select.png",
 				"title": "Group Multi Selection",
 				"text": "You can finally select multiple groups at once!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/cube_knife.png",
+				"image": "https://web.blockbench.net/content/rotation_snap.png",
 				"title": "Rotation Snap",
 				"text": "It's vertex snap, but for rotations!"
 			}

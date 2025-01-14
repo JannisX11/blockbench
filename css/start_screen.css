@@ -221,6 +221,7 @@
 		padding-right: 15px;
 		padding-left: 100px;
 		background: linear-gradient(90deg, rgba(3,86,112,0) 0%, rgba(0,10,22,0.63) 34%, rgba(0,9,20,0.72) 45%);
+		color: #d5d5d5;
 		position: absolute;
 	}
 	#start_screen div.start_screen_right {
@@ -240,6 +241,9 @@
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
 	}
+	#start_screen section.vertical .start_screen_right {
+		box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+	}
 	#start_screen section.vertical.bright_ui .start_screen_right {
 		box-shadow: 0 0 14px #00103030;
 	}
@@ -248,7 +252,6 @@
 		flex-wrap: wrap-reverse;
 		box-sizing: border-box;
 		padding: 12px;
-		background: #00004006;
 	}
 	#start_screen .start_screen_features > li {
 		width: 30%;
@@ -272,6 +275,7 @@
 	}
 	#start_screen .start_screen_features > li > img {
 		border-radius: 5px;
+		-webkit-user-drag: none;
 	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;
