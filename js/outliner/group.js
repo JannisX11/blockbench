@@ -114,7 +114,7 @@ class Group extends OutlinerNode {
 		} else {
 			// Fix for #2401
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
-				selected.push(previous_first_selected);
+				selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
 				s.selectLow()

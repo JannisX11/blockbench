@@ -1035,7 +1035,7 @@ SharedActions.add('delete', {
 	priority: -1,
 	run() {
 		let array;
-		Undo.initEdit({elements: selected, outliner: true, selection: true})
+		Undo.initEdit({elements: Outliner.selected, outliner: true, selection: true})
 		if (array == undefined) {
 			array = selected.slice(0);
 		} else if (array.constructor !== Array) {
