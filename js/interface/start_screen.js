@@ -558,9 +558,9 @@ ModelLoader.loaders = {};
 
 
 (function() {
-	/*$.getJSON('./content/news.json').then(data => {
+	$.getJSON('./content/news.json').then(data => {
 		addStartScreenSection('new_version', data.new_version)
-	})*/
+	})
 
 	var news_call = $.ajax({
 		cache: false,

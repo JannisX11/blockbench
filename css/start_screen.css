@@ -245,7 +245,7 @@
 	}
 	#start_screen .start_screen_features {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: wrap-reverse;
 		box-sizing: border-box;
 		padding: 12px;
 		background: #00004006;
@@ -259,6 +259,10 @@
 		text-align: center;
 		margin: 7px;
 		padding: 7px;
+	}
+	#start_screen .start_screen_features > li:nth-child(1),
+	#start_screen .start_screen_features > li:nth-child(2) {
+		order: 1;
 	}
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
