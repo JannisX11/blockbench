@@ -60,8 +60,8 @@ const Animator = {
 		} else if (!Animation.all.length) {
 			Timeline.selected.empty();
 		}
-		if (Group.selected) {
-			Group.selected.select();
+		if (Group.first_selected) {
+			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
 		Animator.preview();
@@ -113,7 +113,7 @@ const Animator = {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) {
-				target = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+				target = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 			}
 		}
 		if (!target) return;
@@ -136,10 +136,10 @@ const Animator = {
 		iterate(target)
 		
 		let keyframes = {};
-		let keyframe_source = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
+		let keyframe_source = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
-			let channel = target == Group.selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
+			let channel = target == Group.first_selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
 			})
@@ -215,35 +215,30 @@ const Animator = {
 		Animator.motion_trail.add(keyframe_points);
 	},
 	updateOnionSkin() {
-		let mode = BarItems.animation_onion_skin.value;
-		let selective = BarItems.animation_onion_skin_selective.value;
+		let enabled = BarItems.animation_onion_skin.value;
+		let options = BarItems.animation_onion_skin.tool_config.options;
+		let selective = options.selective;
 
 		Animator.onion_skin_object.children.forEach(object => {
 			object.geometry.dispose();
 		});
 		Animator.onion_skin_object.children.empty();
 
-		if (mode == 'off') return;
+		if (!enabled) return;
 
 		let times = [];
-		if (mode == 'previous') {
-			times = [Timeline.time - Timeline.getStep()];
-		} else if (mode == 'next') {
-			times = [Timeline.time + Timeline.getStep()];
-		} else if (mode == 'previous_next') {
-			times = [
-				Timeline.time - Timeline.getStep(),
-				Timeline.time + Timeline.getStep()
-			];
-		} else if (mode == 'previous_next_2') {
-			times = [
-				Timeline.time - Timeline.getStep()*2,
-				Timeline.time - Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*1,
-				Timeline.time + Timeline.getStep()*2,
-			];
-		} else if (mode == 'select') {
+
+		if (options.frames == 'select') {
 			times = [Timeline.vue.onion_skin_time];
+		} else {
+			let interval = Timeline.getStep() * (options.interval || 1);
+			let go_pre = options.frames == 'previous', go_nex = options.frames == 'next';
+			if (options.frames == 'previous_next') go_pre = go_nex = true;
+
+			for (let i = 1; i <= options.count; i++) {
+				if (go_pre) times.push(Timeline.time - interval * i);
+				if (go_nex) times.push(Timeline.time + interval * i);
+			}
 		}
 
 		let elements = Outliner.elements;
@@ -411,7 +406,7 @@ const Animator = {
 			Project.model_3d.scale.z = scale;
 		}
 
-		if (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+		if (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
 		Blockbench.dispatchEvent('display_animation_frame')
@@ -1271,10 +1266,10 @@ BARS.defineActions(function() {
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
 		category: 'animation',
-		condition: () => Animator.open && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
+		condition: () => Animator.open && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)),
 		onChange(value) {
-			if (value && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
-				Project.motion_trail_lock = Group.selected ? Group.selected.uuid : Outliner.selected[0].uuid;
+			if (value && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator))) {
+				Project.motion_trail_lock = Group.first_selected ? Group.first_selected.uuid : Outliner.selected[0].uuid;
 			} else {
 				Project.motion_trail_lock = false;
 				Animator.showMotionTrail();
@@ -1282,30 +1277,37 @@ BARS.defineActions(function() {
 		}
 	})
 	// Onion Skin
-	new BarSelect('animation_onion_skin', {
+	new Toggle('animation_onion_skin', {
 		category: 'view',
 		condition: {modes: ['animate']},
-		value: 'off',
-		options: {
-			off: true,
-			select: true,
-			previous: true,
-			next: true,
-			previous_next: true,
-			previous_next_2: tl('action.animation_onion_skin.previous_next') + ' (2)',
-		},
+		tool_config: new ToolConfig('animation_onion_skin', {
+			title: 'action.animation_onion_skin',
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				frames: {type: 'select', label: 'menu.animation_onion_skin.frames', value: 'previous', options: {
+					select: 'menu.animation_onion_skin.select',
+					previous: 'menu.animation_onion_skin.previous',
+					next: 'menu.animation_onion_skin.next',
+					previous_next: 'menu.animation_onion_skin.previous_next',
+				}},
+				count: {type: 'number', label: 'menu.animation_onion_skin.count', value: 1, condition: form => form.frames != 'select'},
+				interval: {type: 'number', label: 'menu.animation_onion_skin.interval', value: 1, condition: form => form.frames != 'select'},
+				selective: {type: 'checkbox', label: 'menu.animation_onion_skin_selective', value: true},
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.animation_onion_skin.value}, false);
+			},
+			onFormChange(formResult) {
+				if (BarItems.animation_onion_skin.value != formResult.enabled) {
+					BarItems.animation_onion_skin.trigger();
+				} else {
+					Animator.updateOnionSkin();
+				}
+				Timeline.vue.onion_skin_selectable = formResult.enabled && this.options.frames == 'select';
+			}
+		}),
 		onChange() {
-			Timeline.vue.onion_skin_mode = this.value;
-			Animator.updateOnionSkin();
-		}
-	})
-	// Motion Trail
-	new Toggle('animation_onion_skin_selective', {
-		icon: 'animation',
-		category: 'animation',
-		default: true,
-		condition: () => Animator.open && BarItems.animation_onion_skin.value != 'off',
-		onChange(value) {
+			Timeline.vue.onion_skin_selectable = this.value && this.tool_config.options.frames == 'select';
 			Animator.updateOnionSkin();
 		}
 	})

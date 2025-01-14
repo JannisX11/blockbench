@@ -9,6 +9,7 @@ const DisplayMode = {};
 
 class DisplaySlot {
 	constructor(id, data) {
+		this.slot_id = id;
 		this.default()
 		if (data) this.extend(data)
 	}
@@ -19,6 +20,7 @@ class DisplaySlot {
 		this.rotation_pivot = [0, 0, 0];
 		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
+		this.fit_to_frame = false;
 		return this;
 	}
 	copy() {
@@ -51,6 +53,32 @@ class DisplaySlot {
 			return build;
 		}
 	}
+	exportBedrock() {
+		let has_data = !this.rotation.allEqual(0)
+			|| !this.translation.allEqual(0)
+			|| !this.scale.allEqual(1)
+			|| !this.mirror.allEqual(false)
+			|| !this.rotation_pivot.allEqual(0)
+			|| !this.scale_pivot.allEqual(0);
+		if (!has_data) return;
+
+		let build = {
+			rotation: this.rotation.slice(),
+			translation: this.translation.slice(),
+			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot,
+			scale_pivot: this.scale_pivot,
+		}
+		if (this.slot_id == 'gui') {
+			build.fit_to_frame = this.fit_to_frame;
+		}
+		if (!this.mirror.allEqual(false)) {
+			for (let i = 0; i < 3; i++) {
+				build.scale[i] *= this.mirror[i] ? -1 : 1;
+			}
+		}
+		return build;
+	}
 	extend(data) {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
@@ -63,6 +91,7 @@ class DisplaySlot {
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
+		if (typeof data.fit_to_frame == 'boolean') this.fit_to_frame = data.fit_to_frame;
 		this.update()
 		return this;
 	}
@@ -373,6 +402,13 @@ class refModel {
 						0.8, 0.8, 0.8)
 				}
 				break;
+			case 'tooting':
+				this.updateBasePosition = function() {
+					var side = display_slot.includes('left') ? -1 : 1;
+					//setDisplayArea(side*-0.6, 19.8, 23.8, 31.5, side*22, -11, 1, 1, 1)
+					setDisplayArea(side == 1 ? -2.7 : 2.1, 20.1, Format.id.includes('bedrock') ? 24.5 : 25.6, 36, side*21.5, side*-12, 1, 1, 1)
+				}
+				break;
 		}
 	}
 	buildModel(things, texture, texture_res = [16, 16]) {
@@ -488,6 +524,7 @@ class refModel {
 				case 'crossbow':
 				case 'bow':
 				case 'eating':
+				case 'tooting':
 				case 'monitor': this.buildMonitor(); break;
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
@@ -1222,6 +1259,7 @@ window.displayReferenceObjects = {
 		bow: 				new refModel('bow', {icon: 'icon-bow'}),
 		crossbow: 			new refModel('crossbow', {icon: 'icon-crossbow'}),
 		eating: 			new refModel('eating', {icon: 'fa-apple-whole'}),
+		tooting: 			new refModel('tooting', {icon: 'fa-bullhorn'}),
 		block: 				new refModel('block', {icon: 'fa-cube'}),
 		frame: 				new refModel('frame', {icon: 'filter_frames'}),
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
@@ -1419,13 +1457,16 @@ DisplayMode.applyPreset = function(preset, all) {
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
 		if (!Project.display_settings[sl]) {
-			Project.display_settings[sl] = new DisplaySlot()
+			Project.display_settings[sl] = new DisplaySlot(sl)
 		}
 		let preset_values = preset.areas[sl];
 		if (preset_values) {
 			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
 			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
 			Project.display_settings[sl].extend(preset.areas[sl]);
+			if (preset.id == 'block' && Format.id == 'bedrock_block' && sl == 'gui') {
+				Project.display_settings[sl].rotation[1] = 45;
+			}
 		}
 	})
 	DisplayMode.updateDisplayBase()
@@ -1434,7 +1475,7 @@ DisplayMode.applyPreset = function(preset, all) {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
 		}
 	}
 }
@@ -1495,7 +1536,7 @@ function loadDisp(key) {	//Loads The Menu and slider values, common for all Radi
 	display_preview.camPers.setFocalLength(45)
 
 	if (Project.display_settings[key] == undefined) {
-		Project.display_settings[key] = new DisplaySlot()
+		Project.display_settings[key] = new DisplaySlot(key)
 	}
 	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
@@ -1541,7 +1582,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
@@ -1553,7 +1594,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
@@ -1916,7 +1957,7 @@ Interface.definePanels(function() {
 				axes: [0, 1, 2],
 				reference_model: 'player',
 				pose_angle: 0,
-				slot: new DisplaySlot(),
+				slot: new DisplaySlot(''),
 				allow_mirroring: Settings.get('allow_display_slot_mirror')
 			}},
 			watch: {
@@ -1984,12 +2025,18 @@ Interface.definePanels(function() {
 					DisplayMode.slot.update()
 					Undo.finishEdit('Mirror display setting')
 				},
-				start: (axis, channel) => {
+				start: () => {
 					Undo.initEdit({display_slots: [display_slot]});
 					Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
-				save: (axis, channel) => {
+				save: () => {
 					Undo.finishEdit('Change display setting');
+					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+				},
+				toggleFitToFrame() {
+					Undo.initEdit({display_slots: [display_slot]});
+					this.slot.fit_to_frame = !this.slot.fit_to_frame;
+					Undo.finishEdit('Change display setting fit-to-frame property');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
 				showMirroringSetting() {
@@ -2070,6 +2117,10 @@ Interface.definePanels(function() {
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
 							<numeric-input class="tool disp_text" v-model.number="slot.scale[axis]" :min="0" :max="4" :step="0.01" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()" />
+						</div>
+						<div class="bar" v-if="isBedrockStyle() && slot.slot_id == 'gui'" @click="toggleFitToFrame()">
+							<input type="checkbox" :checked="slot.fit_to_frame == true">
+							<label style="padding-top: 3px;">Fit to Frame</label>
 						</div>
 						
 						<template v-if="reference_model == 'player'">

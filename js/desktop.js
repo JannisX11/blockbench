@@ -1,5 +1,5 @@
 const electron = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
+const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
@@ -206,22 +206,23 @@ async function updateRecentProjectThumbnail() {
 	if (!project) return;
 
 	let thumbnail;
+	const resolution = [270, 150];
 
 	if (Format.image_editor && Texture.all.length) {		
 		await new Promise((resolve, reject) => {
 			let tex = Texture.getDefault();
-			let frame = new CanvasFrame(180, 100);
+			let frame = new CanvasFrame(resolution[0], resolution[1]);
 			frame.ctx.imageSmoothingEnabled = false;
 
 			let {width, height} = tex;
-			if (width > 180)   {height /= width / 180;  width = 180;}
-			if (height > 100) {width /= height / 100; height = 100;}
-			if (width < 180 && height < 100) {
-				let factor = Math.min(180 / width, 100 / height);
+			if (width > resolution[0])   {height /= width / resolution[0];  width = resolution[0];}
+			if (height > resolution[1]) {width /= height / resolution[1]; height = resolution[1];}
+			if (width < resolution[0] && height < resolution[1]) {
+				let factor = Math.min(resolution[0] / width, resolution[1] / height);
 				factor *= 0.92;
 				height *= factor; width *= factor;
 			}
-			frame.ctx.drawImage(tex.img, (180 - width)/2, (100 - height)/2, width, height)
+			frame.ctx.drawImage(tex.img, (resolution[0] - width)/2, (resolution[1] - height)/2, width, height)
 
 			let url = frame.canvas.toDataURL();
 
@@ -236,7 +237,7 @@ async function updateRecentProjectThumbnail() {
 	} else {
 		if (Outliner.elements.length == 0) return;
 
-		MediaPreview.resize(180, 100)
+		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
 		let center = getSelectionCenter(true);
@@ -287,7 +288,7 @@ async function updateRecentProjectThumbnail() {
 	}
 }
 function loadDataFromModelMemory() {
-	let project = Project.getProjectMemory();
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	if (project.textures) {
@@ -345,6 +346,7 @@ function changeImageEditor(texture, not_found) {
 				type: 'file',
 				file_type: 'Program',
 				extensions: app_file_extension[Blockbench.platform],
+				readtype: 'none',
 				description: 'message.image_editor.exe',
 				condition: result => result.editor == 'other'
 			}

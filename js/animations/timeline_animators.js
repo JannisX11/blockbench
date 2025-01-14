@@ -29,9 +29,18 @@ class GeneralAnimator {
 		})
 		return this;
 	}
-	addToTimeline() {
+	clickSelect() {
+		Undo.initSelection();
+		this.select();
+		Undo.finishSelection('Select animator');
+	}
+	addToTimeline(end_of_list = false) {
 		if (!Timeline.animators.includes(this)) {
-			Timeline.animators.splice(0, 0, this);
+			if (end_of_list == true) {
+				Timeline.animators.push(this);
+			} else {
+				Timeline.animators.splice(0, 0, this);
+			}
 		}
 		for (let channel in this.channels) {
 			if (!this[channel]) this[channel] = [];
@@ -206,14 +215,14 @@ class BoneAnimator extends GeneralAnimator {
 			this.group.select();
 		}
 		Group.all.forEach(group => {
-			if (group.name == group.selected.name && group != Group.selected) {
+			if (group.name == Group.first_selected.name && group != Group.first_selected) {
 				duplicates = true;
 			}
 		})
 		function iterate(arr) {
 			arr.forEach((it) => {
 				if (it.type === 'group' && !duplicates) {
-					if (it.name === Group.selected.name && it !== Group.selected) {
+					if (it.name === Group.first_selected.name && it !== Group.first_selected) {
 						duplicates = true;
 					} else if (it.children && it.children.length) {
 						iterate(it.children);
@@ -230,7 +239,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		super.select();
 		
-		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this) && !Blockbench.hasFlag('loading_selection_save')) {
 			var nearest;
 			this[Toolbox.selected.animation_channel].forEach(kf => {
 				if (Math.abs(kf.time - Timeline.time) < 0.002) {
@@ -759,6 +768,7 @@ class EffectAnimator extends GeneralAnimator {
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;
@@ -852,6 +862,7 @@ class EffectAnimator extends GeneralAnimator {
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;

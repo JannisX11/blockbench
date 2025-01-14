@@ -79,7 +79,7 @@ function updateNslideValues() {
 			BarItems.slider_face_tint.update()
 		}
 	}
-	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
+	if (Outliner.selected.length || (Format.bone_rig && Group.first_selected)) {
 		BarItems.slider_origin_x.update()
 		BarItems.slider_origin_y.update()
 		BarItems.slider_origin_z.update()
@@ -88,7 +88,7 @@ function updateNslideValues() {
 		BarItems.slider_rotation_y.update()
 		BarItems.slider_rotation_z.update()
 		if (Format.bone_rig) {
-			BarItems.bone_reset_toggle.setIcon(Group.selected && Group.selected.reset ? 'check_box' : 'check_box_outline_blank')
+			BarItems.bone_reset_toggle.setIcon(Group.first_selected && Group.first_selected.reset ? 'check_box' : 'check_box_outline_blank')
 		} else {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
@@ -133,10 +133,12 @@ function updateSelection(options = {}) {
 			}
 		}
 	})
-	if (Modes.pose && !Group.selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
+	if (Modes.pose && !Group.first_selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
 		Outliner.selected[0].parent.select();
 	}
-	if (Group.selected && Group.selected.locked) Group.selected.unselect()
+	for (let group of Group.multi_selected) {
+		if (group.locked) group.unselect()
+	}
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 
 	Project.elements.forEach(element => {
@@ -207,15 +209,22 @@ function updateSelection(options = {}) {
 	if (Condition(BarItems.layer_blend_mode.condition)) BarItems.layer_blend_mode.set(TextureLayer.selected?.blend_mode);
 
 	BARS.updateConditions();
+	MenuBar.update()
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function unselectAllElements() {
-	Project.selected_elements.forEachReverse(obj => obj.unselect())
-	if (Group.selected) Group.selected.unselect()
+function unselectAllElements(exceptions) {
+	Project.selected_elements.forEachReverse(obj => {
+		if (exceptions instanceof Array && exceptions.includes(obj)) return;
+		obj.unselect()
+	})
+	for (let group of Group.multi_selected) {
+		group.unselect();
+	}
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
+	Group.multi_selected.empty();
 	for (let key in Project.mesh_selection) {
 		delete Project.mesh_selection[key];
 	}

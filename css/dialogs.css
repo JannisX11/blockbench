@@ -92,11 +92,12 @@
 		background-color: var(--color-ui);
 		color: inherit;
 		border: none;
-		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+		box-shadow: 0 0px 20px rgba(0, 0, 0, 0.56);
 		left: unset;
 		right: unset;
 		bottom: unset;
 		display: none;
+		border-radius: 3px;
 	}
 	.shapeless_dialog {
 		position: fixed;
@@ -131,6 +132,31 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
+	dialog.dialog.tool_config {
+		margin-right: 0;
+		margin-left: 0;
+		width: fit-content;
+		min-width: 200px;
+	}
+	.dialog.tool_config > div > .dialog_content {
+		margin: 4px 12px;
+	}
+	.tool_config_title {
+		padding: 4px 12px;
+		margin-bottom: -6px;
+		margin-right: 18px;
+		text-align: center;
+		font-size: 1.1em;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
+	}
+	.dialog .tool_config_title > .dialog_close_button {
+		right: 0;
+		top: 0;
+	}
+	.dialog.tool_config hr {
+		margin: 6px 0;
+	}
 	.dialog:not(.resizable) {
 		min-width: min(400px, 100%);
 		max-width: min(960px, 100%);
@@ -148,12 +174,16 @@
 	}
 	label.name_space_left {
 		float: left;
-		min-width: 140px;
+		min-width: 90px;
 		padding-top: 4px;
 		padding-left: 1px;
 		padding-right: 8px;
 		flex-shrink: 0;
 		overflow-wrap: break-word;
+		box-sizing: content-box;
+	}
+	.dialog label.name_space_left {
+		min-width: 140px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;
@@ -356,6 +386,9 @@
 	.form_bar_radio label {
 		flex-grow: 1;
 		padding: 3px 5px;
+	}
+	.form_bar > .nslide_tool {
+		flex-grow: 1;
 	}
 	.dialog_form_description {
 		margin-left: auto;
@@ -1952,7 +1985,7 @@
 		cursor: pointer;
 		border: 2px solid transparent;
 		display: flex;
-		justify-content: space-between;
+		gap: 5px;
 	}
 	#edit_history_list ul li.current {
 		border-color: var(--color-accent);
@@ -1978,6 +2011,9 @@
 	}
 	#edit_history_list .edit_history_time {
 		color: var(--color-subtle_text);
+	}
+	#edit_history_list > ul > li label  {
+		margin-right: auto;
 	}
 	#edit_history_list ul li.selected .edit_history_time {
 		color: inherit;
@@ -2041,7 +2077,34 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-
+/* Collection properties */
+	#collection_properties_vue > ul.list {
+		max-height: 200px;
+		display: flex;
+		flex-wrap: wrap;
+		padding: 6px;
+	}
+	#collection_properties_vue > ul > li {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		border-radius: 6px;
+		background-color: var(--color-ui);
+		height: 27px;
+		padding: 0 7px;
+		margin: 2px;
+		max-width: 165px;
+		min-width: 149px;
+	}
+	#collection_properties_vue > ul > li.selected {
+		background-color: var(--color-selected);
+	}
+	#collection_properties_vue > ul > li > i {
+		scale: 0.9;
+	}
+	#collection_properties_vue > ul > li > i.fa_big {
+		transform-origin: bottom;
+	}
 
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,

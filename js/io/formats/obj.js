@@ -25,6 +25,7 @@ const cube_face_normals = {
 var codec = new Codec('obj', {
 	name: 'OBJ Wavefront Model',
 	extension: 'obj',
+	support_partial_export: true,
 	compile(options) {
 		if (!options) options = 0;
 

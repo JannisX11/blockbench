@@ -33,13 +33,17 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;
 		if (data.cubemap) {
 			let urls = data.cubemap;
-			let texture_cube = new THREE.CubeTextureLoader().load( urls );
+			let texture_cube = new THREE.CubeTextureLoader().load(urls, () => {
+				if (PreviewScene.active == this && Project.view_mode == 'material') {
+					Canvas.updateShading();
+				}
+			});
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -104,8 +108,9 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+
 		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}

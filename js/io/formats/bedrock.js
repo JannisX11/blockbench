@@ -234,7 +234,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				try {
 					let content = fs.readFileSync(path, 'utf8');
 					Animator.loadFile({path, content}, animation_names);
-				} catch (err) {}
+				} catch (err) {
+					console.err(err)
+				}
 			})
 		}
 	}
@@ -718,6 +720,11 @@ function calculateVisibleBox() {
 
 		if (data.object.item_display_transforms !== undefined) {
 			DisplayMode.loadJSON(data.object.item_display_transforms)
+			if (data.object.item_display_transforms.gui) {
+				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
+					Project.display_settings.gui.fit_to_frame = true;
+				}
+			}
 		}
 
 		var bones = {}
@@ -913,6 +920,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	name: 'Bedrock Entity',
 	extension: 'json',
 	remember: false,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1032,7 +1040,6 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 
 function getFormatVersion() {
 	if (Format.display_mode) {
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
 			if (Project.display_settings[key] && Project.display_settings[key].export) {
@@ -1057,6 +1064,7 @@ var codec = new Codec('bedrock', {
 	extension: 'json',
 	remember: true,
 	multiple_per_file: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1148,15 +1156,14 @@ var codec = new Codec('bedrock', {
 		}
 
 		let new_display = {};
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
-			if (Project.display_settings[key] && Project.display_settings[key].export) {
-				new_display[key] = Project.display_settings[key].export();
-				if (new_display[key]) has_new_displays = true;
+			if (Project.display_settings[key] && Project.display_settings[key].exportBedrock) {
+				let data = Project.display_settings[key].exportBedrock();
+				if (data) new_display[key] = data;
 			}
 		}
-		if (has_new_displays) {
+		if (Object.keys(new_display).length) {
 			entitymodel.item_display_transforms = new_display
 		}
 
@@ -1340,6 +1347,7 @@ var entity_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
@@ -1354,6 +1362,7 @@ var entity_format = new ModelFormat({
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {
@@ -1378,6 +1387,7 @@ var block_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,
@@ -1391,6 +1401,7 @@ var block_format = new ModelFormat({
 	animation_mode: false,
 	display_mode: true,
 	texture_meshes: true,
+	pbr: true,
 	cube_size_limiter: {
 		rotation_affected: true,
 		box_marker_size: [30, 30, 30],

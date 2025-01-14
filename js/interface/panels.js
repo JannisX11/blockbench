@@ -11,6 +11,7 @@ class Panel extends EventSystem {
 		this.condition = data.condition;
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
+		this.optional = data.optional ?? true;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;
@@ -103,38 +104,8 @@ class Panel extends EventSystem {
 
 			let snap_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('drag_handle'))
 			this.handle.append(snap_button);
-			let moveTo = slot => {
-				this.fixed_height = false;
-				this.moveTo(slot);
-			};
 			snap_button.addEventListener('click', (e) => {
-				new Menu([
-					{
-						name: 'Left Sidebar',
-						icon: 'align_horizontal_left',
-						click: () => moveTo('left_bar')
-					},
-					{
-						name: 'Right Sidebar',
-						icon: 'align_horizontal_right',
-						click: () => moveTo('right_bar')
-					},
-					{
-						name: 'Top',
-						icon: 'align_vertical_top',
-						click: () => moveTo('top')
-					},
-					{
-						name: 'Bottom',
-						icon: 'align_vertical_bottom',
-						click: () => moveTo('bottom')
-					},
-					{
-						name: 'Float',
-						icon: 'web_asset',
-						click: () => moveTo('float')
-					}
-				]).show(snap_button);
+				this.snap_menu.show(snap_button, this);
 			})
 
 			let fold_button = Interface.createElement('div', {class: 'tool panel_control panel_folding_button'}, Blockbench.getIconNode('expand_more'))
@@ -597,6 +568,8 @@ class Panel extends EventSystem {
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
 			}
+		} else if (slot == 'hidden' && !Blockbench.isMobile) {
+			this.node.remove();
 		}
 		if (slot !== 'float') {
 			Panel.floating_panel_z_order.remove(this.id);
@@ -635,6 +608,8 @@ class Panel extends EventSystem {
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
 			}
+		} else if (slot == 'hidden' && !Blockbench.isMobile) {
+			this.node.remove();
 		}
 		if (slot !== 'float') {
 			Panel.floating_panel_z_order.remove(this.id);
@@ -747,6 +722,64 @@ class Panel extends EventSystem {
 	}
 }
 Panel.floating_panel_z_order = [];
+Panel.prototype.snap_menu = new Menu([
+	{
+		name: 'menu.panel.move_to.left_bar',
+		icon: 'align_horizontal_left',
+		marked: panel => panel.slot == 'left_bar',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('left_bar');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.right_bar',
+		icon: 'align_horizontal_right',
+		marked: panel => panel.slot == 'right_bar',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('right_bar');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.top',
+		icon: 'align_vertical_top',
+		marked: panel => panel.slot == 'top',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('top');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.bottom',
+		icon: 'align_vertical_bottom',
+		marked: panel => panel.slot == 'bottom',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('bottom');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.float',
+		icon: 'web_asset',
+		marked: panel => panel.slot == 'float',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('float');
+		}
+	},
+	'_',
+	{
+		name: 'menu.panel.move_to.hidden',
+		icon: 'web_asset_off',
+		marked: panel => panel.slot == 'hidden',
+		condition: panel => (panel.optional && panel.slot != 'hidden'),
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('hidden');
+		}
+	}
+])
 
 
 function setupPanels() {

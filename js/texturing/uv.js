@@ -44,7 +44,10 @@ const UVEditor = {
 		}
 
 		if (Toolbox.selected.id === 'selection_tool') {
-			if (settings.nearest_rectangle_select.value) {
+			if (BarItems.selection_tool.mode == 'lasso') {
+				result.x = mouse_coords[0]/pixel_size;
+				result.y = mouse_coords[1]/pixel_size;
+			} else if (settings.nearest_rectangle_select.value) {
 				result.x = Math.round(mouse_coords[0]/pixel_size*1);
 				result.y = Math.round(mouse_coords[1]/pixel_size*1);
 			} else {
@@ -73,6 +76,41 @@ const UVEditor = {
 				}
 				result.x = (tex.width + result.x) % tex.width;
 				result.y = (tex.display_height + result.y) % tex.display_height;
+			}
+		}
+		// Snap line tool
+		if (UVEditor.vue.mouse_coords.line_preview && event.ctrlOrCmd && UVEditor.vue.last_brush_position) {
+			let original_pos = UVEditor.vue.last_brush_position.slice();
+			let offset = [result.x - original_pos[0], result.y - original_pos[1]];
+			let length = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2));
+			let angle = Math.radToDeg(Math.atan2(offset[1], offset[0]));
+			// Snapping
+			let x_2 = Math.radToDeg(Math.atan(1/2));
+			let x_3 = Math.radToDeg(Math.atan(1/3));
+			let x_6 = Math.radToDeg(Math.atan(1/6));
+			let snap_values = [0, 45];
+			if (length > 16) {
+				snap_values = [0, x_6, x_3, x_2, 33.75, 45, 90-33.75, 90-x_2, 90-x_3, 90 - x_6];
+			} else if (length > 10) {
+				snap_values = [0, x_3, x_2, , 45, 90-x_2, 90-x_3];
+			} else if (length > 4) {
+				snap_values = [0, x_2, 45, 90-x_2];
+			}
+			let osv = snap_values.slice();
+			for (let i of [1, -1, -2]) {
+				snap_values.push(...osv.map(v => v + i*90));
+			}
+			angle = Math.snapToValues(angle, snap_values, 90);
+			angle = Math.degToRad(angle);
+			result.x = original_pos[0] + Math.cos(angle) * length;
+			result.y = original_pos[1] + Math.sin(angle) * length;
+			// Round
+			let px_offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+			result.x = Math.round(result.x) + px_offset;
+			result.y = Math.round(result.y) + px_offset;
+			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+				result.x = Math.floor(result.x);
+				result.y = Math.floor(result.y);
 			}
 		}
 		return result;
@@ -219,40 +257,20 @@ const UVEditor = {
 		}
 		this.vue.selection_outline = outline;
 	},
-	focusOnSelection() {
-		let min_x = UVEditor.getUVWidth();
-		let min_y = UVEditor.getUVHeight();
-		let max_x = 0;
-		let max_y = 0;
-		let elements = UVEditor.getMappableElements();
-		elements.forEach(element => {
-			if (element instanceof Cube && element.box_uv) {
-				let size = element.size(undefined, Format.box_uv_float_size != true)
-				min_x = Math.min(min_x, element.uv_offset[0]);
-				min_y = Math.min(min_y, element.uv_offset[1]);
-				max_x = Math.max(max_x, element.uv_offset[0] + (size[0] + size[2]) * 2);
-				max_y = Math.max(max_y, element.uv_offset[1] + size[1] + size[2]);
-			} else {
-				for (let fkey in element.faces) {
-					if (!UVEditor.getSelectedFaces(element, false).includes(fkey)) continue;
-					let face = element.faces[fkey];
-					if (element instanceof Cube) {
-						min_x = Math.min(min_x, face.uv[0], face.uv[2]);
-						min_y = Math.min(min_y, face.uv[1], face.uv[3]);
-						max_x = Math.max(max_x, face.uv[0], face.uv[2]);
-						max_y = Math.max(max_y, face.uv[1], face.uv[3]);
-					} else if (element instanceof Mesh) {
-						face.vertices.forEach(vkey => {
-							if (!face.uv[vkey]) return;
-							min_x = Math.min(min_x, face.uv[vkey][0]);
-							min_y = Math.min(min_y, face.uv[vkey][1]);
-							max_x = Math.max(max_x, face.uv[vkey][0]);
-							max_y = Math.max(max_y, face.uv[vkey][1]);
-						})
-					}
-				}
-			}
-		})
+	async focusOnSelection(zoom) {
+		if (zoom instanceof Event) {
+			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
+		}
+		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		if (zoom) {
+			let width = (max_x-min_x) / UVEditor.getUVWidth();
+			let height = (max_y-min_y) / UVEditor.getUVHeight();
+			let target_zoom_factor = 1/Math.max(width, height);
+			let target_zoom = Math.clamp(UVEditor.zoom, target_zoom_factor * 0.618, Math.max(1, target_zoom_factor * 0.84));
+			UVEditor.setZoom(target_zoom);
+			await new Promise(Vue.nextTick);
+		}
+
 		let pixel_size = UVEditor.inner_width / UVEditor.vue.uv_resolution[0];
 		let focus = [min_x+max_x, min_y+max_y].map(v => v * 0.5 * pixel_size);
 		let {viewport} = UVEditor.vue.$refs;
@@ -260,7 +278,12 @@ const UVEditor = {
 		$(viewport).animate({
 			scrollLeft: focus[0] + margin[0] - UVEditor.width / 2,
 			scrollTop: focus[1] + margin[1] - UVEditor.height / 2,
-		}, 100)
+		}, {
+			duration: zoom ? 0 : 100,
+			complete: () => {
+				UVEditor.updateUVNavigator();
+			}
+		})
 	},
 
 	updateOverlayCanvas() {
@@ -557,6 +580,7 @@ const UVEditor = {
 			UVEditor.getUVWidth(),
 			UVEditor.getUVHeight()
 		);
+		this.updateUVNavigator();
 		this.vue.$forceUpdate();
 		return this;
 	},
@@ -565,7 +589,7 @@ const UVEditor = {
 
 		if (Format.per_group_texture) {
 			elements = [];
-			let groups = Group.selected ? [Group.selected] : [];
+			let groups = Group.multi_selected;
 			Outliner.selected.forEach(el => {
 				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 			});
@@ -733,6 +757,84 @@ const UVEditor = {
 		setTimeout(() => {
 			UVEditor.loadViewportOffset();
 		}, 0);
+	},
+	updateUVNavigator() {
+		if (UVEditor.vue.mode != 'uv') return;
+		let style = UVEditor.getUVNavigatorStyle();
+		let element = UVEditor.vue.$el.querySelector('.uv_navigator');
+		if (!element) return;
+		if (style) {
+			for (let key in style) {
+				element.style.setProperty(key, style[key]);
+			}
+			element.style.display = 'block';
+		} else {
+			element.style.display = 'none';
+		}
+	},
+	getUVNavigatorStyle() {
+		let vue = UVEditor.vue;
+		let mappable_element = vue.mappable_elements.find(el => (el.box_uv || (UVEditor.getSelectedFaces(el)?.length)));
+		if (!mappable_element) return;
+		let box = vue.getSelectedUVBoundingBox();
+		if (!box) return;
+
+		let uv_viewport = vue.$refs.viewport;
+		if (!uv_viewport || !Project || Blockbench.hasFlag('switching_project') || !uv_viewport.clientWidth) return;
+		let offset = [
+			(uv_viewport.scrollLeft - vue.width/2) / vue.inner_width,
+			(uv_viewport.scrollTop - vue.height/2) / vue.inner_height
+		];
+		let {zoom, uv_resolution} = vue;
+		let view_box = [
+			offset[0] * uv_resolution[0],
+			offset[1] * uv_resolution[1],
+			(offset[0] + vue.width/vue.inner_width) * uv_resolution[0],
+			(offset[1] + vue.width/vue.inner_width) * uv_resolution[1],
+		];
+
+		let [x1_1, y1_1, x2_1, y2_1] = box;
+		let [x1_2, y1_2, x2_2, y2_2] = view_box;
+		let out_of_view = (x2_1 < x1_2 || x1_1 > x2_2 || y2_1 < y1_2 || y1_1 > y2_2);
+		if (!out_of_view) return;
+
+		let direction = Math.atan2(
+			Math.lerp(y1_2, y2_2, 0.5) - Math.lerp(y1_1, y2_1, 0.5),
+			Math.lerp(x1_2, x2_2, 0.5) - Math.lerp(x1_1, x2_1, 0.5),
+		);
+		let direction_degrees = Math.radToDeg(direction);
+		let screen_offset = uv_viewport.getBoundingClientRect();
+		let style = {
+			'--rotation': (direction_degrees-90) + 'deg',
+			left: (screen_offset.x) + 'px',
+			top: (screen_offset.y) + 'px',
+		};
+		let rotation_range = Math.round(2 * direction / Math.PI);
+		let rotation_modulo = ((direction_degrees + 540 + 45) % 90) / 90;
+		rotation_modulo = Math.hermiteBlend(rotation_modulo);
+		switch (rotation_range) {
+			case 2: case -2: {
+				style.left = (screen_offset.x + vue.width - 25) + 'px';
+				style.top = (screen_offset.y + rotation_modulo*(vue.height - 25)) + 'px';
+				break;
+			}
+			case -1: {
+				style.left = (screen_offset.x + (1-rotation_modulo)*(vue.width - 25)) + 'px';
+				style.top = (screen_offset.y + vue.height - 25) + 'px';
+				break;
+			}
+			case 0: {
+				style.left = (screen_offset.x) + 'px';
+				style.top = (screen_offset.y + (1-rotation_modulo)*(vue.height - 25)) + 'px';
+				break;
+			}
+			case 1: {
+				style.left = (screen_offset.x + rotation_modulo*(vue.width - 25)) + 'px';
+				style.top = (screen_offset.y) + 'px';
+				break;
+			}
+		}
+		return style;
 	},
 
 	//Events
@@ -1527,7 +1629,7 @@ const UVEditor = {
 
 					if (Format.per_group_texture) {
 						elements = [];
-						let groups = Group.selected ? [Group.selected] : [];
+						let groups = Group.multi_selected;
 						Outliner.selected.forEach(el => {
 							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 						});
@@ -1571,30 +1673,38 @@ const UVEditor = {
 SharedActions.add('select_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.edit,
 	run() {
+		Undo.initSelection();
 		UVEditor.selectAll()
+		Undo.finishSelection('Select all UV');
 	}
 })
 SharedActions.add('select_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		UVEditor.texture.selection.setOverride(UVEditor.texture.selection.override == true ? false : true);
 		UVEditor.updateSelectionOutline();
+		Undo.finishSelection('Select all');
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
 })
 SharedActions.add('unselect_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.edit,
 	run() {
+		Undo.initSelection();
 		UVEditor.getMappableElements().forEach(element => {
 			UVEditor.getSelectedFaces(element, true).empty();
 		})
 		UVEditor.displayTools();
+		Undo.finishSelection('Unselect all UV');
 	}
 })
 SharedActions.add('unselect_all', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		UVEditor.texture.selection.setOverride(false);
+		Undo.finishSelection('Unselect all');
 		UVEditor.updateSelectionOutline();
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
@@ -1602,6 +1712,7 @@ SharedActions.add('unselect_all', {
 SharedActions.add('invert_selection', {
 	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run() {
+		Undo.initSelection({texture_selection: true});
 		let texture = UVEditor.texture;
 		if (texture.selection.is_custom) {
 			texture.selection.forEachPixel((x, y, val, index) => {
@@ -1611,6 +1722,7 @@ SharedActions.add('invert_selection', {
 			texture.selection.setOverride(!texture.selection.override);
 		}
 		UVEditor.updateSelectionOutline();
+		Undo.finishSelection('Invert selection');
 	}
 })
 
@@ -2279,6 +2391,7 @@ Interface.definePanels(function() {
 					active: false,
 					ellipse: false
 				},
+				texture_selection_polygon: [],
 
 				uv_resolution: [16, 16],
 				elements: [],
@@ -2439,6 +2552,7 @@ Interface.definePanels(function() {
 					if (this.$refs.viewport) {
 						this.$refs.viewport.scrollLeft = this.width/2;
 						this.$refs.viewport.scrollTop = this.height/2;
+						UVEditor.updateUVNavigator();
 					}
 					this.centered_view = true;
 				},
@@ -2465,6 +2579,11 @@ Interface.definePanels(function() {
 					}
 					if (texture === null) {
 						this.texture = null;
+					} else if (texture instanceof Texture && BarItems.view_mode.value == 'material' && texture?.getGroup()?.getTextures()?.includes(Texture.selected)) {
+						this.texture = texture = Texture.selected;
+						if (!UVEditor.isBoxUV() && UVEditor.auto_grid) {
+							UVEditor.grid = texture.width / UVEditor.getUVWidth();
+						}
 					} else if (texture instanceof Texture) {
 						this.texture = texture;
 						if (!UVEditor.isBoxUV() && UVEditor.auto_grid) {
@@ -2512,6 +2631,9 @@ Interface.definePanels(function() {
 							  (Toolbox.selected.id == 'selection_tool' && settings.move_with_selection_tool.value && this.texture && this.texture.selection.get(this.mouse_coords.x, this.mouse_coords.y) && BarItems.selection_tool_operation_mode.value == 'create');
 					this.$refs.frame.style.cursor = grab ? 'move' : '';
 				},
+				onScroll() {
+					UVEditor.updateUVNavigator();
+				},
 				onMouseWheel(event) {
 					if (event.ctrlOrCmd) {
 				
@@ -2520,11 +2642,12 @@ Interface.definePanels(function() {
 				
 						let original_margin = this.getFrameMargin();
 						let old_zoom = this.zoom;
-						var n = (event.deltaY < 0) ? 0.1 : -0.1;
-						n *= this.zoom
+						let n = (event.deltaY < 0) ? 0.15 : -0.15;
+						if (Math.abs(event.deltaY) < 10) n *= 0.25;
+						n *= this.zoom * settings.editor_2d_zoom_speed.value/100;
 
 						let zoom = this.zoom + n;
-						if (zoom > 0.91 && zoom < 1.1) zoom = 1;
+						if (zoom > (1 - Math.abs(n)) && zoom < (1 + Math.abs(n))) zoom = 1;
 						UVEditor.setZoom(zoom);
 						
 						let updateScroll = () => {
@@ -2547,6 +2670,7 @@ Interface.definePanels(function() {
 							}
 
 							this.updateTextureCanvas();
+							UVEditor.updateUVNavigator();
 							
 							if (this.mode == 'paint') {
 								this.mouse_coords.active = false;
@@ -2616,6 +2740,7 @@ Interface.definePanels(function() {
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
+							UVEditor.updateUVNavigator();
 						}
 						function dragMouseWheelStop(e) {
 							removeEventListeners(document, 'mousemove touchmove', dragMouseWheel);
@@ -2807,7 +2932,7 @@ Interface.definePanels(function() {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
 							if (add_to_list) {
 								if (element.faces[key]) {
-									element_selected_faces.push(key);
+									element_selected_faces.safePush(key);
 								}
 							} else {
 								if (!element.faces[key]) {
@@ -2866,7 +2991,7 @@ Interface.definePanels(function() {
 						}
 					}
 				},
-				drag({event, onDrag, onEnd, onAbort, snap, uv_grid}) {
+				drag({event, onStart, onDrag, onEnd, onAbort, snap, uv_grid}) {
 					if (event.which == 2 || event.which == 3) return;
 					convertTouchEvent(event);
 					let scope = this;
@@ -2876,6 +3001,7 @@ Interface.definePanels(function() {
 					let viewport = this.$refs.viewport;
 					let initial_scroll_offset = [viewport.scrollLeft, viewport.scrollTop];
 					let original_snap = snap;
+					let on_start_ran = false;
 					function drag(e1) {
 						convertTouchEvent(e1);
 						let step_x, step_y;
@@ -2899,6 +3025,10 @@ Interface.definePanels(function() {
 						pos[1] = Math.round((e1.clientY - event.clientY + viewport.scrollTop  - initial_scroll_offset[1]) / step_y) / snap;
 
 						if (pos[0] != last_pos[0] || pos[1] != last_pos[1]) {
+							if (onStart && !on_start_ran) {
+								on_start_ran = true;
+								onStart();
+							}
 							let applied_difference = onDrag(pos[0] - last_pos[0], pos[1] - last_pos[1], e1)
 							last_pos[0] += applied_difference[0];
 							last_pos[1] += applied_difference[1];
@@ -2947,78 +3077,82 @@ Interface.definePanels(function() {
 					})
 
 					let overlay_canvas;
-					if (do_move_uv) {
-						Undo.initEdit({
-							elements,
-							uv_only: true,
-							bitmap: true,
-							textures: [this.texture]
-						});
-
-						overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
-						let ctx = overlay_canvas.getContext('2d');
-						overlay_canvas.width = this.texture.width;
-						overlay_canvas.height = this.texture.height;
-						
-						this.texture.edit(canvas => {
-							let tex_ctx = canvas.getContext('2d');
-							ctx.beginPath();
-							tex_ctx.save();
-							tex_ctx.beginPath();
-							UVEditor.getMappableElements().forEach(el => {
-								if (el instanceof Mesh) {
-									for (var fkey in el.faces) {
-										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(el).includes(fkey)) continue;
-										if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
-										
-										let matrix = face.getOccupationMatrix(true, [0, 0]);
-										for (let x in matrix) {
-											for (let y in matrix[x]) {
-												if (!matrix[x][y]) continue;
-												x = parseInt(x); y = parseInt(y);
-												ctx.rect(x, y, 1, 1);
-												tex_ctx.rect(x, y, 1, 1);
-											}
-										}
-									}
-								} else {
-									let factor_x = this.texture.width  / UVEditor.getUVWidth();
-									let factor_y = this.texture.height / UVEditor.getUVHeight();
-									for (var fkey in el.faces) {
-										var face = el.faces[fkey];
-										if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
-										if (face.getTexture() !== this.texture) continue;
-										
-										let rect = face.getBoundingRect();
-										let canvasRect = [
-											Math.floor(rect.ax * factor_x),
-											Math.floor(rect.ay * factor_y),
-											Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
-											Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
-										]
-										ctx.rect(...canvasRect);
-										tex_ctx.rect(...canvasRect);
-									}
-								}
-							})
-							ctx.clip();
-							ctx.drawImage(this.texture.img, 0, 0);
-							tex_ctx.clip();
-							tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
-							tex_ctx.restore();
-						}, {no_undo: true})
-
-						UVEditor.vue.$refs.frame.append(overlay_canvas);
-
-					} else {
-						Undo.initEdit({elements, uv_only: true});
-					}
+					let started = false;
 
 					this.drag({
 						event,
 						snap: UVEditor.isBoxUV() ? 1 : undefined,
 						onDrag: (diff_x, diff_y) => {
+							if (!started) {
+								started = true;
+								if (do_move_uv) {
+									Undo.initEdit({
+										elements,
+										uv_only: true,
+										bitmap: true,
+										textures: [this.texture]
+									});
+			
+									overlay_canvas = Interface.createElement('canvas', {class: 'move_texture_with_uv'});
+									let ctx = overlay_canvas.getContext('2d');
+									overlay_canvas.width = this.texture.width;
+									overlay_canvas.height = this.texture.height;
+									
+									this.texture.edit(canvas => {
+										let tex_ctx = canvas.getContext('2d');
+										ctx.beginPath();
+										tex_ctx.save();
+										tex_ctx.beginPath();
+										UVEditor.getMappableElements().forEach(el => {
+											if (el instanceof Mesh) {
+												for (var fkey in el.faces) {
+													var face = el.faces[fkey];
+													if (!UVEditor.getSelectedFaces(el).includes(fkey)) continue;
+													if (face.vertices.length <= 2 || face.getTexture() !== this.texture) continue;
+													
+													let matrix = face.getOccupationMatrix(true, [0, 0]);
+													for (let x in matrix) {
+														for (let y in matrix[x]) {
+															if (!matrix[x][y]) continue;
+															x = parseInt(x); y = parseInt(y);
+															ctx.rect(x, y, 1, 1);
+															tex_ctx.rect(x, y, 1, 1);
+														}
+													}
+												}
+											} else {
+												let factor_x = this.texture.width  / UVEditor.getUVWidth();
+												let factor_y = this.texture.height / UVEditor.getUVHeight();
+												for (var fkey in el.faces) {
+													var face = el.faces[fkey];
+													if (!UVEditor.getSelectedFaces(el).includes(fkey) && !el.box_uv) continue;
+													if (face.getTexture() !== this.texture) continue;
+													
+													let rect = face.getBoundingRect();
+													let canvasRect = [
+														Math.floor(rect.ax * factor_x),
+														Math.floor(rect.ay * factor_y),
+														Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
+														Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
+													]
+													ctx.rect(...canvasRect);
+													tex_ctx.rect(...canvasRect);
+												}
+											}
+										})
+										ctx.clip();
+										ctx.drawImage(this.texture.img, 0, 0);
+										tex_ctx.clip();
+										tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
+										tex_ctx.restore();
+									}, {no_undo: true})
+			
+									UVEditor.vue.$refs.frame.append(overlay_canvas);
+			
+								} else {
+									Undo.initEdit({elements, uv_only: true});
+								}
+							}
 							elements.forEach(element => {
 								if (element instanceof Mesh) {
 									UVEditor.getSelectedFaces(element).forEach(key => {
@@ -3098,7 +3232,7 @@ Interface.definePanels(function() {
 						},
 						onAbort: () => {
 							if (do_move_uv) {
-								overlay_canvas.remove();
+								if (overlay_canvas) overlay_canvas.remove();
 							}
 							if (face_key && Mesh.selected[0]) {
 								let selected_faces = UVEditor.getSelectedFaces(element, true);
@@ -3585,6 +3719,22 @@ Interface.definePanels(function() {
 					];
 					return style ? `${margin[1]}px ${margin[0]}px` : margin;
 				},
+				getTextureSelectionPolygon() {
+					return this.texture_selection_polygon.map((point, i) => {
+						let x = point[0] / this.texture.width * this.inner_width;
+						let y = point[1] / this.texture.width * this.inner_width;
+						return `${i?'L':'M'}${x+1} ${y+1}`;
+					}).join(' ');
+				},
+				isSelectionPolygonClosed() {
+					let polygon = this.texture_selection_polygon;
+					if (polygon.length <= 3) return false;
+					let first = polygon[0];
+					let last = polygon.last()
+					let distance = Math.sqrt(Math.pow(first[0]-last[0], 2) + Math.pow(first[1]-last[1], 2));
+					let radius = Blockbench.isTouch ? 12 : 7;
+					return distance < (radius/UVEditor.getPixelSize());
+				},
 
 				startTextureSelection(x, y, event) {
 					let texture = UVEditor.texture;
@@ -3596,6 +3746,8 @@ Interface.definePanels(function() {
 					let selection_mode = BarItems.selection_tool.mode;
 					let op_mode = BarItems.selection_tool_operation_mode.value;
 					let selection_rect = this.texture_selection_rect;
+					let selection_polygon = this.texture_selection_polygon;
+					let scope = this;
 					let start_x, start_y, calcrect;
 					let layer = texture.selected_layer;
 					let move_with_selection_tool = Toolbox.selected.id == 'selection_tool' && op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer?.in_limbo)
@@ -3604,11 +3756,16 @@ Interface.definePanels(function() {
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 
+					if (!create_selection) {
+						x = Math.round(x);
+						y = Math.round(y);
+					}
 					start_x = x;
 					start_y = y;
 
 					if (create_selection) {
-						if (op_mode == 'create') {
+						Undo.initSelection({texture_selection: true});
+						if (op_mode == 'create' && (selection_mode != 'lasso' || selection_polygon.length == 0)) {
 							texture.selection.clear();
 						}
 						
@@ -3673,7 +3830,10 @@ Interface.definePanels(function() {
 								})
 							}
 							UVEditor.updateSelectionOutline();
+							Undo.finishSelection('Select color');
 							return;
+						} else if (selection_mode == 'lasso') {
+							selection_polygon.push([x, y]);
 						}
 					}
 
@@ -3681,11 +3841,18 @@ Interface.definePanels(function() {
 					let started_movement = false;
 					function drag(e1) {
 
-						var {x, y} = UVEditor.getBrushCoordinates(e1, texture);
+						let {x, y} = UVEditor.getBrushCoordinates(e1, texture);
+						if (!create_selection) {
+							x = Math.round(x);
+							y = Math.round(y);
+						}
 						if (last_x == x && last_y == y) return;
 						last_x = x, last_y = y;
+						
+						if (create_selection && selection_mode == 'lasso') {
+							selection_polygon.push([x, y]);
 
-						if (create_selection) {
+						} else if (create_selection) {
 							let start_x_here = start_x;
 							let start_y_here = start_y;
 							if (!settings.nearest_rectangle_select.value) {
@@ -3738,6 +3905,7 @@ Interface.definePanels(function() {
 								} else {
 									Undo.initEdit({layers: [layer], bitmap: true});
 								}
+								selection_polygon.empty();
 								texture.selection.clear();
 								UVEditor.updateSelectionOutline();
 							}
@@ -3756,7 +3924,7 @@ Interface.definePanels(function() {
 						Blockbench.setCursorTooltip();
 
 						if (create_selection) {
-							if (!calcrect || selection_rect.width == 0 || selection_rect.height == 0) {
+							if ((!calcrect || selection_rect.width == 0 || selection_rect.height == 0) && selection_mode != 'lasso') {
 								if (!texture.selection.hasSelection()) {
 									texture.selection.clear();
 									UVEditor.updateSelectionOutline();
@@ -3767,7 +3935,7 @@ Interface.definePanels(function() {
 								return;
 							}
 
-							if (op_mode == 'create') {
+							if (op_mode == 'create' && selection_mode != 'lasso') {
 								texture.selection.clear();
 							}
 							if (selection_mode == 'rectangle') {
@@ -3818,6 +3986,43 @@ Interface.definePanels(function() {
 									}
 								}
 							}
+							if (selection_mode == 'lasso' && scope.isSelectionPolygonClosed()) {
+								selection_polygon.pop();
+								let min_x = Infinity, min_y = Infinity, max_x = 0, max_y = 0;
+								for (let point of selection_polygon) {
+									min_x = Math.min(point[0], min_x);
+									min_y = Math.min(point[1], min_y);
+									max_x = Math.max(point[0], max_x);
+									max_y = Math.max(point[1], max_y);
+								}
+								min_x = Math.clamp(min_x, 0, UVEditor.texture.img.naturalWidth);
+								min_y = Math.clamp(min_y, 0, UVEditor.texture.img.naturalHeight);
+								max_x = Math.clamp(max_x, 0, UVEditor.texture.img.naturalWidth);
+								max_y = Math.clamp(max_y, 0, UVEditor.texture.img.naturalHeight);
+								for (let x = Math.floor(min_x); x < max_x; x++) {
+									for (let y = Math.floor(min_y); y < max_y; y++) {
+										let is_inside = pointInPolygon([x+0.5, y+0.5], selection_polygon);
+										if (!is_inside) continue;
+										switch (op_mode) {
+											case 'create': case 'add': {
+												texture.selection.set(x, y, 1);
+												break;
+											}
+											case 'subtract': {
+												texture.selection.set(x, y, 0);
+												break;
+											}
+											case 'intersect': {
+												if (texture.selection.get(x, y)) {
+													texture.selection.set(x, y, 2);
+												}
+												break;
+											}
+										}
+									}
+								}
+								selection_polygon.empty();
+							}
 							if (op_mode == 'intersect') {
 								for (let x = 0; x < texture.width; x++) {
 									for (let y = 0; y < texture.height; y++) {
@@ -3833,8 +4038,10 @@ Interface.definePanels(function() {
 							if (!texture.selection.hasSelection()) {
 								texture.selection.clear();
 							}
+							Undo.finishSelection('Select texture area');
 							UVEditor.updateSelectionOutline();
 							Interface.addSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
+
 						} else if (!started_movement) {
 							if (TextureLayer.selected?.in_limbo) {
 								TextureLayer.selected.resolveLimbo();
@@ -3914,6 +4121,9 @@ Interface.definePanels(function() {
 						width: this.toPixels(box[2] - box[0], 0),
 						height: this.toPixels(box[3] - box[1], 0),
 					};
+				},
+				focusOnSelection(event) {
+					UVEditor.focusOnSelection(event);
 				},
 				showTransparentFaceText() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
@@ -4131,6 +4341,7 @@ Interface.definePanels(function() {
 						@mousedown="onMouseDown($event)"
 						@touchstart="onMouseDown($event)"
 						@wheel="onMouseWheel($event)"
+						@scroll="onScroll($event)"
 						@mousemove="updateMouseCoords($event)"
 						@mouseenter="onMouseEnter($event)"
 						@mouseleave="onMouseLeave($event)"
@@ -4308,13 +4519,22 @@ Interface.definePanels(function() {
 								}">
 							</div>
 
+							<svg id="texture_selection_polygon" v-if="texture_selection_polygon.length">
+								<path :d="getTextureSelectionPolygon()" />
+								<circle :cx="texture_selection_polygon[0][0] / texture.width * inner_width + 1" :cy="texture_selection_polygon[0][1] / texture.width * inner_width + 1" r="7" :class="{closed: isSelectionPolygonClosed()}" />
+							</svg>
+
 							<svg id="uv_selection_outline" v-if="mode == 'paint'">
 								<path :d="selection_outline" />
 								<path :d="selection_outline" class="dash_overlay" />
 							</svg>
 						</div>
 
-						<div class="uv_transparent_face" v-else-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>
+						<div class="uv_navigator" @click="focusOnSelection($event)" v-show="mode == 'uv'">
+							<i class="material-icons icon">navigation</i>
+						</div>
+
+						<div class="uv_transparent_face" v-if="showTransparentFaceText()">${tl('uv_editor.transparent_face')}</div>
 					</div>
 
 					<div class="uv_layer_limbo_options" v-if="isTransformingLayer()">

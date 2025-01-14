@@ -256,6 +256,7 @@ class ModelFormat {
 	}
 }
 
+new Property(ModelFormat, 'string', 'node_name_regex');
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'box_uv_float_size');
@@ -294,3 +295,4 @@ new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
+new Property(ModelFormat, 'boolean', 'pbr');

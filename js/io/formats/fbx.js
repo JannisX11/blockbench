@@ -14,6 +14,7 @@ function TNum(type, value) {
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
 	extension: 'fbx',
+	support_partial_export: true,
 	compile(options) {
 		options = Object.assign(this.getExportOptions(), options);
 		let scope = this;

@@ -1,4 +1,6 @@
 /**
+ * Original source: https://github.com/mrdoob/three.js, MIT
+ * Modified for Blockbench
  * @author qiao / https://github.com/qiao
  * @author mrdoob / http://mrdoob.com
  * @author alteredq / http://alteredqualia.com/
@@ -298,6 +300,10 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}();
 
+	this.panLeft = panLeft;
+	this.panUp = panUp;
+	
+
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function () {
 
@@ -448,12 +454,11 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleMouseWheel( event ) {
-
+		let modifier = Math.abs(event.deltaY) >= 50 ? 1 : 0.25;
 		if ( event.deltaY < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(modifier) );
 		} else if ( event.deltaY > 0 ) {
-			dollyIn( getZoomScale() );
-
+			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
 		scope.updateSceneScale();

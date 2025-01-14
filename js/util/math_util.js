@@ -81,6 +81,13 @@ Math.getNextPower = function(num, min) {
 	}
 	return i;
 }
+Math.signedPow = function(num, power=2) {
+	if (power % 2 == 0) {
+		return Math.pow(num, power) * Math.sign(num);
+	} else {
+		return Math.pow(num, power);
+	}
+}
 Math.snapToValues = function(val, snap_points, epsilon = 12) {
 	let snaps = snap_points.slice().sort((a, b) => {
 		return Math.abs(val-a) - Math.abs(val-b)
