@@ -129,7 +129,7 @@
 		"@electron/notarize": "^2.5.0",
 		"blockbench-types": "^4.6.1",
 		"electron": "^33.3.1",
-		"electron-builder": "^25.1.8",
+		"electron-builder": "^26.0.0-alpha.9",
 		"webpack": "^5.74.0",
 		"webpack-cli": "^4.5.0",
 		"workbox-build": "^6.5.3"
