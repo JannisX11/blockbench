@@ -1151,7 +1151,6 @@ SharedActions.add('unselect_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
-		console.trace('TEST')
 		Undo.initSelection();
 		unselectAllElements();
 		Undo.finishSelection('Unselect all elements');
@@ -1736,7 +1735,11 @@ Interface.definePanels(function() {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
 							if (e1.target && e1.offsetX > e1.target.clientWidth) return;
-							if (e2.target && e2.target.id == 'cubes_list') unselectAllElements();
+							if (e2.target && e2.target.id == 'cubes_list') {
+								Undo.initSelection({});
+								unselectAllElements();
+								Undo.finishSelection('Unselect outliner');
+							}
 						}
 						addEventListeners(document, 'mouseup touchend', off);
 						return;

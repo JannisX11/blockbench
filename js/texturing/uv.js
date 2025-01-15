@@ -3928,6 +3928,7 @@ Interface.definePanels(function() {
 								if (!texture.selection.hasSelection()) {
 									texture.selection.clear();
 									UVEditor.updateSelectionOutline();
+									Undo.finishSelection('Unselect texture area');
 								}
 								if (TextureLayer.selected?.in_limbo) {
 									TextureLayer.selected.resolveLimbo();

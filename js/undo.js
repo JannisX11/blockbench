@@ -862,7 +862,7 @@ UndoSystem.selectionSave = class {
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
 				} else if (element instanceof Cube && !element.box_uv) {
-					element.getSelectedFaces(true).replace(geo_data.faces);
+					UVEditor.getSelectedFaces(element, true).replace(geo_data.faces);
 				}
 			}
 		}
