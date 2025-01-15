@@ -2117,6 +2117,7 @@ function updateShading() {
 	Sun.intensity = settings_brightness;
 	let view_mode = window.BarItems ? BarItems.view_mode.value : 'textured';
 
+	lights.add(Sun);
 	if (view_mode == 'material') {
 
 		let light = Canvas.material_light;
@@ -2149,11 +2150,12 @@ function updateShading() {
 			let parent = scene;
 			parent.add(lights);
 			lights.position.copy(parent.position).multiplyScalar(-1);
+		} else {
+			Canvas.scene.add(Sun);
 		}
 		if (Canvas.material_light) {
 			Canvas.scene.remove(Canvas.material_light);
 		}
-		lights.add(Sun);
 		Texture.all.forEach(tex => {
 			let material = tex.getMaterial();
 			if (!material.uniforms) return;
