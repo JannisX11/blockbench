@@ -58,8 +58,13 @@ class TextureLayer {
 		BarItems.layer_opacity.update();
 		BarItems.layer_blend_mode.set(this.blend_mode);
 	}
+	clickSelect(event) {
+		Undo.initSelection();
+		this.select(event);
+		Undo.finishSelection();
+	}
 	showContextMenu(event) {
-		if (!this.selected) this.select();
+		if (!this.selected) this.clickSelect(event);
 		this.menu.open(event, this);
 	}
 	remove(undo) {
@@ -359,7 +364,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
-new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'difference']});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'overlay', 'difference']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
@@ -750,7 +755,7 @@ Interface.definePanels(function() {
 						:key="layer.uuid"
 						:layer_id="layer.uuid"
 						class="texture_layer"
-						@click.stop="layer.select()"
+						@click.stop="layer.clickSelect()"
 						@dblclick.stop="layer.propertiesDialog()"
 						@contextmenu.prevent.stop="layer.showContextMenu($event)"
 					>

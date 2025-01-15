@@ -378,7 +378,7 @@ const StateMemory = {
 			try {
 				saved = JSON.parse(saved)
 			} catch (err) {
-				localStorage.clearItem(`StateMemory.${key}`)
+				localStorage.removeItem(`StateMemory.${key}`);
 			}
 		}
 		if ( saved !== null && (typeof saved == type || (type == 'array' && saved instanceof Array)) ) {

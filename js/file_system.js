@@ -128,6 +128,16 @@ Object.assign(Blockbench, {
 		var errant;
 		var i = 0;
 		if (isApp) {
+			if (options.readtype == 'none') {
+				let results = files.map(file => {
+					return {
+						name: pathToName(file, true),
+						path: file
+					}
+				})
+				cb(results);
+				return results;
+			}
 			while (index < files.length) {
 				(function() {
 					var this_i = index;
@@ -176,7 +186,7 @@ Object.assign(Blockbench, {
 						try {
 							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
-							console.log(err)
+							console.error(err)
 							if (!errant && options.errorbox !== false) {
 								Blockbench.showMessageBox({
 									translateKey: 'file_not_found',
@@ -499,12 +509,17 @@ document.body.ondrop = function(event) {
 	}
 
 	forDragHandlers(event, function(handler, el) {
-		var fileNames = event.dataTransfer.files
+		let fileNames = event.dataTransfer.files
 
-		var paths = [];
+		let paths = [];
 		if (isApp) {
-			for (var file of fileNames) {
-				if (file.path) paths.push(file.path)
+			for (let file of fileNames) {
+				if (file.path) {
+					paths.push(file.path)
+				} else if (isApp) {
+					let path = webUtils.getPathForFile(file);
+					paths.push(path);
+				}
 			}
 		} else {
 			paths = fileNames

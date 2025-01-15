@@ -52,6 +52,21 @@ class CubeFace extends Face {
 			case 'down': 	return [7, 2, 3, 6];
 		}
 	}
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		let texel_pos = this.UVToLocal(uv);
+		let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
+		return matrix;
+	}
 	UVToLocal(point) {
 		let from = this.cube.from.slice()
 		let to = this.cube.to.slice()
@@ -1171,7 +1186,7 @@ new NodePreviewController(Cube, {
 				if (element.faces[face].texture !== null) {
 					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
-						materials.push(Project.materials[tex.uuid])
+						materials.push(tex.getMaterial())
 					} else {
 						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 					}
@@ -1496,7 +1511,7 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			base_cube.select()
 			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});

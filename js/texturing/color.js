@@ -1022,6 +1022,7 @@ BARS.defineActions(function() {
 
 	new Action('save_palette', {
 		icon: 'playlist_add',
+		category: 'color',
 		condition: {modes: ['paint']},
 		click(event) {	
 			let dialog = new Dialog({

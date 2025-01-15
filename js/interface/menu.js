@@ -323,13 +323,13 @@ class Menu {
 			if (typeof s === 'function') {
 				s = s(scope_context);
 			}
-			if (!Condition(s.condition, scope_context)) return;
+			if (s == undefined || !Condition(s.condition, scope_context)) return;
 
 			if (s instanceof Action) {
 
-				entry = s.menu_node
+				entry = s.menu_node;
 
-				entry.classList.remove('focused');
+				entry.classList.remove('focused', 'opened');
 
 				//Submenu
 				if (typeof s.children == 'function' || typeof s.children == 'object') {
@@ -476,7 +476,7 @@ class Menu {
 				}
 				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
 				entry.prepend(icon);
-				if (s.marked) {
+				if (s.marked && Condition(s.marked, scope_context)) {
 					entry.classList.add('marked');
 				}
 				if (s.keybind) {

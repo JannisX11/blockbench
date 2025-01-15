@@ -16,15 +16,15 @@ const Outliner = {
 		visibility: {
 			id: 'visibility',
 			title: tl('switches.visibility'),
-			icon: ' fa fa-eye',
-			icon_off: ' fa fa-eye-slash',
+			icon: 'visibility',
+			icon_off: 'visibility_off',
 			advanced_option: false
 		},
 		locked: {
 			id: 'locked',
 			title: tl('switches.lock'),
-			icon: ' fas fa-lock',
-			icon_off: ' fas fa-lock-open',
+			icon: 'fa-lock',
+			icon_off: 'fa-lock-open',
 			advanced_option: true,
 			visibilityException(node) {
 				return node.locked
@@ -33,8 +33,8 @@ const Outliner = {
 		export: {
 			id: 'export',
 			title: tl('switches.export'),
-			icon: ' far fa-square-check',
-			icon_off: ' far fa-window-close',
+			icon: 'far.fa-square-check',
+			icon_off: 'far.fa-window-close',
 			advanced_option: true,
 			condition: {modes: ['edit']},
 			visibilityException(node) {
@@ -45,24 +45,24 @@ const Outliner = {
 			id: 'shade',
 			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
 			title: tl('switches.shade'),
-			icon: 'fa fa-star',
-			icon_off: 'far fa-star',
+			icon: 'fa-star',
+			icon_off: 'far.fa-star',
 			advanced_option: true,
 		},
 		mirror_uv: {
 			id: 'mirror_uv',
 			condition: {modes: ['edit'], method: (element) => (element instanceof Group) ? element.children.find(c => c.box_uv) : element.box_uv},
 			title: tl('switches.mirror'),
-			icon: 'icon-mirror_x icon',
-			icon_off: 'icon-mirror_x icon',
+			icon: 'icon-mirror_x',
+			icon_off: 'icon-mirror_x',
 			advanced_option: true,
 		},
 		autouv: {
 			id: 'autouv',
 			title: tl('switches.autouv'),
-			icon: ' fa fa-thumbtack',
-			icon_off: ' far fa-times-circle',
-			icon_alt: ' fa fa-magic',
+			icon: 'fa-thumbtack',
+			icon_off: 'far.fa-times-circle',
+			icon_alt: 'fa-magic',
 			advanced_option: true,
 			condition: {modes: ['edit']},
 			getState(element) {
@@ -379,7 +379,7 @@ class OutlinerElement extends OutlinerNode {
 	showContextMenu(event) {
 		if (this.locked) return this;
 		if (!this.selected) {
-			this.select()
+			this.clickSelect(event)
 		}
 		this.menu.open(event, this)
 		return this;
@@ -441,6 +441,7 @@ class OutlinerElement extends OutlinerNode {
 			Blockbench.showQuickMessage('message.group_required_to_animate');
 			return false;
 		}
+		Undo.initSelection();
 		//Shift
 		var just_selected = [];
 		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements'));
@@ -487,25 +488,25 @@ class OutlinerElement extends OutlinerNode {
 
 		//Normal
 		} else {
-			selected.forEachReverse(obj => {
-				if (obj != this) obj.unselect();
-			})
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements([this]);
 			this.selectLow()
 			just_selected.push(this)
 			if (settings.outliner_reveal_on_select.value) {
 				this.showInOutliner()
 			}
 		}
-		if (Group.selected) {
-			Group.selected.unselect()
-		}
-		Group.all.forEach(function(s) {
-			s.selected = false;
-		})
 		Blockbench.dispatchEvent('added_to_selection', {added: just_selected})
 		TickUpdates.selection = true;
 		return this;
+	}
+	clickSelect(event, outliner_click) {
+		Undo.initSelection();
+		let result = this.select(event, outliner_click);
+		if (result === false) {
+			Undo.cancelSelection();
+			return;
+		}
+		Undo.finishSelection('Select element');
 	}
 	selectLow() {
 		Project.selected_elements.safePush(this);
@@ -833,7 +834,7 @@ function parseGroups(array, import_reference, startIndex) {
 // Dropping
 function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
-	if (item.type === 'group' && target && target.parent) {
+	if (item.type === 'group' && target instanceof OutlinerNode && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
 			if (!(is_parent = g === item) && g.parent.type === 'group') {
@@ -855,8 +856,19 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 				items.push(node);
 			}
 		})
+	} else if (item instanceof Group) {
+		var items = Group.multi_selected.filter(g => !g.parent.selected);
 	} else {
 		var items = [item];
+	}
+	if (target instanceof Collection) {
+		Undo.initEdit({collections: [target]});
+		for (let item of items) {
+			target.children.safePush(item.uuid);
+		}
+		Undo.finishEdit('Add to collection');
+		updateSelection();
+		return;
 	}
 	if (duplicate) {
 		Undo.initEdit({elements: [], outliner: true, selection: true})
@@ -926,24 +938,26 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 function renameOutliner(element) {
 	stopRenameOutliner()
 
-	if (Group.selected && !element && !Project.EditSession) {
-		Group.selected.rename()
+	if (Group.first_selected && !element && !Project.EditSession) {
+		Group.first_selected.rename()
 
 	} else if (selected.length === 1 && !Project.EditSession) {
 		selected[0].rename()
 
 	} else {
 
-		if (Group.selected && !element) {
-			Blockbench.textPrompt('generic.rename', Group.selected.name, function (name) {
+		if (Group.first_selected && !element) {
+			Blockbench.textPrompt('generic.rename', Group.first_selected.name, function (name) {
 				name = name.trim();
 				if (name) {
-					Undo.initEdit({group: Group.selected})
-					Group.selected.name = name
-					if (Format.bone_rig) {
-						Group.selected.createUniqueName()
+					Undo.initEdit({groups: Group.multi_selected});
+					for (let group of Group.multi_selected) {
+						group.name = name;
+						if (Format.bone_rig) {
+							group.createUniqueName();
+						}
 					}
-					Undo.finishEdit('Rename group')
+					Undo.finishEdit('Rename group');
 				}
 			})
 		} else if (selected.length) {
@@ -1017,17 +1031,13 @@ SharedActions.add('rename', {
 });
 SharedActions.add('delete', {
 	subject: 'outliner',
-	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.selected)),
+	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.first_selected)),
 	priority: -1,
 	run() {
-		if (Group.selected) {
-			Group.selected.remove(true)
-			return;
-		}
 		let array;
-		Undo.initEdit({elements: selected, outliner: true, selection: true})
+		Undo.initEdit({elements: Outliner.selected, outliner: true, selection: true})
 		if (array == undefined) {
-			array = selected.slice(0)
+			array = selected.slice(0);
 		} else if (array.constructor !== Array) {
 			array = [array]
 		} else {
@@ -1036,26 +1046,37 @@ SharedActions.add('delete', {
 		array.forEach(function(s) {
 			s.remove(false)
 		})
+		for (let group of Group.multi_selected.slice()) {
+			group.remove(false);
+		}
 		TickUpdates.selection = true;
-		Undo.finishEdit('Delete elements')
+		Undo.finishEdit('Delete outliner selection')
 	}
 })
 SharedActions.add('duplicate', {
 	subject: 'outliner',
-	condition: () => Modes.edit && Group.selected && (Group.selected.matchesSelection() || selected.length === 0),
+	condition: () => Modes.edit && Group.first_selected,
 	priority: -1,
 	run() {
 		let cubes_before = elements.length;
 		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let original = Group.selected;
+		let original = Group.multi_selected.slice();
 		let all_original = [];
-		Group.selected.forEachChild(g => all_original.push(g), Group, true);
+		for (let group of Group.multi_selected) {
+			group.forEachChild(g => all_original.safePush(g), Group, true);
+		}
 
-		let new_group = Group.selected.duplicate();
 		let all_new = [];
-		new_group.forEachChild(g => all_new.push(g), Group, true);
-		new_group.select();
+		let old_selected_groups = Group.multi_selected.slice();
+		Group.multi_selected.empty();
+		for (let group of old_selected_groups) {
+			group.selected = false;
+			let new_group = group.duplicate();
+			new_group.forEachChild(g => all_new.push(g), Group, true);
+			new_group.multiSelect();
+		}
 
+		updateSelection();
 		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true});
 
 		if (Animation.all.length) {
@@ -1107,6 +1128,7 @@ SharedActions.add('select_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
+		Undo.initSelection();
 		let selectable_elements = Outliner.elements.filter(element => !element.locked);
 		if (Outliner.selected.length < selectable_elements.length) {
 			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
@@ -1117,8 +1139,10 @@ SharedActions.add('select_all', {
 				})
 				TickUpdates.selection = true;
 			}
+			Undo.finishSelection('Select all elements');
 		} else {
 			unselectAllElements()
+			Undo.finishSelection('Unselect all elements');
 		}
 	}
 })
@@ -1127,7 +1151,9 @@ SharedActions.add('unselect_all', {
 	condition: () => Modes.edit || Modes.paint,
 	priority: -2,
 	run() {
-		unselectAllElements()
+		Undo.initSelection();
+		unselectAllElements();
+		Undo.finishSelection('Unselect all elements');
 	}
 })
 SharedActions.add('invert_selection', {
@@ -1142,7 +1168,9 @@ SharedActions.add('invert_selection', {
 				element.selectLow()
 			}
 		})
-		if (Group.selected) Group.selected.unselect();
+		for (let group of Group.multi_selected) {
+			group.unselect();
+		}
 		updateSelection();
 	}
 })
@@ -1211,8 +1239,8 @@ BARS.defineActions(function() {
 		onUpdate: function() {
 			if (Animator.open) {
 				var sel = 0;
-				if (Group.selected) {
-					Group.selected.forEachChild(_ => sel++, Group, true)
+				for (let group of Group.all) {
+					if (group.selected) sel++;
 				}
 				this.set(stringifyLargeInt(sel)+' / '+stringifyLargeInt(Group.all.length));
 			} else {
@@ -1287,7 +1315,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 'f', ctrl: true}),
 		condition: () => Modes.edit || Modes.paivnt,
-		click: function () {
+		click: function(event, options) {
 			let color_options = {
 				'-1': 'generic.all'
 			}
@@ -1326,16 +1354,20 @@ BARS.defineActions(function() {
 					if (formData.mode == 'new' || formData.mode == 'in_selection') {
 						selected.empty();
 					}
-					let selected_group = Group.selected;
-					if (Group.selected) {
-						Group.selected.unselect()
+					let selected_groups = Group.multi_selected;
+					if (selected_groups.length) {
+						selected_groups.forEach(group => group.unselect());
 					}
 					var name_seg = formData.name.toUpperCase()
 					var tex_seg = formData.texture.toLowerCase()
 				
-					var array = Outliner.elements;
-					if (formData.group && selected_group) {
-						array = selected_group.children
+					let array = Outliner.elements.slice();
+					if (formData.group && selected_groups.length) {
+						array = [];
+						group.multiSelect();
+						for (let group of selected_groups) {
+							group.forEachChild(child => array.safePush(child), OutlinerElement, false);
+						}
 					}
 					if (formData.mode == 'in_selection' || formData.mode == 'remove') {
 						array = array.slice().filter(el => el.selected);
@@ -1365,10 +1397,12 @@ BARS.defineActions(function() {
 						}
 					})
 					updateSelection()
-					if (selected.length) {
+					if (options && options.returnResult) {
+						options.returnResult({elements: selected, groups: selected_groups});
+
+					} else if (selected.length) {
 						selected[0].showInOutliner()
 					}
-					this.hide()
 				}
 			}).show()
 			$('.dialog#selection_creator .form_bar_name > input').focus()
@@ -1415,32 +1449,37 @@ Interface.definePanels(function() {
 				class="outliner_object"
 				v-bind:class="{ cube: node.type === 'cube', group: node.type === 'group', selected: node.selected }"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
-				@click="node.select($event, true)"
+				@click="node.clickSelect($event, true)"
 				:title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner()"
 			>` +
 				//Opener
 				
-				`<i v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))" @click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa" :class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'></i>
+				`<i
+					v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))"
+					@click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa"
+					:class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'
+				></i>
 				<i v-else class="outliner_opener_placeholder"></i>
 
 				<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" :color="(outliner_colors.value && node.color >= 0) ? markerColors[node.color % markerColors.length].pastel : ''" v-on:dblclick.stop="doubleClickIcon(node)"></dynamic-icon>
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
-				`<i v-for="btn in node.buttons"
+				`<dynamic-icon v-for="btn in node.buttons"
 					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.visibilityException && btn.visibilityException(node)) )"
 					class="outliner_toggle"
-					:class="getBtnClasses(btn, node)"
+					:icon="getButtonIcon(btn, node)"
+					:class="getButtonClasses(btn, node)"
 					:title="getBtnTooltip(btn, node)"
 					:toggle="btn.id"
 					@click.stop
-				></i>` +
+				/>` +
 			'</div>' +
 			//Other Entries
 			'<ul v-if="node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.selected == node"></div>` +
+				`<div class="outliner_line_guide" v-if="node.constructor.multi_selected.includes(node)"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1479,14 +1518,26 @@ Interface.definePanels(function() {
 					return node.closedIcon || node.icon;
 				}
 			},
-			getBtnClasses: function (btn, node) {
+			getButtonIcon: function (btn, node) {
+				let value = node.isIconEnabled(btn);
+				let icon_string = '';
+				if (value === true) {
+					icon_string = typeof btn.icon == 'function' ? btn.icon(node) : btn.icon;
+				} else if (value === false) {
+					icon_string = typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off
+				} else {
+					icon_string = typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt
+				}
+				return icon_string.trim().replace(/fa[rs]* /, '');
+			},
+			getButtonClasses: function (btn, node) {
 				let value = node.isIconEnabled(btn);
 				if (value === true) {
-					return [(typeof btn.icon == 'function' ? btn.icon(node) : btn.icon)];
+					return ''
 				} else if (value === false) {
-					return [(typeof btn.icon_off == 'function' ? btn.icon_off(node) : btn.icon_off), 'icon_off'];
+					return 'icon_off';
 				} else {
-					return [(typeof btn.icon_alt == 'function' ? btn.icon_alt(node) : btn.icon_alt), 'icon_alt'];
+					return 'icon_alt';
 				}
 			},
 			getBtnTooltip: function (btn, node) {
@@ -1684,7 +1735,11 @@ Interface.definePanels(function() {
 						function off(e2) {
 							removeEventListeners(document, 'mouseup touchend', off);
 							if (e1.target && e1.offsetX > e1.target.clientWidth) return;
-							if (e2.target && e2.target.id == 'cubes_list') unselectAllElements();
+							if (e2.target && e2.target.id == 'cubes_list') {
+								Undo.initSelection({});
+								unselectAllElements();
+								Undo.finishSelection('Unselect outliner');
+							}
 						}
 						addEventListeners(document, 'mouseup touchend', off);
 						return;
@@ -1770,6 +1825,13 @@ Interface.definePanels(function() {
 
 							} else if ($('#cubes_list').is(':hover')) {
 								$('#cubes_list').addClass('drag_hover');
+							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
+								for (let node of document.querySelectorAll('.collection')) {
+									if (node.contains(target)) {
+										node.classList.add('drag_hover');
+										break;
+									}
+								}
 							}
 						}
 						last_event = e2;
@@ -1792,6 +1854,13 @@ Interface.definePanels(function() {
 								moveOutlinerSelectionTo(item, drop_target, e2, order);
 							} else if ($('#cubes_list').is(':hover')) {
 								moveOutlinerSelectionTo(item, undefined, e2);
+							} else if (document.querySelector('.collection:hover')) {
+								let collection_node = document.querySelector('.collection:hover');
+								let collection_uuid = collection_node.attributes.uuid?.value;
+								let collection = Collection.all.find(c => c.uuid == collection_uuid);
+								if (collection) {
+									moveOutlinerSelectionTo(item, collection, e2);
+								}
 							}
 						}
 					}
@@ -1869,7 +1938,7 @@ Interface.definePanels(function() {
 		new Panel('element', {
 			icon: 'fas.fa-cube',
 			condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
-			display_condition: () => Outliner.selected.length || Group.selected,
+			display_condition: () => Outliner.selected.length || Group.first_selected,
 			default_position: {
 				slot: 'right_bar',
 				float_position: [0, 0],

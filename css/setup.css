@@ -407,7 +407,7 @@
 		cursor: default;
 	}
 	hr {
-		border-top: 1px solid var(--color-dark);
+		border-top: 1px solid var(--color-border);
 		margin: 12px 0;
 	}
 	h1, h2, h3, h4, h5, h6 {

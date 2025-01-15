@@ -488,7 +488,7 @@ Interface.definePanels(function() {
 					/*let old_angles = poses[this.pose];
 					for (let name in old_angles) {
 						if (old_angles[name].offset) {
-							let group = Group.all.find(g => g.name == name);
+						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
 							if (group) {
 								group.origin.V3_subtract(old_angles[name].offset);
 							}
@@ -503,7 +503,7 @@ Interface.definePanels(function() {
 					Project.skin_pose = pose;
 					let angles = poses[pose];
 					for (let name in angles) {
-						let group = Group.all.find(g => g.name == name);
+						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
 						if (group) {
 							group.extend({rotation: angles[name].rotation || angles[name]});
 							if (angles[name].offset) {
