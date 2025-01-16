@@ -363,7 +363,7 @@ Object.defineProperty(Collection, 'all', {
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
-		return Project.collections.filter(c => c.selected);
+		return Project ? Project.collections.filter(c => c.selected) : [];
 	}
 })
 
