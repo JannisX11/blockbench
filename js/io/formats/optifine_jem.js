@@ -254,7 +254,7 @@ var codec = new Codec('optifine_entity', {
 				let texture = importTexture(b.texture, b.textureSize);
 				let group = 0;
 				if (!model._is_jpm) {
-					let group = new Group({
+					group = new Group({
 						name: b.part,
 						origin: b.translate,
 						rotation: b.rotate,

@@ -844,20 +844,18 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		iterate(target)
 		if (is_parent) return;
 	}
-	if (item instanceof OutlinerElement && Outliner.selected.includes( item )) {
+	if (item instanceof OutlinerNode && item.selected) {
 		var items = [];
 		// ensure elements are in displayed order
 		Outliner.root.forEach(node => {
 			if (node instanceof Group) {
 				node.forEachChild(child => {
-					if (child.selected && child instanceof Group == false) items.push(child);
-				})
+					if (child.selected && !child.parent.selected) items.push(child);
+				}, null, true);
 			} else if (node.selected) {
 				items.push(node);
 			}
 		})
-	} else if (item instanceof Group) {
-		var items = Group.multi_selected.filter(g => !g.parent.selected);
 	} else {
 		var items = [item];
 	}

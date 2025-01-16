@@ -1153,6 +1153,9 @@ class Preview {
 
 			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
+			if (!Format.centered_grid) {
+				matrix_offset.makeTranslation(-Canvas.scene.position.x, -Canvas.scene.position.y, -Canvas.scene.position.z);
+			}
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
 			Canvas.brush_outline.matrix = brush_matrix;
@@ -1939,12 +1942,15 @@ class OrbitGizmo {
 window.addEventListener("gamepadconnected", function(event) {
 	let is_space_mouse = event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion');
 
+	console.log('Gamepad Connected', event);
+
 	let zoom_timer = 0;
 
 	let interval = setInterval(() => {
 		let gamepad = navigator.getGamepads()[event.gamepad.index];
 		let preview = Preview.selected;
-		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+		if (settings.gamepad_controls.value == false) return;
+		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
 
 		if (is_space_mouse) {
 			let offset = new THREE.Vector3(

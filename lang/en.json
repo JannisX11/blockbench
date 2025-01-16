@@ -949,7 +949,7 @@
 	"settings.antialiasing": "Anti-aliasing",
 	"settings.antialiasing.desc": "Toggle anti-aliasing in the preview",
 	"settings.antialiasing_bleed_fix": "Fix anti-aliasing bleeding",
-	"settings.antialiasing_bleed_fix.desc": "Fixes texture bleeding when using anti-aliasing",
+	"settings.antialiasing_bleed_fix.desc": "Fixes texture bleeding when using anti-aliasing. Potentially unsupported on older hardware.",
 	"settings.render_sides": "Render Sides",
 	"settings.tone_mapping": "Tone Mapping",
 	"settings.tone_mapping.desc": "Approximation method for displaying high dynamic range on a standard screen for PBR rendering.",
