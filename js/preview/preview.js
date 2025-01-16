@@ -1939,12 +1939,15 @@ class OrbitGizmo {
 window.addEventListener("gamepadconnected", function(event) {
 	let is_space_mouse = event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion');
 
+	console.log('Gamepad Connected', event);
+
 	let zoom_timer = 0;
 
 	let interval = setInterval(() => {
 		let gamepad = navigator.getGamepads()[event.gamepad.index];
 		let preview = Preview.selected;
-		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+		if (settings.gamepad_controls.value == false) return;
+		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
 
 		if (is_space_mouse) {
 			let offset = new THREE.Vector3(
