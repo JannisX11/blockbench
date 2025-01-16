@@ -412,7 +412,7 @@ var Merge = {
 		if (typeof source[index] == 'string') {
 			obj[index] = source[index];
 		} else if (typeof source[index] == 'number') {
-			obj[index] = source[index].toString();
+			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
