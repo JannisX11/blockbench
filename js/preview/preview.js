@@ -1153,9 +1153,6 @@ class Preview {
 
 			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
-			if (!Format.centered_grid) {
-				matrix_offset.makeTranslation(-Canvas.scene.position.x, -Canvas.scene.position.y, -Canvas.scene.position.z);
-			}
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
 			Canvas.brush_outline.matrix = brush_matrix;
