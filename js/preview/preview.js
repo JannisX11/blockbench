@@ -1155,6 +1155,9 @@ class Preview {
 			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
 			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
+			// Since we're setting the brush matrix, we need to multiply in its parents matrix as well in case there are any.
+			if (Canvas.brush_outline.parent)
+				brush_matrix.multiplyMatrices(Canvas.brush_outline.parent.matrixWorld.clone().invert(), brush_matrix);
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
