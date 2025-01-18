@@ -410,7 +410,7 @@ var Merge = {
 	},
 	molang(obj, source, index) {
 		if (typeof source[index] == 'string') {
-			obj[index] = source[index];
+			obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
 		} else if (typeof source[index] == 'number') {
 			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
