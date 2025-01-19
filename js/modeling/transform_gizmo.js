@@ -1152,7 +1152,7 @@
 							} 
 						})
 					}
-					_has_groups = Format.bone_rig && Group.first_selected && Group.first_selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
+					_has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
 					var rotate_group = Format.bone_rig && Group.first_selected && (Toolbox.selected.transformerMode == 'rotate');
 
 					if (Toolbox.selected.id == 'move_tool') {
