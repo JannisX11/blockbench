@@ -1129,14 +1129,15 @@ SharedActions.add('select_all', {
 		Undo.initSelection();
 		let selectable_elements = Outliner.elements.filter(element => !element.locked);
 		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
+			for (let node of Outliner.root) {
+				if (node instanceof Group) {
+					node.multiSelect();
+				}
 			}
+			selectable_elements.forEach(obj => {
+				obj.selectLow()
+			})
+			TickUpdates.selection = true;
 			Undo.finishSelection('Select all elements');
 		} else {
 			unselectAllElements()
