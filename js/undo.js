@@ -15,12 +15,16 @@ class UndoSystem {
 		}
 	}
 	initEdit(aspects, amended = false) {
+		// todo: selecting all groups, moving, then undoing, unselects all multi-selected groups
 		if (aspects && aspects.cubes) {
 			console.warn('Aspect "cubes" is deprecated. Please use "elements" instead.');
 			aspects.elements = aspects.cubes;
 		}
 		this.startChange(amended);
-		this.current_save = new UndoSystem.save(aspects)
+		this.current_save = new UndoSystem.save(aspects);
+		if (aspects.selection) {
+			this.current_selection_save = new UndoSystem.selectionSave(typeof aspects.selection == 'object' ? typeof aspects.selection : 0);
+		}
 		Blockbench.dispatchEvent('init_edit', {aspects, amended, save: this.current_save})
 		return this.current_save;
 	}
@@ -40,7 +44,18 @@ class UndoSystem {
 			type: 'edit',
 			time: Date.now()
 		}
-		this.current_save = entry.post
+
+		if (aspects.selection && this.current_selection_save) {
+			let selection_aspects = typeof aspects.selection == 'object' ? aspects.selection : this.current_selection_save.aspects;
+			let selection_before = this.current_selection_save;
+			let selection_post = new UndoSystem.selectionSave(selection_aspects);
+			if (!selection_before.matches(selection_post)) {
+				entry.selection_before = selection_before;
+				entry.selection_post = selection_post;
+			}
+		}
+
+
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
 		}
@@ -89,7 +104,6 @@ class UndoSystem {
 			type: 'selection',
 			time: Date.now()
 		}
-		this.current_selection_save = entry.selection_post
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
 		}
@@ -239,7 +253,7 @@ UndoSystem.save = class {
 
 		this.mode = Modes.selected.id;
 
-		if (aspects.selection) {
+		/*if (aspects.selection) {
 			this.selection = [];
 			this.mesh_selection = {};
 			selected.forEach(obj => {
@@ -251,8 +265,7 @@ UndoSystem.save = class {
 			if (Group.multi_selected.length) {
 				this.selected_groups = Group.multi_selected.map(g => g.uuid);
 			}
-
-		}
+		}*/
 
 		if (aspects.elements) {
 			this.elements = {}
@@ -440,7 +453,7 @@ UndoSystem.save = class {
 			}
 		}
 
-		if (this.selection && !is_session) {
+		/*if (this.selection && !is_session) {
 			selected.length = 0;
 			Outliner.elements.forEach((obj) => {
 				if (this.selection.includes(obj.uuid)) {
@@ -450,7 +463,7 @@ UndoSystem.save = class {
 					}
 				}
 			})
-		}
+		}*/
 
 		if (this.groups) {
 			for (let saved_group of this.groups) {
