@@ -573,23 +573,39 @@ ModelLoader.loaders = {};
 	});
 	documentReady.then(() => {
 
-		//Twitter
-		let twitter_ad;
-		if (!settings.classroom_mode.value && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
-			twitter_ad = true;
-			addStartScreenSection('twitter_link', {
-				color: '#1da1f2',
+		//Bluesky
+		let bsky_ad;
+		Blockbench.onUpdateTo('4.12.2', () => {
+			//Bluesky
+			if (!settings.classroom_mode.value) {
+				bsky_ad = true;
+				addStartScreenSection('bluesky_link', {
+					color: 'rgb(32, 139, 254);',
+					text_color: '#ffffff',
+					graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
+					text: [
+						{type: 'h3', text: 'Blockbench on Bluesky'},
+						{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
+					],
+					last: true
+				})
+			}
+		})
+		if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+			bsky_ad = true;
+			addStartScreenSection('bluesky_link', {
+				color: 'rgb(32, 139, 254);',
 				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
+				graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
 				text: [
-					{type: 'h2', text: 'Blockbench on Twitter'},
-					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
+					{type: 'h3', text: 'Blockbench on Bluesky'},
+					{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
 				],
 				last: true
 			})
 		}
 		//Discord
-		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !twitter_ad) {
+		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
 			addStartScreenSection('discord_link', {
 				color: '#5865F2',
 				text_color: '#ffffff',

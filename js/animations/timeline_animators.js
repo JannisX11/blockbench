@@ -183,7 +183,6 @@ class BoneAnimator extends GeneralAnimator {
 		this.uuid = uuid;
 		this._name = name;
 		this.rotation_global = false;
-		console.trace('Create animator')
 
 		for (let channel in this.channels) {
 			this[channel] = [];
