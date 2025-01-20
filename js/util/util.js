@@ -410,9 +410,9 @@ var Merge = {
 	},
 	molang(obj, source, index) {
 		if (typeof source[index] == 'string') {
-			obj[index] = source[index];
+			obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
 		} else if (typeof source[index] == 'number') {
-			obj[index] = source[index].toString();
+			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
@@ -491,6 +491,21 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+function exportMolang(input) {
+	if (!input) return 0;
+	if (typeof input == 'string') {
+		if (!isNaN(input)) {
+			let num = parseFloat(input);
+			return isNaN(num) ? 0 : num;
+		} else {
+			return input.replace(/\n/g, '');
+		}
+	} else if (typeof input == 'number') {
+		return input;
+	} else {
+		return 0;
+	}
+}
 
 // HTML
 function isNodeUnderCursor(node, event) {

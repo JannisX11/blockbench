@@ -800,7 +800,8 @@ function parseGroups(array, import_reference, startIndex) {
 					OutlinerNode.uuids[array[i].uuid].removeFromParent();
 					delete OutlinerNode.uuids[array[i].uuid];
 				}
-				var obj = new Group(array[i], array[i].uuid)
+				// todo: Update old groups instead of rebuilding all
+				let obj = new Group(array[i], array[i].uuid)
 				obj.parent = addGroup
 				obj.isOpen = !!array[i].isOpen
 				if (array[i].uuid) {
@@ -813,6 +814,9 @@ function parseGroups(array, import_reference, startIndex) {
 				}
 				if (array[i].content && array[i].content.length > 0) {
 					iterate(array[i].content, obj.children, obj)
+				}
+				if (array[i].selected) {
+					obj.multiSelect();
 				}
 			}
 			i++;
@@ -1129,14 +1133,15 @@ SharedActions.add('select_all', {
 		Undo.initSelection();
 		let selectable_elements = Outliner.elements.filter(element => !element.locked);
 		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
+			for (let node of Outliner.root) {
+				if (node instanceof Group) {
+					node.multiSelect();
+				}
 			}
+			selectable_elements.forEach(obj => {
+				obj.selectLow()
+			})
+			TickUpdates.selection = true;
 			Undo.finishSelection('Select all elements');
 		} else {
 			unselectAllElements()

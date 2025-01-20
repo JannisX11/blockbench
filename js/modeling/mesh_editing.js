@@ -2453,7 +2453,6 @@ BARS.defineActions(function() {
 				}},
 				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_mesh_selection.even_extend'},
 			}, form => {
-				console.log(form)
 				runEdit(true, form.extend, form.direction_mode, form.even_extend);
 			})
 		}

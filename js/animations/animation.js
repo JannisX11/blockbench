@@ -133,8 +133,8 @@ class Animation extends AnimationItem {
 			copy.animators = {}
 			for (var uuid in this.animators) {
 				let ba = this.animators[uuid]
-				var kfs = ba.keyframes
-				if ((kfs && kfs.length) || ba.rotation_global) {
+				let kfs = ba.keyframes
+				if ((kfs && kfs.length) || ba.rotation_global || !save) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
 						type: ba.type,
@@ -160,10 +160,10 @@ class Animation extends AnimationItem {
 
 		if (this.length) ani_tag.animation_length = Math.roundTo(this.length, 4);
 		if (this.override) ani_tag.override_previous_animation = true;
-		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
-		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
-		if (this.start_delay) ani_tag.start_delay = this.start_delay.replace(/\n/g, '');
-		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = this.loop_delay.replace(/\n/g, '');
+		if (this.anim_time_update) ani_tag.anim_time_update = exportMolang(this.anim_time_update);
+		if (this.blend_weight) ani_tag.blend_weight = exportMolang(this.blend_weight);
+		if (this.start_delay) ani_tag.start_delay = exportMolang(this.start_delay);
+		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = exportMolang(this.loop_delay);
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
@@ -1769,12 +1769,17 @@ BARS.defineActions(function() {
 					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
 					copyAnimator(temp_animators[target_uuid], target_animator);
 				}
+
+				let tempsave_current_animator = !temp_animators[animator.uuid];
+				if (tempsave_current_animator) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+				}
+
 				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
 				
 				// Reset animator
-				if (!temp_animators[animator.uuid]) {
-					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
-					copyAnimator(temp_animators[animator.uuid], animator);
+				if (tempsave_current_animator) {
 					resetAnimator(animator)
 				}
 			}

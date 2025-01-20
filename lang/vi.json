@@ -2092,7 +2092,7 @@
 	"action.knife_tool.desc": "Công cụ để cắt các mặt khung lưới thành các miếng nhỏ hơn",
 	"action.duplicate_project": "Nhân bản dự án",
 	"action.duplicate_project.desc": "Tạo một bản sao của dự án",
-	"action.transform_space.parent": "Phụ huynh",
+	"action.transform_space.parent": "Gốc",
 	"action.transform_pivot_space": "Tâm quay thay đổi không gian",
 	"action.solidify_mesh_selection": "Làm đông đặc các mặt",
 	"action.solidify_mesh_selection.desc": "Làm đông đặc các mặt được chọn của khung lưới",

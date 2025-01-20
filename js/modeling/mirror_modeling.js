@@ -284,7 +284,9 @@ const MirrorModeling = {
 					} else {
 						// change
 						let original_vkey = pre_part_connections.vertices[vkey];
-						new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
+						if (original_face.uv[original_vkey]) {
+							new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
+						}
 					}
 				})
 				new_face.invert();

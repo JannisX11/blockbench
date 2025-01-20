@@ -94,11 +94,8 @@ class Keyframe {
 		data_point = this.data_points[data_point];
 		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
-		} else if (!isNaN(data_point[axis])) {
-			let num = parseFloat(data_point[axis]);
-			return isNaN(num) ? 0 : num;
 		} else {
-			return data_point[axis]
+			return exportMolang(data_point[axis])
 		}
 	}
 	calc(axis, data_point = 0) {
@@ -113,6 +110,7 @@ class Keyframe {
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
+		if (typeof value == 'number') value = Math.roundTo(value, 10).toString();
 		if (this.data_points[data_point]) {
 			if (this.uniform) {
 				this.data_points[data_point].x = value;

@@ -399,6 +399,7 @@ class Group extends OutlinerNode {
 			obj.locked = this.locked;
 			obj.visibility = this.visibility;
 			obj.autouv = this.autouv;
+			obj.selected = Group.multi_selected.includes(this);
 		}
 		
 		if (this.rotation.allEqual(0)) {
