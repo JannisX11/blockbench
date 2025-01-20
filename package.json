@@ -75,6 +75,7 @@
 			]
 		},
 		"win": {
+			"certificateSubjectName": "Jannis Tobias Petersen",
 			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": {
 				"target": "nsis",
