@@ -619,7 +619,7 @@ UndoSystem.save = class {
 		if (this.animations) {
 			for (var uuid in this.animations) {
 
-				var animation = (reference.animations && reference.animations[uuid]) ? this.getItemByUUID(Animator.animations, uuid) : null;
+				var animation = (reference.animations && reference.animations[uuid]) ? Undo.getItemByUUID(Animator.animations, uuid) : null;
 				if (!animation) {
 					animation = new Animation()
 					animation.uuid = uuid
@@ -631,7 +631,7 @@ UndoSystem.save = class {
 			}
 			for (var uuid in reference.animations) {
 				if (!this.animations[uuid]) {
-					var animation = this.getItemByUUID(Animator.animations, uuid)
+					var animation = Undo.getItemByUUID(Animator.animations, uuid)
 					if (animation) {
 						animation.remove(false)
 					}
@@ -641,7 +641,7 @@ UndoSystem.save = class {
 		if (this.animation_controllers) {
 			for (var uuid in this.animation_controllers) {
 
-				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? this.getItemByUUID(AnimationController.all, uuid) : null;
+				var controller = (reference.animation_controllers && reference.animation_controllers[uuid]) ? Undo.getItemByUUID(AnimationController.all, uuid) : null;
 				if (!controller) {
 					controller = new AnimationController();
 					controller.uuid = uuid;
@@ -653,7 +653,7 @@ UndoSystem.save = class {
 			}
 			for (var uuid in reference.animation_controllers) {
 				if (!this.animation_controllers[uuid]) {
-					var controller = this.getItemByUUID(AnimationController.all, uuid);
+					var controller = Undo.getItemByUUID(AnimationController.all, uuid);
 					if (controller) {
 						controller.remove(false);
 					}

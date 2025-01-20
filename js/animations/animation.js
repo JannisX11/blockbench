@@ -133,8 +133,8 @@ class Animation extends AnimationItem {
 			copy.animators = {}
 			for (var uuid in this.animators) {
 				let ba = this.animators[uuid]
-				var kfs = ba.keyframes
-				if ((kfs && kfs.length) || ba.rotation_global) {
+				let kfs = ba.keyframes
+				if ((kfs && kfs.length) || ba.rotation_global || !save) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
 						type: ba.type,
@@ -1769,12 +1769,17 @@ BARS.defineActions(function() {
 					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
 					copyAnimator(temp_animators[target_uuid], target_animator);
 				}
+
+				let tempsave_current_animator = !temp_animators[animator.uuid];
+				if (tempsave_current_animator) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+				}
+
 				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
 				
 				// Reset animator
-				if (!temp_animators[animator.uuid]) {
-					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
-					copyAnimator(temp_animators[animator.uuid], animator);
+				if (tempsave_current_animator) {
 					resetAnimator(animator)
 				}
 			}
