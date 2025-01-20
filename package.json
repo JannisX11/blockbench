@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.12.1",
+	"version": "4.12.2",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -75,7 +75,6 @@
 			]
 		},
 		"win": {
-			"certificateSubjectName": "Jannis Tobias Petersen",
 			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": {
 				"target": "nsis",
