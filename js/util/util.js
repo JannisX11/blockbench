@@ -491,6 +491,21 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+function exportMolang(input) {
+	if (!input) return 0;
+	if (typeof input == 'string') {
+		if (!isNaN(input)) {
+			let num = parseFloat(input);
+			return isNaN(num) ? 0 : num;
+		} else {
+			return input.replace(/\n/g, '');
+		}
+	} else if (typeof input == 'number') {
+		return input;
+	} else {
+		return 0;
+	}
+}
 
 // HTML
 function isNodeUnderCursor(node, event) {
