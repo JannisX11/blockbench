@@ -349,14 +349,19 @@ class ReferenceImage {
 						(e2.clientX - e1.clientX) * multiplier,
 						(e2.clientY - e1.clientY) * multiplier,
 					];
-					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
+					let zoom_level = this.getZoomLevel();
+					let max_size = [
+						32 / zoom_level,
+						24 / zoom_level
+					];
+					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, max_size[0]);
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
 						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
-					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
+					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
 					if (this.layer !== 'blueprint') {
