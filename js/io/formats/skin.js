@@ -2589,6 +2589,88 @@ skin_presets.cow = {
 		]
 	}`
 };
+skin_presets.creaking = {
+	display_name: 'Creaking',
+	model: `{
+		"name": "creaking",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[6, 8, 3, 1],
+			[9, 10, 3, 1],
+			[7, 13, 3, 1]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "upperBody",
+				"parent": "root",
+				"pivot": [-1, 19, 0]
+			},
+			{
+				"name": "head",
+				"parent": "upperBody",
+				"pivot": [-4, 30, 0],
+				"cubes": [
+					{"origin": [-7, 30, -3], "size": [6, 10, 6], "uv": [0, 0]},
+					{"origin": [-7, 40, -3], "size": [6, 3, 6], "uv": [28, 31]},
+					{"origin": [-1, 29, 0], "size": [9, 14, 0], "uv": [12, 40]},
+					{"origin": [-16, 30, 0], "size": [9, 14, 0], "uv": [34, 12]}
+				]
+			},
+			{
+				"name": "body",
+				"parent": "upperBody",
+				"pivot": [-1, 26, 1],
+				"cubes": [
+					{"origin": [-1, 16, -2], "size": [6, 13, 5], "uv": [0, 16]},
+					{"origin": [-7, 23, -2], "size": [6, 7, 5], "uv": [24, 0]}
+				]
+			},
+			{
+				"name": "rightArm",
+				"parent": "upperBody",
+				"pivot": [-8, 28.5, 1.5],
+				"cubes": [
+					{"origin": [-10, 9, 0], "size": [3, 21, 3], "uv": [22, 13]},
+					{"origin": [-10, 5, 0], "size": [3, 4, 3], "uv": [46, 0]}
+				]
+			},
+			{
+				"name": "leftArm",
+				"parent": "upperBody",
+				"pivot": [5, 28, 0.5],
+				"cubes": [
+					{"origin": [5, 13, -1], "size": [3, 16, 3], "uv": [30, 40]},
+					{"origin": [5, 29, -1], "size": [3, 4, 3], "uv": [52, 12]},
+					{"origin": [5, 9, -1], "size": [3, 4, 3], "uv": [52, 19]}
+				]
+			},
+			{
+				"name": "leftLeg",
+				"parent": "root",
+				"pivot": [1.5, 16, 0.5],
+				"cubes": [
+					{"origin": [0, 0, -1], "size": [3, 16, 3], "uv": [42, 40]},
+					{"origin": [0, 0.3, -4], "size": [5, 0, 9], "uv": [45, 55]}
+				]
+			},
+			{
+				"name": "rightLeg",
+				"parent": "root",
+				"pivot": [-1, 17.5, 0.5],
+				"cubes": [
+					{"origin": [-4, 0, -1], "size": [3, 19, 3], "uv": [0, 34]},
+					{"origin": [-6, 0.3, -4], "size": [5, 0, 9], "uv": [45, 46]},
+					{"origin": [-4, 19, -1], "size": [3, 3, 3], "uv": [12, 34]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.creeper = {
 	display_name: 'Creeper',
 	model: `{
