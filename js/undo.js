@@ -854,7 +854,7 @@ UndoSystem.selectionSave = class {
 
 		unselectAllElements();
 		if (this.elements) {
-			Outliner.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]));
+			Outliner.selected.replace(this.elements.map(uuid => OutlinerNode.uuids[uuid]).filter(element => element instanceof OutlinerElement));
 		}
 		if (this.groups) {
 			for (let uuid of this.groups) {
