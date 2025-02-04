@@ -1218,6 +1218,10 @@
 	}
 
 /* Placeholders */
+	ul#placeholder_buttons {
+		max-height: 32%;
+		overflow: auto;
+	}
 	#placeholder_buttons li {
 		padding: 0px 8px;
 		height: 30px;
