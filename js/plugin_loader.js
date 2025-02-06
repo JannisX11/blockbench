@@ -33,8 +33,27 @@ const Plugins = {
 		});
 	}
 }
+
+const ENVIRONMENT_PLUGIN_FILES = []
+const ENVIRONMENT_PLUGIN_URLS = []
+if (process.env.BLOCKBENCH_INSTALLED_PLUGIN_FILES) {
+	ENVIRONMENT_PLUGIN_FILES.push(...process.env.BLOCKBENCH_INSTALLED_PLUGIN_FILES
+		.split(',')
+		.map(file => file.trim())
+	)
+}
+if (process.env.BLOCKBENCH_INSTALLED_PLUGIN_URLS) {
+	ENVIRONMENT_PLUGIN_URLS.push(...process.env.BLOCKBENCH_INSTALLED_PLUGIN_URLS
+		.split(',')
+		.map(url => url.trim())
+	)
+}
+
 StateMemory.init('installed_plugins', 'array')
-Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
+Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(
+	p => p && typeof p == 'object' && !ENVIRONMENT_PLUGIN_FILES.includes(p.path) && !ENVIRONMENT_PLUGIN_URLS.includes(p.path)
+)
+// app.console.log('Plugins.installed', Plugins.installed, ENVIRONMENT_PLUGIN_FILES, ENVIRONMENT_PLUGIN_URLS)
 
 async function runPluginFile(path, plugin_id) {
 	let file_content;
@@ -100,6 +119,11 @@ class Plugin {
 		this.disabled = false;
 		this.new_repository_format = false;
 		this.cache_version = 0;
+
+		this.from_environment = Plugins.installed.find(plugin => plugin.id === this.id)?.from_environment
+		if (this.from_environment) {
+			console.log('Loaded Local Environment Plugin:', this.id)
+		}
 
 		this.extend(data)
 
@@ -867,7 +891,6 @@ async function loadInstalledPlugins() {
 	if (Plugins.installed.length > 0) {
 		var load_counter = 0;
 		Plugins.installed.forEachReverse(function(plugin) {
-
 			if (plugin.source == 'file') {
 				//Dev Plugins
 				if (isApp && fs.existsSync(plugin.path)) {
@@ -901,7 +924,65 @@ async function loadInstalledPlugins() {
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')
-	
+
+	for (const path of ENVIRONMENT_PLUGIN_FILES) {
+		const id = PathModule.basename(path, '.js');
+		const alreadyInstalled = Plugins.installed.find(plugin => plugin.id === id)
+		if (alreadyInstalled) {
+			app.console.error(`Failed to install local environment plugin "${id}":`)
+			app.console.error(`A Plugin with the ID "${id}" already exists in the installed plugins list!`)
+			app.exit(1)
+		}
+		if (!fs.existsSync(path)) {
+			app.console.error(`Failed to install local environment plugin "${id}":`)
+			app.console.error(`The specified plugin file does not exist: "${path}"`)
+			app.exit(1)
+		}
+
+		// Remove the local plugin from the installed plugins list when Blockbench is closed.
+		Blockbench.on('before_closing', () => {
+			const plugin = Plugins.installed.find(plugin => plugin.id === id)
+			Plugins.installed.remove(plugin)
+			StateMemory.save('installed_plugins')
+			app.console.log(`Uninstalled local environment plugin "${id}"`)
+		})
+
+		app.console.log(`Loading Local Environment plugin "${id || path}" from file...`);
+		const instance = new Plugin(id);
+		install_promises.push(instance.loadFromFile({path}, false).catch(err => {
+			app.console.error(`Failed to load local environment plugin "${id || path}":`)
+			app.console.error(err)
+			app.exit(1)
+		}));
+		console.log(`🧩🏠📁 Loaded Local Environment plugin "${id || path}" from file`);
+	}
+
+	for (const url of ENVIRONMENT_PLUGIN_URLS) {
+		const id = PathModule.basename(url, '.js');
+		const alreadyInstalled = Plugins.installed.find(plugin => plugin.id === id)
+		if (alreadyInstalled) {
+			app.console.error(`Failed to install local environment plugin "${id}":`)
+			app.console.error(`A Plugin with the ID "${id}" already exists in the installed plugins list!`)
+			app.exit(1)
+		}
+
+		// Remove the local plugin from the installed plugins list when Blockbench is closed.
+		Blockbench.on('before_closing', () => {
+			const plugin = Plugins.installed.find(plugin => plugin.id === id)
+			Plugins.installed.remove(plugin)
+			StateMemory.save('installed_plugins')
+			app.console.log(`Uninstalled local environment plugin "${id}"`)
+		})
+
+		app.console.log(`Loading Local Environment plugin "${id || url}" from URL...`);
+		const instance = new Plugin(id);
+		install_promises.push(instance.loadFromURL(url, false).catch(err => {
+			app.console.error(`Failed to load local environment plugin "${id || url}":`)
+			app.console.error(err)
+			app.exit(1)
+		}));
+		console.log(`🧩🏠🌐 Loaded Local Environment plugin "${id || url}" from URL`);
+	}
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);

@@ -5,23 +5,19 @@ const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const {getColorHexRGB} = require('electron-color-picker')
 require('@electron/remote/main').initialize()
+const cli = require('./js/cli')
 
 let orig_win;
 let all_wins = [];
 let load_project_data;
 
-(() => {
-	// Allow advanced users to specify a custom userData directory.
-	// Useful for portable installations, and for setting up development environments.
-	const index = process.argv.findIndex(arg => arg === '--userData');
-	if (index !== -1) {
-		if (!process.argv.at(index + 1)) {
-			console.error('No path specified after --userData')
-			process.exit(1)
-		}
-		app.setPath('userData', process.argv[index + 1]);
-	}
+;(() => {
+	// Creates a console object that prints to the terminal BB is launched from instead of the dev tools
+	const console = require('console')
+	app.console = new console.Console(process.stdout, process.stderr)
 })()
+
+cli()
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
@@ -156,7 +152,6 @@ function createWindow(second_instance, options = {}) {
 	
 	if (options.maximize !== false) win.maximize()
 	win.show()
-
 	win.loadURL(url.format({
 		pathname: index_path,
 		protocol: 'file:',
@@ -276,6 +271,10 @@ app.on('ready', () => {
 
 			console.log('[Blockbench] App launched in development mode')
 	
+		} else if (process.env.BLOCKBENCH_AUTO_UPDATE === 'DISABLED') {
+
+			console.log('[Blockbench] App launched with auto update disabled')
+
 		} else {
 	
 			autoUpdater.autoInstallOnAppQuit = true;

@@ -156,6 +156,7 @@ localStorage.setItem('last_version', Blockbench.version);
 			loadInfoFromURL();
 		}
 		proceeded = true;
+		Blockbench.dispatchEvent('all_plugins_loaded')
 	}
 	loadInstalledPlugins().then(proceed);
 	setTimeout(proceed, 1200);
