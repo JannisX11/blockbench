@@ -338,6 +338,14 @@ const Blockbench = {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
+	},
+	/**
+	 * Logs output to the terminal Blockbench was started from with a fancy Blockbench prefix
+	 * 
+	 * If the first argument is 'NO_PREFIX', the output won't include the "[Blockbench]" prefix
+	 */
+	log(...args) {
+		app.console.log(...args)
 	}
 };
 

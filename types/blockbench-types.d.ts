@@ -19,5 +19,9 @@ declare namespace NodeJS {
 		 * A comma-separated list of plugin URLs
 		 */
 		BLOCKBENCH_PLUGIN_URLS?: string
+		/**
+		 * Whether or not to open the dev tools on startup
+		 */
+		BLOCKBENCH_OPEN_DEV_TOOLS?: 'TRUE' | 'FALSE'
 	}
 }

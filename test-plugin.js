@@ -1,8 +1,17 @@
 
 //FIXME - This file should be deleted before the PR is merged!
 (() => {
-	console.log('Hello, World!')
 	Blockbench.on('all_plugins_loaded', () => {
-		console.log('All plugins loaded!')
+		Blockbench.log('All plugins loaded!')
+	})
+	const plugin = BBPlugin.register('test-plugin', {
+		name: 'Test Plugin',
+		icon: 'extension',
+		description: 'A test plugin',
+		author: 'SnaveSutit',
+		onload() {
+			debugger
+			plugin.log('Test Plugin registered!')
+		}
 	})
 })()

@@ -687,6 +687,16 @@ class Plugin {
 		}
 		return this.details;
 	}
+
+	/**
+	 * Logs output to the terminal Blockbench was started from with a fancy plugin-specific prefix
+	 * @example
+	 * myPlugin.log('Hello World!')
+	 * /// [Blockbench] <my-plugin> Hello World!
+	 */
+	log(...args) {
+		Blockbench.log(`\x1b[90m<\x1b[34m${this.id}\x1b[90m>\x1b[0m`, ...args)
+	}
 }
 Plugin.prototype.menu = new Menu([
 	new MenuSeparator('installation'),

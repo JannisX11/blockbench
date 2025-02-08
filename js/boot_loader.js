@@ -166,4 +166,8 @@ setStartScreen(true);
 
 document.getElementById('page_wrapper').classList.remove('invisible');
 
+if (process.env.BLOCKBENCH_OPEN_DEV_TOOLS === 'TRUE') {
+	electron.getCurrentWindow().openDevTools()
+}
+
 Blockbench.setup_successful = true;
