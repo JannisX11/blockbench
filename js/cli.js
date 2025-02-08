@@ -5,9 +5,13 @@ const pathjs = require('path')
 
 const program = new Command()
 
-program.name('blockbench').description(PACKAGE.description).version(PACKAGE.version).exitOverride()
+program.name('blockbench').description(PACKAGE.description).exitOverride()
 
 program
+	.option('--version', 'output the version number', () => {
+		console.log(PACKAGE.version)
+		process.exit(0)
+	})
 	.option('--userData <path>', 'change the folder Blockbench uses to store user data')
 	.option('--no-auto-update', 'disables auto update')
 	.option('--with-plugin-files <paths...>', 'install plugins from the given paths')
