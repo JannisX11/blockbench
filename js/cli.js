@@ -8,7 +8,7 @@ const program = new Command()
 program.name('blockbench').description(PACKAGE.description).exitOverride()
 
 program
-	.option('--version', 'output the version number', () => {
+	.option('-v, --version', 'output the version number', () => {
 		console.log(PACKAGE.version)
 		process.exit(0)
 	})
