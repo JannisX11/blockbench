@@ -26,11 +26,24 @@ let load_project_data;
 		if (args[0] === 'NO_PREFIX') {
 			args.shift()
 		} else {
-			args.splice(0, 0, '\x1b[90m[\x1b[34mBlockbench\x1b[90m]\x1b[0m')
+			const date = new Date()
+			args.splice(0, 0, `\x1b[90m[\x1b[30m${
+				date.toLocaleString('en-US', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: 'numeric',
+					minute: 'numeric',
+					second: 'numeric',
+					hour12: false,
+				}).replace(', ', ' ')
+			}\x1b[90m] [\x1b[34mBlockbench\x1b[90m]\x1b[0m`)
 		}
 		return Console.prototype.log.apply(app.terminal, args)
 	}
 })()
+
+app.terminal.log('Launching ...')
 
 cli()
 
