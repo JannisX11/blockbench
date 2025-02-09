@@ -27,5 +27,9 @@ declare namespace NodeJS {
 		 * Whether or not to remove all installed plugins on startup
 		 */
 		BLOCKBENCH_CLEAN_INSTALLED_PLUGINS?: 'TRUE' | 'FALSE'
+		/**
+		 * Whether or not to hide the Blockbench window
+		 */
+		BLOCKBENCH_HIDDEN?: 'TRUE' | 'FALSE'
 	}
 }

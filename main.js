@@ -177,9 +177,10 @@ function createWindow(second_instance, options = {}) {
 	} else {
 		win.setMenu(null);
 	}
-	
-	if (options.maximize !== false) win.maximize()
-	win.show()
+	if (process.env.BLOCKBENCH_HIDDEN === 'FALSE') {
+		if (options.maximize !== false) win.maximize()
+		win.show()
+	}
 	win.loadURL(url.format({
 		pathname: index_path,
 		protocol: 'file:',

@@ -18,6 +18,7 @@ program
 	.option('--install-plugins <ids...>', 'install plugins by ID from the Blockbench plugin repository on startup')
 	.option('--clean-installed-plugins', 'remove all installed plugins on startup')
 	.option('--open-dev-tools', 'open the developer tools on startup')
+	.option('--hidden', 'hide the main window')
 	// Custom Error Handling
 	.exitOverride(error => {
 		switch (error.code) {
@@ -78,6 +79,7 @@ function affirmEnvironmentVariables() {
 	process.env.BLOCKBENCH_INSTALL_PLUGINS ??= ''
 	process.env.BLOCKBENCH_OPEN_DEV_TOOLS ??= 'FALSE'
 	process.env.BLOCKBENCH_USER_DATA ??= app.getPath('userData')
+	process.env.BLOCKBENCH_HIDDEN ??= 'FALSE'
 }
 
 function parseCLI() {
@@ -92,7 +94,8 @@ function parseCLI() {
 		installCustomPlugins,
 		installPlugins,
 		openDevTools,
-		cleanInstalledPlugins
+		cleanInstalledPlugins,
+		hidden,
 	} = program.opts()
 
 	// --no-auto-update
@@ -125,6 +128,10 @@ function parseCLI() {
 	// --open-dev-tools
 	if (openDevTools) {
 		process.env.BLOCKBENCH_OPEN_DEV_TOOLS = 'TRUE'
+	}
+	// --hidden
+	if (hidden) {
+		process.env.BLOCKBENCH_HIDDEN = 'TRUE'
 	}
 }
 
