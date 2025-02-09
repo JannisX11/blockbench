@@ -803,7 +803,7 @@ UndoSystem.selectionSave = class {
 			if (element instanceof Mesh) {
 				this.geometry[element.uuid] = {
 					faces: element.getSelectedFaces().slice(),
-					edges: element.getSelectedEdges().slice(),
+					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
 			} else if (element instanceof Cube && !element.box_uv) {
