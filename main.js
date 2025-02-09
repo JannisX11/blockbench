@@ -43,9 +43,9 @@ let load_project_data;
 	}
 })()
 
-app.terminal.log('Launching ...')
-
 cli()
+
+app.terminal.log('Blockbench starting...')
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
