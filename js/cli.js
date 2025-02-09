@@ -10,12 +10,13 @@ program.name('blockbench').description(PACKAGE.description)
 program
 	.option('-v, --version', 'output the version number', () => {
 		app.terminal.log('NO_PREFIX', PACKAGE.version)
-		process.exit(0)
+		app.exit(0)
 	})
 	.option('--userData <path>', 'change the folder Blockbench uses to store user data')
 	.option('--no-auto-update', 'disables auto update')
-	.option('--with-plugin-files <paths...>', 'install plugins from the given paths on startup')
-	.option('--with-plugin-urls <urls...>', 'install plugins from the given URLs on startup')
+	.option('--install-custom-plugins <paths...>', 'install plugins from the given paths or URLS on startup')
+	.option('--install-plugins <ids...>', 'install plugins by ID from the Blockbench plugin repository on startup')
+	.option('--clean-installed-plugins', 'remove all installed plugins on startup')
 	.option('--open-dev-tools', 'open the developer tools on startup')
 	// Custom Error Handling
 	.exitOverride(error => {
@@ -23,15 +24,15 @@ program
 			case 'commander.help':
 			case 'commander.helpDisplayed':
 			case 'commander.version':
-				process.exit(0)
+				app.exit(0)
 			case 'commander.unknownOption':
 			case 'commander.excessArguments':
 				// Uses ANSI escape codes to clear the previous line and print a warning message.
 				app.terminal.log('NO_PREFIX', '\x1b[1A\x1b[2K\x1b[33mUse --help to see available options\x1b[0m')
-				process.exit(1)
+				app.exit(1)
 			default:
 				app.terminal.error('\x1b[2;31m%s\x1b[0m', error)
-				process.exit(1)
+				app.exit(1)
 		}
 	})
 	.configureOutput({
@@ -72,10 +73,11 @@ program
  */
 function affirmEnvironmentVariables() {
 	process.env.BLOCKBENCH_AUTO_UPDATE ??= 'ENABLED'
-	process.env.BLOCKBENCH_USER_DATA ??= app.getPath('userData')
-	process.env.BLOCKBENCH_INSTALLED_PLUGIN_FILES ??= ''
-	process.env.BLOCKBENCH_INSTALLED_PLUGIN_URLS ??= ''
+	process.env.BLOCKBENCH_CLEAN_INSTALLED_PLUGINS ??= 'FALSE'
+	process.env.BLOCKBENCH_INSTALL_CUSTOM_PLUGINS ??= ''
+	process.env.BLOCKBENCH_INSTALL_PLUGINS ??= ''
 	process.env.BLOCKBENCH_OPEN_DEV_TOOLS ??= 'FALSE'
+	process.env.BLOCKBENCH_USER_DATA ??= app.getPath('userData')
 }
 
 function parseCLI() {
@@ -84,7 +86,14 @@ function parseCLI() {
 	/**
 	 * @type {{ userData?: string, autoUpdate?: boolean, withPluginFiles?: string[], withPluginUrls?: string[] }}
 	 */
-	let { userData, autoUpdate, withPluginFiles, withPluginUrls, openDevTools } = program.opts()
+	let {
+		userData,
+		autoUpdate,
+		installCustomPlugins,
+		installPlugins,
+		openDevTools,
+		cleanInstalledPlugins
+	} = program.opts()
 
 	// --no-auto-update
 	if (autoUpdate === false) {
@@ -101,13 +110,17 @@ function parseCLI() {
 	}
 	app.setPath('userData', process.env.BLOCKBENCH_USER_DATA)
 
-	// --with-plugin-files
-	if (withPluginFiles?.length > 0) {
-		process.env.BLOCKBENCH_INSTALLED_PLUGIN_FILES = withPluginFiles.join(',')
+	// --clean-installed-plugins
+	if (cleanInstalledPlugins) {
+		process.env.BLOCKBENCH_CLEAN_INSTALLED_PLUGINS = 'TRUE'
 	}
-	// --with-plugin-urls
-	if (withPluginUrls?.length > 0) {
-		process.env.BLOCKBENCH_INSTALLED_PLUGIN_URLS = withPluginUrls.join(',')
+	// --install-custom-plugins
+	if (installCustomPlugins?.length > 0) {
+		process.env.BLOCKBENCH_INSTALL_CUSTOM_PLUGINS = installCustomPlugins.join(',')
+	}
+	// --install-plugins
+	if (installPlugins?.length > 0) {
+		process.env.BLOCKBENCH_INSTALL_PLUGINS = installPlugins.join(',')
 	}
 	// --open-dev-tools
 	if (openDevTools) {

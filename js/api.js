@@ -345,7 +345,7 @@ const Blockbench = {
 	 * If the first argument is 'NO_PREFIX', the output won't include the "[Blockbench]" prefix
 	 */
 	log(...args) {
-		app.console.log(...args)
+		app.terminal.log(...args)
 	}
 };
 

@@ -4,14 +4,16 @@
 	Blockbench.on('all_plugins_loaded', () => {
 		Blockbench.log('All plugins loaded!')
 	})
-	const plugin = BBPlugin.register('test-plugin', {
+	BBPlugin.register('test-plugin', {
 		name: 'Test Plugin',
 		icon: 'extension',
 		description: 'A test plugin',
 		author: 'SnaveSutit',
 		onload() {
-			debugger
-			plugin.log('Test Plugin registered!')
+			this.log('Test Plugin loaded!')
+		},
+		onunload() {
+			this.log('Test Plugin unloaded!')
 		}
 	})
 })()

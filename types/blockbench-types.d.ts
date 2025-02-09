@@ -12,16 +12,20 @@ declare namespace NodeJS {
 		 */
 		BLOCKBENCH_USER_DATA?: string
 		/**
-		 * A comma-separated list of plugin file paths
+		 * A comma-separated list of plugin file paths or URLs to install
 		 */
-		BLOCKBENCH_PLUGIN_FILES?: string
+		BLOCKBENCH_INSTALL_CUSTOM_PLUGINS?: string
 		/**
-		 * A comma-separated list of plugin URLs
+		 * A comma-separated list of plugin IDs to install from the Blockbench plugin repository
 		 */
-		BLOCKBENCH_PLUGIN_URLS?: string
+		BLOCKBENCH_INSTALL_PLUGINS?: string
 		/**
 		 * Whether or not to open the dev tools on startup
 		 */
 		BLOCKBENCH_OPEN_DEV_TOOLS?: 'TRUE' | 'FALSE'
+		/**
+		 * Whether or not to remove all installed plugins on startup
+		 */
+		BLOCKBENCH_CLEAN_INSTALLED_PLUGINS?: 'TRUE' | 'FALSE'
 	}
 }
