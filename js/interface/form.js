@@ -348,8 +348,9 @@ class InputForm extends EventSystem {
 							linked_ratio_toggle.addEventListener('click', event => {
 								data.linked_ratio = !data.linked_ratio;
 								if (data.linked_ratio) {
-									updateInputs(vector_inputs[0]);
-									scope.updateValues();
+									initial_value = vector_inputs.map(v => v.value);
+									// updateInputs(vector_inputs[0]);
+									// scope.updateValues();
 								}
 								updateState();
 							})
