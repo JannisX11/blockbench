@@ -1051,6 +1051,7 @@ function getFormatVersion() {
 		}
 	}
 	for (let cube of Cube.all) {
+		if (cube.box_uv) continue;
 		for (let fkey in cube.faces) {
 			if (cube.faces[fkey].rotation) return '1.21.0';
 		}
