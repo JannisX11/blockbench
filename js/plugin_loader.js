@@ -52,12 +52,12 @@ if (process.env.BLOCKBENCH_INSTALL_PLUGINS) {
 StateMemory.init('installed_plugins', 'array')
 
 if (process.env.BLOCKBENCH_CLEAN_INSTALLED_PLUGINS === 'TRUE') {
+	app.terminal.log('--clean-installed-plugins: Clearing installed plugins')
+	Plugins.installed = StateMemory.installed_plugins = []
+} else {
 	Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(
 		p => p && typeof p == 'object' && !ENVIRONMENT_CUSTOM_PLUGINS.includes(p.path) && !ENVIRONMENT_PLUGINS.includes(p.id)
 	)
-} else {
-	app.terminal.log('--clean-installed-plugins: Clearing installed plugins')
-	Plugins.installed = StateMemory.installed_plugins = []
 }
 
 async function runPluginFile(path, plugin_id) {
