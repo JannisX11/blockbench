@@ -956,20 +956,20 @@ async function loadInstalledPlugins() {
 		})
 
 		if (pathType === 'URL') {
-			app.terminal.log(`Installing Environment plugin "${id || url}" from URL...`);
+			app.terminal.log(`Installing Environment plugin "${id || path}" from URL...`);
 			if (!(Plugins.json instanceof Object && navigator.onLine)) {
 				app.terminal.error(`Failed to install Environment plugins:`)
 				app.terminal.error(`Blockbench cannot install plugins by URL when offline.`)
 				app.exit(1)
 			}
 			const instance = new Plugin(id);
-			install_promises.push(instance.loadFromURL(url, false)
+			install_promises.push(instance.loadFromURL(path, false)
 				.then(() => {
-					app.terminal.log(`Loaded Environment plugin "${id || url}" from URL`);
-					console.log(`🧩🏠🌐 Loaded Environment plugin "${id || url}" from URL`);
+					app.terminal.log(`Loaded Environment plugin "${id || path}" from URL`);
+					console.log(`🧩🏠🌐 Loaded Environment plugin "${id || path}" from URL`);
 				})
 				.catch(err => {
-					app.terminal.error(`Failed to load Environment plugin "${id || url}":`)
+					app.terminal.error(`Failed to load Environment plugin "${id || path}":`)
 					app.terminal.error(err)
 					app.exit(1)
 				})
