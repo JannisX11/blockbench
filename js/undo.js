@@ -77,7 +77,7 @@ class UndoSystem {
 		return entry;
 	}
 	initSelection(aspects) {
-		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save')) return;
+		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save') || Project.EditSession) return;
 
 		if (this.current_selection_save) return;
 		this.current_selection_save = new UndoSystem.selectionSave(aspects);
@@ -85,7 +85,7 @@ class UndoSystem {
 		return this.current_selection_save;
 	}
 	finishSelection(message, aspects) {
-		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save')) return;
+		if (!settings.undo_selections.value || Blockbench.hasFlag('loading_selection_save') || Project.EditSession) return;
 
 		if (!this.current_selection_save) return;
 		aspects = aspects || this.current_selection_save.aspects;
@@ -198,8 +198,8 @@ class UndoSystem {
 		if (entry.selection_before instanceof UndoSystem.selectionSave) {
 			entry.selection_before.load(entry.selection_post);
 		}
-		if (Project.EditSession && remote !== true) {
-			Project.EditSession.sendAll('command', 'undo')
+		if (Project.EditSession && remote !== true && entry.type != 'selection') {
+			Project.EditSession.sendAll('command', 'undo');
 		}
 		Blockbench.dispatchEvent('undo', {entry})
 	}
@@ -219,8 +219,8 @@ class UndoSystem {
 		if (entry.selection_post instanceof UndoSystem.selectionSave) {
 			entry.selection_post.load(entry.selection_before);
 		}
-		if (Project.EditSession && remote !== true) {
-			Project.EditSession.sendAll('command', 'redo')
+		if (Project.EditSession && remote !== true && entry.type != 'selection') {
+			Project.EditSession.sendAll('command', 'redo');
 		}
 		Blockbench.dispatchEvent('redo', {entry})
 	}
