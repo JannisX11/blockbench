@@ -192,8 +192,12 @@ class UndoSystem {
 		this.index--;
 
 		var entry = this.history[this.index];
-		if (entry.before) entry.before.load(entry.post);
-		if (entry.selection_before) entry.selection_before.load(entry.selection_post);
+		if (entry.before) {
+			this.loadSave(entry.before, entry.post);
+		}
+		if (entry.selection_before instanceof UndoSystem.selectionSave) {
+			entry.selection_before.load(entry.selection_post);
+		}
 		if (Project.EditSession && remote !== true) {
 			Project.EditSession.sendAll('command', 'undo')
 		}
@@ -209,15 +213,19 @@ class UndoSystem {
 
 		var entry = this.history[this.index]
 		this.index++;
-		if (entry.post) entry.post.load(entry.before);
-		if (entry.selection_post) entry.selection_post.load(entry.selection_before);
+		if (entry.post) {
+			this.loadSave(entry.post, entry.before);
+		}
+		if (entry.selection_post instanceof UndoSystem.selectionSave) {
+			entry.selection_post.load(entry.selection_before);
+		}
 		if (Project.EditSession && remote !== true) {
 			Project.EditSession.sendAll('command', 'redo')
 		}
 		Blockbench.dispatchEvent('redo', {entry})
 	}
 	remoteEdit(entry) {
-		this.loadSave(entry.post, entry.before, 'session')
+		this.loadSave(entry.post, entry.before, 'session');
 
 		if (entry.save_history !== false) {
 			delete this.current_save;
@@ -242,12 +250,23 @@ class UndoSystem {
 		return false;
 	}
 	loadSave(save, reference, mode) {
+		if (save instanceof UndoSystem.save == false) {
+			save = new UndoSystem.save().fromJSON(save);
+		}
 		save.load(reference, mode);
 	}
 }
 UndoSystem.save = class {
 	constructor(aspects) {
-
+		if (aspects) {
+			this.fromState(aspects);
+		}
+	}
+	fromJSON(data) {
+		Object.assign(this, data);
+		return this;
+	}
+	fromState(aspects) {
 		var scope = this;
 		this.aspects = aspects;
 
@@ -380,6 +399,7 @@ UndoSystem.save = class {
 		}
 
 		Blockbench.dispatchEvent('create_undo_save', {save: this, aspects})
+		return this;
 	}
 	load(reference, mode) {
 		let is_session = mode === 'session';
