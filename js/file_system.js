@@ -310,7 +310,13 @@ Object.assign(Blockbench, {
 					saveAs(blob, file_name)
 
 				} else {
-					var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
+					let type = 'text/plain;charset=utf-8';
+					if (file_name.endsWith('json')) {
+						type = 'application/json;charset=utf-8';
+					} else if (file_name.endsWith('bbmodel')) {
+						type = 'model/vnd.blockbench.bbmodel';
+					}
+					var blob = new Blob([options.content], {type});
 					saveAs(blob, file_name, {autoBOM: true})
 				}
 
