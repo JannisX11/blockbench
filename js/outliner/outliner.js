@@ -886,6 +886,9 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 				}
 			} else {
 				item.preview_controller.updateTransform(item);
+				if (Format.per_group_texture && item.preview_controller.updateFaces) {
+					item.preview_controller.updateFaces(item);
+				}
 			}
 		}
 	}
