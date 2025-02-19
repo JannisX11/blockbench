@@ -2307,7 +2307,7 @@
 	"edit.vertex_snap.align.longest": "最长轴",
 	"edit.vertex_snap.align.direction": "Direction from Pivot",
 	"edit.vertex_snap.align.align_axis": "轴 %0",
-	"edit.vertex_snap.ignore_axis": "忽略 %0 轴",
+	"edit.vertex_snap.ignore_axis": "忽略 轴",
 	"codec.common.format": "格式",
 	"codec.image.quality": "品质",
 	"panel.collections": "集合",

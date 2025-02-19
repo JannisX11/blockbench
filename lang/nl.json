@@ -2307,7 +2307,7 @@
 	"edit.vertex_snap.align.longest": "Longest Axis",
 	"edit.vertex_snap.align.direction": "Direction from Pivot",
 	"edit.vertex_snap.align.align_axis": "%0 Axis",
-	"edit.vertex_snap.ignore_axis": "Ignore %0 Axis",
+	"edit.vertex_snap.ignore_axis": "Ignore Axis",
 	"codec.common.format": "Format",
 	"codec.image.quality": "Quality",
 	"panel.collections": "Collections",

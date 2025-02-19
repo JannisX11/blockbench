@@ -2307,7 +2307,7 @@
 	"edit.vertex_snap.align.longest": "Längste Achse",
 	"edit.vertex_snap.align.direction": "Richtung vom Angelpunkt",
 	"edit.vertex_snap.align.align_axis": "%0-Achse",
-	"edit.vertex_snap.ignore_axis": "%0-Achse ignorieren",
+	"edit.vertex_snap.ignore_axis": "Achse ignorieren",
 	"codec.common.format": "Format",
 	"codec.image.quality": "Qualität",
 	"panel.collections": "Sammlungen",
