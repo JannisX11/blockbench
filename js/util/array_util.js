@@ -111,6 +111,7 @@ Object.defineProperty(Array.prototype, "equals", {enumerable: false});
 //Array Vector
 Array.prototype.V3_set = function(x, y, z) {
 	if (x instanceof Array) return this.V3_set(...x);
+	if (x instanceof THREE.Vector3) return this.V3_set(x.x, x.y, x.z);
 	if (y === undefined && z === undefined) z = y = x;
 	this[0] = parseFloat(x)||0;
 	this[1] = parseFloat(y)||0;

@@ -854,7 +854,9 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 		Outliner.root.forEach(node => {
 			if (node instanceof Group) {
 				node.forEachChild(child => {
-					if (child.selected && !child.parent.selected) items.push(child);
+					if (child.selected && !child.parent.selected && !target.isChildOf?.(child)) {
+						items.push(child);
+					}
 				}, null, true);
 			} else if (node.selected) {
 				items.push(node);
@@ -884,6 +886,9 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 				}
 			} else {
 				item.preview_controller.updateTransform(item);
+				if (Format.per_group_texture && item.preview_controller.updateFaces) {
+					item.preview_controller.updateFaces(item);
+				}
 			}
 		}
 	}

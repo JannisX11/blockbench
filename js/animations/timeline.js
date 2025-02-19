@@ -931,7 +931,7 @@ Interface.definePanels(() => {
 
 					let padding = 16;
 					let min_size = 2.4;
-					let unit_size = Math.clamp(max-min, min_size, 1e4);
+					let unit_size = Math.clamp(max-min, min_size, Timeline.graph_editor_limit);
 					this.graph_size = (clientHeight - 2*padding) / unit_size;
 					let blend = Math.clamp(1 - (max-min) / min_size, 0, 1)
 					this.graph_offset = clientHeight - padding + (this.graph_size * (min - unit_size/2 * blend ) );

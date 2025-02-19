@@ -25,8 +25,7 @@ class Collection {
 		if (Modes.animate && Animation.selected && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
 			Timeline.animators.empty();
 		}
-		for (let uuid of this.children) {
-			let node = OutlinerNode.uuids[uuid];
+		for (let node of this.getChildren()) {
 			if (Modes.animate && Animation.selected) {
 				if (node.constructor.animator) {
 					let animator = Animation.selected.getBoneAnimator(node);
