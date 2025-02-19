@@ -1,9 +1,9 @@
 # Blockbench
 
-Blockbench is a free, modern model editor for low-poly and boxy models with pixel art textures.
+Blockbench is a free and open source model editor for low-poly models with pixel art textures.
 Models can be exported into standardized formats, to be shared, rendered, 3D-printed, or used in game engines. There are also multiple dedicated formats for Minecraft Java and Bedrock Edition with format-specific features. 
 
-Blockbench features a modern and intuitive UI, plugin support and innovative features. It is the industry standard for creating custom 3D models for the Minecraft Marketplace.
+Blockbench features a modern and beginner friendly interface, but also offers lots of customization and advanced features for experienced 3D artists. Plugins can extend the functionality of the program even further.
 
 Website and download: [blockbench.net](https://www.blockbench.net)
 
@@ -27,6 +27,8 @@ To launch Blockbench from source, you can clone the repository, navigate to the 
 * Install [NodeJS](https://nodejs.org/en/).
 * Then install all dependencies via
 `npm install`
+* Bundle the code via
+`npm run bundle`
 * Finally, launch Blockbench using
 `npm run dev`
 
@@ -34,7 +36,7 @@ To launch Blockbench from source, you can clone the repository, navigate to the 
 
 ## Plugins
 
-Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/api/index](https://www.blockbench.net/wiki/api/index).
+Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/docs/plugin](https://www.blockbench.net/wiki/docs/plugin).
 
 
 

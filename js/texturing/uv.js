@@ -4225,7 +4225,15 @@ Interface.definePanels(function() {
 				startInputMaterialInstance(event) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 				},
-				endInputMaterialInstance(event) {
+				endInputMaterialInstance(event, fkey) {
+					let value = this.mappable_elements[0]?.faces[fkey]?.material_name;
+					if (typeof value == 'string') {
+						for (let element of this.mappable_elements) {
+							if (element.faces[fkey]) {
+								element.faces[fkey].material_name = value;
+							}
+						}
+					}
 					Undo.finishEdit('Change material instances');
 				},
 				showInfoBox(title, text) {
@@ -4329,7 +4337,7 @@ Interface.definePanels(function() {
 										title="${tl('uv_editor.face_properties.material_instance')}"
 										v-model="mappable_elements[0].faces[key].material_name"
 										@focus="startInputMaterialInstance($event)"
-										@focusout="endInputMaterialInstance($event)"
+										@focusout="endInputMaterialInstance($event, key)"
 									>
 								</template>
 							</li>

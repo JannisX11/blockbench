@@ -2208,9 +2208,9 @@ BARS.defineActions(function() {
 				Mesh.selected.forEach(mesh => {
 					let original_vertices = mesh.getSelectedVertices().slice();
 					let selected_edges = mesh.getSelectedEdges(true);
+					let selected_face_keys = mesh.getSelectedFaces();
 					let new_vertices;
 					let new_face_keys = [];
-					let selected_face_keys = mesh.getSelectedFaces();
 					if (original_vertices.length && (BarItems.selection_mode.value == 'vertex' || BarItems.selection_mode.value == 'edge')) {
 						selected_face_keys.empty();
 					}
@@ -2379,13 +2379,13 @@ BARS.defineActions(function() {
 						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
 
-					// Create Face between extruded edges
+					// Create Faces for extruded edges
 					let new_faces = [];
 					selected_edges.forEach(edge => {
 						let face, sorted_vertices;
 						for (let fkey in mesh.faces) {
 							let face2 = mesh.faces[fkey];
-							let vertices = face2.getSortedVertices();
+							let vertices = face2.vertices;
 							if (vertices.includes(edge[0]) && vertices.includes(edge[1])) {
 								face = face2;
 								sorted_vertices = vertices;
@@ -2400,6 +2400,9 @@ BARS.defineActions(function() {
 						let new_face = new MeshFace(mesh, face).extend({
 							vertices: [a, b, c, d]
 						});
+						if (new_face.getAngleTo(face) > 90) {
+							new_face.invert();
+						}
 						let [face_key] = mesh.addFaces(new_face);
 						new_face_keys.push(face_key);
 						new_faces.push(new_face);

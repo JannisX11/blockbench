@@ -296,8 +296,14 @@ const MirrorModeling = {
 					[new_face_key] = mesh.addFaces(new_face);
 				}
 			}
-
 		}
+		let selected_vertices = mesh.getSelectedVertices(true);
+		selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
+		let selected_edges = mesh.getSelectedEdges(true);
+		selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
+		let selected_faces = mesh.getSelectedFaces(true);
+		selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+
 		let {preview_controller} = mesh;
 		preview_controller.updateGeometry(mesh);
 		preview_controller.updateFaces(mesh);

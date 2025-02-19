@@ -332,15 +332,11 @@ var codec = new Codec('project', {
 		if (options.raw) {
 			return model;
 		} else if (options.compressed) {
-			var json_string = JSON.stringify(model);
+			var json_string = compileJSON(model, {small: true});
 			var compressed = '<lz>'+LZUTF8.compress(json_string, {outputEncoding: 'StorageBinaryString'});
 			return compressed;
 		} else {
-			if (Settings.get('minify_bbmodel') || options.minify) {
-				return JSON.stringify(model);
-			} else {
-				return compileJSON(model);
-			}
+			return compileJSON(model, {small: Settings.get('minify_bbmodel') || options.minify});
 		}
 	},
 	parse(model, path) {

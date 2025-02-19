@@ -2238,7 +2238,7 @@
 	"settings.classroom_mode": "クラスルームモード",
 	"settings.classroom_mode.desc": "Restricts functionality such as installing plugins and removes links to social media",
 	"settings.antialiasing_bleed_fix": "Fix anti-aliasing bleeding",
-	"settings.antialiasing_bleed_fix.desc": "Fixes texture bleeding when using anti-aliasing",
+	"settings.antialiasing_bleed_fix.desc": "Fixes texture bleeding when using anti-aliasing. Potentially unsupported on older hardware.",
 	"settings.tone_mapping": "トーンマッピング",
 	"settings.tone_mapping.desc": "PBR レンダリングにハイダイナミックレンジを表示します。",
 	"settings.audio_scrubbing": "Timline Scrubbing Audio",
@@ -2320,5 +2320,5 @@
 	"settings.selection_tolerance": "Selection Tolerance",
 	"settings.selection_tolerance.desc": "Size of the area that can be clicked to select an edge or vertex",
 	"action.delete.keep_vertices": "Keep Edges/Vertices",
-	"menu.mesh": "Mesh"
+	"menu.mesh": "メッシュ"
 }

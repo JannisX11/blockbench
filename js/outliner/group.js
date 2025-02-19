@@ -563,7 +563,7 @@ new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');

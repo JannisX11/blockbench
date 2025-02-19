@@ -2209,6 +2209,7 @@ BARS.defineActions(function() {
 			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.find(tg => tg.is_material))},
 		},
 		onChange() {
+			let previous_view_mode = Project.view_mode;
 			Project.view_mode = this.value;
 			Canvas.updateViewMode();
 			if (Modes.id === 'animate') {
@@ -2221,6 +2222,9 @@ BARS.defineActions(function() {
 					if (icon_node) icon_node.replaceWith(icon);
 				}
 			})
+			if (Project.view_mode != previous_view_mode) {
+				Blockbench.dispatchEvent('change_view_mode', {view_mode: Project.view_mode, previous_view_mode});
+			}
 			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})

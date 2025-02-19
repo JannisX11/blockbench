@@ -1136,6 +1136,10 @@ new NodePreviewController(Mesh, {
 
 		Mesh.preview_controller.updatePixelGrid(element);
 
+		if (Project.view_mode == 'wireframe' && this.fixWireframe) {
+			this.fixWireframe(element);
+		}
+
 		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
@@ -1447,5 +1451,20 @@ new NodePreviewController(Mesh, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element});
+	},
+	fixWireframe(element) {
+		let geometry_orig = element.mesh.geometry;
+		if (!geometry_orig) return;
+		let geometry_clone = element.mesh.geometry.clone();
+		element.mesh.geometry = geometry_clone;
+		geometry_orig.dispose();
 	}
 })
+
+Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
+	if (view_mode == 'wireframe') {
+		for (let mesh of Mesh.selected) {
+			Mesh.preview_controller.fixWireframe(mesh);
+		}
+	}
+});

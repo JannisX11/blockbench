@@ -687,6 +687,7 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	}
 	save() {
 		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.options));
+		return this;
 	}
 	changeOptions(options) {
 		for (let key in options) {
@@ -696,6 +697,7 @@ window.ToolConfig = class ToolConfig extends Dialog {
 			this.form.setValues(options);
 		}
 		this.save();
+		return this;
 	}
 	close(button, event) {
 		this.save();
@@ -712,6 +714,7 @@ window.ToolConfig = class ToolConfig extends Dialog {
 			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
 			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30)) + 'px';
 		}
+		return this;
 	}
 	build() {
 		if (this.object) this.object.remove();
