@@ -19,6 +19,7 @@ class ModelFormat {
 		this.show_in_new_list = true;
 		this.can_convert_to = true;
 		this.confidential = false;
+		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -64,7 +65,7 @@ class ModelFormat {
 			scene.position.set(0, 0, 0);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
 		} else {
-			scene.position.set(-8, -8, -8);
+			scene.position.set(-8, 0, -8);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
 		PreviewModel.getActiveModels().forEach(model => {
@@ -82,8 +83,8 @@ class ModelFormat {
 		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		Modes.vue.$forceUpdate()
-		updateInterfacePanels()
+		if (Modes.vue) Modes.vue.$forceUpdate();
+		updateInterfacePanels();
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
@@ -111,6 +112,20 @@ class ModelFormat {
 			Project.box_uv = this.box_uv;
 			Cube.all.forEach(cube => {
 				cube.setUVMode(this.box_uv);
+			})
+		}
+
+		if (!Format.per_texture_uv_size && old_format.per_texture_uv_size) {
+			let tex = Texture.getDefault();
+			if (tex) {
+				Project.texture_width = tex.uv_width;
+				Project.texture_height = tex.uv_height;
+			}
+		}
+		if (Format.per_texture_uv_size && !old_format.per_texture_uv_size) {
+			Texture.all.forEach(tex => {
+				tex.uv_width = Project.texture_width;
+				tex.uv_height = Project.texture_height;
 			})
 		}
 
@@ -241,12 +256,16 @@ class ModelFormat {
 	}
 }
 
+new Property(ModelFormat, 'string', 'node_name_regex');
 new Property(ModelFormat, 'boolean', 'box_uv');
 new Property(ModelFormat, 'boolean', 'optional_box_uv');
 new Property(ModelFormat, 'boolean', 'box_uv_float_size');
 new Property(ModelFormat, 'boolean', 'single_texture');
+new Property(ModelFormat, 'boolean', 'single_texture_default');
+new Property(ModelFormat, 'boolean', 'per_group_texture');
 new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
+new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
 new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
@@ -261,7 +280,9 @@ new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
+new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
+new Property(ModelFormat, 'boolean', 'cullfaces');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
@@ -274,3 +295,4 @@ new Property(ModelFormat, 'boolean', 'pose_mode');
 new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
+new Property(ModelFormat, 'boolean', 'pbr');

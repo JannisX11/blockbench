@@ -14,7 +14,7 @@ class TextureMesh extends OutlinerElement {
 	}
 	getWorldCenter() {
 		let m = this.mesh;
-		let pos = Reusable.vec1.fromArray(this.local_pivot);
+		let pos = new THREE.Vector3().fromArray(this.local_pivot);
 
 		if (m) {
 			let r = m.getWorldQuaternion(Reusable.quat1);
@@ -70,7 +70,7 @@ class TextureMesh extends OutlinerElement {
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
-	TextureMesh.prototype.icon = 'fa fa-puzzle-piece';
+	TextureMesh.prototype.icon = 'fa-puzzle-piece';
 	TextureMesh.prototype.movable = true;
 	TextureMesh.prototype.scalable = true;
 	TextureMesh.prototype.rotatable = true;
@@ -294,15 +294,18 @@ new NodePreviewController(TextureMesh, {
 		let {mesh} = element;
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.solidMaterial
+			mesh.material = Canvas.monochromaticSolidMaterial
 		
+		} else if (Project.view_mode === 'colored_solid') {
+			mesh.material = Canvas.coloredSolidMaterials[0]
+
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else {
 			var tex = Texture.getDefault();
 			if (tex && tex.uuid) {
-				mesh.material = Project.materials[tex.uuid]
+				mesh.material = tex.getMaterial()
 			} else {
 				mesh.material = Canvas.emptyMaterials[0]
 			}
@@ -345,7 +348,7 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			base_texture_mesh.select()
 			Undo.finishEdit('Add texture mesh', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_texture_mesh', {object: base_texture_mesh} )

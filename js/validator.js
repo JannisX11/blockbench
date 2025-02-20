@@ -4,7 +4,14 @@ const Validator = {
 	warnings: [],
 	errors: [],
 	_timeout: null,
+	accumulated_triggers: [],
+	wildcard_trigger: false,
 	validate(trigger) {
+		if (trigger) {
+			this.accumulated_triggers.safePush(trigger);
+		} else {
+			this.wildcard_trigger = true;
+		}
 		if (this._timeout) {
 			clearTimeout(this._timeout);
 			this._timeout = null;
@@ -20,7 +27,7 @@ const Validator = {
 				try {
 					if (!Condition(check.condition)) return;
 
-					if (!trigger || check.update_triggers.includes(trigger)) {
+					if (this.wildcard_trigger || check.update_triggers.includes(trigger) || this.accumulated_triggers.find(t => check.update_triggers.includes(t))) {
 						check.update();
 					}
 					Validator.warnings.push(...check.warnings);
@@ -30,6 +37,8 @@ const Validator = {
 					console.error(error);
 				}
 			})
+			this.accumulated_triggers.empty();
+			this.wildcard_trigger = false;
 		}, 40)
 	},
 	openDialog() {
@@ -97,6 +106,7 @@ class ValidatorCheck {
 		this.errors = [];
 		this.warnings = [];
 		this._timeout = null;
+		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		Validator.checks.push(this);
 		Validator.updateCashedTriggers();
@@ -228,10 +238,11 @@ new ValidatorCheck('texture_names', {
 	update_triggers: ['add_texture', 'change_texture_path'],
 	run() {
 		Texture.all.forEach(texture => {
-			let characters = (texture.folder + texture.name).replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
+			let used_path = texture.folder ? (texture.folder + '/' + texture.name) : texture.name;
+			let characters = used_path.replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
 			if (characters) {
 				this.warn({
-					message: `Texture "${texture.name}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
+					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters and spaces are invalid.`,
 					buttons: [
 						{
 							name: 'Select Texture',
@@ -322,5 +333,45 @@ new ValidatorCheck('catmullrom_keyframes', {
 				}
 			}
 		})
+	}
+})
+
+new ValidatorCheck('zero_wide_uv_faces', {
+	condition: {formats: ['optifine_entity', 'java_block']},
+	update_triggers: ['update_selection'],
+	run() {
+		for (let cube of Cube.all) {
+			if (cube.box_uv && Format.id == 'optifine_entity') continue;
+			let affected_faces = [];
+			let select_cube_button = {
+				name: 'Select Cube',
+				icon: 'fa-cube',
+				click() {
+					Validator.dialog.hide();
+					cube.select();
+					UVEditor.getSelectedFaces(cube, true).replace(affected_faces);
+					updateSelection();
+				}
+			};
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
+				let uv_size = face.uv_size;
+				let size_issue;
+				for (let i of [0, 1]) {
+					let size = uv_size[i];
+					if (Math.abs(size) < 0.00005) {
+						size_issue = true;
+					}
+				}
+				if (size_issue) {
+					affected_faces.push(fkey);
+					this.warn({
+						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes should not be 0.`,
+						buttons: [select_cube_button]
+					})
+				}
+			}
+		}
 	}
 })

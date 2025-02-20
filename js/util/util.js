@@ -49,8 +49,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
 			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
 			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
-			if (condition.selected.group === true && !Group.selected) return false;
-			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.group === true && !Group.first_selected) return false;
+			if (condition.selected.group === false && Group.first_selected) return false;
 			if (condition.selected.texture === true && !Texture.selected) return false;
 			if (condition.selected.texture === false && Texture.selected) return false;
 			if (condition.selected.element === true && !Outliner.selected.length) return false;
@@ -65,8 +65,8 @@ const Condition = function(condition, context) {
 			if (condition.selected.null_object === false && NullObject.selected.length) return false;
 			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
 			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
-			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
-			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.first_selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.first_selected)) return false;
 		}
 		if (condition.project && !Project) return false;
 
@@ -165,11 +165,25 @@ function removeEventListeners(el, events, func, option) {
 		el.removeEventListener(e, func, option)
 	})
 }
+function getStringWidth(string, size) {
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
+	if (size && size !== 16) {
+		node.style.fontSize = size + 'pt';
+	}
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
+	return width + 1;
+};
 
 function patchedAtob(base64) {
-	return (typeof Buffer == 'function')
-		? Buffer.from(base64, 'base64').toString()
-		: atob(base64);
+	if (typeof Buffer == 'function') {
+		return Buffer.from(base64, 'base64').toString();
+	} else {
+		return decodeURIComponent(atob(base64).split('').map((c) => {
+			return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+		}).join(''));
+	}
 }
 
 function highestInObject(obj, inverse) {
@@ -182,6 +196,68 @@ function highestInObject(obj, inverse) {
 		}
 	}
 	return result;
+}
+
+class Rectangle {
+	constructor(start_x = 0, start_y = 0, width = 0, height = 0) {
+		this.start_x = start_x;
+		this.start_y = start_y;
+		this.width = width;
+		this.height = height;
+	}
+	get start() {
+		return [this.x, this.y];
+	}
+	get w() {
+		return this.width;
+	}
+	get h() {
+		return this.width;
+	}
+	get end_x() {
+		return this.start_x + this.width;
+	}
+	get end_y() {
+		return this.start_y + this.height;
+	}
+	set end_x(val) {
+		return this.width = val - this.start_x;
+	}
+	set end_y(val) {
+		return this.height = val - this.start_y;
+	}
+	get area() {
+		return this.width * this.height;
+	}
+	fromCoords(x1, y1, x2, y2) {
+		this.start_x = x1;
+		this.width = x2 - x1;
+		this.start_y = y1;
+		this.height = y2 - y1;
+	}
+	fromUnorderedCoords(x1, y1, x2, y2) {
+		if (x1 < x2) {
+			this.start_x = x1;
+			this.width = x2 - x1;
+		} else {
+			this.start_x = x2;
+			this.width = x1 - x2;
+		}
+		if (y1 < y2) {
+			this.start_y = y1;
+			this.height = y2 - y1;
+		} else {
+			this.start_y = y2;
+			this.height = y1 - y2;
+		}
+	}
+	expandTo(x, y) {
+		if (x < this.start_x) this.start_x = x;
+		else if (x > this.end_x) this.end_x = x;
+
+		if (y < this.start_y) this.start_y = y;
+		else if (y > this.end_y) this.end_y = y;
+	}
 }
 function getRectangle(a, b, c, d) {
 	var rect = {};
@@ -333,8 +409,10 @@ var Merge = {
 		}
 	},
 	molang(obj, source, index) {
-		if (['string', 'number'].includes(typeof source[index])) {
-			obj[index] = source[index];
+		if (typeof source[index] == 'string') {
+			obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
+		} else if (typeof source[index] == 'number') {
+			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
@@ -413,6 +491,32 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+function exportMolang(input) {
+	if (!input) return 0;
+	if (typeof input == 'string') {
+		if (!isNaN(input)) {
+			let num = parseFloat(input);
+			return isNaN(num) ? 0 : num;
+		} else {
+			return input.replace(/\n/g, '');
+		}
+	} else if (typeof input == 'number') {
+		return input;
+	} else {
+		return 0;
+	}
+}
+
+// HTML
+function isNodeUnderCursor(node, event) {
+	if (!node) return;
+	let rect = node.getBoundingClientRect();
+	return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right+1, rect.bottom+1]);
+}
+function findNodeUnderCursor(selector, event) {
+	return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isNodeUnderCursor(node, event));
+}
+
 
 //Color
 tinycolor.prototype.toInt = function() {
@@ -484,6 +588,47 @@ function getAverageRGB(imgEl, blockSize) {
 	
 	return rgb;	
 }
+// Source: https://github.com/antimatter15/rgb-lab/
+function rgb2lab(rgb){
+	var r = rgb[0] / 255,
+		g = rgb[1] / 255,
+		b = rgb[2] / 255,
+		x, y, z;
+  
+	r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+	g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+	b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+  
+	x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+	y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
+	z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  
+	x = (x > 0.008856) ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+	y = (y > 0.008856) ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+	z = (z > 0.008856) ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+  
+	return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)]
+}
+
+// calculate the perceptual distance between colors in CIELAB
+// https://github.com/THEjoezack/ColorMine/blob/master/ColorMine/ColorSpaces/Comparisons/Cie94Comparison.cs
+
+function labColorDistance(labA, labB){
+	var deltaL = labA[0] - labB[0];
+	var deltaA = labA[1] - labB[1];
+	var deltaB = labA[2] - labB[2];
+	var c1 = Math.sqrt(labA[1] * labA[1] + labA[2] * labA[2]);
+	var c2 = Math.sqrt(labB[1] * labB[1] + labB[2] * labB[2]);
+	var deltaC = c1 - c2;
+	var deltaH = deltaA * deltaA + deltaB * deltaB - deltaC * deltaC;
+	deltaH = deltaH < 0 ? 0 : Math.sqrt(deltaH);
+	var sc = 1.0 + 0.045 * c1;
+	var sh = 1.0 + 0.015 * c1;
+	var deltaLKlsl = deltaL / (1.0);
+	var deltaCkcsc = deltaC / (sc);
+	var deltaHkhsh = deltaH / (sh);
+	var i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
+	return i < 0 ? 0 : Math.sqrt(i);}
 
 function stringifyLargeInt(int) {
 	let string = int.toString();
@@ -528,6 +673,25 @@ function pointInTriangle(pt, v1, v2, v3) {
 
 	return !(has_neg && has_pos);
 }
+function pointInPolygon(point, polygon_points) {
+	// ray-casting algorithm based on
+    // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    let x = point[0], y = point[1], vs = polygon_points;
+    
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i][0], yi = vs[i][1];
+        let xj = vs[j][0], yj = vs[j][1];
+        
+        let intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
+	return intersectLines(l1, l2, v1, v2) || intersectLines(l1, l2, v2, v3) || intersectLines(l1, l2, v3, v1);
+}
 
 function cameraTargetToRotation(position, target) {
 	let spherical = new THREE.Spherical();
@@ -543,4 +707,29 @@ function cameraRotationToTarget(position, rotation) {
 	vec.z *= -1;
 	vec.y *= -1;
 	return vec.toArray().V3_add(position);
+}
+
+function getDateDisplay(input_date) {
+	let date = new Date(input_date);
+	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+	let label;
+	if (diff <= 0) {
+		label = tl('dates.today');
+	} else if (diff == 1) {
+		label = tl('dates.yesterday');
+	} else if (diff <= 7) {
+		label = tl('dates.this_week');
+	} else if (diff <= 60) {
+		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
+	} else {
+		label = date.toLocaleDateString();
+	}
+	return {
+		short: label,
+		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+	}
+}
+
+const NativeGlobals = {
+	Animation
 }

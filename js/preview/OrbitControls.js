@@ -1,4 +1,6 @@
 /**
+ * Original source: https://github.com/mrdoob/three.js, MIT
+ * Modified for Blockbench
  * @author qiao / https://github.com/qiao
  * @author mrdoob / http://mrdoob.com
  * @author alteredq / http://alteredqualia.com/
@@ -298,6 +300,10 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}();
 
+	this.panLeft = panLeft;
+	this.panUp = panUp;
+	
+
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function () {
 
@@ -448,12 +454,11 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleMouseWheel( event ) {
-
+		let modifier = Math.abs(event.deltaY) >= 50 ? 1 : 0.25;
 		if ( event.deltaY < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(modifier) );
 		} else if ( event.deltaY > 0 ) {
-			dollyIn( getZoomScale() );
-
+			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
 		scope.updateSceneScale();
@@ -606,7 +611,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
 				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
+				if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 					return;
 				}
 				handleMouseDownRotate( event );
@@ -616,7 +621,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
 			if ( scope.enablePan === false ) return;
-			if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 				return;
 			}
 			handleMouseDownPan( event );
@@ -625,7 +630,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		} else if ( Keybinds.extra.preview_zoom.keybind.isTriggered(event) ) {
 
 			if ( scope.enableZoom === false ) return;
-			if (event.which === 1 && Canvas.raycast(event) && display_mode === false) {
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
 				return;
 			}
 			handleMouseDownDolly( event );

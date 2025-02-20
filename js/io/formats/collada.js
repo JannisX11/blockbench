@@ -153,6 +153,7 @@ var codec = new Codec('collada', {
 			down: [0, -1, 0],
 		}
 		Cube.all.forEach(cube => {
+			if (!cube.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -185,12 +186,14 @@ var codec = new Codec('collada', {
 				let face = cube.faces[fkey];
 				if (face.texture === null) continue;
 				normals.push(...cube_face_normals[fkey]);
+				let texture = face.getTexture();
+				let uv_size = [Project.getUVWidth(texture), Project.getUVHeight(texture)];
 
 				let uv_outputs = [
-					[face.uv[0] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[1] / Project.texture_height],
-					[face.uv[2] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
-					[face.uv[0] / Project.texture_width, 1 - face.uv[3] / Project.texture_height],
+					[face.uv[0] / uv_size[0], 1 - face.uv[1] / uv_size[1]],
+					[face.uv[2] / uv_size[0], 1 - face.uv[1] / uv_size[1]],
+					[face.uv[2] / uv_size[0], 1 - face.uv[3] / uv_size[1]],
+					[face.uv[0] / uv_size[0], 1 - face.uv[3] / uv_size[1]],
 				];
 				var rot = face.rotation || 0;
 				while (rot > 0) {
@@ -355,6 +358,7 @@ var codec = new Codec('collada', {
 
 		// Mesh Geo
 		Mesh.all.forEach(mesh => {
+			if (!mesh.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -382,9 +386,10 @@ var codec = new Codec('collada', {
 					let face = mesh.faces[key];
 					let vertices = face.getSortedVertices();
 					let tex = mesh.faces[key].getTexture();
+					let uv_size = [Project.getUVWidth(tex), Project.getUVHeight(tex)];
 
 					vertices.forEach(vkey => {
-						uv.push(face.uv[vkey][0] / Project.texture_width, 1 - face.uv[vkey][1] / Project.texture_height);
+						uv.push(face.uv[vkey][0] / uv_size[0], 1 - face.uv[vkey][1] / uv_size[1]);
 					})
 
 					normals.push(...face.getNormal(true));
@@ -582,6 +587,7 @@ var codec = new Codec('collada', {
 			}
 			if (node instanceof Group) {
 				node.children.forEach(node => {
+					if (node.export === false) return;
 					tag.content.push(processNode(node));
 				})
 			}
@@ -589,6 +595,7 @@ var codec = new Codec('collada', {
 		}
 
 		Outliner.root.forEach(node => {
+			if (node.export === false) return;
 			root.push(processNode(node))
 		})
 

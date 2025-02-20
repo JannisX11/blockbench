@@ -242,7 +242,7 @@ const Templates = {
 			// Paste this class into your mod and generate all required imports
 
 
-			public class %(identifier)<T extends Entity> extends EntityModel<T> {
+			public class %(identifier)<T extends %(entity)> extends EntityModel<T> {
 				// This layer location should be baked with EntityRendererProvider.Context in the entity renderer and passed into this model's constructor
 				public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("modid", "%(identifier_rl)"), "main");
 				%(fields)
@@ -261,7 +261,7 @@ const Templates = {
 				}
 
 				@Override
-				public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+				public void setupAnim(%(entity) entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
 
 				}
 
@@ -271,7 +271,8 @@ const Templates = {
 				}
 			}`,
 		field: `private final ModelPart %(bone);`,
-		model_part: `this.%(bone) = root.getChild("%(bone)");`,
+		model_part: `?(has_no_parent)this.%(bone) = root.getChild("%(bone)");
+			?(has_parent)this.%(bone) = this.%(parent).getChild("%(bone)");`,
 		bone:
 			`?(has_no_parent)PartDefinition %(bone) = partdefinition.addOrReplaceChild("%(bone)", CubeListBuilder.create()
 			?(has_parent)PartDefinition %(bone) = %(parent).addOrReplaceChild("%(bone)", CubeListBuilder.create()
@@ -281,6 +282,48 @@ const Templates = {
 		renderer: `%(bone).render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);`,
 		cube: `.texOffs(%(uv_x), %(uv_y)){?(has_mirror).mirror()}.addBox(%(x), %(y), %(z), %(dx), %(dy), %(dz), new CubeDeformation(%(inflate))){?(has_mirror).mirror(false)}`,
 		animation_template: 'mojang'
+	},
+
+	'1.17_yarn': {
+		// Template contributed by SebaSphere
+		name: 'Fabric 1.17+ (Yarn)',
+		remember: false,
+		integer_size: false,
+		file:
+			`// Made with Blockbench %(bb_version)
+			// Exported for Minecraft version 1.17+ for Yarn
+			// Paste this class into your mod and generate all required imports
+			public class %(identifier) extends EntityModel<%(entity)> {
+				%(fields)
+				public %(identifier)(ModelPart root) {
+					%(model_parts)
+				}
+				public static TexturedModelData getTexturedModelData() {
+					ModelData modelData = new ModelData();
+					ModelPartData modelPartData = modelData.getRoot();
+					%(content)
+					return TexturedModelData.of(modelData, %(texture_width), %(texture_height));
+				}
+				@Override
+				public void setAngles(%(entity) entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+				}
+				@Override
+				public void render(MatrixStack matrices, VertexConsumer vertexConsumer, int light, int overlay, float red, float green, float blue, float alpha) {
+					%(renderers)
+				}
+			}`,
+		field: `private final ModelPart %(bone);`,
+		model_part: `?(has_no_parent)this.%(bone) = root.getChild("%(bone)");
+					?(has_parent)this.%(bone) = this.%(parent).getChild("%(bone)");`,
+		bone:
+			`?(has_no_parent)ModelPartData %(bone) = modelPartData.addChild("%(bone)", ModelPartBuilder.create()
+			?(has_parent)ModelPartData %(bone) = %(parent).addChild("%(bone)", ModelPartBuilder.create()
+			%(remove_n)%(cubes)
+			?(has_rotation)%(remove_n), ModelTransform.of(%(x), %(y), %(z), %(rx), %(ry), %(rz)));
+			?(has_no_rotation)%(remove_n), ModelTransform.pivot(%(x), %(y), %(z)));`,
+		renderer: `%(bone).render(matrices, vertexConsumer, light, overlay, red, green, blue, alpha);`,
+		cube: `.uv(%(uv_x), %(uv_y)){?(has_mirror).mirrored()}.cuboid(%(x), %(y), %(z), %(dx), %(dy), %(dz), new Dilation(%(inflate))){?(has_mirror).mirrored(false)}`,
+		animation_template: 'fabric'
 	},
 
 	get(key, version = Project.modded_entity_version) {
@@ -325,6 +368,34 @@ const AnimationTemplates = {
 			catmullrom: 'AnimationChannel.Interpolations.CATMULLROM',
 		},
 	},
+	'fabric': {
+		name: 'Yarn',
+		file:
+			`// Save this class in your mod and generate all required imports
+			/**
+			 * Made with Blockbench %(bb_version)
+			 * Exported for Minecraft version 1.19 or later with Yarn mappings
+			 * @author %(author)
+			 */
+			public class %(identifier)Animation {
+				%(animations)
+			}`,
+		animation: `public static final Animation %(name) = Animation.Builder.create(%(length))%(looping)%(channels).build();`,
+		looping: `.looping()`,
+		channel: `.addBoneAnimation("%(name)", new Transformation(%(channel_type), %(keyframes)))`,
+		keyframe_rotation: `new Keyframe(%(time), AnimationHelper.createRotationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_position: `new Keyframe(%(time), AnimationHelper.createTranslationalVector(%(x), %(y), %(z)), %(interpolation))`,
+		keyframe_scale: `new Keyframe(%(time), AnimationHelper.createScalingVector(%(x), %(y), %(z)), %(interpolation))`,
+		channel_types: {
+			rotation: 'Transformation.Targets.ROTATE',
+			position: 'Transformation.Targets.TRANSLATE',
+			scale: 'Transformation.Targets.SCALE',
+		},
+		interpolations: {
+			linear: 'Transformation.Interpolations.LINEAR',
+			catmullrom: 'Transformation.Interpolations.CUBIC',
+		},
+	},
 
 	get(key, version = Project.modded_entity_version) {
 		let mapping = Templates.get('animation_template', version);
@@ -352,6 +423,7 @@ var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'text',
 		extensions: ['java']
@@ -364,6 +436,7 @@ var codec = new Codec('modded_entity', {
 		let all_groups = getAllGroups();
 		let loose_cubes = [];
 		Cube.all.forEach(cube => {
+			if (cube.export == false) return;
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
@@ -377,6 +450,7 @@ var codec = new Codec('modded_entity', {
 		}
 
 		all_groups.slice().forEach(group => {
+			if (group.export == false) return;
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
@@ -414,6 +488,7 @@ var codec = new Codec('modded_entity', {
 		let model = Templates.get('file');
 
 		model = model.replace(R('bb_version'), Blockbench.version);
+		model = model.replace(R('entity'), Project.modded_entity_entity_class || 'Entity');
 		model = model.replace(R('identifier'), identifier);
 		model = model.replace(R('identifier_rl'), identifier.toLowerCase().replace(' ', '_'));
 		model = model.replace(R('texture_width'), Project.texture_width);
@@ -423,7 +498,9 @@ var codec = new Codec('modded_entity', {
 			let usesLayerDef = Templates.get('use_layer_definition')
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || (usesLayerDef && group.parent instanceof Group)) continue;
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if (group.is_rotation_subgroup && Templates.get('model_part')) continue;
+				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let snippet = Templates.get('field')
 					.replace(R('bone'), group.name)
 				group_snippets.push(snippet);
@@ -532,10 +609,17 @@ var codec = new Codec('modded_entity', {
 				return '';
 
 			let group_snippets = [];
-			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export || group.parent instanceof Group) continue;
+			for (let group of all_groups) {
+				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if (group.is_rotation_subgroup) continue;
+				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let modelPart = snippet
-					.replace(R('bone'), group.name);
+					.replace(R('bone'), group.name)
+					.replace(/\t+/, '')
+					.replace(/(?:\n|^)\?\(has_parent\).+/, group.parent instanceof Group ? Templates.keepLine : '')
+					.replace(/(?:\n|^)\?\(has_no_parent\).+/, group.parent instanceof Group ? '' : Templates.keepLine)
+					.trim()
+					.replace(R('parent'), group.parent.name)
 				group_snippets.push(modelPart);
 			}
 			return group_snippets.join('\n\t\t')
@@ -987,6 +1071,7 @@ var format = new ModelFormat({
 		]
 	},
 	codec,
+	node_name_regex: '\\w',
 	box_uv: true,
 	box_uv_float_size: true,
 	single_texture: true,

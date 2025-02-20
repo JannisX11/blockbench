@@ -33,13 +33,17 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;
 		if (data.cubemap) {
 			let urls = data.cubemap;
-			let texture_cube = new THREE.CubeTextureLoader().load( urls );
+			let texture_cube = new THREE.CubeTextureLoader().load(urls, () => {
+				if (PreviewScene.active == this && Project.view_mode == 'material') {
+					Canvas.updateShading();
+				}
+			});
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -68,7 +72,7 @@ class PreviewScene {
 		}
 	}
 	async lazyLoadFromWeb() {
-		let repo = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+		let repo = PreviewScene.source_repository;
 		// repo = './../blockbench-scenes'
 		this.loaded = true;
 		let response = await fetch(`${repo}/${this.web_config_path}`);
@@ -104,9 +108,10 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
-		if (this.fov) {
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
 		// Update independent models
@@ -129,7 +134,7 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
-		if (this.fov) {
+		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
@@ -144,12 +149,16 @@ class PreviewScene {
 PreviewScene.scenes = {};
 PreviewScene.active = null;
 PreviewScene.select_options = {};
+PreviewScene.source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
 PreviewScene.menu_categories = {
 	main: {
 		none: tl('generic.none')
 	},
 	generic: {
 		_label: 'Generic'
+	},
+	realistic: {
+		_label: 'Realistic'
 	},
 	minecraft: {
 		_label: 'Minecraft'
@@ -212,6 +221,8 @@ class PreviewModel {
 			tex = new THREE.Texture(img);
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
 			img.crossOrigin = '';
 			img.onload = function() {
 				tex.needsUpdate = true;
@@ -271,17 +282,15 @@ class PreviewModel {
 			}
 
 			let indices = [];
-			let j = 0;
 			mesh.geometry.faces = [];
 			mesh.geometry.clearGroups();
 			Canvas.face_order.forEach((fkey, i) => {
 				if (cube.faces[fkey]) {
 					indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
 					mesh.geometry.faces.push(fkey)
-					j++;
 				}
 			})
-			mesh.geometry.setIndex(indices)
+			mesh.geometry.setIndex(indices);
 
 			for (let face in cube.faces) {
 				let uv_array = getUVArray(cube.faces[face]);
@@ -381,6 +390,14 @@ new PreviewScene('studio', {
 	light_side: 1,
 	preview_models: ['studio']
 });
+new PreviewScene('sky', {
+	category: 'realistic',
+	web_config: 'realistic/sky/sky.json',
+});
+new PreviewScene('space', {
+	category: 'realistic',
+	web_config: 'realistic/space/space.json',
+});
 new PreviewScene('minecraft_plains', {
 	category: 'minecraft',
 	web_config: 'minecraft/plains/plains.json',
@@ -409,6 +426,11 @@ new PreviewScene('minecraft_night', {
 new PreviewScene('minecraft_desert', {
 	category: 'minecraft',
 	web_config: 'minecraft/desert/desert.json',
+	require_minecraft_eula: true,
+});
+new PreviewScene('minecraft_ocean', {
+	category: 'minecraft',
+	web_config: 'minecraft/ocean/ocean.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_underwater', {
@@ -451,6 +473,10 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 	scale: [0.9375, 0.9375, 0.9375],
 	onUpdate() {
 		this.material.color.copy(Canvas.global_light_color);
+		if (!this.was_set_up) {
+			DisplayMode.updateDisplaySkin();
+			this.was_set_up = true;
+		}
 	},
 	cubes: [
 		{
@@ -507,6 +533,9 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 				"down": {"uv": [36, 32, 28, 36]}
 			}
 		},
+
+
+		// ======= Wide Arms
 		{
 			// Right Arm
 			"position": [4, 12, -2],
@@ -567,6 +596,72 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 				"down": {"uv": [60, 48, 56, 52]}
 			}
 		},
+
+
+		// ======= Slim Arms
+		{
+			// Right Arm
+			"position": [4, 11.5, -2],
+			"size": [3, 12, 4],
+			"origin": [5, 21.5, 0],
+			"rotation": [-1, 0, 3],
+			"faces": {
+				"north": {"uv": [44,20,47,32]},
+				"east": {"uv": [40,20,44,32]},
+				"south": {"uv": [51,20,54,32]},
+				"west": {"uv": [47,20,51,32]},
+				"up": {"uv": [47,20,44,16]},
+				"down": {"uv": [50,16,47,20]}
+			}
+		},
+		{
+			// Arm Layer
+			"position": [3.75, 11.25, -2.25],
+			"size": [3.5, 12.5, 4.5],
+			"origin": [5, 21.5, 0],
+			"rotation": [-1, 0, 3],
+			"faces": {
+				"north": {"uv": [44,36,47,48]},
+				"east": {"uv": [40,36,44,48]},
+				"south": {"uv": [51,36,54,48]},
+				"west": {"uv": [47,36,51,48]},
+				"up": {"uv": [47,36,44,32]},
+				"down": {"uv": [50,32,47,36]}
+			}
+		},
+		{
+			// Left Arm
+			"position": [-7, 11.5, -2],
+			"size": [3, 12, 4],
+			"origin": [-5, 21.5, 0],
+			"rotation": [1, 0, -3],
+			"faces": {
+				"north": {"uv": [36,52,39,64]},
+				"east": {"uv": [32,52,36,64]},
+				"south": {"uv": [43,52,46,64]},
+				"west": {"uv": [39,52,43,64]},
+				"up": {"uv": [39,52,36,48]},
+				"down": {"uv": [42,48,39,52]}
+			}
+		},
+		{
+			// Arm Layer
+			"position": [-7.25, 11.25, -2.25],
+			"size": [3.5, 12.5, 4.5],
+			"origin": [-5, 21.5, 0],
+			"rotation": [1, 0, -3],
+			"faces": {
+				"north": {"uv": [52,52,55,64]},
+				"east": {"uv": [48,52,52,64]},
+				"south": {"uv": [59,52,62,64]},
+				"west": {"uv": [55,52,59,64]},
+				"up": {"uv": [55,52,52,48]},
+				"down": {"uv": [58,48,55,52]}
+			}
+		},
+
+
+
 		{
 			// Right Leg
 			"position": [-0.1, 0, -2],
@@ -622,6 +717,14 @@ let player_preview_model = new PreviewModel('minecraft_player', {
 	]
 })
 
+player_preview_model.updateArmVariant = function(slim) {
+	for (let i = 4; i < 8; i++) {
+		this.model_3d.children[i].visible = !slim;
+	}
+	for (let i = 8; i < 12; i++) {
+		this.model_3d.children[i].visible = !!slim;
+	}
+}
 
 StateMemory.init('minecraft_eula_accepted', 'object');
 const MinecraftEULA = {
@@ -675,7 +778,7 @@ BARS.defineActions(function() {
 					list.push({
 						id: key,
 						name: options[key],
-						icon: PreviewScene.active == scene ? 'radio_button_checked' : 'radio_button_unchecked',
+						icon: PreviewScene.active == scene ? 'far.fa-dot-circle' : 'far.fa-circle',
 						click() {
 							if (scene) {
 								scene.select();

@@ -20,6 +20,7 @@
 		"light": "#111111",
 		"accent_text": "#000006",
 		"subtle_text": "#6b6d72",
+		"bright_ui_text": "#000006",
 		"grid": "#b0b2b8",
 		"wireframe": "#8797a3",
 		"checkerboard": "#eeeeee"

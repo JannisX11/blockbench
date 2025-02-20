@@ -30,6 +30,8 @@ Blockbench.Panel = Panel;
 Blockbench.Mode = Mode;
 Blockbench.Dialog = Dialog;
 Blockbench.ShapelessDialog = ShapelessDialog;
+Blockbench.ToolConfig = ToolConfig;
+Blockbench.InputForm = InputForm;
 Blockbench.Setting = Setting;
 Blockbench.Plugin = Plugin;
 Blockbench.Preview = Preview;
@@ -66,3 +68,5 @@ Blockbench.DisplaySlot = DisplaySlot;
 Blockbench.Reusable = Reusable;
 
 Blockbench.Texture = Texture;
+Blockbench.TextureLayer = TextureLayer;
+Blockbench.SharedActions = SharedActions;

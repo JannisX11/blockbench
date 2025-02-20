@@ -3,7 +3,7 @@ BARS.defineActions(function() {
 
 	function getTextures() {
 		if (Texture.selected) {
-			return [Texture.selected];
+			return Texture.all.filter(t => t.selected || t.multi_selected);
 		} else {
 			return Texture.all;
 		}
@@ -19,12 +19,14 @@ BARS.defineActions(function() {
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
-				texture.edit((canvas) => {
-
+				texture.edit((canvas, env) => {
+					let copy_canvas = Painter.copyCanvas(canvas);
 					let ctx = canvas.getContext('2d');
-					ctx.clearRect(0, 0, texture.width, texture.height);
+					texture.selection.maskCanvas(ctx, env.offset);
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.filter = 'invert(1)';
-					ctx.drawImage(texture.img, 0, 0);
+					ctx.drawImage(copy_canvas, 0, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -37,8 +39,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -57,19 +59,23 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `brightness(${this.brightness / 100}) contrast(${this.contrast / 100})`;
 									} else {
 										ctx.filter = `brightness(1.0) contrast(1.0)`;
 									}
-									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.drawImage(original_canvases[i], 0, 0);
+									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})
@@ -111,10 +117,13 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust brightness and contrast');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -125,8 +134,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -145,19 +154,23 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
 									} else {
 										ctx.filter = `brightness(1.0)`;
 									}
-									ctx.drawImage(original_imgs[i], 0, 0);
+									ctx.drawImage(original_canvases[i], 0, 0);
+									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})
@@ -199,10 +212,13 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust saturation and hue');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -214,8 +230,8 @@ BARS.defineActions(function() {
 		click() {
 			let textures = getTextures();
 			let original_image_data = textures.map(tex => {
-				let canvas = Painter.getCanvas(tex);
-				let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+				let {canvas, ctx} = tex.getActiveCanvas();
+				let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				image_data.original_data = image_data.data.slice();
 				return image_data;
 			})
@@ -326,12 +342,13 @@ BARS.defineActions(function() {
 							}
 
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, {offset}) => {
 									let ctx = canvas.getContext('2d');
 									let image_data = original_image_data[i];
 
 									if (this.preview_changes) {
 										for (let i = 0; i < image_data.data.length; i += 4) {
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											
 											let R = image_data.original_data[i+0]
 											let G = image_data.original_data[i+1]
@@ -353,6 +370,7 @@ BARS.defineActions(function() {
 										}
 									} else {
 										for (let i = 0; i < image_data.data.length; i += 4) {
+											if (!texture.selection.allow(offset[0] + (i/4) % image_data.width, offset[1] + Math.floor((i/4) / image_data.width))) continue;
 											image_data.data[i+0] = image_data.original_data[i+0];
 											image_data.data[i+1] = image_data.original_data[i+1];
 											image_data.data[i+2] = image_data.original_data[i+2];
@@ -476,10 +494,13 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
-					Undo.finishEdit('Invert colors');
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
+					Undo.finishEdit('Adjust curves');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -490,8 +511,8 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
 			let textures = getTextures();
-			let original_imgs = textures.map(tex => {
-				return tex.img.cloneNode();
+			let original_canvases = textures.map(tex => {
+				return Painter.copyCanvas(tex.getActiveCanvas().canvas);
 			})
 			Undo.initEdit({textures, bitmap: true});
 
@@ -509,24 +530,29 @@ BARS.defineActions(function() {
 					methods: {
 						change() {
 							textures.forEach((texture, i) => {
-								texture.edit((canvas) => {
+								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
+									ctx.save();
+									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
 										ctx.filter = `opacity(${this.opacity}%)`;
-										ctx.drawImage(original_imgs[i], 0, 0);
+										ctx.drawImage(original_canvases[i], 0, 0);
 										if (this.opacity > 100 && this.preview_changes) {
 											ctx.filter = `opacity(${this.opacity-100}%)`;
-											ctx.drawImage(original_imgs[i], 0, 0);
+											ctx.drawImage(original_canvases[i], 0, 0);
 										}
 									} else {
 										ctx.filter = `opacity(100%)`;
-										ctx.drawImage(original_imgs[i], 0, 0);
+										ctx.drawImage(original_canvases[i], 0, 0);
 									}
+									ctx.restore();
 
-									let ref_ctx = this.$refs.canvas[i].getContext('2d');
-									ref_ctx.clearRect(0, 0, texture.width, texture.height);
-									ref_ctx.drawImage(canvas, 0, 0);
+									setTimeout(() => {
+										let ref_ctx = this.$refs.canvas[i].getContext('2d');
+										ref_ctx.clearRect(0, 0, texture.width, texture.height);
+										ref_ctx.drawImage(texture.canvas, 0, 0)
+									}, 5);
 
 								}, {no_undo: true, use_cache: true});
 							})
@@ -564,10 +590,13 @@ BARS.defineActions(function() {
 						this.content_vue.preview_changes = true;
 						this.content_vue.change();
 					}
+					textures.forEach((texture, i) => {
+						texture.updateChangesAfterEdit();
+					})
 					Undo.finishEdit('Adjust opacity');
 				},
 				onCancel() {
-					Undo.cancelEdit();
+					Undo.cancelEdit(true);
 				}
 			}).show();
 		}
@@ -589,7 +618,7 @@ BARS.defineActions(function() {
 						palette[color] = tinycolor(color);
 					})
 					Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, pixel) => {
-
+						if (!texture.selection.allow(x, y)) return;
 						if (pixel[3] < 4) return;
 						let smallest_distance = Infinity;
 						let nearest_color = null;
@@ -606,6 +635,7 @@ BARS.defineActions(function() {
 						pixel[0] = nearest_color._r;
 						pixel[1] = nearest_color._g;
 						pixel[2] = nearest_color._b;
+						return pixel;
 					})
 
 				}, {no_undo: true});
@@ -678,15 +708,21 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.flip(0, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(-1, 1);
 					ctx.drawImage(texture.img, -canvas.width, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -698,15 +734,21 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.flip(1, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.scale(1, -1);
 					ctx.drawImage(texture.img, 0, -canvas.height);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -718,15 +760,21 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.rotate(90, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(Math.PI/2);
 					ctx.drawImage(texture.img, 0, -canvas.height);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -738,15 +786,21 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
+			if (Texture.selected?.selected_layer) {
+				Texture.selected?.selected_layer.rotate(-90, true);
+				return;
+			}
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
 				texture.edit((canvas) => {
 
 					let ctx = canvas.getContext('2d');
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.rotate(-Math.PI/2);
 					ctx.drawImage(texture.img, -canvas.width, 0);
+					ctx.restore();
 
 				}, {no_undo: true});
 			})
@@ -756,10 +810,110 @@ BARS.defineActions(function() {
 	new Action('resize_texture', {
 		icon: 'photo_size_select_large',
 		category: 'textures',
-		condition: () => Texture.all.length,
+		condition: () => Texture.selected,
 		click() {
-			let texture = Texture.getDefault();
+			let texture = Texture.selected;
 			texture.resizeDialog();
+		}
+	})
+	new Action('crop_texture_to_selection', {
+		icon: 'crop',
+		category: 'textures',
+		condition: () => Texture.selected,
+		click() {
+			let texture = Texture.selected;
+			let rect = texture.selection.getBoundingRect();
+			let uv_factor = texture.width / texture.uv_width;
+			let old_width = texture.width;
+			let old_height = texture.height;
+			if (!rect.width || !rect.height) return;
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+
+			if (!texture.layers_enabled) {
+				texture.width = texture.canvas.width = rect.width;
+				texture.height = texture.canvas.height = rect.height;
+				texture.ctx.imageSmoothingEnabled = false;
+				texture.ctx.drawImage(texture.img, -rect.start_x, -rect.start_y);
+			} else {
+				texture.width = texture.canvas.width = rect.width;
+				texture.height = texture.canvas.height = rect.height;
+				texture.layers.forEach(layer => {
+					layer.offset[0] -= rect.start_x;
+					layer.offset[1] -= rect.start_y;
+				})
+			}
+			texture.uv_width = texture.canvas.width * uv_factor;
+			texture.uv_height = texture.canvas.height * uv_factor;
+
+			texture.updateChangesAfterEdit();
+			texture.selection.clear();
+			UVEditor.updateSelectionOutline();
+
+			Undo.finishEdit('Crop texture to selection');
+			setTimeout(updateSelection, 100);
+
+			// Fix UV
+			let elements_to_change = [];
+			Outliner.elements.forEach(element => {
+				if (!element.faces) return;
+				for (let key in element.faces) {
+					if (element.faces[key].getTexture() == texture) {
+						elements_to_change.safePush(element);
+						break;
+					}
+				}
+			})
+			if (elements_to_change.length) {
+				Undo.initEdit({elements: elements_to_change});
+				let uv_adjust_x = 1;
+				let uv_adjust_y = 1;
+				if (Format.single_texture || Texture.all.length == 1 || Format.per_texture_uv_size) {
+					if (!Format.per_texture_uv_size) {
+						Undo.current_save.uv_mode = {
+							box_uv: Project.box_uv,
+							width:  Project.texture_width,
+							height: Project.texture_height
+						}
+						Undo.current_save.aspects.uv_mode = true;
+						Project.texture_width = Project.texture_width * (rect.width / old_width);
+						Project.texture_height = Project.texture_height * (rect.height / old_height);
+					}
+
+				} else {
+					uv_adjust_x = rect.width / old_width;
+					uv_adjust_y = rect.height / old_height;
+				}
+				elements_to_change.forEach(element => {
+					if (element instanceof Cube) {
+						for (let key in element.faces) {
+							if (element.faces[key].getTexture() != texture) continue;
+							if (element.box_uv) {
+								element.uv_offset[0] -= (rect.start_x * uv_factor);
+								element.uv_offset[1] -= (rect.start_y * uv_factor);
+							} else {
+								let uv = element.faces[key].uv;
+								uv[0] = uv[0] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[2] = uv[2] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[1] = uv[1] / uv_adjust_y - (rect.start_y * uv_factor);
+								uv[3] = uv[3] / uv_adjust_y - (rect.start_y * uv_factor);
+							}
+							
+						}
+					} else if (element instanceof Mesh) {
+						for (let key in element.faces) {
+							if (element.faces[key].getTexture() != texture) continue;
+							let uv = element.faces[key].uv;
+							for (let vkey in uv) {
+								uv[vkey][0] = uv[vkey][0] / uv_adjust_x - (rect.start_x * uv_factor);
+								uv[vkey][1] = uv[vkey][1] / uv_adjust_y - (rect.start_y * uv_factor);
+							}
+						}
+					}
+				})
+				Canvas.updateView({elements: elements_to_change, element_aspects: {uv: true}})
+				Undo.finishEdit('Adjust UV after cropping texture');
+			}
 		}
 	})
 })

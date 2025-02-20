@@ -51,7 +51,7 @@ Settings.setupProfiles();
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + appVersion + (isApp
-	? (' Desktop (' + Blockbench.operating_system +')')
+	? (' Desktop (' + Blockbench.operating_system + ', ' + process.arch +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
@@ -131,6 +131,8 @@ onVueSetup.funcs.forEach((func) => {
 		func()
 	}
 })
+
+AutoBackup.initialize();
 
 if (isApp) {
 	initializeDesktopApp();

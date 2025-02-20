@@ -1,5 +1,5 @@
 const electron = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
+const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
 const app = electron.app;
 const fs = require('fs');
 const NodeBuffer = require('buffer');
@@ -70,6 +70,19 @@ function initializeDesktopApp() {
 		})
 	} else {
 		$('#windows_window_menu').show()
+	}
+	if (Blockbench.platform == 'linux') {
+		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964
+		let gpu_cache_path = PathModule.join(app.getPath('userData'), 'GPUCache');
+		try {
+			let cache_files = fs.readdirSync(gpu_cache_path);
+			for (let file_name of cache_files) {
+				fs.unlinkSync(PathModule.join(gpu_cache_path, file_name));
+			}
+			console.log(`Cleared ${cache_files.length} GPU-cache files`);
+		} catch (err) {
+			console.error('Attempted and failed to clear GPU cache', err);
+		}
 	}
 }
 //Load Model
@@ -174,7 +187,7 @@ function updateRecentProjectData() {
 	let project = Project.getProjectMemory();
 	if (!project) return;
 	
-	project.name = Project.name;
+	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
 
@@ -193,22 +206,23 @@ async function updateRecentProjectThumbnail() {
 	if (!project) return;
 
 	let thumbnail;
+	const resolution = [270, 150];
 
 	if (Format.image_editor && Texture.all.length) {		
 		await new Promise((resolve, reject) => {
 			let tex = Texture.getDefault();
-			let frame = new CanvasFrame(180, 100);
+			let frame = new CanvasFrame(resolution[0], resolution[1]);
 			frame.ctx.imageSmoothingEnabled = false;
 
 			let {width, height} = tex;
-			if (width > 180)   {height /= width / 180;  width = 180;}
-			if (height > 100) {width /= height / 100; height = 100;}
-			if (width < 180 && height < 100) {
-				let factor = Math.min(180 / width, 100 / height);
+			if (width > resolution[0])   {height /= width / resolution[0];  width = resolution[0];}
+			if (height > resolution[1]) {width /= height / resolution[1]; height = resolution[1];}
+			if (width < resolution[0] && height < resolution[1]) {
+				let factor = Math.min(resolution[0] / width, resolution[1] / height);
 				factor *= 0.92;
 				height *= factor; width *= factor;
 			}
-			frame.ctx.drawImage(tex.img, (180 - width)/2, (100 - height)/2, width, height)
+			frame.ctx.drawImage(tex.img, (resolution[0] - width)/2, (resolution[1] - height)/2, width, height)
 
 			let url = frame.canvas.toDataURL();
 
@@ -223,7 +237,7 @@ async function updateRecentProjectThumbnail() {
 	} else {
 		if (Outliner.elements.length == 0) return;
 
-		MediaPreview.resize(180, 100)
+		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
 		let center = getSelectionCenter(true);
@@ -274,7 +288,7 @@ async function updateRecentProjectThumbnail() {
 	}
 }
 function loadDataFromModelMemory() {
-	let project = Project.getProjectMemory();
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	if (project.textures) {
@@ -292,9 +306,15 @@ function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
+function showItemInFolder(path) {
+	ipcRenderer.send('show-item-in-folder', path);
+}
+
 //Window Controls
 function updateWindowState(e, type) {
-	$('#header_free_bar').toggleClass('resize_space', !currentwindow.isMaximized());
+	let maximized = currentwindow.isMaximized();
+	$('#header_free_bar').toggleClass('resize_space', !maximized);
+	document.body.classList.toggle('maximized', maximized);
 }
 currentwindow.on('maximize', e => updateWindowState(e, 'maximize'));
 currentwindow.on('unmaximize', e => updateWindowState(e, 'unmaximize'));
@@ -303,65 +323,67 @@ currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Image Editor
-function changeImageEditor(texture, from_settings) {
-	var dialog = new Dialog({
+function changeImageEditor(texture, not_found) {
+	let app_file_extension = {
+		'win32': ['exe'],
+		'linux': [],
+		'darwin': ['app'],
+	};
+	new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
-		lines: ['<div class="dialog_bar"><select class="input_wide">'+
-				'<option id="ps">Photoshop</option>'+
-				'<option id="gimp">Gimp</option>'+
-				(Blockbench.platform == 'win32' ? '<option id="pdn">Paint.NET</option>' : '')+
-				'<option id="other">'+tl('message.image_editor.file')+'</option>'+
-			'</select></div>'],
-		draggable: true,
-		onConfirm() {
-			var id = $('.dialog#image_editor option:selected').attr('id')
-			var path;
-			if (Blockbench.platform == 'darwin') {
+		form: {
+			not_found_text: {type: 'info', text: 'message.image_editor.not_found', condition: not_found == true},
+			editor: {type: 'select', full_width: true, options: {
+				ps: Blockbench.platform == 'win32' ? 'Photoshop' : undefined,
+				gimp: 'GIMP',
+				pdn: Blockbench.platform == 'win32' ? 'Paint.NET' : undefined,
+				other: 'message.image_editor.file'
+			}},
+			file: {
+				label: 'message.image_editor.file',
+				nocolon: true,
+				type: 'file',
+				file_type: 'Program',
+				extensions: app_file_extension[Blockbench.platform],
+				readtype: 'none',
+				description: 'message.image_editor.exe',
+				condition: result => result.editor == 'other'
+			}
+		},
+		onConfirm(result) {
+			let id = result.editor;
+			let path;
+			if (id == 'other') {
+				path = result.file;
+
+			} else if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop 2021/Adobe Photoshop 2021.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app'; break;
 					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
+				}
+			} else if (Blockbench.platform == 'linux') {
+				switch (id) {
+					case 'ps':  path = '/usr/share/applications//photoshop.desktop'; break;
+					case 'gimp':path = '/usr/share/applications//gimp.desktop'; break;
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2021\\Photoshop.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
 			}
-			if (id === 'other') {
-				selectImageEditorFile(texture)
-
-			} else if (path) {
+			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
 				if (texture) {
 					texture.openEditor()
 				}
-			}
-			dialog.hide()
-			if (from_settings) {
-				BarItems.settings_window.click()
+			} else {
+				changeImageEditor(texture, true);
 			}
 		},
-		onCancel() {
-			dialog.hide()
-			if (from_settings) {
-				BarItems.settings_window.click()
-			}
-		}
 	}).show()
-}
-function selectImageEditorFile(texture) {
-	let filePaths = electron.dialog.showOpenDialogSync(currentwindow, {
-		title: tl('message.image_editor.exe'),
-		filters: [{name: 'Executable Program', extensions: ['exe', 'app', 'desktop', 'appimage']}]
-	})
-	if (filePaths) {
-		settings.image_editor.value = filePaths[0]
-		if (texture) {
-			texture.openEditor();
-		}
-	}
 }
 //Default Pack
 function openDefaultTexturePath() {
@@ -436,7 +458,7 @@ function createBackup(init) {
 			}
 		})
 	}
-	if (init || elements.length === 0) return;
+	if (init || !Project || (elements.length === 0 && Texture.all.length === 0)) return;
 
 	let model = Codecs.project.compile({compressed: true, backup: true});
 	let short_name = Project.name.replace(/[.]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 16);
@@ -652,6 +674,7 @@ async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
+	AutoBackup.removeAllBackups();
 	if (Blockbench.hasFlag('update_downloaded')) {
 		await new Promise(resolve => {
 			Blockbench.showMessageBox({
@@ -707,20 +730,20 @@ ipcRenderer.on('update-available', (event, arg) => {
 			Blockbench.addFlag('update_downloaded');
 			action.setName(tl('message.update_after_restart'));
 			MenuBar.menus.help.removeAction(action);
-			icon_node.textContent = 'done';
+			icon_node.textContent = 'browser_updated';
 			icon_node.classList.remove('spinning');
-			icon_node.style.color = '#5ef570';
+			icon_node.style.color = 'var(--color-confirm)';
 			click_action = function() {
 				Blockbench.showQuickMessage('message.update_after_restart')
 			}
 		})
 
 	} else {
-		addStartScreenSection({
+		addStartScreenSection('update_notification', {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
-				{type: 'h2', text: tl('message.update_notification.title')},
+				{type: 'h3', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
 				{type: 'button', text: tl('generic.enable'), click: (e) => {
 					settings.automatic_updates.set(true);

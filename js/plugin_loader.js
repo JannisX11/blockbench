@@ -9,9 +9,10 @@ const Plugins = {
 	currently_loading: '',
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	devReload() {
-		var reloads = 0;
-		for (var i = Plugins.all.length-1; i >= 0; i--) {
-			if (Plugins.all[i].source == 'file') {
+		let reloads = 0;
+		for (let i = Plugins.all.length-1; i >= 0; i--) {
+			let plugin = Plugins.all[i];
+			if (plugin.source == 'file' && plugin.isReloadable()) {
 				Plugins.all[i].reload()
 				reloads++;
 			}
@@ -35,6 +36,40 @@ const Plugins = {
 StateMemory.init('installed_plugins', 'array')
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
+async function runPluginFile(path, plugin_id) {
+	let file_content;
+	if (path.startsWith('http')) {
+		if (!path.startsWith('https')) {
+			throw 'Cannot load plugins over http: ' + path;
+		}
+		await new Promise((resolve, reject) => {
+			$.ajax({
+				cache: false,
+				url: path,
+				success(data) {
+					file_content = data;
+					resolve();
+				},
+				error() {
+					reject('Failed to load plugin ' + plugin_id);
+				}
+			});
+		})
+
+	} else if (isApp) {
+		file_content = fs.readFileSync(path, {encoding: 'utf-8'});
+
+	} else {
+		throw 'Failed to load plugin: Unknown URL format'
+	}
+	if (typeof file_content != 'string' || file_content.length < 20) {
+		throw `Issue loading plugin "${plugin_id}": Plugin file empty`;
+	}
+	let func = new Function(file_content + `\n//# sourceURL=PLUGINS/(Plugin):${plugin_id}.js`);
+	func();
+	return file_content;
+}
+
 class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
@@ -46,16 +81,22 @@ class Plugin {
 		this.icon = '';
 		this.tags = [];
 		this.dependencies = [];
+		this.contributors = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
 		this.min_version = '';
 		this.max_version = '';
+		this.deprecation_note = '';
 		this.website = '';
 		this.source = 'store';
 		this.creation_date = 0;
+		this.contributes = {};
 		this.await_loading = false;
-		this.info = null;
+		this.has_changelog = false;
+		this.changelog = null;
+		this.details = null;
 		this.about_fetched = false;
+		this.changelog_fetched = false;
 		this.disabled = false;
 		this.new_repository_format = false;
 		this.cache_version = 0;
@@ -76,16 +117,24 @@ class Plugin {
 		Merge.string(this, data, 'variant')
 		Merge.string(this, data, 'min_version')
 		Merge.string(this, data, 'max_version')
+		Merge.string(this, data, 'deprecation_note')
 		Merge.string(this, data, 'website')
+		Merge.string(this, data, 'repository')
+		Merge.string(this, data, 'bug_tracker')
 		Merge.boolean(this, data, 'await_loading');
+		Merge.boolean(this, data, 'has_changelog');
 		Merge.boolean(this, data, 'disabled');
 		if (data.creation_date) this.creation_date = Date.parse(data.creation_date);
 		if (data.tags instanceof Array) this.tags.safePush(...data.tags.slice(0, 3));
+		if (data.contributors instanceof Array) this.contributors.safePush(...data.contributors);
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
 		if (this.min_version != '' && !compareVersions('4.8.0', this.min_version)) {
 			this.new_repository_format = true;
+		}
+		if (typeof data.contributes == 'object') {
+			this.contributes = data.contributes;
 		}
 
 		Merge.function(this, data, 'onload')
@@ -98,6 +147,22 @@ class Plugin {
 		return this.title;
 	}
 	async install() {
+		if (this.tags.includes('Deprecated') || this.deprecation_note) {
+			let message = tl('message.plugin_deprecated.message');
+			if (this.deprecation_note) {
+				message += '\n\n*' + this.deprecation_note + '*';
+			}
+			let answer = await new Promise((resolve) => {
+				Blockbench.showMessageBox({
+					icon: 'warning',
+					title: this.title,
+					message,
+					cancelIndex: 0,
+					buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway']
+				}, resolve)
+			})
+			if (answer == 0) return;
+		}
 		return await this.download(true);
 	}
 	async load(first, cb) {
@@ -108,7 +173,7 @@ class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			$.getScript(path, () => {
+			runPluginFile(path, this.id).then((content) => {
 				if (cb) cb.bind(scope)()
 				scope.bindGlobalData(first)
 				if (first && scope.oninstall) {
@@ -116,13 +181,14 @@ class Plugin {
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
-			}).fail(() => {
+			}).catch((error) => {
 				if (isApp) {
 					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
 					scope.uninstall()
 				}
 				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
 				reject()
+				console.error(error)
 			})
 			this.remember()
 			scope.installed = true;
@@ -200,6 +266,7 @@ class Plugin {
 
 		var scope = this;
 		function register() {
+			if (!Plugins.json[scope.id]) return;
 			jQuery.ajax({
 				url: 'https://blckbn.ch/api/event/install_plugin',
 				type: 'POST',
@@ -268,44 +335,39 @@ class Plugin {
 		this.source = 'file';
 		this.tags.safePush('Local');
 
-		return await new Promise((resolve, reject) => {
-
-			if (isApp) {
-				$.getScript(file.path, () => {
-					if (window.plugin_data) {
-						scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
-						scope.extend(plugin_data)
-						scope.bindGlobalData()
-					}
-					if (first && scope.oninstall) {
-						scope.oninstall()
-					}
-					scope.installed = true;
-					scope.path = file.path;
-					this.remember();
-					Plugins.sort();
-					resolve()
-				}).fail(reject)
-			} else {
-				try {
-					new Function(file.content)();
-				} catch (err) {
-					reject(err)
-				}
-				if (!Plugins.registered && window.plugin_data) {
-					scope.id = (plugin_data && plugin_data.id)||scope.id
+		if (isApp) {
+			let content = await runPluginFile(file.path, this.id).catch((error) => {
+				console.error(error);
+			});
+			if (content) {
+				if (window.plugin_data) {
+					scope.id = (plugin_data && plugin_data.id)||pathToName(file.path)
 					scope.extend(plugin_data)
 					scope.bindGlobalData()
 				}
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
-				scope.installed = true
-				this.remember()
-				Plugins.sort()
-				resolve()
+				scope.path = file.path;
 			}
-		})
+		} else {
+			try {
+				new Function(file.content + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`)();
+			} catch (err) {
+				reject(err)
+			}
+			if (!Plugins.registered && window.plugin_data) {
+				scope.id = (plugin_data && plugin_data.id)||scope.id
+				scope.extend(plugin_data)
+				scope.bindGlobalData()
+			}
+			if (first && scope.oninstall) {
+				scope.oninstall()
+			}
+		}
+		this.installed = true;
+		this.remember();
+		Plugins.sort();
 	}
 	async loadFromURL(url, first) {
 		if (first) {
@@ -322,36 +384,36 @@ class Plugin {
 		this.tags.safePush('Remote');
 
 		this.source = 'url';
-		await new Promise((resolve, reject) => {
-			$.getScript(url, () => {
-				if (window.plugin_data) {
-					this.id = (plugin_data && plugin_data.id)||pathToName(url)
-					this.extend(plugin_data)
-					this.bindGlobalData()
-				}
-				if (first && this.oninstall) {
-					this.oninstall()
-				}
-				this.installed = true
-				this.path = url
-				this.remember()
-				Plugins.sort()
-				// Save
-				if (isApp) {
-					var file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+		let content = await runPluginFile(url, this.id).catch((error) => {
+			if (isApp) {
+				this.load().then(resolve).catch(resolve)
+			}
+			console.error(error);
+		})
+		if (content) {
+			if (window.plugin_data) {
+				this.id = (plugin_data && plugin_data.id)||pathToName(url)
+				this.extend(plugin_data)
+				this.bindGlobalData()
+			}
+			if (first && this.oninstall) {
+				this.oninstall()
+			}
+			this.installed = true
+			this.path = url
+			this.remember()
+			Plugins.sort()
+			// Save
+			if (isApp) {
+				await new Promise((resolve, reject) => {
+					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
-				} else {
-					resolve()
-				}
-			}).fail(() => {
-				if (isApp) {
-					this.load().then(resolve).catch(resolve)
-				}
-			})
-		})
+				})
+			}
+		}
 		return this;
 	}
 	remember(id = this.id, path = this.path) {
@@ -377,7 +439,7 @@ class Plugin {
 				this.onuninstall();
 			}
 		} catch (err) {
-			console.log('Error in unload or uninstall method: ', err);
+			console.error(`Error in unload or uninstall method of "${this.id}": `, err);
 		}
 		delete Plugins.registered[this.id];
 		let in_installed = Plugins.installed.find(plugin => plugin.id == this.id);
@@ -416,8 +478,12 @@ class Plugin {
 		this.cache_version++;
 		this.unload()
 		this.tags.empty();
+		this.contributors.empty();
 		this.dependencies.empty();
-		Plugins.all.remove(this)
+		Plugins.all.remove(this);
+		this.details = null;
+		let had_changelog = this.changelog_fetched;
+		this.changelog_fetched = false;
 
 		if (this.source == 'file') {
 			this.loadFromFile({path: this.path}, false)
@@ -427,6 +493,9 @@ class Plugin {
 		}
 
 		this.fetchAbout(true);
+		if (had_changelog && this.has_changelog) {
+			this.fetchChangelog(true);
+		}
 
 		return this;
 	}
@@ -512,9 +581,39 @@ class Plugin {
 			this.about_fetched = true;
 		}
 	}
-	getPluginInfo() {
-		if (this.info) return this.info;
-		this.info = {
+	async fetchChangelog(force) {
+		if ((!this.changelog_fetched && !this.changelog) || force) {
+			function reverseOrder(input) {
+				let output = {};
+				Object.keys(input).forEachReverse(key => {
+					output[key] = input[key];
+				})
+				return output;
+			}
+			if (isApp && this.installed && this.source != 'store') {
+				try {
+					let changelog_path = this.path.replace(/\w+\.js$/, 'changelog.json');
+					let content = fs.readFileSync(changelog_path, {encoding: 'utf-8'});
+					this.changelog = reverseOrder(JSON.parse(content));
+					this.changelog_fetched = true;
+					return;
+				} catch (err) {
+					console.error('failed to get changelog for plugin ' + this.id, err);
+				}
+			}
+			let url = `${Plugins.api_path}/${this.id}/changelog.json`;
+			let result = await fetch(url).catch(() => {
+				console.error('changelog.json missing for plugin ' + this.id);
+			});
+			if (result.ok) {
+				this.changelog = reverseOrder(await result.json());
+			}
+			this.changelog_fetched = true;
+		}
+	}
+	getPluginDetails() {
+		if (this.details) return this.details;
+		this.details = {
 			version: this.version,
 			last_modified: 'N/A',
 			creation_date: 'N/A',
@@ -523,33 +622,26 @@ class Plugin {
 			min_version: this.min_version ? (this.min_version+'+') : '-',
 			max_version: this.max_version || '',
 			website: this.website || '',
+			repository: this.repository || '',
+			bug_tracker: this.bug_tracker || '',
+			contributors: this.contributors.join(', '),
 			author: this.author,
 			variant: this.variant == 'both' ? 'All' : this.variant,
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
 		};
 
 		let trackDate = (input_date, key) => {
-			let date = new Date(input_date);
-			var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
-			let label;
-			if (diff <= 0) {
-				label = tl('dates.today');
-			} else if (diff == 1) {
-				label = tl('dates.yesterday');
-			} else if (diff <= 7) {
-				label = tl('dates.this_week');
-			} else if (diff <= 60) {
-				label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
-			} else {
-				label = date.toLocaleDateString();
-			}
-			console.log(label), 
-			this.info[key] = label;
-			this.info[key + '_full'] = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+			let date = getDateDisplay(input_date);
+			this.details[key] = date.short;
+			this.details[key + '_full'] = date.full;
 		}
 		if (this.source == 'store') {
-			this.info.issue_url = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
-			this.info.source = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			if (!this.details.bug_tracker) {
+				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+			}
+			if (!this.details.repository) {
+				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
+			}
 
 			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
@@ -557,7 +649,6 @@ class Plugin {
 				console.error('Cannot access commit info for ' + this.id, err);
 			}).then(async response => {
 				let commits = await response.json().catch(err => console.error(err));
-				console.log(response, commits)
 				if (!commits || !commits.length) return;
 				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
 
@@ -570,7 +661,7 @@ class Plugin {
 		if (this.creation_date) {
 			trackDate(this.creation_date, 'creation_date');
 		}
-		return this.info;
+		return this.details;
 	}
 }
 Plugin.prototype.menu = new Menu([
@@ -637,7 +728,7 @@ Plugin.prototype.menu = new Menu([
 		icon: 'folder',
 		condition: plugin => (isApp && plugin.source == 'file'),
 		click(plugin) {
-			shell.showItemInFolder(plugin.path);
+			showItemInFolder(plugin.path);
 		}
 	},
 ]);
@@ -789,16 +880,20 @@ async function loadInstalledPlugins() {
 				}
 
 			} else if (plugin.source == 'url') {
-				var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
-				install_promises.push(instance.loadFromURL(plugin.path, false));
-				load_counter++;
-				console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				if (plugin.path) {
+					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
+					install_promises.push(instance.loadFromURL(plugin.path, false));
+					load_counter++;
+					console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+				} else {
+					Plugins.installed.remove(plugin);
+				}
 
 			} else {
 				if (Plugins.all.find(p => p.id == plugin.id)) {
 					load_counter++;
 					console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`);
-				} else {
+				} else if (Plugins.json instanceof Object && navigator.onLine) {
 					Plugins.installed.remove(plugin);
 				}
 			}
@@ -821,6 +916,7 @@ BARS.defineActions(function() {
 		title: 'dialog.plugins.title',
 		buttons: [],
 		width: 1200,
+		resizable: 'xy',
 		component: {
 			data: {
 				tab: 'installed',
@@ -830,26 +926,30 @@ BARS.defineActions(function() {
 				selected_plugin: null,
 				page: 0,
 				per_page: 25,
+				settings: settings,
 				isMobile: Blockbench.isMobile,
 			},
 			computed: {
 				plugin_search() {
-					var name = this.search_term.toUpperCase()
-					return this.items.filter(item => {
-						if ((this.tab == 'installed') == item.installed) {
-							if (name.length > 0) {
-								return (
-									item.id.toUpperCase().includes(name) ||
-									item.title.toUpperCase().includes(name) ||
-									item.description.toUpperCase().includes(name) ||
-									item.author.toUpperCase().includes(name) ||
-									item.tags.find(tag => tag.toUpperCase().includes(name))
-								)
-							}
-							return true;
-						}
-						return false;
-					})
+					let search_name = this.search_term.toUpperCase();
+					if (search_name) {
+						let filtered = this.items.filter(item => {
+							return (
+								item.id.toUpperCase().includes(search_name) ||
+								item.title.toUpperCase().includes(search_name) ||
+								item.description.toUpperCase().includes(search_name) ||
+								item.author.toUpperCase().includes(search_name) ||
+								item.tags.find(tag => tag.toUpperCase().includes(search_name))
+							)
+						});
+						let installed = filtered.filter(p => p.installed);
+						let not_installed = filtered.filter(p => !p.installed);
+						return installed.concat(not_installed);
+					} else {
+						return this.items.filter(item => {
+							return (this.tab == 'installed') == item.installed;
+						})
+					}
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
@@ -890,6 +990,16 @@ BARS.defineActions(function() {
 						pages.push(i);
 					}
 					return pages;
+				},
+				selected_plugin_settings() {
+					if (!this.selected_plugin) return {};
+					let plugin_settings = {};
+					for (let id in this.settings) {
+						if (settings[id].plugin == this.selected_plugin.id) {
+							plugin_settings[id] = settings[id];
+						}
+					}
+					return plugin_settings;
 				}
 			},
 			methods: {
@@ -910,6 +1020,19 @@ BARS.defineActions(function() {
 					this.selected_plugin = Plugin.selected = plugin;
 					if (!this.selected_plugin.installed && this.page_tab == 'settings') {
 						this.page_tab == 'about';
+					}
+					if (this.page_tab == 'changelog') {
+						if (plugin.has_changelog) {
+							plugin.fetchChangelog();
+						} else {
+							this.page_tab == 'about';
+						}
+					}
+				},
+				setPageTab(tab) {
+					this.page_tab = tab;
+					if (this.page_tab == 'changelog' && this.selected_plugin.has_changelog) {
+						this.selected_plugin.fetchChangelog();
 					}
 				},
 				showDependency(dependency) {
@@ -939,8 +1062,237 @@ BARS.defineActions(function() {
 					return pureMarked(about);
 				},
 				reduceLink(url) {
-					return url.replace('https://', '').substring(0, 50)+'...';
+					url = url.replace('https://', '').replace(/\/$/, '');
+					if (url.length > 50) {
+						return url.substring(0, 50)+'...';
+					} else {
+						return url;
+					}
 				},
+				printDate(input_date) {
+					return getDateDisplay(input_date).short;
+				},
+				printDateFull(input_date) {
+					return getDateDisplay(input_date).full;
+				},
+				formatChangelogLine(line) {
+					let content = [];
+					let last_i = 0;
+					for (let match of line.matchAll(/\[.+?\]\(.+?\)/g)) {
+						let split = match[0].search(/\]\(/);
+						let label = match[0].substring(1, split);
+						let href = match[0].substring(split+2, match[0].length-1);
+						let a = Interface.createElement('a', {href, title: href}, label);
+						content.push(line.substring(last_i, match.index));
+						content.push(a);
+						last_i = match.index + match[0].length;
+					}
+					content.push(line.substring(last_i));
+					let node = Interface.createElement('p', {}, content.filter(a => a));
+					return node.innerHTML;
+				},
+
+				// Settings
+				changePluginSetting(setting) {
+					setTimeout(() => {
+						if (typeof setting.onChange == 'function') {
+							setting.onChange(setting.value);
+						}
+						Settings.saveLocalStorages();
+					}, 20);
+				},
+				openSettingInSettings(key, profile) {
+					Settings.openDialog({search_term: key, profile});
+				},
+				settingContextMenu(setting, event) {
+					new Menu([
+						{
+							name: 'dialog.settings.reset_to_default',
+							icon: 'replay',
+							click: () => {
+								setting.ui_value = setting.default_value;
+								Settings.saveLocalStorages();
+							}
+						}
+					]).open(event);
+				},
+				getProfileValuesForSetting(key) {
+					return SettingsProfile.all.filter(profile => {
+						return profile.settings[key] !== undefined;
+					});
+				},
+
+				// Features
+				getPluginFeatures(plugin) {
+					let types = [];
+
+					let formats = [];
+					for (let id in Formats) {
+						if (Formats[id].plugin == plugin.id) formats.push(Formats[id]);
+					}
+					if (formats.length) {
+						types.push({
+							id: 'formats',
+							name: tl('data.format'),
+							features: formats.map(format => {
+								return {
+									id: format.id,
+									name: format.name,
+									icon: format.icon,
+									description: format.description,
+									click: format.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(format);
+									})
+								}
+							})
+						})
+					}
+
+					let loaders = [];
+					for (let id in ModelLoader.loaders) {
+						if (ModelLoader.loaders[id].plugin == plugin.id) loaders.push(ModelLoader.loaders[id]);
+					}
+					if (loaders.length) {
+						types.push({
+							id: 'loaders',
+							name: tl('format_category.loaders'),
+							features: loaders.map(loader => {
+								return {
+									id: loader.id,
+									name: loader.name,
+									icon: loader.icon,
+									description: loader.description,
+									click: loader.show_on_start_screen && (() => {
+										Dialog.open.close();
+										StartScreen.open();
+										StartScreen.vue.loadFormat(loader);
+									})
+								}
+							})
+						})
+					}
+
+					let codecs = [];
+					for (let id in Codecs) {
+						if (Codecs[id].plugin == plugin.id) codecs.push(Codecs[id]);
+					}
+					if (codecs.length) {
+						types.push({
+							id: 'codecs',
+							name: 'Codec',
+							features: codecs.map(codec => {
+								return {
+									id: codec.id,
+									name: codec.name,
+									icon: codec.export_action ? codec.export_action.icon : 'save',
+									description: codec.export_action ? codec.export_action.description : ''
+								}
+							})
+						})
+					}
+
+					let bar_items = Keybinds.actions.filter(action => action.plugin == plugin.id);
+					let tools = bar_items.filter(action => action instanceof Tool);
+					let other_actions = bar_items.filter(action => action instanceof Tool == false);
+
+					if (tools.length) {
+						types.push({
+							id: 'tools',
+							name: tl('category.tools'),
+							features: tools.map(tool => {
+								return {
+									id: tool.id,
+									name: tool.name,
+									icon: tool.icon,
+									description: tool.description,
+									extra_info: tool.keybind.label,
+									click: Condition(tool.condition) && (() => {
+										ActionControl.select(tool.name);
+									})
+								}
+							})
+						})
+					}
+					if (other_actions.length) {
+						types.push({
+							id: 'actions',
+							name: 'Action',
+							features: other_actions.map(action => {
+								return {
+									id: action.id,
+									name: action.name,
+									icon: action.icon,
+									description: action.description,
+									extra_info: action.keybind.label,
+									click: Condition(action.condition) && (() => {
+										ActionControl.select(action.name);
+									})
+								}
+							})
+						})
+					}
+
+					let panels = [];
+					for (let id in Panels) {
+						if (Panels[id].plugin == plugin.id) panels.push(Panels[id]);
+					}
+					if (panels.length) {
+						types.push({
+							id: 'panels',
+							name: tl('data.panel'),
+							features: panels.map(panel => {
+								return {
+									id: panel.id,
+									name: panel.name,
+									icon: panel.icon
+								}
+							})
+						})
+					}
+
+					let setting_list = [];
+					for (let id in settings) {
+						if (settings[id].plugin == plugin.id) setting_list.push(settings[id]);
+					}
+					if (setting_list.length) {
+						types.push({
+							id: 'settings',
+							name: tl('data.setting'),
+							features: setting_list.map(setting => {
+								return {
+									id: setting.id,
+									name: setting.name,
+									icon: setting.icon,
+									click: () => {
+										this.page_tab = 'settings';
+									}
+								}
+							})
+						})
+					}
+
+					let validator_checks = Validator.checks.filter(check => check.plugin == plugin.id);
+					if (validator_checks.length) {
+						types.push({
+							id: 'validator_checks',
+							name: 'Validator Check',
+							features: validator_checks.map(validator_check => {
+								return {
+									id: validator_check.id,
+									name: validator_check.name,
+									icon: 'task_alt'
+								}
+							})
+						})
+					}
+					//TODO
+					//Modes
+					//Element Types
+					return types;
+				},
+
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				tl
@@ -953,12 +1305,12 @@ BARS.defineActions(function() {
 							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
 							<search-bar id="plugin_search_bar" v-model="search_term" @input="setPage(0)"></search-bar>
 						</div>
-						<div class="tab_bar">
+						<div class="tab_bar" v-if="!search_term">
 							<div :class="{open: tab == 'installed'}" @click="setTab('installed')">${tl('dialog.plugins.installed')}</div>
 							<div :class="{open: tab == 'available'}" @click="setTab('available')">${tl('dialog.plugins.available')}</div>
 						</div>
-						<ul class="list" id="plugin_list" ref="plugin_list">
-							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
+						<ul class="list" :class="{paginated_list: pages.length > 1}" id="plugin_list" ref="plugin_list">
+							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
@@ -968,6 +1320,7 @@ BARS.defineActions(function() {
 										<div class="title">{{ plugin.title || plugin.id }}</div>
 										<div class="author">{{ tl('dialog.plugins.author', [plugin.author]) }}</div>
 									</div>
+									<div v-if="plugin.installed && search_term" class="plugin_installed_tag">✓ ${tl('dialog.plugins.is_installed')}</div>
 								</div>
 								<div class="description">{{ plugin.description }}</div>
 								<ul class="plugin_tag_list">
@@ -982,7 +1335,7 @@ BARS.defineActions(function() {
 						</ol>
 					</div>
 					
-					<div id="plugin_browser_page" v-if="selected_plugin">
+					<div id="plugin_browser_page" v-if="selected_plugin" :class="{plugin_disabled: selected_plugin.disabled, plugin_installed: selected_plugin.installed}">
 						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
 							${tl('generic.navigate_back')}</div>
@@ -1042,10 +1395,11 @@ BARS.defineActions(function() {
 						</div>
 
 						<ul id="plugin_browser_page_tab_bar">
-							<li :class="{selected: page_tab == 'about'}" @click="page_tab = 'about'">About</li>
-							<li :class="{selected: page_tab == 'info'}" @click="page_tab = 'info'">Info</li>
-							<li :class="{selected: page_tab == 'settings'}" @click="page_tab = 'settings'" v-if="selected_plugin.installed">Settings</li>
-							<li :class="{selected: page_tab == 'features'}" @click="page_tab = 'features'" v-if="selected_plugin.installed">Features</li>
+							<li :class="{selected: page_tab == 'about'}" @click="setPageTab('about')">About</li>
+							<li :class="{selected: page_tab == 'details'}" @click="setPageTab('details')">Details</li>
+							<li :class="{selected: page_tab == 'changelog'}" @click="setPageTab('changelog')" v-if="selected_plugin.has_changelog">Changelog</li>
+							<li :class="{selected: page_tab == 'settings'}" @click="setPageTab('settings')" v-if="selected_plugin.installed">Settings</li>
+							<li :class="{selected: page_tab == 'features'}" @click="setPageTab('features')" v-if="selected_plugin.installed">Features</li>
 						</ul>
 
 						<dynamic-icon v-if="page_tab == 'about' && !selected_plugin.about && !selected_plugin.hasImageIcon()" :icon="selected_plugin.icon" id="plugin_page_background_decoration" />
@@ -1053,65 +1407,142 @@ BARS.defineActions(function() {
 						<div class="about markdown" v-show="page_tab == 'about'" v-if="selected_plugin.about" v-html="formatAbout(selected_plugin.about)">
 						</div>
 
-						<table v-if="page_tab == 'info'" id="plugin_browser_info">
+						<table v-if="page_tab == 'details'" id="plugin_browser_details" class="plugin_browser_tabbed_page">
 							<tbody>
 								<tr>
-									<td>Author</td>
-									<td>{{ selected_plugin.getPluginInfo().author }}</td>
+									<td>Identifier</td>
+									<td>{{ selected_plugin.id }}</td>
 								</tr>
 								<tr>
 									<td>Version</td>
-									<td>{{ selected_plugin.info.version }}</td>
+									<td>{{ selected_plugin.version }}</td>
 								</tr>
 								<tr>
-									<td>Last Updated</td>
-									<td :title="selected_plugin.info.last_modified_full">{{ selected_plugin.info.last_modified }}</td>
+									<td>Author</td>
+									<td>{{ selected_plugin.getPluginDetails().author }}</td>
+								</tr>
+								<tr v-if="selected_plugin.details.contributors">
+									<td>Contributors</td>
+									<td>{{ selected_plugin.details.contributors }}</td>
+								</tr>
+								<tr>
+									<td>Last updated</td>
+									<td :title="selected_plugin.details.last_modified_full">{{ selected_plugin.details.last_modified }}</td>
 								</tr>
 								<tr>
 									<td>Published</td>
-									<td :title="selected_plugin.info.creation_date_full">{{ selected_plugin.info.creation_date }}</td>
+									<td :title="selected_plugin.details.creation_date_full">{{ selected_plugin.details.creation_date }}</td>
 								</tr>
 								<tr>
 									<td>Required Blockbench version</td>
-									<td>{{ selected_plugin.info.min_version }}</td>
+									<td>{{ selected_plugin.details.min_version }}</td>
 								</tr>
-								<tr v-if="selected_plugin.info.max_version">
+								<tr v-if="selected_plugin.details.max_version">
 									<td>Maximum allowed Blockbench version</td>
-									<td>{{ selected_plugin.info.max_version }}</td>
+									<td>{{ selected_plugin.details.max_version }}</td>
 								</tr>
 								<tr>
-									<td>Supported Variants</td>
-									<td>{{ capitalizeFirstLetter(selected_plugin.info.variant || '') }}</td>
+									<td>Supported variants</td>
+									<td>{{ capitalizeFirstLetter(selected_plugin.details.variant || '') }}</td>
 								</tr>
 								<tr>
-									<td>Installations per Week</td>
-									<td>{{ selected_plugin.info.weekly_installations }}</td>
+									<td>Installations per week</td>
+									<td>{{ selected_plugin.details.weekly_installations }}</td>
 								</tr>
-								<tr v-if="selected_plugin.info.website">
+								<tr v-if="selected_plugin.details.website">
 									<td>Website</td>
-									<td>{{ selected_plugin.info.website }}</td>
+									<td><a :href="selected_plugin.details.website" :title="selected_plugin.details.website">{{ reduceLink(selected_plugin.details.website) }}</a></td>
 								</tr>
-								<tr v-if="selected_plugin.info.source">
-									<td>Plugin Source</td>
-									<td><a :href="selected_plugin.info.source" :title="selected_plugin.info.source">{{ reduceLink(selected_plugin.info.source) }}</a></td>
+								<tr v-if="selected_plugin.details.repository">
+									<td>Plugin source</td>
+									<td><a :href="selected_plugin.details.repository" :title="selected_plugin.details.repository">{{ reduceLink(selected_plugin.details.repository) }}</a></td>
 								</tr>
-								<tr v-if="selected_plugin.info.issue_url">
-									<td>Report issue</td>
-									<td><a :href="selected_plugin.info.issue_url" :title="selected_plugin.info.issue_url">{{ reduceLink(selected_plugin.info.issue_url) }}</a></td>
+								<tr v-if="selected_plugin.details.bug_tracker">
+									<td>Report issues</td>
+									<td><a :href="selected_plugin.details.bug_tracker" :title="selected_plugin.details.bug_tracker">{{ reduceLink(selected_plugin.details.bug_tracker) }}</a></td>
 								</tr>
 							</tbody>
 						</table>
-						<div v-if="page_tab == 'features'">
-							Tools
-							Actions
-							Formats
-							Codecs
-							Panels
-							Modes
-							Settings
-							Validator Checks
-							Element Types
-						</div>
+
+						<ul v-if="page_tab == 'changelog' && typeof selected_plugin.changelog == 'object'" id="plugin_browser_changelog" class="plugin_browser_tabbed_page">
+							<li v-for="(version, key) in selected_plugin.changelog">
+								<h3>{{ version.title || key }}</h3>
+								<label class="plugin_changelog_author" v-if="version.author">{{ tl('dialog.plugins.author', [version.author]) }}</label>
+								<label class="plugin_changelog_date" v-if="version.date" :title="printDateFull(version.date)">
+									<i class="material-icons icon">calendar_today</i>
+									{{ printDate(version.date) }}
+								</label>
+								<ul>
+									<li v-for="category in version.categories">
+										<h4>{{ category.title || key }}</h4>
+										<ul class="plugin_changelog_features">
+											<li v-for="change in category.list" v-html="formatChangelogLine(change)"></li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						
+						<ul class="settings_list plugin_browser_tabbed_page" v-if="page_tab == 'settings'">
+							<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
+								v-on="setting.click ? {click: setting.click} : {}"
+								@contextmenu="settingContextMenu(setting, $event)"
+							>
+								<template v-if="setting.type === 'number'">
+									<div class="setting_element"><numeric-input v-model.number="setting.master_value" :min="setting.min" :max="setting.max" :step="setting.step" @input="changePluginSetting(setting)" /></div>
+								</template>
+								<template v-else-if="setting.type === 'click'">
+									<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
+								</template>
+								<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
+									<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
+								</template>
+
+								<div class="setting_label">
+									<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+									<div class="setting_profile_value_indicator"
+										v-for="profile_here in getProfileValuesForSetting(key)"
+										:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+										:class="{active: profile_here.isActive()}"
+										:title="tl('Has override in profile ' + profile_here.name)"
+										@click.stop="openSettingInSettings(key, profile_here)"
+									/>
+									<div class="setting_description">{{ setting.description }}</div>
+								</div>
+
+								<template v-if="setting.type === 'text'">
+									<input type="text" class="dark_bordered" style="width: 96%" v-model="setting.master_value" @input="changePluginSetting(setting)">
+								</template>
+
+								<template v-if="setting.type === 'password'">
+									<input :type="setting.hidden ? 'password' : 'text'" class="dark_bordered" style="width: calc(96% - 28px);" v-model="setting.master_value" @input="changePluginSetting(setting)">
+									<div class="password_toggle" @click="setting.hidden = !setting.hidden;">
+										<i class="fas fa-eye-slash" v-if="setting.hidden"></i>
+										<i class="fas fa-eye" v-else></i>
+									</div>
+								</template>
+
+								<template v-else-if="setting.type === 'select'">
+									<div class="bar_select">
+										<select-input v-model="setting.master_value" :options="setting.options" @change="changePluginSetting"setting />
+									</div>
+								</template>
+							</li>
+						</ul>
+						
+						<ul v-if="page_tab == 'features'" class="features_list plugin_browser_tabbed_page">
+							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
+								<h4>{{ type.name }}</h4>
+								<ul>
+									<li v-for="feature in type.features" :key="feature.id" class="plugin_feature_entry" :class="{clickable: feature.click}" @click="feature.click && feature.click($event)">
+										<dynamic-icon v-if="feature.icon" :icon="feature.icon" />
+										<label>{{ feature.name }}</label>
+										<div class="description">{{ feature.description }}</div>
+										<div v-if="feature.extra_info" class="extra_info">{{ feature.extra_info }}</div>
+									</li>
+								</ul>
+							</li>
+						</ul>
 						
 					</div>
 					
@@ -1150,6 +1581,10 @@ BARS.defineActions(function() {
 			'load_plugin_from_url'
 		]),
 		click(e) {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
@@ -1172,6 +1607,10 @@ BARS.defineActions(function() {
 		icon: 'fa-file-code',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.import({
 				resource_id: 'dev_plugin',
 				extensions: ['js'],
@@ -1185,6 +1624,10 @@ BARS.defineActions(function() {
 		icon: 'cloud_download',
 		category: 'blockbench',
 		click() {
+			if (settings.classroom_mode.value) {
+				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
+				return;
+			}
 			Blockbench.textPrompt('URL', '', url => {
 				new Plugin().loadFromURL(url, true)
 			})

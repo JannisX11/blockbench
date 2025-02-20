@@ -9,8 +9,22 @@ class KeyframeDataPoint {
 		if (data.values) {
 			Object.assign(data, data.values)
 		}
+		let file_value_before = this.file;
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
+		}
+		if (isApp && data.file && !file_value_before) {
+			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
+				Timeline.visualizeAudioFile(this.file);
+			} else if (this.keyframe.channel == 'particle') {
+				try {
+					Blockbench.read([this.file], {}, (files) => {
+						Animator.loadParticleEmitter(this.file, files[0].content);
+					})
+				} catch (err) {
+					console.log('Could not load particle effect for', this.file)
+				}
+			}
 		}
 	}
 	getUndoCopy() {
@@ -80,11 +94,8 @@ class Keyframe {
 		data_point = this.data_points[data_point];
 		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
-		} else if (!isNaN(data_point[axis])) {
-			let num = parseFloat(data_point[axis]);
-			return isNaN(num) ? 0 : num;
 		} else {
-			return data_point[axis]
+			return exportMolang(data_point[axis])
 		}
 	}
 	calc(axis, data_point = 0) {
@@ -99,6 +110,7 @@ class Keyframe {
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
+		if (typeof value == 'number') value = Math.roundTo(value, 10).toString();
 		if (this.data_points[data_point]) {
 			if (this.uniform) {
 				this.data_points[data_point].x = value;
@@ -140,6 +152,7 @@ class Keyframe {
 				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
 			}
 		}
+		value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
 		this.set(axis, value, data_point)
 		return value;
 	}
@@ -420,12 +433,19 @@ class Keyframe {
 		}
 		Timeline.selected.safePush(this);
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
-			Timeline.selected[0].animator.select()
+			Timeline.selected[0].animator.select();
 		}
-		this.selected = true
+		this.selected = true;
 		TickUpdates.keyframe_selection = true;
 
 		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
+
+		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection({timeline: true});
+
+		this.select(event);
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
@@ -438,7 +458,7 @@ class Keyframe {
 				case 'scale': BarItems.resize_tool.select(); break;
 			}
 		}
-		return this;
+		Undo.finishSelection('Select keyframe')
 	}
 	callPlayhead() {
 		Timeline.setTime(this.time)
@@ -447,6 +467,9 @@ class Keyframe {
 	}
 	
 	showInTimeline() {
+		if (!Modes.animate) {
+			Modes.options.animate.select()
+		}
 		if (!this.animator.animation.selected) {
 			this.animator.animation.select();
 		}
@@ -511,6 +534,13 @@ class Keyframe {
 		for (var key in Keyframe.properties) {
 			Keyframe.properties[key].copy(this, copy)
 		}
+		if (save && this.interpolation != 'bezier') {
+			delete copy.bezier_linked;
+			delete copy.bezier_left_time;
+			delete copy.bezier_left_value;
+			delete copy.bezier_right_time;
+			delete copy.bezier_right_value;
+		}
 		this.data_points.forEach(data_point => {
 			let point_copy = data_point.getUndoCopy();
 			if (options.absolute_paths == false) delete point_copy.file;
@@ -565,6 +595,7 @@ class Keyframe {
 function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
 		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
+		if (data_point && !kf.data_points[data_point]) return;
 		kf.set(axis, value, data_point);
 	})
 	if (!['effect', 'locator', 'script'].includes(axis)) {
@@ -579,8 +610,8 @@ function updateKeyframeSelection() {
 		}
 		let has_expressions = false;
 		if (kf.transform) {
-			has_expressions = !!kf.data_points.find(point => {
-				return !isStringNumber(point.x) || !isStringNumber(point.y) ||! isStringNumber(point.z);
+			has_expressions = !!kf.data_points.find((point, i) => {
+				return kf.getArray(i).find(v => typeof v == 'string');
 			})
 		}
 		if (has_expressions != kf.has_expressions) {
@@ -599,7 +630,7 @@ function updateKeyframeSelection() {
 			BarItems.keyframe_bezier_linked.updateEnabledState();
 		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -635,20 +666,54 @@ function unselectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function removeSelectedKeyframes() {
-	Undo.initEdit({keyframes: Timeline.selected})
-	var i = Timeline.keyframes.length;
-	while (i > 0) {
-		i--;
-		let kf = Timeline.keyframes[i]
-		if (Timeline.selected.includes(kf)) {
-			kf.remove()
+SharedActions.add('delete', {
+	condition: () => Animator.open && Keyframe.selected.length,
+	priority: -1,
+	run() {
+		Undo.initEdit({keyframes: Timeline.selected})
+		var i = Timeline.keyframes.length;
+		while (i > 0) {
+			i--;
+			let kf = Timeline.keyframes[i]
+			if (Timeline.selected.includes(kf)) {
+				kf.remove()
+			}
 		}
+		updateKeyframeSelection()
+		Animator.preview()
+		Undo.finishEdit('Remove keyframes')
 	}
-	updateKeyframeSelection()
-	Animator.preview()
-	Undo.finishEdit('Remove keyframes')
-}
+})
+SharedActions.add('select_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		selectAllKeyframes()
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -2,
+	run() {
+		unselectAllKeyframes()
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Animator.open && Animation.selected,
+	priority: -1,
+	run() {
+		Timeline.keyframes.forEach((kf) => {
+			if (!kf.selected) {
+				Timeline.selected.push(kf)
+				kf.selected = true;
+			} else {
+				Timeline.selected.remove(kf);
+				kf.selected = false;
+			}
+		})
+		updateKeyframeSelection()
+	}
+})
 
 //Clipbench
 Object.assign(Clipbench, {
@@ -731,12 +796,20 @@ Object.assign(Clipbench, {
 	}
 })
 
+
 BARS.defineActions(function() {
 	new Action('add_keyframe', {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 'q', shift: null}),
+		keybind: new Keybind({key: 'q'}, {
+			reset_values: 'shift'
+		}),
+		variations: {
+			reset_values: {
+				name: 'action.add_keyframe.reset_values'
+			}
+		},
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
@@ -747,8 +820,9 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Prop.active_panel == 'timeline' && animator.channels[Timeline.vue.graph_editor_channel]) {
 				channel = Timeline.vue.graph_editor_channel;
 			}
-			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
-			if (event && (event.shiftKey || Pressing.overrides.shift)) {
+			let reset_values = BarItems.add_keyframe.keybind.additionalModifierTriggered(event) == 'reset_values';
+			animator.createKeyframe(reset_values ? {} : null, Timeline.time, channel, true);
+			if (reset_values) {
 				Animator.preview();
 			}
 		}
@@ -997,59 +1071,6 @@ BARS.defineActions(function() {
 			updateKeyframeSelection()
 		}
 	})
-	/*new Action('change_keyframe_file', {
-		icon: 'fa-file',
-		category: 'animation',
-		condition: () => (Animator.open && Timeline.selected.length && ['sound', 'particle'].includes(Timeline.selected[0].channel)),
-		click: function () {
-
-			if (Timeline.selected[0].channel == 'particle') {
-				Blockbench.import({
-					resource_id: 'animation_particle',
-					extensions: ['json'],
-					type: 'Bedrock Particle',
-					startpath: Timeline.selected[0].data_points[0].file
-				}, function(files) {
-
-					let {path} = files[0];
-					Undo.initEdit({keyframes: Timeline.selected})
-					Timeline.selected.forEach((kf) => {
-						if (kf.channel == 'particle') {
-							kf.data_points.forEach(data_point => {
-								data_point.file = path;
-							})
-						}
-					})
-					Animator.loadParticleEmitter(path, files[0].content);
-					Undo.finishEdit('Change keyframe particle file')
-				})	
-			} else {
-				Blockbench.import({
-					resource_id: 'animation_audio',
-					extensions: ['ogg', 'wav', 'mp3'],
-					type: 'Audio File',
-					startpath: Timeline.selected[0].data_points[0].file
-				}, function(files) {
-
-					let path = isApp
-						? files[0].path
-						: URL.createObjectURL(files[0].browser_file);
-
-					Undo.initEdit({keyframes: Timeline.selected})
-					Timeline.selected.forEach((kf) => {
-						if (kf.channel == 'sound') {
-							kf.data_points.forEach(data_point => {
-								data_point.file = path;
-								if (!data_point.effect) data_point.effect = files[0].name.toLowerCase().replace(/\.[a-z]+$/, '').replace(/[^a-z0-9._]+/g, '');
-							})
-						}
-					})
-					Timeline.visualizeAudioFile(path);
-					Undo.finishEdit('Change keyframe audio file')
-				})
-			}
-		}
-	})*/
 	new Action('reverse_keyframes', {
 		icon: 'swap_horizontal_circle',
 		category: 'animation',
@@ -1194,6 +1215,15 @@ BARS.defineActions(function() {
 									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
 								}
 								time = Timeline.snapTime(time);
+								if (Math.epsilon(time, Animation.selected.length, 0.004) && formResult.offset && !occupied_times.includes(0)) {
+									// Copy keyframe to start
+									occupied_times.push(0);
+									let new_kf = opposite_animator.createKeyframe(old_kf, 0, channel, false, false)
+									if (new_kf) {
+										new_kf.flip(0);
+										new_keyframes.push(new_kf);
+									}
+								}
 								if (occupied_times.includes(time)) return;
 								occupied_times.push(time);
 								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
@@ -1243,7 +1273,6 @@ Interface.definePanels(function() {
 					'slider_keyframe_time',
 					'keyframe_interpolation',
 					'keyframe_uniform',
-					'change_keyframe_file',
 					'reset_keyframe'
 				]
 			})
@@ -1431,7 +1460,7 @@ Interface.definePanels(function() {
 					}
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},
 				tl,
@@ -1449,6 +1478,17 @@ Interface.definePanels(function() {
 						}
 					}
 					return channel;
+				},
+				firstKeyframe() {
+					let data_point_length = 0;
+					let keyframe;
+					for (let kf of this.keyframes) {
+						if (kf.data_points.length > data_point_length) {
+							keyframe = kf;
+							data_point_length = kf.data_points.length;
+						}
+					}
+					return keyframe;
 				}
 			},
 			template: `
@@ -1461,7 +1501,7 @@ Interface.definePanels(function() {
 							<label>{{ tl('panel.keyframe.type', [getKeyframeInfos()]) }}</label>
 							<div
 								class="in_list_button"
-								v-if="keyframes[0].animator.channels[channel] && keyframes[0].data_points.length < keyframes[0].animator.channels[channel].max_data_points && keyframes[0].interpolation !== 'catmullrom'"
+								v-if="firstKeyframe.animator.channels[channel] && firstKeyframe.data_points.length < firstKeyframe.animator.channels[channel].max_data_points && firstKeyframe.interpolation !== 'catmullrom'"
 								v-on:click.stop="addDataPoint()"
 								title="${ tl('panel.keyframe.change_effect_file') }"
 							>
@@ -1469,19 +1509,19 @@ Interface.definePanels(function() {
 							</div>
 						</div>
 
-						<ul class="list" :style="{overflow: keyframes[0].data_points.length > 1 ? 'auto' : 'visible'}">
+						<ul class="list" :style="{overflow: firstKeyframe.data_points.length > 1 ? 'auto' : 'visible'}">
 
-							<div v-for="(data_point, data_point_i) of keyframes[0].data_points" class="keyframe_data_point">
+							<div v-for="(data_point, data_point_i) of firstKeyframe.data_points" class="keyframe_data_point">
 
-								<div class="keyframe_data_point_header" v-if="keyframes[0].data_points.length > 1">
-									<label>{{ keyframes[0].transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
+								<div class="keyframe_data_point_header" v-if="firstKeyframe.data_points.length > 1">
+									<label>{{ firstKeyframe.transform ? tl('panel.keyframe.' + (data_point_i ? 'post' : 'pre')) : (data_point_i + 1) }}</label>
 									<div class="flex_fill_line"></div>
 									<div class="in_list_button" v-on:click.stop="removeDataPoint(data_point_i)" title="${ tl('panel.keyframe.remove_data_point') }">
 										<i class="material-icons">clear</i>
 									</div>
 								</div>
 
-								<template v-if="channel == 'scale' && keyframes[0].uniform && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
+								<template v-if="channel == 'scale' && firstKeyframe.uniform && data_point.x_string == data_point.y_string && data_point.y_string == data_point.z_string">
 									<div
 										class="bar flex"
 										id="keyframe_bar_uniform_scale"
@@ -1528,7 +1568,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
-										<div class="tool" v-if="key == 'effect'" title="${tl('action.change_keyframe_file')}" @click="changeKeyframeFile(data_point, keyframes[0])">
+										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, firstKeyframe)">
 											<i class="material-icons">upload_file</i>
 										</div>
 									</div>

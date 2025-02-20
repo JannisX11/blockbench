@@ -26,11 +26,13 @@
 	.bright_ui a[href]:hover {
 	    color: var(--color-accent);
 	}
+
+	/* SCROLLBARS */
+	/* webkit */
 	::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
-
 	::-webkit-scrollbar-track {
 		background: var(--color-ui);
 	}
@@ -46,10 +48,10 @@
 	::-webkit-scrollbar-thumb:hover {
 		background: var(--color-accent);
 	}
-	/*Mozilla*/
+	/* Web standard */
 	* {
 		scrollbar-width: thin;
-		scrollbar-color: var(--color-selected) var(--color-back);
+		scrollbar-color: var(--color-selected) transparent;
 	}
 
 	::selection {
@@ -116,13 +118,12 @@
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
 	
+	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: local('Material Icons'),
-			local('MaterialIcons-Regular'),
-			url(../font/MaterialIcons-Regular.ttf) format('truetype');
+		src: url(../font/material-icons.woff2) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -297,6 +298,8 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
+		overflow: hidden;
+		flex-shrink: 0;
 	}
 	i.fa_big {
 		font-size: 18px;
@@ -341,6 +344,7 @@
 		--color-checkerboard: #1c2026;
 
 		--color-menu_separator: #b0afba;
+		--color-guidelines: rgba(136, 150, 157, 0.35);
 
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
@@ -403,7 +407,7 @@
 		cursor: default;
 	}
 	hr {
-		border-top: 1px solid var(--color-dark);
+		border-top: 1px solid var(--color-border);
 		margin: 12px 0;
 	}
 	h1, h2, h3, h4, h5, h6 {
@@ -515,7 +519,6 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
-		cursor: default;
 		resize: none;
 		outline: none;
 		user-select: initial;
@@ -620,6 +623,9 @@
 		background: var(--color-track);
 		border-radius: 3px;
 	}
+	input[type=text].dark_bordered:read-only {
+		color: var(--color-subtle_text);
+	}
 	input:-webkit-autofill,
 	input:-webkit-autofill:hover, 
 	input:-webkit-autofill:focus, 
@@ -681,15 +687,15 @@
 	}
 	.numeric_input > div.tool {
 		position: absolute;
-		width: 22px;
+		width: 18px;
 		right: 1px;
 		top: 0;
 		color: var(--color-subtle_text);
 		cursor: ew-resize;
 	}
 	.numeric_input > div.tool > i {
-		font-size: 20px;
-		margin-top: 5px;
+		font-size: 18px;
+		margin-top: 6px;
 	}
 
 	div.nslide {
@@ -732,14 +738,27 @@
 		display: inline-block;
 		width: 20px;
 		height: 24px;
-		margin-top: -28px;
+		margin-top: -29px;
 		user-select: none;
 		margin-left: -42px;
 		overflow: hidden;
 		text-align: center;
 	}
-	div.nslide_arrow.na_right {
-		margin-left: 16px;
+	div.nslide.editing {
+		cursor: text;
+	}
+	.numeric_input.is_colored::before {
+		content: "";
+		position: absolute;
+		pointer-events: none;
+		top: 0;
+		right: 0;
+		z-index: 1;
+		border-width: 4px;
+		border-style: solid;
+		border-color: var(--corner-color);
+		border-bottom-color: transparent !important;
+		border-left-color: transparent !important;
 	}
 
 	input.toggle_panel {

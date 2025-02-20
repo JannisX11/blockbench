@@ -1,32 +1,36 @@
 class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
-		var scope = this;
 		MenuBar.menus[id] = this
 		this.type = 'bar_menu'
 		this.id = id
 		this.children = [];
 		this.condition = options.condition
 		this.node = document.createElement('ul');
-		this.node.className = 'contextMenu';
+		this.node.className = 'contextMenu menu_bar_menu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
+		this.icon = options.icon;
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
-			if (open_menu === scope) {
-				scope.hide()
+			if (open_menu === this) {
+				this.hide()
 			} else {
-				scope.open()
+				this.open()
 			}
 		})
 		this.label.addEventListener('mouseenter', (event) => {
-			if (MenuBar.open && MenuBar.open !== scope) {
-				scope.open()
+			if (MenuBar.open && MenuBar.open !== this) {
+				this.open()
 			}
 		})
 		this.structure = structure;
 		this.highlight_action = null;
+	}
+	open(...args) {
+		super.open(...args);
+		Blockbench.dispatchEvent('open_bar_menu', {menu: this});
 	}
 	hide() {
 		super.hide();
@@ -34,6 +38,7 @@ class BarMenu extends Menu {
 		MenuBar.open = undefined;
 		this.highlight_action = null;
 		this.label.classList.remove('highlighted');
+		if (MenuBar.last_opened == this) document.getElementById('mobile_menu_bar')?.remove();
 		return this;
 	}
 	highlight(action) {
@@ -45,6 +50,7 @@ class BarMenu extends Menu {
 const MenuBar = {
 	menus: {},
 	open: undefined,
+	last_opened: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
@@ -134,6 +140,7 @@ const MenuBar = {
 			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
+			'save_project_incremental',
 			'convert_project',
 			'close_project',
 			new MenuSeparator('import_export'),
@@ -177,6 +184,7 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_minecraft_skin',
+				'export_image',
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
@@ -195,13 +203,13 @@ const MenuBar = {
 				{
 					id: 'profiles',
 					name: 'data.settings_profile',
-					icon: 'settings_applications',
+					icon: 'manage_accounts',
 					condition: () => SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') != -1,
 					children: () => {
 						let list = [
 							{
 								name: 'generic.none',
-								icon: SettingsProfile.selected ? 'radio_button_unchecked' : 'radio_button_checked',
+								icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',
 								click: () => {
 									SettingsProfile.unselect();
 								}
@@ -212,7 +220,7 @@ const MenuBar = {
 							if (profile.condition.type != 'selectable') return;
 							list.push({
 								name: profile.name,
-								icon: profile.selected ? 'radio_button_checked' : 'radio_button_unchecked',
+								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
 								color: markerColors[profile.color].standard,
 								click: () => {
 									profile.select();
@@ -225,7 +233,7 @@ const MenuBar = {
 			]},
 			'plugins_window',
 			'edit_session'
-		])
+		], {icon: 'draft'})
 		new BarMenu('edit', [
 			new MenuSeparator('undo'),
 			'undo',
@@ -244,20 +252,8 @@ const MenuBar = {
 			'find_replace',
 			'unlock_everything',
 			'delete',
+			'apply_mirror_modeling',
 			new MenuSeparator('mesh_specific'),
-			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
-				'extrude_mesh_selection',
-				'inset_mesh_selection',
-				'loop_cut',
-				'create_face',
-				'invert_face',
-				'switch_face_crease',
-				'merge_vertices',
-				'dissolve_edges',
-				'apply_mesh_rotation',
-				'split_mesh',
-				'merge_meshes',
-			]},
 			new MenuSeparator('editing_mode'),
 			'proportional_editing',
 			'mirror_modeling',
@@ -266,7 +262,7 @@ const MenuBar = {
 			'select_all',
 			'unselect_all',
 			'invert_selection'
-		])
+		], {icon: 'edit'})
 		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
@@ -298,17 +294,35 @@ const MenuBar = {
 			]}
 
 		], {
-			condition: {modes: ['edit']}
+			icon: 'open_with',
+			condition: {modes: ['edit']},
 		})
+		new BarMenu('mesh', [
+			new MenuSeparator('geometry'),
+			'extrude_mesh_selection',
+			'inset_mesh_selection',
+			'loop_cut',
+			'create_face',
+			'invert_face',
+			'switch_face_crease',
+			'merge_vertices',
+			'dissolve_edges',
+			'solidify_mesh_selection',
+			new MenuSeparator('element'),
+			'apply_mesh_rotation',
+			'split_mesh',
+			'merge_meshes',
+		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
+			icon: 'photo_size_select_large',
 			onOpen() {
 				setActivePanel('uv');
 			}
 		})
 
-		new BarMenu('texture', [
+		new BarMenu('image', [
 			new MenuSeparator('adjustment'),
 			'adjust_brightness_contrast',
 			'adjust_saturation_hue',
@@ -323,25 +337,34 @@ const MenuBar = {
 			'flip_texture_y',
 			'rotate_texture_cw',
 			'rotate_texture_ccw',
-			'resize_texture'
+			'resize_texture',
+			'crop_texture_to_selection'
 		], {
+			icon: 'image',
 			condition: {modes: ['paint']}
 		})
 
 		new BarMenu('animation', [
 			new MenuSeparator('edit_options'),
 			'animation_onion_skin',
+			'animation_onion_skin_selective',
+			'toggle_motion_trails',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
+			'optimize_animation',
+			'retarget_animators',
+			'bake_ik_animation',
 			'bake_animation_into_model',
+			'merge_animation',
 			new MenuSeparator('file'),
 			'load_animation_file',
 			'save_all_animations',
 			'export_animation_file'
 		], {
+			icon: 'movie',
 			condition: {modes: ['animate']}
 		})
 
@@ -365,11 +388,13 @@ const MenuBar = {
 			'resolve_keyframe_expressions',
 			'delete',
 		], {
+			icon: 'icon-keyframe',
 			condition: {modes: ['animate']}
 		})
 
 		new BarMenu('timeline', Timeline.menu.structure, {
 			name: 'panel.timeline',
+			icon: 'timeline',
 			condition: {modes: ['animate'], method: () => !AnimationController.selected},
 			onOpen() {
 				setActivePanel('timeline');
@@ -384,12 +409,13 @@ const MenuBar = {
 			'add_display_preset',
 			'apply_display_preset'
 		], {
+			icon: 'tune',
 			condition: {modes: ['display']}
 		})
 		
 		new BarMenu('tools', [
 			new MenuSeparator('overview'),
-			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
+			{id: 'main_tools', icon: 'construction', name: 'menu.tools.main_tools', condition: () => Project, children() {
 				let tools = Toolbox.children.filter(tool => tool instanceof Tool && tool.condition !== false);
 				tools.forEach(tool => {
 					let old_condition = tool.condition;
@@ -399,11 +425,13 @@ const MenuBar = {
 					}
 				})
 				let modes = Object.keys(Modes.options);
-				tools.sort((a, b) => modes.indexOf(a.modes[0]) - modes.indexOf(b.modes[0]))
-				let mode = tools[0].modes[0];
+				tools.sort((a, b) => {
+					return (a.modes ? modes.indexOf(a.modes[0]) : -1) - (b.modes ? modes.indexOf(b.modes[0]) : -1);
+				})
+				let mode = tools[0].modes?.[0];
 				for (let i = 0; i < tools.length; i++) {
-					if (tools[i].modes[0] !== mode) {
-						mode = tools[i].modes[0];
+					if (tools[i].modes?.[0] !== mode) {
+						mode = tools[i].modes?.[0];
 						tools.splice(i, 0, '_');
 						i++;
 					}
@@ -417,26 +445,64 @@ const MenuBar = {
 			'convert_to_mesh',
 			'auto_set_cullfaces',
 			'remove_blank_faces',
-		])
+		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('view', [
-			new MenuSeparator('viewport'),
+			new MenuSeparator('window'),
 			'fullscreen',
+			new MenuSeparator('interface'),
+			{
+				id: 'panels',
+				name: 'menu.view.panels',
+				icon: 'web_asset',
+				children() {
+					let entries = [];
+					for (let id in Panels) {
+						let panel = Panels[id];
+						if (!Condition(panel.condition)) continue;
+						let menu_entry = {
+							id,
+							name: panel.name,
+							icon: panel.icon,
+							children: [
+								{
+									id: 'move_to',
+									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
+									icon: 'drag_handle',
+									context: panel,
+									children: panel.snap_menu.structure
+								},
+								{
+									id: 'fold',
+									name: 'menu.panel.fold',
+									icon: panel.folded == true,
+									condition: panel.slot != 'hidden',
+									click() {
+										panel.fold();
+									}
+								}
+							]
+						}
+						entries.push(menu_entry);
+					}
+					return entries;
+				}
+			},
+			'toggle_sidebars',
+			'split_screen',
 			new MenuSeparator('viewport'),
 			'view_mode',
 			'toggle_shading',
-			'toggle_motion_trails',
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
+			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
+			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
-			new MenuSeparator('interface'),
-			'toggle_sidebars',
-			'split_screen',
 			new MenuSeparator('model'),
 			'hide_everything_except_selection',
 			'focus_on_selection',
@@ -444,9 +510,10 @@ const MenuBar = {
 			new MenuSeparator('media'),
 			'screenshot_model',
 			'screenshot_app',
+			'advanced_screenshot',
 			'record_model_gif',
 			'timelapse',
-		])
+		], {icon: 'visibility'})
 		new BarMenu('help', [
 			new MenuSeparator('search'),
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
@@ -454,7 +521,7 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
@@ -474,7 +541,7 @@ const MenuBar = {
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
 					let lines = window.ErrorLog.slice(0, 64).map((error) => {
-						return Interface.createElement('p', {}, `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`);
+						return Interface.createElement('p', {style: 'word-break: break-word;'}, `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`);
 					})
 					new Dialog({
 						id: 'error_log',
@@ -483,14 +550,8 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
-					if (confirm(tl('menu.help.developer.reset_storage.confirm'))) {
-						localStorage.clear()
-						Blockbench.addFlag('no_localstorage_saving')
-						console.log('Cleared Local Storage')
-						window.location.reload(true)
-					}
+					factoryResetAndReload();
 				}},
 				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
 					ModelProject.all.forEach(project => project.locked = false);
@@ -507,19 +568,146 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
-		])
-		MenuBar.update()
+		], {icon: 'help'})
+		MenuBar.update();
+
+		if (Blockbench.isMobile) {
+			let header = document.querySelector('header');
+			document.getElementById('menu_bar').remove();
+			document.getElementById('header_free_bar').remove();
+			document.getElementById('corner_logo').remove();
+
+			let menu_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('menu'));
+			menu_button.addEventListener('click', event => {
+				MenuBar.openMobile(menu_button, event);
+			})
+			let search_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('search'));
+			search_button.addEventListener('click', event => {
+				ActionControl.select()
+			})
+			let undo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('undo'));
+			undo_button.addEventListener('click', event => {
+				BarItems.undo.trigger()
+			})
+			let redo_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('redo'));
+			redo_button.addEventListener('click', event => {
+				BarItems.redo.trigger()
+			})
+			let mode_switcher = Interface.createElement('div', {class: 'tool hidden', style: 'margin-left: auto'}, Blockbench.getIconNode('settings'));
+			mode_switcher.addEventListener('click', event => {
+				Modes.mobileModeMenu(mode_switcher, event);
+			})
+			MenuBar.mode_switcher_button = mode_switcher;
+
+			let home_button = document.getElementById('title_bar_home_button');
+			let profile_button = document.getElementById('settings_profiles_header_menu');
+
+			let buttons = [menu_button, search_button, profile_button, home_button, undo_button, redo_button,, mode_switcher];
+			buttons.forEach(button => {
+				header.append(button);
+			})
+
+			header.addEventListener('touchstart', e1 => {
+				convertTouchEvent(e1);
+				let opened, bar, initial;
+				let onMove = e2 => {
+					convertTouchEvent(e2);
+					let y_diff = e2.clientY - e1.clientY;
+					if (y_diff > 16) {
+						if (!opened) {
+							bar = MenuBar.openMobile(menu_button);
+							opened = true;
+							initial = y_diff;
+						}
+					}
+					if (bar) {
+						bar.style.marginTop = Math.clamp(y_diff - 50, -60, 0)+'px';
+						for (let node of bar.childNodes) {
+							if (!node.bbOpenMenu) continue;
+							let offset_center = bar.offsetLeft + node.offsetLeft + node.clientWidth/2;
+							if (Math.abs(offset_center - e2.clientX) < 21) {
+								node.bbOpenMenu(e2);
+								break;
+							}
+						}
+					}
+				}
+				let onStop = e2 => {
+					document.removeEventListener('touchmove', onMove);
+					document.removeEventListener('touchend', onStop);
+					if (bar) {
+						bar.style.marginTop = '0';
+						convertTouchEvent(e2);
+						let y_diff = e2.clientY - e1.clientY;
+						if (y_diff < initial && MenuBar.open) {
+							MenuBar.open.hide()
+						}
+					}
+				}
+				document.addEventListener('touchmove', onMove);
+				document.addEventListener('touchend', onStop);
+			})
+		}
+	},
+	openMobile(button, event) {
+		if (document.getElementById('mobile_menu_bar')) {
+			document.getElementById('mobile_menu_bar').remove();
+			return;
+		}
+		let label = Interface.createElement('label', {});
+		let bar = Interface.createElement('div', {id: 'mobile_menu_bar'}, label);
+		let menu_button_nodes = [];
+		let menu_position;
+		let setSelected = (node, menu) => {
+			menu_button_nodes.forEach(n => n.classList.remove('selected'))
+			node.classList.add('selected');
+			label.innerText = menu.name;
+		}
+		for (let id in MenuBar.menus) {
+			let menu = MenuBar.menus[id];
+			if (id == 'filter') continue;
+			if (!Condition(menu.condition)) continue;
+
+			let node = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode(menu.icon));
+			let openMenu = event => {
+				if (MenuBar.last_opened == menu) return;
+				MenuBar.last_opened = MenuBar.open = menu;
+				menu.open(menu_position);
+				setSelected(node, menu);
+			}
+			addEventListeners(node, 'pointerdown touchmove', openMenu);
+			node.bbOpenMenu = openMenu;
+
+			menu_button_nodes.push(node);
+			bar.append(node);
+			if (MenuBar.last_opened == menu || (!MenuBar.last_opened && id == 'file')) {
+				setTimeout(() => {
+					MenuBar.last_opened = menu;
+					menu.open(menu_position);
+					setSelected(node, menu);
+				}, 1)
+			}
+		}
+		document.body.append(bar);
+		menu_position = {
+			clientX: bar.offsetLeft + 7,
+			clientY: bar.offsetTop + bar.clientHeight - 1
+		}
+		return bar;
 	},
 	update() {
-		var bar = $('#menu_bar')
-		bar.children().detach()
-		this.keys = []
-		for (var menu in MenuBar.menus) {
-			if (MenuBar.menus.hasOwnProperty(menu)) {
-				if (MenuBar.menus[menu].conditionMet()) {
-					bar.append(MenuBar.menus[menu].label)
-					this.keys.push(menu)
+		if (!Blockbench.isMobile) {
+			let bar = $(document.getElementById('menu_bar'));
+			bar.children().detach();
+			this.keys = [];
+			for (var menu in MenuBar.menus) {
+				if (MenuBar.menus.hasOwnProperty(menu)) {
+					if (MenuBar.menus[menu].conditionMet()) {
+						bar.append(MenuBar.menus[menu].label)
+						this.keys.push(menu);
+					}
 				}
 			}
 		}

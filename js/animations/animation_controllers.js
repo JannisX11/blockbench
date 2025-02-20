@@ -2,6 +2,8 @@ class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
+		this.transitions = [];
+		this.animations = [];
 
 		for (let key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].reset(this);
@@ -32,52 +34,58 @@ class AnimationControllerState {
 			if (AnimationControllerState.properties[key].type == 'array') continue;
 			AnimationControllerState.properties[key].merge(this, data)
 		}
+		if (typeof data.blend_transition_curve == 'object') {
+			this.blend_transition_curve = {};
+			for (let key in data.blend_transition_curve) {
+				this.blend_transition_curve[key] = data.blend_transition_curve[key];
+			}
+		}
 		if (data.animations instanceof Array) {
+			let previous_animations = this.animations.slice();
 			this.animations.empty();
 			data.animations.forEach(a => {
-				let animation;
+				let animation = previous_animations.find(a1 => a1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					key: '',
+					animation: '',
+					blend_value: ''
+				};
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					animation = {
-						uuid: a.uuid || guid(),
-						key: a.key || '',
-						animation: a.animation || '',// UUID
-						blend_value: a.blend_value || ''
-					};
+					Object.assign(animation, a);
 				} else if (typeof a == 'object' || typeof a == 'string') {
 					// Bedrock
 					let key = typeof a == 'object' ? Object.keys(a)[0] : a;
 					let anim_match = Animation.all.find(anim => anim.getShortName() == key);
-					animation = {
-						uuid: guid(),
+					Object.assign(animation, {
 						key: key || '',
 						animation: anim_match ? anim_match.uuid : '',// UUID
 						blend_value: (typeof a == 'object' && a[key]) || ''
-					};
+					});
 				}
 				this.animations.push(animation);
 			})
 		}
 		if (data.transitions instanceof Array) {
+			let previous_transitions = this.transitions.slice();
 			this.transitions.empty();
 			data.transitions.forEach(a => {
-				let transition;
+				let transition = previous_transitions.find(t1 => t1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					target: '',
+					condition: ''
+				};
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					transition = {
-						uuid: a.uuid || guid(),
-						target: a.target || '',
-						condition: a.condition || ''
-					};
+					Object.assign(transition, a);
 				} else if (typeof a == 'object') {
 					// Bedrock
 					let key = Object.keys(a)[0];
 					let state_match = this.controller.states.find(state => state !== this && state.name == key);
-					transition = {
-						uuid: guid(),
+					Object.assign(transition, {
 						target: state_match ? state_match.uuid : '',
 						condition: a[key] || ''
-					};
+					});
 					if (!state_match) {
 						setTimeout(() => {
 							// Delay to after loading controller so that all states can be found
@@ -126,6 +134,14 @@ class AnimationControllerState {
 				};
 				this.sounds.push(sound);
 			})
+		}
+		if (typeof data.blend_transition == 'object') {
+			this.blend_transition_curve = {};
+			this.blend_transition = Math.max(...Object.keys(data.blend_transition).map(time => parseFloat(time)));
+			for (let key in data.blend_transition) {
+				let timecode = parseFloat(key) / this.blend_transition;
+				this.blend_transition_curve[timecode] = data.blend_transition[key];
+			}
 		}
 	}
 	getUndoCopy() {
@@ -178,19 +194,34 @@ class AnimationControllerState {
 		if (this.transitions.length) {
 			object.transitions = this.transitions.map(transition => {
 				let state = this.controller.states.find(s => s.uuid == transition.target);
-				return new oneLiner({[state ? state.name : 'missing_state']: transition.condition})
+				let condition = transition.condition.replace(/\n/g, '');
+				return new oneLiner({[state ? state.name : 'missing_state']: condition})
 			})
 		}
-		if (this.blend_transition) object.blend_transition = this.blend_transition;
-		if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		if (this.blend_transition) {
+			object.blend_transition = this.blend_transition;
+			let curve_keys = this.blend_transition_curve && Object.keys(this.blend_transition_curve);
+			if (curve_keys?.length) {
+				let curve_output = {};
+				let points = curve_keys.map(key => ({time: parseFloat(key), value: this.blend_transition_curve[key]}));
+				points.sort((a, b) => a.time - b.time);
+				for (let point of points) {
+					let timecode = trimFloatNumber(point.time * this.blend_transition, 4).toString();
+					if (!timecode.includes('.')) timecode += '.0';
+					curve_output[timecode] = Math.roundTo(point.value, 6);
+				}
+				object.blend_transition = curve_output;
+			}
+			if (this.blend_via_shortest_path) object.blend_via_shortest_path = this.blend_via_shortest_path;
+		}
 		Blockbench.dispatchEvent('compile_bedrock_animation_controller_state', {state: this, json: object});
 		return object;
 	}
 	select(force) {
 		if (this.controller.selected_state !== this || force) {
 			this.controller.last_state = this.controller.selected_state;
-			this.controller.transition_timestamp = Date.now();
-			this.start_timestamp = Date.now();
+			this.controller.transition_timestamp = performance.now();
+			this.start_timestamp = performance.now();
 
 			this.controller.selected_state = this;
 
@@ -216,6 +247,7 @@ class AnimationControllerState {
 			this.sounds.forEach(sound => {
 				if (sound.file && !sound.cooldown) {
 					var media = new Audio(sound.file);
+					media.playbackRate = Math.clamp(AnimationController.playback_speed/100, 0.1, 4.0);
 					media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 					media.play().catch(() => {});
 					this.playing_sounds.push(media);
@@ -384,11 +416,376 @@ class AnimationControllerState {
 			}
 		})
 	}
+	calculateBlendValue(blend_progress) {
+		if (!this.blend_transition_curve || Object.keys(this.blend_transition_curve).length < 2) {
+			return blend_progress;
+		}
+		let time = blend_progress;
+		let keys = Object.keys(this.blend_transition_curve);
+		let values = keys.map(key => this.blend_transition_curve[key]);
+		let times = keys.map(v => parseFloat(v));
+		let prev_time = -Infinity, prev = null;
+		let next_time = Infinity, next = null;
+		let i = 0;
+		for (let t of times) {
+			if (t <= time && t > prev_time) {
+				prev = i; prev_time = t;
+			}
+			if (t >= time && t < next_time) {
+				next = i; next_time = t;
+			}
+			i++;
+		}
+		if (prev === null) return 1 - values[next];
+		if (next === null || prev == next) return 1 - values[prev];
+		let two_point_blend = Math.getLerp(prev_time, next_time, time) || 0;
+		return 1 - Math.lerp(values[prev], values[next], two_point_blend);
+	}
+	editTransitionCurve() {
+		let state = this;
+		let duration = this.blend_transition;
+		let points = [];
+		for (let key in this.blend_transition_curve) {
+			key = parseFloat(key);
+			points.push({
+				uuid: guid(),
+				time: key,
+				value: this.blend_transition_curve[key]
+			})
+		}
+		if (!points.length) {
+			points.push({time: 0, value: 1, uuid: guid()});
+			points.push({time: 1, value: 0, uuid: guid()});
+		}
+
+		let preview_loop = setInterval(() => {
+			dialog.content_vue.preview();
+		}, 1000 / 60);
+		let preview_loop_start_time = performance.now();
+
+		let dialog = new Dialog('blend_transition_edit', {
+			title: 'animation_controllers.state.blend_transition_curve',
+			width: 418,
+			keyboard_actions: {
+				copy: {
+					keybind: new Keybind({key: 'c', ctrl: true}),
+					run() {
+						this.content_vue.copy();
+					}
+				},
+				paste: {
+					keybind: new Keybind({key: 'v', ctrl: true}),
+					run() {
+						this.content_vue.paste();
+					}
+				}
+			},
+			form: {
+				duration: {
+					label: 'animation_controllers.state.blend_transition',
+					value: duration,
+					min: 0.05,
+					step: 0.05,
+					type: 'number',
+				},
+				extended_graph: {
+					label: 'dialog.blend_transition_edit.extended',
+					value: false,
+					type: 'checkbox',
+				},
+				buttons: {
+					type: 'buttons', buttons: [
+						'generic.reset',
+						tl('dialog.blend_transition_edit.ease_in_out', [6]),
+						tl('dialog.blend_transition_edit.ease_in_out', [10]),
+						'dialog.blend_transition_edit.generate',
+					],
+					click(index) {
+						function generate(easing, point_amount) {
+							points.empty();
+							for (let i = 0; i < point_amount; i++) {
+								let time = i / (point_amount-1);
+								points.push({time, value: 1-easing(time), uuid: guid()})
+							}
+							dialog.content_vue.updateGraph();
+						}
+						if (index == 3) {
+							let easings = {
+								easeInSine: 'In Sine',
+								easeOutSine: 'Out Sine',
+								easeInOutSine: 'In Out Sine',
+								easeInQuad: 'In Quad',
+								easeOutQuad: 'Out Quad',
+								easeInOutQuad: 'In Out Quad',
+								easeInCubic: 'In Cubic',
+								easeOutCubic: 'Out Cubic',
+								easeInOutCubic: 'In Out Cubic',
+								easeInQuart: 'In Quart',
+								easeOutQuart: 'Out Quart',
+								easeInOutQuart: 'In Out Quart',
+								easeInQuint: 'In Quint',
+								easeOutQuint: 'Out Quint',
+								easeInOutQuint: 'In Out Quint',
+								easeInExpo: 'In Expo',
+								easeOutExpo: 'Out Expo',
+								easeInOutExpo: 'In Out Expo',
+								easeInCirc: 'In Circ',
+								easeOutCirc: 'Out Circ',
+								easeInOutCirc: 'In Out Circ',
+								easeInBack: 'In Back',
+								easeOutBack: 'Out Back',
+								easeInOutBack: 'In Out Back',
+								easeInElastic: 'In Elastic',
+								easeOutElastic: 'Out Elastic',
+								easeInOutElastic: 'In Out Elastic',
+								easeOutBounce: 'Out Bounce',
+								easeInBounce: 'In Bounce',
+								easeInOutBounce: 'In Out Bounce',
+							};
+							let initial_points = points.slice();
+							new Dialog('blend_transition_edit_easing', {
+								title: 'dialog.blend_transition_edit.generate',
+								width: 380,
+								form: {
+									easings: {type: 'info', text: tl('dialog.blend_transition_edit.generate.learn_more') + ': [easings.net](https://easings.net)'},
+									curve: {type: 'select', label: 'dialog.blend_transition_edit.generate.curve', options: easings},
+									steps: {type: 'number', label: 'dialog.blend_transition_edit.generate.steps', value: 10, step: 1, min: 3, max: 64}
+								},
+								onFormChange(result) {
+									generate(Easings[result.curve], result.steps);
+								},
+								onConfirm(result) {
+									generate(Easings[result.curve], result.steps);
+								},
+								onCancel() {
+									points.replace(initial_points);
+									dialog.content_vue.updateGraph();
+								}
+							}).show();
+
+						} else {
+							let point_amount = ([2, 6, 10])[index];
+							function hermiteBlend(t) {
+								return 3*(t**2) - 2*(t**3);
+							}
+							generate(hermiteBlend, point_amount);
+						}
+
+					}
+				}
+			},
+			component: {
+				data() {return {
+					duration,
+					points,
+					graph_data: '',
+					zero_line: '',
+					preview_value: 0,
+					width: Math.min(340, window.innerWidth - 42),
+					height: 220,
+					scale_y: 220
+				}},
+				methods: {
+					dragPoint(point, e1) {
+						let scope = this;
+						let original_time = point.time;
+						let original_value = point.value;
+						let scale_y = this.scale_y;
+						
+						let drag = (e2) => {
+							point.time = original_time + (e2.clientX - e1.clientX) / this.width;
+							point.value = original_value - (e2.clientY - e1.clientY) / scale_y;
+							point.time = Math.clamp(point.time, 0, 1);
+							let limits = (this.scale_y > 188) ? [0, 1] : [-1, 2];
+							point.value = Math.clamp(point.value, ...limits);
+							Blockbench.setCursorTooltip(`${Math.roundTo(point.time * this.duration, 4)} x ${Math.roundTo(point.value, 4)}`);
+
+							scope.updateGraph();
+						}
+						let stop = () => {
+							removeEventListeners(document, 'mousemove touchmove', drag);
+							removeEventListeners(document, 'mouseup touchend', stop);
+							Blockbench.setCursorTooltip();
+						}
+						addEventListeners(document, 'mousemove touchmove', drag);
+						addEventListeners(document, 'mouseup touchend', stop);
+					},
+					createNewPoint(event) {
+						if (event.target.id !== 'blend_transition_graph' || event.which == 3) return;
+						let offset_y = (this.height - this.scale_y) / 2;
+						let point = {
+							uuid: guid(),
+							time: (event.offsetX - 5) / this.width,
+							value: 1 - ((event.offsetY - 5 - offset_y) / this.scale_y),
+						}
+						this.points.push(point);
+						this.updateGraph();
+						this.dragPoint(point, event);
+					},
+					copy() {
+						let copy = points.map(p => ({time: p.time, value: p.value}));
+						Clipbench.setText(JSON.stringify(copy));
+					},
+					async paste() {
+						let input;
+						if (isApp) {
+							input = clipboard.readText();
+						} else {
+							input = await navigator.clipboard.readText();
+						}
+						if (!input) return;
+						try {
+							let parsed = JSON.parse(input);
+							if (!(parsed instanceof Array)) return;
+							points.empty();
+							for (let point_data of parsed) {
+								let point = {
+									uuid: guid(),
+									time: point_data.time ?? 0,
+									value: point_data.value ?? 0,
+								}
+								points.push(point);
+							}
+							this.updateGraph();
+
+						} catch (err) {}
+					},
+					contextMenu(event) {
+						new Menu([
+							{
+								id: 'copy',
+								name: 'action.copy',
+								icon: 'fa-copy',
+								click: () => {
+									this.copy();
+								}
+							}, {
+								id: 'paste',
+								name: 'action.paste',
+								icon: 'fa-clipboard',
+								click: () => {
+									this.paste();
+								}
+							}
+						]).open(event);
+					},
+					pointContextMenu(point, event) {
+						new Menu([{
+							id: 'remove',
+							name: 'generic.remove',
+							icon: 'clear',
+							click: () => {
+								points.remove(point);
+								this.updateGraph();
+							}
+						}]).open(event.target);
+					},
+					scaleY() {
+						let max_offset = 0;
+						for (let point of points) {
+							max_offset = Math.max(max_offset, -point.value, point.value-1);
+						}
+						return max_offset > 0.01 ? 90 : this.height;
+					},
+					updateGraph() {
+						if (!this.points.length) {
+							this.graph_data = '';
+							return;
+						}
+						let offset = 5;
+						let offset_y = 5 + (this.height - this.scale_y) / 2;
+						this.points.sort((a, b) => a.time - b.time);
+						let graph_data = `M${0} ${(1-this.points[0].value) * this.scale_y + offset_y} `;
+						for (let point of this.points) {
+							graph_data += `${graph_data ? 'L' : 'M'}${point.time * this.width + offset} ${(1-point.value) * this.scale_y + offset_y} `;
+						}
+						graph_data += `L${this.width + 10} ${(1-points.last().value) * this.scale_y + offset_y} `;
+						this.graph_data = graph_data;
+
+						this.zero_line = `M0 ${offset_y} L${this.width} ${offset_y} M0 ${offset_y + this.scale_y} L${this.width} ${offset_y + this.scale_y}`;
+					},
+					preview() {
+						if (this.points.length == 0) return 0;
+						let pause = 0.4;
+						let absolute_time = ((performance.now() - preview_loop_start_time) / 1000);
+						let time = (absolute_time % (this.duration + pause)) / this.duration;
+						if (time > 1) {
+							this.preview_value = 0;
+							return;
+						}
+						let prev_time = -Infinity, prev = 0;
+						let next_time = Infinity, next = 0;
+						for (let pt of points) {
+							if (pt.time <= time && pt.time > prev_time) {
+								prev = pt; prev_time = pt.time;
+							}
+							if (pt.time >= time && pt.time < next_time) {
+								next = pt; next_time = pt.time;
+							}
+						}
+						if (!prev) return next.value;
+						if (!next) return prev.value;
+						let two_point_blend = Math.getLerp(prev_time, next_time, time);
+						this.preview_value = Math.lerp(prev.value, next.value, two_point_blend);
+					}
+				},
+				template: `
+					<div class="blend_transition_graph_wrapper" @contextmenu="contextMenu($event)">
+						<div id="blend_transition_graph"
+							@mousedown="createNewPoint($event)"
+							@touchstart="createNewPoint($event)"
+							:style="{height: (height+10) + 'px', width: (width+10) + 'px'}"
+						>
+							<svg>+
+								<path :d="graph_data" />
+								<path :d="zero_line" class="zero_lines" />
+							</svg>
+							<div class="blend_transition_graph_point"
+								v-for="point in points" :key="point.uuid"
+								:style="{left: point.time * width + 'px', top: ( (1-point.value) * scale_y + (height-scale_y)/2 ) + 'px'}"
+								@mousedown="dragPoint(point, $event)" @touchstart="dragPoint(point, $event)"
+								@contextmenu.stop="pointContextMenu(point, $event)"
+							></div>
+						</div>
+						<div class="blend_transition_preview" :style="{'--progress': scale_y > 200 ? preview_value : (1+preview_value) / 3}">
+							<div />
+						</div>
+					</div>
+				`,
+				mounted() {
+					this.updateGraph();
+				}
+			},
+			onFormChange(result) {
+				this.content_vue.duration = result.duration;
+				this.content_vue.scale_y = result.extended_graph ? 220 / 3 : 220;
+				this.content_vue.updateGraph();
+			},
+			onConfirm(result) {
+				clearInterval(preview_loop);
+				Undo.initEdit({animation_controller_state: state});
+				state.blend_transition = result.duration;
+				state.blend_transition_curve = {};
+				let is_linear = points.length == 2 && points.find(p => p.time == 0 && p.value == 1) && points.find(p => p.time == 1 && p.value == 0);
+				if (!is_linear) {
+					for (let point of points) {
+						state.blend_transition_curve[Math.clamp(point.time, 0, 1)] = point.value;
+					}
+				}
+				Undo.finishEdit('Change blend transition curve');
+			},
+			onCancel() {
+				clearInterval(preview_loop);
+			}
+		});
+		dialog.show();
+	}
 	openMenu(event) {
 		AnimationControllerState.prototype.menu.open(event, this);
 	}
 	getStateTime() {
-		return this.start_timestamp ? (Date.now() - this.start_timestamp) / 1000 : 0;
+		if (!this.start_timestamp) return 0;
+		return (performance.now() - this.start_timestamp) / 1000 * (AnimationController.playback_speed / 100);
 	}
 }
 new Property(AnimationControllerState, 'string', 'name', {default: 'default'});
@@ -399,12 +796,13 @@ new Property(AnimationControllerState, 'array', 'particles');
 new Property(AnimationControllerState, 'string', 'on_entry');
 new Property(AnimationControllerState, 'string', 'on_exit');
 new Property(AnimationControllerState, 'number', 'blend_transition');
+new Property(AnimationControllerState, 'object', 'blend_transition_curve');
 new Property(AnimationControllerState, 'boolean', 'blend_via_shortest_path');
 AnimationControllerState.prototype.menu = new Menu([
 	{
 		id: 'set_as_initial_state',
 		name: 'Initial State',
-		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'radio_button_checked' : 'radio_button_unchecked'),
+		icon: (state) => (state.uuid == AnimationController.selected?.initial_state ? 'far.fa-dot-circle' : 'far.fa-circle'),
 		click(state) {
 			if (!AnimationController.selected) return;
 			Undo.initEdit({animation_controllers: [AnimationController.selected]});
@@ -644,24 +1042,30 @@ class AnimationController extends AnimationItem {
 		return this;
 	}
 	select() {
-		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
-			a.selected = a.playing = false;
+			a.selected = false;
+			if (a.playing == true) a.playing = false;
 		})
 
 		Panels.animation_controllers.inside_vue.controller = this;
 
 		this.selected = true;
-		this.playing = true;
+		if (this.playing == false) this.playing = true;
 		AnimationItem.selected = this;
 
 		if (Modes.animate) {
 			Animator.preview();
 			updateInterface();
+			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
+	}
+	clickSelect() {
+		Undo.initSelection();
+		this.select();
+		Undo.finishSelection('Select animation')
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -822,6 +1226,7 @@ class AnimationController extends AnimationItem {
 		})
 		dialog.show();
 	}
+	static playback_speed = 100
 }
 	Object.defineProperty(AnimationController, 'all', {
 		get() {
@@ -853,10 +1258,37 @@ class AnimationController extends AnimationItem {
 			icon: 'folder',
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
-				shell.showItemInFolder(animation.path);
+				showItemInFolder(animation.path);
+			}
+		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
 			}
 		},
 		'rename',
+		{
+			id: 'reload',
+			name: 'menu.animation.reload',
+			icon: 'refresh',
+			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			click(controller) {
+				Blockbench.read([controller.path], {}, ([file]) => {
+					Undo.initEdit({animation_controllers: [controller]})
+					let anim_index = AnimationController.all.indexOf(controller);
+					controller.remove(false, false);
+					let [new_ac] = Animator.loadFile(file, [controller.name]);
+					AnimationController.all.remove(new_ac);
+					AnimationController.all.splice(anim_index, 0, new_ac);
+					new_ac.select();
+					Undo.finishEdit('Reload animation', {animation_controllers: [new_ac]});
+				})
+			}
+		},
 		{
 			id: 'unload',
 			name: 'menu.animation.unload',
@@ -870,7 +1302,7 @@ class AnimationController extends AnimationItem {
 		},
 		'delete',
 		new MenuSeparator('properties'),
-		{name: 'menu.animation.properties', icon: 'cable', click(animation) {
+		{name: 'menu.animation.properties', icon: 'list', click(animation) {
 			animation.propertiesDialog();
 		}}
 	])
@@ -965,9 +1397,45 @@ Blockbench.on('finish_edit', event => {
 	}
 })
 
+SharedActions.add('rename', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.rename();
+	}
+})
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		AnimationController.selected?.selected_state.remove(true);
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animations' && AnimationController.selected,
+	run() {
+		let copy = AnimationController.selected.getUndoCopy();
+		let controller = new AnimationController(copy);
+		Property.resetUniqueValues(AnimationController, controller);
+		controller.createUniqueName();
+		AnimationController.all.splice(AnimationController.all.indexOf(AnimationController.selected)+1, 0, controller)
+		controller.saved = false;
+		controller.add(true).select();
+	}
+})
+SharedActions.add('duplicate', {
+	condition: () => Prop.active_panel == 'animation_controllers' && AnimationController.selected?.selected_state,
+	run() {
+		Undo.initEdit({animation_controllers: [AnimationController.selected]});
+		let index = AnimationController.selected.states.indexOf(AnimationController.selected.selected_state);
+		let state = new AnimationControllerState(AnimationController.selected, AnimationController.selected.selected_state);
+		AnimationController.selected.states.remove(state);
+		AnimationController.selected.states.splice(index+1, 0, state);
+		Undo.finishEdit('Duplicate animation controller state');
+	}
+})
+
 Interface.definePanels(() => {
 	let panel = new Panel('animation_controllers', {
-		icon: 'cable',
+		icon: 'account_tree',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},
 		default_position: {
 			slot: 'bottom',
@@ -976,6 +1444,7 @@ Interface.definePanels(() => {
 			height: 260,
 		},
 		growable: true,
+		resizable: true,
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},
@@ -986,6 +1455,7 @@ Interface.definePanels(() => {
 				controller: null,
 				presets: AnimationController.presets,
 				zoom: 1,
+				playback_speed: 100,
 				connection_wrapper_offset: 0,
 				connecting: false,
 				pickwhip: {
@@ -1014,7 +1484,7 @@ Interface.definePanels(() => {
 					let list = [
 						{
 							name: 'generic.unset',
-							icon: animation.animation == '' ? 'radio_button_checked' : 'radio_button_unchecked',
+							icon: animation.animation == '' ? 'far.fa-dot-circle' : 'far.fa-circle',
 							click: () => {
 								animation.key = '';
 								animation.animation = '';
@@ -1027,7 +1497,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: animation.animation == anim.uuid ? 'radio_button_checked' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: animation.animation == anim.uuid ? 'far.fa-dot-circle' : (state.animations.find(a => a.animation == anim.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => apply(anim)
 						})
 					})
@@ -1035,6 +1505,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							animation = state.animations.find(t => t.uuid == animation.uuid);
 							state.animations.remove(animation);
 							Undo.finishEdit('Remove animation from controller state');
 						}}
@@ -1048,7 +1519,7 @@ Interface.definePanels(() => {
 						if (state2 == state) return;
 						list.push({
 							name: state2.name,
-							icon: transition.target == state2.uuid ? 'radio_button_checked' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'radio_button_unchecked'),
+							icon: transition.target == state2.uuid ? 'far.fa-dot-circle' : (state.transitions.find(t => t.target == state2.uuid) ? 'task_alt' : 'far.fa-circle'),
 							click: () => {
 								transition.target = state2.uuid;
 							}
@@ -1058,6 +1529,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							transition = state.transitions.find(t => t.uuid == transition.uuid);
 							state.transitions.remove(transition);
 							Undo.finishEdit('Remove transition from controller state');
 						}}
@@ -1111,7 +1583,7 @@ Interface.definePanels(() => {
 						if (i && anim instanceof AnimationController) list.push('_');
 						list.push({
 							name: anim.name,
-							icon: anim instanceof AnimationController ? 'cable' : 'movie',
+							icon: anim instanceof AnimationController ? 'account_tree' : 'movie',
 							click: () => {
 								state.addAnimation(anim);
 							}
@@ -1371,12 +1843,15 @@ Interface.definePanels(() => {
 						Undo.finishEdit('Change animation controller audio file')
 					})
 				},
+				editStateBlendTime(state) {
+					state.controller.saved = false;
+				},
 
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'controller');
+					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
 				}
 			},
@@ -1489,8 +1964,8 @@ Interface.definePanels(() => {
 			template: `
 				<div id="animation_controllers_wrapper"
 					:class="{connecting_controllers: connecting}"
-					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? controller.last_state.blend_transition + 's' : 0}"
-					@click="deselect($event)" @mousewheel="onMouseWheel($event)"
+					:style="{zoom: zoom, '--blend-transition': controller && controller.last_state ? (controller.last_state.blend_transition / (playback_speed/100)) + 's' : 0}"
+					@click="deselect($event)" @wheel="onMouseWheel($event)"
 				>
 
 					<div id="animation_controllers_pickwhip_anchor" style="height: 0px; position: relative;">
@@ -1540,13 +2015,13 @@ Interface.definePanels(() => {
 									<div class="text_button" @click.stop="addAnimationButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
 								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-									<li v-for="animation in state.animations" :key="animation.uuid" class="controller_animation">
+									<li v-for="(animation, i) in state.animations" :key="animation.uuid" class="controller_animation">
 										<div class="controller_item_drag_handle"></div>
-										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
-										<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="animation.key">
+										<div class="tool" title="" @click="openAnimationMenu(state, state.animations[i], $event.target)"><i class="material-icons">movie</i></div>
+										<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.animations[i].key">
 										<vue-prism-editor 
 											class="molang_input animation_controller_text_input tab_target"
-											v-model="animation.blend_value"
+											v-model="state.animations[i].blend_value"
 											language="molang"
 											:autocomplete="autocomplete"
 											:placeholder="'${tl('animation_controllers.state.condition')}'"
@@ -1573,24 +2048,24 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle, $event)">
+									<li v-for="(particle, i) in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, state.particles[i], $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeParticleFile(state, particle)">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.particles[i].effect">
+											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, state.particles[i])">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
 										<div class="bar flex">
 											<label>${tl('data.locator')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
-											<input type="checkbox" v-model="particle.bind_to_actor" title="${tl('timeline.bind_to_actor')}">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.particles[i].locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
+											<input type="checkbox" v-model="state.particles[i].bind_to_actor" title="${tl('timeline.bind_to_actor')}">
 										</div>
 										<div class="bar flex">
 											<label>${tl('timeline.pre_effect_script')}</label>
 											<vue-prism-editor
 												class="molang_input animation_controller_text_input tab_target"
-												v-model="particle.script"
+												v-model="state.particles[i].script"
 												language="molang"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
@@ -1617,11 +2092,11 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound, $event)">
+									<li v-for="(sound, i) in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, state.sounds[i], $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
-											<div class="tool" title="${tl('action.change_keyframe_file')}" @click="changeSoundFile(state, sound)">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.sounds[i].effect">
+											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, state.sounds[i])">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -1671,12 +2146,12 @@ Interface.definePanels(() => {
 								</div>
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-										<li v-for="transition in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition">
+										<li v-for="(transition, i) in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
-											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
+											<bb-select @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</bb-select>
 											<vue-prism-editor 
 												class="molang_input animation_controller_text_input tab_target"
-												v-model="transition.condition"
+												v-model="state.transitions[i].condition"
 												language="molang"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
@@ -1686,7 +2161,15 @@ Interface.definePanels(() => {
 									</ul>
 									<div class="controller_state_input_bar">
 										<label>${tl('animation_controllers.state.blend_transition')}</label>
-										<numeric-input style="width: 70px;" v-model.number="state.blend_transition" min="0" step="0.05" />
+										<numeric-input style="width: 70px; flex-grow: 0;" v-model.number="state.blend_transition" :min="0" :step="0.05" @input="editStateBlendTime(state)" />
+										<div
+											class="tool blend_transition_curve_button"
+											title="${tl('animation_controllers.state.blend_transition_curve')}"
+											@click="state.editTransitionCurve()"
+										>
+											<i class="fas fa-chart-line icon"></i>
+											<span v-if="Object.keys(state.blend_transition_curve).length">{{ Object.keys(state.blend_transition_curve).length }}</span>
+										</div>
 									</div>
 									<div class="controller_state_input_bar">
 										<label :for="state.uuid + '_shortest_path'">${tl('animation_controllers.state.shortest_path')}</label>
@@ -1749,7 +2232,7 @@ Interface.definePanels(() => {
 			if (val != molang_edit_value) {
 				Undo.finishEdit('Edit animation controller molang');
 			} else {
-				Undo.cancelEdit();
+				Undo.cancelEdit(false);
 			}
 		}
 	})
@@ -1814,5 +2297,51 @@ BARS.defineActions(function() {
 		category: 'animation',
 		keybind: new Keybind({key: 32}),
 		condition: {modes: ['animate'], selected: {animation_controller: true}}
+	})
+	new NumSlider('slider_animation_controller_speed', {
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation_controller: true}},
+		settings: {
+			default: 100,
+			min: 0,
+			max: 10000
+		},
+		get: function() {
+			return AnimationController.playback_speed;
+		},
+		change: function(modify) {
+			AnimationController.playback_speed = limitNumber(modify(AnimationController.playback_speed), 0, 10000);
+			Panels.animation_controllers.inside_vue.playback_speed = AnimationController.playback_speed;
+		},
+		getInterval: (e) => {
+			var val = BarItems.slider_animation_controller_speed.get()
+			if (e.shiftKey) {
+				if (val < 50) {
+					return 10;
+				} else {
+					return 50;
+				}
+			}
+			if (e.ctrlOrCmd) {
+				if (val < 500) {
+					return 1;
+				} else {
+					return 10;
+				}
+			}
+			if (val < 10) {
+				return 1;
+			} else if (val < 50) {
+				return 5;
+			} else if (val < 160) {
+				return 10;
+			} else if (val < 300) {
+				return 20;
+			} else if (val < 1000) {
+				return 50;
+			} else {
+				return 500;
+			}
+		}
 	})
 })

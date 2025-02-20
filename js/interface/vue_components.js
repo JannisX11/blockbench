@@ -69,7 +69,7 @@ Vue.component('select-input', {
 					}
 				}
 			}
-			let menu = new Menu(this.id, items, {searchable: items.length > 16});
+			let menu = new Menu(this.id, items, {searchable: items.length > 16, class: 'select_menu'});
 			menu.node.style['min-width'] = this.$el.clientWidth+'px';
 			menu.open(event.target, this);
 		}
@@ -131,10 +131,15 @@ Vue.component('numeric-input', {
 	},
 	template: `
 		<div class="numeric_input">
-			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" inputmode="decimal" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
+			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" :inputmode="min >= 0 ? 'decimal' : ''" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
 			<div class="tool numeric_input_slider" @mousedown="slide($event)" @touchstart="slide($event)"><i class="material-icons">code</i></div>
 		</div>
-	`
+	`,
+	mounted() {
+		if (typeof this.min == 'string') console.warn('Argument "min" should be set as a numeric property via "v-bind:"')
+		if (typeof this.max == 'string') console.warn('Argument "max" should be set as a numeric property via "v-bind:"')
+		if (typeof this.step == 'string') console.warn('Argument "step" should be set as a numeric property via "v-bind:"')
+	}
 })
 Vue.component('dynamic-icon', {
 	props: {
@@ -143,6 +148,16 @@ Vue.component('dynamic-icon', {
 	},
 	render(h) {
 		let node = Blockbench.getIconNode(this.icon, this.color);
-		return h(node.tagName, {class: node.className, attrs: {src: node.attributes.src?.value}}, node.textContent);
+		let attrs = {
+			class: node.className,
+			attrs: {
+				src: node.attributes.src?.value
+			},
+			style: {
+				color: node.style.color
+			},
+			on: this.$listeners
+		};
+		return h(node.tagName, attrs, node.textContent);
 	}
 })

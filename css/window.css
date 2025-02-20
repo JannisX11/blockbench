@@ -1,7 +1,7 @@
 
 /*Layout*/
 	#page_wrapper {
-		height: calc(100% - 26px);
+		height: calc(100% - var(--menu-bar-height));
 		width: 100%;
 		border: 2px solid var(--color-frame);
 		border-top: none;
@@ -32,6 +32,7 @@
 		background-repeat: no-repeat;
 		background-size: 128px;
 		background-position: center;
+		--menu-bar-height: 26px;
 	}
 	#loading_error_message {
 		height: 100%;
@@ -294,7 +295,7 @@
 		overflow: hidden;
 		display: flex;
 		white-space: nowrap;
-		height: 26px;
+		height: var(--menu-bar-height);
 	}
 	header > * {
 		display: inline-block;
@@ -305,7 +306,7 @@
 	}
 	div#corner_logo {
 		width: auto;
-		height: 26px;
+		height: 100%;
 		padding-right: 8px;
 		padding-left: 6px;
 		margin-left: 4px;
@@ -387,20 +388,20 @@
 		color: var(--color-accent_text);
 		background-color: var(--color-close);
 	}
-	#windows_window_menu li i:not(.material-icons) {
-		font-size: 10pt;
+	#windows_window_menu svg {
+		margin-top: 4px;
 	}
-	#windows_window_menu i.material-icons {
-		vertical-align: bottom;
+	body:not(.maximized) #windows_window_menu svg.restore {
+		display: none;
+	}
+	body.maximized #windows_window_menu svg.maximize {
+		display: none;
 	}
 	#mac_window_menu {
 		width: 68px;
 		flex-shrink: 0;
 	}
-	header .tool .icon {
-		font-size: 20px;
-	}
-	#settings_profiles_header_menu {
+	body:not(.is_mobile) #settings_profiles_header_menu {
 		width: 24px;
 		text-align: center;
 		padding-top: 2px;
@@ -413,6 +414,9 @@
 	}
 
 /*Mobile*/
+	body.is_mobile {
+		--menu-bar-height: 38px;
+	}
 	body.is_mobile #page_wrapper {
 		border: none;
 	}
@@ -582,14 +586,18 @@
 	li.menu_bar_point.highlighted {
 		animation: menu_item_highlight 1s infinite ease-in-out;
 	}
-	header .tool {
+	body.is_mobile header .tool {
 		height: 100%;
+		width: 42px;
 	}
-	header .tool > i {
+	body.is_mobile header .tool > .icon {
+		margin-top: 7px;
+	}
+	body:not(.is_mobile) header .tool > .icon {
 		margin-top: 2px;
 	}
-	body.is_mobile.is_landscape #title_bar_undo_controls {
-		display: block;
+	header .tool.hidden {
+		display: none;
 	}
 
 	#mode_selector {
@@ -613,6 +621,50 @@
 	#mode_selector li.selected {
 		border-bottom: 3px solid var(--color-accent);
 	}
+	#update_menu .tool > .icon {
+		margin-top: 3px;
+	}
+
+	#mobile_menu_bar {
+		position: absolute;
+		margin: auto;
+		top: 50px;
+		left: 0;
+		right: 0;
+		width: fit-content;
+		max-width: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-around;
+		background-color: var(--color-bright_ui);
+		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+		border-radius: 4px;
+		padding: 0 5px;
+		z-index: 30;
+	}
+	#mobile_menu_bar > .tool {
+		color: var(--color-bright_ui_text);
+		width: 42px;
+		height: 36px;
+		padding-top: 3px;
+	}
+	#mobile_menu_bar > .tool.selected {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	#mobile_menu_bar > label {
+		height: 20px;
+		width: 0;
+		flex-basis: 100%;
+		text-align: center;
+		color: var(--color-bright_ui_text);
+		opacity: 0.8;
+	}
+	@media (max-height: 400px)  {
+		#mobile_menu_bar {
+			top: 0;
+		}
+	}
 
 /* Tab Bar */
 	#tab_bar {
@@ -632,6 +684,8 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		margin-right: auto;
+		scrollbar-width: none;
+		scroll-behavior: smooth;
 	}
 	#tab_bar .project_tab {
 		cursor: pointer;
@@ -676,6 +730,9 @@
 	}
 	#tab_bar .project_tab.move_forth {
 		left: var(--tabwidth);
+	}
+	#tab_bar .project_tab > .icon {
+		pointer-events: none;
 	}
 	#tab_bar .project_tab > label {
 		overflow: hidden;
@@ -743,10 +800,8 @@
 		flex-grow: 0;
 		width: auto;
 		color: var(--color-accent);
-	}
-	#tab_bar .project_tab > label.project_tab_session_badge i {
-		margin-right: 2px;
-		margin-left: -4px;
+		flex-shrink: 0;
+		padding-right: 0;
 	}
 	#tab_bar.invisible {
 		visibility: hidden;
@@ -806,6 +861,7 @@
 		position: relative;
 		display: flex;
 		background: var(--color-back);
+		overflow: hidden;
 	}
 	#status_bar > div {
 		padding-left:  6px;
@@ -834,6 +890,7 @@
 		text-align: center;
 		padding-top: 2px;
 		font-size: 0.92em;
+		overflow: hidden;
 	}
 	#status_bar .status_bar_modifier_key kbd {
 		font-family: inherit;
@@ -906,7 +963,7 @@
 		text-align: center;
 		font-size: 12px;
 		line-height: 16px;
-		font-family: var(--font-code);
+		font-family: Consolas, Assistant, system-ui;
 	}
 	.orbit_gizmo.mouse_active .orbit_gizmo_side {
 		pointer-events: none;
@@ -975,7 +1032,7 @@
 	.reference_image[reference_layer=float] {
 		z-index: 8;
 	}
-	.reference_image.selected[reference_layer=float] > img {
+	.reference_image.selected[reference_layer=float] > .image_content {
 		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
 	}
 	#work_screen.reference_image_mode .reference_image {
@@ -992,22 +1049,23 @@
 		z-index: 9;
 		pointer-events: initial;
 		cursor: move;
+		clip-path: none !important;
 	}
 	.reference_image.selected, .reference_image:hover {
 		outline: 1px solid var(--color-accent);
 	}
-	.reference_image > img {
+	.reference_image > .image_content {
 		width: 100%;
 		height: 100%;
 		pointer-events: none;
 	}
-	.reference_image.flip_x > img {
+	.reference_image.flip_x > .image_content {
 		transform: scaleX(-1);
 	}
-	.reference_image.flip_y > img {
+	.reference_image.flip_y > .image_content {
 		transform: scaleY(-1);
 	}
-	.reference_image.flip_y.flip_x > img {
+	.reference_image.flip_y.flip_x > .image_content {
 		transform: scaleX(-1) scaleY(-1);
 	}
 
@@ -1170,20 +1228,9 @@
 		width: fit-content;
 		z-index: 3;
 	}
-	#amend_edit_menu > div.amend_edit_line {
+	#amend_edit_menu > div.form {
 		background-color: var(--color-ui);
-		padding: 0px 8px;
-		height: 30px;
-		display: flex;
-	}
-	#amend_edit_menu > div.amend_edit_line .nslide_tool {
-		float: none;
-	}
-	#amend_edit_menu > div.amend_edit_line > input {
-		width: 73px;
-	}
-	#amend_edit_menu > div.amend_edit_line > label {
-		padding: 4px 6px;
+		padding: 2px 10px;
 	}
 	.amend_edit_close_button {
 		position: absolute;

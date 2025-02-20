@@ -42,7 +42,7 @@ class NullObject extends OutlinerElement {
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
-			this.addTo(Group.selected)
+			this.addTo(Group.first_selected)
 		}
 		super.init();
 		return this;
@@ -70,7 +70,7 @@ class NullObject extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter(with_animation) {
-		var pos = Reusable.vec1.set(0, 0, 0);
+		var pos = new THREE.Vector3();
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
@@ -97,7 +97,7 @@ class NullObject extends OutlinerElement {
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
-	NullObject.prototype.icon = 'fa far fa-circle';
+	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
 	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
@@ -201,7 +201,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
+			var null_object = new NullObject().addTo(Group.first_selected||selected[0]).init();
 			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');
@@ -240,6 +240,7 @@ BARS.defineActions(function() {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
 					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					marked: node.uuid == NullObject.selected[0].ik_target,
 					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
 					click() {
 						Undo.initEdit({elements: NullObject.selected});
@@ -280,6 +281,7 @@ BARS.defineActions(function() {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_source ? ' (✔)' : ''),
 					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					marked: node.uuid == NullObject.selected[0].ik_source,
 					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
 					click() {
 						Undo.initEdit({elements: NullObject.selected});

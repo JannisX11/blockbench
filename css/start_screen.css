@@ -9,6 +9,9 @@
 		padding: 36px 0;
 		overflow-y: auto;
 	}
+	body.is_mobile #start_screen {
+		padding: 0;
+	}
 	#start_screen h3 {
 		margin: 0;
 	}
@@ -18,6 +21,7 @@
 	}
 	#start_screen button {
 		margin-right: 4px;
+		margin-top: 4px;
 	}
 	#start_screen .recent_project {
 		margin: 2px 0;
@@ -115,7 +119,7 @@
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
-		overflow-x: hidden;
+		overflow: hidden;
 		height: 30px;
 		right: 0px;
 		left: 0px;
@@ -124,6 +128,7 @@
 		padding-top: 2px;
 		position: absolute;
 		text-align: center;
+		white-space: nowrap;
 	}
 	#start_screen .recent_project.thumbnail .icon_wrapper {
 		position: absolute;
@@ -179,6 +184,7 @@
 	div.start_screen_right > ul {
 		max-height: 470px;
     	padding-right: 5px;
+		overflow-x: hidden;
 		overflow-y: auto;
 		grid-template-columns: repeat(auto-fit, minmax(170px ,1fr));
 		grid-gap: 5px;
@@ -203,8 +209,10 @@
 	}
 	#start_screen div.graphic.graphic_icon i {
 		font-size: 40px;
-		width: 12px;
-		margin-top: 6px;
+		width: 42px;
+		max-width: unset;
+		margin-top: 4px;
+		margin-right: -20px;
 	}
 	#start_screen .start_screen_graphic_description {
 		bottom: 15px;
@@ -213,6 +221,7 @@
 		padding-right: 15px;
 		padding-left: 100px;
 		background: linear-gradient(90deg, rgba(3,86,112,0) 0%, rgba(0,10,22,0.63) 34%, rgba(0,9,20,0.72) 45%);
+		color: #d5d5d5;
 		position: absolute;
 	}
 	#start_screen div.start_screen_right {
@@ -232,15 +241,17 @@
 	#start_screen i.start_screen_close_button:not(:hover) {
 		opacity: 0.8;
 	}
+	#start_screen section.vertical .start_screen_right {
+		box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+	}
 	#start_screen section.vertical.bright_ui .start_screen_right {
 		box-shadow: 0 0 14px #00103030;
 	}
 	#start_screen .start_screen_features {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: wrap-reverse;
 		box-sizing: border-box;
 		padding: 12px;
-		background: #00004006;
 	}
 	#start_screen .start_screen_features > li {
 		width: 30%;
@@ -252,6 +263,10 @@
 		margin: 7px;
 		padding: 7px;
 	}
+	#start_screen .start_screen_features > li:nth-child(1),
+	#start_screen .start_screen_features > li:nth-child(2) {
+		order: 1;
+	}
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
 		font-weight: 300;
@@ -260,6 +275,7 @@
 	}
 	#start_screen .start_screen_features > li > img {
 		border-radius: 5px;
+		-webkit-user-drag: none;
 	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;
@@ -450,6 +466,7 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
+		line-height: 26px;
 	}
 	.format_target span {
 		padding: 2px 4px;

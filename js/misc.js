@@ -79,7 +79,7 @@ function updateNslideValues() {
 			BarItems.slider_face_tint.update()
 		}
 	}
-	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
+	if (Outliner.selected.length || (Format.bone_rig && Group.first_selected)) {
 		BarItems.slider_origin_x.update()
 		BarItems.slider_origin_y.update()
 		BarItems.slider_origin_z.update()
@@ -88,7 +88,7 @@ function updateNslideValues() {
 		BarItems.slider_rotation_y.update()
 		BarItems.slider_rotation_z.update()
 		if (Format.bone_rig) {
-			BarItems.bone_reset_toggle.setIcon(Group.selected && Group.selected.reset ? 'check_box' : 'check_box_outline_blank')
+			BarItems.bone_reset_toggle.setIcon(Group.first_selected && Group.first_selected.reset ? 'check_box' : 'check_box_outline_blank')
 		} else {
 			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
@@ -107,6 +107,9 @@ function updateSelection(options = {}) {
 			obj.selectLow()
 		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
+			if (UVEditor.selected_element_faces[obj.uuid]) {
+				delete UVEditor.selected_element_faces[obj.uuid];
+			}
 		}
 		if (obj instanceof Mesh && Project.mesh_selection[obj.uuid]) {
 			if (!included) {
@@ -130,10 +133,12 @@ function updateSelection(options = {}) {
 			}
 		}
 	})
-	if (Modes.pose && !Group.selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
+	if (Modes.pose && !Group.first_selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
 		Outliner.selected[0].parent.select();
 	}
-	if (Group.selected && Group.selected.locked) Group.selected.unselect()
+	for (let group of Group.multi_selected) {
+		if (group.locked) group.unselect()
+	}
 	UVEditor.vue._computedWatchers.mappable_elements.run();
 
 	Project.elements.forEach(element => {
@@ -142,7 +147,7 @@ function updateSelection(options = {}) {
 		}
 	})
 	for (var i = Outliner.selected.length-1; i >= 0; i--) {
-		if (!selected.includes(Outliner.selected[i])) {
+		if (!Project.elements.includes(Outliner.selected[i])) {
 			Outliner.selected.splice(i, 1)
 		}
 	}
@@ -159,13 +164,6 @@ function updateSelection(options = {}) {
 		if (!Outliner.selected[0] || Outliner.selected[0].type !== 'cube' || Outliner.selected[0].box_uv) {
 			UVEditor.vue.mode = 'uv';
 		}
-	}
-	if (Outliner.selected.length || (Format.single_texture && Modes.paint)) {
-		UVEditor.selected_faces.forEachReverse((fkey, i) => {
-			if (!UVEditor.getMappableElements().find(el => el.faces[fkey])) {
-				UVEditor.selected_faces.splice(i, 1);
-			}
-		})
 	}
 	if (Condition(Panels.uv.condition)) {
 		UVEditor.loadData();
@@ -207,103 +205,207 @@ function updateSelection(options = {}) {
 	Preview.all.forEach(preview => {
 		preview.updateAnnotations();
 	})
+	if (Condition(BarItems.layer_opacity.condition)) BarItems.layer_opacity.update();
+	if (Condition(BarItems.layer_blend_mode.condition)) BarItems.layer_blend_mode.set(TextureLayer.selected?.blend_mode);
 
 	BARS.updateConditions();
+	MenuBar.update()
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function selectAll() {
-	if (Modes.animate) {
-		selectAllKeyframes()
-	} else if (Prop.active_panel == 'uv') {
-		UVEditor.selectAll()
-
-	} else if (Modes.edit && Mesh.selected.length && Mesh.selected.length === Outliner.selected.length && BarItems.selection_mode.value !== 'object') {
-		let selection_mode = BarItems.selection_mode.value;
-		if (selection_mode == 'vertex') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-				}
-			})
-		} else if (selection_mode == 'edge') {
-			let unselect = Mesh.selected[0].getSelectedVertices().length == Object.keys(Mesh.selected[0].vertices).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					mesh.getSelectedVertices(true).empty();
-					mesh.getSelectedEdges(true).empty();
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					let edges = mesh.getSelectedEdges(true);
-					for (let fkey in mesh.faces) {
-						let face = mesh.faces[fkey];
-						let f_vertices = face.getSortedVertices();
-						f_vertices.forEach((vkey_a, i) => {
-							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
-							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
-							edges.push(edge);
-						})
-					}
-				}
-			})
-		} else {
-			let unselect = Mesh.selected[0].getSelectedFaces().length == Object.keys(Mesh.selected[0].faces).length;
-			Mesh.selected.forEach(mesh => {
-				if (unselect) {
-					delete Project.mesh_selection[mesh.uuid];
-				} else {
-					mesh.getSelectedVertices(true).replace(Object.keys(mesh.vertices));
-					mesh.getSelectedFaces(true).replace(Object.keys(mesh.faces));
-				}
-			})
-		}
-		updateSelection();
-
-	} else if (Modes.edit || Modes.paint) {
-		let selectable_elements = Outliner.elements.filter(element => !element.locked);
-		if (Outliner.selected.length < selectable_elements.length) {
-			if (Outliner.root.length == 1 && !Outliner.root[0].locked) {
-				Outliner.root[0].select();
-			} else {
-				selectable_elements.forEach(obj => {
-					obj.selectLow()
-				})
-				TickUpdates.selection = true;
-			}
-		} else {
-			unselectAll()
-		}
+function unselectAllElements(exceptions) {
+	Project.selected_elements.forEachReverse(obj => {
+		if (exceptions instanceof Array && exceptions.includes(obj)) return;
+		obj.unselect()
+	})
+	for (let group of Group.multi_selected) {
+		group.unselect();
 	}
-	Blockbench.dispatchEvent('select_all')
-}
-function unselectAll() {
-	Project.selected_elements.forEachReverse(obj => obj.unselect())
-	if (Group.selected) Group.selected.unselect()
 	Group.all.forEach(function(s) {
 		s.selected = false
 	})
+	Group.multi_selected.empty();
 	for (let key in Project.mesh_selection) {
 		delete Project.mesh_selection[key];
 	}
 	TickUpdates.selection = true;
 }
+// Legacy functions
+function selectAll() {
+	SharedActions.run('select_all');
+}
+function unselectAll() {
+	SharedActions.run('unselect_all');
+}
+
 //Backup
-const AutoBackupModels = {};
+const AutoBackup = {
+	/**
+	 * IndexedDB Database
+	 * @type {IDBDatabase}
+	 */
+	db: null,
+	initialize() {
+		let request = indexedDB.open('auto_backups', 1);
+		request.onerror = function(e) {
+			console.error('Failed to load backup database', e);
+		}
+		request.onblocked = function(e) {
+			console.error('Another instance of Blockbench is opened, the backup database cannot be upgraded at the moment');
+		}
+		request.onupgradeneeded = function() {
+			let db = request.result;
+			let store = db.createObjectStore('projects', {keyPath: 'uuid'});
+
+			// Legacy system
+			let backup_models = localStorage.getItem('backup_model')
+			if (backup_models) {
+				let parsed_backup_models = JSON.parse(backup_models);
+				for (let uuid in parsed_backup_models) {
+					let model = JSON.stringify(parsed_backup_models[uuid]);
+					store.put({uuid, data: model});
+				}
+				console.log(`Upgraded ${Object.keys(parsed_backup_models).length} project back-ups to indexedDB`);
+			}
+		}
+		request.onsuccess = async function() {
+			AutoBackup.db = request.result;
+			
+			// Start Screen Message
+			let has_backups = await AutoBackup.hasBackups();
+			if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
+
+				let section = addStartScreenSection('recover_backup', {
+					color: 'var(--color-back)',
+					graphic: {type: 'icon', icon: 'fa-archive'},
+					insert_before: 'start_files',
+					text: [
+						{type: 'h3', text: tl('message.recover_backup.title')},
+						{text: tl('message.recover_backup.message')},
+						{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
+							AutoBackup.recoverAllBackups().then(() => {
+								section.delete();
+							});
+						}},
+						{type: 'button', text: tl('dialog.discard'), click: (e) => {
+							AutoBackup.removeAllBackups();
+							section.delete();
+						}}
+					]
+				})
+			}
+
+			AutoBackup.backupProjectLoop(false);
+		}
+	},
+	async backupOpenProject() {
+		if (!Project) return;
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+
+		let model = Codecs.project.compile({compressed: false, backup: true, raw: false});
+		store.put({uuid: Project.uuid, data: model});
+		
+		await new Promise((resolve) => {
+			transaction.oncomplete = resolve;
+		})
+	},
+	async hasBackups() {
+		let transaction = AutoBackup.db.transaction('projects', 'readonly');
+		let store = transaction.objectStore('projects');
+		return await new Promise(resolve => {
+			let request = store.count();
+			request.onsuccess = function() {
+				resolve(!!request.result);
+			}
+			request.onerror = function(e) {
+				console.error(e);
+				resolve(false);
+			}
+		})
+	},
+	recoverAllBackups() {
+		return new Promise((resolve, reject) => {
+			let transaction = AutoBackup.db.transaction('projects', 'readonly');
+			let store = transaction.objectStore('projects');
+			let request = store.getAll();
+			request.onsuccess = async function() {
+				let projects = request.result;
+				for (let project of projects) {
+					try {
+						let parsed_content = JSON.parse(project.data);
+						setupProject(Formats[parsed_content.meta.model_format] || Formats.free, project.uuid);
+						Codecs.project.parse(parsed_content, 'backup.bbmodel');
+						await new Promise(r => setTimeout(r, 40));
+					} catch(err) {
+						console.error(err);
+					}
+				}
+				resolve();
+			}
+			request.onerror = function(e) {
+				console.error(e);
+				reject(e);
+			}
+		})
+		/*var backup_models = localStorage.getItem('backup_model')
+		let parsed_backup_models = JSON.parse(backup_models);
+		for (let uuid in parsed_backup_models) {
+			AutoBackupModels[uuid] = parsed_backup_models[uuid];
+
+			let model = parsed_backup_models[uuid];
+			setupProject(Formats[model.meta.model_format] || Formats.free, uuid);
+			Codecs.project.parse(model, 'backup.bbmodel')
+		}*/
+	},
+	async removeBackup(uuid) {
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+		let request = store.delete(uuid);
+		
+		return await new Promise((resolve, reject) => {
+			request.onsuccess = resolve;
+			request.onerror = function(e) {
+				reject();
+			}
+		});
+	},
+	async removeAllBackups() {
+		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
+		let store = transaction.objectStore('projects');
+		let request = store.clear();
+		
+		return await new Promise((resolve, reject) => {
+			request.onsuccess = resolve;
+			request.onerror = function(e) {
+				console.error(e);
+				reject();
+			}
+		});
+	},
+	loop_timeout: null,
+	backupProjectLoop(run_save = true) {
+		if (run_save && Project && (Outliner.root.length || Project.textures.length)) {
+			try {
+				AutoBackup.backupOpenProject();
+			} catch (err) {
+				console.error('Unable to create backup. ', err)
+			}
+		}
+		let interval = settings.recovery_save_interval.value;
+		if (interval != 0) {
+			interval = Math.max(interval, 5);
+			AutoBackup.loop_timeout = setTimeout(() => AutoBackup.backupProjectLoop(true), interval * 1000);
+		}
+	}
+}
+
+
 setInterval(function() {
 	if (Project && (Outliner.root.length || Project.textures.length)) {
 		Validator.validate();
-		try {
-			var model = Codecs.project.compile({compressed: false, backup: true, raw: true});
-			AutoBackupModels[Project.uuid] = model;
-			localStorage.setItem('backup_model', JSON.stringify(AutoBackupModels));
-		} catch (err) {
-			console.error('Unable to create backup. ', err)
-		}
 	}
-}, 1e3*30)
+}, 1e3*30);
 //Misc
 const TickUpdates = {
 	Run() {
@@ -315,10 +417,6 @@ const TickUpdates = {
 			if (TickUpdates.UVEditor) {
 				delete TickUpdates.UVEditor;
 				UVEditor.loadData()
-			}
-			if (TickUpdates.texture_list) {
-				delete TickUpdates.texture_list;
-				loadTextureDraggable();
 			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;
@@ -336,6 +434,26 @@ const TickUpdates = {
 			console.error(err);
 		}
 	}
+}
+
+function factoryResetAndReload() {
+	let lang_key = 'menu.help.developer.reset_storage.confirm';
+	let result = window.confirm((window.tl && tl(lang_key) != lang_key) ? tl(lang_key) : 'Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.');
+	if (result) {
+		localStorage.clear();
+		Blockbench.addFlag('no_localstorage_saving');
+		console.log('Cleared Local Storage');
+		window.location.reload(true);
+	}
+}
+
+function benchmarkCode(id, iterations, code) {
+	if (!iterations) iterations = 1000;
+	console.time(id);
+	for (let i = 0; i < iterations; i++) {
+		code();
+	}
+	console.timeEnd(id);
 }
 
 const documentReady = new Promise((resolve, reject) => {

@@ -22,7 +22,7 @@ const ModelScaler = {
 			pivot_options: {label: ' ', nocolon: true, type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
 				ModelScaler.setPivot(['pivot', 'selection'][index]);
 			}},
-			scale: {label: '', type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},
+			scale: {type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},
 			overflow_info: {
 				condition: () => ModelScaler.overflow,
 				type: 'info',
@@ -51,6 +51,10 @@ const ModelScaler = {
 			this.object.querySelector('#model_scale_z_axis').addEventListener('change', e => {ModelScaler.scaleAll()});
 		},
 		onOpen() {
+			Blockbench.once('open_bar_menu', () => {
+				if (ModelScaler.dialog != Dialog.open) return;
+				ModelScaler.dialog.cancel();
+			});
 			setTimeout(() => {
 				this.object.style.top = Interface.page_wrapper.offsetTop+'px';
 			}, 0);
@@ -64,16 +68,13 @@ const ModelScaler = {
 	}),
 	overflow: null,
 	getScaleGroups() {
-		let groups = [];
-		if (!Format.bone_rig) return groups;
-		if (Group.selected) {
-			Group.selected.forEachChild((g) => {
-				groups.push(g);
-			}, Group)
+		if (!Format.bone_rig) return [];
+		if (Group.first_selected) {
+			return Group.all.filter(g => g.selected);
 		} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
-			groups = Group.all;
+			return Group.all;
 		}
-		return groups;
+		return [];
 	},
 	scaleAll(save, size) {
 		let data = ModelScaler.dialog.getFormResult();
@@ -81,6 +82,7 @@ const ModelScaler = {
 		let {origin} = data;
 		let axis_enabled = ['x', 'y', 'z'].map(axis => document.getElementById(`model_scale_${axis}_axis`).checked);
 		let overflow = [];
+		let scale_groups = ModelScaler.getScaleGroups();
 		
 		Outliner.selected.forEach(function(obj) {
 			obj.autouv = 0;
@@ -139,10 +141,10 @@ const ModelScaler = {
 				Canvas.updateUV(obj)
 			}
 		})
-		ModelScaler.getScaleGroups().forEach((g) => {
-			if (axis_enabled[0]) g.origin[0] = g.old_origin[0] * size;
-			if (axis_enabled[1]) g.origin[1] = g.old_origin[1] * size;
-			if (axis_enabled[2]) g.origin[2] = g.old_origin[2] * size;
+		scale_groups.forEach((g) => {
+			if (axis_enabled[0]) g.origin[0] = ((g.old_origin[0] - origin[0]) * size) + origin[0];
+			if (axis_enabled[1]) g.origin[1] = ((g.old_origin[1] - origin[1]) * size) + origin[1];
+			if (axis_enabled[2]) g.origin[2] = ((g.old_origin[2] - origin[2]) * size) + origin[2];
 			if (save === true) {
 				delete g.old_origin
 			}
@@ -155,8 +157,9 @@ const ModelScaler = {
 		Canvas.updateView({
 			elements: Outliner.selected,
 			element_aspects: {geometry: true, transform: true},
-			groups: ModelScaler.getScaleGroups(),
+			groups: scale_groups,
 			group_aspects: {transform: true},
+			selection: true
 		})
 		if (save === true) {
 			Undo.finishEdit('Scale model')
@@ -189,6 +192,7 @@ const ModelScaler = {
 			element_aspects: {geometry: true, transform: true},
 			groups: ModelScaler.getScaleGroups(),
 			group_aspects: {transform: true},
+			selection: true
 		})
 	},
 	setPivot(mode) {
@@ -222,7 +226,7 @@ BARS.defineActions(function() {
 		click() {
 			if (Outliner.selected.length == 0) {
 				Prop.active_panel = 'preview';
-				selectAll();
+				BarItems.select_all.click();
 			}
 
 			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig});
@@ -248,7 +252,7 @@ BARS.defineActions(function() {
 
 			ModelScaler.overflow = null;
 			let v = Format.centered_grid ? 0 : 8;
-			let origin = Group.selected ? Group.selected.origin : [v, 0, v];
+			let origin = Group.first_selected ? Group.first_selected.origin : [v, 0, v];
 			ModelScaler.dialog.setFormValues({
 				origin,
 				scale: 1

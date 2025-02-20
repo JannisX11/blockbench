@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, ipcMain} = require('electron')
+const {app, BrowserWindow, Menu, ipcMain, shell} = require('electron')
 const path = require('path')
 const url = require('url')
 const { autoUpdater } = require('electron-updater');
@@ -9,6 +9,19 @@ require('@electron/remote/main').initialize()
 let orig_win;
 let all_wins = [];
 let load_project_data;
+
+(() => {
+	// Allow advanced users to specify a custom userData directory.
+	// Useful for portable installations, and for setting up development environments.
+	const index = process.argv.findIndex(arg => arg === '--userData');
+	if (index !== -1) {
+		if (!process.argv.at(index + 1)) {
+			console.error('No path specified after --userData')
+			process.exit(1)
+		}
+		app.setPath('userData', process.argv[index + 1]);
+	}
+})()
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
@@ -160,6 +173,7 @@ function createWindow(second_instance, options = {}) {
 }
 
 app.commandLine.appendSwitch('ignore-gpu-blacklist')
+app.commandLine.appendSwitch('ignore-gpu-blocklist')
 app.commandLine.appendSwitch('enable-accelerated-video')
 
 app.on('second-instance', function (event, argv, cwd) {
@@ -180,12 +194,6 @@ app.on('open-file', function (event, path) {
 	}
 })
 
-ipcMain.on('change-main-color', (event, arg) => {
-	all_wins.forEach(win => {
-		if (win.isDestroyed() || win.webContents == event.sender.webContents) return;
-		win.webContents.send('set-main-color', arg)
-	})
-})
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })
@@ -239,6 +247,12 @@ ipcMain.on('request-color-picker', async (event, arg) => {
 		})
 	}
 })
+ipcMain.on('show-item-in-folder', async (event, path) => {
+	shell.showItemInFolder(path);
+})
+ipcMain.on('open-in-default-app', async (event, path) => {
+	shell.openPath(path);
+})
 
 app.on('ready', () => {
 
@@ -258,7 +272,7 @@ app.on('ready', () => {
 		}
 
 		app_was_loaded = true;
-		if (process.execPath && process.execPath.match(/electron\.\w+$/)) {
+		if (process.execPath && process.execPath.match(/node_modules[\\\/]electron/)) {
 
 			console.log('[Blockbench] App launched in development mode')
 	

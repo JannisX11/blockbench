@@ -50,6 +50,9 @@ Math.epsilon = function(a, b, epsilon = 0.001) {
 Math.trimDeg = function(a) {
 	return (a+180*15)%360-180
 }
+Math.trimRad = function(a) {
+	return (a+Math.PI*15)%(Math.PI*2)-Math.PI
+}
 Math.isPowerOfTwo = function(x) {
 	return (x > 1) && ((x & (x - 1)) == 0);
 }
@@ -78,6 +81,13 @@ Math.getNextPower = function(num, min) {
 	}
 	return i;
 }
+Math.signedPow = function(num, power=2) {
+	if (power % 2 == 0) {
+		return Math.pow(num, power) * Math.sign(num);
+	} else {
+		return Math.pow(num, power);
+	}
+}
 Math.snapToValues = function(val, snap_points, epsilon = 12) {
 	let snaps = snap_points.slice().sort((a, b) => {
 		return Math.abs(val-a) - Math.abs(val-b)
@@ -89,7 +99,7 @@ Math.snapToValues = function(val, snap_points, epsilon = 12) {
 	}
 }
 Math.hermiteBlend = function(input) {
-	return 3*Math.pow(input, 2) - 2*Math.pow(input, 3);
+	return 3*(input**2) - 2*(input**3);
 }
 Math.clamp = function(number, min, max) {
 	if (number > max) number = max;
@@ -136,5 +146,5 @@ function getAxisNumber(letter) {
 }
 let string_num_regex = /^-?\d+(\.\d+f?)?$/;
 function isStringNumber(string) {
-	return string_num_regex.test(string);
+	return typeof string == 'number' || string_num_regex.test(string);
 }

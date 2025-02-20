@@ -47,7 +47,7 @@ const Blockbench = {
 		if (icon === undefined) {
 			//Missing
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = 'help_outline';
 		} else if (icon instanceof HTMLElement) {
 			//Node
@@ -55,7 +55,7 @@ const Blockbench = {
 		} else if (icon === true || icon === false) {
 			//Boolean
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = icon ? 'check_box' : 'check_box_outline_blank';
 
 		} else if (icon === null) {
@@ -84,7 +84,7 @@ const Blockbench = {
 		} else {
 			//Material Icon
 			node = document.createElement('i');
-			node.classList.add('material-icons', 'icon');
+			node.classList.add('material-icons', 'notranslate', 'icon');
 			node.innerText = icon;
 		}
 		if (color) {
@@ -167,6 +167,22 @@ const Blockbench = {
 		}
 		return new deletableToast(notification);
 	},
+	setCursorTooltip(text) {
+		if (!Interface.cursor_tooltip) {
+			Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
+		}
+		if (text) {
+			Interface.cursor_tooltip.textContent = text;
+			if (!Interface.cursor_tooltip.parentNode) {
+				document.body.append(Interface.cursor_tooltip);
+				Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+				Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+			}
+		} else {
+			Interface.cursor_tooltip.textContent = '';
+			Interface.cursor_tooltip.remove();
+		}
+	},
 	showStatusMessage(message, time) {
 		Blockbench.setStatusBarText(tl(message))
 		setTimeout(function() {
@@ -193,14 +209,35 @@ const Blockbench = {
 	showMessageBox(options = 0, cb) {
 		return new MessageBox(options, cb).show();
 	},
-	async textPrompt(title, value, callback, placeholder = null) {
+	/**
+	 * 
+	 * @param {*} title 
+	 * @param {*} value 
+	 * @param {*} callback 
+	 * @param {object} options Options
+	 * @param {string} options.info Info text
+	 * @param {string} options.description Description for the text input
+	 * @returns {Promise<string>} Input value
+	 */
+	async textPrompt(title, value, callback, options = 0) {
+		if (typeof options == 'string') {
+			options = {placeholder: options};
+			console.warn('textPrompt: 4th argument is expected to be a string');
+		}
 		let answer = await new Promise((resolve) => {
+			let form = {
+				text: {full_width: true, placeholder: options.placeholder, value, description: options.description}
+			};
+			if (options.info) {
+				form.description = {
+					type: 'info',
+					text: tl(options.info)
+				}
+			}
 			new Dialog({
 				id: 'text_input',
 				title: title || 'dialog.input.title',
-				form: {
-					text: {full_width: true, placeholder, value}
-				},
+				form,
 				onConfirm({text}) {
 					if (callback) callback(text);
 					resolve(text);
@@ -307,6 +344,8 @@ const Blockbench = {
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
+	} else if (LastVersion != appVersion) {
+		Blockbench.addFlag('after_patch_update');
 	}
 	try {
 		let ui_mode = JSON.parse(localStorage.getItem('settings')).interface_mode.value;
@@ -339,7 +378,7 @@ const StateMemory = {
 			try {
 				saved = JSON.parse(saved)
 			} catch (err) {
-				localStorage.clearItem(`StateMemory.${key}`)
+				localStorage.removeItem(`StateMemory.${key}`);
 			}
 		}
 		if ( saved !== null && (typeof saved == type || (type == 'array' && saved instanceof Array)) ) {

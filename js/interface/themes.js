@@ -9,6 +9,7 @@ const CustomTheme = {
 		headline_font: '',
 		code_font: '',
 		css: '',
+		thumbnail: '',
 		colors: {},
 	},
 	themes: [
@@ -56,6 +57,7 @@ const CustomTheme = {
 							data.id = file.name.replace(/\.\w+$/, '');
 							if (!data.name) data.name = data.id;
 							data.sideloaded = true;
+							data.source = 'file';
 							data.path = file.path;
 							CustomTheme.themes.push(data);
 
@@ -63,6 +65,8 @@ const CustomTheme = {
 					})
 				}
 			} catch (err) {}
+
+			CustomTheme.loadThumbnailStyles();
 		}
 
 		CustomTheme.dialog = new Dialog({
@@ -82,6 +86,7 @@ const CustomTheme = {
 					options: tl('layout.options'),
 					color: tl('layout.color'),
 					css: tl('layout.css'),
+					thumbnail: tl('layout.thumbnail'),
 				},
 				page: 'select',
 				actions: [
@@ -110,15 +115,15 @@ const CustomTheme = {
 							try {
 								let {content} = await $.getJSON(file.git_url);
 								let theme = JSON.parse(patchedAtob(content));
+								if (theme.desktop_only && Blockbench.isMobile) return false;
 								theme.id = file.name.replace(/\.\w+/, '');
+								theme.source = 'repository';
 								CustomTheme.themes.push(theme);
 							} catch (err) {
 								console.error(err);
 							}
 						})
 					}).catch(console.error)
-
-
 				}
 			},
 			component: {
@@ -126,7 +131,12 @@ const CustomTheme = {
 					backup: '',
 					data: CustomTheme.data,
 					open_category: 'select',
-					themes: CustomTheme.themes
+					themes: CustomTheme.themes,
+					theme_icons: {
+						built_in: '',
+						repository: 'globe',
+						file: 'draft',
+					}
 				},
 				components: {
 					VuePrismEditor
@@ -149,6 +159,10 @@ const CustomTheme = {
 						saveChanges();
 					},
 					'data.css'() {
+						CustomTheme.updateSettings();
+						saveChanges();
+					},
+					'data.thumbnail'() {
 						CustomTheme.updateSettings();
 						saveChanges();
 					},
@@ -179,6 +193,9 @@ const CustomTheme = {
 					},
 					getThemeThumbnailStyle(theme) {
 						let style = {};
+						for (let key in CustomTheme.defaultColors) {
+							style[`--color-${key}`] = CustomTheme.defaultColors[key];
+						}
 						for (let key in theme.colors) {
 							style[`--color-${key}`] = theme.colors[key];
 						}
@@ -187,6 +204,19 @@ const CustomTheme = {
 					openContextMenu(theme, event) {
 						if (!theme.sideloaded) return;
 						let menu = new Menu([
+							{
+								name: 'menu.texture.folder',
+								icon: 'folder',
+								condition: isApp,
+								click: () => {
+									if (!isApp || !theme.path) return;
+									if (!fs.existsSync(theme.path)) {
+										Blockbench.showQuickMessage('texture.error.file');
+										return;
+									}
+									shell.showItemInFolder(theme.path);
+								}
+							},
 							{
 								name: 'generic.remove',
 								icon: 'clear',
@@ -215,13 +245,13 @@ const CustomTheme = {
 						<div v-if="open_category == 'select'">
 							<div v-if="backup" class="theme_backup_bar" @click.stop="loadBackup()">
 								{{ tl('layout.restore_backup', [backup]) }}
-								<i class="material-icons" @click.stop="clearBackup()">clear</i>
+								<i class="material-icons icon" @click.stop="clearBackup()">clear</i>
 							</div>
 							<h2 class="i_b">${tl('layout.select')}</h2>
 
 							<div id="theme_list">
 								<div v-for="theme in listed_themes" :key="theme.id" class="theme" :class="{selected: theme.id == data.id}" @click="selectTheme(theme)" @contextmenu="openContextMenu(theme, $event)">
-									<div class="theme_preview" :class="{borders: theme.borders}" :style="getThemeThumbnailStyle(theme)">
+									<div class="theme_preview" :class="{ borders: theme.borders }" :theme_id="theme.id" :style="getThemeThumbnailStyle(theme)">
 										<div class="theme_preview_header">
 											<span class="theme_preview_text" style="width: 20px;" />
 											<div class="theme_preview_menu_header">
@@ -241,6 +271,9 @@ const CustomTheme = {
 										</div>
 									</div>
 									<div class="theme_name">{{ theme.name }}</div>
+									<div class="theme_type_icon">
+										<i class="material-icons icon">{{ theme_icons[theme.source] }}</i>
+									</div>
 									<div class="theme_author">{{ theme.author }}</div>
 								</div>
 							</div>
@@ -295,7 +328,35 @@ const CustomTheme = {
 						<div v-if="open_category == 'css'">
 							<h2 class="i_b">${tl('layout.css')}</h2>
 							<div id="css_editor">
-								<vue-prism-editor v-model="data.css" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
+								<p v-if="data.css && data.css.length > 65000">Hidden due to performance limitations of the built-in CSS editor</p>
+								<vue-prism-editor v-else v-model="data.css" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
+							</div>
+	
+						</div>
+
+						<div v-if="open_category == 'thumbnail'">
+							<h2 class="i_b">${tl('layout.thumbnail')}</h2>
+							<div class="theme_preview custom_thumbnail_preview" :class="{ borders: data.borders }" :theme_id="data.id" :style="getThemeThumbnailStyle(data)">
+								<div class="theme_preview_header">
+									<span class="theme_preview_text" style="width: 20px;" />
+									<div class="theme_preview_menu_header">
+										<span class="theme_preview_text" style="width: 34px;" />
+									</div>
+									<span class="theme_preview_text" style="width: 45px;" />
+								</div>
+								<div class="theme_preview_menu">
+									<span class="theme_preview_text" style="width: 23px;" />
+									<span class="theme_preview_text" style="width: 16px;" />
+									<span class="theme_preview_text" style="width: 40px;" />
+								</div>
+								<div class="theme_preview_window">
+									<div class="theme_preview_sidebar"></div>
+									<div class="theme_preview_center"></div>
+									<div class="theme_preview_sidebar"></div>
+								</div>
+							</div>
+							<div id="thumbnail_editor">
+								<vue-prism-editor v-model="data.thumbnail" @change="customizeTheme(1, $event)" language="css" :line-numbers="true" />
 							</div>
 	
 						</div>
@@ -336,7 +397,7 @@ const CustomTheme = {
 						CustomTheme.data.colors[scope_key] = last_color;
 						field.spectrum('set', last_color);
 					},
-					beforeShow(a, b) {
+					beforeShow() {
 						last_color = CustomTheme.data.colors[scope_key];
 						field.spectrum('set', last_color);
 					}
@@ -385,7 +446,7 @@ const CustomTheme = {
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.color, '--color-brush-outline');
+			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();
@@ -398,7 +459,33 @@ const CustomTheme = {
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
 		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
 		$('style#theme_css').text(CustomTheme.data.css);
+		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
+	},
+	loadThumbnailStyles() {
+		let split_regex = (isApp || window.chrome) ? new RegExp('(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")', 'g') : null;
+		if (!split_regex) return;
+		let thumbnailStyles = '\n';
+		const style = document.createElement('style');
+		document.head.appendChild(style);
+		for (const theme of CustomTheme.themes) {
+			style.textContent = theme.thumbnail;
+			const sheet = style.sheet;
+			for (const rule of sheet.cssRules) {
+				if (!rule.selectorText) continue;
+				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+			}
+		}
+		if (CustomTheme.data.customized) {
+			style.textContent = CustomTheme.data.thumbnail;
+			const sheet = style.sheet;
+			for (const rule of sheet.cssRules) {
+				if (!rule.selectorText) continue;
+				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+			}
+		}
+		document.head.removeChild(style);
+		$('style#theme_thumbnail_css').text(thumbnailStyles);
 	},
 	loadTheme(theme) {
 		var app = CustomTheme.data;
@@ -433,6 +520,8 @@ const CustomTheme = {
 			}
 		}
 		Merge.string(app, theme, 'css');
+		if (!theme.thumbnail) theme.thumbnail = '';
+		Merge.string(app, theme, 'thumbnail');
 		this.updateColors();
 		this.updateSettings();
 	},
@@ -443,6 +532,7 @@ const CustomTheme = {
 			if (!data.name) data.name = data.id;
 
 			data.sideloaded = true;
+			data.source = 'file';
 			data.path = file.path;
 
 			CustomTheme.loadTheme(data);
@@ -517,6 +607,3 @@ BARS.defineActions(function() {
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
 })
-
-
-
