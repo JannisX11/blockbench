@@ -156,6 +156,7 @@ localStorage.setItem('last_version', Blockbench.version);
 			loadInfoFromURL();
 		}
 		proceeded = true;
+		Blockbench.dispatchEvent('all_plugins_loaded')
 	}
 	loadInstalledPlugins().then(proceed);
 	setTimeout(proceed, 1200);
@@ -164,5 +165,9 @@ localStorage.setItem('last_version', Blockbench.version);
 setStartScreen(true);
 
 document.getElementById('page_wrapper').classList.remove('invisible');
+
+if (process.env.BLOCKBENCH_OPEN_DEV_TOOLS === 'TRUE') {
+	electron.getCurrentWindow().openDevTools()
+}
 
 Blockbench.setup_successful = true;

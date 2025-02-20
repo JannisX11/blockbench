@@ -1,0 +1,8 @@
+// FIXME - This file should be removed before the PR is merged!
+{
+	"files.exclude": {
+		"**/.git": true,
+		"**/node_modules": true
+	},
+	"editor.formatOnSave": false,
+}

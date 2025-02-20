@@ -5,3 +5,4 @@ node_modules/
 bundle.js
 workbox-*.js
 service_worker.js
+test-env/

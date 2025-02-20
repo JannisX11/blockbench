@@ -5,23 +5,47 @@ const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const {getColorHexRGB} = require('electron-color-picker')
 require('@electron/remote/main').initialize()
+const cli = require('./js/cli')
 
 let orig_win;
 let all_wins = [];
 let load_project_data;
 
-(() => {
-	// Allow advanced users to specify a custom userData directory.
-	// Useful for portable installations, and for setting up development environments.
-	const index = process.argv.findIndex(arg => arg === '--userData');
-	if (index !== -1) {
-		if (!process.argv.at(index + 1)) {
-			console.error('No path specified after --userData')
-			process.exit(1)
+;(() => {
+	const Console = require('console').Console
+	/**
+	 * A console object that always prints to the terminal Blockbench was lauched from.
+	 */
+	app.terminal = new Console(process.stdout, process.stderr)
+	/**
+	 * A console.log function that prints to the terminal Blockbench was lauched from.
+	 * 
+	 * If the first argument is 'NO_PREFIX', the output won't include the "[Blockbench]" prefix
+	 */
+	app.terminal.log = function(...args) {
+		if (args[0] === 'NO_PREFIX') {
+			args.shift()
+		} else {
+			const date = new Date()
+			args.splice(0, 0, `\x1b[90m[\x1b[30m${
+				date.toLocaleString('en-US', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: 'numeric',
+					minute: 'numeric',
+					second: 'numeric',
+					hour12: false,
+				}).replace(', ', ' ')
+			}\x1b[90m] [\x1b[34mBlockbench\x1b[90m]\x1b[0m`)
 		}
-		app.setPath('userData', process.argv[index + 1]);
+		return Console.prototype.log.apply(app.terminal, args)
 	}
 })()
+
+cli()
+
+app.terminal.log('Blockbench starting...')
 
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
@@ -153,10 +177,10 @@ function createWindow(second_instance, options = {}) {
 	} else {
 		win.setMenu(null);
 	}
-	
-	if (options.maximize !== false) win.maximize()
-	win.show()
-
+	if (process.env.BLOCKBENCH_HIDDEN === 'FALSE') {
+		if (options.maximize !== false) win.maximize()
+		win.show()
+	}
 	win.loadURL(url.format({
 		pathname: index_path,
 		protocol: 'file:',
@@ -267,15 +291,19 @@ app.on('ready', () => {
 		}
 
 		if (app_was_loaded) {
-			console.log('[Blockbench] App reloaded or new window opened')
+			app.terminal.log('App reloaded or new window opened')
 			return;
 		}
 
 		app_was_loaded = true;
 		if (process.execPath && process.execPath.match(/node_modules[\\\/]electron/)) {
 
-			console.log('[Blockbench] App launched in development mode')
+			app.terminal.log('App launched in development mode')
 	
+		} else if (process.env.BLOCKBENCH_AUTO_UPDATE === 'DISABLED') {
+
+			app.terminal.log('App launched with auto update disabled')
+
 		} else {
 	
 			autoUpdater.autoInstallOnAppQuit = true;
@@ -286,22 +314,22 @@ app.on('ready', () => {
 			}
 	
 			autoUpdater.on('update-available', (a) => {
-				console.log('update-available', a)
+				app.terminal.log('update-available', a)
 				ipcMain.on('allow-auto-update', () => {
 					autoUpdater.downloadUpdate()
 				})
 				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-available', a);
 			})
 			autoUpdater.on('update-downloaded', (a) => {
-				console.log('update-downloaded', a)
+				app.terminal.log('update-downloaded', a)
 				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-downloaded', a)
 			})
 			autoUpdater.on('error', (a) => {
-				console.log('update-error', a)
+				app.terminal.log('update-error', a)
 				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-error', a)
 			})
 			autoUpdater.on('download-progress', (a) => {
-				console.log('update-progress', a)
+				app.terminal.log('update-progress', a)
 				if (!orig_win.isDestroyed()) orig_win.webContents.send('update-progress', a)
 			})
 			autoUpdater.checkForUpdates().catch(err => {})
