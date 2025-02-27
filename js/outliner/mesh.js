@@ -990,6 +990,12 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
+new Property(Mesh, 'boolean', 'smooth_shading', {
+	default: false,
+	inputs: {
+		elements_panel: {label: 'Smooth Shading', type: 'checkbox'}
+	}
+});
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
@@ -1044,6 +1050,7 @@ new NodePreviewController(Mesh, {
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
+		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
 
@@ -1054,6 +1061,35 @@ new NodePreviewController(Mesh, {
 
 		for (let key in faces) {
 			let face = faces[key];
+
+			if (face.vertices.length > 2) {
+				// Normals
+				if (element.smooth_shading == false) {
+					let normal = face.getNormal(true);
+					face.vertices.forEach((vkey) => {
+						normal_array.push(...normal);
+					});
+				} else {
+					face.vertices.forEach((vkey) => {
+						let average_normal = Reusable.vec2.set(0, 0, 0);
+						let normal_count = 0;
+						for (let fkey2 in faces) {
+							let face2 = faces[fkey2];
+							if (face2.vertices.length > 2 && face2.vertices.includes(vkey)) {
+								let face_normal = face_normals[fkey2] ?? face2.getNormal(true);
+								if (!face_normals[fkey2]) face_normals[fkey2] = face_normal;
+								// if (face2.getAngleTo(face) > 50) continue;
+								average_normal.x += face_normal[0];
+								average_normal.y += face_normal[1];
+								average_normal.z += face_normal[2];
+								normal_count++;
+							}
+						}
+						average_normal.divideScalar(normal_count);
+						normal_array.push(average_normal.x, average_normal.y, average_normal.z);
+					})
+				}
+			}
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -1066,8 +1102,6 @@ new NodePreviewController(Mesh, {
 					indices.push(position_array.length / 3);
 					position_array.push(...vertices[key])
 				})
-				let normal = face.getNormal();
-				normal_array.push(...normal, ...normal, ...normal);
 
 				// Outline
 				face.vertices.forEach((key, i) => {
@@ -1090,9 +1124,6 @@ new NodePreviewController(Mesh, {
 					position_array.push(...vertices[vkey])
 					face_indices[vkey] = index_offset + i;
 				})
-
-				let normal = face.getNormal(true);
-				normal_array.push(...normal, ...normal, ...normal, ...normal);
 
 				let sorted_vertices = face.getSortedVertices();
 
