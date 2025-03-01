@@ -1,5 +1,14 @@
+import blender from '../../keymaps/blender.json';
+import cinema4d from '../../keymaps/cinema4d.json';
+import maya from '../../keymaps/maya.json';
 
-class Keybind {
+window.KeymapPresets = {
+	blender,
+	cinema4d,
+	maya,
+}
+
+export class Keybind {
 	/**
 	 * Create a keybind
 	 * @param {object} keys Set up the default keys that need to be pressed
@@ -97,7 +106,7 @@ class Keybind {
 		return this;
 	}
 	setAction(id, sub_id) {
-		var action = BarItems[id]
+		var action = BarItems[id];
 		if (!action) {
 			action = Keybinds.extra[id]
 		}
@@ -386,7 +395,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 Keybinds.no_overlap = function(k1, k2) {
 	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
-function updateKeybindConflicts() {
+export function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
 		Keybinds.structure[key].conflict = false;
 	}
@@ -745,7 +754,7 @@ window.addEventListener('focus', event => {
 	setTimeout(remove_func, 100);
 })
 
-function getFocusedTextInput() {
+export function getFocusedTextInput() {
 	let element = document.activeElement;
 	if (element.nodeName == 'TEXTAREA' || (element.nodeName == 'INPUT' && ['number', 'text'].includes(element.type)) || element.isContentEditable) {
 		return element;
@@ -1022,3 +1031,10 @@ $(document).keyup(function(e) {
 		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
+
+
+Object.assign(window, {
+	Keybind,
+	updateKeybindConflicts,
+	getFocusedTextInput
+});

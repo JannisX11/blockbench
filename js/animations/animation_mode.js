@@ -1,4 +1,4 @@
-const Animator = {
+export const Animator = {
 	get possible_channels() {
 		let obj = {};
 		Object.assign(obj, BoneAnimator.prototype.channels, EffectAnimator.prototype.channels);
@@ -883,7 +883,7 @@ const Animator = {
 }
 Canvas.gizmos.push(Animator.motion_trail, Animator.onion_skin_object);
 
-const WinterskyScene = new Wintersky.Scene({
+export const WinterskyScene = new Wintersky.Scene({
 	fetchTexture: function(config) {
 		if (config.preview_texture) {
 			return config.preview_texture;
@@ -1493,3 +1493,8 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Animator,
+	WinterskyScene
+});

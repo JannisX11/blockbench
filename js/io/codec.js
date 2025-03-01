@@ -1,5 +1,5 @@
-const Codecs = {};
-class Codec extends EventSystem {
+export const Codecs = {};
+export class Codec extends EventSystem {
 	constructor(id, data) {
 		super();
 		if (!data) data = 0;
@@ -226,3 +226,9 @@ Codec.getAllExtensions = function() {
 	}
 	return extensions;
 }
+
+
+Object.assign(window, {
+	Codec,
+	Codecs
+});

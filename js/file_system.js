@@ -550,7 +550,7 @@ document.body.ondragleave = function(event) {
 	})
 }
 
-function forDragHandlers(event, cb) {
+export function forDragHandlers(event, cb) {
 	if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
 		return; 
 	}

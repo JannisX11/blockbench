@@ -1,5 +1,3 @@
-(function() {
-
 let item_parents = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -239,7 +237,7 @@ var codec = new Codec('java_block', {
 			}
 		}
 		if (checkExport('groups', (settings.export_groups.value && Group.all.length))) {
-			groups = compileGroups(false, element_index_lut)
+			let groups = compileGroups(false, element_index_lut)
 			var i = 0;
 			while (i < groups.length) {
 				if (typeof groups[i] === 'object') {
@@ -627,5 +625,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

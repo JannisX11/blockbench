@@ -1,4 +1,4 @@
-class AnimationControllerState {
+export class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
@@ -816,7 +816,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	'delete',
 ]);
 
-class AnimationController extends AnimationItem {
+export class AnimationController extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -2345,3 +2345,5 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {AnimationController, AnimationControllerState});

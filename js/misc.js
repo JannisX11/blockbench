@@ -1,10 +1,9 @@
-var osfs = '/'
-var uv_clipboard;
-var open_dialog = false;
-var open_interface = false;
-var tex_version = 1;
-var pe_list;
-const Pressing = {
+window.osfs = '/'
+window.open_dialog = false;
+window.open_interface = false;
+window.tex_version = 1;
+
+export const Pressing = {
 	shift: false,
 	ctrl: false,
 	alt: false,
@@ -14,7 +13,7 @@ const Pressing = {
 		alt: false,
 	}
 }
-var Prop = {
+export const Prop = {
 	_active_panel	: 'preview',
 	get active_panel() {
 		return Prop._active_panel
@@ -38,10 +37,10 @@ var Prop = {
 	show_left_bar   : true,
 }
 
-const mouse_pos = {x:0,y:0}
-const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+export const mouse_pos = {x:0,y:0}
+export const sort_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
-function canvasGridSize(shift, ctrl) {
+export function canvasGridSize(shift, ctrl) {
 	if (!shift && !ctrl) {
 		return 16 / Math.clamp(settings.edit_size.value, 1, 512)
 	} else if (ctrl && shift) {
@@ -52,7 +51,7 @@ function canvasGridSize(shift, ctrl) {
 		return 16 / Math.clamp(settings.shift_size.value, 1, 4096)
 	}
 }
-function updateNslideValues() {
+export function updateNslideValues() {
 
 	if (Outliner.selected.length) {
 		BarItems.slider_pos_x.update()
@@ -99,7 +98,7 @@ function updateNslideValues() {
 }
 
 //Selections
-function updateSelection(options = {}) {
+export function updateSelection(options = {}) {
 	if (!Project) return;
 	Project.elements.forEach(obj => {
 		let included = Project.selected_elements.includes(obj);
@@ -213,7 +212,7 @@ function updateSelection(options = {}) {
 	delete TickUpdates.selection;
 	Blockbench.dispatchEvent('update_selection');
 }
-function unselectAllElements(exceptions) {
+export function unselectAllElements(exceptions) {
 	Project.selected_elements.forEachReverse(obj => {
 		if (exceptions instanceof Array && exceptions.includes(obj)) return;
 		obj.unselect()
@@ -231,15 +230,15 @@ function unselectAllElements(exceptions) {
 	TickUpdates.selection = true;
 }
 // Legacy functions
-function selectAll() {
+export function selectAll() {
 	SharedActions.run('select_all');
 }
-function unselectAll() {
+export function unselectAll() {
 	SharedActions.run('unselect_all');
 }
 
 //Backup
-const AutoBackup = {
+export const AutoBackup = {
 	/**
 	 * IndexedDB Database
 	 * @type {IDBDatabase}
@@ -407,7 +406,7 @@ setInterval(function() {
 	}
 }, 1e3*30);
 //Misc
-const TickUpdates = {
+export const TickUpdates = {
 	Run() {
 		try {
 			if (TickUpdates.selection) {
@@ -436,7 +435,7 @@ const TickUpdates = {
 	}
 }
 
-function factoryResetAndReload() {
+export function factoryResetAndReload() {
 	let lang_key = 'menu.help.developer.reset_storage.confirm';
 	let result = window.confirm((window.tl && tl(lang_key) != lang_key) ? tl(lang_key) : 'Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.');
 	if (result) {
@@ -447,7 +446,7 @@ function factoryResetAndReload() {
 	}
 }
 
-function benchmarkCode(id, iterations, code) {
+export function benchmarkCode(id, iterations, code) {
 	if (!iterations) iterations = 1000;
 	console.time(id);
 	for (let i = 0; i < iterations; i++) {
@@ -456,13 +455,31 @@ function benchmarkCode(id, iterations, code) {
 	console.timeEnd(id);
 }
 
-const documentReady = new Promise((resolve, reject) => {
+export const documentReady = new Promise((resolve, reject) => {
 	$(document).ready(function() {
 		resolve()
 	})
 });
 
 
-const entityMode = {
+export const entityMode = {
 	hardcodes: JSON.parse('{"geometry.chicken":{"body":{"rotation":[90,0,0]}},"geometry.llama":{"chest1":{"rotation":[0,90,0]},"chest2":{"rotation":[0,90,0]},"body":{"rotation":[90,0,0]}},"geometry.cow":{"body":{"rotation":[90,0,0]}},"geometry.sheep.sheared":{"body":{"rotation":[90,0,0]}},"geometry.sheep":{"body":{"rotation":[90,0,0]}},"geometry.phantom":{"body":{"rotation":[0,0,0]},"wing0":{"rotation":[0,0,5.7]},"wingtip0":{"rotation":[0,0,5.7]},"wing1":{"rotation":[0,0,-5.7]},"wingtip1":{"rotation":[0,0,-5.7]},"head":{"rotation":[11.5,0,0]},"tail":{"rotation":[0,0,0]},"tailtip":{"rotation":[0,0,0]}},"geometry.pig":{"body":{"rotation":[90,0,0]}},"geometry.ocelot":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.cat":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.turtle":{"eggbelly":{"rotation":[90,0,0]},"body":{"rotation":[90,0,0]}},"geometry.villager.witch":{"hat2":{"rotation":[-3,0,1.5]},"hat3":{"rotation":[-6,0,3]},"hat4":{"rotation":[-12,0,6]}},"geometry.pufferfish.mid":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.pufferfish.large":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.tropicalfish_a":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}},"geometry.tropicalfish_b":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}}}')
 }
+
+Object.assign(window, {
+	Pressing,
+	Prop,
+	mouse_pos,
+	sort_collator,
+	canvasGridSize,
+	updateNslideValues,
+	updateSelection,
+	unselectAllElements,
+	selectAll,
+	unselectAll,
+	AutoBackup,
+	TickUpdates,
+	factoryResetAndReload,
+	benchmarkCode,
+	entityMode
+})

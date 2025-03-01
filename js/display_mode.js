@@ -4,10 +4,10 @@ var display_slot = 'thirdperson_righthand';
 var display_presets;
 var display_preview;
 var enterDisplaySettings, exitDisplaySettings;
-const DisplayMode = {};
+export const DisplayMode = {};
 
 
-class DisplaySlot {
+export class DisplaySlot {
 	constructor(id, data) {
 		this.slot_id = id;
 		this.default()
@@ -104,7 +104,6 @@ class DisplaySlot {
 	}
 }
 
-(function() {
 
 
 display_presets = [
@@ -256,7 +255,7 @@ if (localStorage.getItem('display_presets') != null) {
 
 
 
-class refModel {
+export class refModel {
 	constructor(id, options = 0) {
 		var scope = this;
 		this.model = new THREE.Object3D();
@@ -1326,7 +1325,7 @@ window.displayReferenceObjects = {
 }
 DisplayMode.slots = displayReferenceObjects.slots
 
-const display_angle_preset = {
+export const display_angle_preset = {
 	projection: 'perspective',
 	position: [-80, 40, -30],
 	target: [0, 8, 0],
@@ -1398,7 +1397,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.updateShading()
 	Canvas.updateRenderSides()
 }
-function resetDisplayBase() {
+export function resetDisplayBase() {
 	display_base.rotation.x = Math.PI / (180 / 0.1);
 	display_base.rotation.y = Math.PI / (180 / 0.1);
 	display_base.rotation.z = Math.PI / (180 / 0.1);
@@ -1523,7 +1522,7 @@ DisplayMode.updateGUILight = function() {
 	Canvas.updateShading();
 } 
 
-function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
+export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
 
 	if (key !== 'gui' && display_preview.isOrtho === true) {
@@ -1564,7 +1563,7 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function getOptimalFocalLength() {
+export function getOptimalFocalLength() {
 	if (display_preview.camera.aspect > 1.7) {
 		return 18 / display_preview.camera.aspect;
 	} else if (display_preview.camera.aspect > 1.0) {
@@ -1745,7 +1744,7 @@ window.changeDisplaySkin = function() {
 		}
 	})
 }
-function updateDisplaySkin(feedback) {
+export function updateDisplaySkin(feedback) {
 	var val = settings.display_skin.value
 	function setPSkin(skin, slim) {
 		if (displayReferenceObjects.refmodels.player.material) {
@@ -2525,4 +2524,13 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
+Object.assign(window, {
+	DisplayMode,
+	DisplaySlot,
+	refModel,
+	display_angle_preset,
+	resetDisplayBase,
+	loadDisp,
+	getOptimalFocalLength,
+	updateDisplaySkin
+});

@@ -1,4 +1,4 @@
-class Property {
+export class Property {
 	constructor(target_class, type = 'boolean', name, options = 0) {
 		if (!target_class.properties) {
 			target_class.properties = {};
@@ -157,3 +157,5 @@ Property.resetUniqueValues = function(type, instance) {
 		}
 	}
 }
+
+Object.assign(window, {Property});

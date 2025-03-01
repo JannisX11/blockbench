@@ -1,6 +1,6 @@
 
 //Textures
-class Texture {
+export class Texture {
 	constructor(data, uuid) {
 		let scope = this;
 		//Info
@@ -2157,7 +2157,7 @@ class Texture {
 		}
 	})
 
-function saveTextures(lazy = false) {
+export function saveTextures(lazy = false) {
 	Texture.all.forEach(function(tex) {
 		if (!tex.saved) {
 			if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return;
@@ -2165,10 +2165,10 @@ function saveTextures(lazy = false) {
 		}
 	})
 }
-function loadTextureDraggable() {
+export function loadTextureDraggable() {
 	console.warn('loadTextureDraggable no longer exists');
 }
-function unselectTextures() {
+export function unselectTextures() {
 	Texture.all.forEach(function(s) {
 		s.selected = false;
 		s.multi_selected = false;
@@ -2179,7 +2179,7 @@ function unselectTextures() {
 	Panels.layers.inside_vue.layers = [];
 	Blockbench.dispatchEvent('update_texture_selection');
 }
-function getTexturesById(id) {
+export function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(Texture.all, function(e) {return e.id == id});
@@ -3008,3 +3008,10 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	Texture,
+	saveTextures,
+	unselectTextures,
+	getTexturesById,
+});

@@ -1,4 +1,4 @@
-class Mode extends KeybindItem {
+export class Mode extends KeybindItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -115,7 +115,7 @@ class Mode extends KeybindItem {
 		delete Modes.options[this.id];
 	}
 }
-const Modes = {
+export const Modes = {
 	get id() {
 		return Mode.selected ? Mode.selected.id : ''
 	},
@@ -261,3 +261,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Mode,
+	Modes
+});

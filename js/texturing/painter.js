@@ -1,5 +1,5 @@
 StateMemory.init('brush_presets', 'array')
-const Painter = {
+export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
 	current: {/*texture, image*/},
@@ -1842,7 +1842,7 @@ const Painter = {
 	]
 }
 
-class IntMatrix {
+export class IntMatrix {
 	constructor(width = 16, height = 16) {
 		this.width = width;
 		this.height = height;
@@ -3186,3 +3186,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Painter,
+	IntMatrix,
+});

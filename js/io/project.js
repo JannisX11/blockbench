@@ -1,4 +1,4 @@
-class ModelProject {
+export class ModelProject {
 	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
@@ -536,7 +536,7 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-let Project = 0;
+window.Project = 0;
 
 let ProjectData = {};
 
@@ -559,7 +559,7 @@ ModelProject.prototype.menu = new Menu([
 ])
 
 // Setup ModelProject for loaded project
-function setupProject(format, uuid) {
+export function setupProject(format, uuid) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
 	new ModelProject({format}, uuid).select();
@@ -578,7 +578,7 @@ function setupProject(format, uuid) {
 	return true;
 }
 // Setup brand new project
-function newProject(format) {
+export function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
@@ -593,7 +593,7 @@ function newProject(format) {
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
-function selectNoProject() {
+export function selectNoProject() {
 	setStartScreen(true);
 	
 	Project = 0;
@@ -625,14 +625,14 @@ function selectNoProject() {
 
 	Blockbench.dispatchEvent('select_no_project', {});
 }
-function updateTabBarVisibility() {
+export function updateTabBarVisibility() {
 	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
 	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
 	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
 
 // Resolution
-function setProjectResolution(width, height, modify_uv) {
+export function setProjectResolution(width, height, modify_uv) {
 	if (Project.texture_width / width != Project.texture_width / height) {
 		modify_uv = false;
 	}
@@ -694,7 +694,7 @@ function setProjectResolution(width, height, modify_uv) {
 		UVEditor.loadData()
 	}
 }
-function updateProjectResolution() {
+export function updateProjectResolution() {
 	if (!Format.per_texture_uv_size) {
 		if (Interface.Panels.uv) {
 			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
@@ -710,7 +710,7 @@ function updateProjectResolution() {
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
-function setStartScreen(state) {
+export function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
 	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
@@ -1273,3 +1273,15 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ModelProject,
+	setupProject,
+	newProject,
+	selectNoProject,
+	updateTabBarVisibility,
+	setProjectResolution,
+	updateProjectResolution,
+	setStartScreen,
+});

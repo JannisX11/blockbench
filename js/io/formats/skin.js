@@ -1,8 +1,6 @@
-(function() {
+export const skin_presets = {};
 
-const skin_presets = {};
-
-const codec = new Codec('skin_model', {
+export const codec = new Codec('skin_model', {
 	name: 'Skin Model',
 	remember: false,
 	compile(options) {
@@ -170,7 +168,7 @@ codec.rebuild = function(model_id, pose) {
 }
 
 
-const format = new ModelFormat('skin', {
+export const format = new ModelFormat('skin', {
 	icon: 'icon-player',
 	category: 'minecraft',
 	target: ['Minecraft: Java Edition', 'Minecraft: Bedrock Edition'],
@@ -202,7 +200,7 @@ format.new = function() {
 }
 format.presets = skin_presets;
 
-function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
+export function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
 
 	var texture = new Texture({
 		mode: 'bitmap',
@@ -244,9 +242,9 @@ function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, l
 	return texture;
 }
 
-const model_options = {};
+export const model_options = {};
 let selected_model = '';
-const skin_dialog = new Dialog({
+export const skin_dialog = new Dialog({
 	title: tl('dialog.skin.title'),
 	id: 'skin',
 	form: {
@@ -7588,5 +7586,3 @@ skin_presets.zombie_villager_2 = {
 for (var id in skin_presets) {
 	model_options[id] = skin_presets[id].display_name;
 }
-
-})()

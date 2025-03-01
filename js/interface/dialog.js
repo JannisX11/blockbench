@@ -1,5 +1,3 @@
-(function() {
-
 function buildForm(dialog) {
 	dialog.form = new InputForm(dialog.form_config);
 	let dialog_content = $(dialog.object).find('.dialog_content');
@@ -55,7 +53,7 @@ function buildComponent(dialog) {
 }
 
 const toggle_sidebar = window.innerWidth < 640;
-class DialogSidebar {
+export class DialogSidebar {
 	constructor(options, dialog) {
 		this.open = !toggle_sidebar;
 		this.pages = options.pages || {};
@@ -142,7 +140,7 @@ class DialogSidebar {
 	}
 }
 
-window.Dialog = class Dialog {
+export class Dialog {
 	constructor(id, options) {
 		if (typeof id == 'object') {
 			options = id;
@@ -488,9 +486,9 @@ window.Dialog = class Dialog {
 		if (bar.length) return bar;
 	}
 }
-window.Dialog.stack = [];
+Dialog.stack = [];
 
-window.ShapelessDialog = class ShapelessDialog extends Dialog {
+export class ShapelessDialog extends Dialog {
 	constructor(id, options) {
 		super(id, options);
 
@@ -530,7 +528,7 @@ window.ShapelessDialog = class ShapelessDialog extends Dialog {
 	}
 }
 
-window.MessageBox = class MessageBox extends Dialog {
+export class MessageBox extends Dialog {
 	constructor(options, callback) {
 		super(options.id, options);
 		this.options = options;
@@ -665,7 +663,7 @@ window.MessageBox = class MessageBox extends Dialog {
 	}
 }
 
-window.ToolConfig = class ToolConfig extends Dialog {
+export class ToolConfig extends Dialog {
 	constructor(id, options) {
 		super(id, options);
 
@@ -774,13 +772,20 @@ window.ToolConfig = class ToolConfig extends Dialog {
 	}
 }
 
-})()
 
 // Legacy Dialog
-function showDialog() {
+window.showDialog = function showDialog() {
 	console.warn('"showDialog" is no longer supported!')
 }
-function hideDialog() {
+window.hideDialog = function hideDialog() {
 	console.warn('"hideDialog" is no longer supported!')
 }
 
+
+Object.assign(window, {
+	DialogSidebar,
+	Dialog,
+	ShapelessDialog,
+	MessageBox,
+	ToolConfig,
+});

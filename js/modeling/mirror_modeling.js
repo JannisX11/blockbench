@@ -1,4 +1,4 @@
-const MirrorModeling = {
+export const MirrorModeling = {
 	initial_transformer_position: 0,
 	isCentered(element) {
 		let center = Format.centered_grid ? 0 : 8;

@@ -1,6 +1,9 @@
-const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
+import {version} from '../package.json';
+const appVersion = version;
 
-const Blockbench = {
+export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
+
+export const Blockbench = {
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -366,7 +369,7 @@ if (isApp) {
 
 
 
-const StateMemory = {
+export const StateMemory = {
 	/**
 	 * Initialize a memorized property
 	 * @param {string} key 
@@ -406,3 +409,10 @@ const StateMemory = {
 		localStorage.setItem(`StateMemory.${key}`, serialized)
 	}
 }
+
+Object.assign(window, {
+	LastVersion,
+	Blockbench,
+	StateMemory,
+	appVersion
+});

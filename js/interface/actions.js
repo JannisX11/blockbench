@@ -1,6 +1,7 @@
-var Toolbars, BarItems, Toolbox;
+export const Toolbars = {};
+export const BarItems = {};
 //Bars
-class BarItem extends EventSystem {
+export class BarItem extends EventSystem {
 	constructor(id, data) {
 		super();
 		BarItem.constructing = this;
@@ -207,7 +208,7 @@ class BarItem extends EventSystem {
 		}
 	}
 }
-class KeybindItem {
+export class KeybindItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -240,7 +241,7 @@ class KeybindItem {
 		}
 	}
 }
-class Action extends BarItem {
+export class Action extends BarItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -418,7 +419,7 @@ class Action extends BarItem {
 		}
 	}
 }
-class Tool extends Action {
+export class Tool extends Action {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -531,7 +532,7 @@ class Tool extends Action {
 }
 Tool.all = [];
 Tool.selected = null;
-class Toggle extends Action {
+export class Toggle extends Action {
 	constructor(id, data) {
 		super(id, data);
 		this.type = 'toggle';
@@ -581,7 +582,7 @@ class Toggle extends Action {
 		return this;
 	}
 }
-class Widget extends BarItem {
+export class Widget extends BarItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -592,7 +593,7 @@ class Widget extends BarItem {
 		//this.uniqueNode = true;
 	}
 }
-class NumSlider extends Widget {
+export class NumSlider extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -1067,7 +1068,7 @@ class NumSlider extends Widget {
 }
 NumSlider.MolangParser = new Molang()
 
-class BarSlider extends Widget {
+export class BarSlider extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -1127,7 +1128,7 @@ class BarSlider extends Widget {
 		return this.value
 	}
 }
-class BarSelect extends Widget {
+export class BarSelect extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -1353,7 +1354,7 @@ class BarSelect extends Widget {
 		return this.value;
 	}
 }
-class BarText extends Widget {
+export class BarText extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -1391,7 +1392,7 @@ class BarText extends Widget {
 		return true;
 	}
 }
-class ColorPicker extends Widget {
+export class ColorPicker extends Widget {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -1454,7 +1455,7 @@ class ColorPicker extends Widget {
 		return this.value;
 	}
 }
-class Toolbar {
+export class Toolbar {
 	constructor(id, data) {
 		if (!data) {
 			data = id;
@@ -1778,7 +1779,7 @@ Toolbar.prototype.menu = new Menu([
 		}}
 	])
 
-const BARS = {
+export const BARS = {
 	stored: {},
 	editing_bar: undefined,
 	action_definers: [],
@@ -1787,8 +1788,6 @@ const BARS = {
 		BARS.action_definers.push(definer)
 	},
 	setupActions() {
-		BarItems = {}
-
 		//Extras
 			new KeybindItem('preview_select', {
 				category: 'navigate',
@@ -2139,7 +2138,6 @@ const BARS = {
 	},
 	setupToolbars() {
 		//
-		Toolbars = {}
 		var stored = localStorage.getItem('toolbars')
 		if (stored) {
 			stored = JSON.parse(stored)
@@ -2310,7 +2308,7 @@ const BARS = {
 			]
 		})
 
-		Toolbox = Toolbars.tools;
+		window.Toolbox = Toolbars.tools;
 		Toolbox.toggleTransforms = function() {
 			if (Toolbox.selected.id === 'move_tool') {
 				BarItems['resize_tool'].select();
@@ -2498,7 +2496,7 @@ const BARS = {
 	}
 }
 
-const Keybinds = {
+export const Keybinds = {
 	actions: [],
 	stored: {},
 	extra: {},
@@ -2512,4 +2510,23 @@ if (localStorage.getItem('keybindings')) {
 		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'))
 	} catch (err) {}
 }
+
+Object.assign(window, {
+	BarItem,
+	KeybindItem,
+	Action,
+	Tool,
+	Toggle,
+	Widget,
+	NumSlider,
+	BarSlider,
+	BarSelect,
+	BarText,
+	ColorPicker,
+	Toolbar,
+	BARS,
+	Keybinds,
+	Toolbars,
+	BarItems,
+})
 

@@ -1,15 +1,18 @@
-class EventSystem {
+type EventListener = (data: any) => void;
+
+export class EventSystem {
+	events: Record<string, EventListener[]>
 	constructor() {
 		this.events = {};
 	}
-	dispatchEvent(event_name, data) {
+	dispatchEvent(event_name: string, data: any) {
 		var list = this.events[event_name];
 		if (!list) return;
 		for (var i = 0; i < list.length; i++) {
 			list[i](data);
 		}
 	}
-	on(event_name, cb) {
+	on(event_name: string, cb: EventListener) {
 		if (typeof cb !== 'function') {
 			console.warn(cb, 'is not a function!');
 			return;
@@ -42,7 +45,7 @@ class EventSystem {
 			}
 		}
 	}
-	once(event_name, cb) {
+	once(event_name: string, cb: EventListener) {
 		if (typeof cb !== 'function') {
 			console.warn(cb, 'is not a function!');
 			return;
@@ -53,10 +56,10 @@ class EventSystem {
 		}
 		return this.on(event_name, listener);
 	}
-	addListener(event_name, cb) {
+	addListener(event_name: string, cb: EventListener) {
 		return this.on(event_name, cb);
 	}
-	removeListener(event_name, cb) {
+	removeListener(event_name: string, cb: EventListener) {
 		if (event_name.includes(' ')) {
 			let event_names = event_name.split(' ');
 			for (let name of event_names) {
@@ -68,3 +71,5 @@ class EventSystem {
 		}
 	}
 }
+// @ts-ignore
+window.EventSystem = EventSystem

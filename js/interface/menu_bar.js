@@ -1,4 +1,4 @@
-class BarMenu extends Menu {
+export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
 		MenuBar.menus[id] = this
@@ -47,7 +47,7 @@ class BarMenu extends Menu {
 	}
 }
 
-const MenuBar = {
+export const MenuBar = {
 	menus: {},
 	open: undefined,
 	last_opened: null,
@@ -731,3 +731,9 @@ const MenuBar = {
 		}
 	}
 }
+
+
+Object.assign(window, {
+	BarMenu,
+	MenuBar,
+});

@@ -1,4 +1,4 @@
-class Panel extends EventSystem {
+export class Panel extends EventSystem {
 	constructor(id, data) {
 		super();
 		if (!data) data = id;
@@ -788,7 +788,7 @@ Panel.prototype.snap_menu = new Menu([
 ])
 
 
-function setupPanels() {
+export function setupPanels() {
 	Interface.panel_definers.forEach((definer) => {
 		if (typeof definer === 'function') {
 			definer()
@@ -797,7 +797,7 @@ function setupPanels() {
 	updateSidebarOrder();
 }
 
-function updateInterfacePanels() {
+export function updateInterfacePanels() {
 
 	if (!Blockbench.isMobile) {
 		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
@@ -838,7 +838,7 @@ function updateInterfacePanels() {
 	}
 }
 
-function updateSidebarOrder() {
+export function updateSidebarOrder() {
 	['left_bar', 'right_bar'].forEach(bar => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
 
@@ -866,7 +866,7 @@ function updateSidebarOrder() {
 		}
 	})
 }
-function updatePanelSelector() {
+export function updatePanelSelector() {
 	if (!Blockbench.isMobile) return;
 
 	Interface.PanelSelectorVue.$forceUpdate();
@@ -876,11 +876,11 @@ function updatePanelSelector() {
 	}
 }
 
-function setActivePanel(panel) {
+export function setActivePanel(panel) {
 	Prop.active_panel = panel
 }
 
-function setupMobilePanelSelector() {
+export function setupMobilePanelSelector() {
 	Interface.PanelSelectorVue = new Vue({
 		el: '#panel_selector_bar',
 		data: {
@@ -937,3 +937,13 @@ function setupMobilePanelSelector() {
 			</div>`
 	})
 }
+
+Object.assign(window, {
+	Panel,
+	setupPanels,
+	updateInterfacePanels,
+	updateSidebarOrder,
+	updatePanelSelector,
+	setActivePanel,
+	setupMobilePanelSelector,
+});

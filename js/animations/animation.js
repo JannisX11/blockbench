@@ -1,4 +1,4 @@
-class AnimationItem {
+export class AnimationItem {
 	constructor() {}
 	getShortName() {
 		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
@@ -10,7 +10,7 @@ class AnimationItem {
 		return this.name.split(/\./).last();
 	}
 }
-class Animation extends AnimationItem {
+export class Animation extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -2171,3 +2171,5 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {AnimationItem, Animation});

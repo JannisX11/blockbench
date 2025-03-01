@@ -1,4 +1,4 @@
-const UVEditor = {
+export const UVEditor = {
 	face: 'north',
 	size: 320,
 	zoom: 1,
@@ -4739,3 +4739,8 @@ Interface.definePanels(function() {
 	}).toElement(slider_bar);
 	BarItems.edit_mode_uv_overlay.toElement(slider_bar);
 })
+
+
+Object.assign(window, {
+	UVEditor
+});

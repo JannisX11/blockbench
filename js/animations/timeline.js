@@ -1,4 +1,4 @@
-class TimelineMarker {
+export class TimelineMarker {
 	constructor(data) {
 		this.time = 0;
 		this.color = 0;
@@ -60,7 +60,7 @@ TimelineMarker.prototype.menu = new Menu([
 	}}
 ])
 
-const Timeline = {
+export const Timeline = {
 	animators: [],
 	selected: Keyframe.selected,//frames
 	playing_sounds: [],
@@ -2202,3 +2202,9 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	TimelineMarker,
+	Timeline
+});

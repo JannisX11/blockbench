@@ -1,4 +1,17 @@
-const CustomTheme = {
+import DarkTheme from '../../themes/dark.json'
+import LightTheme from '../../themes/light.json'
+import ContrastTheme from '../../themes/contrast.json'
+
+window.CustomThemeOptions = [
+	DarkTheme,
+	LightTheme,
+	ContrastTheme
+]
+for (let theme of window.CustomThemeOptions) {
+	theme.source = 'built_in';
+}
+
+export const CustomTheme = {
 	data: {
 		id: 'dark',
 		name: '',
@@ -607,3 +620,7 @@ BARS.defineActions(function() {
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
 })
+
+Object.assign(window, {
+	CustomTheme
+});

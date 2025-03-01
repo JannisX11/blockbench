@@ -11,7 +11,7 @@ Blockbench.queries = {};
 	}
 })()
 
-function initializeWebApp() {
+export function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
@@ -71,7 +71,7 @@ try {
 	if (!Blockbench.isMobile) $('#web_download_button').hide();
 }
 
-async function loadInfoFromURL() {
+export async function loadInfoFromURL() {
 	if (Blockbench.queries.session) {
 		EditSession.token = Blockbench.queries.session;
 		BarItems.edit_session.click();

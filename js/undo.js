@@ -1,4 +1,4 @@
-class UndoSystem {
+export class UndoSystem {
 	constructor() {
 		this.index = 0;
 		this.history = [];
@@ -981,7 +981,7 @@ UndoSystem.selectionSave = class {
 	}
 }
 
-let Undo = null;
+window.Undo = null;
 
 BARS.defineActions(function() {
 	
@@ -1079,3 +1079,5 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {UndoSystem});

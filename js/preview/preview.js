@@ -1,13 +1,17 @@
-var scene,
-	main_preview, MediaPreview,
-	Sun, lights,
-	Transformer,
-	display_area, display_base;
+window.scene = null;
+window.main_preview = null;
+window.MediaPreview = null;
+window.Sun = null;
+window.lights = null;
+window.display_area = null;
+window.display_base = null;
+
 var framespersecond = 0;
 var display_mode = false;
-const three_grid = new THREE.Object3D();
-const rot_origin = new THREE.Object3D();
-var gizmo_colors = {
+const canvas_scenes = {};
+export const three_grid = new THREE.Object3D();
+export const rot_origin = new THREE.Object3D();
+export const gizmo_colors = {
 	r: new THREE.Color(),
 	g: new THREE.Color(),
 	b: new THREE.Color(),
@@ -16,7 +20,7 @@ var gizmo_colors = {
 	outline: new THREE.Color(),
 	gizmo_hover: new THREE.Color()
 }
-const DefaultCameraPresets = [
+export const DefaultCameraPresets = [
 	{
 		name: 'menu.preview.angle.initial',
 		id: 'initial',
@@ -129,7 +133,7 @@ const DefaultCameraPresets = [
 	}
 ]
 
-class Preview {
+export class Preview {
 	constructor(options = 0) {
 		var scope = this;
 		if (options && options.id) {
@@ -342,7 +346,7 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			if (Transformer) {
+			if (window.Transformer) {
 				Transformer.update()
 			}
 		}
@@ -1757,7 +1761,7 @@ Blockbench.on('update_camera_position', e => {
 	})
 })
 
-function editCameraPreset(preset, presets) {
+export function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
 	let rotation_mode = 'target';
 
@@ -1811,7 +1815,7 @@ function editCameraPreset(preset, presets) {
 }
 
 
-class OrbitGizmo {
+export class OrbitGizmo {
 	constructor(preview, options = {}) {
 		let scope = this;
 		this.preview = preview;
@@ -2012,10 +2016,10 @@ window.addEventListener("gamepadconnected", function(event) {
 });
 
 //Init/Update
-function initCanvas() {
+export function initCanvas() {
 	
 	//Objects
-	scene = Canvas.scene = new THREE.Scene();
+	window.scene = Canvas.scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
 
@@ -2030,42 +2034,40 @@ function initCanvas() {
 	scene.add(Canvas.outlines)
 	Canvas.gizmos.push(Canvas.outlines)
 
-	canvas_scenes = {
 		/*monitor: new ReferenceImage({
 			condition: () => Modes.display && display_slot == 'gui',
 			name: tl('display.reference.monitor')
 		}).addAsBuiltIn(),*/
 
-		inventory_nine: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
-			name: tl('display.reference.inventory_nine'),
-			source: './assets/inventory_nine.png',
-			position: [0, 0],
-			size: [528, 528],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
+	canvas_scenes.inventory_nine = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
+		name: tl('display.reference.inventory_nine'),
+		source: './assets/inventory_nine.png',
+		position: [0, 0],
+		size: [528, 528],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
-		inventory_full: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
-			name: tl('display.reference.inventory_full'),
-			source: './assets/inventory_full.png',
-			position: [0, -215.6],
-			size: [1390, 1310],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
+	canvas_scenes.inventory_full = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
+		name: tl('display.reference.inventory_full'),
+		source: './assets/inventory_full.png',
+		position: [0, -215.6],
+		size: [1390, 1310],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
-		hud: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
-			name: tl('display.reference.hud'),
-			source: './assets/hud.png',
-			position: [-112, -70],
-			size: [1695, 308],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
-	}
+	canvas_scenes.hud = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
+		name: tl('display.reference.hud'),
+		source: './assets/hud.png',
+		position: [-112, -70],
+		size: [1695, 308],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
 	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
@@ -2073,7 +2075,7 @@ function initCanvas() {
 	main_preview = new Preview({id: 'main'}).fullscreen()
 
 	//TransformControls
-	Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
+	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
 	Transformer.setSize(0.5)
 	scene.add(Transformer)
 	Canvas.gizmos.push(Transformer);
@@ -2085,7 +2087,7 @@ function initCanvas() {
 	resizeWindow();
 }
 let last_animation_timestamp = performance.now();
-function animate() {
+export function animate() {
 	requestAnimationFrame( animate );
 	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
 	if (performance.now() < last_animation_timestamp + 1000 / settings.fps_limit.value - 1) return;
@@ -2116,12 +2118,12 @@ function animate() {
 	Blockbench.dispatchEvent('render_frame');
 }
 
-function updateShading() {
+export function updateShading() {
 	Canvas.updateLayeredTextures();
-	scene.remove(lights);
+	Canvas.scene.remove(lights);
 	let settings_brightness = settings.brightness.value/50;
 	Sun.intensity = settings_brightness;
-	let view_mode = window.BarItems ? BarItems.view_mode.value : 'textured';
+	let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
 
 	lights.add(Sun);
 	if (view_mode == 'material') {
@@ -2184,13 +2186,18 @@ function updateShading() {
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Blockbench.dispatchEvent('update_scene_shading');
 }
-function updateCubeHighlights(hover_cube, force_off) {
+export function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {
 		if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
 			element.preview_controller.updateHighlight(element, hover_cube, force_off);
 		}
 	})
 }
+
+setInterval(function() {
+	Prop.fps = framespersecond;
+	framespersecond = 0;
+}, 1000);
 
 BARS.defineActions(function() {
 	new BarSelect('view_mode', {
@@ -2471,3 +2478,21 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	scene,
+	Sun,
+	display_area,
+	display_base,
+	three_grid,
+	rot_origin,
+	gizmo_colors,
+	DefaultCameraPresets,
+	Preview,
+	editCameraPreset,
+	OrbitGizmo,
+	initCanvas,
+	updateShading,
+	updateCubeHighlights,
+});

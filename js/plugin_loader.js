@@ -1,5 +1,5 @@
 var onUninstall, onInstall;
-const Plugins = {
+export const Plugins = {
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
@@ -70,7 +70,7 @@ async function runPluginFile(path, plugin_id) {
 	return file_content;
 }
 
-class Plugin {
+export class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
 		this.installed = false;
@@ -735,7 +735,7 @@ Plugin.prototype.menu = new Menu([
 
 
 // Alias for typescript
-const BBPlugin = Plugin;
+export const BBPlugin = Plugin;
 
 Plugin.register = function(id, data) {
 	if (typeof id !== 'string' || typeof data !== 'object') {
@@ -812,7 +812,7 @@ $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
 	}
 })
 
-async function loadInstalledPlugins() {
+export async function loadInstalledPlugins() {
 	if (!Plugins.loading_promise.resolved) {
 		await Plugins.loading_promise;
 	}
@@ -1648,3 +1648,10 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	Plugins,
+	Plugin,
+	BBPlugin
+});

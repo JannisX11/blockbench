@@ -162,6 +162,7 @@ function createWindow(second_instance, options = {}) {
 		protocol: 'file:',
 		slashes: true
 	}))
+	win.webContents.openDevTools()
 	win.on('closed', () => {
 		win = null;
 		all_wins.splice(all_wins.indexOf(win), 1);

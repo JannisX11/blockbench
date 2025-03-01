@@ -8,7 +8,7 @@ function createEmptyCanvas(width, height) {
 	return [canvas, ctx];
 }
 
-const ScreencamGIFFormats = {
+export const ScreencamGIFFormats = {
 	gif: {
 		name: 'dialog.create_gif.format.gif',
 		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
@@ -175,7 +175,7 @@ const ScreencamGIFFormats = {
 	}
 }
 
-const Screencam = {
+export const Screencam = {
 	NoAAPreview: null,
 	recording_timelapse: false,
 	gif_options_dialog: new Dialog({
@@ -936,3 +936,9 @@ BARS.defineActions(function() {
 		click() {Screencam.fullScreen()}
 	})
 })
+
+
+Object.assign(window, {
+	ScreencamGIFFormats,
+	Screencam,
+});

@@ -1,4 +1,3 @@
-//Array
 Array.prototype.safePush = function(...items) {
 	let included = false;
 	for (var item of items) {

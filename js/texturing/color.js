@@ -7,7 +7,6 @@ function colorDistance(color1, color2) {
 		Math.pow(color2._b - color1._b, 2)
 	);
 }
-(function() {
 //
 StateMemory.init('color_palettes', 'array')
 
@@ -1199,4 +1198,4 @@ BARS.defineActions(function() {
 		}
 	})
 })
-})()
+

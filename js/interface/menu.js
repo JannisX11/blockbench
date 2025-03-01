@@ -1,5 +1,6 @@
-var open_menu = null;
-class MenuSeparator {
+window.open_menu = null;
+
+export class MenuSeparator {
 	constructor(id, label) {
 		this.id = id || '';
 		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
@@ -50,7 +51,7 @@ function handleMenuOverflow(node) {
 		offset(-e.deltaY);
 	})
 }
-class Menu {
+export class Menu {
 	constructor(id, structure, options) {
 		if (typeof id !== 'string') {
 			options = structure;
@@ -596,7 +597,7 @@ class Menu {
 			MenuBar.open = scope
 			scope.label.classList.add('opened');
 		}
-		open_menu = scope;
+		window.open_menu = scope;
 		Menu.open = this;
 		return scope;
 	}
@@ -607,7 +608,7 @@ class Menu {
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
 		this.node.remove()
-		open_menu = null;
+		window.open_menu = null;
 		Menu.open = null;
 		return this;
 	}
@@ -720,9 +721,11 @@ class Menu {
 	}
 }
 
-function preventContextMenu() {
+export function preventContextMenu() {
 	Blockbench.addFlag('no_context_menu');
 	setTimeout(() => {
 		Blockbench.removeFlag('no_context_menu');
 	}, 20);
 }
+
+Object.assign(window, {MenuSeparator, Menu, preventContextMenu});

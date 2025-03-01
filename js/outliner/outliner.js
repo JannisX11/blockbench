@@ -1,4 +1,4 @@
-const Outliner = {
+export const Outliner = {
 	root: [],
 	get elements() {
 		return Project.elements || []
@@ -94,7 +94,7 @@ Object.defineProperty(window, 'selected', {
 	}
 });
 //Colors
-const markerColors = [
+export const markerColors = [
 	{pastel: "#A2EBFF", standard: "#58C0FF", id: 'light_blue'},
 	{pastel: "#FFF899", standard: "#F4D714", id: 'yellow'},
 	{pastel: "#F1BB75", standard: "#EC9218", id: 'orange'},
@@ -106,7 +106,7 @@ const markerColors = [
 	{pastel: "#FFA5D5", standard: "#F96BC5", id: 'pink'},
 	{pastel: "#E0E9FB", standard: "#C7D5F6", id: 'silver'}
 ]
-class OutlinerNode {
+export class OutlinerNode {
 	constructor(uuid) {
 		this.uuid = uuid || guid()
 		this.export = true;
@@ -356,7 +356,7 @@ class OutlinerNode {
 		return iterate(this.parent, 0)
 	}
 }
-class OutlinerElement extends OutlinerNode {
+export class OutlinerElement extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid);
 		this.parent = 'root';
@@ -562,7 +562,7 @@ class OutlinerElement extends OutlinerNode {
 	OutlinerElement.types = {};
 
 
-class NodePreviewController extends EventSystem {
+export class NodePreviewController extends EventSystem {
 	constructor(type, data = {}) {
 		super();
 		this.type = type;
@@ -744,7 +744,7 @@ Array.prototype.findRecursive = function(key1, val) {
 	return undefined;
 }
 
-function compileGroups(undo, lut) {
+export function compileGroups(undo, lut) {
 	var result = []
 	function iterate(array, save_array) {
 		var i = 0;
@@ -780,7 +780,7 @@ function compileGroups(undo, lut) {
 	iterate(Outliner.root, result)
 	return result;
 }
-function parseGroups(array, import_reference, startIndex) {
+export function parseGroups(array, import_reference, startIndex) {
 	function iterate(array, save_array, addGroup) {
 		var i = 0;
 		while (i < array.length) {
@@ -837,7 +837,7 @@ function parseGroups(array, import_reference, startIndex) {
 }
 
 // Dropping
-function moveOutlinerSelectionTo(item, target, event, order) {
+export function moveOutlinerSelectionTo(item, target, event, order) {
 	let duplicate = event.altKey || Pressing.overrides.alt;
 	if (item.type === 'group' && target instanceof OutlinerNode && target.parent) {
 		var is_parent = false;
@@ -943,7 +943,7 @@ function moveOutlinerSelectionTo(item, target, event, order) {
 }
 
 //Misc
-function renameOutliner(element) {
+export function renameOutliner(element) {
 	stopRenameOutliner()
 
 	if (Group.first_selected && !element && !Project.EditSession) {
@@ -986,7 +986,7 @@ function renameOutliner(element) {
 		}
 	}
 }
-function stopRenameOutliner(save) {
+export function stopRenameOutliner(save) {
 	if (Blockbench.hasFlag('renaming')) {
 		var uuid = $('.outliner_object input.renaming').parent().parent().attr('id')
 		var element = Outliner.root.findRecursive('uuid', uuid)
@@ -1003,7 +1003,7 @@ function stopRenameOutliner(save) {
 		Blockbench.removeFlag('renaming')
 	}
 }
-function toggleCubeProperty(key) {
+export function toggleCubeProperty(key) {
 	let affected = selected.filter(element => element[key] != undefined);
 	if (!affected.length) return;
 	var state = affected[0][key];
@@ -2027,7 +2027,7 @@ Interface.definePanels(function() {
 	Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 })
 
-class Face {
+export class Face {
 	constructor(data) {
 		for (var key in this.constructor.properties) {
 			this.constructor.properties[key].reset(this);
@@ -2092,3 +2092,17 @@ class Face {
 		return copy;
 	}
 }
+Object.assign(window, {
+	Outliner,
+	markerColors,
+	OutlinerNode,
+	OutlinerElement,
+	NodePreviewController,
+	compileGroups,
+	parseGroups,
+	moveOutlinerSelectionTo,
+	renameOutliner,
+	stopRenameOutliner,
+	toggleCubeProperty,
+	Face,
+});

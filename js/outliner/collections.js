@@ -1,4 +1,4 @@
-class Collection {
+export class Collection {
 	constructor(data, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.selected = false;
@@ -692,3 +692,7 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	Collection
+});

@@ -1,4 +1,4 @@
-class InputForm extends EventSystem {
+export class InputForm extends EventSystem {
 	constructor(form_config, options = {}) {
 		super();
 		this.uuid = guid();
@@ -687,3 +687,6 @@ class InputForm extends EventSystem {
 		}
 	}
 }
+
+
+Object.assign(window, {InputForm});

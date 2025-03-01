@@ -1,5 +1,5 @@
 //Import
-function setupDragHandlers() {
+export function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'texture',
 		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
@@ -61,7 +61,7 @@ function setupDragHandlers() {
 	)
 }
 
-function loadModelFile(file) {
+export function loadModelFile(file) {
 	
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
@@ -100,7 +100,7 @@ function loadModelFile(file) {
 	}
 }
 
-async function loadImages(files, event) {
+export async function loadImages(files, event) {
 	let options = {};
 	let texture_li = event && $(event.target).parents('li.texture');
 	let replace_texture;
@@ -247,7 +247,7 @@ async function loadImages(files, event) {
 }
 
 //Extruder
-const Extruder = {
+export const Extruder = {
 	dialog: new Dialog({
 		id: 'image_extruder',
 		title: 'dialog.extrude.title',
@@ -488,7 +488,7 @@ const Extruder = {
 	}
 }
 //Json
-function compileJSON(object, options = {}) {
+export function compileJSON(object, options = {}) {
 	let indentation = options.indentation;
 	if (typeof indentation !== 'string') {
 		switch (settings.json_indentation.value) {
@@ -574,7 +574,7 @@ function compileJSON(object, options = {}) {
 	}
 	return file;
 }
-function autoParseJSON(data, feedback) {
+export function autoParseJSON(data, feedback) {
 	if (data.substr(0, 4) === '<lz>') {
 		data = LZUTF8.decompress(data.substr(4), {inputEncoding: 'StorageBinaryString'})
 	}
@@ -828,4 +828,13 @@ BARS.defineActions(function() {
 		})
 	}
 
+})
+
+Object.assign(window, {
+	setupDragHandlers,
+	loadModelFile,
+	loadImages,
+	Extruder,
+	compileJSON,
+	autoParseJSON,
 })
