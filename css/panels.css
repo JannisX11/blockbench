@@ -100,6 +100,9 @@
 		margin-bottom: -4px;
 		color: var(--color-subtle_text);
 	}
+	.panel > .form {
+		margin: 0 8px;
+	}
 
 	.panel.folded {
 		min-height: auto;

@@ -61,6 +61,12 @@ class Panel extends EventSystem {
 			this.toolbars.push(toolbar);
 		}
 
+		if (data.form) {
+			this.form = data.form instanceof InputForm ? data.form : new InputForm(data.form);
+			this.node.append(this.form.node),
+			this.form.buildForm();
+		}
+
 		if (data.component) {
 			
 			let component_mount = Interface.createElement('div');

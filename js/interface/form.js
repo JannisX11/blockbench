@@ -13,6 +13,7 @@ class InputForm extends EventSystem {
 	}
 	buildForm() {
 		let jq_node = $(this.node);
+		jq_node.empty();
 		let scope = this;
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
@@ -492,8 +493,7 @@ class InputForm extends EventSystem {
 		}
 		this.node.style.setProperty('--max_label_width', this.max_label_width+'px');
 	}
-	updateValues(initial) {
-		let form_result = this.getResult();
+	update(form_result) {
 		for (let form_id in this.form_config) {
 			let data = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
@@ -502,6 +502,10 @@ class InputForm extends EventSystem {
 				data.bar.toggle(show);
 			}
 		}
+	}
+	updateValues(initial) {
+		let form_result = this.getResult();
+		this.update(form_result)
 		if (!initial) {
 			this.dispatchEvent('change', {result: form_result});
 		}

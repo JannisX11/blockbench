@@ -993,7 +993,12 @@ new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'smooth_shading', {
 	default: false,
 	inputs: {
-		elements_panel: {label: 'Smooth Shading', type: 'checkbox'}
+		element_panel: {
+			input: {label: 'Smooth Shading', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
+			}
+		}
 	}
 });
 new Property(Mesh, 'boolean', 'export', {default: true});

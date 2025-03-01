@@ -1026,7 +1026,20 @@ new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.opt
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
 new Property(Cube, 'number', 'light_emission');
-new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
+new Property(Cube, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {}
+		}
+	}
+});
 
 OutlinerElement.registerType(Cube, 'cube');
 

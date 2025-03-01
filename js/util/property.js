@@ -64,6 +64,7 @@ class Property {
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
 		if (options.placeholder) this.placeholder = options.placeholder;
+		if (options.inputs) this.inputs = options.inputs;
 		if (options.options) this.options = options.options;
 	}
 	delete() {
