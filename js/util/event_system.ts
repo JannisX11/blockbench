@@ -1,4 +1,7 @@
 type EventListener = (data: any) => void;
+type Deletable = {
+	delete(): void
+}
 
 export class EventSystem {
 	events: Record<string, EventListener[]>
@@ -12,7 +15,7 @@ export class EventSystem {
 			list[i](data);
 		}
 	}
-	on(event_name: string, cb: EventListener) {
+	on(event_name: string, cb: EventListener): Deletable {
 		if (typeof cb !== 'function') {
 			console.warn(cb, 'is not a function!');
 			return;
@@ -45,7 +48,7 @@ export class EventSystem {
 			}
 		}
 	}
-	once(event_name: string, cb: EventListener) {
+	once(event_name: string, cb: EventListener): Deletable {
 		if (typeof cb !== 'function') {
 			console.warn(cb, 'is not a function!');
 			return;

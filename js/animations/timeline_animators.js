@@ -401,6 +401,7 @@ export class BoneAnimator extends GeneralAnimator {
 			}
 		}
 
+		let i = 0;
 		for (var keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
@@ -970,6 +971,7 @@ BARS.defineActions(() => {
 		}
 	})
 })
+console.log('a')
 
 Object.assign(window, {
 	GeneralAnimator,

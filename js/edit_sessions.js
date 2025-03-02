@@ -1,3 +1,5 @@
+import Peer from "peerjs";
+
 export class EditSession {
 	constructor() {
 		this.active = false;

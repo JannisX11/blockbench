@@ -1,4 +1,5 @@
 StateMemory.init('brush_presets', 'array')
+
 export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,

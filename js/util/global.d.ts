@@ -1,25 +1,7 @@
 declare global {
-	// const Prism: typeof import('prismjs')
-	const scene: THREE.Scene
 	const Transformer: any
-	const electron: typeof import('electron')
-	const { clipboard, shell, nativeImage, ipcRenderer, dialog }: typeof electron
 
-	const main_preview: Preview
-	let open_interface: Dialog | undefined
 
-	function confirm(message: string, title: string): boolean
-
-	const PathModule: typeof import('path')
-	const fs: typeof import('fs')
-
-	let selected: OutlinerElement[]
-	const Toolbars: Record<string, Toolbar>
-
-	function rotateOnAxis(modify: OutlinerNode, axis: number, slider?: boolean): void
-	function afterRotateOnAxis(): void
-
-	// const Transformer: THREE.TransformControls
 	interface HTMLImageElement {
 		src: string
 		tex: THREE.Texture & {

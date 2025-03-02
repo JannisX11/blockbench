@@ -23,7 +23,44 @@ export default defineConfig(({ command, mode }) => {
         envs: ["electron", "browser"],
       }),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
+        manifest: {
+          "short_name": "Blockbench",
+          "name": "Blockbench",
+          "icons": [
+            {
+              "src": "favicon.png",
+              "type": "image/png",
+              "sizes": "128x128"
+            },
+            {
+              "src": "icon.png",
+              "type": "image/png",
+              "sizes": "1024x1024"
+            },
+            {
+              "src": "icon_maskable.png",
+              "type": "image/png",
+              "sizes": "256x256",
+              "purpose": "maskable"
+            }
+          ],
+          "screenshots": [
+            {
+              "src": "content/front_page_app.png",
+              "sizes": "1920x1040",
+              "type": "image/png",
+              "label": "Blockbench Interface"
+            }
+          ],
+          "start_url": "./index.html",
+          "background_color": "#21252b",
+          "theme_color": "#3e90ff",
+          "display": "standalone",
+          "display_override": ["window-controls-overlay"],
+          "orientation": "any"
+        },
+        manifestFilename: './manifest.webmanifest',
         workbox: {
           cacheId: 'blockbench',
           globDirectory: './',

@@ -1975,7 +1975,6 @@ Interface.definePanels(function() {
 				if (property?.inputs?.element_panel) {
 					let {input, onChange} = property?.inputs?.element_panel;
 					let input_id = type_id + '_' + prop_id;
-					console.log(input_id)
 					input.condition = {
 						selected: {[type_id]: true},
 						method: () => Condition(property.condition),

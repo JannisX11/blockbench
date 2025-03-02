@@ -147,9 +147,12 @@
 		"@electron/remote": "^2.1.2",
 		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^6.3.4",
+		"file-saver": "^2.0.5",
 		"gifenc": "^1.0.3",
 		"jquery": "^3.7.1",
 		"molangjs": "^1.6.5",
+		"peerjs": "^1.5.4",
+		"three": "^0.129.0",
 		"tinycolor2": "^1.6.0",
 		"wintersky": "^1.3.2"
 	}

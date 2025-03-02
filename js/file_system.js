@@ -1,3 +1,5 @@
+import saveAs from 'file-saver'
+
 Object.assign(Blockbench, {
 	import(options, cb) {
 		if (typeof options !== 'object') {options = {}}
