@@ -197,7 +197,7 @@ export class Keybind {
 			case  13: return 'enter';
 			case  27: return 'escape';
 			case  46: return 'delete';
-			case  46: return 'caps';
+			case  20: return 'caps';
 			case  16: return 'shift';
 			case  17: return 'control';
 			case  18: return 'alt';

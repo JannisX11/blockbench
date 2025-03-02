@@ -626,7 +626,6 @@ export const BARS = {
 				condition: isApp,
 				work_in_dialog: true,
 				keybind: new Keybind({ctrl: true, shift: true, key: 'i'}),
-				work_in_dialog: true,
 				click: () => {
 					currentwindow.toggleDevTools();
 				}

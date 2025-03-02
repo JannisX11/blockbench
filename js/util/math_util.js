@@ -111,7 +111,7 @@ export function trimFloatNumber(val, max_digits = 4) {
 	if (val == '') return val;
 	var string = val.toFixed(max_digits)
 	string = string.replace(/0+$/g, '').replace(/\.$/g, '')
-	if (string === -0) return 0;
+	if (string === '-0') return '0';
 	return string;
 }
 export function separateThousands(number) {

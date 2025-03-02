@@ -398,7 +398,7 @@ export class TextureGroupMaterialConfig {
 						a: this.color_value[3] / 255
 					}
 				},
-				'mer': '_',
+				'mer_section': '_',
 				mer: {
 					type: 'select',
 					label: 'dialog.material_config.mer',
@@ -412,7 +412,7 @@ export class TextureGroupMaterialConfig {
 					min: 0, max: 255, step: 1, force_step: true,
 					value: this.mer_value.map(v => Math.clamp(v, 0, 255)),
 				},
-				'depth': '_',
+				'depth_section': '_',
 				depth_type: {
 					type: 'inline_select',
 					label: 'dialog.material_config.depth_type',

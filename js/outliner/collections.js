@@ -195,10 +195,9 @@ export class Collection {
 					label: 'dialog.collection.export_path',
 					value: this.export_path,
 					type: 'file',
-					condition: this.codec,
+					condition: isApp && this.codec,
 					extensions: ['json'],
 					filetype: 'JSON collection',
-					condition: isApp
 				}
 			},
 			component: {

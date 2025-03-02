@@ -1,7 +1,6 @@
 export const UVEditor = {
 	face: 'north',
 	size: 320,
-	zoom: 1,
 	grid: 1,
 	auto_grid: true,
 	panel: null,
@@ -2506,6 +2505,7 @@ Interface.definePanels(function() {
 				}
 			},
 			methods: {
+				tl,
 				projectResolution() {
 					if (Format.per_texture_uv_size && UVEditor.texture) {
 						UVEditor.texture.openMenu();

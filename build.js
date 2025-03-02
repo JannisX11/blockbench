@@ -23,6 +23,9 @@ function conditionalImportPlugin(config) {
 
 let isApp = options.target == 'electron';
 
+/**
+ * @typedef {esbuild.BuildOptions} BuildOptions
+ */
 const config = {
     entryPoints: ['./js/main.js'],
     define: {
@@ -33,6 +36,7 @@ const config = {
     target: 'es2020',
     format: 'esm',
     bundle: true,
+    minify: false,
     outfile: './dist/bundle.js',
     external: [
         'electron',

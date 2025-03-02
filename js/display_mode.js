@@ -2080,7 +2080,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.rotation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'rotation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
@@ -2091,7 +2091,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.translation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
 							</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'translation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
@@ -2105,7 +2105,7 @@ Interface.definePanels(function() {
 							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
 							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'mirror.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
@@ -2141,7 +2141,7 @@ Interface.definePanels(function() {
 							<div class="bar display_inline_inputs">
 								<numeric-input class="tool disp_text is_colored"
 									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
-									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-for="axis in axes" :key="'rotation_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
 									v-model.number="slot.rotation_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'rotation_pivot')"
@@ -2157,7 +2157,7 @@ Interface.definePanels(function() {
 							<div class="bar display_inline_inputs">
 								<numeric-input class="tool disp_text is_colored"
 									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
-									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-for="axis in axes" :key="'scale_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
 									v-model.number="slot.scale_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'scale_pivot')"

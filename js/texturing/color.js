@@ -467,7 +467,6 @@ export const ColorPanel = {
 
 Blockbench.addDragHandler('palette', {
 	extensions: ['gpl', 'css', 'txt', 'hex', 'png', 'aco', 'act', 'ase', 'bbpalette'],
-	readtype: 'text',
 	readtype: (path) => {
 		switch (pathToExtension(path)) {
 			case 'png': return 'image'; break;
@@ -731,7 +730,7 @@ Interface.definePanels(() => {
 					StateMemory.color_picker_tab = tab;
 					StateMemory.save('color_picker_tab');
 					Vue.nextTick(() => {
-						ColorPanel.onResize()
+						ColorPanel.panel.onResize()
 					})
 				}
 			},

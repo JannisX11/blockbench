@@ -2045,8 +2045,10 @@ BARS.defineActions(function() {
 	new Action('disable_timeline_range', {
 		icon: 'code_off',
 		category: 'animation',
-		condition: {modes: ['animate']},
-		condition: () => Timeline.custom_range[0] || Timeline.custom_range[1],
+		condition: {
+			modes: ['animate'],
+			method: () => Timeline.custom_range[0] || Timeline.custom_range[1],
+		},
 		click() {
 			Timeline.custom_range.replace([0, 0]);
 			BARS.updateConditions();

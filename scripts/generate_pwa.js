@@ -8,9 +8,7 @@ workbox.generateSW({
 		'./favicon.png',
 		'./icon_maskable.png',
 
-		'./js/**/*',
-		'./bundle.js',
-		'./lib/**/*',
+		'./dist/**/*',
 		'./css/**/*',
 		'./assets/**/*',
 		'./font/*',

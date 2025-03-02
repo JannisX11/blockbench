@@ -1543,7 +1543,7 @@ BARS.defineActions(function() {
 						}},
 						'_1': '_',
 						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
-						'_1': '_',
+						'_2': '_',
 						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
 						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
 						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},

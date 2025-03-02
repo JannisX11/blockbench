@@ -1679,7 +1679,7 @@ export const Painter = {
 			},
 			form: {
 				name: {label: 'generic.name', type: 'text'},
-				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', description: 'action.brush_shape.desc', type: 'select', options: {
+				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', type: 'select', options: {
 					unset: 'generic.unset',
 					square: 'action.brush_shape.square',
 					circle: 'action.brush_shape.circle'
@@ -2254,7 +2254,6 @@ BARS.defineActions(function() {
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
 	const BlendModes = {
-		set_opacity: 'set_opacity',
 		set_opacity: 'set_opacity',
 		difference: 'difference',
 		default: 'default',
