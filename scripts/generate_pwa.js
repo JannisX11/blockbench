@@ -1,4 +1,4 @@
-const workbox = require('workbox-build');
+import workbox from 'workbox-build';
 
 workbox.generateSW({
 	cacheId: 'blockbench',
