@@ -555,3 +555,5 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+Object.assign(window, {MirrorModeling});

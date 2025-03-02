@@ -1,4 +1,4 @@
-var ground_animation = false;
+
 var ground_timer = 0
 var display_slot = 'thirdperson_righthand';
 var display_presets;
@@ -540,7 +540,7 @@ export class refModel {
 		DisplayMode.vue.reference_model = this.id;
 
 		if (display_slot == 'ground') {
-			ground_animation = this.id != 'fox';
+			Canvas.ground_animation = this.id != 'fox';
 		}
 		
 		ReferenceImage.updateAll()
@@ -1529,7 +1529,7 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 		display_preview.loadAnglePreset(display_angle_preset)
 	}
 	display_preview.controls.enabled = true;
-	ground_animation = false;
+	Canvas.ground_animation = false;
 	$('#display_crosshair').detach()
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
@@ -1626,7 +1626,7 @@ DisplayMode.loadGround = function() {		//Loader
 		target: [0, 3, 0]
 	})
 	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
-	ground_animation = true;
+	Canvas.ground_animation = true;
 	ground_timer = 0
 	displayReferenceObjects.bar(['block', 'fox'])
 }

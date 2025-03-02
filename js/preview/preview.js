@@ -2112,7 +2112,7 @@ export function animate() {
 		}
 	})
 	framespersecond++;
-	if (Modes.display === true && ground_animation === true && !Transformer.hoverAxis) {
+	if (Modes.display === true && Canvas.ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
 	Blockbench.dispatchEvent('render_frame');

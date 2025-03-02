@@ -1,5 +1,3 @@
-let ColorPanel;
-
 function colorDistance(color1, color2) {
 	return Math.sqrt(
 		Math.pow(color2._r - color1._r, 2) +
@@ -50,33 +48,460 @@ var palettes = {
 }
 
 
+
+
+var saved_colors = localStorage.getItem('colors');
+if (saved_colors) {
+	try {
+		saved_colors = JSON.parse(saved_colors);
+	} catch (err) {
+		saved_colors = null;
+	}
+}
+StateMemory.init('color_picker_tab', 'string')
+StateMemory.init('color_picker_rgb', 'boolean')
+StateMemory.init('color_palette_locked', 'boolean')
+
+export const ColorPanel = {
+	updateFromHsv: function() {
+		ColorPanel.change({
+			h: ColorPanel.panel.vue._data.hsv.h,
+			s: ColorPanel.panel.vue._data.hsv.s/100,
+			v: ColorPanel.panel.vue._data.hsv.v/100
+		});
+	},
+	hexToHsv(hex) {
+		var color = new tinycolor(hex);
+		var tc = color.toHsv();
+		return {h: tc.h, s: tc.s*100, v: tc.v*100};
+	},
+	addToHistory(color) {
+		color = color.toLowerCase();
+		var history = ColorPanel.panel.vue._data.history;
+		if (color == history[0]) return;
+
+		if (color.match(/#[a-f0-9]{6}/g)) {
+			var max = 18;
+			history.remove(color);
+			history.splice(0, 0, color);
+			if (history.length > max) history.length = max;
+			$('#color_history')[0].scrollLeft = 0;
+			ColorPanel.saveLocalStorages();
+		}
+	},
+	change(color, secondary) {
+		var value = new tinycolor(color)
+		ColorPanel.panel.vue[secondary ? 'second_color' : 'main_color'] = value.toHexString();
+	},
+	set(color, secondary, no_sync) {
+		ColorPanel.change(color, secondary);
+		ColorPanel.addToHistory(ColorPanel.panel.vue.main_color)
+	},
+	get(secondary) {
+		let color = secondary ? ColorPanel.panel.vue.second_color : ColorPanel.panel.vue.main_color;
+		ColorPanel.addToHistory(color);
+		return color;
+	},
+	saveLocalStorages() {
+		localStorage.setItem('colors', JSON.stringify({
+			palette: ColorPanel.panel.vue._data.palette,
+			history: ColorPanel.panel.vue._data.history,
+		}))
+	}
+,
+	importPalette(file) {
+
+		let extension = pathToExtension(file.path);
+
+
+		if (extension == 'png') {
+			var img = new Image();
+			img.src = file.content || file.path.replace(/#/g, '%23');
+			img.onload = function() {
+				var c = document.createElement('canvas');
+				var ctx = c.getContext('2d');
+				c.width = img.naturalWidth;
+				c.height = img.naturalHeight;
+				ctx.drawImage(img, 0, 0);
+				ColorPanel.generatePalette(ctx, false);
+			}
+			return;
+		}
+		var colors = [];
+
+
+		if (extension === 'ase') {
+			let colorContents = file.content;
+			let colorBuffer = Buffer.from(colorContents);
+			let signature = colorBuffer.toString('utf-8', 0, 4);
+			let versionMajor = colorBuffer.slice(4, 6).readInt16BE(0);
+			let versionMin = colorBuffer.slice(6, 8).readInt16BE(0);
+			let count = colorBuffer.slice(8, 12).readInt32BE(0);
+
+			if (colorBuffer.length > 12 && signature !== 'ASEF' && versionMajor !== 1 && versionMin !== 0) {
+				console.log('Invalid ASE swatch file');
+				return;
+			}
+
+			let i = 12;
+			while (i < colorBuffer.length) {
+
+				let blockLength;
+				let blockType = colorBuffer.slice(i, i + 2).readInt16BE(0).toString(16);
+				i += 2;
+
+				// Ignore group start c001, end c002
+				if (blockType === 'c001') {
+					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
+					i += blockLength;
+				}
+				if (blockType === 'c002') {
+					i += 2;
+				}
+
+				// Color entry, start 0001
+				if (blockType === '1') {
+					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
+					let nameLength = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let colorName = '';
+					let color;
+					for (let j = 0; j < nameLength * 2 - 2; j += 2) {
+						colorName += String.fromCodePoint(colorBuffer.slice(i + 6 + j, i + 8 + j).readInt16BE(0));
+					}
+					let _i = i + 6 + nameLength * 2;
+					let colorModel = colorBuffer.slice(_i, _i + 4).toString('utf-8', 0, 4);
+					_i += 4;
+					if (colorModel === 'RGB ') {
+						let r = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+
+						color = new tinycolor({r: r*255, g: g*255, b: b*255})
+						//nscolor = color.colorWithRGBA(r * 255, g * 255, b * 255, 1.0);
+					} else if (colorModel === 'CMYK') {
+						let c = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let m = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let y = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let k = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						//nscolor = color.colorWithCMYKA(c * 100, m * 100, y * 100, k * 100, 1.0);
+						color = new tinycolor({
+							r: 255 * (1 - c) * (1 - k),
+							g: 255 * (1 - m) * (1 - k),
+							b: 255 * (1 - y) * (1 - k)
+						})
+
+					} else if (colorModel === 'LAB ') {
+						let l = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let a = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						_i += 4;
+						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						//nscolor = color.colorWithLABA(l * 100, a * 100, b * 100, 1.0);
+					} else if (colorModel === 'Gray') {
+						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
+						color = new tinycolor({r: g*255, g: g*255, b: g*255})
+					}
+
+					colors.push(color.toHexString());
+
+					i += blockLength;
+				}
+			}
+		} else if (extension === 'aco') {
+
+			let colorContents = file.content;
+			let colorBuffer = Buffer.from(colorContents);
+
+			if (colorBuffer.length < 4) {
+				UI.message('Invalid ACO file');
+				return;
+			}
+
+			let version = colorBuffer.slice(0, 2).readUInt16BE(0);
+			let count = colorBuffer.slice(2, 4).readUInt16BE(0);
+
+			// version 1
+			let i;
+			if (version === 1 && (colorBuffer.length - 4) / 10 === count) {
+				i = 4;
+				while (i < colorBuffer.length) {
+					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
+					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
+					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
+					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
+
+					if (colorSpace === 0) {
+						let color = new tinycolor({
+							r: Math.floor(r/255),
+							g: Math.floor(g/255),
+							b: Math.floor(b/255)
+						})
+						colors.push(color.toHexString());
+					}
+					i += 10;
+				}
+			}
+			// version 2
+			if (
+				(version === 2) ||
+				(
+					version === 1 &&
+					colorBuffer.length > count * 10 + 8 &&
+					colorBuffer.slice(4 + count * 10, 6 + count * 10).readUInt16BE(0) === 2 &&
+					colorBuffer.slice(6 + count * 10, 8 + count * 10).readUInt16BE(0) === count
+				)
+			) {
+				i = 4 + count * 10 + 4;
+				if (version === 2) {
+					i = 4;
+				}
+				while (i < colorBuffer.length) {
+					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
+					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
+					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
+					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
+					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
+					let colorName = '';
+					let nameLength = colorBuffer.slice(i + 12, i + 14).readUInt16BE(0);
+					/*for (let j = 0; j < nameLength * 2 - 2; j += 2) {
+						colorName += String.fromCodePoint(colorBuffer.slice(i + 14 + j, i + 16 + j).readUInt16BE(0));
+					}*/
+					// colorspace: [0: RGB, 1: HSB (hsv), 2: CMYK, 7: Lab, 8: Gray]
+					if (colorSpace === 0) {
+						let color = new tinycolor({
+							r: Math.floor(r/255),
+							g: Math.floor(g/255),
+							b: Math.floor(b/255)
+						})
+						colors.push(color.toHexString());
+					}
+					i += 14 + nameLength * 2;
+				}
+			}
+
+		} else if (extension === 'act') {
+
+			let colorContents = file.content;
+			let colorBuffer = Buffer.from(colorContents);
+			let maxLength = Math.min(colorBuffer.length, 768);
+			if (colorBuffer.length === 772) {
+				maxLength = colorBuffer[769]*3
+			}
+
+			for (var i = 0; i < maxLength; i += 3) {
+				let color = new tinycolor({
+					r: colorBuffer[i+0],
+					g: colorBuffer[i+1],
+					b: colorBuffer[i+2]
+				})
+				colors.push(color);
+			}
+
+
+		} else {
+
+			var string = file.content;
+
+			var m_hex = string.match(/(#|FF)?[a-fA-F0-9]{6}/g);
+			if (m_hex) m_hex.forEach(color => {
+				color = color.substr(-6).toLowerCase();
+				colors.safePush('#'+color);
+			})
+			var m_rgb = string.match(/\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3}\s*\)/g)
+			if (m_rgb) m_rgb.forEach(color => {
+				color = tinycolor('rgb'+color);
+				colors.safePush(color.toHexString());
+			})
+			var m_gpl = string.match(/\n\s*\d{1,3}\s+\d{1,3}\s+\d{1,3}/g)
+			if (m_gpl) m_gpl.forEach(color => {
+				color = tinycolor(`rgb(${color.replace(/^[\n\s]*/, '').replace(/\s+/g, ',')})`);
+				colors.safePush(color.toHexString());
+			})
+		}
+		if (ColorPanel.palette.length) {
+			var dialog = new Dialog({
+				id: 'palette_import',
+				title: 'action.import_palette',
+				width: 400,
+				form: {
+					replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
+				},
+				onConfirm(formData) {
+					if (formData.replace) {
+						ColorPanel.palette.purge();
+						ColorPanel.palette.push(...colors);
+					} else {
+						colors.forEach(color => {
+							ColorPanel.palette.safePush(color);
+						})
+					}
+					ColorPanel.saveLocalStorages();
+					dialog.hide();
+				}
+			});
+			dialog.show();
+		} else {
+			colors.forEach(color => {
+				ColorPanel.palette.push(color);
+			})
+			ColorPanel.saveLocalStorages();
+		}
+	},
+	generatePalette(source, process_colors = true) {
+
+		var options = {};
+		let selected_texture;
+		if (!source) {
+			Texture.all.forEach((tex, i) => {
+				if (!tex.error) {
+					options[i] = tex.name;
+					if (tex.selected) selected_texture = i;
+				}
+			})
+		}
+		var dialog = new Dialog({
+			id: 'generate_palette',
+			title: 'action.import_palette',
+			width: 460,
+			form: {
+				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
+				selection_only: {label: 'message.import_palette.selection_only', type: 'checkbox', value: false, condition: Texture.all[selected_texture]?.selection?.is_custom},
+				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
+				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
+			},
+			onConfirm(formData) {
+				var colors = {};
+				var result_palette = [];
+
+				if (!source) {
+					var texture = Texture.all[formData.texture];
+					var ctx = Painter.getCanvas(texture).getContext('2d');
+				} else {
+					var ctx = source;
+				}
+				Painter.scanCanvas(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, (x, y, px) => {
+					if (px[3] < 12) return;
+					if (formData.selection_only && texture.selection.is_custom && !texture.selection.get(x, y)) return;
+					var t = tinycolor({
+						r: px[0],
+						g: px[1],
+						b: px[2]
+					})
+					var hex = t.toHexString();
+					if (colors[hex]) {
+						colors[hex].count++;
+					} else {
+						colors[hex] = t;
+						t.count = 1;
+					}
+				})
+				if (process_colors) {
+					var pots = {gray:[], red:[], orange:[], yellow:[], green:[], blue:[], magenta:[]}
+					for (var hex in colors) {
+						var color = colors[hex];
+						if (Math.abs(color._r - color._g) + Math.abs(color._g - color._b) + Math.abs(color._r - color._b) < 74) {
+							//gray
+							pots.gray.push(color);
+						} else {
+							var distances = {
+								red: colorDistance(color, 	 {_r: 250, _g: 0, _b: 0}),
+								orange: colorDistance(color, {_r: 240, _g: 127, _b: 0})*1.4,
+								yellow: colorDistance(color, {_r: 265, _g: 240, _b: 0})*1.4,
+								green: colorDistance(color,  {_r: 0, _g: 255, _b: 0}),
+								blue: colorDistance(color, 	 {_r: 0, _g: 50, _b: 240}),
+								magenta: colorDistance(color,{_r: 255, _g: 0, _b: 255})*1.4,
+							}
+							var closest = highestInObject(distances, true);
+							pots[closest].push(color);
+						}
+					}
+					for (var pot in pots) {
+						pots[pot].sort((a, b) => {
+							return (a._r + a._g + a._b) - (b._r + b._g + b._b);
+						})
+						if (pots[pot].length > 1) {
+							for (var i = pots[pot].length-2; i >= 0; i--) {
+								var col = pots[pot][i];
+								var abv = pots[pot][i+1];
+								var distance = colorDistance(col, abv);
+								if (distance < formData.threshold) {
+									if (col.count < col.count) {
+										pots[pot].splice(i, 1);
+									} else {
+										pots[pot].splice(i+1, 1);
+									}
+								}
+							}
+						}
+						pots[pot].forEach(color => {
+							result_palette.push(color.toHexString());
+						})
+					}
+				} else {
+					for (var hex in colors) {
+						result_palette.push(hex);
+					}
+				}
+				
+				if (formData.replace) {
+					ColorPanel.palette.purge();
+					ColorPanel.palette.push(...result_palette);
+				} else {
+					result_palette.forEach(color => {
+						ColorPanel.palette.safePush(color);
+					})
+				}
+				ColorPanel.saveLocalStorages();
+				dialog.hide();
+			}
+		});
+		dialog.show();
+	}
+};
+
+Blockbench.addDragHandler('palette', {
+	extensions: ['gpl', 'css', 'txt', 'hex', 'png', 'aco', 'act', 'ase', 'bbpalette'],
+	readtype: 'text',
+	readtype: (path) => {
+		switch (pathToExtension(path)) {
+			case 'png': return 'image'; break;
+			case 'ase': return 'binary'; break;
+			case 'act': return 'binary'; break;
+			case 'aco': return 'binary'; break;
+			default: return 'text'; break;
+		}},
+	element: '#color',
+	propagate: true,
+}, function(files) {
+	if (files && files[0]) {
+		ColorPanel.importPalette(files[0]);
+	}
+})
+
+
 SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue.open_tab),
+	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.panel.vue.open_tab),
 	run() {
 		if (StateMemory.color_palette_locked) {
 			Blockbench.showQuickMessage('message.palette_locked');
 			return;
 		}
-		if (ColorPanel.vue.palette.includes(ColorPanel.vue.selected_color)) {
-			ColorPanel.vue.palette.remove(ColorPanel.vue.selected_color)
+		if (ColorPanel.panel.vue.palette.includes(ColorPanel.panel.vue.selected_color)) {
+			ColorPanel.panel.vue.palette.remove(ColorPanel.panel.vue.selected_color)
 		}
 	}
 })
 
-Interface.definePanels(() => {
-	var saved_colors = localStorage.getItem('colors');
-	if (saved_colors) {
-		try {
-			saved_colors = JSON.parse(saved_colors);
-		} catch (err) {
-			saved_colors = null;
-		}
-	}
-	StateMemory.init('color_picker_tab', 'string')
-	StateMemory.init('color_picker_rgb', 'boolean')
-	StateMemory.init('color_palette_locked', 'boolean')
 
-	ColorPanel = new Panel('color', {
+Interface.definePanels(() => {
+	
+	ColorPanel.panel = new Panel('color', {
 		icon: 'palette',
 		condition: {modes: ['paint']},
 		default_position: {
@@ -402,54 +827,6 @@ Interface.definePanels(() => {
 			'load_palette',
 		])
 	})
-	ColorPanel.updateFromHsv = function() {
-		ColorPanel.change({
-			h: ColorPanel.vue._data.hsv.h,
-			s: ColorPanel.vue._data.hsv.s/100,
-			v: ColorPanel.vue._data.hsv.v/100
-		});
-	}
-	ColorPanel.hexToHsv = function(hex) {
-		var color = new tinycolor(hex);
-		var tc = color.toHsv();
-		return {h: tc.h, s: tc.s*100, v: tc.v*100};
-	}
-
-
-	ColorPanel.palette = Interface.Panels.color.vue._data.palette;
-	ColorPanel.addToHistory = function(color) {
-		color = color.toLowerCase();
-		var history = ColorPanel.vue._data.history;
-		if (color == history[0]) return;
-
-		if (color.match(/#[a-f0-9]{6}/g)) {
-			var max = 18;
-			history.remove(color);
-			history.splice(0, 0, color);
-			if (history.length > max) history.length = max;
-			$('#color_history')[0].scrollLeft = 0;
-			ColorPanel.saveLocalStorages();
-		}
-	}
-	ColorPanel.change = function(color, secondary) {
-		var value = new tinycolor(color)
-		ColorPanel.vue[secondary ? 'second_color' : 'main_color'] = value.toHexString();
-	}
-	ColorPanel.set = function(color, secondary, no_sync) {
-		ColorPanel.change(color, secondary);
-		ColorPanel.addToHistory(ColorPanel.vue.main_color)
-	}
-	ColorPanel.get = function(secondary) {
-		let color = secondary ? ColorPanel.vue.second_color : ColorPanel.vue.main_color;
-		ColorPanel.addToHistory(color);
-		return color;
-	}
-	ColorPanel.saveLocalStorages = function() {
-		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.vue._data.palette,
-			history: ColorPanel.vue._data.history,
-		}))
-	}
 
 	$('#color_history').on('wheel', function(e) {
 		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
@@ -460,386 +837,13 @@ Interface.definePanels(() => {
 		ipcRenderer.on('set-main-color', (event, arg) => {
 			ColorPanel.set(arg);
 		})
-	}	
-
-	ColorPanel.importPalette = function(file) {
-
-		let extension = pathToExtension(file.path);
-
-
-		if (extension == 'png') {
-			var img = new Image();
-			img.src = file.content || file.path.replace(/#/g, '%23');
-			img.onload = function() {
-				var c = document.createElement('canvas');
-				var ctx = c.getContext('2d');
-				c.width = img.naturalWidth;
-				c.height = img.naturalHeight;
-				ctx.drawImage(img, 0, 0);
-				ColorPanel.generatePalette(ctx, false);
-			}
-			return;
-		}
-		var colors = [];
-
-
-		if (extension === 'ase') {
-			let colorContents = file.content;
-			let colorBuffer = Buffer.from(colorContents);
-			let signature = colorBuffer.toString('utf-8', 0, 4);
-			let versionMajor = colorBuffer.slice(4, 6).readInt16BE(0);
-			let versionMin = colorBuffer.slice(6, 8).readInt16BE(0);
-			let count = colorBuffer.slice(8, 12).readInt32BE(0);
-
-			if (colorBuffer.length > 12 && signature !== 'ASEF' && versionMajor !== 1 && versionMin !== 0) {
-				console.log('Invalid ASE swatch file');
-				return;
-			}
-
-			let i = 12;
-			while (i < colorBuffer.length) {
-
-				let blockLength;
-				let blockType = colorBuffer.slice(i, i + 2).readInt16BE(0).toString(16);
-				i += 2;
-
-				// Ignore group start c001, end c002
-				if (blockType === 'c001') {
-					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
-					i += blockLength;
-				}
-				if (blockType === 'c002') {
-					i += 2;
-				}
-
-				// Color entry, start 0001
-				if (blockType === '1') {
-					blockLength = colorBuffer.slice(i, i + 4).readInt32BE(0);
-					let nameLength = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-					let colorName = '';
-					let color;
-					for (let j = 0; j < nameLength * 2 - 2; j += 2) {
-						colorName += String.fromCodePoint(colorBuffer.slice(i + 6 + j, i + 8 + j).readInt16BE(0));
-					}
-					let _i = i + 6 + nameLength * 2;
-					let colorModel = colorBuffer.slice(_i, _i + 4).toString('utf-8', 0, 4);
-					_i += 4;
-					if (colorModel === 'RGB ') {
-						let r = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-
-						color = new tinycolor({r: r*255, g: g*255, b: b*255})
-						//nscolor = color.colorWithRGBA(r * 255, g * 255, b * 255, 1.0);
-					} else if (colorModel === 'CMYK') {
-						let c = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let m = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let y = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let k = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						//nscolor = color.colorWithCMYKA(c * 100, m * 100, y * 100, k * 100, 1.0);
-						color = new tinycolor({
-							r: 255 * (1 - c) * (1 - k),
-							g: 255 * (1 - m) * (1 - k),
-							b: 255 * (1 - y) * (1 - k)
-						})
-
-					} else if (colorModel === 'LAB ') {
-						let l = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let a = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						_i += 4;
-						let b = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						//nscolor = color.colorWithLABA(l * 100, a * 100, b * 100, 1.0);
-					} else if (colorModel === 'Gray') {
-						let g = colorBuffer.slice(_i, _i + 4).readFloatBE(0);
-						color = new tinycolor({r: g*255, g: g*255, b: g*255})
-					}
-
-					colors.push(color.toHexString());
-
-					i += blockLength;
-				}
-			}
-		} else if (extension === 'aco') {
-
-			let colorContents = file.content;
-			let colorBuffer = Buffer.from(colorContents);
-
-			if (colorBuffer.length < 4) {
-				UI.message('Invalid ACO file');
-				return;
-			}
-
-			let version = colorBuffer.slice(0, 2).readUInt16BE(0);
-			let count = colorBuffer.slice(2, 4).readUInt16BE(0);
-
-			// version 1
-			let i;
-			if (version === 1 && (colorBuffer.length - 4) / 10 === count) {
-				i = 4;
-				while (i < colorBuffer.length) {
-					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
-					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
-					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
-					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
-
-					if (colorSpace === 0) {
-						let color = new tinycolor({
-							r: Math.floor(r/255),
-							g: Math.floor(g/255),
-							b: Math.floor(b/255)
-						})
-						colors.push(color.toHexString());
-					}
-					i += 10;
-				}
-			}
-			// version 2
-			if (
-				(version === 2) ||
-				(
-					version === 1 &&
-					colorBuffer.length > count * 10 + 8 &&
-					colorBuffer.slice(4 + count * 10, 6 + count * 10).readUInt16BE(0) === 2 &&
-					colorBuffer.slice(6 + count * 10, 8 + count * 10).readUInt16BE(0) === count
-				)
-			) {
-				i = 4 + count * 10 + 4;
-				if (version === 2) {
-					i = 4;
-				}
-				while (i < colorBuffer.length) {
-					let colorSpace = colorBuffer.slice(i, i + 2).readUInt16BE(0);
-					let r = colorBuffer.slice(i + 2, i + 4).readUInt16BE(0);
-					let g = colorBuffer.slice(i + 4, i + 6).readUInt16BE(0);
-					let b = colorBuffer.slice(i + 6, i + 8).readUInt16BE(0);
-					let z = colorBuffer.slice(i + 8, i + 10).readUInt16BE(0);
-					let colorName = '';
-					let nameLength = colorBuffer.slice(i + 12, i + 14).readUInt16BE(0);
-					/*for (let j = 0; j < nameLength * 2 - 2; j += 2) {
-						colorName += String.fromCodePoint(colorBuffer.slice(i + 14 + j, i + 16 + j).readUInt16BE(0));
-					}*/
-					// colorspace: [0: RGB, 1: HSB (hsv), 2: CMYK, 7: Lab, 8: Gray]
-					if (colorSpace === 0) {
-						let color = new tinycolor({
-							r: Math.floor(r/255),
-							g: Math.floor(g/255),
-							b: Math.floor(b/255)
-						})
-						colors.push(color.toHexString());
-					}
-					i += 14 + nameLength * 2;
-				}
-			}
-
-		} else if (extension === 'act') {
-
-			let colorContents = file.content;
-			let colorBuffer = Buffer.from(colorContents);
-			let maxLength = Math.min(colorBuffer.length, 768);
-			if (colorBuffer.length === 772) {
-				maxLength = colorBuffer[769]*3
-			}
-
-			for (var i = 0; i < maxLength; i += 3) {
-				let color = new tinycolor({
-					r: colorBuffer[i+0],
-					g: colorBuffer[i+1],
-					b: colorBuffer[i+2]
-				})
-				colors.push(color);
-			}
-
-
-		} else {
-
-			var string = file.content;
-
-			var m_hex = string.match(/(#|FF)?[a-fA-F0-9]{6}/g);
-			if (m_hex) m_hex.forEach(color => {
-				color = color.substr(-6).toLowerCase();
-				colors.safePush('#'+color);
-			})
-			var m_rgb = string.match(/\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3}\s*\)/g)
-			if (m_rgb) m_rgb.forEach(color => {
-				color = tinycolor('rgb'+color);
-				colors.safePush(color.toHexString());
-			})
-			var m_gpl = string.match(/\n\s*\d{1,3}\s+\d{1,3}\s+\d{1,3}/g)
-			if (m_gpl) m_gpl.forEach(color => {
-				color = tinycolor(`rgb(${color.replace(/^[\n\s]*/, '').replace(/\s+/g, ',')})`);
-				colors.safePush(color.toHexString());
-			})
-		}
-		if (ColorPanel.palette.length) {
-			var dialog = new Dialog({
-				id: 'palette_import',
-				title: 'action.import_palette',
-				width: 400,
-				form: {
-					replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
-				},
-				onConfirm(formData) {
-					if (formData.replace) {
-						ColorPanel.palette.purge();
-						ColorPanel.palette.push(...colors);
-					} else {
-						colors.forEach(color => {
-							ColorPanel.palette.safePush(color);
-						})
-					}
-					ColorPanel.saveLocalStorages();
-					dialog.hide();
-				}
-			});
-			dialog.show();
-		} else {
-			colors.forEach(color => {
-				ColorPanel.palette.push(color);
-			})
-			ColorPanel.saveLocalStorages();
-		}
-	}
-	ColorPanel.generatePalette = function(source, process_colors = true) {
-
-		var options = {};
-		let selected_texture;
-		if (!source) {
-			Texture.all.forEach((tex, i) => {
-				if (!tex.error) {
-					options[i] = tex.name;
-					if (tex.selected) selected_texture = i;
-				}
-			})
-		}
-		var dialog = new Dialog({
-			id: 'generate_palette',
-			title: 'action.import_palette',
-			width: 460,
-			form: {
-				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
-				selection_only: {label: 'message.import_palette.selection_only', type: 'checkbox', value: false, condition: Texture.all[selected_texture]?.selection?.is_custom},
-				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
-				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
-			},
-			onConfirm(formData) {
-				var colors = {};
-				var result_palette = [];
-
-				if (!source) {
-					var texture = Texture.all[formData.texture];
-					var ctx = Painter.getCanvas(texture).getContext('2d');
-				} else {
-					var ctx = source;
-				}
-				Painter.scanCanvas(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, (x, y, px) => {
-					if (px[3] < 12) return;
-					if (formData.selection_only && texture.selection.is_custom && !texture.selection.get(x, y)) return;
-					var t = tinycolor({
-						r: px[0],
-						g: px[1],
-						b: px[2]
-					})
-					var hex = t.toHexString();
-					if (colors[hex]) {
-						colors[hex].count++;
-					} else {
-						colors[hex] = t;
-						t.count = 1;
-					}
-				})
-				if (process_colors) {
-					var pots = {gray:[], red:[], orange:[], yellow:[], green:[], blue:[], magenta:[]}
-					for (var hex in colors) {
-						var color = colors[hex];
-						if (Math.abs(color._r - color._g) + Math.abs(color._g - color._b) + Math.abs(color._r - color._b) < 74) {
-							//gray
-							pots.gray.push(color);
-						} else {
-							var distances = {
-								red: colorDistance(color, 	 {_r: 250, _g: 0, _b: 0}),
-								orange: colorDistance(color, {_r: 240, _g: 127, _b: 0})*1.4,
-								yellow: colorDistance(color, {_r: 265, _g: 240, _b: 0})*1.4,
-								green: colorDistance(color,  {_r: 0, _g: 255, _b: 0}),
-								blue: colorDistance(color, 	 {_r: 0, _g: 50, _b: 240}),
-								magenta: colorDistance(color,{_r: 255, _g: 0, _b: 255})*1.4,
-							}
-							var closest = highestInObject(distances, true);
-							pots[closest].push(color);
-						}
-					}
-					for (var pot in pots) {
-						pots[pot].sort((a, b) => {
-							return (a._r + a._g + a._b) - (b._r + b._g + b._b);
-						})
-						if (pots[pot].length > 1) {
-							for (var i = pots[pot].length-2; i >= 0; i--) {
-								var col = pots[pot][i];
-								var abv = pots[pot][i+1];
-								var distance = colorDistance(col, abv);
-								if (distance < formData.threshold) {
-									if (col.count < col.count) {
-										pots[pot].splice(i, 1);
-									} else {
-										pots[pot].splice(i+1, 1);
-									}
-								}
-							}
-						}
-						pots[pot].forEach(color => {
-							result_palette.push(color.toHexString());
-						})
-					}
-				} else {
-					for (var hex in colors) {
-						result_palette.push(hex);
-					}
-				}
-				
-				if (formData.replace) {
-					ColorPanel.palette.purge();
-					ColorPanel.palette.push(...result_palette);
-				} else {
-					result_palette.forEach(color => {
-						ColorPanel.palette.safePush(color);
-					})
-				}
-				ColorPanel.saveLocalStorages();
-				dialog.hide();
-			}
-		});
-		dialog.show();
 	}
 
-	Blockbench.addDragHandler('palette', {
-		extensions: ['gpl', 'css', 'txt', 'hex', 'png', 'aco', 'act', 'ase', 'bbpalette'],
-		readtype: 'text',
-		readtype: (path) => {
-			switch (pathToExtension(path)) {
-				case 'png': return 'image'; break;
-				case 'ase': return 'binary'; break;
-				case 'act': return 'binary'; break;
-				case 'aco': return 'binary'; break;
-				default: return 'text'; break;
-			}},
-		element: '#color',
-		propagate: true,
-	}, function(files) {
-		if (files && files[0]) {
-			ColorPanel.importPalette(files[0]);
-		}
-	})
 	Toolbars.palette.toPlace();
 	Toolbars.color_picker.toPlace();
-})
 
-
+	ColorPanel.palette = ColorPanel.panel.vue._data.palette;
+});
 
 
 BARS.defineActions(function() {
@@ -865,9 +869,9 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'x'}),
 		click() {
-			let color = ColorPanel.vue.main_color;
-			ColorPanel.vue.main_color = ColorPanel.vue.second_color;
-			ColorPanel.vue.second_color = color;
+			let color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.second_color;
+			ColorPanel.panel.vue.second_color = color;
 		}
 	})
 	new Action('import_palette', {
@@ -1060,11 +1064,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.h);
+			return Math.round(ColorPanel.panel.vue._data.hsv.h);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.h);
-			ColorPanel.vue._data.hsv.h = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.h);
+			ColorPanel.panel.vue._data.hsv.h = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1080,11 +1084,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.s);
+			return Math.round(ColorPanel.panel.vue._data.hsv.s);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.s);
-			ColorPanel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.s);
+			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1100,11 +1104,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.v);
+			return Math.round(ColorPanel.panel.vue._data.hsv.v);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.v);
-			ColorPanel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.v);
+			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1119,13 +1123,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(1, 3), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(1, 3), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 1) + hex + ColorPanel.vue.main_color.substring(3);
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 1) + hex + ColorPanel.panel.vue.main_color.substring(3);
 		}
 	})
 	let green = new NumSlider('slider_color_green', {
@@ -1136,13 +1140,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(3, 5), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(3, 5), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 3) + hex + ColorPanel.vue.main_color.substring(5);
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 3) + hex + ColorPanel.panel.vue.main_color.substring(5);
 		}
 	})
 	let blue = new NumSlider('slider_color_blue', {
@@ -1153,13 +1157,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(5), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(5), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 5) + hex;
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 5) + hex;
 		}
 	})
 	let slider_vector_rgb = [red, green, blue];
@@ -1171,7 +1175,7 @@ BARS.defineActions(function() {
 		category: 'color',
 		invert_scroll_direction: true,
 		get() {
-			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
+			return ColorPanel.palette.indexOf(ColorPanel.panel.vue.main_color) + 1;
 		},
 		getInterval() {return 1},
 		change(modify) {
@@ -1199,3 +1203,6 @@ BARS.defineActions(function() {
 	})
 })
 
+Object.assign(window, {
+	ColorPanel
+})

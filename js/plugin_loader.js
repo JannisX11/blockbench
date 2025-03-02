@@ -282,7 +282,7 @@ export class Plugin {
 
 		// Download files
 		async function copyFileToDrive(origin_filename, target_filename, callback) {
-			var file = originalFs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
 			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
 				response.pipe(file);
 				if (callback) response.on('end', callback);
@@ -406,7 +406,7 @@ export class Plugin {
 			// Save
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)

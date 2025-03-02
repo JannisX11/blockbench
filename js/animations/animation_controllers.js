@@ -1,3 +1,5 @@
+import Wintersky from 'wintersky';
+
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;

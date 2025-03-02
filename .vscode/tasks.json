@@ -10,6 +10,30 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Before Debug",
+            "type": "shell",
+            "command": "node .vscode/.debug.script.mjs",
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "typescript",
+                "fileLocation": "relative",
+                "pattern": {
+                // TODO: correct "regexp"
+                "regexp": "^([a-zA-Z]\\:\/?([\\w\\-]\/?)+\\.\\w+):(\\d+):(\\d+): (ERROR|WARNING)\\: (.*)$",
+                "file": 1,
+                "line": 3,
+                "column": 4,
+                "code": 5,
+                "message": 6
+                },
+                "background": {
+                "activeOnStart": true,
+                "beginsPattern": "^.*VITE v.*  ready in \\d* ms.*$",
+                "endsPattern": "^.*\\[startup\\] Electron App.*$"
+                }
+            }
         }
     ]
 }

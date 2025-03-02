@@ -116,6 +116,7 @@ export const Canvas = {
 	// Pivot marker
 	pivot_marker: rot_origin,
 	gizmos: [rot_origin],
+	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		depthTest: settings.seethrough_outline.value == false,
@@ -856,9 +857,9 @@ export const Canvas = {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
-		var ground_anim_before = ground_animation
-		if (Modes.display && ground_animation) {
-			ground_animation = false
+		var ground_anim_before = Canvas.ground_animation
+		if (Modes.display && Canvas.ground_animation) {
+			Canvas.ground_animation = false
 		}
 		updateCubeHighlights(null, true);
 
@@ -873,7 +874,7 @@ export const Canvas = {
 			delete obj.was_visible
 		})
 		if (Modes.display && ground_anim_before) {
-			ground_animation = ground_anim_before
+			Canvas.ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();
 	},

@@ -90,8 +90,8 @@ export class Panel extends EventSystem {
 					//updateInterfacePanels()
 				})
 			}
-			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);	
-			scope.vue.$el.classList.add('panel_vue_wrapper');
+			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);
+			this.vue.$el.classList.add('panel_vue_wrapper');
 		}
 
 		if (!Blockbench.isMobile) {

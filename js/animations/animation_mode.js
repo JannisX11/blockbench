@@ -1,3 +1,6 @@
+import MolangParser from "molangjs";
+import Wintersky from 'wintersky';
+
 export const Animator = {
 	get possible_channels() {
 		let obj = {};
@@ -7,7 +10,7 @@ export const Animator = {
 	open: false,
 	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
-	MolangParser: new Molang(),
+	MolangParser: new MolangParser(),
 	motion_trail: new THREE.Object3D(),
 	onion_skin_object: new THREE.Object3D(),
 	motion_trail_lock: false,
@@ -1496,5 +1499,6 @@ Interface.definePanels(function() {
 
 Object.assign(window, {
 	Animator,
+	Wintersky,
 	WinterskyScene
 });

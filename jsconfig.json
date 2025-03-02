@@ -1,9 +1,0 @@
-{
-	"include": [
-		"js/**/*",
-		"types/**/*"
-	],
-	"compilerOptions": {
-		"module": "ES6"
-	}
-}

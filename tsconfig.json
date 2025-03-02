@@ -1,0 +1,20 @@
+{
+	"include": [
+		"js/**/*",
+		"types/**/*"
+	],
+  "compilerOptions": {
+    "target": "ES6",
+    "useDefineForClassFields": true,
+    "module": "ES6",
+    "moduleResolution": "Node",
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ES6", "DOM"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": true
+  }
+}

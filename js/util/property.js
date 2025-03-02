@@ -1,5 +1,5 @@
 export class Property {
-	constructor(target_class, type = 'boolean', name, options = 0) {
+	constructor(target_class, type = 'boolean', name, options = {}) {
 		if (!target_class.properties) {
 			target_class.properties = {};
 		}

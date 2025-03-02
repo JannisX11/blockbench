@@ -1,3 +1,5 @@
+import Wintersky from 'wintersky';
+
 export class GeneralAnimator {
 	constructor(uuid, animation) {
 		this.animation = animation;

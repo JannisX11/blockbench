@@ -1,3 +1,5 @@
+import MolangParser from "molangjs";
+
 export const Toolbars = {};
 export const BarItems = {};
 //Bars
@@ -1066,7 +1068,7 @@ export class NumSlider extends Widget {
 		this.dispatchEvent('update');
 	}
 }
-NumSlider.MolangParser = new Molang()
+NumSlider.MolangParser = new MolangParser()
 
 export class BarSlider extends Widget {
 	constructor(id, data) {

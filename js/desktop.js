@@ -1,12 +1,10 @@
 export const electron = require('@electron/remote');
-console.log('REMOTE', electron)
 export const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
 export const app = electron.app;
 export const fs = require('fs');
 export const NodeBuffer = require('buffer');
 export const zlib = require('zlib');
 export const exec = require('child_process').exec;
-export const originalFs = require('original-fs');
 export const https = require('https');
 export const PathModule = require('path');
 
@@ -588,6 +586,7 @@ BARS.defineActions(() => {
 
 //Close
 window.onbeforeunload = function (event) {
+	console.log('BEFORE UNLOAD')
 	try {
 		updateRecentProjectData()
 	} catch(err) {}
@@ -756,13 +755,12 @@ ipcRenderer.on('update-available', (event, arg) => {
 
 Object.assign(window, {
 	electron,
-	clipboard,
+	clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils,
 	app,
 	fs,
 	NodeBuffer,
 	zlib,
 	exec,
-	originalFs,
 	https,
 	PathModule,
 	currentwindow,

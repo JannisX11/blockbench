@@ -1,4 +1,5 @@
 import { Blockbench } from "./api";
+import { ipcRenderer } from "./desktop";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
 import { initializeWebApp, loadInfoFromURL } from "./web";

@@ -1,3 +1,5 @@
+import { Property } from "../util/property";
+
 export class MeshFace extends Face {
 	constructor(mesh, data) {
 		super(data);

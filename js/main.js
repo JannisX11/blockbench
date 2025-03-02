@@ -1,5 +1,6 @@
 //import { createApp } from 'vue'
 //import App from './App.vue'
+
 import "../lib/libs"
 import "../lib/vue.min.js"
 import "../lib/vue_sortable.js"
@@ -23,8 +24,6 @@ import "../lib/three_custom.js"
 import "../lib/CanvasFrame.js"
 import "../lib/canvas2apng.js"
 //import "../lib/fik.min.js"
-import "../lib/molang.umd.js"
-import "../lib/wintersky.umd.js"
 import "../lib/easing.js"
 
 import "./preview/OrbitControls.js"
@@ -59,8 +58,8 @@ import "./interface/action_control.js"
 import "./copy_paste.js"
 import "./undo.js"
 
-//import './desktop.js'
-import './web.js'
+import './desktop.js'
+//import './web.js'
 
 import "./edit_sessions.js"
 import "./validator.js"
@@ -88,7 +87,6 @@ import "./texturing/texture_flipbook.js"
 import "./texturing/uv.js"
 import "./texturing/painter.js"
 import "./texturing/texture_generator.js"
-import "./texturing/color.js"
 import "./texturing/edit_image.js"
 import "./display_mode.js"
 import "./animations/animation_mode.js"
@@ -106,6 +104,7 @@ import "./io/format.js"
 import "./io/project.js"
 import "./io/io.js"
 import "./io/share.js"
+import "./texturing/color.js"
 import "./io/formats/generic.js"
 import "./io/formats/bbmodel.js"
 import "./io/formats/java_block.js"
