@@ -863,7 +863,7 @@ export class Animation extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			condition: (animation) => (Format.animation_files && isApp && animation.saved),
 			click(animation) {
 				Blockbench.read([animation.path], {}, ([file]) => {
 					Undo.initEdit({animations: [animation]})

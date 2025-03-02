@@ -1277,7 +1277,7 @@ export class AnimationController extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			condition: (controller) => (Format.animation_files && isApp && controller.saved),
 			click(controller) {
 				Blockbench.read([controller.path], {}, ([file]) => {
 					Undo.initEdit({animation_controllers: [controller]})
