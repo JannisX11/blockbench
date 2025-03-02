@@ -1,5 +1,3 @@
-import {version} from '../package.json';
-const appVersion = version;
 
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
@@ -413,6 +411,5 @@ export const StateMemory = {
 Object.assign(window, {
 	LastVersion,
 	Blockbench,
-	StateMemory,
-	appVersion
+	StateMemory
 });

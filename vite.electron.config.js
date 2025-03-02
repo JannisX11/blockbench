@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { defineConfig } from 'vite'
 import electron from 'vite-plugin-electron/simple'
+import conditionalImportPlugin from "vite-plugin-conditional-import";
 import pkg from './package.json'
 
 // import vue from '@vitejs/plugin-vue'
@@ -17,8 +18,16 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: './dist-vite'
     },
+    define: {
+      isApp: true,
+      appVersion: '"'+pkg.version+'"'
+    },
     plugins: [
       // vue(),
+      conditionalImportPlugin({
+        currentEnv: "electron",
+        envs: ["electron", "web"],
+      }),
       electron({
         main: {
           // Shortcut of `build.lib.entry`

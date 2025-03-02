@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import conditionalImportPlugin from "vite-plugin-conditional-import";
 import pkg from './package.json'
 
 // import vue from '@vitejs/plugin-vue'
@@ -11,8 +12,16 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: './dist-vite'
     },
+    define: {
+      isApp: false,
+      appVersion: '"'+pkg.version+'"'
+    },
     plugins: [
       // vue(),
+      conditionalImportPlugin({
+        currentEnv: "browser",
+        envs: ["electron", "browser"],
+      }),
       VitePWA({
         registerType: 'autoUpdate',
         workbox: {

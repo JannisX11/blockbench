@@ -58,8 +58,8 @@ import "./interface/action_control.js"
 import "./copy_paste.js"
 import "./undo.js"
 
-import './desktop.js'
-//import './web.js'
+import './desktop.electron'
+import './web.browser'
 
 import "./edit_sessions.js"
 import "./validator.js"
