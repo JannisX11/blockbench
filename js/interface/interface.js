@@ -406,9 +406,6 @@ export const Interface = {
 		resizeWindow();
 	}
 }
-window.Interface = Interface;
-
-console.log('define interface')
 
 export const Panels = Interface.Panels;
 Interface.panel_definers = []
@@ -624,8 +621,8 @@ export function setupInterface() {
 		}
 
 		obj.val(val)
-		eval(obj.attr('oninput'))
-		eval(obj.attr('onmouseup'))
+		// eval(obj.attr('oninput'))
+		// eval(obj.attr('onmouseup'))
 	})
 
 	//Mousemove

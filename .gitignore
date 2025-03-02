@@ -1,5 +1,5 @@
 /dist/
-/vite-dist/
+/dist-vite/
 index.php
 electron-builder.env
 node_modules/

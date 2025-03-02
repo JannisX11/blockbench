@@ -13,6 +13,7 @@
 		"url": "https://github.com/JannisX11/blockbench"
 	},
 	"main": "main.js",
+	"type": "module",
 	"build": {
 		"afterSign": "scripts/notarize.js",
 		"appId": "blockbench",
@@ -120,10 +121,9 @@
 		"preview": "vite preview",
 		"dist": "electron-builder",
 		"build-beta": "electron-builder --windows portable",
-		"publish-windows": "npm run bundle && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"pwa": "node ./scripts/generate_pwa.js",
-		"prepublish": "npm run bundle && npm run pwa",
-		"prepublish-beta": "node ./scripts/enable_beta.js && npm run bundle && npm run pwa",
+		"publish-windows": "npm run build && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
+		"prepublish": "npm run build",
+		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build",
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
@@ -131,6 +131,7 @@
 		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
 		"vite": "^6.2.0",
+		"vite-plugin-pwa": "^0.21.1",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {

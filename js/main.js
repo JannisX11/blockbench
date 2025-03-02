@@ -123,7 +123,3 @@ import "./io/formats/image.js"
 import "./boot_loader"
 import "./globals.js"
 
-
-
-console.log('FULLY LOADED')
-
