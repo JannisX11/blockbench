@@ -1,4 +1,4 @@
-const ActionControl = {
+export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
@@ -444,3 +444,7 @@ BARS.defineActions(function() {
 		`
 	})
 })
+
+Object.assign(window, {
+	ActionControl
+});

@@ -1,4 +1,3 @@
-(function() {
 
 var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
@@ -103,6 +102,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-
-})()

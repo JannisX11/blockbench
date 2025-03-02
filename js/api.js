@@ -1,6 +1,6 @@
-const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
+export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
-const Blockbench = {
+export const Blockbench = {
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -24,7 +24,7 @@ const Blockbench = {
 			Blockbench.setProgress(0)
 			Blockbench.addFlag('allow_closing')
 			Blockbench.addFlag('allow_reload')
-			currentwindow.reload()
+			location.reload()
 		} else {
 			location.reload()
 		}
@@ -366,7 +366,7 @@ if (isApp) {
 
 
 
-const StateMemory = {
+export const StateMemory = {
 	/**
 	 * Initialize a memorized property
 	 * @param {string} key 
@@ -406,3 +406,10 @@ const StateMemory = {
 		localStorage.setItem(`StateMemory.${key}`, serialized)
 	}
 }
+
+Object.assign(window, {
+	LastVersion,
+	Blockbench,
+	StateMemory,
+	isApp
+});

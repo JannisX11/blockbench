@@ -1,5 +1,3 @@
-(function() {
-
 let codec = new Codec('image', {
 	name: tl('format.name'),
 	extension: 'png',
@@ -222,5 +220,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

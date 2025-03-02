@@ -1,5 +1,7 @@
+import { autoFixMeshEdit } from "./mesh_editing";
+
 //Actions
-function getSelectionCenter(all = false) {
+export function getSelectionCenter(all = false) {
 	if (Group.first_selected && Group.multi_selected.length == 1 && selected.length == 0 && !all) {
 		let vec = THREE.fastWorldPosition(Group.first_selected.mesh, new THREE.Vector3());
 		return vec.toArray();
@@ -27,7 +29,7 @@ function getSelectionCenter(all = false) {
 	return center;
 }
 //Movement
-function moveElementsRelative(difference, index, event) { //Multiple
+export function moveElementsRelative(difference, index, event) { //Multiple
 	if (!Preview.selected || !Outliner.selected.length) {
 		return;
 	}
@@ -77,7 +79,7 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	autoFixMeshEdit()
 }
 //Rotate
-function rotateSelected(axis, steps) {
+export function rotateSelected(axis, steps) {
 	let affected = [...Cube.selected, ...Mesh.selected];
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
@@ -97,7 +99,7 @@ function rotateSelected(axis, steps) {
 	Undo.finishEdit('Rotate elements')
 }
 //Mirror
-function flipNameOnAxis(node, axis, check, original_name) {
+export function flipNameOnAxis(node, axis, check, original_name) {
 	const flip_pairs = {
 		0: {
 			right: 'left',
@@ -135,7 +137,7 @@ function flipNameOnAxis(node, axis, check, original_name) {
 		if (matchAndReplace(b, a)) break;
 	}
 }
-function mirrorSelected(axis) {
+export function mirrorSelected(axis) {
 	if (Modes.animate && Timeline.selected.length) {
 
 		Undo.initEdit({keyframes: Timeline.selected})
@@ -179,7 +181,7 @@ function mirrorSelected(axis) {
 	}
 }
 
-const Vertexsnap = {
+export const Vertexsnap = {
 	step1: true,
 	vertex_gizmos: new THREE.Object3D(),
 	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
@@ -508,7 +510,7 @@ const Vertexsnap = {
 }
 
 //Center
-function centerElements(axis, update) {
+export function centerElements(axis, update) {
 	if (!Outliner.selected.length) return;
 	let center = getSelectionCenter()[axis];
 	var difference = (Format.centered_grid ? 0 : 8) - center
@@ -535,7 +537,7 @@ function centerElements(axis, update) {
 }
 
 //Move
-function moveElementsInSpace(difference, axis) {
+export function moveElementsInSpace(difference, axis) {
 	let space = Transformer.getTransformSpace();
 	let groups;
 	if (Format.bone_rig && Group.first_selected && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
@@ -712,11 +714,11 @@ function moveElementsInSpace(difference, axis) {
 	})
 }
 
-function getSpatialInterval(event = 0) {
+export function getSpatialInterval(event = 0) {
 	return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 }
 //Rotate
-function getRotationInterval(event) {
+export function getRotationInterval(event) {
 	if (Format.rotation_snap) {
 		return 22.5;
 	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
@@ -729,14 +731,14 @@ function getRotationInterval(event) {
 		return 2.5;
 	}
 }
-function getRotationObjects() {
+export function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
 	let elements = Outliner.selected.filter(element => {
 		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
 	})
 	if (elements.length) return elements;
 }
-function rotateOnAxis(modify, axis, slider) {
+export function rotateOnAxis(modify, axis, slider) {
 	var things = getRotationObjects();
 	if (!things) return;
 	if (things instanceof Array == false) things = [things];
@@ -895,7 +897,7 @@ function rotateOnAxis(modify, axis, slider) {
 		}
 	})
 }
-function afterRotateOnAxis() {
+export function afterRotateOnAxis() {
 	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected && !settings.deactivate_size_limit.value) {
 		Cube.all.forEach(cube => {
 			Format.cube_size_limiter.move(cube);
@@ -2019,3 +2021,19 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	getSelectionCenter,
+	moveElementsRelative,
+	rotateSelected,
+	flipNameOnAxis,
+	mirrorSelected,
+	Vertexsnap,
+	centerElements,
+	moveElementsInSpace,
+	getSpatialInterval,
+	getRotationInterval,
+	getRotationObjects,
+	rotateOnAxis,
+	afterRotateOnAxis
+});

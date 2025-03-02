@@ -1,4 +1,4 @@
-const ModelScaler = {
+export const ModelScaler = {
 	dialog: new Dialog({
 		id: 'scale',
 		title: 'dialog.scale.title',

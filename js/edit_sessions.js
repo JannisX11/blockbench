@@ -1,4 +1,6 @@
-class EditSession {
+import Peer from "peerjs";
+
+export class EditSession {
 	constructor() {
 		this.active = false;
 		this.hosting = false;

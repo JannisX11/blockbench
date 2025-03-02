@@ -1,6 +1,4 @@
-(function() {
-
-function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
+export function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
 
@@ -163,7 +161,7 @@ function buildAnimationTracks(export_scale = Settings.get('model_export_scale'),
 	return anims;
 }
 
-function buildSkinnedMesh(root_group, scale) {
+export function buildSkinnedMesh(root_group, scale) {
 	let skinIndices = [];
 	let skinWeights = [];
 	let position_array = [];
@@ -419,5 +417,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

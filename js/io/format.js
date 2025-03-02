@@ -1,8 +1,8 @@
-var Format = 0;
-const Formats = {};
+window.Format = 0;
+export const Formats = {};
 
 //Formats
-class ModelFormat {
+export class ModelFormat {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -296,3 +296,9 @@ new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
+
+
+Object.assign(window, {
+	ModelFormat,
+	Formats
+});

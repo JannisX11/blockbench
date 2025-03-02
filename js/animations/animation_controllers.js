@@ -1,4 +1,6 @@
-class AnimationControllerState {
+import Wintersky from 'wintersky';
+
+export class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
@@ -816,7 +818,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	'delete',
 ]);
 
-class AnimationController extends AnimationItem {
+export class AnimationController extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -1275,7 +1277,7 @@ class AnimationController extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			condition: (controller) => (Format.animation_files && isApp && controller.saved),
 			click(controller) {
 				Blockbench.read([controller.path], {}, ([file]) => {
 					Undo.initEdit({animation_controllers: [controller]})
@@ -2345,3 +2347,5 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {AnimationController, AnimationControllerState});

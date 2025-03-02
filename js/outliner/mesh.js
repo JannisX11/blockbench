@@ -1,4 +1,6 @@
-class MeshFace extends Face {
+import { Property } from "../util/property";
+
+export class MeshFace extends Face {
 	constructor(mesh, data) {
 		super(data);
 		this.mesh = mesh;
@@ -399,7 +401,7 @@ class MeshFace extends Face {
 new Property(MeshFace, 'array', 'vertices');
 
 
-class Mesh extends OutlinerElement {
+export class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
@@ -1503,4 +1505,9 @@ Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
 			Mesh.preview_controller.fixWireframe(mesh);
 		}
 	}
+});
+
+Object.assign(window, {
+	MeshFace,
+	Mesh
 });

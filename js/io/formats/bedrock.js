@@ -479,7 +479,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 }
 }
 
-function calculateVisibleBox() {
+export function calculateVisibleBox() {
 	var visible_box = new THREE.Box3()
 	Canvas.withoutGizmos(() => {
 		Cube.all.forEach(cube => {
@@ -520,7 +520,6 @@ function calculateVisibleBox() {
 	return Project.visible_box;
 }
 
-(function() {
 
 // Parse
 
@@ -1576,6 +1575,3 @@ new ValidatorCheck('bedrock_binding', {
 		}
 	}
 })
-
-})()
-

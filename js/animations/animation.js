@@ -1,4 +1,4 @@
-class AnimationItem {
+export class AnimationItem {
 	constructor() {}
 	getShortName() {
 		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
@@ -10,7 +10,7 @@ class AnimationItem {
 		return this.name.split(/\./).last();
 	}
 }
-class Animation extends AnimationItem {
+export class Animation extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -863,7 +863,7 @@ class Animation extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			condition: (animation) => (Format.animation_files && isApp && animation.saved),
 			click(animation) {
 				Blockbench.read([animation.path], {}, ([file]) => {
 					Undo.initEdit({animations: [animation]})
@@ -1543,7 +1543,7 @@ BARS.defineActions(function() {
 						}},
 						'_1': '_',
 						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
-						'_1': '_',
+						'_2': '_',
 						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
 						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
 						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},
@@ -2171,3 +2171,5 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {AnimationItem, Animation});

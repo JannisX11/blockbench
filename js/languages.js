@@ -17,7 +17,7 @@ import vi from './../lang/vi.json';
 import zh from './../lang/zh.json';
 import zh_tw from './../lang/zh_tw.json';
 
-const data = {
+export const data = {
 	cz: cz,
 	de: de,
 	en: en,

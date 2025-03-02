@@ -1,4 +1,4 @@
-class Collection {
+export class Collection {
 	constructor(data, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.selected = false;
@@ -195,10 +195,9 @@ class Collection {
 					label: 'dialog.collection.export_path',
 					value: this.export_path,
 					type: 'file',
-					condition: this.codec,
+					condition: isApp && this.codec,
 					extensions: ['json'],
 					filetype: 'JSON collection',
-					condition: isApp
 				}
 			},
 			component: {
@@ -692,3 +691,7 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	Collection
+});

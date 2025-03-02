@@ -1,4 +1,7 @@
-const StartScreen = {
+import { documentReady } from "../misc";
+import { updateStreamerModeNotification } from "./settings";
+
+export const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
@@ -31,7 +34,7 @@ const StartScreen = {
  * @param {string} data.insert_before
  * @returns 
  */
-function addStartScreenSection(id, data) {
+export function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
@@ -522,12 +525,12 @@ onVueSetup(async function() {
 
 	
 	if (settings.streamer_mode.value) {
-		updateStreamerModeNotification()
+		updateStreamerModeNotification();
 	}
 });
 
 
-class ModelLoader {
+export class ModelLoader {
 	constructor(id, options) {
 		this.id = id;
 		this.name = tl(options.name);
@@ -740,3 +743,9 @@ ModelLoader.loaders = {};
 
 	})
 })()
+
+Object.assign(window, {
+	StartScreen,
+	addStartScreenSection,
+	ModelLoader,
+});

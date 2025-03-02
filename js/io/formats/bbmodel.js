@@ -1,4 +1,3 @@
-(function() {
 
 let FORMATV = '4.10';
 
@@ -848,5 +847,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

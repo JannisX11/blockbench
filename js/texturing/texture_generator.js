@@ -1,4 +1,4 @@
-const TextureGenerator = {
+export const TextureGenerator = {
 	background_color: new ColorPicker({
 		id: 'background_color',
 		name: 'data.color',
@@ -1702,3 +1702,7 @@ const TextureGenerator = {
 		return changed_elements;
 	}
 }
+
+Object.assign(window, {
+	TextureGenerator
+});
