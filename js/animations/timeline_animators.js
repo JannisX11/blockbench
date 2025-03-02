@@ -971,7 +971,6 @@ BARS.defineActions(() => {
 		}
 	})
 })
-console.log('a')
 
 Object.assign(window, {
 	GeneralAnimator,

@@ -158,3 +158,8 @@ window.onbeforeunload = function() {
 		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
+
+Object.assign(window, {
+	initializeWebApp,
+	loadInfoFromURL 
+})

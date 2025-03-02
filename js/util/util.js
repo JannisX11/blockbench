@@ -333,11 +333,11 @@ Date.prototype.dayOfYear = function() {
 //Object
 export function omitKeys(obj, keys, dual_level) {
 	var dup = {};
-	for (key in obj) {
+	for (let key in obj) {
 		if (keys.indexOf(key) == -1) {
 			if (dual_level === true && typeof obj[key] === 'object') {
 				dup[key] = {}
-				for (key2 in obj[key]) {
+				for (let key2 in obj[key]) {
 					if (keys.indexOf(key2) == -1) {
 							dup[key][key2] = obj[key][key2];
 					}

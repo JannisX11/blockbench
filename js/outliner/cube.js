@@ -1667,5 +1667,6 @@ BARS.defineActions(function() {
 
 Object.assign(window, {
 	CubeFace,
-	Cube
+	Cube,
+	adjustFromAndToForInflateAndStretch
 });

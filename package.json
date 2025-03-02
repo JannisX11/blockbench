@@ -14,11 +14,6 @@
 	},
 	"main": "electron/main.js",
 	"type": "module",
-	"debug": {
-		"env": {
-			"VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
-		}
-	},
 	"build": {
 		"afterSign": "scripts/notarize.js",
 		"appId": "blockbench",
@@ -120,27 +115,25 @@
 		]
 	},
 	"scripts": {
-		"dev": "vite --config vite.electron.config.js",
-		"dev-web": "vite --config vite.web.config.js",
-		"build-web": "vite build --config vite.web.config.js",
-		"build-electron": "vite build --config vite.web.electron.js",
-		"preview": "vite preview --config vite.web.config.js",
+		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\"",
+		"dev-web": "node ./build.js --target=web --serve",
+		"build-web": "node ./build.js --target=web",
+		"build-electron": "node ./build.js --target=electron",
 		"build-beta": "npm run build-electron && electron-builder --windows portable",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"prepublish": "npm run build-web",
-		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web",
+		"pwa": "node ./scripts/generate_pwa.js",
+		"prepublish": "npm run build-web && npm run pwa",
+		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
+		"command-line-args": "^6.0.1",
+		"concurrently": "^9.1.2",
 		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
+		"esbuild": "0.25.0",
 		"typescript": "^5.8.2",
-		"vite": "^6.2.0",
-		"vite-plugin-conditional-import": "0.1.7",
-		"vite-plugin-electron": "^0.29.0",
-		"vite-plugin-electron-renderer": "^0.14.6",
-		"vite-plugin-pwa": "^0.21.1",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {

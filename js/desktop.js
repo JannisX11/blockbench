@@ -755,7 +755,12 @@ ipcRenderer.on('update-available', (event, arg) => {
 
 Object.assign(window, {
 	electron,
-	clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils,
+	clipboard,
+	shell,
+	nativeImage,
+	ipcRenderer,
+	dialog,
+	webUtils,
 	app,
 	fs,
 	NodeBuffer,

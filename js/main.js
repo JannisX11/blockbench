@@ -35,8 +35,8 @@ import "./interface/themes"
 import "./interface/shared_actions"
 import "./interface/keyboard"
 import "./misc"
-import "./modes"
 import "./api"
+import "./modes"
 import "./file_system"
 import "./interface/vue_components"
 import "./interface/panels"
@@ -51,8 +51,9 @@ import "./interface/about"
 import "./interface/action_control"
 import "./copy_paste"
 import "./undo"
-import './desktop.electron'
-import './web.browser'
+
+import './desktop.js';
+
 import "./edit_sessions"
 import "./validator"
 import "./outliner/outliner"

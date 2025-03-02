@@ -1,8 +1,6 @@
 import { Blockbench } from "./api";
-import { ipcRenderer } from "./desktop.electron";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
-import { initializeWebApp, loadInfoFromURL } from "./web.browser";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');

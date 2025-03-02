@@ -30,20 +30,6 @@ let load_project_data;
 	}
 })()
 
-
-process.env.APP_ROOT = path.join(__dirname, '../..')
-
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist-vite')
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
-
-const preload = path.join(__dirname, '../preload/index.mjs')
-const indexHtml = path.join(RENDERER_DIST, 'index.html')
-
-
-
 const LaunchSettings = {
 	path: path.join(app.getPath('userData'), 'launch_settings.json'),
 	settings: {},
@@ -103,6 +89,7 @@ function createWindow(second_instance, options = {}) {
 
 	remote.enable(win.webContents)
 
+	var index_path = path.join(__dirname, './../index.html')
 	if (process.platform === 'darwin') {
 
 		let template = [
@@ -177,40 +164,11 @@ function createWindow(second_instance, options = {}) {
 	if (options.maximize !== false) win.maximize()
 	win.show()
 
-	if (VITE_DEV_SERVER_URL) { // #298
-		win.loadURL(VITE_DEV_SERVER_URL)
-		// Open devTool if the app is not packaged
-		win.webContents.openDevTools()
-	} else {
-		win.loadFile(indexHtml)
-	}
-	
-	// Test actively push message to the Electron-Renderer
-	win.webContents.on('did-finish-load', () => {
-		win?.webContents.send('main-process-message', new Date().toLocaleString())
-	})
-	
-	// Make all links open with the browser, not with the application
-	win.webContents.setWindowOpenHandler(({ url }) => {
-		if (url.startsWith('https:')) shell.openExternal(url)
-		return { action: 'deny' }
-	})
-
-	/*win.webContents.session.webRequest.onBeforeSendHeaders(
-		(details, callback) => {
-			callback({ requestHeaders: { Origin: '*', ...details.requestHeaders } });
-		},
-	);
-	
-	win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-		callback({
-			responseHeaders: {
-				'Access-Control-Allow-Origin': ['*'],
-				...details.responseHeaders,
-			},
-		});
-	});*/
-
+	win.loadURL(url.format({
+		pathname: index_path,
+		protocol: 'file:',
+		slashes: true
+	}))
 	win.webContents.openDevTools()
 	win.on('closed', () => {
 		win = null;

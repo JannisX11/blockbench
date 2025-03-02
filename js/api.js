@@ -1,4 +1,3 @@
-
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
 export const Blockbench = {
@@ -25,7 +24,7 @@ export const Blockbench = {
 			Blockbench.setProgress(0)
 			Blockbench.addFlag('allow_closing')
 			Blockbench.addFlag('allow_reload')
-			currentwindow.reload()
+			location.reload()
 		} else {
 			location.reload()
 		}
@@ -411,5 +410,6 @@ export const StateMemory = {
 Object.assign(window, {
 	LastVersion,
 	Blockbench,
-	StateMemory
+	StateMemory,
+	isApp
 });
