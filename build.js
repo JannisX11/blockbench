@@ -6,7 +6,8 @@ const pkg = createRequire(import.meta.url)("./package.json");
 
 const options = commandLineArgs([
     {name: 'target', type: String},
-    {name: 'watch', type: Boolean}
+    {name: 'watch', type: Boolean},
+    {name: 'serve', type: Boolean},
 ])
 
 function conditionalImportPlugin(config) {
@@ -44,13 +45,20 @@ const config = {
     sourcemap: true,
 }
 
-if (options.watch) {
-    async function watch() {
-        let ctx = await esbuild.context(config);
+if (options.watch || options.serve) {
+    let ctx = await esbuild.context(config);
+    if (isApp) {
         await ctx.watch({});
-        console.log('Watching files')
+    } else {
+        const host = 'localhost';
+        const port = 3000;
+        await ctx.serve({
+            servedir: import.meta.dirname,
+            host,
+            port
+        });
+        console.log(`Hosting app at http://${host}:${port}`)
     }
-    watch();
 } else {
     await esbuild.build(config);
 }

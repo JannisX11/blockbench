@@ -1,7 +1,6 @@
 {
 	"include": [
-		"js/**/*",
-		"types/**/*"
+		"js/**/*"
 	],
   "compilerOptions": {
     "target": "ES6",

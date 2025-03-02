@@ -116,10 +116,10 @@
 	},
 	"scripts": {
 		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\"",
-		"dev-web": "node ./build.js --target=web --serve",
+		"serve": "node ./build.js --target=web --serve",
 		"build-web": "node ./build.js --target=web",
 		"build-electron": "node ./build.js --target=electron",
-		"build-beta": "npm run build-electron && electron-builder --windows portable",
+		"build-test-portable": "npm run build-electron && electron-builder --windows portable",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run build-web && npm run pwa",
