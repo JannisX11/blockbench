@@ -1,3 +1,5 @@
+import { setProjectTitle } from "../interface/interface";
+
 export class ModelProject {
 	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {

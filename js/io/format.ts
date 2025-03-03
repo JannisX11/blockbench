@@ -321,6 +321,7 @@ export class ModelFormat implements FormatOptions {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
+		// @ts-ignore Incompatible internal and external types
 		Blockbench.Format = Blockbench.Project.format = this;
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()

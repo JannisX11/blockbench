@@ -1,4 +1,24 @@
-export function compileJSON(object, options = {}) {
+interface JSONCompileOptions {
+	/**
+	 * Indentation string. If omitted, will default to the indentation from Blockbench's settings
+	 */
+	indentation?: string
+	/**
+	 * If true, minify everything into one line
+	 */
+	small?: boolean
+	/**
+	 * Whether to add a newline character at the end of the file. If omitted, use value from Blockbench settings
+	 */
+	final_newline?: boolean
+}
+/**
+ * Compile an Object into a JSON string
+ * @param object JSON Object to compile
+ * @param options Compile options
+ * @returns JSON string
+ */
+export function compileJSON(object: any, options: JSONCompileOptions = {}): string {
 	let indentation = options.indentation;
 	if (typeof indentation !== 'string') {
 		switch (settings.json_indentation.value) {
@@ -98,7 +118,14 @@ export function compileJSON(object, options = {}) {
 	}
 	return file;
 }
-export function autoParseJSON(data, feedback) {
+
+/**
+ * Parse JSON file, while stripping away comments, and optionally showing potential syntax errors to the user in a popup
+ * @param data Input string
+ * @param feedback Whether to notify the user of syntax errors. Default is true
+ * @returns Parsed data
+ */
+export function autoParseJSON(data: string, feedback = true): any {
 	if (data.substr(0, 4) === '<lz>') {
 		data = LZUTF8.decompress(data.substr(4), {inputEncoding: 'StorageBinaryString'})
 	}

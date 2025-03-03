@@ -1,3 +1,4 @@
+import { Blockbench } from "../api";
 import { translateUI } from "../languages";
 
 export class ResizeLine {
@@ -692,12 +693,14 @@ export function setProjectTitle(title) {
 		title = Project.name
 	}
 	if (title) {
-		Prop.file_name = Prop.file_name_alt = title
-		if (!Project.name) {
-			Project.name = title
-		}
-		if (Format.bone_rig) {
-			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+		if (Project) {
+			Prop.file_name = Prop.file_name_alt = title
+			if (!Project.name) {
+				Project.name = title
+			}
+			if (Format.bone_rig) {
+				title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+			}
 		}
 		window_title = title+' - Blockbench';
 	} else {
@@ -896,6 +899,27 @@ export function openTouchKeyboardModifierMenu(node) {
 	])
 	menu.open(node);
 }
+
+
+Blockbench.setCursorTooltip = function(text) {
+	if (!Interface.cursor_tooltip) {
+		Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
+	}
+	if (text) {
+		Interface.cursor_tooltip.textContent = text;
+		if (!Interface.cursor_tooltip.parentNode) {
+			document.body.append(Interface.cursor_tooltip);
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
+	} else {
+		Interface.cursor_tooltip.textContent = '';
+		Interface.cursor_tooltip.remove();
+	}
+};
+Blockbench.setProgress = function(progress, time = 0, bar) {
+	setProgressBar(bar, progress ?? 0, time);
+};
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({
