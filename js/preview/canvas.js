@@ -1,5 +1,5 @@
 
-function getRescalingFactor(angle) {
+export function getRescalingFactor(angle) {
 	switch (Math.abs(angle)) {
 		case 0:
 			return 1.4142
@@ -19,7 +19,7 @@ function getRescalingFactor(angle) {
 	}
 }
 
-const Reusable = {
+export const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),
 	vec3: new THREE.Vector3(),
@@ -40,7 +40,7 @@ const Reusable = {
 // ---------------------------------------
 // Not sure about the pertinence of doing this, but my reasoning is that it saves us 
 // from copying the exact same shaders twice for both solid view mode variants (monochromatic & colored).
-const SolidMaterialShaders = {
+export const SolidMaterialShaders = {
 	vertShader: `
 		attribute float highlight;
 
@@ -108,7 +108,7 @@ const SolidMaterialShaders = {
 		}`
 }
 
-const Canvas = {
+export const Canvas = {
 	// Stores various colors for the 3D scene
 	gizmo_colors,
 	// Main Blockbench 3D scene
@@ -116,6 +116,7 @@ const Canvas = {
 	// Pivot marker
 	pivot_marker: rot_origin,
 	gizmos: [rot_origin],
+	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		depthTest: settings.seethrough_outline.value == false,
@@ -554,7 +555,7 @@ const Canvas = {
 				side_grid.add(grid.clone())
 
 				//North
-				geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				let geometry = new THREE.PlaneGeometry(2.4, 2.4)
 				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 				if (Format.centered_grid) {
 					north_mark.position.set(0,0,-9.5)
@@ -619,7 +620,7 @@ const Canvas = {
 		//Light
 		Sun = new THREE.AmbientLight( 0xffffff );
 		Sun.name = 'sun'
-		scene.add(Sun);
+		Canvas.scene.add(Sun);
 		Sun.intensity = 0.5
 
 		lights = new THREE.Object3D()
@@ -821,8 +822,6 @@ const Canvas = {
 		Canvas.ground_plane.visible = settings.ground_plane.value;
 		scene.add(Canvas.ground_plane);
 		Canvas.gizmos.push(Canvas.ground_plane);
-
-		setupGrid = true;
 	},
 	//Misc
 	raycast(event) {
@@ -858,9 +857,9 @@ const Canvas = {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
-		var ground_anim_before = ground_animation
-		if (Modes.display && ground_animation) {
-			ground_animation = false
+		var ground_anim_before = Canvas.ground_animation
+		if (Modes.display && Canvas.ground_animation) {
+			Canvas.ground_animation = false
 		}
 		updateCubeHighlights(null, true);
 
@@ -875,7 +874,7 @@ const Canvas = {
 			delete obj.was_visible
 		})
 		if (Modes.display && ground_anim_before) {
-			ground_animation = ground_anim_before
+			Canvas.ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();
 	},
@@ -1411,3 +1410,10 @@ const Canvas = {
 	}
 }
 var buildGrid = Canvas.buildGrid;
+
+Object.assign(window, {
+	getRescalingFactor,
+	Reusable,
+	SolidMaterialShaders,
+	Canvas,
+});

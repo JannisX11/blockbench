@@ -1,4 +1,4 @@
-const PredicateOverrideEditor = {
+export const PredicateOverrideEditor = {
 	dialog: null,
 	predicate_options: {
 		custom_model_data: {type: 'int'},
@@ -410,3 +410,6 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {PredicateOverrideEditor});

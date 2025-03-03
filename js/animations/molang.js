@@ -122,7 +122,7 @@ Animator.MolangParser.variableHandler = function (variable, variables) {
 	}
 }
 
-function getAllMolangExpressions() {
+export function getAllMolangExpressions() {
 	let expressions = []
 	Animation.all.forEach((animation) => {
 		for (let key in Animation.properties) {
@@ -314,14 +314,14 @@ new ValidatorCheck('molang_syntax', {
 /**
  * Global Molang autocomplete object
  */
-const MolangAutocomplete = {}
+export const MolangAutocomplete = {}
 
 /**
  * Gets all the Molang variables used in the project
  * @param {string[]} excluded Variable names to exclude
  * @returns {Set<string>}
  */
-function getProjectMolangVariables(excluded) {
+export function getProjectMolangVariables(excluded) {
 	const variables = new Set()
 	const expressions = getAllMolangExpressions()
 	for (const expression of expressions) {
@@ -342,7 +342,7 @@ function getProjectMolangVariables(excluded) {
  * @param {string[]} excluded Variable names to exclude
  * @returns {Set<string>}
  */
-function getTemporaryMolangVariables(expression, excluded) {
+export function getTemporaryMolangVariables(expression, excluded) {
 	const variables = new Set()
 	const matches = expression.match(/(t|temp)\.(\w+)/gi)
 	if (!matches) return variables
@@ -359,7 +359,7 @@ function getTemporaryMolangVariables(expression, excluded) {
  * @param {string} incomplete
  * @returns {MolangAutocompleteResult[]}
  */
-function sortAutocompleteResults(results, incomplete) {
+export function sortAutocompleteResults(results, incomplete) {
 	return results.sort((a, b) => {
 		if (a.priority && b.priority) return b.priority - a.priority
 		else if (a.priority) return -1
@@ -1820,3 +1820,11 @@ function sortAutocompleteResults(results, incomplete) {
 		inheritedContext: MolangAutocomplete.DefaultContext,
 	})
 })()
+
+Object.assign(window, {
+	getAllMolangExpressions,
+	MolangAutocomplete,
+	getProjectMolangVariables,
+	getTemporaryMolangVariables,
+	sortAutocompleteResults,
+})

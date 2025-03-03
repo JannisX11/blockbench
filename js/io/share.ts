@@ -1,7 +1,17 @@
-BARS.defineActions(function() {
+import { Blockbench } from "../api";
+import { Dialog } from "../interface/dialog";
+import { settings } from "../interface/settings";
+import { BARS } from "../interface/toolbars";
+import { tl } from "../languages";
+import { Mesh } from "../outliner/mesh";
+import { Outliner } from "../outliner/outliner";
+import { ReferenceImage } from "../preview/reference_images";
+import { capitalizeFirstLetter } from "../util/util";
+import { Codecs } from "./codec";
 
+BARS.defineActions(function() {
 	function uploadSketchfabModel() {
-		if (elements.length === 0 || !Format) {
+		if (Outliner.elements.length === 0 || !Format) {
 			return;
 		}
 		let tag_suggestions = ['low-poly', 'pixel-art', 'NoAI'];
@@ -34,8 +44,7 @@ BARS.defineActions(function() {
 			"weapons-military": "Weapons & Military",
 		}
 	
-		var dialog = new Dialog({
-			id: 'sketchfab_uploader',
+		var dialog = new Dialog('sketchfab_uploader', {
 			title: 'dialog.sketchfab_uploader.title',
 			width: 640,
 			form: {
@@ -60,31 +69,31 @@ BARS.defineActions(function() {
 				private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
 				password: {label: 'dialog.sketchfab_uploader.password'},
 			},
-			onConfirm: function(formResult) {
+			onConfirm(formResult) {
 	
 				if (!formResult.token || !formResult.name) {
 					Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
 					return;
 				}
-				if (!formResult.tags.split(' ').includes('blockbench')) {
+				if (!(formResult.tags as string).split(' ').includes('blockbench')) {
 					formResult.tags += ' blockbench';
 				}
 				var data = new FormData()
-				data.append('token', formResult.token)
-				data.append('name', formResult.name)
-				data.append('description', formResult.description)
-				data.append('tags', formResult.tags)
-				data.append('isPublished', !formResult.draft)
+				data.append('token', formResult.token as string)
+				data.append('name', formResult.name as string)
+				data.append('description', formResult.description as string)
+				data.append('tags', formResult.tags as string)
+				data.append('isPublished', (!formResult.draft as boolean).toString())
 				//data.append('background', JSON.stringify({color: '#00ff00'}))
-				data.append('private', formResult.private)
-				data.append('password', formResult.password)
+				data.append('private', (formResult.private as boolean).toString())
+				data.append('password', formResult.password as string)
 				data.append('source', 'blockbench')
 	
 				if (formResult.category1 || formResult.category2) {
-					let selected_categories = [];
-					if (formResult.category1) selected_categories.push(formResult.category1);
-					if (formResult.category2) selected_categories.push(formResult.category2);
-					data.append('categories', selected_categories);
+					let selected_categories: string[] = [];
+					if (formResult.category1) selected_categories.push(formResult.category1 as string);
+					if (formResult.category2) selected_categories.push(formResult.category2 as string);
+					data.append('categories', selected_categories.join(' '));
 				}
 	
 				settings.sketchfab_token.set(formResult.token);
@@ -151,10 +160,11 @@ BARS.defineActions(function() {
 		condition: () => Project && Outliner.elements.length,
 		async click() {
 			let thumbnail = await new Promise(resolve => {
+				// @ts-ignore
 				Preview.selected.screenshot({width: 640, height: 480}, resolve);
 			});
 			let image = new Image();
-			image.src = thumbnail;
+			image.src = thumbnail as string;
 			image.width = 320;
 			image.style.display = 'block';
 			image.style.margin = 'auto';
@@ -192,7 +202,7 @@ BARS.defineActions(function() {
 						absolute_paths: false,
 						reference_images: formResult.reference_images
 					});
-					let data = {name, expire_time, model}
+					let data = {name, expire_time, model, thumbnail: undefined};
 					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
 					$.ajax({

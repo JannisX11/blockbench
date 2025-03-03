@@ -1,5 +1,5 @@
 
-class Group extends OutlinerNode {
+export class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -585,7 +585,7 @@ new NodePreviewController(Group, {
 })
 
 
-function getCurrentGroup() {
+export function getCurrentGroup() {
 	if (Group.first_selected) {
 		return Group.first_selected
 	} else if (selected.length) {
@@ -600,7 +600,7 @@ function getCurrentGroup() {
 		}
 	}
 }
-function getAllGroups() {
+export function getAllGroups() {
 	var ta = []
 	function iterate(array) {
 		for (var obj of array) {
@@ -847,3 +847,9 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Group,
+	getCurrentGroup,
+	getAllGroups
+});

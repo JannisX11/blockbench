@@ -1,5 +1,5 @@
 //Math
-function guid() {
+export function guid() {
 	function s4() {
 		return Math.floor((1 + Math.random()) * 0x10000)
 			.toString(16)
@@ -8,10 +8,10 @@ function guid() {
 	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 		s4() + '-' + s4() + s4() + s4();
 }
-function isUUID(s) {
+export function isUUID(s) {
 	return (s.length === 36 && s.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/))
 }
-function bbuid(l) {
+export function bbuid(l) {
 	l = l || 1
 	let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 	var s = '';
@@ -107,14 +107,14 @@ Math.clamp = function(number, min, max) {
 	return number;
 }
 let limitNumber = Math.clamp;
-function trimFloatNumber(val, max_digits = 4) {
+export function trimFloatNumber(val, max_digits = 4) {
 	if (val == '') return val;
 	var string = val.toFixed(max_digits)
 	string = string.replace(/0+$/g, '').replace(/\.$/g, '')
-	if (string == -0) return 0;
+	if (string === '-0') return '0';
 	return string;
 }
-function separateThousands(number) {
+export function separateThousands(number) {
 	let str = number.toString();
 	let length = str.indexOf('.');
 	if (length == -1) length = str.length;
@@ -130,14 +130,14 @@ function separateThousands(number) {
 	}
 	return modified;
 }
-function getAxisLetter(number) {
+export function getAxisLetter(number) {
 	switch (number) {
 		case 0: return 'x'; break;
 		case 1: return 'y'; break;
 		case 2: return 'z'; break;
 	}
 }
-function getAxisNumber(letter) {
+export function getAxisNumber(letter) {
 	switch (letter.toLowerCase()) {
 		case 'x': return 0; break;
 		case 'y': return 1; break;
@@ -145,6 +145,19 @@ function getAxisNumber(letter) {
 	}
 }
 let string_num_regex = /^-?\d+(\.\d+f?)?$/;
-function isStringNumber(string) {
+export function isStringNumber(string) {
 	return typeof string == 'number' || string_num_regex.test(string);
 }
+
+
+Object.assign(window, {
+	guid,
+	isUUID,
+	bbuid,
+	trimFloatNumber,
+	separateThousands,
+	getAxisLetter,
+	getAxisNumber,
+	isStringNumber,
+	limitNumber,
+})

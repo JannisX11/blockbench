@@ -1,4 +1,4 @@
-class TextureLayer {
+export class TextureLayer {
 	constructor(data, texture = Texture.selected, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
@@ -778,3 +778,7 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	TextureLayer
+});

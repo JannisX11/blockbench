@@ -1,13 +1,11 @@
-(function() {
-
-const _FBX_VERSION = 7300;
+export const _FBX_VERSION = 7300;
 
 /**
  * Wraps a number to include the type
  * @param {('I'|'D'|'F'|'L'|'C'|'Y')} type 
  * @param {number} value 
  */
-function TNum(type, value) {
+export function TNum(type, value) {
 	return {type, value, isTNum: true}
 }
 
@@ -1287,7 +1285,7 @@ class BinaryWriter {
 	}
 };
 
-function compileBinaryFBXModel(top_level_object) {
+export function compileBinaryFBXModel(top_level_object) {
 	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
 	// https://github.com/jskorepa/fbx.js/blob/master/src/lib/index.ts
 
@@ -1523,7 +1521,7 @@ function compileBinaryFBXModel(top_level_object) {
 	return output;
 }
 
-function compileASCIIFBXSection(object) {
+export function compileASCIIFBXSection(object) {
 	let depth = 0;
 	function indent() {
 		let spaces = '';
@@ -1593,5 +1591,3 @@ function compileASCIIFBXSection(object) {
 	}
 	return handleObjectChildren(object);
 }
-
-})()

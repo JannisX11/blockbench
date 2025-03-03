@@ -1,5 +1,5 @@
 
-const Clipbench = {
+export const Clipbench = {
 	elements: [],
 	types: {
 		text: 'text',
@@ -508,3 +508,5 @@ BARS.defineActions(function() {
 		DisplayMode.paste();
 	});
 })
+
+Object.assign(window, {Clipbench});

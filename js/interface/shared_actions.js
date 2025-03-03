@@ -1,4 +1,4 @@
-const SharedActions = {
+export const SharedActions = {
 	/**
 	 * Add a method to handle a specific use case of a shared action
 	 * @param {('delete'|'rename'|'duplicate'|'select_all'|'unselect_all')} action_id 
@@ -132,3 +132,5 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+Object.assign(window, {SharedActions});

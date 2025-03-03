@@ -1,6 +1,5 @@
-(function() {
 var _obj_export;
-function getMtlFace(obj, index) {
+export function getMtlFace(obj, index) {
 	//if (index % 2 == 1) index--;
 	var key = Canvas.face_order[index];
 	var tex = obj.faces[key].getTexture()
@@ -13,7 +12,7 @@ function getMtlFace(obj, index) {
 		return 'usemtl m_' + tex.uuid;
 	}
 }
-const cube_face_normals = {
+export const cube_face_normals = {
 	north: [0, 0, -1],
 	east: [1, 0, 0],
 	south: [0, 0, 1],
@@ -485,5 +484,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()
