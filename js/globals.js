@@ -1,3 +1,5 @@
+import { Blockbench } from "./api";
+
 Blockbench.Outliner = Outliner;
 Blockbench.OutlinerNode = OutlinerNode;
 Blockbench.OutlinerElement = OutlinerElement;

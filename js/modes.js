@@ -114,6 +114,7 @@ export class Mode extends KeybindItem {
 		}
 		delete Modes.options[this.id];
 	}
+	static selected = null;
 }
 export const Modes = {
 	get id() {

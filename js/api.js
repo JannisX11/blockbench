@@ -206,7 +206,7 @@ export const Blockbench = {
 			Blockbench.showQuickMessage(message)
 		}
 	},
-	showMessageBox(options = 0, cb) {
+	showMessageBox(options, cb) {
 		return new MessageBox(options, cb).show();
 	},
 	/**
@@ -219,7 +219,7 @@ export const Blockbench = {
 	 * @param {string} options.description Description for the text input
 	 * @returns {Promise<string>} Input value
 	 */
-	async textPrompt(title, value, callback, options = 0) {
+	async textPrompt(title, value, callback, options = {}) {
 		if (typeof options == 'string') {
 			options = {placeholder: options};
 			console.warn('textPrompt: 4th argument is expected to be a string');
@@ -338,6 +338,25 @@ export const Blockbench = {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
+	},
+	// Globals
+	get Format() {
+		return window.Format;
+	},
+	set Format(format) {
+		return window.Format = format;
+	},
+	get Project() {
+		return window.Project;
+	},
+	set Project(project) {
+		return window.Project = project;
+	},
+	get Undo() {
+		return window.Undo;
+	},
+	set Undo(undo_system) {
+		return window.Undo = undo_system;
 	}
 };
 

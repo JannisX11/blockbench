@@ -1,3 +1,5 @@
+import { translateUI } from "../languages";
+
 export class ResizeLine {
 	constructor(id, data) {
 		var scope = this;

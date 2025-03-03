@@ -340,7 +340,7 @@ export const skin_dialog = new Dialog({
 		}
 	},
 	onCancel() {
-		Format = 0;
+		Blockbench.Format = 0;
 		Settings.updateSettingsInProfiles();
 	}
 });

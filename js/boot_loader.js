@@ -1,4 +1,5 @@
 import { Blockbench } from "./api";
+import { translateUI } from "./languages";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
 

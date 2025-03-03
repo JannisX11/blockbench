@@ -180,8 +180,8 @@ export class ModelProject {
 		return this;
 	}
 	loadEditorState() {
-		Project = this;
-		Undo = this.undo;
+		Blockbench.Project = this;
+		Blockbench.Undo = this.undo;
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
@@ -325,9 +325,9 @@ export class ModelProject {
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
 		MirrorModeling.cached_elements = {};
-		Format = 0;
-		Project = 0;
-		Undo = 0;
+		Blockbench.Format = 0;
+		Blockbench.Project = 0;
+		Blockbench.Undo = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
 
@@ -424,7 +424,7 @@ export class ModelProject {
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
-			Project = 0;
+			Blockbench.Project = 0;
 			
 			await AutoBackup.removeBackup(this.uuid);
 
@@ -596,8 +596,8 @@ export function newProject(format) {
 export function selectNoProject() {
 	setStartScreen(true);
 	
-	Project = 0;
-	Undo = null;
+	Blockbench.Project = 0;
+	Blockbench.Undo = null;
 
 	// Setup Data
 	OutlinerNode.uuids = {};
@@ -738,7 +738,7 @@ onVueSetup(() => {
 			if (Project) {
 				Project.unselect()
 			}
-			Project = 0;
+			Blockbench.Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 			updateInterface();

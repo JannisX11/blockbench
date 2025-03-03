@@ -394,7 +394,7 @@ export const Vertexsnap = {
 					var local_offset = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
 					ignoreVectorAxes(local_offset);
 
-					for (i=0; i<3; i++) {
+					for (let i=0; i<3; i++) {
 						if (m[i] === 1) {
 							obj.to[i] = obj.to[i] + local_offset.getComponent(i);
 						} else {

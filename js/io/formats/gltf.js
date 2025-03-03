@@ -181,7 +181,7 @@ export function buildSkinnedMesh(root_group, scale) {
 	function addGroup(group, parent_bone) {
 		if (group.export == false) return;
 
-		for (child of group.children) {
+		for (let child of group.children) {
 			if (!child.faces || child.export == false) continue;
 			let {geometry} = child.mesh;
 			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
@@ -238,7 +238,7 @@ export function buildSkinnedMesh(root_group, scale) {
 			parent_bone.add(bone);
 		}
 		// Children
-		for (child of group.children) {
+		for (let child of group.children) {
 			if (child instanceof Group) {
 				addGroup(child, bone);
 			}

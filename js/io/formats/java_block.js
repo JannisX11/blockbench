@@ -134,11 +134,10 @@ var codec = new Codec('java_block', {
 			}
 		}
 		function iterate(arr) {
-			var i = 0;
 			if (!arr || !arr.length) {
 				return;
 			}
-			for (i=0; i<arr.length; i++) {
+			for (let i=0; i<arr.length; i++) {
 				if (arr[i].type === 'cube') {
 					computeCube(arr[i])
 				} else if (arr[i].type === 'group') {

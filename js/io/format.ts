@@ -1,9 +1,277 @@
+import { Vue } from "../../lib/libs";
+import { Blockbench } from "../api";
+import { setProjectTitle } from "../interface/interface";
+import { Settings } from "../interface/settings";
+import { Mode, Modes } from "../modes";
+import { Group } from "../outliner/group";
+import { Canvas } from "../preview/canvas";
+import { DefaultCameraPresets } from "../preview/preview";
+import { Property } from "../util/property";
+
+// @ts-ignore
 window.Format = 0;
 export const Formats = {};
 
 //Formats
-export class ModelFormat {
-	constructor(id, data) {
+interface FormatOptions {
+	id: string
+	icon: string
+	name?: string
+	description?: string
+	category?: string
+	target?: string | string[]
+	confidential?: boolean
+	condition?: ConditionResolvable
+	show_on_start_screen?: boolean
+	show_in_new_list?: boolean
+	can_convert_to?: boolean
+	plugin?: string
+	format_page?: FormatPage
+	onFormatPage?(): void
+	onStart?(): void
+	onSetup?(project: ModelProject, newModel?: boolean): void
+	new?(): boolean
+	convertTo?(): void
+
+	/**
+	 * Enables Box UV on cubes by default or something
+	 */
+	box_uv: boolean
+	/**
+	 * If true, box UV is optional and can be toggled on the project or per cube
+	 */
+	optional_box_uv: boolean
+	/**
+	 * If true, only one texture can be assigned to the model at a time, instead of textures being assigned per face
+	 */
+	single_texture: boolean
+	/**
+	 * If true, a single texture is used as default, but textures can still be assigned to faces
+	 */
+	single_texture_default: boolean
+	/**
+	 * If true, textures can be assigned per group instead of per face
+	 */
+	per_group_texture: boolean
+	/**
+	 * If true, UV size (the size of the texture in UV space) will be defined per texture and not per project
+	 */
+	per_texture_uv_size: boolean
+	/**
+	 * Enable a model identifier field in the project settings. Default is true
+	 */
+	model_identifier: boolean
+	/**
+	 * If true, the file name of a project will be editable in the project settings
+	 */
+	legacy_editable_file_name: boolean
+	/**
+	 * If true, enables a field in the project settings to set a parent model ID
+	 */
+	parent_model_id: boolean
+	/**
+	 * Adds a toggle in the project settings to enable project wide vertex color ambient occlusion
+	 */
+	vertex_color_ambient_occlusion: boolean
+	/**
+	 * Enable flipbook animated textures
+	 */
+	animated_textures: boolean
+	/**
+	 * Enable groups to work as bones and rig the model
+	 */
+	bone_rig: boolean
+	/**
+	 * Align the grid center with the model origin, instead of the grid corner
+	 */
+	centered_grid: boolean
+	/**
+	 * Add the ability to rotate cubes
+	 */
+	rotate_cubes: boolean
+	/**
+	 * Add the ability to stretch cubes. Stretch scales cubes from the center without affecting UV
+	 */
+	stretch_cubes: boolean
+	/**
+	 * If true, cube sizes are limited to integer values
+	 */
+	integer_size: boolean
+	/**
+	 * Enable mesh elements
+	 */
+	meshes: boolean
+	/**
+	 * Enable texture meshes
+	 */
+	texture_meshes: boolean
+	/**
+	 * Enable locators
+	 */
+	locators: boolean
+	/**
+	 * Enforces a rotation limit for cubes of up to 45 degrees in either direction and one axis at a time
+	 */
+	rotation_limit: boolean
+	/**
+	 * Forces cube rotations to snap to 22.5 degree increments
+	 */
+	rotation_snap: boolean
+	/**
+	 * Allows cube UVs to be rotated
+	 */
+	uv_rotation: boolean
+	/**
+	 * Enables Minecraft Java block/item model specific cube face features (tint and export)
+	 */
+	java_face_properties: boolean
+	/**
+	 * Allows assigning one texture to be used as a texture for particles related to the model
+	 */
+	select_texture_for_particles: boolean
+	/**
+	 * Enable mcmeta files for animated texture files
+	 */
+	texture_mcmeta: boolean
+	/**
+	 * Enables an option to set an expression for bone bindings
+	 */
+	bone_binding_expression: boolean
+	/**
+	 * If true, animations will be saved into files
+	 */
+	animation_files: boolean
+	/**
+	 * Enables a folder path per texture that can be set in the texture properties window
+	 */
+	texture_folder: boolean
+	/**
+	 * Enables the 2D image editor
+	 */
+	image_editor: boolean
+	/**
+	 * Enables edit mode. Default is true
+	 */
+	edit_mode: boolean
+	/**
+	 * Enables paint mode. Default is true
+	 */
+	paint_mode: boolean
+	/**
+	 * Enables display mode
+	 */
+	display_mode: boolean
+	/**
+	 * Emaböes animation mode
+	 */
+	animation_mode: boolean
+	/**
+	 * Enables pose mode
+	 */
+	pose_mode: boolean
+	/**
+	 * Enables animation controllers
+	 */
+	animation_controllers: boolean
+	/**
+	 * If true, cube sizes will not be floored to calculate UV sizes with box UV. This can result in UVs not aligning with pixel edges
+	 */
+	box_uv_float_size: boolean
+	/**
+	 * Enables properties for Minecraft Java block/item models related to block shading (shading option and light emission value)
+	 */
+	java_cube_shading_properties: boolean
+	/**
+	 * Enables cullfaces, the ability on faces in Minecraft block models to set a direction, that, if covered by another block, will cause the face to unrender
+	 */
+	cullfaces: boolean
+	/**
+	 * A set of characters that is allowed in node names (names of elements and groups that can be referenced externally, this does not apply to cubes or meshes)
+	 */
+	node_name_regex: string
+	/**
+	 * Set the default render sides for textures
+	 */
+	render_sides: 'front' | 'double' | 'back' | (() => 'front' | 'double' | 'back')
+
+	/**
+	 * Options to limit the size of cubes
+	 */
+	cube_size_limiter?: CubeSizeLimiter
+
+	codec?: Codec
+	onActivation?(): void
+	onDeactivation?(): void
+}
+
+export class ModelFormat implements FormatOptions {
+	id: string
+	icon: string
+	name: string
+	description: string
+	category: string
+	target: string | string[]
+	confidential: boolean
+	condition: ConditionResolvable
+	show_on_start_screen: boolean
+	show_in_new_list: boolean
+	can_convert_to: boolean
+	plugin: string
+	format_page?: FormatPage
+	onFormatPage?(): void
+	onStart?(): void
+	onSetup?(project: ModelProject, newModel?: boolean): void
+
+	box_uv: boolean
+	optional_box_uv: boolean
+	single_texture: boolean
+	single_texture_default: boolean
+	per_group_texture: boolean
+	per_texture_uv_size: boolean
+	model_identifier: boolean
+	legacy_editable_file_name: boolean
+	parent_model_id: boolean
+	vertex_color_ambient_occlusion: boolean
+	animated_textures: boolean
+	bone_rig: boolean
+	centered_grid: boolean
+	rotate_cubes: boolean
+	stretch_cubes: boolean
+	integer_size: boolean
+	meshes: boolean
+	texture_meshes: boolean
+	locators: boolean
+	rotation_limit: boolean
+	rotation_snap: boolean
+	uv_rotation: boolean
+	java_face_properties: boolean
+	select_texture_for_particles: boolean
+	texture_mcmeta: boolean
+	bone_binding_expression: boolean
+	animation_files: boolean
+	texture_folder: boolean
+	image_editor: boolean
+	edit_mode: boolean
+	paint_mode: boolean
+	display_mode: boolean
+	animation_mode: boolean
+	pose_mode: boolean
+	animation_controllers: boolean
+	box_uv_float_size: boolean
+	java_cube_shading_properties: boolean
+	cullfaces: boolean
+	node_name_regex: string
+	render_sides: 'front' | 'double' | 'back' | (() => 'front' | 'double' | 'back')
+
+	cube_size_limiter?: CubeSizeLimiter
+
+	codec?: Codec
+	onActivation?(): void
+	onDeactivation?(): void
+
+	static properties: Record<string, Property>
+
+	constructor(id, data: FormatOptions) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
@@ -16,10 +284,7 @@ export class ModelFormat {
 		this.category = data.category || 'other';
 		this.target = data.target;
 		this.show_on_start_screen = true;
-		this.show_in_new_list = true;
-		this.can_convert_to = true;
 		this.confidential = false;
-		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -56,7 +321,7 @@ export class ModelFormat {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
-		Format = Project.format = this;
+		Blockbench.Format = Blockbench.Project.format = this;
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
@@ -74,13 +339,15 @@ export class ModelFormat {
 		Settings.updateSettingsInProfiles();
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
-				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1])
+				// @ts-ignore Incompatible internal and external types
+				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1] as AnglePreset)
 			}
 		})
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
 		}
-		Interface.Panels.animations.inside_vue._data.animation_files_enabled = this.animation_files;
+		Interface.Panels.animations.inside_vue.$data.animation_files_enabled = this.animation_files;
+		// @ts-ignore
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
 		if (Modes.vue) Modes.vue.$forceUpdate();
@@ -90,11 +357,13 @@ export class ModelFormat {
 		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
 		return this;
 	}
-	new() {
+	new(): boolean {
+		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
-			BarItems.project_window.click();
+			(BarItems.project_window as Action).click();
 			return true;
 		}
+		return false;
 	}
 	convertTo() {
 
@@ -148,7 +417,9 @@ export class ModelFormat {
 					el.addTo(root_group)
 				})
 			}
+			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
+				// @ts-ignore
 				Project.geometry_name = Project.name;
 			}
 		}
@@ -174,7 +445,8 @@ export class ModelFormat {
 
 		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
 			let texture = Texture.getDefault();
-			Outliner.elements.filter(el => el.applyTexture).forEach(el => {
+			Outliner.elements.filter((el: OutlinerElement) => 'applyTexture' in el).forEach(el => {
+				// @ts-ignore
 				el.applyTexture(texture, true)
 			})
 		}
@@ -251,6 +523,7 @@ export class ModelFormat {
 	}
 	delete() {
 		delete Formats[this.id];
+		// @ts-ignore
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
