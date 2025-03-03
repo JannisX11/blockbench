@@ -80,17 +80,22 @@ export class Toolbar {
 			}
 		}
 	}
+	/**
+	 * Builds the toolbar from data
+	 * @param {object} data Data used to build the toolbar
+	 * @param {boolean} force If true, customization data will be ignored. Used when resetting toolbar
+	 */
 	build(data, force) {
 		var scope = this;
 		//Items
 		this.children.length = 0;
 		var items = data.children
-		if (!force && BARS.stored[scope.id] && typeof BARS.stored[scope.id] === 'object') {
-			items = BARS.stored[scope.id]
+		if (!force && BARS.stored[this.id] && typeof BARS.stored[this.id] === 'object') {
+			items = BARS.stored[this.id];
 			if (data.children) {
-				// Add new actions to existing toolbars
+				// Add new actions (newly added via bb update) to existing toolbars
 				data.children.forEach((key, index) => {
-					if (typeof key == 'string' && key.length > 1 && !items.includes(key) && !Keybinds.stored[key] && BarItems[key]) {
+					if (typeof key == 'string' && key.length > 1 && !items.includes(key) && !Keybinds.stored[key] && BARS.stored._known?.includes(key) == false && BarItems[key]) {
 						// Figure out best index based on item before. Otherwise use index from original array
 						let prev_index = items.indexOf(data.children[index-1]);
 						if (prev_index != -1) index = prev_index+1;
@@ -100,7 +105,7 @@ export class Toolbar {
 			}
 		}
 		if (items && items instanceof Array) {
-			var content = $(scope.node).find('div.content')
+			var content = $(this.node).find('div.content')
 			content.children().detach()
 			for (var itemPosition = 0; itemPosition < items.length; itemPosition++) {
 				let item = items[itemPosition];
@@ -112,7 +117,10 @@ export class Toolbar {
 
 					continue;
 				}
-				if (typeof item == 'string') item = BarItems[item]
+				if (typeof item == 'string') {
+					BARS.stored._known?.safePush(item);
+					item = BarItems[item];
+				}
 
 				if (item) {
 					item.pushToolbar(this);
@@ -127,8 +135,8 @@ export class Toolbar {
 				}
 			}
 		}
-		$(scope.node).toggleClass('no_wrap', this.no_wrap)
-		$(scope.node).toggleClass('vertical', this.vertical)
+		$(this.node).toggleClass('no_wrap', this.no_wrap)
+		$(this.node).toggleClass('vertical', this.vertical)
 		if (data.default_place) {
 			this.toPlace(this.id)
 		}
@@ -294,7 +302,10 @@ export class Toolbar {
 			}
 		})
 		BARS.stored[this.id] = arr;
-		if (arr.equals(this.default_children)) {
+		let identical_to_default = this.default_children.length == arr.length && this.default_children.allAre((item, i) => {
+			return arr[i] == item || (typeof arr[i] == 'string' && arr[i].startsWith(item));
+		})
+		if (identical_to_default) {
 			delete BARS.stored[this.id];
 		}
 		// Temporary fix
@@ -325,7 +336,9 @@ Toolbar.prototype.menu = new Menu([
 	])
 
 export const BARS = {
-	stored: {},
+	stored: {
+		_known: []
+	},
 	editing_bar: undefined,
 	action_definers: [],
 	condition: Condition,
@@ -687,6 +700,9 @@ export const BARS = {
 			stored = JSON.parse(stored)
 			if (typeof stored === 'object') {
 				BARS.stored = stored;
+				if (!BARS.stored._known) {
+					BARS.stored._known = [];
+				}
 			}
 		}
 
@@ -808,9 +824,6 @@ export const BARS = {
 				}
 			})
 		}
-		Blockbench.onUpdateTo('4.4.0-beta.0', () => {
-			delete BARS.stored.brush;
-		})
 		Toolbars.brush = new Toolbar({
 			id: 'brush',
 			no_wrap: true,

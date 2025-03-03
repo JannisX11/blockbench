@@ -20,6 +20,7 @@ import "./preview/OrbitControls"
 
 import './languages'
 import "./util/util"
+import "./util/json"
 import "./util/three_custom"
 import "./util/math_util"
 import "./util/array_util"

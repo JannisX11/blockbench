@@ -262,7 +262,7 @@ var codec = new Codec('project', {
 		if (Animation.all.length) {
 			model.animations = [];
 			Animation.all.forEach(a => {
-				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
+				model.animations.push(a.getUndoCopy({absolute_paths: options.absolute_paths}, true))
 			})
 		}
 		if (AnimationController.all.length) {
