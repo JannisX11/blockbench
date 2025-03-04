@@ -120,7 +120,7 @@
 		]
 	},
 	"scripts": {
-		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\"",
+		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
 		"serve": "node ./build.js --target=web --serve",
 		"build-web": "node ./build.js --target=web",
 		"build-electron": "node ./build.js --target=electron",
