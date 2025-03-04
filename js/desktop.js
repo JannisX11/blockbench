@@ -665,7 +665,7 @@ window.onbeforeunload = function (event) {
 		event.returnValue = true;
 		return true;
 	} else {
-		closeBlockbenchWindow();
+		setTimeout(closeBlockbenchWindow, 1);
 		return false;
 	}
 }
@@ -689,7 +689,7 @@ export async function closeBlockbenchWindow() {
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	if (Project.EditSession) Project.EditSession.quit()
-	return currentwindow.close();
+	return window.close();
 };
 
 
