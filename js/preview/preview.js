@@ -12,7 +12,6 @@ var framespersecond = 0;
 var display_mode = false;
 const canvas_scenes = {};
 export const three_grid = new THREE.Object3D();
-export const rot_origin = new THREE.Object3D();
 export const gizmo_colors = {
 	r: new THREE.Color(),
 	g: new THREE.Color(),
@@ -399,7 +398,7 @@ export class Preview {
 				}
 			})
 		}
-		let intersects = this.raycaster.intersectObjects( objects );
+		let intersects = this.raycaster.intersectObjects(objects, false);
 		if (intersects.length == 0) return false;
 
 		let depth_offset = Preview.selected.calculateControlScale(intersects[0].point);
@@ -2488,7 +2487,6 @@ Object.assign(window, {
 	display_area,
 	display_base,
 	three_grid,
-	rot_origin,
 	gizmo_colors,
 	DefaultCameraPresets,
 	Preview,

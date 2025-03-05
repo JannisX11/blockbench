@@ -114,8 +114,8 @@ export const Canvas = {
 	// Main Blockbench 3D scene
 	scene,
 	// Pivot marker
-	pivot_marker: rot_origin,
-	gizmos: [rot_origin],
+	pivot_marker: new THREE.Object3D(),
+	gizmos: [],
 	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
@@ -1409,11 +1409,12 @@ export const Canvas = {
 		return visible_box;
 	}
 }
-var buildGrid = Canvas.buildGrid;
+Canvas.gizmos.push(Canvas.pivot_marker);
 
 Object.assign(window, {
 	getRescalingFactor,
 	Reusable,
 	SolidMaterialShaders,
 	Canvas,
+	buildGrid: Canvas.buildGrid
 });
