@@ -1,3 +1,5 @@
+import { Blockbench } from "../api"
+
 export const Outliner = {
 	root: [],
 	get elements() {
@@ -1984,7 +1986,7 @@ Interface.definePanels(function() {
 				}
 			}
 		}
-		element_panel.form.on('change', ({result}) => {
+		/* element_panel.form.on('change', ({result}) => {
 			let elements = Outliner.selected.slice();
 			Undo.initEdit({elements});
 			for (let element of elements) {
@@ -1997,7 +1999,7 @@ Interface.definePanels(function() {
 			}
 			Undo.finishEdit('Change element property');
 			onchanges.forEach(onchange => onchange(result));
-		})
+		})*/
 		element_panel.form.buildForm();
 	}
 	updateElementForm();

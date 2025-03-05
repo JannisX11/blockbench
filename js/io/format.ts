@@ -8,9 +8,13 @@ import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
 
-// @ts-ignore
-window.Format = 0;
 export const Formats = {};
+
+Object.defineProperty(window, 'Format', {
+	get() {
+		return Blockbench.Format;
+	}
+})
 
 //Formats
 interface FormatOptions {

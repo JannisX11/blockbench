@@ -1,3 +1,5 @@
+import LZUTF8 from '../../lib/lzutf8';
+
 interface JSONCompileOptions {
 	/**
 	 * Indentation string. If omitted, will default to the indentation from Blockbench's settings

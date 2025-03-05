@@ -981,8 +981,6 @@ UndoSystem.selectionSave = class {
 	}
 }
 
-window.Undo = null;
-
 BARS.defineActions(function() {
 	
 	new Action('undo', {
@@ -1078,6 +1076,12 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+})
+
+Object.defineProperty(window, 'Undo', {
+	get() {
+		return Blockbench.Project?.undo;
+	}
 })
 
 Object.assign(window, {UndoSystem});

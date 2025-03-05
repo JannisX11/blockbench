@@ -1,5 +1,6 @@
+import LZUTF8 from './../../../lib/lzutf8'
 
-let FORMATV = '4.10';
+const FORMATV = '4.10';
 
 function processHeader(model) {
 	if (!model.meta) {

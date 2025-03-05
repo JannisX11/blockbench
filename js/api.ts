@@ -1,5 +1,6 @@
 import { MessageBox } from "./interface/dialog";
-import { mouse_pos, Prop } from "./misc";
+import { ModelFormat } from "./io/format";
+import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
 import { compareVersions } from "./util/util";
 
@@ -336,23 +337,10 @@ export const Blockbench = {
 		}
 	},
 	// Globals
-	get Format() {
-		return Format;
-	},
-	set Format(format) {
-		Format = format;
-	},
-	get Project() {
-		return Project;
-	},
-	set Project(project) {
-		Project = project;
-	},
+	Format: 0 as (ModelFormat | number),
+	Project: 0 as (ModelProject | number),
 	get Undo() {
-		return Undo;
-	},
-	set Undo(undo_system) {
-		Undo = undo_system;
+		return Project?.undo;
 	}
 };
 

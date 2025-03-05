@@ -183,7 +183,6 @@ export class ModelProject {
 	}
 	loadEditorState() {
 		Blockbench.Project = this;
-		Blockbench.Undo = this.undo;
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
@@ -329,7 +328,6 @@ export class ModelProject {
 		MirrorModeling.cached_elements = {};
 		Blockbench.Format = 0;
 		Blockbench.Project = 0;
-		Blockbench.Undo = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
 
@@ -538,7 +536,11 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-window.Project = 0;
+Object.defineProperty(window, 'Project', {
+	get() {
+		return Blockbench.Project;
+	}
+})
 
 let ProjectData = {};
 
@@ -599,7 +601,6 @@ export function selectNoProject() {
 	setStartScreen(true);
 	
 	Blockbench.Project = 0;
-	Blockbench.Undo = null;
 
 	// Setup Data
 	OutlinerNode.uuids = {};
