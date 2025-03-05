@@ -1,4 +1,4 @@
-class PreviewScene {
+export class PreviewScene {
 	constructor(id, data = 0) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
@@ -165,7 +165,7 @@ PreviewScene.menu_categories = {
 	},
 };
 
-class PreviewModel {
+export class PreviewModel {
 	constructor(id, data) {
 		PreviewModel.models[id] = this;
 		this.id = id;
@@ -465,7 +465,7 @@ new PreviewScene('minecraft_end', {
 });
 
 
-let player_preview_model = new PreviewModel('minecraft_player', {
+export const player_preview_model = new PreviewModel('minecraft_player', {
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
 	position: [30, 0, 8],
@@ -727,7 +727,7 @@ player_preview_model.updateArmVariant = function(slim) {
 }
 
 StateMemory.init('minecraft_eula_accepted', 'object');
-const MinecraftEULA = {
+export const MinecraftEULA = {
 	isAccepted(key) {
 		return StateMemory.minecraft_eula_accepted[key];
 	},
@@ -808,4 +808,11 @@ BARS.defineActions(function() {
 
 		}
 	})
+})
+
+Object.assign(window, {
+	PreviewScene,
+	PreviewModel,
+	MinecraftEULA,
+	player_preview_model
 })

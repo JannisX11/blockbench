@@ -1,13 +1,13 @@
-var ground_animation = false;
+
 var ground_timer = 0
 var display_slot = 'thirdperson_righthand';
 var display_presets;
 var display_preview;
 var enterDisplaySettings, exitDisplaySettings;
-const DisplayMode = {};
+export const DisplayMode = {};
 
 
-class DisplaySlot {
+export class DisplaySlot {
 	constructor(id, data) {
 		this.slot_id = id;
 		this.default()
@@ -104,7 +104,6 @@ class DisplaySlot {
 	}
 }
 
-(function() {
 
 
 display_presets = [
@@ -256,7 +255,7 @@ if (localStorage.getItem('display_presets') != null) {
 
 
 
-class refModel {
+export class refModel {
 	constructor(id, options = 0) {
 		var scope = this;
 		this.model = new THREE.Object3D();
@@ -541,7 +540,7 @@ class refModel {
 		DisplayMode.vue.reference_model = this.id;
 
 		if (display_slot == 'ground') {
-			ground_animation = this.id != 'fox';
+			Canvas.ground_animation = this.id != 'fox';
 		}
 		
 		ReferenceImage.updateAll()
@@ -1326,7 +1325,7 @@ window.displayReferenceObjects = {
 }
 DisplayMode.slots = displayReferenceObjects.slots
 
-const display_angle_preset = {
+export const display_angle_preset = {
 	projection: 'perspective',
 	position: [-80, 40, -30],
 	target: [0, 8, 0],
@@ -1398,7 +1397,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.updateShading()
 	Canvas.updateRenderSides()
 }
-function resetDisplayBase() {
+export function resetDisplayBase() {
 	display_base.rotation.x = Math.PI / (180 / 0.1);
 	display_base.rotation.y = Math.PI / (180 / 0.1);
 	display_base.rotation.z = Math.PI / (180 / 0.1);
@@ -1523,14 +1522,14 @@ DisplayMode.updateGUILight = function() {
 	Canvas.updateShading();
 } 
 
-function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
+export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
 
 	if (key !== 'gui' && display_preview.isOrtho === true) {
 		display_preview.loadAnglePreset(display_angle_preset)
 	}
 	display_preview.controls.enabled = true;
-	ground_animation = false;
+	Canvas.ground_animation = false;
 	$('#display_crosshair').detach()
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
@@ -1564,7 +1563,7 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function getOptimalFocalLength() {
+export function getOptimalFocalLength() {
 	if (display_preview.camera.aspect > 1.7) {
 		return 18 / display_preview.camera.aspect;
 	} else if (display_preview.camera.aspect > 1.0) {
@@ -1627,7 +1626,7 @@ DisplayMode.loadGround = function() {		//Loader
 		target: [0, 3, 0]
 	})
 	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
-	ground_animation = true;
+	Canvas.ground_animation = true;
 	ground_timer = 0
 	displayReferenceObjects.bar(['block', 'fox'])
 }
@@ -1745,7 +1744,7 @@ window.changeDisplaySkin = function() {
 		}
 	})
 }
-function updateDisplaySkin(feedback) {
+export function updateDisplaySkin(feedback) {
 	var val = settings.display_skin.value
 	function setPSkin(skin, slim) {
 		if (displayReferenceObjects.refmodels.player.material) {
@@ -2081,7 +2080,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.rotation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'rotation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
@@ -2092,7 +2091,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.translation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
 							</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'translation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
@@ -2106,7 +2105,7 @@ Interface.definePanels(function() {
 							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
 							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'mirror.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
@@ -2142,7 +2141,7 @@ Interface.definePanels(function() {
 							<div class="bar display_inline_inputs">
 								<numeric-input class="tool disp_text is_colored"
 									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
-									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-for="axis in axes" :key="'rotation_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
 									v-model.number="slot.rotation_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'rotation_pivot')"
@@ -2158,7 +2157,7 @@ Interface.definePanels(function() {
 							<div class="bar display_inline_inputs">
 								<numeric-input class="tool disp_text is_colored"
 									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
-									v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()"
+									v-for="axis in axes" :key="'scale_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
 									v-model.number="slot.scale_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'scale_pivot')"
@@ -2525,4 +2524,13 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
+Object.assign(window, {
+	DisplayMode,
+	DisplaySlot,
+	refModel,
+	display_angle_preset,
+	resetDisplayBase,
+	loadDisp,
+	getOptimalFocalLength,
+	updateDisplaySkin
+});

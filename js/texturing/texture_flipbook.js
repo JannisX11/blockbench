@@ -1,4 +1,4 @@
-TextureAnimator = {
+export const TextureAnimator = {
 	isPlaying: false,
 	interval: false,
 	frame_total: 0,
@@ -95,8 +95,6 @@ TextureAnimator = {
 
 	editor_dialog: null,
 }
-
-
 
 BARS.defineActions(function() {
 
@@ -712,3 +710,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureAnimator
+});

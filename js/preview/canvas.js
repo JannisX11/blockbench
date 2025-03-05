@@ -1,5 +1,5 @@
 
-function getRescalingFactor(angle) {
+export function getRescalingFactor(angle) {
 	switch (Math.abs(angle)) {
 		case 0:
 			return 1.4142
@@ -19,7 +19,7 @@ function getRescalingFactor(angle) {
 	}
 }
 
-const Reusable = {
+export const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),
 	vec3: new THREE.Vector3(),
@@ -40,7 +40,7 @@ const Reusable = {
 // ---------------------------------------
 // Not sure about the pertinence of doing this, but my reasoning is that it saves us 
 // from copying the exact same shaders twice for both solid view mode variants (monochromatic & colored).
-const SolidMaterialShaders = {
+export const SolidMaterialShaders = {
 	vertShader: `
 		attribute float highlight;
 
@@ -108,14 +108,15 @@ const SolidMaterialShaders = {
 		}`
 }
 
-const Canvas = {
+export const Canvas = {
 	// Stores various colors for the 3D scene
 	gizmo_colors,
 	// Main Blockbench 3D scene
 	scene,
 	// Pivot marker
-	pivot_marker: rot_origin,
-	gizmos: [rot_origin],
+	pivot_marker: new THREE.Object3D(),
+	gizmos: [],
+	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		depthTest: settings.seethrough_outline.value == false,
@@ -554,7 +555,7 @@ const Canvas = {
 				side_grid.add(grid.clone())
 
 				//North
-				geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				let geometry = new THREE.PlaneGeometry(2.4, 2.4)
 				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 				if (Format.centered_grid) {
 					north_mark.position.set(0,0,-9.5)
@@ -567,7 +568,7 @@ const Canvas = {
 		}
 		if (settings.large_box.value === true) {
 			let size = Format.cube_size_limiter?.box_marker_size || [48, 48, 48];
-			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(...size));
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxGeometry(...size));
 
 			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 			var large_box = new THREE.LineSegments( geometry_box, line_material);
@@ -619,7 +620,7 @@ const Canvas = {
 		//Light
 		Sun = new THREE.AmbientLight( 0xffffff );
 		Sun.name = 'sun'
-		scene.add(Sun);
+		Canvas.scene.add(Sun);
 		Sun.intensity = 0.5
 
 		lights = new THREE.Object3D()
@@ -768,7 +769,7 @@ const Canvas = {
 				}
 			`,
 		})
-		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
+		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brush_outline_material);
 		Canvas.brush_outline.matrixAutoUpdate = false;
 		Canvas.gizmos.push(Canvas.brush_outline);
 
@@ -821,8 +822,6 @@ const Canvas = {
 		Canvas.ground_plane.visible = settings.ground_plane.value;
 		scene.add(Canvas.ground_plane);
 		Canvas.gizmos.push(Canvas.ground_plane);
-
-		setupGrid = true;
 	},
 	//Misc
 	raycast(event) {
@@ -858,9 +857,9 @@ const Canvas = {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
-		var ground_anim_before = ground_animation
-		if (Modes.display && ground_animation) {
-			ground_animation = false
+		var ground_anim_before = Canvas.ground_animation
+		if (Modes.display && Canvas.ground_animation) {
+			Canvas.ground_animation = false
 		}
 		updateCubeHighlights(null, true);
 
@@ -875,7 +874,7 @@ const Canvas = {
 			delete obj.was_visible
 		})
 		if (Modes.display && ground_anim_before) {
-			ground_animation = ground_anim_before
+			Canvas.ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();
 	},
@@ -1410,4 +1409,12 @@ const Canvas = {
 		return visible_box;
 	}
 }
-var buildGrid = Canvas.buildGrid;
+Canvas.gizmos.push(Canvas.pivot_marker);
+
+Object.assign(window, {
+	getRescalingFactor,
+	Reusable,
+	SolidMaterialShaders,
+	Canvas,
+	buildGrid: Canvas.buildGrid
+});

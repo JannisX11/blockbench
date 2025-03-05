@@ -1,5 +1,3 @@
-(function() {
-
 let item_parents = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -136,11 +134,10 @@ var codec = new Codec('java_block', {
 			}
 		}
 		function iterate(arr) {
-			var i = 0;
 			if (!arr || !arr.length) {
 				return;
 			}
-			for (i=0; i<arr.length; i++) {
+			for (let i=0; i<arr.length; i++) {
 				if (arr[i].type === 'cube') {
 					computeCube(arr[i])
 				} else if (arr[i].type === 'group') {
@@ -239,7 +236,7 @@ var codec = new Codec('java_block', {
 			}
 		}
 		if (checkExport('groups', (settings.export_groups.value && Group.all.length))) {
-			groups = compileGroups(false, element_index_lut)
+			let groups = compileGroups(false, element_index_lut)
 			var i = 0;
 			while (i < groups.length) {
 				if (typeof groups[i] === 'object') {
@@ -347,7 +344,7 @@ var codec = new Codec('java_block', {
 
 		if (model.elements) {
 			model.elements.forEach(function(obj) {
-				base_cube = new Cube(obj)
+				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
 				var faces_without_uv = false;
@@ -627,5 +624,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

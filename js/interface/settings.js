@@ -1,6 +1,6 @@
-const settings = {};
+export const settings = {};
 
-class Setting {
+export class Setting {
 	constructor(id, data) {
 		this.id = id;
 		settings[id] = this;
@@ -209,7 +209,7 @@ class Setting {
 	}
 }
 
-class SettingsProfile {
+export class SettingsProfile {
 	constructor(data = 0) {
 		this.uuid = guid();
 		this.name = data.name || 'New Profile';
@@ -356,7 +356,7 @@ SettingsProfile.unselect = function(update = true) {
 	}
 }
 
-const Settings = {
+export const Settings = {
 	structure: {},
 	stored: {},
 	setup() {
@@ -782,7 +782,7 @@ const Settings = {
 }
 Settings.setup()
 
-function updateStreamerModeNotification() {
+export function updateStreamerModeNotification() {
 	$('#start_screen section#streamer_mode').detach()
 
 	if (settings.streamer_mode.value) {
@@ -1120,3 +1120,10 @@ onVueSetup(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	settings,
+	Setting,
+	SettingsProfile,
+	Settings,
+});

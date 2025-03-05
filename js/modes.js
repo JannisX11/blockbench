@@ -1,4 +1,4 @@
-class Mode extends KeybindItem {
+export class Mode extends KeybindItem {
 	constructor(id, data) {
 		if (typeof id == 'object') {
 			data = id;
@@ -114,8 +114,9 @@ class Mode extends KeybindItem {
 		}
 		delete Modes.options[this.id];
 	}
+	static selected = null;
 }
-const Modes = {
+export const Modes = {
 	get id() {
 		return Mode.selected ? Mode.selected.id : ''
 	},
@@ -192,7 +193,7 @@ BARS.defineActions(function() {
 			Outliner.elements.forEach(cube => {
 				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
-			$('#main_colorpicker').spectrum('set', ColorPanel.vue._data.main_color);
+			$('#main_colorpicker').spectrum('set', ColorPanel.panel.vue._data.main_color);
 			if (StateMemory.color_picker_rgb) {
 				BarItems.slider_color_red.update();
 				BarItems.slider_color_green.update();
@@ -261,3 +262,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Mode,
+	Modes
+});

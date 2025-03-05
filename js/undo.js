@@ -1,4 +1,4 @@
-class UndoSystem {
+export class UndoSystem {
 	constructor() {
 		this.index = 0;
 		this.history = [];
@@ -981,8 +981,6 @@ UndoSystem.selectionSave = class {
 	}
 }
 
-let Undo = null;
-
 BARS.defineActions(function() {
 	
 	new Action('undo', {
@@ -1079,3 +1077,11 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.defineProperty(window, 'Undo', {
+	get() {
+		return Blockbench.Project?.undo;
+	}
+})
+
+Object.assign(window, {UndoSystem});

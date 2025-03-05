@@ -1,5 +1,3 @@
-(function() {
-
 var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
@@ -405,4 +403,3 @@ BARS.defineActions(function() {
 	})
 })
 
-})()

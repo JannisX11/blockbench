@@ -1,5 +1,5 @@
 
-class Locator extends OutlinerElement {
+export class Locator extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -205,3 +205,6 @@ BARS.defineActions(function() {
 		}
 	})
 })
+Object.assign(window, {
+	Locator
+});

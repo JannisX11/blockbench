@@ -1,5 +1,5 @@
 
-class NullObject extends OutlinerElement {
+export class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -299,3 +299,7 @@ BARS.defineActions(function() {
 
 	})
 })
+
+Object.assign(window, {
+	NullObject
+});

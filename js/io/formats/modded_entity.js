@@ -1,5 +1,3 @@
-(function() {
-
 function F(num) {
 	var s = trimFloatNumber(num) + '';
 	if (!s.includes('.')) {
@@ -10,7 +8,7 @@ function F(num) {
 function I(num) {
 	return Math.floor(num)
 }
-const Templates = {
+export const Templates = {
 	'1.12': {
 		name: 'Forge 1.7 - 1.13',
 		remember: true,
@@ -338,7 +336,7 @@ const Templates = {
 		return new RegExp(`%\\(${name}\\)`, 'g');
 	}
 }
-const AnimationTemplates = {
+export const AnimationTemplates = {
 	'mojang': {
 		name: 'Mojmaps',
 		file:
@@ -1140,5 +1138,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

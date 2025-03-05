@@ -1,3 +1,5 @@
+import saveAs from 'file-saver'
+
 Object.assign(Blockbench, {
 	import(options, cb) {
 		if (typeof options !== 'object') {options = {}}
@@ -550,7 +552,7 @@ document.body.ondragleave = function(event) {
 	})
 }
 
-function forDragHandlers(event, cb) {
+export function forDragHandlers(event, cb) {
 	if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
 		return; 
 	}

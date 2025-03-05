@@ -1,3 +1,8 @@
+import { Blockbench } from "./api";
+import { translateUI } from "./languages";
+import { loadInstalledPlugins } from "./plugin_loader";
+import { animate } from "./preview/preview";
+
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
 Interface.center_screen = document.getElementById('center');
@@ -50,7 +55,7 @@ translateUI()
 Settings.setupProfiles();
 
 console.log(`Three.js r${THREE.REVISION}`)
-console.log('%cBlockbench ' + appVersion + (isApp
+console.log('%cBlockbench ' + Blockbench.version + (isApp
 	? (' Desktop (' + Blockbench.operating_system + ', ' + process.arch +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
@@ -115,11 +120,6 @@ Blockbench.on('before_closing', (event) => {
 		Settings.saveLocalStorages()
 	}
 })
-
-setInterval(function() {
-	Prop.fps = framespersecond;
-	framespersecond = 0;
-}, 1000)
 
 updateProjectResolution()
 

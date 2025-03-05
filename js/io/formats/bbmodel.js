@@ -1,6 +1,6 @@
-(function() {
+import LZUTF8 from './../../../lib/lzutf8'
 
-let FORMATV = '4.10';
+const FORMATV = '4.10';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -263,7 +263,7 @@ var codec = new Codec('project', {
 		if (Animation.all.length) {
 			model.animations = [];
 			Animation.all.forEach(a => {
-				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
+				model.animations.push(a.getUndoCopy({absolute_paths: options.absolute_paths}, true))
 			})
 		}
 		if (AnimationController.all.length) {
@@ -848,5 +848,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

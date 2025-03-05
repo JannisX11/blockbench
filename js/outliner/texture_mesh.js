@@ -1,4 +1,4 @@
-class TextureMesh extends OutlinerElement {
+export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		
@@ -362,3 +362,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureMesh
+});

@@ -17,7 +17,7 @@ import vi from './../lang/vi.json';
 import zh from './../lang/zh.json';
 import zh_tw from './../lang/zh_tw.json';
 
-const data = {
+export const data = {
 	cz: cz,
 	de: de,
 	en: en,
@@ -37,7 +37,7 @@ const data = {
 	zh_tw: zh_tw,
 };
 
-window.tl = function(string, variables, default_value) {
+export const tl = function(string, variables, default_value) {
 	if (string && string.length > 100) return string;
 	var result = Language.data[string]
 	if (result && result.length > 0) {
@@ -58,14 +58,14 @@ window.tl = function(string, variables, default_value) {
 		return string;
 	}
 }
-window.translateUI = function() {
+export const translateUI = function() {
 	$('.tl').each(function(i, obj) {
 		var text = tl($(obj).text())
 		$(obj).text(text)
 	})
 }
 
-window.Language = {
+export const Language = {
 	data: {},
 	code: 'en',
 	options: {
@@ -114,3 +114,8 @@ if (code && Language.options[code]) {
 
 
 Language.data = data[Language.code];
+
+Object.assign(window, {
+	tl,
+	Language
+})

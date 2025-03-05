@@ -1,4 +1,4 @@
-class ReferenceImage {
+export class ReferenceImage {
 	constructor(data = {}) {
 
 		this.name = '';
@@ -920,7 +920,7 @@ Blockbench.on('timeline_pause', () => {
 	})
 })
 
-const ReferenceImageMode = {
+export const ReferenceImageMode = {
 	active: false,
 	toolbar: null,
 	activate() {
@@ -1162,4 +1162,9 @@ Interface.definePanels(function() {
 			'toggle_all_reference_images',
 		]
 	})
+})
+
+Object.assign(window, {
+	ReferenceImage,
+	ReferenceImageMode,
 })

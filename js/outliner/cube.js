@@ -1,4 +1,4 @@
-class CubeFace extends Face {
+export class CubeFace extends Face {
 	constructor(direction, data, cube) {
 		super();
 		this.texture = false;
@@ -129,7 +129,7 @@ CubeFace.opposite = {
 	up: 'down'
 }
 
-class Cube extends OutlinerElement {
+export class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
@@ -1043,7 +1043,7 @@ new Property(Cube, 'enum', 'render_order', {
 
 OutlinerElement.registerType(Cube, 'cube');
 
-function adjustFromAndToForInflateAndStretch(from, to, element) {
+export function adjustFromAndToForInflateAndStretch(from, to, element) {
 	var halfSize = element.size().slice();
 	halfSize.forEach((v, i) => {
 		halfSize[i] /= 2;
@@ -1663,3 +1663,10 @@ BARS.defineActions(function() {
 		BarItems.cube_light_emission.setValue(value);
 	})
 })
+
+
+Object.assign(window, {
+	CubeFace,
+	Cube,
+	adjustFromAndToForInflateAndStretch
+});

@@ -1,4 +1,6 @@
-class GeneralAnimator {
+import Wintersky from 'wintersky';
+
+export class GeneralAnimator {
 	constructor(uuid, animation) {
 		this.animation = animation;
 		this.expanded = false;
@@ -177,7 +179,7 @@ GeneralAnimator.addChannel = function(channel, options) {
 	})
 	Timeline.vue.$forceUpdate();
 }
-class BoneAnimator extends GeneralAnimator {
+export class BoneAnimator extends GeneralAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
@@ -399,6 +401,7 @@ class BoneAnimator extends GeneralAnimator {
 			}
 		}
 
+		let i = 0;
 		for (var keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
@@ -534,7 +537,7 @@ class BoneAnimator extends GeneralAnimator {
 		'apply_animation_preset'
 	])
 
-class NullObjectAnimator extends BoneAnimator {
+export class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
@@ -734,7 +737,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	NullObject.animator = NullObjectAnimator;
 
-class EffectAnimator extends GeneralAnimator {
+export class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
 		super(null, animation);
 		this.last_displayed_time = 0;
@@ -968,3 +971,10 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+Object.assign(window, {
+	GeneralAnimator,
+	BoneAnimator,
+	NullObjectAnimator,
+	EffectAnimator
+});

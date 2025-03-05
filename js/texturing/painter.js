@@ -1,5 +1,6 @@
 StateMemory.init('brush_presets', 'array')
-const Painter = {
+
+export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
 	current: {/*texture, image*/},
@@ -1678,7 +1679,7 @@ const Painter = {
 			},
 			form: {
 				name: {label: 'generic.name', type: 'text'},
-				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', description: 'action.brush_shape.desc', type: 'select', options: {
+				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', type: 'select', options: {
 					unset: 'generic.unset',
 					square: 'action.brush_shape.square',
 					circle: 'action.brush_shape.circle'
@@ -1842,7 +1843,7 @@ const Painter = {
 	]
 }
 
-class IntMatrix {
+export class IntMatrix {
 	constructor(width = 16, height = 16) {
 		this.width = width;
 		this.height = height;
@@ -2253,7 +2254,6 @@ BARS.defineActions(function() {
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
 	const BlendModes = {
-		set_opacity: 'set_opacity',
 		set_opacity: 'set_opacity',
 		difference: 'difference',
 		default: 'default',
@@ -3186,3 +3186,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Painter,
+	IntMatrix,
+});

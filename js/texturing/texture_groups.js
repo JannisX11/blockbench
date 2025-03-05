@@ -1,5 +1,5 @@
 
-class TextureGroup {
+export class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
@@ -269,7 +269,7 @@ Blockbench.on('edit_texture', ({texture}) => {
 	}
 })
 
-class TextureGroupMaterialConfig {
+export class TextureGroupMaterialConfig {
 	constructor(texture_group, data) {
 		this.texture_group = texture_group;
 		this.saved = true;
@@ -398,7 +398,7 @@ class TextureGroupMaterialConfig {
 						a: this.color_value[3] / 255
 					}
 				},
-				'mer': '_',
+				'mer_section': '_',
 				mer: {
 					type: 'select',
 					label: 'dialog.material_config.mer',
@@ -412,7 +412,7 @@ class TextureGroupMaterialConfig {
 					min: 0, max: 255, step: 1, force_step: true,
 					value: this.mer_value.map(v => Math.clamp(v, 0, 255)),
 				},
-				'depth': '_',
+				'depth_section': '_',
 				depth_type: {
 					type: 'inline_select',
 					label: 'dialog.material_config.depth_type',
@@ -527,7 +527,7 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 	}
 })
 
-function importTextureSet(file) {
+export function importTextureSet(file) {
 	let new_textures = [], new_texture_groups = [];
 	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
 	if (file.name.endsWith('texture_set.json')) {
@@ -814,4 +814,10 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+});
+
+Object.assign(window, {
+	TextureGroup,
+	TextureGroupMaterialConfig,
+	importTextureSet,
 });

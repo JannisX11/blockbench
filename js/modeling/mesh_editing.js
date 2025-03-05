@@ -1,8 +1,8 @@
-function sameMeshEdge(edge_a, edge_b) {
+export function sameMeshEdge(edge_a, edge_b) {
 	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
 }
 
-const ProportionalEdit = {
+export const ProportionalEdit = {
 	vertex_weights: {},
 	calculateWeights(mesh) {
 		if (!BarItems.proportional_editing.value) return;
@@ -98,7 +98,7 @@ const ProportionalEdit = {
 	}
 }
 
-class KnifeToolContext {
+export class KnifeToolContext {
 	/**
 	 * Click
 	 * Create point
@@ -639,7 +639,7 @@ class KnifeToolContext {
 	}
 	static current = null;
 }
-class KnifeToolCubeContext {
+export class KnifeToolCubeContext {
 	constructor(cube) {
 		this.cube = cube;
 		this.face;
@@ -861,7 +861,7 @@ class KnifeToolCubeContext {
 }
 KnifeToolCubeContext.map.magFilter = KnifeToolCubeContext.map.minFilter = THREE.NearestFilter;
 
-async function autoFixMeshEdit() {
+export async function autoFixMeshEdit() {
 	let meshes = Mesh.selected;
 	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
 
@@ -1045,7 +1045,7 @@ async function autoFixMeshEdit() {
 	}
 }
 
-function cleanupOverlappingMeshFaces(mesh) {
+export function cleanupOverlappingMeshFaces(mesh) {
 	for (let fkey in mesh.faces) {
 		let face = mesh.faces[fkey];
 		if (face.vertices.length < 2) {
@@ -3662,4 +3662,13 @@ BARS.defineActions(function() {
 		})
 	})
 	ProportionalEdit.config = BarItems.proportional_editing.tool_config.options;
+})
+
+Object.assign(window, {
+	sameMeshEdge,
+	ProportionalEdit,
+	KnifeToolContext,
+	KnifeToolCubeContext,
+	autoFixMeshEdit,
+	cleanupOverlappingMeshFaces,
 })

@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 const index_path = './index.html';
 const cname_path = './CNAME';
 

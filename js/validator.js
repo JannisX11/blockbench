@@ -1,4 +1,4 @@
-const Validator = {
+export const Validator = {
 	checks: [],
 
 	warnings: [],
@@ -93,7 +93,7 @@ const Validator = {
 };
 
 
-class ValidatorCheck {
+export class ValidatorCheck {
 	constructor(id, options) {
 		this.id = id;
 
@@ -375,3 +375,5 @@ new ValidatorCheck('zero_wide_uv_faces', {
 		}
 	}
 })
+
+Object.assign(window, {Validator, ValidatorCheck});

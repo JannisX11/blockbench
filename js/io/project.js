@@ -1,4 +1,6 @@
-class ModelProject {
+import { setProjectTitle } from "../interface/interface";
+
+export class ModelProject {
 	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
@@ -180,8 +182,7 @@ class ModelProject {
 		return this;
 	}
 	loadEditorState() {
-		Project = this;
-		Undo = this.undo;
+		Blockbench.Project = this;
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
@@ -325,9 +326,8 @@ class ModelProject {
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
 		MirrorModeling.cached_elements = {};
-		Format = 0;
-		Project = 0;
-		Undo = 0;
+		Blockbench.Format = 0;
+		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
 
@@ -424,7 +424,7 @@ class ModelProject {
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
-			Project = 0;
+			Blockbench.Project = 0;
 			
 			await AutoBackup.removeBackup(this.uuid);
 
@@ -536,7 +536,11 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-let Project = 0;
+Object.defineProperty(window, 'Project', {
+	get() {
+		return Blockbench.Project;
+	}
+})
 
 let ProjectData = {};
 
@@ -559,7 +563,7 @@ ModelProject.prototype.menu = new Menu([
 ])
 
 // Setup ModelProject for loaded project
-function setupProject(format, uuid) {
+export function setupProject(format, uuid) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
 	new ModelProject({format}, uuid).select();
@@ -578,7 +582,7 @@ function setupProject(format, uuid) {
 	return true;
 }
 // Setup brand new project
-function newProject(format) {
+export function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
@@ -593,11 +597,10 @@ function newProject(format) {
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
-function selectNoProject() {
+export function selectNoProject() {
 	setStartScreen(true);
 	
-	Project = 0;
-	Undo = null;
+	Blockbench.Project = 0;
 
 	// Setup Data
 	OutlinerNode.uuids = {};
@@ -625,14 +628,14 @@ function selectNoProject() {
 
 	Blockbench.dispatchEvent('select_no_project', {});
 }
-function updateTabBarVisibility() {
+export function updateTabBarVisibility() {
 	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
 	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
 	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
 
 // Resolution
-function setProjectResolution(width, height, modify_uv) {
+export function setProjectResolution(width, height, modify_uv) {
 	if (Project.texture_width / width != Project.texture_width / height) {
 		modify_uv = false;
 	}
@@ -694,7 +697,7 @@ function setProjectResolution(width, height, modify_uv) {
 		UVEditor.loadData()
 	}
 }
-function updateProjectResolution() {
+export function updateProjectResolution() {
 	if (!Format.per_texture_uv_size) {
 		if (Interface.Panels.uv) {
 			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
@@ -710,7 +713,7 @@ function updateProjectResolution() {
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
-function setStartScreen(state) {
+export function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
 	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
@@ -738,7 +741,7 @@ onVueSetup(() => {
 			if (Project) {
 				Project.unselect()
 			}
-			Project = 0;
+			Blockbench.Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 			updateInterface();
@@ -1273,3 +1276,15 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ModelProject,
+	setupProject,
+	newProject,
+	selectNoProject,
+	updateTabBarVisibility,
+	setProjectResolution,
+	updateProjectResolution,
+	setStartScreen,
+});

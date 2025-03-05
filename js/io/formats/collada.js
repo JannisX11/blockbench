@@ -1,4 +1,3 @@
-(function() {
 
 function arrangeArray(array) {
 	return array.map(v => Math.roundTo(v, 6)).join(' ');
@@ -920,9 +919,7 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
-
-function compileXML(object) {
+export function compileXML(object) {
 	let depth = 0;
 	let output = '<?xml version="1.0" encoding="utf-8"?>\n';
 

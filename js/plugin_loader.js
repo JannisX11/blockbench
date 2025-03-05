@@ -1,5 +1,5 @@
 var onUninstall, onInstall;
-const Plugins = {
+export const Plugins = {
 	Vue: [],			//Vue Object
 	installed: [], 		//Simple List of Names
 	json: undefined,	//Json from website
@@ -70,7 +70,7 @@ async function runPluginFile(path, plugin_id) {
 	return file_content;
 }
 
-class Plugin {
+export class Plugin {
 	constructor(id, data) {
 		this.id = id||'unknown';
 		this.installed = false;
@@ -282,7 +282,7 @@ class Plugin {
 
 		// Download files
 		async function copyFileToDrive(origin_filename, target_filename, callback) {
-			var file = originalFs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
 			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
 				response.pipe(file);
 				if (callback) response.on('end', callback);
@@ -406,7 +406,7 @@ class Plugin {
 			// Save
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = originalFs.createWriteStream(Plugins.path+this.id+'.js')
+					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)
@@ -735,7 +735,7 @@ Plugin.prototype.menu = new Menu([
 
 
 // Alias for typescript
-const BBPlugin = Plugin;
+export const BBPlugin = Plugin;
 
 Plugin.register = function(id, data) {
 	if (typeof id !== 'string' || typeof data !== 'object') {
@@ -812,7 +812,7 @@ $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
 	}
 })
 
-async function loadInstalledPlugins() {
+export async function loadInstalledPlugins() {
 	if (!Plugins.loading_promise.resolved) {
 		await Plugins.loading_promise;
 	}
@@ -1648,3 +1648,10 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	Plugins,
+	Plugin,
+	BBPlugin
+});

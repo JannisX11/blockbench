@@ -1,4 +1,4 @@
-class KeyframeDataPoint {
+export class KeyframeDataPoint {
 	constructor(keyframe) {
 		this.keyframe = keyframe;
 		for (var key in KeyframeDataPoint.properties) {
@@ -43,7 +43,7 @@ new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), 
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 
-class Keyframe {
+export class Keyframe {
 	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
@@ -592,7 +592,7 @@ class Keyframe {
 	}
 
 // Misc Functions
-function updateKeyframeValue(axis, value, data_point) {
+export function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
 		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
 		if (data_point && !kf.data_points[data_point]) return;
@@ -603,7 +603,7 @@ function updateKeyframeValue(axis, value, data_point) {
 		updateKeyframeSelection();
 	}
 }
-function updateKeyframeSelection() {
+export function updateKeyframeSelection() {
 	Timeline.keyframes.forEach(kf => {
 		if (kf.selected && !Timeline.selected.includes(kf)) {
 			kf.selected = false;
@@ -645,7 +645,7 @@ function updateKeyframeSelection() {
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
-function selectAllKeyframes() {
+export function selectAllKeyframes() {
 	if (!Animation.selected) return;
 	var state = Timeline.selected.length !== Timeline.keyframes.length
 	Timeline.keyframes.forEach((kf) => {
@@ -658,7 +658,7 @@ function selectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function unselectAllKeyframes() {
+export function unselectAllKeyframes() {
 	if (!Animation.selected) return;
 	Timeline.keyframes.forEach((kf) => {
 		Timeline.selected.remove(kf)
@@ -1155,7 +1155,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	flip_action = new Action('flip_animation', {
+	let flip_action = new Action('flip_animation', {
 		icon: 'transfer_within_a_station',
 		category: 'animation',
 		condition: {modes: ['animate'], method: () => Animation.selected},
@@ -1603,4 +1603,13 @@ Interface.definePanels(function() {
 			}
 		}
 	})
+})
+
+Object.assign(window, {
+	KeyframeDataPoint,
+	Keyframe,
+	updateKeyframeValue,
+	updateKeyframeSelection,
+	selectAllKeyframes,
+	unselectAllKeyframes
 })
