@@ -2,12 +2,14 @@ import * as esbuild from 'esbuild'
 import { createRequire } from "module";
 import commandLineArgs from 'command-line-args'
 import path from 'path';
+import { writeFileSync } from 'fs';
 const pkg = createRequire(import.meta.url)("./package.json");
 
 const options = commandLineArgs([
     {name: 'target', type: String},
     {name: 'watch', type: Boolean},
     {name: 'serve', type: Boolean},
+    {name: 'analyze', type: Boolean},
 ])
 
 function conditionalImportPlugin(config) {
@@ -38,6 +40,7 @@ const config = {
     bundle: true,
     minify: false,
     outfile: './dist/bundle.js',
+    mainFields: ['module', 'main'],
     external: [
         'electron',
     ],
@@ -64,5 +67,10 @@ if (options.watch || options.serve) {
         console.log(`Hosting app at http://${host}:${port}`)
     }
 } else {
-    await esbuild.build(config);
+    config.minify = true;
+    if (options.analyze) config.metafile = true;
+    let result = await esbuild.build(config);
+    if (options.analyze) {
+        writeFileSync('./dist/esbuild-metafile.json', JSON.stringify(result.metafile))
+    }
 }

@@ -568,7 +568,7 @@ export const Canvas = {
 		}
 		if (settings.large_box.value === true) {
 			let size = Format.cube_size_limiter?.box_marker_size || [48, 48, 48];
-			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(...size));
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxGeometry(...size));
 
 			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 			var large_box = new THREE.LineSegments( geometry_box, line_material);
@@ -769,7 +769,7 @@ export const Canvas = {
 				}
 			`,
 		})
-		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
+		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brush_outline_material);
 		Canvas.brush_outline.matrixAutoUpdate = false;
 		Canvas.gizmos.push(Canvas.brush_outline);
 

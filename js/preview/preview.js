@@ -1,3 +1,5 @@
+import { THREE } from '../../lib/libs';
+
 window.scene = null;
 window.main_preview = null;
 window.MediaPreview = null;

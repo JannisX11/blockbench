@@ -94,7 +94,7 @@
 
 				//// PLANES
 
-				var planeGeometry = new THREE.PlaneBufferGeometry( 50, 50, 2, 2 );
+				var planeGeometry = new THREE.PlaneGeometry( 50, 50, 2, 2 );
 				var planeMaterial = new THREE.MeshBasicMaterial( { visible: false, side: THREE.DoubleSide } );
 
 				var planes = {
@@ -237,7 +237,7 @@
 			super();
 			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false );
 
-			let pickerCylinderGeo = new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false );
+			let pickerCylinderGeo = new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false );
 
 			var lineXGeometry = new THREE.BufferGeometry();
 			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
@@ -319,8 +319,8 @@
 			var lineZGeometry = new THREE.BufferGeometry();
 			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 
-			let planeGeo = new THREE.PlaneBufferGeometry( 0.3, 0.3 );
-			let planePickerGeo = new THREE.PlaneBufferGeometry( 0.4, 0.4 );
+			let planeGeo = new THREE.PlaneGeometry( 0.3, 0.3 );
+			let planePickerGeo = new THREE.PlaneGeometry( 0.4, 0.4 );
 
 			let plane_offset = 0.3;
 			
@@ -388,16 +388,16 @@
 
 			this.pickerGizmos = {
 				X: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ -0.6, 0, 0 ], [ 0, 0, Math.PI / 2 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ -0.6, 0, 0 ], [ 0, 0, Math.PI / 2 ] ]
 				],
 				Y: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, -0.6, 0 ], [Math.PI / 1, 0, 0 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, -0.6, 0 ], [Math.PI / 1, 0, 0 ] ]
 				],
 				Z: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
 				],
 				XY: [
 					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, plane_offset, 0 ] ]
@@ -408,7 +408,7 @@
 				XZ: [
 					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ]
 				],
-				E: [[ new THREE.Mesh( new THREE.SphereBufferGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+				E: [[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]],
 			};
 			this.pickerGizmos.X[1][0].name = 'NX'
 			this.pickerGizmos.Y[1][0].name = 'NY'
@@ -470,15 +470,15 @@
 
 				X: [
 					[ new THREE.Line( new CircleGeometry( 1, 'x', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
 				],
 				Y: [
 					[ new THREE.Line( new CircleGeometry( 1, 'y', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
 				],
 				Z: [
 					[ new THREE.Line( new CircleGeometry( 1, 'z', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
 				],
 
 				E: [
@@ -490,10 +490,10 @@
 
 			this.pickerGizmos = {
 
-				X: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
-				Y: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
-				Z: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
-				E: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+				X: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
+				Y: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
+				Z: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
+				E: [[ new THREE.Mesh( new THREE.TorusGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
 
 			};
 

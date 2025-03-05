@@ -122,6 +122,7 @@
 	"scripts": {
 		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
 		"serve": "node ./build.js --target=web --serve",
+		"electron": "electron .",
 		"build-web": "node ./build.js --target=web",
 		"build-electron": "node ./build.js --target=electron",
 		"build-test-portable": "npm run build-electron && electron-builder --windows portable",
@@ -130,6 +131,9 @@
 		"prepublish": "npm run build-web && npm run pwa",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
+	},
+	"overrides": {
+		"three": "^0.174.0"
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
@@ -154,7 +158,7 @@
 		"molangjs": "^1.6.5",
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
-		"three": "^0.129.0",
+		"three": "^0.174.0",
 		"tinycolor2": "^1.6.0",
 		"vue": "^2.7.16",
 		"vue-sortable": "^0.1.3",

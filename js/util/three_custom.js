@@ -1,3 +1,5 @@
+import { THREE } from "../../lib/libs";
+
 THREE.BufferGeometry.prototype.setShape = function(from, to) {
 	let {position} = this.attributes;
 
@@ -185,7 +187,7 @@ THREE.AxesHelper = class AxesHelper extends THREE.LineSegments {
 
 		var geometry = new THREE.BufferGeometry();
 		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-		var material = new THREE.LineBasicMaterial( { vertexColors: THREE.VertexColors } );
+		var material = new THREE.LineBasicMaterial( { vertexColors: true } );
 
 		super(geometry, material);
 		this.updateColors();
@@ -200,7 +202,6 @@ THREE.AxesHelper = class AxesHelper extends THREE.LineSegments {
 	}
 }
 
-//THREE.AxesHelper.prototype = Object.create( THREE.LineSegments.prototype );
 THREE.AxesHelper.prototype.constructor = THREE.AxesHelper;
 
 THREE.GridHelper = class GridHelper extends THREE.LineSegments {

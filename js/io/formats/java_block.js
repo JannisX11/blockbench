@@ -344,7 +344,7 @@ var codec = new Codec('java_block', {
 
 		if (model.elements) {
 			model.elements.forEach(function(obj) {
-				base_cube = new Cube(obj)
+				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
 				var faces_without_uv = false;
