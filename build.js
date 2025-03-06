@@ -1,4 +1,5 @@
 import * as esbuild from 'esbuild'
+import { glsl } from "esbuild-plugin-glsl";
 import { createRequire } from "module";
 import commandLineArgs from 'command-line-args'
 import path from 'path';
@@ -23,7 +24,9 @@ function conditionalImportPlugin(config) {
     };
 };
 
-let isApp = options.target == 'electron';
+const isApp = options.target == 'electron';
+const dev_mode = options.watch || options.serve;
+const minify = !dev_mode;
 
 /**
  * @typedef {esbuild.BuildOptions} BuildOptions
@@ -38,7 +41,7 @@ const config = {
     target: 'es2020',
     format: 'esm',
     bundle: true,
-    minify: false,
+    minify,
     outfile: './dist/bundle.js',
     mainFields: ['module', 'main'],
     external: [
@@ -47,6 +50,9 @@ const config = {
     plugins: [
         conditionalImportPlugin({
             file: isApp ? 'desktop.js' : 'web.js'
+        }),
+        glsl({
+            minify
         })
     ],
     sourcemap: true,
@@ -67,7 +73,6 @@ if (options.watch || options.serve) {
         console.log(`Hosting app at http://${host}:${port}`)
     }
 } else {
-    config.minify = true;
     if (options.analyze) config.metafile = true;
     let result = await esbuild.build(config);
     if (options.analyze) {

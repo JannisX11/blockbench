@@ -142,6 +142,7 @@
 		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
 		"esbuild": "0.25.0",
+		"esbuild-plugin-glsl": "^1.2.2",
 		"typescript": "^5.8.2",
 		"workbox-build": "^6.5.3"
 	},
