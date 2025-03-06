@@ -647,7 +647,7 @@ export class Preview {
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
-		} 
+		}
 		if (this.isOrtho && preset.zoom && !preset.locked_angle) {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
@@ -1854,6 +1854,15 @@ export class OrbitGizmo {
 				if (!this.preview.controls.enabled) return;
 				let preset_key = key == this.preview.angle ? side.opposite : key;
 				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
+				if (e.shiftKey) {
+					let original_preset = preset;
+					preset = structuredClone(preset);
+					preset.position.V3_add(this.preview.camera.position);
+					if (preset.position.allAre(v => Math.abs(v) < 1)) {
+						preset.position = original_preset.position.slice();
+					}
+					delete preset.locked_angle;
+				}
 				this.preview.loadAnglePreset(preset);
 			})
 			this.node.append(side.node);
