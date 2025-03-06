@@ -1,10 +1,13 @@
+import { THREE } from "../lib/libs";
+import { Mode } from "./modes";
 
 var ground_timer = 0
-var display_slot = 'thirdperson_righthand';
 var display_presets;
 var display_preview;
-var enterDisplaySettings, exitDisplaySettings;
-export const DisplayMode = {};
+
+export const DisplayMode = {
+	display_slot: 'thirdperson_righthand'
+};
 
 
 export class DisplaySlot {
@@ -273,6 +276,7 @@ export class refModel {
 				this.pose_angles.head = 0;
 
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					let angle = Math.degToRad(scope.pose_angles[display_slot] || 0)
 					let x = scope.variant === 'alex' ? 5.5 : 6
 					let y = 22 - Math.cos(angle)*10 + Math.sin(angle)*2
@@ -301,6 +305,7 @@ export class refModel {
 				break;
 			case 'armor_stand':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(6, 12, -2, -90, 0, 0, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -312,6 +317,7 @@ export class refModel {
 				break;
 			case 'armor_stand_small':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -333,6 +339,7 @@ export class refModel {
 				break;
 			case 'zombie':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -344,6 +351,7 @@ export class refModel {
 				break;
 			case 'baby_zombie':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -355,7 +363,7 @@ export class refModel {
 				break;
 			case 'monitor':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*9.039, -8.318+24, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
@@ -381,20 +389,20 @@ export class refModel {
 				break;
 			case 'bow':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*4.2, -4.9+24, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
 			case 'crossbow':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*-1.2, -6.75+24, 23, 0, side*10, 0, 1, 1, 1)
 				}
 				break;
 				
 			case 'eating':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					DisplayMode.setBase(
 						side*-1.7, -6.1+24, 23.4,
 						-92, side*100, side*119,
@@ -403,7 +411,7 @@ export class refModel {
 				break;
 			case 'tooting':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					//setDisplayArea(side*-0.6, 19.8, 23.8, 31.5, side*22, -11, 1, 1, 1)
 					setDisplayArea(side == 1 ? -2.7 : 2.1, 20.1, Format.id.includes('bedrock') ? 24.5 : 25.6, 36, side*21.5, side*-12, 1, 1, 1)
 				}
@@ -506,7 +514,7 @@ export class refModel {
 		}
 	}
 	load(index) {
-		displayReferenceObjects.ref_indexes[display_slot] = index || 0;
+		displayReferenceObjects.ref_indexes[DisplayMode.display_slot] = index || 0;
 		displayReferenceObjects.clear()
 		if (typeof this.updateBasePosition === 'function') {
 			this.updateBasePosition()
@@ -536,10 +544,10 @@ export class refModel {
 		scene.add(this.model)
 		displayReferenceObjects.active = this;
 
-		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
+		DisplayMode.vue.pose_angle = this.pose_angles[DisplayMode.display_slot] || 0;
 		DisplayMode.vue.reference_model = this.id;
 
-		if (display_slot == 'ground') {
+		if (DisplayMode.display_slot == 'ground') {
 			Canvas.ground_animation = this.id != 'fox';
 		}
 		
@@ -1291,7 +1299,7 @@ window.displayReferenceObjects = {
 			)
 			button.find('> label.tool').append(icon);
 			$('#display_ref_bar').append(button)
-			if (i === displayReferenceObjects.ref_indexes[display_slot]) {
+			if (i === displayReferenceObjects.ref_indexes[DisplayMode.display_slot]) {
 				ref.load(i)
 				button.find('input').prop("checked", true)
 			}
@@ -1332,9 +1340,7 @@ export const display_angle_preset = {
 	default: true
 }
 
-enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
-	display_mode = true;
-
+export function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
 	unselectAllElements()
 
 	if (Project.model_3d) display_base.add(Project.model_3d)
@@ -1357,7 +1363,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	scene.position.set(0, 0, 0);
 
 	resizeWindow() //Update panels and sidebars so that the camera can be loaded with the correct aspect ratio
-	DisplayMode.load(display_slot)
+	DisplayMode.load(DisplayMode.display_slot)
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
@@ -1365,7 +1371,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 		Canvas.outlines.children.empty();
 	}
 }
-exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
+export function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
 	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
@@ -1384,7 +1390,6 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 		Project.model_3d.position.set(0, 0, 0);
 	}
 
-	display_mode = false;
 	main_preview.fullscreen()
 
 	resizeWindow()
@@ -1410,13 +1415,13 @@ export function resetDisplayBase() {
 }
 
 DisplayMode.updateDisplayBase = function(slot) {
-	if (!slot) slot = Project.display_settings[display_slot]
+	if (!slot) slot = Project.display_settings[DisplayMode.display_slot]
 
 	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
-	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
-	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
+	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 
-	display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.position.x = slot.translation[0] * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 	display_base.position.y = slot.translation[1];
 	display_base.position.z = slot.translation[2];
 
@@ -1446,10 +1451,10 @@ DisplayMode.updateDisplayBase = function(slot) {
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
-	var slots = [display_slot];
+	var slots = [DisplayMode.display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
-	} else if (preset.areas[display_slot] == undefined) {
+	} else if (preset.areas[DisplayMode.display_slot] == undefined) {
 		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
@@ -1512,7 +1517,7 @@ DisplayMode.updateGUILight = function() {
 	if (Format.id == 'bedrock_block') {
 		Canvas.global_light_side = 0;
 		Canvas.updateShading();
-	} else if (display_slot == 'gui' && Project.front_gui_light == true) {
+	} else if (DisplayMode.display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 		Canvas.global_light_side = 4;
 	} else {
@@ -1523,7 +1528,7 @@ DisplayMode.updateGUILight = function() {
 } 
 
 export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
-	display_slot = key
+	DisplayMode.display_slot = key
 
 	if (key !== 'gui' && display_preview.isOrtho === true) {
 		display_preview.loadAnglePreset(display_angle_preset)
@@ -1671,14 +1676,14 @@ DisplayMode.copy = function() {
 	Clipbench.display_slot = DisplayMode.slot.copy()
 }
 DisplayMode.paste = function() {
-	Undo.initEdit({display_slots: [display_slot]})
+	Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 	DisplayMode.slot.extend(Clipbench.display_slot)
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Paste display slot')
 }
 
 DisplayMode.scrollSlider = function(type, value, el) {
-	Undo.initEdit({display_slots: [display_slot]})
+	Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 
 	var [channel, axis] = type.split('.')
 	DisplayMode.slot[channel][parseInt(axis)] = value
@@ -1825,6 +1830,20 @@ DisplayMode.debugBase = function() {
 }
 
 BARS.defineActions(function() {
+	new Mode('display', {
+		icon: 'tune',
+		selectElements: false,
+		default_tool: 'move_tool',
+		category: 'navigate',
+		condition: () => Format.display_mode,
+		onSelect: () => {
+			enterDisplaySettings()
+		},
+		onUnselect: () => {
+			exitDisplaySettings()
+		},
+	})
+
 	new Action('add_display_preset', {
 		icon: 'add',
 		category: 'display',
@@ -1919,7 +1938,7 @@ BARS.defineActions(function() {
 			side: true,
 			front: true,
 		},
-		condition: () => Modes.display && display_slot === 'gui' && Format.id == 'java_block',
+		condition: () => Modes.display && DisplayMode.display_slot === 'gui' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.front_gui_light = slider.get() == 'front';
 			DisplayMode.updateGUILight();
@@ -1961,7 +1980,7 @@ Interface.definePanels(function() {
 			}},
 			watch: {
 				pose_angle(value) {
-					displayReferenceObjects.active.pose_angles[display_slot] = value;
+					displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value;
 					if (displayReferenceObjects.active.updateBasePosition) displayReferenceObjects.active.updateBasePosition();
 				}
 			},
@@ -1976,8 +1995,8 @@ Interface.definePanels(function() {
 					return Format.id == 'bedrock_block';
 				},
 				isMirrored: (axis) => {
-					if (Project.display_settings[display_slot]) {
-						return Project.display_settings[display_slot].scale[axis] < 0;
+					if (Project.display_settings[DisplayMode.display_slot]) {
+						return Project.display_settings[DisplayMode.display_slot].scale[axis] < 0;
 					}
 				},
 				change: (axis, channel) => {
@@ -2011,7 +2030,7 @@ Interface.definePanels(function() {
 				},
 				resetChannel: (channel) => {
 					var v = channel === 'scale' ? 1 : 0;
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 					DisplayMode.slot.extend({[channel]: [v, v, v]})
 					if (channel === 'scale') {
 					DisplayMode.slot.extend({mirror: [false, false, false]})
@@ -2019,13 +2038,13 @@ Interface.definePanels(function() {
 					Undo.finishEdit('Reset display channel')
 				},
 				invert: (axis) => {
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 					DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
 					DisplayMode.slot.update()
 					Undo.finishEdit('Mirror display setting')
 				},
 				start: () => {
-					Undo.initEdit({display_slots: [display_slot]});
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]});
 					Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
 				save: () => {
@@ -2033,7 +2052,7 @@ Interface.definePanels(function() {
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
 				toggleFitToFrame() {
-					Undo.initEdit({display_slots: [display_slot]});
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]});
 					this.slot.fit_to_frame = !this.slot.fit_to_frame;
 					Undo.finishEdit('Change display setting fit-to-frame property');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');

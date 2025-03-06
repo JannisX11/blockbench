@@ -1,10 +1,11 @@
 export const SharedActions = {
 	/**
 	 * Add a method to handle a specific use case of a shared action
-	 * @param {('delete'|'rename'|'duplicate'|'select_all'|'unselect_all')} action_id 
+	 * @param {string} action_id 
 	 * @param {Object} handler Case handler
 	 * @param {*} handler.condition Condition
-	 * @param {number} handler.priority Handler priority.
+	 * @param {string} [handler.subject] Subject type
+	 * @param {number} [handler.priority] Handler priority.
 	 * 		Unset or 0 is typically used for relatively specific handlers, like those that check for a specific active panel.
 	 * 		Higher priorities are used for even more specific conditions, like when multiple handlers work in a panel.
 	 * 		Lower priorities are used for more fallback-like handlers, like deleting elements in edit mode, regardless of active panel.

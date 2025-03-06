@@ -121,6 +121,7 @@ export class OutlinerNode {
 		}
 		return this;
 	}
+	select(event) {}
 	get preview_controller() {
 		return this.constructor.preview_controller;
 	}
@@ -357,7 +358,9 @@ export class OutlinerNode {
 		}
 		return iterate(this.parent, 0)
 	}
+	static uuids = {}
 }
+OutlinerNode.prototype.node = 'outliner_node';
 export class OutlinerElement extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid);
@@ -1477,7 +1480,7 @@ Interface.definePanels(function() {
 				<input type="text" class="cube_name tab_target" :class="{locked: node.locked}" v-model="node.name" disabled>` +
 
 
-				`<dynamic-icon v-for="btn in node.buttons"
+				`<dynamic-icon v-for="(btn, key) in node.buttons" :key="key"
 					v-if="Condition(btn, node) && (!btn.advanced_option || options.show_advanced_toggles || (btn.visibilityException && btn.visibilityException(node)) )"
 					class="outliner_toggle"
 					:icon="getButtonIcon(btn, node)"

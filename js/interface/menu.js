@@ -719,6 +719,7 @@ export class Menu {
 		traverse(this.structure, 0)
 		rm_item.menus.remove(scope)
 	}
+	static open = null;
 }
 
 export function preventContextMenu() {

@@ -983,7 +983,7 @@
 							Transformer.position.sub(pivot_offset);
 						}
 
-						if (display_slot == 'gui') {
+						if (DisplayMode.display_slot == 'gui') {
 							Transformer.rotation_ref = display_gui_rotation;
 						}
 					}
@@ -1196,7 +1196,7 @@
 					}
 
 				} else if (Modes.id === 'display') {
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 				}
 				scope.firstChangeMade = true
 			}
@@ -1578,6 +1578,7 @@
 
 				} else if (Modes.display) {
 
+					let {display_slot} = DisplayMode;
 					var rotation = new THREE.Quaternion()
 					scope.getWorldQuaternion(rotation)
 					point.applyQuaternion(rotation.invert())

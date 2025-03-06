@@ -1,5 +1,6 @@
 import MolangParser from "molangjs";
 import Wintersky from 'wintersky';
+import { Mode } from "../modes";
 
 export const Animator = {
 	get possible_channels() {
@@ -1265,6 +1266,19 @@ Animator.animation_presets = {
 
 
 BARS.defineActions(function() {
+	new Mode('animate', {
+		icon: 'movie',
+		default_tool: 'move_tool',
+		category: 'navigate',
+		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
+		condition: () => Format.animation_mode,
+		onSelect: () => {
+			Animator.join()
+		},
+		onUnselect: () => {
+			Animator.leave()
+		}
+	})
 	// Motion Trail
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',

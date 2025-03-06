@@ -1,5 +1,37 @@
+import { Animation } from "../animations/animation";
+import { SharedActions } from "../interface/shared_actions";
+import { Prop } from "../misc";
+import { guid } from "../util/math_util";
+import { Property } from "../util/property";
+import { OutlinerElement, OutlinerNode } from "./outliner";
+import { Toolbar } from '../interface/toolbars'
+import { Group } from "./group";
+import { Interface } from "../interface/interface";
+import { Menu } from "../interface/menu";
+import { Blockbench } from "../api";
+import { removeEventListeners } from "../util/util";
+import { Action } from '../interface/actions'
+import { Clipbench } from "../copy_paste";
+import { getFocusedTextInput } from "../interface/keyboard";
+import { tl } from "../languages";
+import { Panel } from "../interface/panels";
+import { Codecs } from "../io/codec";
+
+
 export class Collection {
-	constructor(data, uuid) {
+	uuid: string
+	name: string
+	selected: boolean
+	children: string[]
+	export_path: string
+	codec: string
+	menu: Menu
+
+	static properties: Record<string, Property>
+	static all: Collection[]
+	static selected: Collection[]
+
+	constructor(data: CollectionOptions, uuid?: string) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.selected = false;
 		this.children = [];
@@ -8,13 +40,13 @@ export class Collection {
 		}
 		if (data) this.extend(data);
 	}
-	extend(data) {
+	extend(data: CollectionOptions) {
 		for (var key in Collection.properties) {
 			Collection.properties[key].merge(this, data)
 		}
 		return this;
 	}
-	select(event) {
+	select(event?: KeyboardEvent | MouseEvent) {
 		this.selected = true;
 		if ((!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) || Modes.animate) {
 			unselectAllElements();
@@ -27,6 +59,7 @@ export class Collection {
 		}
 		for (let node of this.getChildren()) {
 			if (Modes.animate && Animation.selected) {
+				// @ts-ignore
 				if (node.constructor.animator) {
 					let animator = Animation.selected.getBoneAnimator(node);
 					if (animator) {
@@ -53,44 +86,45 @@ export class Collection {
 		this.select(event);
 		Undo.finishSelection('Select collection');
 	}
-	getChildren() {
+	getChildren(): OutlinerNode[] {
 		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
 	}
-	add() {
+	add(): this {
 		Collection.all.safePush(this);
 		return this;
 	}
-	addSelection() {
+	addSelection(): this {
 		if (Group.multi_selected.length) {
 			for (let group of Group.multi_selected) {
 				this.children.safePush(group.uuid);
 			}
 		}
 		for (let element of Outliner.selected) {
-			if (!element.parent.selected) {
+			if (!(element instanceof OutlinerNode && element.parent.selected)) {
 				this.children.safePush(element.uuid);
 			}
 		}
 		return this;
 	}
-	getVisibility() {
+	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
-			return node && typeof node.visibility == 'boolean';
+			return node && 'visibility' in node && typeof node.visibility == 'boolean';
 		});
+		// @ts-ignore
 		return match ? match.visibility : true;
 	}
-	getAllChildren() {
+	getAllChildren(): OutlinerNode[] {
 		let children = this.getChildren();
 		let nodes = [];
 		for (let child of children) {
 			nodes.safePush(child);
-			if (typeof child.forEachChild == 'function') {
+			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
 				child.forEachChild(subchild => nodes.safePush(subchild));
 			}
 		}
 		return nodes;
 	}
-	toggleVisibility(event) {
+	toggleVisibility(event: KeyboardEvent | MouseEvent): void {
 		let children = this.getChildren();
 		if (!children.length) return;
 		let groups = [];
@@ -105,7 +139,7 @@ export class Collection {
 		}
 		for (let child of children) {
 			update(child);
-			if (typeof child.forEachChild == 'function') {
+			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
 				child.forEachChild(update);
 			}
 		}
@@ -161,8 +195,10 @@ export class Collection {
 				group: []
 			}
 			for (let child of collection.getChildren()) {
-				if (!types[child.type]) types[child.type] = [];
-				types[child.type].push(child);
+				// @ts-ignore
+				let type = child.type;
+				if (!types[type]) types[type] = [];
+				types[type].push(child);
 			}
 			let list = [];
 			for (let key in types) {
@@ -175,6 +211,14 @@ export class Collection {
 				}
 			}
 			return list;
+		}
+		type PropertiesComponentData = {
+			content: {
+				name: string
+				uuid: string
+				icon: string
+			}[]
+			selected: string[]
 		}
 		let dialog = new Dialog({
 			id: 'collection_properties',
@@ -190,7 +234,7 @@ export class Collection {
 			},
 			part_order: ['form', 'component'],
 			form: {
-				name: {label: 'generic.name', value: this.name},
+				name: {type: 'text', label: 'generic.name', value: this.name},
 				export_path: {
 					label: 'dialog.collection.export_path',
 					value: this.export_path,
@@ -205,23 +249,24 @@ export class Collection {
 				data: {
 					content: getContentList(),
 					selected: []
-				},
+				} as PropertiesComponentData,
 				methods: {
-					selectAll() {
+					selectAll(this: PropertiesComponentData) {
 						for (let node of this.content) {
 							this.selected.safePush(node.uuid);
 						}
 					},
-					selectNone() {
+					selectNone(this: PropertiesComponentData) {
 						this.selected.empty();
 					},
-					remove() {
+					remove(this: PropertiesComponentData) {
 						for (let uuid of this.selected) {
 							this.content.remove(this.content.find(node => node.uuid == uuid));
 						}
 						this.selected.empty();
 					},
-					addWithFilter(event) {
+					addWithFilter(this: PropertiesComponentData, event) {
+						// @ts-ignore
 						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
 							for (let node of elements.concat(groups)) {
 								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
@@ -255,11 +300,12 @@ export class Collection {
 				this.component.data.loop_mode = form.loop;
 			},
 			onConfirm: form_data => {
+				let vue_data = dialog.content_vue.$data as PropertiesComponentData;
 				if (
 					form_data.name != this.name ||
 					form_data.export_path != this.export_path ||
-					dialog.content_vue.content.find(node => !collection.children.includes(node.uuid)) ||
-					collection.children.find(uuid => !dialog.content_vue.content.find(node => node.uuid == uuid))
+					vue_data.content.find(node => !collection.children.includes(node.uuid)) ||
+					collection.children.find(uuid => !vue_data.content.find(node => node.uuid == uuid))
 				) {
 					Undo.initEdit({collections: [this]});
 
@@ -267,8 +313,8 @@ export class Collection {
 						name: form_data.name,
 						export_path: form_data.export_path,
 					})
-					if (isApp) this.path = form_data.path;
-					this.children.replace(dialog.content_vue.content.map(node => node.uuid));
+					if (isApp) this.export_path = form_data.path;
+					this.children.replace(vue_data.content.map(node => node.uuid));
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
 
@@ -331,6 +377,7 @@ Collection.prototype.menu = new Menu([
 					new_action = {
 						name: 'menu.collection.export_project',
 						icon: 'icon-blockbench_file',
+						description: '',
 						click() {
 							codec.exportCollection(collection);
 						}
@@ -356,11 +403,13 @@ new Property(Collection, 'boolean', 'visibility', {default: false});
 
 Object.defineProperty(Collection, 'all', {
 	get() {
+		// @ts-ignore
 		return Project.collections
 	}
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
+		// @ts-ignore
 		return Project ? Project.collections.filter(c => c.selected) : [];
 	}
 })
@@ -387,7 +436,7 @@ SharedActions.add('duplicate', {
 		for (let original of Collection.selected.slice()) {
 			let copy = new Collection(original);
 			copy.name += ' - copy';
-			copy.add(false).select();
+			copy.add().select();
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Duplicate collection');
@@ -409,7 +458,7 @@ SharedActions.add('paste', {
 		for (let data of Clipbench.collections) {
 			let copy = new Collection(data);
 			copy.name += ' - copy';
-			copy.add(false).select();
+			copy.add().select();
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Paste collection');
@@ -461,18 +510,18 @@ BARS.defineActions(() => {
 
 Interface.definePanels(function() {
 
-	function eventTargetToCollection(target) {
-		let target_node = target;
+	function eventTargetToCollection(target: HTMLElement): [Collection?, HTMLElement?] {
+		let target_node: HTMLElement | undefined = target;
 		let i = 0;
 		while (target_node && target_node.classList && !target_node.classList.contains('collection')) {
 			if (i < 3 && target_node) {
-				target_node = target_node.parentNode;
+				target_node = target_node.parentElement;
 				i++;
 			} else {
 				return [];
 			}
 		}
-		let uuid_value = target_node.attributes?.uuid.value;
+		let uuid_value = target_node.getAttribute('uuid') as string;
 		return [Collection.all.find(collection => collection.uuid == uuid_value), target_node];
 	}
 	function getOrder(loc, obj) {
@@ -492,7 +541,8 @@ Interface.definePanels(function() {
 			slot: 'hidden',
 			float_position: [0, 0],
 			float_size: [300, 300],
-			height: 300
+			height: 300,
+			folded: false
 		},
 		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
 		toolbars: [
@@ -519,8 +569,8 @@ Interface.definePanels(function() {
 					let [collection] = eventTargetToCollection(e1.target);
 					if (!collection) return;
 					let active = false;
-					let helper;
-					let timeout;
+					let helper: HTMLDivElement;
+					let timeout: NodeJS.Timeout | null = null;
 					let drop_target, drop_target_node, order;
 					let last_event = e1;
 
@@ -563,7 +613,7 @@ Interface.definePanels(function() {
 							$('.collection[order]').attr('order', null);
 
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[drop_target, drop_target_node] = eventTargetToCollection(target);
+							[drop_target, drop_target_node] = eventTargetToCollection(target as HTMLElement);
 							if (drop_target) {
 								var location = e2.clientY - $(drop_target_node).offset().top;
 								order = getOrder(location, drop_target)
@@ -585,10 +635,10 @@ Interface.definePanels(function() {
 							Blockbench.removeFlag('dragging_collections');
 						}, 10);
 
-						if (active && !open_menu) {
+						if (active && !Menu.open) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_collection] = eventTargetToCollection(target);
+							let [target_collection] = eventTargetToCollection(target as HTMLElement);
 							if (!target_collection || target_collection == collection ) return;
 
 							let index = Collection.all.indexOf(target_collection);
@@ -616,20 +666,22 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				},
-				unselect(event) {
+				unselect() {
 					if (Blockbench.hasFlag('dragging_collections')) return;
 					Collection.all.forEach(collection => {
 						collection.selected = false;
 					})
 					updateSelection();
 				},
-				getContentList(collection) {
+				getContentList(collection: Collection) {
 					let types = {
 						group: []
 					}
 					for (let child of collection.getChildren()) {
-						if (!types[child.type]) types[child.type] = [];
-						types[child.type].push(child);
+						// @ts-ignore
+						let type = child.type;
+						if (!types[type]) types[type] = [];
+						types[type].push(child);
 					}
 					let list = [];
 					for (let key in types) {

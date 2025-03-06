@@ -51,6 +51,7 @@ export const MenuBar = {
 	menus: {},
 	open: undefined,
 	last_opened: null,
+	mode_switcher_button: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [

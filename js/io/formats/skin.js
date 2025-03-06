@@ -348,6 +348,13 @@ format.setup_dialog = skin_dialog;
 
 
 BARS.defineActions(function() {
+	new Mode('pose', {
+		icon: 'emoji_people',
+		default_tool: 'rotate_tool',
+		category: 'navigate',
+		condition: () => Format && Format.pose_mode,
+	})
+
 	new Action('toggle_skin_layer', {
 		icon: 'layers_clear',
 		category: 'edit',

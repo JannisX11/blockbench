@@ -9,7 +9,6 @@ window.display_area = null;
 window.display_base = null;
 
 var framespersecond = 0;
-var display_mode = false;
 const canvas_scenes = {};
 export const three_grid = new THREE.Object3D();
 export const gizmo_colors = {

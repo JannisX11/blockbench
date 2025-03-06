@@ -1,9 +1,55 @@
+import { Vue } from "../lib/libs"
+import { Blockbench } from "./api"
+import { Interface, Panels } from "./interface/interface"
+import { MenuBar } from "./interface/menu_bar"
+import { updatePanelSelector, updateSidebarOrder } from "./interface/panels"
+import { Prop } from "./misc"
+import { Outliner } from "./outliner/outliner"
+import { ReferenceImage } from "./preview/reference_images"
+
+interface ModeOptions {
+	id?: string
+	name?: string
+	icon?: string
+	default_tool?: string
+	selectElements?: boolean
+	category?: string
+	/**
+	 * Hide certain types of nodes in the outliner, like cubes and meshes in animation mode
+	 */
+	hidden_node_types?: string[]
+	hide_toolbars?: boolean
+	hide_sidebars?: boolean
+	hide_status_bar?: boolean
+	condition?: ConditionResolvable
+	component?: Vue.Component
+	onSelect?(): void
+	onUnselect?(): void
+}
 export class Mode extends KeybindItem {
-	constructor(id, data) {
+	id: string
+	name: string
+	icon: string
+	selected: boolean
+	tool: string
+	default_tool?: string
+	selectElements: boolean
+	hidden_node_types: string[]
+	hide_toolbars: boolean
+	hide_sidebars: boolean
+	hide_status_bar: boolean
+	condition: ConditionResolvable
+	vue?: Vue
+
+	onSelect?: () => void
+	onUnselect?: () => void
+
+	constructor(id: string, data: ModeOptions) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
 		}
+		// @ts-ignore
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
@@ -36,7 +82,7 @@ export class Mode extends KeybindItem {
 		}
 	}
 	select() {
-		if (Modes.selected) {
+		if (Modes.selected instanceof Mode) {
 			Modes.selected.unselect();
 		}
 		this.selected = true;
@@ -82,13 +128,18 @@ export class Mode extends KeybindItem {
 		}
 
 		Canvas.updateRenderSides()
-		if (this.tool && BarItems[this.tool] && Condition(BarItems[this.tool])) {
-			BarItems[this.tool].select();
-		} else if (BarItems[this.default_tool]) {
-			if (!BarItems[this.default_tool].selected) BarItems[this.default_tool].select();
+		let selected_tool = BarItems[this.tool] instanceof Tool && BarItems[this.tool];
+		let default_tool = BarItems[this.default_tool] instanceof Tool && BarItems[this.default_tool];
+		if (selected_tool instanceof Tool && Condition(selected_tool.condition)) {
+			selected_tool.select();
+		} else if (default_tool instanceof Tool) {
+			// @ts-ignore
+			if (!default_tool == Toolbox.selected) default_tool.select();
 		} else {
-			if (!BarItems.move_tool.selected) BarItems.move_tool.select();
+			// @ts-ignore
+			if (!BarItems.move_tool == Toolbox.selected) BarItems.move_tool.select();
 		}
+		// @ts-ignore
 		TickUpdates.interface = true;
 		TickUpdates.selection = true;
 		Blockbench.dispatchEvent('select_mode', {mode: this})
@@ -101,7 +152,7 @@ export class Mode extends KeybindItem {
 			this.onUnselect()
 		}
 		this.selected = false;
-		Mode.selected = Modes.selected = 0;
+		Mode.selected = Modes.selected = false;
 	}
 	trigger() {
 		if (Condition(this.condition)) {
@@ -120,8 +171,10 @@ export const Modes = {
 	get id() {
 		return Mode.selected ? Mode.selected.id : ''
 	},
-	selected: false,
-	options: {},
+	vue: null as Vue | null,
+	selected: false as boolean | Mode,
+	previous_id: '',
+	options: {} as Record<string, Mode>,
 	mobileModeMenu(button, event) {
 		let entries = [];
 		for (let id in Modes.options) {
@@ -163,105 +216,6 @@ onVueSetup(function() {
 		document.getElementById('mode_selector').remove();
 	}
 });
-BARS.defineActions(function() {
-	new Mode('edit', {
-		icon: 'deployed_code',
-		default_tool: 'move_tool',
-		category: 'navigate',
-		condition: () => Format && Format.edit_mode,
-		onSelect: () => {
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
-		},
-		onUnselect: () => {
-			if (Undo) Undo.closeAmendEditMenu();
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
-		}
-	})
-	new Mode('paint', {
-		icon: 'fa-paint-brush',
-		default_tool: 'brush_tool',
-		category: 'navigate',
-		condition: () => Format && Format.paint_mode,
-		onSelect: () => {
-			if (Modes.previous_id == 'animate') {
-				Animator.preview();
-			}
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
-			$('#main_colorpicker').spectrum('set', ColorPanel.panel.vue._data.main_color);
-			if (StateMemory.color_picker_rgb) {
-				BarItems.slider_color_red.update();
-				BarItems.slider_color_green.update();
-				BarItems.slider_color_blue.update();
-			} else {
-				BarItems.slider_color_h.update();
-				BarItems.slider_color_s.update();
-				BarItems.slider_color_v.update();
-			}
-
-			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
-
-			let fill_mode = BarItems.fill_mode.value;
-			if (!Condition(BarItems.fill_mode.options[fill_mode].condition)) {
-				for (let key in BarItems.fill_mode.options) {
-					if (Condition(BarItems.fill_mode.options[key].condition)) {
-						BarItems.fill_mode.set(key);
-						break;
-					}
-				}
-			}
-
-			UVEditor.vue.setMode('paint');
-			three_grid.visible = false;
-		},
-		onUnselect: () => {
-			Canvas.updateAllBones()
-			Outliner.elements.forEach(cube => {
-				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
-			})
-			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
-			UVEditor.vue.setMode('uv');
-			three_grid.visible = true;
-		},
-	})
-	new Mode('pose', {
-		icon: 'emoji_people',
-		default_tool: 'rotate_tool',
-		category: 'navigate',
-		condition: () => Format && Format.pose_mode,
-	})
-	new Mode('display', {
-		icon: 'tune',
-		selectElements: false,
-		default_tool: 'move_tool',
-		category: 'navigate',
-		condition: () => Format.display_mode,
-		onSelect: () => {
-			enterDisplaySettings()
-		},
-		onUnselect: () => {
-			exitDisplaySettings()
-		},
-	})
-	new Mode('animate', {
-		icon: 'movie',
-		default_tool: 'move_tool',
-		category: 'navigate',
-		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
-		condition: () => Format.animation_mode,
-		onSelect: () => {
-			Animator.join()
-		},
-		onUnselect: () => {
-			Animator.leave()
-		}
-	})
-})
 
 Object.assign(window, {
 	Mode,

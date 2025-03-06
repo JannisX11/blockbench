@@ -2233,6 +2233,54 @@ SharedActions.add('delete', {
 })
 
 BARS.defineActions(function() {
+	new Mode('paint', {
+		icon: 'fa-paint-brush',
+		default_tool: 'brush_tool',
+		category: 'navigate',
+		condition: () => Format && Format.paint_mode,
+		onSelect: () => {
+			if (Modes.previous_id == 'animate') {
+				Animator.preview();
+			}
+			Outliner.elements.forEach(element => {
+				if (element.preview_controller.updatePixelGrid) element.preview_controller.updatePixelGrid(element);
+			})
+			$('#main_colorpicker').spectrum('set', ColorPanel.panel.vue._data.main_color);
+			if (StateMemory.color_picker_rgb) {
+				BarItems.slider_color_red.update();
+				BarItems.slider_color_green.update();
+				BarItems.slider_color_blue.update();
+			} else {
+				BarItems.slider_color_h.update();
+				BarItems.slider_color_s.update();
+				BarItems.slider_color_v.update();
+			}
+
+			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+
+			let fill_mode = BarItems.fill_mode.value;
+			if (!Condition(BarItems.fill_mode.options[fill_mode].condition)) {
+				for (let key in BarItems.fill_mode.options) {
+					if (Condition(BarItems.fill_mode.options[key].condition)) {
+						BarItems.fill_mode.set(key);
+						break;
+					}
+				}
+			}
+
+			UVEditor.vue.setMode('paint');
+			three_grid.visible = false;
+		},
+		onUnselect: () => {
+			Canvas.updateAllBones()
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
+			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			UVEditor.vue.setMode('uv');
+			three_grid.visible = true;
+		},
+	})
 
 	new KeybindItem('paint_secondary_color', {
 		category: 'paint',
