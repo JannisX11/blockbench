@@ -1,5 +1,3 @@
-(function() {
-
 let item_parents = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -11,6 +9,7 @@ var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -47,7 +46,10 @@ var codec = new Codec('java_block', {
 			if (s.shade === false) {
 				element.shade = false
 			}
-			if (!s.rotation.allEqual(0) || !s.origin.allEqual(0)) {
+			if (s.light_emission) {
+				element.light_emission = s.light_emission;
+			}
+			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
 				var axis = s.rotationAxis()||'y';
 				element.rotation = new oneLiner({
 					angle: s.rotation[getAxisNumber(axis)],
@@ -132,11 +134,10 @@ var codec = new Codec('java_block', {
 			}
 		}
 		function iterate(arr) {
-			var i = 0;
 			if (!arr || !arr.length) {
 				return;
 			}
-			for (i=0; i<arr.length; i++) {
+			for (let i=0; i<arr.length; i++) {
 				if (arr[i].type === 'cube') {
 					computeCube(arr[i])
 				} else if (arr[i].type === 'group') {
@@ -364,7 +365,7 @@ var codec = new Codec('java_block', {
 
 		if (model.elements) {
 			model.elements.forEach(function(obj) {
-				base_cube = new Cube(obj)
+				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
 				var faces_without_uv = false;
@@ -601,7 +602,9 @@ var format = new ModelFormat({
 	rotation_snap: true,
 	optional_box_uv: true,
 	uv_rotation: true,
+	java_cube_shading_properties: true,
 	java_face_properties: true,
+	cullfaces: true,
 	animated_textures: true,
 	select_texture_for_particles: true,
 	texture_mcmeta: true,
@@ -695,5 +698,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

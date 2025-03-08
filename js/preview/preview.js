@@ -1,13 +1,17 @@
-var scene,
-	main_preview, MediaPreview,
-	Sun, lights,
-	Transformer,
-	display_area, display_base;
+import { THREE } from '../../lib/libs';
+
+window.scene = null;
+window.main_preview = null;
+window.MediaPreview = null;
+window.Sun = null;
+window.lights = null;
+window.display_area = null;
+window.display_base = null;
+
 var framespersecond = 0;
-var display_mode = false;
-const three_grid = new THREE.Object3D();
-const rot_origin = new THREE.Object3D();
-var gizmo_colors = {
+const canvas_scenes = {};
+export const three_grid = new THREE.Object3D();
+export const gizmo_colors = {
 	r: new THREE.Color(),
 	g: new THREE.Color(),
 	b: new THREE.Color(),
@@ -16,7 +20,7 @@ var gizmo_colors = {
 	outline: new THREE.Color(),
 	gizmo_hover: new THREE.Color()
 }
-const DefaultCameraPresets = [
+export const DefaultCameraPresets = [
 	{
 		name: 'menu.preview.angle.initial',
 		id: 'initial',
@@ -129,7 +133,7 @@ const DefaultCameraPresets = [
 	}
 ]
 
-class Preview {
+export class Preview {
 	constructor(options = 0) {
 		var scope = this;
 		if (options && options.id) {
@@ -199,7 +203,8 @@ class Preview {
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
-		this.controls.zoomSpeed = 1.5;
+		this.controls.zoomSpeed = settings.viewport_zoom_speed.value / 100 * 1.5;
+		this.controls.rotateSpeed = settings.viewport_rotate_speed.value / 100;
 		this.controls.onUpdate(() => {
 			if (this.angle != null) {
 				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
@@ -289,6 +294,7 @@ class Preview {
 		}
 		this.renderer.setClearColor( 0x000000, 0 )
 		this.renderer.setSize(500, 400);
+		this.updateToneMapping();
 
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
@@ -340,11 +346,22 @@ class Preview {
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			if (Transformer) {
+			if (window.Transformer) {
 				Transformer.update()
 			}
 		}
 		return this;
+	}
+	updateToneMapping() {
+		switch (settings.tone_mapping.value) {
+			case 'none': this.renderer.toneMapping = THREE.NoToneMapping; break;
+			case 'linear': this.renderer.toneMapping = THREE.LinearToneMapping; break;
+			case 'reinhard': this.renderer.toneMapping = THREE.ReinhardToneMapping; break;
+			case 'cineon': this.renderer.toneMapping = THREE.CineonToneMapping; break;
+			case 'aces_filmic': this.renderer.toneMapping = THREE.ACESFilmicToneMapping; break;
+			case 'agx': this.renderer.toneMapping = THREE.AgXToneMapping; break;
+			case 'neutral': this.renderer.toneMapping = THREE.NeutralToneMapping; break;
+		}
 	}
 	raycast(event, options = Toolbox.selected.raycast_options) {
 		if (!options) options = 0;
@@ -370,17 +387,17 @@ class Preview {
 				objects.push(element.mesh.sprite);
 			}
 		})
-		if (Group.selected && Group.selected.mesh.vertex_points) {
-			objects.push(Group.selected.mesh.vertex_points);
+		for (let group of Group.multi_selected) {
+			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
-		if (Animator.open && settings.motion_trails.value && Group.selected) {
+		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
 			Animator.motion_trail.children.forEach(object => {
 				if (object.isKeyframe === true) {
 					objects.push(object)
 				}
 			})
 		}
-		let intersects = this.raycaster.intersectObjects( objects );
+		let intersects = this.raycaster.intersectObjects(objects, false);
 		if (intersects.length == 0) return false;
 
 		let depth_offset = Preview.selected.calculateControlScale(intersects[0].point);
@@ -398,6 +415,11 @@ class Preview {
 			});
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
+		}
+		if (settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') {
+			let all_intersects = intersects;
+			intersects = intersects.filter(a => a.object.isLine);
+			if (intersects.length == 0) intersects = all_intersects;
 		}
 
 		let intersect = intersects[0];
@@ -625,7 +647,7 @@ class Preview {
 		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
-		} 
+		}
 		if (this.isOrtho && preset.zoom && !preset.locked_angle) {
 			this.camera.zoom = preset.zoom;
 			this.camera.updateProjectionMatrix()
@@ -760,14 +782,22 @@ class Preview {
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.isTriggered(event) || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
 			this.selection.click_target = data;
 
+			let multi_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'multi_select');
+			let group_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'group_select');
+			let loop_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'loop_select');
+
+			if (Toolbox.selected.paintTool) {
+				multi_select = group_select = loop_select = false;
+			}
+
 			function unselectOtherNodes() {
-				if (Group.selected) Group.selected.unselect();
+				Group.multi_selected.empty();
 				Outliner.elements.forEach(el => {
 					if (el !== data.element) Outliner.selected.remove(el);
 				})
@@ -779,9 +809,10 @@ class Preview {
 			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
+				Undo.initSelection();
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
-					if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+					if (data.element.selected && (multi_select || group_select)) {
 						face_selection.safePush(data.face);
 					} else {
 						face_selection.replace([data.face]);
@@ -791,19 +822,24 @@ class Preview {
 				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
-				if (data.element.parent instanceof OutlinerNode && (!data.element instanceof Mesh || select_mode == 'object') && (
+				if (data.element.parent instanceof OutlinerNode && (data.element instanceof Mesh == false || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
-					event.shiftKey || Pressing.overrides.shift ||
+					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
 				)) {
-					if (data.element.parent.selected && (event.shiftKey || Pressing.overrides.shift)) {
-						let super_parent = data.element.parent;
-						while (super_parent.parent instanceof Group && super_parent.selected) {
-							super_parent = super_parent.parent;
+					let node_to_select = data.element.parent;
+					if (data.element.parent.selected && (group_select)) {
+						while (node_to_select.parent instanceof Group && node_to_select.selected) {
+							node_to_select = node_to_select.parent;
 						}
-						super_parent.select().showInOutliner();
+					}
+					if (multi_select) {
+						node_to_select.multiSelect();
 					} else {
-						data.element.parent.select().showInOutliner();
+						node_to_select.select();
+					}
+					if (settings.outliner_reveal_on_select.value) {
+						node_to_select.showInOutliner();
 					}
 
 				} else if (!Animator.open) {
@@ -811,7 +847,7 @@ class Preview {
 					if (data.element instanceof Mesh && select_mode == 'face') {
 						if (!data.element.selected) data.element.select(event);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							unselectOtherNodes()
 						}
 
@@ -820,7 +856,7 @@ class Preview {
 						let selected_edges = mesh.getSelectedEdges(true);
 						let selected_faces = mesh.getSelectedFaces(true);
 
-						if (event.altKey || Pressing.overrides.alt) {
+						if (loop_select) {
 							
 							let start_face = mesh.faces[data.face];
 							if (!start_face) return;
@@ -842,7 +878,7 @@ class Preview {
 								selectFace(start_face, (index+2) % 4);
 							}
 
-							if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+							if (!(multi_select || group_select)) {
 								selected_vertices.empty();
 								selected_edges.empty();
 								selected_faces.empty();
@@ -856,7 +892,7 @@ class Preview {
 						} else {
 							let face_vkeys = data.element.faces[data.face].vertices;
 							
-							if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+							if (multi_select || group_select) {
 								if (selected_faces.includes(data.face)) {
 									let selected_faces = data.element.getSelectedFaces();
 									let vkeys_to_remove = face_vkeys.filter(vkey => {
@@ -881,7 +917,7 @@ class Preview {
 					} else if (data.element instanceof Mesh && select_mode == 'cluster') {
 						if (!data.element.selected) data.element.select(event);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							unselectOtherNodes()
 						}
 
@@ -890,7 +926,7 @@ class Preview {
 						let selected_edges = mesh.getSelectedEdges(true);
 						let selected_faces = mesh.getSelectedFaces(true);
 
-						if (!(event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift)) {
+						if (!(multi_select || group_select)) {
 							selected_vertices.empty();
 							selected_edges.empty();
 							selected_faces.empty();
@@ -926,19 +962,24 @@ class Preview {
 				} else {
 					data.element.select(event);
 				}
+				Undo.finishSelection('Select from viewport');
+
 			} else if (Animator.open && data.type == 'keyframe') {
 				if (data.keyframe instanceof Keyframe) {
+					Undo.initSelection({timeline: true});
 					data.keyframe.select(event).callPlayhead();
 					updateSelection();
+					Undo.finishSelection('Select keyframe');
 				}
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 
+				Undo.initSelection();
 				let list = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
 				let faces = data.element.getSelectedEdges(true);
 
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+				if (multi_select || group_select) {
 					list.toggle(data.vertex);
 				} else {
 					unselectOtherNodes();
@@ -947,13 +988,16 @@ class Preview {
 					faces.empty();
 				}
 				updateSelection();
+				Undo.finishSelection('Select vertex');
+
 			} else if (data.type == 'line') {
 
+				Undo.initSelection();
 				let vertices = data.element.getSelectedVertices(true);
 				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedEdges(true);
+				let faces = data.element.getSelectedFaces(true);
 
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl || event.shiftKey || Pressing.overrides.shift) {
+				if (multi_select || group_select) {
 					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
 					if (index >= 0) {
 						vertices.remove(...data.vertices);
@@ -968,7 +1012,7 @@ class Preview {
 					vertices.replace(data.vertices);
 					unselectOtherNodes();
 				}
-				if (event.altKey || Pressing.overrides.alt) {
+				if (loop_select) {
 					
 					let mesh = data.element;
 					let start_face;
@@ -1024,6 +1068,7 @@ class Preview {
 					splitFace(start_face, data.vertices);
 				}
 				updateSelection();
+				Undo.finishSelection('Select edge');
 			}
 			if (typeof Toolbox.selected.onCanvasClick === 'function') {
 				Toolbox.selected.onCanvasClick(data)
@@ -1076,63 +1121,48 @@ class Preview {
 			let offset = 0;
 			let x = intersect.uv.x * texture.width;
 			let y = (1-intersect.uv.y) * texture.height;
+			let truncated_x = x;
+			let truncated_y = y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 0.5;
-				x = Math.round(x + offset) - offset;
-				y = Math.round(y + offset) - offset;
+				truncated_x = Math.round(x + offset) - offset;
+				truncated_y = Math.round(y + offset) - offset;
 			}
+			if (texture.currentFrame) {
+				y -= texture.display_height * texture.currentFrame;
+				truncated_y -= texture.display_height * texture.currentFrame;
+			}
+
 			// Position
-			let brush_coord = face.UVToLocal([x * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_x = face.UVToLocal([(x+1) * uv_factor_x, y * uv_factor_y]);
-			let brush_coord_difference_y = face.UVToLocal([x * uv_factor_x, (y+1) * uv_factor_y]);
-			brush_coord_difference_x.sub(brush_coord);
-			brush_coord_difference_y.sub(brush_coord);
+			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], [uv_factor_x, uv_factor_y], [truncated_x * uv_factor_x, truncated_y * uv_factor_y]);
+			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
 			if (!Format.centered_grid) {
 				brush_coord.x += 8;
-				brush_coord.y += 8;
 				brush_coord.z += 8;
 			}
-			Canvas.brush_outline.position.copy(brush_coord);
 
-			// z fighting
+			// Size
+			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
+			brush_matrix.scale(scale);
+
+			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
+
+			// Z-fighting
 			let z_fight_offset = Preview.selected.calculateControlScale(brush_coord) / 8;
 			let camera_direction = Preview.selected.camera.getWorldDirection(Reusable.vec2);
 			if (camera_direction.angleTo(world_normal) < Math.PI / 2) {
 				world_normal.multiplyScalar(-1);
 			}
-			Canvas.brush_outline.position.addScaledVector(world_normal, z_fight_offset);
 
-			//size
-			let radius_x = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_x.length();
-			let radius_y = BarItems.slider_brush_size.get() * (1+z_fight_offset) * brush_coord_difference_y.length();
-			Canvas.brush_outline.scale.set(radius_x, radius_y, radius_x);
+			let z_offset = world_normal.clone().multiplyScalar(z_fight_offset);
+			let matrix_offset = new THREE.Matrix4().makeTranslation(z_offset.x, z_offset.y, z_offset.z);
+			brush_matrix.multiplyMatrices(matrix_offset, brush_matrix);
 
-			let uv = Canvas.brush_outline.geometry.attributes.uv;
-			if (BarItems.brush_shape.value == 'square') {
-				let view_factor = z_fight_offset * 20;
-				uv.array[0] = uv.array[4] = (1 - (1 / radius_x * view_factor)) / 32;
-				uv.array[5] = uv.array[7] = (1 - (1 / radius_y * view_factor)) / 32;
-				uv.array[2] = uv.array[6] = (31 + (1 / radius_x * view_factor)) / 32;
-				uv.array[1] = uv.array[3] = (31 + (1 / radius_y * view_factor)) / 32;
-				uv.needsUpdate = true;
-
-			} else if (uv.array[0] != 0) {
-				uv.array[0] = uv.array[4] = uv.array[5] = uv.array[7] = 0;
-				uv.array[2] = uv.array[6] = uv.array[1] = uv.array[3] = 1;
-				uv.needsUpdate = true;
-			}
-
-			// rotation
-			Canvas.brush_outline.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), intersect.face.normal);
-
-			Canvas.brush_outline.rotation.z = 0;
-			let inverse = Reusable.quat2.copy(Canvas.brush_outline.quaternion).invert();
-			brush_coord_difference_y.applyQuaternion(inverse);
-			let rotation = Math.atan2(brush_coord_difference_y.x, -brush_coord_difference_y.y);
-			Canvas.brush_outline.rotation.z = rotation;
-			
-			Canvas.brush_outline.quaternion.premultiply(world_quaternion);
+			// Since we're setting the brush matrix, we need to multiply in its parents matrix as well in case there are any.
+			if (Canvas.brush_outline.parent)
+				brush_matrix.multiplyMatrices(Canvas.brush_outline.parent.matrixWorld.clone().invert(), brush_matrix);
+			Canvas.brush_outline.matrix = brush_matrix;
 		}
 		
 		if (Toolbox.selected.onCanvasMouseMove) {
@@ -1268,7 +1298,8 @@ class Preview {
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
 
-			this.moveSelRect(event)
+			Undo.initSelection();
+			this.moveSelRect(event);
 		}
 
 	}
@@ -1472,6 +1503,7 @@ class Preview {
 		delete this.sr_stop_f;
 		this.selection.box.detach()
 		this.selection.activated = false;
+		Undo.finishSelection('Area select');
 	}
 	// Background
 	loadBackground() {
@@ -1720,6 +1752,7 @@ Preview.split_screen = {
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
 	if (Blockbench.isTouch) scale *= 1.5;
+	scale *= (settings.selection_tolerance.value / 10);
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.8;
@@ -1728,7 +1761,7 @@ Blockbench.on('update_camera_position', e => {
 	})
 })
 
-function editCameraPreset(preset, presets) {
+export function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
 	let rotation_mode = 'target';
 
@@ -1782,7 +1815,7 @@ function editCameraPreset(preset, presets) {
 }
 
 
-class OrbitGizmo {
+export class OrbitGizmo {
 	constructor(preview, options = {}) {
 		let scope = this;
 		this.preview = preview;
@@ -1821,6 +1854,15 @@ class OrbitGizmo {
 				if (!this.preview.controls.enabled) return;
 				let preset_key = key == this.preview.angle ? side.opposite : key;
 				let preset = DefaultCameraPresets.find(p => p.id == preset_key);
+				if (e.shiftKey) {
+					let original_preset = preset;
+					preset = structuredClone(preset);
+					preset.position.V3_add(this.preview.camera.position);
+					if (preset.position.allAre(v => Math.abs(v) < 1)) {
+						preset.position = original_preset.position.slice();
+					}
+					delete preset.locked_angle;
+				}
 				this.preview.loadAnglePreset(preset);
 			})
 			this.node.append(side.node);
@@ -1911,13 +1953,19 @@ class OrbitGizmo {
 
 
 window.addEventListener("gamepadconnected", function(event) {
-	if (event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion')) {
+	let is_space_mouse = event.gamepad.id.includes('SpaceMouse') || event.gamepad.id.includes('SpaceNavigator') || event.gamepad.id.includes('3Dconnexion');
 
-		let interval = setInterval(() => {
-			let gamepad = navigator.getGamepads()[event.gamepad.index];
-			let preview = Preview.selected;
-			if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+	console.log('Gamepad Connected', event);
 
+	let zoom_timer = 0;
+
+	let interval = setInterval(() => {
+		let gamepad = navigator.getGamepads()[event.gamepad.index];
+		let preview = Preview.selected;
+		if (settings.gamepad_controls.value == false) return;
+		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+
+		if (is_space_mouse) {
 			let offset = new THREE.Vector3(
 				gamepad.axes[0],
 				-gamepad.axes[2],
@@ -1943,22 +1991,44 @@ window.addEventListener("gamepadconnected", function(event) {
 			preview.controls.target.copy(camera_diff).add(preview.camera.position);
 
 			main_preview.controls.updateSceneScale();
+		} else {
+			let drift_threshold = 0.2;
+			let axes = gamepad.axes.map(v => Math.abs(v) > drift_threshold ? v - drift_threshold * Math.sign(v) : 0);
+			let camera_matrix = preview.camera.matrixWorld;
+			let rotate_speed = settings.viewport_rotate_speed.value / 100;
+			let zoom_speed = settings.viewport_zoom_speed.value / 100;
 
-		}, 16)
+			if (axes[0]) preview.controls.rotateLeft(Math.signedPow(axes[0]) / 8 * rotate_speed);
+			if (axes[1]) preview.controls.rotateUp(Math.signedPow(axes[1]) / 8 * rotate_speed);
+			if (axes[2]) preview.controls.panLeft(Math.signedPow(axes[2]) * 1.5, camera_matrix);
+			if (axes[3]) preview.controls.panUp(Math.signedPow(axes[3]) * 1.5, camera_matrix);
 
-		window.addEventListener("gamepadconnected", function(event2) {
-			if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
-				clearInterval(interval);
+			let smooth_zoom = 1-Math.exp(-zoom_timer/10)
+			if (gamepad.buttons[6]?.pressed) {
+				preview.controls.dollyOut(1 + 0.03 * zoom_speed * smooth_zoom);
+				zoom_timer++;
+			} else if (gamepad.buttons[7]?.pressed) {
+				preview.controls.dollyIn(1 + 0.03 * zoom_speed * smooth_zoom);
+				zoom_timer++;
+			} else {
+				zoom_timer = 0;
 			}
-		})
-	}
+		}
+
+	}, 16)
+
+	window.addEventListener("gamepadconnected", function(event2) {
+		if (event2.gamepad.id == event.gamepad.id && event2.gamepad.index == event.gamepad.index) {
+			clearInterval(interval);
+		}
+	})
 });
 
 //Init/Update
-function initCanvas() {
+export function initCanvas() {
 	
 	//Objects
-	scene = Canvas.scene = new THREE.Scene();
+	window.scene = Canvas.scene = new THREE.Scene();
 	display_area = new THREE.Object3D();
 	display_base = new THREE.Object3D();
 
@@ -1973,42 +2043,40 @@ function initCanvas() {
 	scene.add(Canvas.outlines)
 	Canvas.gizmos.push(Canvas.outlines)
 
-	canvas_scenes = {
 		/*monitor: new ReferenceImage({
 			condition: () => Modes.display && display_slot == 'gui',
 			name: tl('display.reference.monitor')
 		}).addAsBuiltIn(),*/
 
-		inventory_nine: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
-			name: tl('display.reference.inventory_nine'),
-			source: './assets/inventory_nine.png',
-			position: [0, 0],
-			size: [528, 528],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
+	canvas_scenes.inventory_nine = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
+		name: tl('display.reference.inventory_nine'),
+		source: './assets/inventory_nine.png',
+		position: [0, 0],
+		size: [528, 528],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
-		inventory_full: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
-			name: tl('display.reference.inventory_full'),
-			source: './assets/inventory_full.png',
-			position: [0, -215.6],
-			size: [1390, 1310],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
+	canvas_scenes.inventory_full = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_full',
+		name: tl('display.reference.inventory_full'),
+		source: './assets/inventory_full.png',
+		position: [0, -215.6],
+		size: [1390, 1310],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
-		hud: new ReferenceImage({
-			condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
-			name: tl('display.reference.hud'),
-			source: './assets/hud.png',
-			position: [-112, -70],
-			size: [1695, 308],
-			attached_side: 'south',
-			layer: 'blueprint'
-		}).addAsBuiltIn(),
-	}
+	canvas_scenes.hud = new ReferenceImage({
+		condition: () => Modes.display && displayReferenceObjects.active?.id == 'hud',
+		name: tl('display.reference.hud'),
+		source: './assets/hud.png',
+		position: [-112, -70],
+		size: [1695, 308],
+		attached_side: 'south',
+		layer: 'blueprint'
+	}).addAsBuiltIn(),
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
 	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
@@ -2016,7 +2084,7 @@ function initCanvas() {
 	main_preview = new Preview({id: 'main'}).fullscreen()
 
 	//TransformControls
-	Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
+	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
 	Transformer.setSize(0.5)
 	scene.add(Transformer)
 	Canvas.gizmos.push(Transformer);
@@ -2027,9 +2095,14 @@ function initCanvas() {
 	CustomTheme.updateColors();
 	resizeWindow();
 }
-function animate() {
+let last_animation_timestamp = performance.now();
+export function animate() {
 	requestAnimationFrame( animate );
 	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
+	if (performance.now() < last_animation_timestamp + 1000 / settings.fps_limit.value - 1) return;
+
+	last_animation_timestamp = performance.now();
+
 	TickUpdates.Run();
 
 	if (Animator.open) {
@@ -2048,49 +2121,92 @@ function animate() {
 		}
 	})
 	framespersecond++;
-	if (Modes.display === true && ground_animation === true && !Transformer.hoverAxis) {
+	if (Modes.display === true && Canvas.ground_animation === true && !Transformer.hoverAxis) {
 		DisplayMode.groundAnimation()
 	}
 	Blockbench.dispatchEvent('render_frame');
 }
 
-function updateShading() {
+export function updateShading() {
 	Canvas.updateLayeredTextures();
-	scene.remove(lights)
-	Sun.intensity = settings.brightness.value/50;
-	if (settings.shading.value === true) {
+	Canvas.scene.remove(lights);
+	let settings_brightness = settings.brightness.value/50;
+	Sun.intensity = settings_brightness;
+	let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
+
+	lights.add(Sun);
+	if (view_mode == 'material') {
+
+		let light = Canvas.material_light;
+		if (!light) {
+			Canvas.material_light = light = new THREE.DirectionalLight();
+		}
+		light.color.copy(Canvas.global_light_color);
+		light.intensity = 0.7 * settings_brightness;
+
+		Canvas.scene.add(light);
+		switch (Canvas.global_light_side) {
+			case 0: light.position.set(60, 100, 20); break;
+			case 1: light.position.set(-10, 20, 100); break;
+			case 2: light.position.set(10, 20, -100); break;
+			case 3: light.position.set(100, 20, -10); break;
+			case 4: light.position.set(-100, 20, 10); break;
+			case 5: light.position.set(20, -100, 0); break;
+		}
+
+		scene.add(Sun);
 		Sun.intensity *= 0.5;
-		let parent = scene;
-		parent.add(lights);
-		lights.position.copy(parent.position).multiplyScalar(-1);
+
+		TextureGroup.all.forEach(tg => {
+			if (tg.is_material) tg.updateMaterial();
+		})
+
+	} else {
+		if (settings.shading.value === true) {
+			Sun.intensity *= 0.5;
+			let parent = scene;
+			parent.add(lights);
+			lights.position.copy(parent.position).multiplyScalar(-1);
+		} else {
+			Canvas.scene.add(Sun);
+		}
+		if (Canvas.material_light) {
+			Canvas.scene.remove(Canvas.material_light);
+		}
+		Texture.all.forEach(tex => {
+			let material = tex.getMaterial();
+			if (!material.uniforms) return;
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+			material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
+		})
+		Canvas.emptyMaterials.forEach(material => {
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		})
+		Canvas.coloredSolidMaterials.forEach(material => {
+			material.uniforms.SHADE.value = settings.shading.value;
+			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		})
 	}
-	Texture.all.forEach(tex => {
-		let material = tex.getMaterial();
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
-		material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
-	})
-	Canvas.emptyMaterials.forEach(material => {
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-	})
-	Canvas.coloredSolidMaterials.forEach(material => {
-		material.uniforms.SHADE.value = settings.shading.value;
-		material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-	})
 	Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 	Blockbench.dispatchEvent('update_scene_shading');
 }
-function updateCubeHighlights(hover_cube, force_off) {
+export function updateCubeHighlights(hover_cube, force_off) {
 	Outliner.elements.forEach(element => {
 		if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
 			element.preview_controller.updateHighlight(element, hover_cube, force_off);
 		}
 	})
 }
+
+setInterval(function() {
+	Prop.fps = framespersecond;
+	framespersecond = 0;
+}, 1000);
 
 BARS.defineActions(function() {
 	new BarSelect('view_mode', {
@@ -2106,10 +2222,12 @@ BARS.defineActions(function() {
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
 			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
+			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.find(tg => tg.is_material))},
 		},
 		onChange() {
+			let previous_view_mode = Project.view_mode;
 			Project.view_mode = this.value;
-			Canvas.updateAllFaces();
+			Canvas.updateViewMode();
 			if (Modes.id === 'animate') {
 				Animator.preview();
 			}
@@ -2120,6 +2238,9 @@ BARS.defineActions(function() {
 					if (icon_node) icon_node.replaceWith(icon);
 				}
 			})
+			if (Project.view_mode != previous_view_mode) {
+				Blockbench.dispatchEvent('change_view_mode', {view_mode: Project.view_mode, previous_view_mode});
+			}
 			//Blockbench.showQuickMessage(tl('action.view_mode') + ': ' + tl('action.view_mode.' + this.value));
 		}
 	})
@@ -2207,11 +2328,19 @@ BARS.defineActions(function() {
 		icon: 'center_focus_weak',
 		category: 'view',
 		condition: () => !Format.image_editor,
-		keybind: new Keybind({shift: null}),
+		keybind: new Keybind({}, {
+			rotate_only: 'shift',
+			zoom: 'ctrl'
+		}),
+		variations: {
+			rotate_only: {name: 'action.focus_on_selection.rotate_only'},
+			zoom: {name: 'action.focus_on_selection.zoom'}
+		},
 		click(event = 0) {
 			if (!Project) return;
+			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
 			if (Prop.active_panel == 'uv') {
-				UVEditor.focusOnSelection()
+				UVEditor.focusOnSelection(zoom)
 
 			} else {
 				let preview = Preview.selected;
@@ -2224,16 +2353,38 @@ BARS.defineActions(function() {
 					Transformer.getWorldPosition(center)
 				}
 
+				let zoom_offset;
 				let difference = new THREE.Vector3().copy(preview.controls.target).sub(center);
-				difference.divideScalar(6)
+				let cam_boom = center.clone().sub(preview.camera.position).add(difference);
+				difference.divideScalar(6);
+
+				if (zoom) {
+					let bounds = Canvas.getSelectionBounds();
+					let radius = Math.max(
+						Math.abs(bounds.min.x-center.x), Math.abs(bounds.max.x-center.x),
+						Math.abs(bounds.min.z-center.z), Math.abs(bounds.max.z-center.z),
+					);
+					let height = Math.max(Math.abs(bounds.min.y-center.y), Math.abs(bounds.max.y-center.y));
+					if (Math.abs(height) != Infinity) {
+						let focal_length = preview.camera.getFocalLength();
+						let cam_distance = cam_boom.length();
+						let target_distance = Math.max(radius, height) * (focal_length / 10);
+						zoom_factor = target_distance / cam_distance;
+						zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
+					}
+				}
 
 				let i = 0;
 				let interval = setInterval(() => {
 					preview.controls.target.sub(difference);
 
-					if (!event.shiftKey || preview.angle != null) {
+					if (this.keybind.additionalModifierTriggered(event) != 'rotate_only' || preview.angle != null) {
 						preview.camera.position.sub(difference);
 					}
+					if (zoom_offset) {
+						preview.camera.position.sub(zoom_offset);
+					}
+					Transformer.update();
 					i++;
 					if (i == 6) clearInterval(interval);
 
@@ -2336,3 +2487,20 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	scene,
+	Sun,
+	display_area,
+	display_base,
+	three_grid,
+	gizmo_colors,
+	DefaultCameraPresets,
+	Preview,
+	editCameraPreset,
+	OrbitGizmo,
+	initCanvas,
+	updateShading,
+	updateCubeHighlights,
+});

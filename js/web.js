@@ -11,7 +11,7 @@ Blockbench.queries = {};
 	}
 })()
 
-function initializeWebApp() {
+export function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
@@ -20,7 +20,7 @@ function initializeWebApp() {
 	if (location.host == 'blockbench-dev.netlify.app') {
 		let button = $(`<a href="https://www.netlify.com/" style="padding: 10px; color: white; cursor: pointer; text-decoration: none; display: block;" target="_blank" rel="noopener">
 				Hosted by
-				<img src="https://www.blockbench.net/_nuxt/74d4819838c06fa271394f626e8c4b16.svg" height="20px" style="vertical-align: text-top;">
+				<img src="./assets/netlify-full-logo-dark.svg" height="20px" style="vertical-align: text-top;">
 			</div>`);
 		button.insertBefore('#start_files');
 	}
@@ -71,7 +71,7 @@ try {
 	if (!Blockbench.isMobile) $('#web_download_button').hide();
 }
 
-async function loadInfoFromURL() {
+export async function loadInfoFromURL() {
 	if (Blockbench.queries.session) {
 		EditSession.token = Blockbench.queries.session;
 		BarItems.edit_session.click();
@@ -158,3 +158,8 @@ window.onbeforeunload = function() {
 		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
+
+Object.assign(window, {
+	initializeWebApp,
+	loadInfoFromURL 
+})

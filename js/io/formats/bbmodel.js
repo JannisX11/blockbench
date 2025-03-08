@@ -1,6 +1,6 @@
-(function() {
+import LZUTF8 from './../../../lib/lzutf8'
 
-let FORMATV = '4.10';
+const FORMATV = '4.10';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -71,6 +71,7 @@ var codec = new Codec('project', {
 	name: 'Blockbench Project',
 	extension: 'bbmodel',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['bbmodel']
@@ -117,6 +118,38 @@ var codec = new Codec('project', {
 			} : null,
 		}, path => this.afterDownload(path))
 	},
+	async exportCollection(collection) {
+		this.context = collection;
+		Blockbench.export({
+			resource_id: 'model',
+			type: this.name,
+			extensions: [this.extension],
+			name: this.fileName(),
+			startpath: this.startPath(),
+			content: isApp ? null : this.compile({collection_only: collection}),
+			custom_writer: isApp ? (content, path) => {
+				// Path needs to be changed before compiling for relative resource paths
+				let old_save_path = Project.save_path;
+				Project.save_path = path;
+				content = this.compile({collection_only: collection});
+				this.write(content, path);
+				this.context = null;
+				Project.save_path = old_save_path;
+			} : null,
+		}, path => this.afterDownload(path));
+	},
+	async writeCollection(collection) {
+		if (!collection.export_path) {
+			console.warn('No path specified');
+			return;
+		}
+		this.context = collection;
+		let old_save_path = Project.save_path;
+		let content = this.compile({collection_only: collection});
+		this.write(content, collection.export_path);
+		this.context = null;
+		Project.save_path = old_save_path;
+	},
 	compile(options) {
 		if (!options) options = 0;
 		var model = {
@@ -160,19 +193,44 @@ var codec = new Codec('project', {
 				previews: JSON.parse(JSON.stringify(Project.previews)),
 
 				selected_elements: Project.selected_elements.map(e => e.uuid),
-				selected_group: Project.selected_group?.uuid,
+				selected_groups: Project.selected_groups.map(g => g.uuid),
 				mesh_selection: JSON.parse(JSON.stringify(Project.mesh_selection)),
 				selected_texture: Project.selected_texture?.uuid,
 			};
 		}
 
 		if (!(Format.id == 'skin' && model.skin_model)) {
-			model.elements = []
+			if (options.collection_only) {
+				var all_collection_children = options.collection_only.getAllChildren();
+			}
+			model.elements = [];
 			elements.forEach(el => {
-				var obj = el.getSaveCopy(model.meta)
-				model.elements.push(obj)
+				if (options.collection_only && !all_collection_children.includes(el)) return;
+				let copy = el.getSaveCopy(model.meta);
+				model.elements.push(copy);
 			})
-			model.outliner = compileGroups(true)
+			model.outliner = compileGroups(true);
+			if (options.collection_only) {
+				function filterList(list) {
+					list.forEachReverse(item => {
+						if (typeof item == 'string') {
+							if (!all_collection_children.find(node => node.uuid == item)) {
+								list.remove(item);
+							}
+						} else {
+							if (item.children instanceof Array) {
+								filterList(item.children);
+							}
+							if (item.uuid && !all_collection_children.find(node => node.uuid == item.uuid)) {
+								if (!item.children || item.children.length == 0) {
+									list.remove(item);
+								}
+							}
+						}
+					})
+				}
+				filterList(model.outliner);
+			}
 		}
 
 		model.textures = [];
@@ -195,10 +253,17 @@ var codec = new Codec('project', {
 			model.texture_groups.push(copy);
 		}
 
+		let collections = [];
+		for (let collection of Collection.all) {
+			let copy = collection.getSaveCopy();
+			collections.push(copy);
+		}
+		if (collections.length) model.collections = collections;
+
 		if (Animation.all.length) {
 			model.animations = [];
 			Animation.all.forEach(a => {
-				model.animations.push(a.getUndoCopy({bone_names: true, absolute_paths: options.absolute_paths}, true))
+				model.animations.push(a.getUndoCopy({absolute_paths: options.absolute_paths}, true))
 			})
 		}
 		if (AnimationController.all.length) {
@@ -267,15 +332,11 @@ var codec = new Codec('project', {
 		if (options.raw) {
 			return model;
 		} else if (options.compressed) {
-			var json_string = JSON.stringify(model);
+			var json_string = compileJSON(model, {small: true});
 			var compressed = '<lz>'+LZUTF8.compress(json_string, {outputEncoding: 'StorageBinaryString'});
 			return compressed;
 		} else {
-			if (Settings.get('minify_bbmodel') || options.minify) {
-				return JSON.stringify(model);
-			} else {
-				return compileJSON(model);
-			}
+			return compileJSON(model, {small: Settings.get('minify_bbmodel') || options.minify});
 		}
 	},
 	parse(model, path) {
@@ -382,6 +443,12 @@ var codec = new Codec('project', {
 		if (model.outliner) {
 			parseGroups(model.outliner)
 		}
+		if (model.collections instanceof Array) {
+			for (let collection_data of model.collections) {
+				let collection = new Collection(collection_data, collection_data.uuid);
+				collection.add();
+			}
+		}
 		if (model.animations) {
 			model.animations.forEach(ani => {
 				var base_ani = new Animation()
@@ -475,7 +542,9 @@ var codec = new Codec('project', {
 				let el = Outliner.elements.find(el2 => el2.uuid == uuid);
 				Project.selected_elements.push(el);
 			})
-			Group.selected = (state.selected_group && Group.all.find(g => g.uuid == state.selected_group));
+			if (state.selected_groups) {
+				Group.multi_selected = state.selected_groups.map(uuid => Group.all.find(g => g.uuid == uuid)).filter(g => g instanceof Group);
+			}
 			(state.selected_texture && Texture.all.find(t => t.uuid == state.selected_texture))?.select();
 
 			Project.loadEditorState();
@@ -643,6 +712,12 @@ var codec = new Codec('project', {
 
 			parseGroups(model.outliner, true);
 		}
+		if (model.collections instanceof Array) {
+			for (let collection_data of model.collections) {
+				let collection = new Collection(collection_data, collection_data.uuid);
+				collection.add();
+			}
+		}
 		if (model.animations && Format.animation_mode) {
 			model.animations.forEach(ani => {
 				var base_ani = new Animation();
@@ -715,6 +790,34 @@ BARS.defineActions(function() {
 		}
 	})
 
+	new Action('save_project_incremental', {
+		icon: 'difference',
+		category: 'file',
+		keybind: new Keybind({key: 's', shift: true, alt: true}),
+		condition: isApp ? (() => Project && Project.save_path) : false,
+		click: function () {
+			saveTextures(true);
+			let projectTailRegex = /\.bbmodel$/;
+			let projectVerRegex = /([0-9]+)\.bbmodel$/;
+			let projectVerMatch = projectVerRegex.exec(Project.save_path);
+
+			let file_path;
+			if (projectVerMatch) {
+				let projectVer = parseInt(projectVerMatch[1]); // Parse & store project ver int (capturing group 1)
+				file_path = Project.save_path.replace(projectVerRegex, `${projectVer + 1}.bbmodel`);
+			} else {
+				file_path = Project.save_path.replace(projectTailRegex, "_1.bbmodel");
+			}
+			let original_file_path = file_path;
+			let i = 1;
+			while (fs.existsSync(file_path) && i < 100) {
+				file_path = original_file_path.replace(projectTailRegex, `_alt_${i == 1 ? '' : i}.bbmodel`);
+				i++;
+			}
+			codec.write(codec.compile(), file_path);
+		}
+	})
+
 	new Action('save_project_as', {
 		icon: 'save',
 		category: 'file',
@@ -745,5 +848,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

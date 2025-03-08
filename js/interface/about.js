@@ -52,16 +52,20 @@ BARS.defineActions(() => {
 									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
 									<label>Website</label>
 								</a>
+								<a class="open-in-browser" href="https://bsky.app/profile/blockbench.net">
+									<i class="icon fab fa-bluesky" style="color: #208bfe;"></i>
+									<label>Bluesky</label>
+								</a>
 								<a class="open-in-browser" href="https://twitter.com/blockbench">
 									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
 									<label>Twitter</label>
 								</a>
 								<a class="open-in-browser" href="http://discord.blockbench.net">
-									<i class="icon fab fa-discord" style="color: #727fff;"></i>
+									<i class="icon fab fa-discord" style="color: #5865F2;"></i>
 									<label>Discord</label>
 								</a>
 								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
-									<i class="icon fab fa-youtube" style="color: #ff4444;"></i>
+									<i class="icon fab fa-youtube"></i>
 									<label>YouTube</label>
 								</a>
 								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
@@ -116,6 +120,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://jqueryui.com">jQuery UI</a></li>
 								<li><a class="open-in-browser" href="https://github.com/furf/jquery-ui-touch-punch">jQuery UI Touch Punch</a></li>
 								<li><a class="open-in-browser" href="https://github.com/eligrey/FileSaver.js">FileSaver.js</a></li>
+								<li><a class="open-in-browser" href="https://github.com/AndrewRayCode/easing-utils">easing-utils</a></li>
 								<li><a class="open-in-browser" href="https://peerjs.com">PeerJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/markedjs/marked">Marked</a></li>
 								<li><a class="open-in-browser" href="https://github.com/cure53/DOMPurify">DOMPurify</a></li>
@@ -126,7 +131,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
 							</ul>
 
-							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
+							<p style="margin-top: 20px">Released under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
 							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
 
 						</div>`

@@ -1,4 +1,4 @@
-const ModelScaler = {
+export const ModelScaler = {
 	dialog: new Dialog({
 		id: 'scale',
 		title: 'dialog.scale.title',
@@ -68,16 +68,13 @@ const ModelScaler = {
 	}),
 	overflow: null,
 	getScaleGroups() {
-		let groups = [];
-		if (!Format.bone_rig) return groups;
-		if (Group.selected) {
-			Group.selected.forEachChild((g) => {
-				groups.push(g);
-			}, Group, true);
+		if (!Format.bone_rig) return [];
+		if (Group.first_selected) {
+			return Group.all.filter(g => g.selected);
 		} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
-			groups = Group.all;
+			return Group.all;
 		}
-		return groups;
+		return [];
 	},
 	scaleAll(save, size) {
 		let data = ModelScaler.dialog.getFormResult();
@@ -255,7 +252,7 @@ BARS.defineActions(function() {
 
 			ModelScaler.overflow = null;
 			let v = Format.centered_grid ? 0 : 8;
-			let origin = Group.selected ? Group.selected.origin : [v, 0, v];
+			let origin = Group.first_selected ? Group.first_selected.origin : [v, 0, v];
 			ModelScaler.dialog.setFormValues({
 				origin,
 				scale: 1

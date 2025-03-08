@@ -1,4 +1,4 @@
-const MirrorModeling = {
+export const MirrorModeling = {
 	initial_transformer_position: 0,
 	isCentered(element) {
 		let center = Format.centered_grid ? 0 : 8;
@@ -18,6 +18,8 @@ const MirrorModeling = {
 	},
 	createClone(original, undo_aspects) {
 		// Create or update clone
+		let options = BarItems.mirror_modeling.tool_config.options;
+		let mirror_uv = options.mirror_uv;
 		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
 		let element_before_snapshot;
@@ -33,12 +35,36 @@ const MirrorModeling = {
 			mirror_element.extend({
 				name: element_before_snapshot.name
 			});
+			if (!mirror_uv) {
+				if (original instanceof Mesh) {
+					for (let fkey in mirror_element.faces) {
+						let face = mirror_element.faces[fkey];
+						let face_before = element_before_snapshot.faces[fkey];
+						if (face_before) {
+							face.texture = face_before.texture;
+							for (let vkey of face_before.vertices) {
+								if (face.vertices.includes(vkey) && face_before.uv[vkey]) {
+									face.uv[vkey] = face_before.uv[vkey].slice();
+								}
+							}
+						}
+					}
+				} else {
+					mirror_element.extend({
+						faces: element_before_snapshot.faces,
+						uv_offset: element_before_snapshot.uv_offset,
+						mirror_uv: element_before_snapshot.mirror_uv,
+						box_uv: element_before_snapshot.box_uv,
+						autouv: element_before_snapshot.autouv
+					});
+				}
+			}
 
 			// Update hierarchy up
 			function updateParent(child, child_b) {
 				let parent = child.parent;
 				let parent_b = child_b.parent;
-				if (parent instanceof Group == false || parent == parent_b) return;
+				if (parent instanceof Group == false || parent_b instanceof Group == false || parent == parent_b) return;
 
 				MirrorModeling.updateGroupCounterpart(parent_b, parent);
 
@@ -66,7 +92,7 @@ const MirrorModeling = {
 					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
 					let match = parent_list.find(node => {
 						if (node instanceof Group == false) return false;
-						if (node.name == mirror_group.name && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+						if ((node.name == mirror_group.name || Condition(mirror_group.needsUniqueName)) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
 							return true;
 						}
 					})
@@ -116,9 +142,51 @@ const MirrorModeling = {
 			return 16 - input;
 		}
 	},
-	createLocalSymmetry(mesh) {
+	discoverMeshPartConnections(mesh) {
+		let data = {
+			faces: {},
+			vertices: {},
+		}
+		// Detect vertex counterparts
+		for (let vkey in mesh.vertices) {
+			if (data.vertices[vkey]) continue;
+			let vector = Reusable.vec1.fromArray(mesh.vertices[vkey]);
+			vector.x *= -1;
+			for (let vkey2 in mesh.vertices) {
+				//if (vkey == vkey2) continue;
+				let distance = vector.distanceTo(Reusable.vec2.fromArray(mesh.vertices[vkey2]));
+				if (distance < 0.001) {
+					data.vertices[vkey] = vkey2;
+					data.vertices[vkey2] = vkey;
+					break;
+				}
+			}
+		}
+		// Detect face counterparts
+		for (let fkey in mesh.faces) {
+			if (data.faces[fkey]) continue;
+			for (let fkey2 in mesh.faces) {
+				if (fkey == fkey2) continue;
+				let match = mesh.faces[fkey].vertices.allAre(vkey => {
+					let other_vkey = data.vertices[vkey];
+					if (!other_vkey) return false;
+					return mesh.faces[fkey2].vertices.includes(other_vkey);
+				})
+				if (match) {
+					data.faces[fkey] = fkey2;
+					data.faces[fkey2] = fkey;
+					break;
+				}
+			}
+		}
+		return data;
+	},
+	createLocalSymmetry(mesh, cached_data) {
 		// Create or update clone
 		let edit_side = MirrorModeling.getEditSide();
+		let options = BarItems.mirror_modeling.tool_config.options;
+		let mirror_uv = options.mirror_uv;
+		let pre_part_connections = cached_data?.pre_part_connections;
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
 		let deleted_vertices_by_position = {};
@@ -155,6 +223,7 @@ const MirrorModeling = {
 			}
 		}
 
+		// Delete faces temporarily if all their vertices have been removed
 		let deleted_faces = {};
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
@@ -165,6 +234,7 @@ const MirrorModeling = {
 			}
 		}
 
+		// Create mirrored faces
 		let original_fkeys = Object.keys(mesh.faces);
 		for (let fkey of original_fkeys) {
 			let face = mesh.faces[fkey];
@@ -201,21 +271,23 @@ const MirrorModeling = {
 
 			} else if (deleted_face_vertices.length == 0 && face.vertices.find((vkey) => vkey != vertex_counterpart[vkey])) {
 				// Recreate face as mirrored
-				let new_face_key;
-				for (let key in deleted_faces) {
-					let deleted_face = deleted_faces[key];
-					if (face.vertices.allAre(vkey => deleted_face.vertices.includes(vertex_counterpart[vkey]))) {
-						new_face_key = key;
-						break;
-					}
-				}
+				let new_face_key = pre_part_connections && pre_part_connections.faces[fkey];
+				let original_face = deleted_faces[new_face_key];
 
 				let new_face = new MeshFace(mesh, face);
 				face.vertices.forEach((vkey, i) => {
 					let new_vkey = vertex_counterpart[vkey];
 					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
-					new_face.uv[new_vkey] = face.uv[vkey].slice();
+					if (mirror_uv || !original_face) {
+						new_face.uv[new_vkey] = face.uv[vkey].slice();
+					} else {
+						// change
+						let original_vkey = pre_part_connections.vertices[vkey];
+						if (original_face.uv[original_vkey]) {
+							new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
+						}
+					}
 				})
 				new_face.invert();
 				if (new_face_key) {
@@ -224,8 +296,14 @@ const MirrorModeling = {
 					[new_face_key] = mesh.addFaces(new_face);
 				}
 			}
-
 		}
+		let selected_vertices = mesh.getSelectedVertices(true);
+		selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
+		let selected_edges = mesh.getSelectedEdges(true);
+		selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
+		let selected_faces = mesh.getSelectedFaces(true);
+		selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+
 		let {preview_controller} = mesh;
 		preview_controller.updateGeometry(mesh);
 		preview_controller.updateFaces(mesh);
@@ -292,7 +370,7 @@ const MirrorModeling = {
 					}
 				}
 			}
-			return element;
+			return false;
 		}
 	},
 	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
@@ -331,6 +409,9 @@ Blockbench.on('init_edit', ({aspects}) => {
 					if (!data.counterpart) data.is_copy = false;
 				} else {
 					data.is_copy = false;
+					if (element instanceof Mesh) {
+						data.pre_part_connections = MirrorModeling.discoverMeshPartConnections(element)
+					}
 				}
 			}
 		})
@@ -372,15 +453,16 @@ Blockbench.on('finish_edit', ({aspects}) => {
 		aspects.elements = aspects.elements.slice();
 		let static_elements_copy = aspects.elements.slice();
 		static_elements_copy.forEach((element) => {
+			let cached_data = MirrorModeling.cached_elements[element.uuid]
 			if (element.allow_mirror_modeling && !element.locked) {
 				let is_centered = MirrorModeling.isCentered(element);
 
 				if (is_centered && element instanceof Mesh) {
 					// Complete other side of mesh
-					MirrorModeling.createLocalSymmetry(element);
+					MirrorModeling.createLocalSymmetry(element, cached_data);
 				}
 				if (is_centered) {
-					let mirror_element = MirrorModeling.cached_elements[element.uuid]?.counterpart;
+					let mirror_element = cached_data?.counterpart;
 					if (mirror_element && mirror_element.uuid != element.uuid) {
 						MirrorModeling.insertElementIntoUndo(mirror_element, Undo.current_save.aspects, mirror_element.getUndoCopy());
 						mirror_element.remove();
@@ -424,7 +506,22 @@ BARS.defineActions(() => {
 			Project.mirror_modeling_enabled = this.value;
 			MirrorModeling.cached_elements = {};
 			updateSelection();
-		}
+		},
+		tool_config: new ToolConfig('mirror_modeling_options', {
+			title: 'action.mirror_modeling',
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
+				mirror_uv: {type: 'checkbox', label: 'menu.mirror_modeling.mirror_uv', value: true}
+			},
+			onOpen() {
+				this.setFormValues({enabled: BarItems.mirror_modeling.value}, false);
+			},
+			onFormChange(formResult) {
+				if (BarItems.mirror_modeling.value != formResult.enabled) {
+					BarItems.mirror_modeling.trigger();
+				}
+			}
+		})
 	})
 	let allow_toggle = new Toggle('allow_element_mirror_modeling', {
 		icon: 'align_horizontal_center',
@@ -445,4 +542,18 @@ BARS.defineActions(() => {
 			allow_toggle.updateEnabledState();
 		}
 	})
+	new Action('apply_mirror_modeling', {
+		icon: 'align_horizontal_right',
+		category: 'edit',
+		condition: {modes: ['edit']},
+		click() {
+			let value_before = BarItems.mirror_modeling.value;
+			BarItems.mirror_modeling.value = true;
+			Undo.initEdit({elements: Outliner.selected, outliner: !!Group.first_selected});
+			Undo.finishEdit('Applied mirror modeling');
+			BarItems.mirror_modeling.value = value_before;
+		}
+	})
 })
+
+Object.assign(window, {MirrorModeling});

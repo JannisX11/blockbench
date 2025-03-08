@@ -1,4 +1,6 @@
-const StartScreen = {
+import { documentReady } from "../misc";
+
+export const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
@@ -12,14 +14,14 @@ const StartScreen = {
  * @param {object} data 
  * @param {object} data.graphic
  * @param {'icon'|string} data.graphic.type
- * @param {string} data.graphic.icon
- * @param {string} data.graphic.source
- * @param {number} data.graphic.width
- * @param {number} data.graphic.height
- * @param {number} data.graphic.aspect_ratio Section aspect ratio
- * @param {string} data.graphic.description Markdown string
- * @param {string} data.graphic.text_color
- * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {string} [data.graphic.icon]
+ * @param {string} [data.graphic.source]
+ * @param {number} [data.graphic.width]
+ * @param {number} [data.graphic.height]
+ * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
+ * @param {string} [data.graphic.description] Markdown string
+ * @param {string} [data.graphic.text_color]
+ * @param {Array.<{text: String, type: String, [list]: Array.String, [click]: Function}>} data.text
  * @param {'vertical'|'horizontal'} data.layout
  * @param {Array} data.features
  * @param {boolean} data.closable
@@ -31,12 +33,12 @@ const StartScreen = {
  * @param {string} data.insert_before
  * @returns 
  */
-function addStartScreenSection(id, data) {
+export function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
 	}
-	var obj = $(Interface.createElement('section', {id}))
+	var obj = $(Interface.createElement('section', {class: 'start_screen_section', section_id: id}))
 	if (typeof data.graphic === 'object') {
 		var left = $('<div class="start_screen_left graphic"></div>')
 		obj.append(left)
@@ -140,9 +142,9 @@ function addStartScreenSection(id, data) {
 	if (data.last) {
 		$('#start_screen > content').append(obj);
 	} else if (data.insert_after) {
-		$('#start_screen > content').find(`#${data.insert_after}`).after(obj);
+		$('#start_screen > content').find(`.start_screen_section[section_id="${data.insert_after}"]`).after(obj);
 	} else if (data.insert_before) {
-		$('#start_screen > content').find(`#${data.insert_before}`).before(obj);
+		$('#start_screen > content').find(`.start_screen_section[section_id="${data.insert_before}"]`).before(obj);
 	} else {
 		$('#start_screen > content').prepend(obj);
 	}
@@ -182,23 +184,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [skeleton_tiffay](https://twitter.com/Tiffany85635656)",
+					description: "Splash Art 1st Place by [Handon_撼动](https://x.com/_2Lein) & [PICASSO](https://twitter.com/Picasso114514)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [AnzSama](https://twitter.com/AnzSamaEr) & [PICASSO](https://twitter.com/Picasso114514)",
+					description: "Splash Art 2nd Place by [guzuper](https://x.com/guzuper200?s=21) & [rainyday](https://x.com/YuTian131)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [YunGui](https://twitter.com/AmosJea28222061) & [makstutis233](https://x.com/Maks2335770189)",
+					description: "Splash Art 3rd Place by [PeacedoveWum丨無名.](https://twitter.com/PeacedoveWum) & mccaca",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [soul shadow](https://twitter.com/Ghost773748999) & NekoGabriel",
-				},
-				{
-					source: "./assets/splash_art/5.webp",
-					description: "Splash Art 5th Place by [🌷Aza🌷](https://twitter.com/azagwen_art) & Shroomy",
+					description: "Splash Art 3rd Place by [Orange](https://twitter.com/OrangewithMC)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -261,7 +259,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							shell.showItemInFolder(recent_project.path)
+							showItemInFolder(recent_project.path)
 						}
 					},
 					{
@@ -375,7 +373,7 @@ onVueSetup(async function() {
 		template: `
 			<div id="start_screen">
 				<content>
-					<section id="splash_screen" v-if="show_splash_screen">
+					<section id="splash_screen" v-if="show_splash_screen" class="start_screen_section" section_id="splash_screen">
 						<div class="splash_art_slideshow_image" :style="{backgroundImage: getBackground(slideshow[slideshow_selected].source)}">
 							<p v-if="slideshow[slideshow_selected].description" class="start_screen_graphic_description" v-html="pureMarked(slideshow[slideshow_selected].description)"></p>
 						</div>
@@ -387,7 +385,7 @@ onVueSetup(async function() {
 						<i class="material-icons start_screen_close_button" @click="show_splash_screen = false">clear</i>
 					</section>
 
-					<section id="start_files">
+					<section id="start_files" class="start_screen_section" section_id="start_files">
 
 						<div class="start_screen_left" v-if="!(selected_format_id && mobile_layout)">
 							<h2>${tl('mode.start.new')}</h2>
@@ -523,15 +521,10 @@ onVueSetup(async function() {
 	Blockbench.on('construct_format delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
-
-	
-	if (settings.streamer_mode.value) {
-		updateStreamerModeNotification()
-	}
 });
 
 
-class ModelLoader {
+export class ModelLoader {
 	constructor(id, options) {
 		this.id = id;
 		this.name = tl(options.name);
@@ -577,24 +570,40 @@ ModelLoader.loaders = {};
 	});
 	documentReady.then(() => {
 
-		//Twitter
-		let twitter_ad;
-		if (Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
-			twitter_ad = true;
-			addStartScreenSection({
-				color: '#1da1f2',
+		//Bluesky
+		let bsky_ad;
+		Blockbench.onUpdateTo('4.12.2', () => {
+			//Bluesky
+			if (!settings.classroom_mode.value) {
+				bsky_ad = true;
+				addStartScreenSection('bluesky_link', {
+					color: 'rgb(32, 139, 254);',
+					text_color: '#ffffff',
+					graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
+					text: [
+						{type: 'h3', text: 'Blockbench on Bluesky'},
+						{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
+					],
+					last: true
+				})
+			}
+		})
+		if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+			bsky_ad = true;
+			addStartScreenSection('bluesky_link', {
+				color: 'rgb(32, 139, 254);',
 				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-twitter'},
+				graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
 				text: [
-					{type: 'h2', text: 'Blockbench on Twitter'},
-					{text: 'Follow Blockbench on Twitter for the latest news as well as cool models from the community! [twitter.com/blockbench](https://twitter.com/blockbench/)'}
+					{type: 'h3', text: 'Blockbench on Bluesky'},
+					{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
 				],
 				last: true
 			})
 		}
 		//Discord
-		if (Blockbench.startup_count < 6 && !twitter_ad) {
-			addStartScreenSection({
+		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
+			addStartScreenSection('discord_link', {
 				color: '#5865F2',
 				text_color: '#ffffff',
 				graphic: {type: 'icon', icon: 'fab.fa-discord'},
@@ -666,7 +675,7 @@ ModelLoader.loaders = {};
 					}
 				},
 				template: `
-					<section id="quick_setup">
+					<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
 						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
 						<h2>${tl('mode.start.quick_setup')}</h2>
 
@@ -722,9 +731,15 @@ ModelLoader.loaders = {};
 						if (data.psa.version != Blockbench.version) return;
 					}
 				}
-				addStartScreenSection(data.psa)
+				addStartScreenSection('psa', data.psa);
 			})()
 		}
 
 	})
 })()
+
+Object.assign(window, {
+	StartScreen,
+	addStartScreenSection,
+	ModelLoader,
+});

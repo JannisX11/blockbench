@@ -1,4 +1,6 @@
-class ModelProject {
+import { setProjectTitle } from "../interface/interface";
+
+export class ModelProject {
 	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
@@ -55,12 +57,13 @@ class ModelProject {
 		this.elements = [];
 		this.groups = [];
 		this.selected_elements = [];
-		this.selected_group = null;
+		this.selected_groups = [];
 		this.mesh_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.texture_groups = [];
 		this.outliner = [];
+		this.collections = [];
 		this.animations = [];
 		this.animation_controllers = [];
 		this.timeline_animators = [];
@@ -70,7 +73,6 @@ class ModelProject {
 
 		ProjectData[this.uuid] = {
 			model_3d: new THREE.Object3D(),
-			materials: {},
 			nodes_3d: {}
 		}
 	}
@@ -134,9 +136,6 @@ class ModelProject {
 	get model_3d() {
 		return ProjectData[this.uuid].model_3d;
 	}
-	get materials() {
-		return ProjectData[this.uuid].materials;
-	}
 	get nodes_3d() {
 		return ProjectData[this.uuid].nodes_3d;
 	}
@@ -183,8 +182,7 @@ class ModelProject {
 		return this;
 	}
 	loadEditorState() {
-		Project = this;
-		Undo = this.undo;
+		Blockbench.Project = this;
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
@@ -199,6 +197,7 @@ class ModelProject {
 		})
 		Outliner.root = this.outliner;
 		Panels.outliner.inside_vue.root = this.outliner;
+		Panels.collections.inside_vue.collections = Collection.all;
 
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
@@ -227,19 +226,21 @@ class ModelProject {
 		Panels.skin_pose.inside_vue.pose = this.skin_pose;
 
 		UVEditor.loadViewportOffset();
-		
-		Preview.all.forEach(preview => {
-			let data = this.previews[preview.id];
-			if (data) {
-				preview.camera.position.fromArray(data.position);
-				preview.controls.target.fromArray(data.target);
-				preview.setProjectionMode(data.orthographic);
-				if (data.zoom) preview.camOrtho.zoom = data.zoom;
-				if (data.angle) preview.setLockedAngle(data.angle);
-			} else if (preview.default_angle !== undefined) {
-				preview.loadAnglePreset(preview.default_angle);
-			}
-		})
+
+		if (settings.save_view_per_tab.value) {
+			Preview.all.forEach(preview => {
+				let data = this.previews[preview.id];
+				if (data) {
+					preview.camera.position.fromArray(data.position);
+					preview.controls.target.fromArray(data.target);
+					preview.setProjectionMode(data.orthographic);
+					if (data.zoom) preview.camOrtho.zoom = data.zoom;
+					if (data.angle) preview.setLockedAngle(data.angle);
+				} else if (preview.default_angle !== undefined) {
+					preview.loadAnglePreset(preview.default_angle);
+				}
+			})
+		}
 
 		Modes.options[this.mode].select();
 		if (BarItems[this.tool] && Condition(BarItems[this.tool].condition)) {
@@ -325,9 +326,8 @@ class ModelProject {
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
 		MirrorModeling.cached_elements = {};
-		Format = 0;
-		Project = 0;
-		Undo = 0;
+		Blockbench.Format = 0;
+		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
 
@@ -424,7 +424,7 @@ class ModelProject {
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
-			Project = 0;
+			Blockbench.Project = 0;
 			
 			await AutoBackup.removeBackup(this.uuid);
 
@@ -536,7 +536,11 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-let Project = 0;
+Object.defineProperty(window, 'Project', {
+	get() {
+		return Blockbench.Project;
+	}
+})
 
 let ProjectData = {};
 
@@ -551,6 +555,7 @@ ModelProject.prototype.menu = new Menu([
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
+	'save_project_incremental',
 	'export_over',
 	'share_model',
 	new MenuSeparator('overview'),
@@ -558,7 +563,7 @@ ModelProject.prototype.menu = new Menu([
 ])
 
 // Setup ModelProject for loaded project
-function setupProject(format, uuid) {
+export function setupProject(format, uuid) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
 	new ModelProject({format}, uuid).select();
@@ -577,7 +582,7 @@ function setupProject(format, uuid) {
 	return true;
 }
 // Setup brand new project
-function newProject(format) {
+export function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
@@ -592,22 +597,22 @@ function newProject(format) {
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
-function selectNoProject() {
+export function selectNoProject() {
 	setStartScreen(true);
 	
-	Project = 0;
-	Undo = null;
+	Blockbench.Project = 0;
 
 	// Setup Data
 	OutlinerNode.uuids = {};
 	Outliner.root = [];
-	Interface.Panels.outliner.inside_vue.root = [];
+	Panels.outliner.inside_vue.root = [];
+	Panels.collections.inside_vue.collections = [];
 
 	UVEditor.vue.elements = [];
 	UVEditor.vue.all_elements = [];
 
-	Interface.Panels.textures.inside_vue.textures = [];
-	Interface.Panels.textures.inside_vue.texture_groups = [];
+	Panels.textures.inside_vue.textures = [];
+	Panels.textures.inside_vue.texture_groups = [];
 
 	Panels.animations.inside_vue.animations = [];
 	Panels.animations.inside_vue.animation_controllers = [];
@@ -616,21 +621,21 @@ function selectNoProject() {
 	AnimationController.selected = null;
 	Timeline.animators = Timeline.vue.animators = [];
 
-	Interface.Panels.variable_placeholders.inside_vue.text = '';
-	Interface.Panels.variable_placeholders.inside_vue.buttons.empty();
+	Panels.variable_placeholders.inside_vue.text = '';
+	Panels.variable_placeholders.inside_vue.buttons.empty();
 
-	Interface.Panels.skin_pose.inside_vue.pose = '';
+	Panels.skin_pose.inside_vue.pose = '';
 
 	Blockbench.dispatchEvent('select_no_project', {});
 }
-function updateTabBarVisibility() {
+export function updateTabBarVisibility() {
 	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
 	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
 	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
 
 // Resolution
-function setProjectResolution(width, height, modify_uv) {
+export function setProjectResolution(width, height, modify_uv) {
 	if (Project.texture_width / width != Project.texture_width / height) {
 		modify_uv = false;
 	}
@@ -692,7 +697,7 @@ function setProjectResolution(width, height, modify_uv) {
 		UVEditor.loadData()
 	}
 }
-function updateProjectResolution() {
+export function updateProjectResolution() {
 	if (!Format.per_texture_uv_size) {
 		if (Interface.Panels.uv) {
 			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
@@ -708,7 +713,7 @@ function updateProjectResolution() {
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
-function setStartScreen(state) {
+export function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
 	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
@@ -736,7 +741,7 @@ onVueSetup(() => {
 			if (Project) {
 				Project.unselect()
 			}
-			Project = 0;
+			Blockbench.Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 			updateInterface();
@@ -1015,6 +1020,7 @@ BARS.defineActions(function() {
 				label: 'dialog.project.texture_size',
 				type: 'vector',
 				dimensions: 2,
+				linked_ratio: false,
 				value: [Project.texture_width, Project.texture_height],
 				min: 1
 			};
@@ -1196,12 +1202,15 @@ BARS.defineActions(function() {
 	new Action('switch_tabs', {
 		icon: 'swap_horiz',
 		category: 'file',
-		keybind: new Keybind({key: 9, ctrl: true, shift: null}),
+		keybind: new Keybind({key: 9, ctrl: true}, {reverse_order: 'shift'}),
+		variations: {
+			reverse_order: {name: 'action.switch_tabs.reverse_order'}
+		},
 		condition: () => ModelProject.all.length > 1,
 		click(event) {
 			let index = ModelProject.all.indexOf(Project);
 			let target;
-			if (event && event.shiftKey) {
+			if (this.keybind.additionalModifierTriggered(event) == 'reverse_order') {
 				target = ModelProject.all[index-1] || ModelProject.all.last();
 			} else {
 				target = ModelProject.all[index+1] || ModelProject.all[0];
@@ -1226,6 +1235,9 @@ BARS.defineActions(function() {
 						select(project) {
 							Dialog.open.confirm();
 							project.select();
+						},
+						isPixelArt(project) {
+							return project.format.image_editor && project.textures[0]?.height < 190;
 						}
 					},
 					computed: {
@@ -1243,7 +1255,7 @@ BARS.defineActions(function() {
 								<search-bar id="tab_overview_search_bar" v-model="search_term"></search-bar>
 							</div>
 							<ul id="tab_overview_grid">
-								<li v-for="project in filtered_projects" @mousedown="select(project)">
+								<li v-for="project in filtered_projects" @mousedown="select(project)" :class="{pixel_art: isPixelArt(project)}">
 									<img :src="project.thumbnail" :style="{visibility: project.thumbnail ? 'unset' : 'hidden'}">
 									{{ project.name }}
 								</li>
@@ -1264,3 +1276,15 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ModelProject,
+	setupProject,
+	newProject,
+	selectNoProject,
+	updateTabBarVisibility,
+	setProjectResolution,
+	updateProjectResolution,
+	setStartScreen,
+});

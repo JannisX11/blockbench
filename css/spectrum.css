@@ -10,8 +10,8 @@ License: MIT
     top:0;
     left:0;
     display:inline-block;
-    *display: inline;
-    *zoom: 1;
+    display: inline;
+    zoom: 1;
     /* https://github.com/bgrins/spectrum/issues/40 */
     z-index: 1;
     overflow: hidden; 
@@ -246,7 +246,7 @@ License: MIT
 /* Clearfix hack */
 .sp-cf:before, .sp-cf:after { content: ""; display: table; }
 .sp-cf:after { clear: both; }
-.sp-cf { *zoom: 1; }
+.sp-cf { zoom: 1; }
 
 body.is_touch .sp-fill { padding-top: 64%; }
 
@@ -389,8 +389,8 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     padding: 6px;
     height: 30px;
     display:inline-block;
-    *zoom: 1;
-    *display: inline;
+    zoom: 1;
+    display: inline;
     background: var(--color-button);
     color: var(--color-text);
     vertical-align: middle;

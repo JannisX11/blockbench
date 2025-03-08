@@ -1049,6 +1049,7 @@
 		z-index: 9;
 		pointer-events: initial;
 		cursor: move;
+		clip-path: none !important;
 	}
 	.reference_image.selected, .reference_image:hover {
 		outline: 1px solid var(--color-accent);
@@ -1227,20 +1228,9 @@
 		width: fit-content;
 		z-index: 3;
 	}
-	#amend_edit_menu > div.amend_edit_line {
+	#amend_edit_menu > div.form {
 		background-color: var(--color-ui);
-		padding: 0px 8px;
-		height: 30px;
-		display: flex;
-	}
-	#amend_edit_menu > div.amend_edit_line .nslide_tool {
-		float: none;
-	}
-	#amend_edit_menu > div.amend_edit_line > input {
-		width: 73px;
-	}
-	#amend_edit_menu > div.amend_edit_line > label {
-		padding: 4px 6px;
+		padding: 2px 10px;
 	}
 	.amend_edit_close_button {
 		position: absolute;

@@ -1,18 +1,17 @@
-const electron = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
-const app = electron.app;
-const fs = require('fs');
-const NodeBuffer = require('buffer');
-const zlib = require('zlib');
-const exec = require('child_process').exec;
-const originalFs = require('original-fs');
-const https = require('https');
-const PathModule = require('path');
+export const electron = require('@electron/remote');
+export const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
+export const app = electron.app;
+export const fs = require('fs');
+export const NodeBuffer = require('buffer');
+export const zlib = require('zlib');
+export const exec = require('child_process').exec;
+export const https = require('https');
+export const PathModule = require('path');
 
-const currentwindow = electron.getCurrentWindow();
+export const currentwindow = electron.getCurrentWindow();
 var dialog_win	 = null,
 	latest_version = false;
-const recent_projects = (function() {
+export const recent_projects = (function() {
 	let array = [];
 	var raw = localStorage.getItem('recent_projects')
 	if (raw) {
@@ -30,7 +29,7 @@ const recent_projects = (function() {
 app.setAppUserModelId('blockbench')
 
 
-function initializeDesktopApp() {
+export function initializeDesktopApp() {
 
 	//Setup
 	$(document.body).on('click auxclick', 'a[href]', (event) => {
@@ -86,7 +85,7 @@ function initializeDesktopApp() {
 	}
 }
 //Load Model
-function loadOpenWithBlockbenchFile() {
+export function loadOpenWithBlockbenchFile() {
 	function load(path) {
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
@@ -145,7 +144,7 @@ window.alert = function(message, title) {
 }
 
 //Recent Projects
-function updateRecentProjects() {
+export function updateRecentProjects() {
 	recent_projects.splice(Math.clamp(settings.recent_projects.value, 0, 512));
 	let fav_count = 0;
 	recent_projects.forEach((project, i) => {
@@ -158,7 +157,7 @@ function updateRecentProjects() {
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()));
 }
-function addRecentProject(data) {
+export function addRecentProject(data) {
 	var i = recent_projects.length-1;
 	let former_entry;
 	while (i >= 0) {
@@ -183,7 +182,7 @@ function addRecentProject(data) {
 	Settings.updateSettingsInProfiles();
 	updateRecentProjects()
 }
-function updateRecentProjectData() {
+export function updateRecentProjectData() {
 	let project = Project.getProjectMemory();
 	if (!project) return;
 	
@@ -201,27 +200,28 @@ function updateRecentProjectData() {
 	Blockbench.dispatchEvent('update_recent_project_data', {data: project});
 	updateRecentProjects()
 }
-async function updateRecentProjectThumbnail() {
+export async function updateRecentProjectThumbnail() {
 	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	let thumbnail;
+	const resolution = [270, 150];
 
 	if (Format.image_editor && Texture.all.length) {		
 		await new Promise((resolve, reject) => {
 			let tex = Texture.getDefault();
-			let frame = new CanvasFrame(180, 100);
+			let frame = new CanvasFrame(resolution[0], resolution[1]);
 			frame.ctx.imageSmoothingEnabled = false;
 
 			let {width, height} = tex;
-			if (width > 180)   {height /= width / 180;  width = 180;}
-			if (height > 100) {width /= height / 100; height = 100;}
-			if (width < 180 && height < 100) {
-				let factor = Math.min(180 / width, 100 / height);
+			if (width > resolution[0])   {height /= width / resolution[0];  width = resolution[0];}
+			if (height > resolution[1]) {width /= height / resolution[1]; height = resolution[1];}
+			if (width < resolution[0] && height < resolution[1]) {
+				let factor = Math.min(resolution[0] / width, resolution[1] / height);
 				factor *= 0.92;
 				height *= factor; width *= factor;
 			}
-			frame.ctx.drawImage(tex.img, (180 - width)/2, (100 - height)/2, width, height)
+			frame.ctx.drawImage(tex.img, (resolution[0] - width)/2, (resolution[1] - height)/2, width, height)
 
 			let url = frame.canvas.toDataURL();
 
@@ -236,7 +236,7 @@ async function updateRecentProjectThumbnail() {
 	} else {
 		if (Outliner.elements.length == 0) return;
 
-		MediaPreview.resize(180, 100)
+		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
 		let center = getSelectionCenter(true);
@@ -286,8 +286,8 @@ async function updateRecentProjectThumbnail() {
 		})
 	}
 }
-function loadDataFromModelMemory() {
-	let project = Project.getProjectMemory();
+export function loadDataFromModelMemory() {
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	if (project.textures) {
@@ -305,8 +305,12 @@ function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
+export function showItemInFolder(path) {
+	ipcRenderer.send('show-item-in-folder', path);
+}
+
 //Window Controls
-function updateWindowState(e, type) {
+export function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();
 	$('#header_free_bar').toggleClass('resize_space', !maximized);
 	document.body.classList.toggle('maximized', maximized);
@@ -318,7 +322,12 @@ currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Image Editor
-function changeImageEditor(texture, not_found) {
+export function changeImageEditor(texture, not_found) {
+	let app_file_extension = {
+		'win32': ['exe'],
+		'linux': [],
+		'darwin': ['app'],
+	};
 	new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
@@ -327,7 +336,7 @@ function changeImageEditor(texture, not_found) {
 			editor: {type: 'select', full_width: true, options: {
 				ps: Blockbench.platform == 'win32' ? 'Photoshop' : undefined,
 				gimp: 'GIMP',
-				pdn: Blockbench.platform == 'win324' ? 'Paint.NET' : undefined,
+				pdn: Blockbench.platform == 'win32' ? 'Paint.NET' : undefined,
 				other: 'message.image_editor.file'
 			}},
 			file: {
@@ -335,7 +344,8 @@ function changeImageEditor(texture, not_found) {
 				nocolon: true,
 				type: 'file',
 				file_type: 'Program',
-				extensions: ['exe', 'app', 'desktop', 'appimage'],
+				extensions: app_file_extension[Blockbench.platform],
+				readtype: 'none',
 				description: 'message.image_editor.exe',
 				condition: result => result.editor == 'other'
 			}
@@ -375,7 +385,7 @@ function changeImageEditor(texture, not_found) {
 	}).show()
 }
 //Default Pack
-function openDefaultTexturePath() {
+export function openDefaultTexturePath() {
 	let detail = tl('message.default_textures.detail');
 	if (settings.default_path.value) {
 		detail += '\n\n' + tl('message.default_textures.current') + ': ' + settings.default_path.value;
@@ -409,7 +419,7 @@ function openDefaultTexturePath() {
 		Settings.saveLocalStorages();
 	}
 }
-function findExistingFile(paths) {
+export function findExistingFile(paths) {
 	for (var path of paths) {
 		if (fs.existsSync(path)) {
 			return path;
@@ -417,7 +427,7 @@ function findExistingFile(paths) {
 	}
 }
 //Backup
-function createBackup(init) {
+export function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
 
 	let duration = parseInt(settings.backup_retain.value)+1
@@ -576,6 +586,7 @@ BARS.defineActions(() => {
 
 //Close
 window.onbeforeunload = function (event) {
+	console.log('BEFORE UNLOAD')
 	try {
 		updateRecentProjectData()
 	} catch(err) {}
@@ -654,12 +665,12 @@ window.onbeforeunload = function (event) {
 		event.returnValue = true;
 		return true;
 	} else {
-		closeBlockbenchWindow();
+		setTimeout(closeBlockbenchWindow, 1);
 		return false;
 	}
 }
 
-async function closeBlockbenchWindow() {
+export async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
@@ -678,7 +689,7 @@ async function closeBlockbenchWindow() {
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	if (Project.EditSession) Project.EditSession.quit()
-	return currentwindow.close();
+	return window.close();
 };
 
 
@@ -728,11 +739,11 @@ ipcRenderer.on('update-available', (event, arg) => {
 		})
 
 	} else {
-		addStartScreenSection({
+		addStartScreenSection('update_notification', {
 			color: 'var(--color-back)',
 			graphic: {type: 'icon', icon: 'update'},
 			text: [
-				{type: 'h2', text: tl('message.update_notification.title')},
+				{type: 'h3', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
 				{type: 'button', text: tl('generic.enable'), click: (e) => {
 					settings.automatic_updates.set(true);
@@ -742,3 +753,35 @@ ipcRenderer.on('update-available', (event, arg) => {
 	}
 })
 
+Object.assign(window, {
+	electron,
+	clipboard,
+	shell,
+	nativeImage,
+	ipcRenderer,
+	dialog,
+	webUtils,
+	app,
+	fs,
+	NodeBuffer,
+	zlib,
+	exec,
+	https,
+	PathModule,
+	currentwindow,
+	recent_projects,
+	initializeDesktopApp,
+	loadOpenWithBlockbenchFile,
+	updateRecentProjects,
+	addRecentProject,
+	updateRecentProjectData,
+	loadDataFromModelMemory,
+	showItemInFolder,
+	updateWindowState,
+	changeImageEditor,
+	openDefaultTexturePath,
+	findExistingFile,
+	createBackup,
+	updateRecentProjectThumbnail,
+	closeBlockbenchWindow,
+})

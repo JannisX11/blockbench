@@ -8,7 +8,7 @@ function createEmptyCanvas(width, height) {
 	return [canvas, ctx];
 }
 
-const ScreencamGIFFormats = {
+export const ScreencamGIFFormats = {
 	gif: {
 		name: 'dialog.create_gif.format.gif',
 		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
@@ -175,7 +175,7 @@ const ScreencamGIFFormats = {
 	}
 }
 
-const Screencam = {
+export const Screencam = {
 	NoAAPreview: null,
 	recording_timelapse: false,
 	gif_options_dialog: new Dialog({
@@ -193,14 +193,17 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
-			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [500, 500], toggle_enabled: true, toggle_default: false},
+			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, linked_ratio: false, value: [500, 500], toggle_enabled: true, toggle_default: false},
 			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#000000', toggle_enabled: true, toggle_default: false},
 			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
-			turnspeed:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+			turnspeed:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
+			turnspeed_o:{type: 'buttons', condition: (form) => (Animation.selected && form.play), buttons: ['dialog.create_gif.turn.sync_to_anim_length'], click: (index) => {
+				Dialog.open.setFormValues({turnspeed: 60 / (Animation.selected.length||1)});
+			}},
 		},
 		onConfirm(formData) {
 			formData.background = (formData.color && formData.color.toHex8String() != '#00000000') ? formData.color.toHexString() : undefined;
@@ -230,7 +233,7 @@ const Screencam = {
 				})
 				return options;
 			}},
-			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
+			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080], linked_ratio: false},
 			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
 			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
 			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
@@ -252,7 +255,7 @@ const Screencam = {
 
 			if (options.crop !== false) {
 
-				if (Modes.display && display_slot === 'gui') {
+				if (!options && Modes.display && DisplayMode.display_slot === 'gui') {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
 	
@@ -348,6 +351,14 @@ const Screencam = {
 				img_frame.ctx.filter = `blur(1px)`;
 				img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
 				frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
+
+				if (frame.isEmpty() && options.resolution[0] * options.resolution[1] > 2_000_000) {
+					Blockbench.showMessageBox({
+						translateKey: 'screenshot_too_large',
+						icon: 'broken_image'
+					})
+					return false;
+				}
 
 				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
 
@@ -925,3 +936,9 @@ BARS.defineActions(function() {
 		click() {Screencam.fullScreen()}
 	})
 })
+
+
+Object.assign(window, {
+	ScreencamGIFFormats,
+	Screencam,
+});
