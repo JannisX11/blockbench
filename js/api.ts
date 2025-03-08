@@ -24,6 +24,7 @@ export const Blockbench = {
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
+	setup_successful: null as null | true,
 	/**
 	 * @deprecated Use Undo.initEdit and Undo.finishEdit instead
 	 */

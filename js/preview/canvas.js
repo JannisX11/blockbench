@@ -11,6 +11,7 @@ import UVHelperFragShader from './../shaders/uv_helper.frag.glsl'
 import BrushOutlineVertShader from './../shaders/brush_outline.vert.glsl'
 import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
 import { prepareShader } from '../shaders/shader';
+import { gizmo_colors } from './preview'
 
 export function getRescalingFactor(angle) {
 	switch (Math.abs(angle)) {

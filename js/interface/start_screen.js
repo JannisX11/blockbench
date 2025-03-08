@@ -1,5 +1,4 @@
 import { documentReady } from "../misc";
-import { updateStreamerModeNotification } from "./settings";
 
 export const StartScreen = {
 	loaders: {},
@@ -15,14 +14,14 @@ export const StartScreen = {
  * @param {object} data 
  * @param {object} data.graphic
  * @param {'icon'|string} data.graphic.type
- * @param {string} data.graphic.icon
- * @param {string} data.graphic.source
- * @param {number} data.graphic.width
- * @param {number} data.graphic.height
- * @param {number} data.graphic.aspect_ratio Section aspect ratio
- * @param {string} data.graphic.description Markdown string
- * @param {string} data.graphic.text_color
- * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {string} [data.graphic.icon]
+ * @param {string} [data.graphic.source]
+ * @param {number} [data.graphic.width]
+ * @param {number} [data.graphic.height]
+ * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
+ * @param {string} [data.graphic.description] Markdown string
+ * @param {string} [data.graphic.text_color]
+ * @param {Array.<{text: String, type: String, [list]: Array.String, [click]: Function}>} data.text
  * @param {'vertical'|'horizontal'} data.layout
  * @param {Array} data.features
  * @param {boolean} data.closable
@@ -522,11 +521,6 @@ onVueSetup(async function() {
 	Blockbench.on('construct_format delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
-
-	
-	if (settings.streamer_mode.value) {
-		updateStreamerModeNotification();
-	}
 });
 
 

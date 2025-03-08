@@ -152,6 +152,7 @@ export class Dialog {
 		this.lines = options.lines
 		this.form_config = options.form
 		this.component = options.component
+		this.content_vue = null;
 		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
 
 		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar, this) : null;

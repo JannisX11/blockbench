@@ -128,6 +128,8 @@ declare global {
 	interface Event {
 		shiftKey?: boolean
 	}
+
+	let osfs: string
 }
 
 export { }

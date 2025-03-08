@@ -1,4 +1,5 @@
 import { Blockbench } from "./api";
+import { updateStreamerModeNotification } from "./interface/setup_settings";
 import { translateUI } from "./languages";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
@@ -51,8 +52,6 @@ BARS.setupToolbars()
 BARS.setupVue()
 MenuBar.setup()
 translateUI()
-
-Settings.setupProfiles();
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + Blockbench.version + (isApp
@@ -131,6 +130,10 @@ onVueSetup.funcs.forEach((func) => {
 		func()
 	}
 })
+
+if (settings.streamer_mode.value) {
+	updateStreamerModeNotification();
+}
 
 AutoBackup.initialize();
 

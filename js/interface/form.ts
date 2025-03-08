@@ -1,10 +1,196 @@
+import { Clipbench } from "../copy_paste"
+import { EventSystem } from "../util/event_system"
+import { getStringWidth } from "../util/util"
+
+interface FormElementOptions {
+	label?: string
+	/**
+	 * Detailed description of the field, available behind the questionmark icon or on mouse hover
+	 */
+	description?: string
+	type:
+		| 'text'
+		| 'password'
+		| 'number'
+		| 'range'
+		| 'checkbox'
+		| 'select'
+		| 'radio'
+		| 'textarea'
+		| 'vector'
+		| 'color'
+		| 'file'
+		| 'folder'
+		| 'save'
+		| 'inline_select'
+		| 'inline_multi_select'
+		| 'info'
+		| 'num_slider'
+		| 'buttons'
+	/**
+	 * If true, the label will be displayed without colon at the end
+	 */
+	nocolon?: boolean
+	/**
+	 * Stretch the input field across the whole width of the form
+	 */
+	full_width?: boolean
+	/** Set the input to read-only */
+	readonly?: boolean
+	/** Add buttons to allow copying and sharing the text or link */
+	share_text?: boolean
+	/**
+	 * The default value
+	 */
+	value?: any
+	/**
+	 * The default selected option for 'select', 'inline_select' and 'radio' types. Alias for 'value'
+	 */
+	default?: any
+	placeholder?: string
+	list?: string[]
+	/**
+	 * When using 'text' type, the text to display. Markdown is supported
+	 */
+	text?: string
+	condition?: ConditionResolvable
+	/**
+	 * When using 'range' type, allow users to modify the numeric input
+	 */
+	editable_range_label?: boolean
+	colorpicker?: any
+	/**
+	 * On numeric inputs, the minimum possible value
+	 */
+	min?: number
+	/**
+	 * On numeric inputs, the maximum possible value
+	 */
+	max?: number
+	/**
+	 * The step in which the value can be increased / decreased
+	 */
+	step?: number
+	/**
+	 * If enabled, the value is forced to multiples of the "step" value. This can be used to create integer-only inputs etc.
+	 */
+	force_step?: boolean
+	/**
+	 * The number of dimensions when using a vector type
+	 */
+	dimensions?: number
+	/**
+	 * The height of the input on textareas, in pixels
+	 */
+	height?: number
+	/**
+	 * Available options on select or inline_select inputs
+	 */
+	options?: { [key: string]: string | { name: string } }
+	/**
+	 * List of buttons for the button type
+	 */
+	buttons?: string[]
+
+	/**
+	 * Function to get the interval value for a num_slider based on the input event
+	 * @returns Interval value
+	 */
+	getInterval?: (event: Event) => number
+	/**
+	 * For num_sliders, the sliding interval mode
+	 */
+	interval_type?: 'position' | 'rotation'
+	/**
+	 * Allow users to toggle the entire option on or off
+	 */
+	toggle_enabled?: boolean
+	/**
+	 * Set whether the setting is toggled on or off by default. Requires 'toggle_enabled' field to be set to true
+	 */
+	toggle_default?: boolean
+	/**
+	 * Runs when any of the buttons is pressed
+	 * @param button_index Index of the clicked button in the buttons list
+	 */
+	click?: (button_index: number) => void
+}
+
+type FormResultValue = string | number | boolean | any[] | {}
+
+type FormElementData = {
+	slider?: NumSlider
+	select_input?: Interface.CustomElements.SelectInput<any>
+	value?: string
+	content?: string
+	file?: any
+	colorpicker?: ColorPicker
+	bar: JQuery
+	input_toggle: HTMLInputElement
+	text: string
+}
+
+type InputFormConfig = {
+	[formElement: string]: '_' | FormElement
+}
+type FormValues = Record<string, FormResultValue>
+
+
+
+
+class FormElement {
+	id: string
+	label: string
+	condition: ConditionResolvable
+	nocolon: boolean
+	full_width: boolean
+	readonly: boolean
+	constructor(id: string, options: FormElementOptions) {
+		this.id = id;
+		this.label = options.label;
+		this.condition = options.condition;
+		this.nocolon = options.nocolon;
+		this.full_width = options.full_width;
+		this.readonly = options.readonly;
+	}
+	getDefault(): any {
+		return null;
+	}
+	static types: Record<string, typeof FormElement> = {};
+	static registerType(id: string, type_class: typeof FormElement) {
+		FormElement.types[id] = type_class;
+	}
+}
+
+
+
+FormElement.types['range'] = class FormElementRange extends FormElement {
+	constructor(id: string, options: FormElementOptions) {
+		super(id, options);
+	}
+	getDefault() {
+		return 0;
+	}
+};
+
+
+
+
+
 export class InputForm extends EventSystem {
-	constructor(form_config, options = {}) {
+	uuid: string
+	form_config: InputFormConfig
+	form_data: { [formElement: string]: FormElementData }
+	node: HTMLDivElement
+	max_label_width: number
+	uses_wide_inputs: boolean
+
+	constructor(form_config: InputFormConfig, options = {}) {
 		super();
 		this.uuid = guid();
 		this.form_config = form_config;
 		this.form_data = {};
-		this.node = Interface.createElement('div', {class: 'form'});
+		this.node = Interface.createElement('div', {class: 'form'}) as HTMLDivElement;
 		this.max_label_width = 0;
 		this.uses_wide_inputs = false;
 
@@ -17,7 +203,7 @@ export class InputForm extends EventSystem {
 		let scope = this;
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
-			let data = this.form_data[form_id] = {};
+			let data = this.form_data[form_id] = {} as FormElementData;
 			form_id = form_id.replace(/"/g, '');
 			if (input_config === '_') {
 				jq_node.append('<hr />')
@@ -115,7 +301,7 @@ export class InputForm extends EventSystem {
 								let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
 								share_button.addEventListener('click', e => {
 									navigator.share({
-										label: input_config.label ? tl(input_config.label) : 'Share',
+										title: input_config.label ? tl(input_config.label) : 'Share',
 										[is_url ? 'url' : 'text']: text
 									});
 								});
@@ -158,7 +344,7 @@ export class InputForm extends EventSystem {
                         let wrapper;
                         for (let key in input_config.options) {
                             let is_selected = val ? key == val : i == 0;
-                            let text = input_config.options[key].name || input_config.options[key];
+                            let text: string = typeof input_config.options[key] == 'string' ? input_config.options[key] : input_config.options[key].name;
                             let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
                             node.onclick = event => {
                                 options.forEach(li => {
@@ -263,7 +449,7 @@ export class InputForm extends EventSystem {
 							bar.append(display);
 							input_element.on('input', () => {
 								let result = this.getResult();
-								display.textContent = trimFloatNumber(result[form_id]);
+								display.textContent = trimFloatNumber(result[form_id] as number);
 							})
 						} else {
 							bar.addClass('slider_input_combo');
@@ -290,8 +476,7 @@ export class InputForm extends EventSystem {
 						let getInterval = input_config.getInterval;
 						if (input_config.interval_type == 'position') getInterval = getSpatialInterval;
 						if (input_config.interval_type == 'rotation') getInterval = getRotationInterval;
-						let slider = new NumSlider({
-							id: 'form_slider_'+form_id,
+						let slider = new NumSlider('form_slider_'+form_id, {
 							private: true,
 							onChange: () => {
 								scope.updateValues();
@@ -477,7 +662,7 @@ export class InputForm extends EventSystem {
 						type: 'checkbox',
 						class: 'focusable_input form_input_toggle',
 						id: form_id + '_toggle',
-					})
+					}) as HTMLInputElement;
 					toggle.checked = input_config.toggle_default != false;
 					bar.append(toggle);
 					bar.toggleClass('form_toggle_disabled', !toggle.checked);
@@ -503,7 +688,7 @@ export class InputForm extends EventSystem {
 			}
 		}
 	}
-	updateValues(initial) {
+	updateValues(initial?: boolean) {
 		let form_result = this.getResult();
 		this.update(form_result)
 		if (!initial) {
@@ -592,7 +777,7 @@ export class InputForm extends EventSystem {
 		}
 		if (update) this.updateValues();
 	}
-	getResult() {
+	getResult(): FormValues {
 		let result = {}
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
@@ -671,7 +856,7 @@ export class InputForm extends EventSystem {
 		}
 		return result;
 	}
-	static getDefaultValue(input_config) {
+	static getDefaultValue(input_config): FormResultValue {
 		let set_value = input_config.value ?? input_config.default;
 		if (set_value) return set_value;
 		switch (input_config.type) {

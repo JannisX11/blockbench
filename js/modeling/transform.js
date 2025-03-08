@@ -1,3 +1,4 @@
+import { Canvas } from "../preview/canvas";
 import { autoFixMeshEdit } from "./mesh_editing";
 
 //Actions

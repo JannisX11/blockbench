@@ -51,6 +51,7 @@ import "./undo"
 
 import './desktop.js';
 
+import "./interface/setup_settings"
 import "./edit_sessions"
 import "./validator"
 import "./outliner/outliner"
