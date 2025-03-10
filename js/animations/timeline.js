@@ -1751,8 +1751,8 @@ Interface.definePanels(() => {
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 											@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 										>
-											<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-											<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
+											<i class="icon-keyframe_smooth" v-if="keyframe.interpolation == 'catmullrom'"></i>
+											<i class="icon-keyframe_step" v-else-if="keyframe.interpolation == 'step'"></i>
 											<i class="icon-keyframe_bezier" v-else-if="keyframe.interpolation == 'bezier'"></i>
 											<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 											<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
