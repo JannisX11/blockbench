@@ -302,6 +302,7 @@ export class Preview {
 		}
 
 		this.raycaster = new THREE.Raycaster();
+		this.isForeground_raycaster = new THREE.Raycaster(); // specialized in selection foreground objects
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	event => {
@@ -1345,7 +1346,58 @@ export class Preview {
 			]
 		}
 
+		function isForeground(parentElement, selectionTarget){
+			if(Project.view_mode === 'wireframe'){
+				// if View Mode is set to wireframe, all elements are visible.
+				// So it makes sense to make them all selectable!
+				// Also mirrors what happens in Blender. 
+				return true;
+			}
+			// remove invisible objects and get their meshes
+			let collidingObjects = Outliner.elements.filter(object => object.visibility).map(el => el.mesh)
+			// get the center of the Blockbench Mesh/MeshFace object, or consider the target a simple vertex position
+			let center = selectionTarget.mesh ? selectionTarget.getCenter(true) : selectionTarget;
+			// add the origin of the parent Blockbench Mesh 
+			let position = [center[0]+parentElement.origin[0], center[1]+parentElement.origin[1], center[2]+parentElement.origin[2]];
+			let rc_origin = Preview.selected.camera.position;
+			let rc_direction = new THREE.Vector3(position[0], position[1], position[2]);
+			rc_direction.sub(rc_origin);
+			let far_distance = rc_direction.length();
+			rc_direction.normalize();
+			Preview.selected.isForeground_raycaster.camera = Preview.selected.camera;
+			Preview.selected.isForeground_raycaster.near = 0.0;
+			Preview.selected.isForeground_raycaster.far = far_distance;  // check only until the target object
+			Preview.selected.isForeground_raycaster.set(rc_origin, rc_direction);
+			// Obtain and check the intersections
+			// if selectionTarget is a Mesh, remove object level self-intersection
+			const objectCheck = (intersect)=>{ return !((selectionTarget instanceof Mesh) && (intersect.object == selectionTarget.mesh))};
+			// remove face-level self-intersection
+			const faceCheck = (dist)=>{ return !(dist<0.001)};
+			// final check with faces - if near enough, compare normals: if they're aligned enough it's most likely the same object
+			let fN = null;
+			let fNV = null;
+			if(selectionTarget instanceof MeshFace){
+				fN = selectionTarget.getNormal(true);
+				fNV = new THREE.Vector3(fN[0], fN[1], fN[2]);
+			}
+			const finalCheck = (intersect, dist)=>{
+				// TODO why is this necessary?
+				if (!(selectionTarget instanceof MeshFace)){
+					return true;
+				}
+				let dot = fNV.dot(intersect.face.normal);
+				return !(dist<0.1 && dot>0.95);
+			}
+			let intersects = Preview.selected.isForeground_raycaster.intersectObjects(collidingObjects, false);
+			intersects = intersects.filter(intersect => {
+				let dist = Math.abs(intersect.distance-far_distance)
+				return (objectCheck(intersect) && faceCheck(dist) && finalCheck(intersect, dist))
+			})
+			return (intersects.length == 0);
+		}
+
 		unselectAllElements()
+
 		Outliner.elements.forEach((element) => {
 			let isSelected;
 			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
@@ -1386,7 +1438,7 @@ export class Preview {
 						} else if (selection_mode == 'vertex') {
 							for (let vkey in element.vertices) {
 								let point = vertex_points[vkey];
-								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end) && isForeground(element, element.vertices[vkey])) {
 									mesh_selection.vertices.push(vkey);
 								}
 							}
@@ -1403,7 +1455,7 @@ export class Preview {
 									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
 										mesh_selection.vertices.safePush(vkey, vkey2);
 										let edge = [vkey, vkey2];
-										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2)) && (isForeground(element, element.vertices[vkey]) && isForeground(element, element.vertices[vkey2]))) {
 											mesh_selection.edges.push(edge);
 										}
 									}
@@ -1428,8 +1480,11 @@ export class Preview {
 										break;
 									}
 								}
+								if(face_intersects && !isForeground(element, face)){
+									continue;
+								}
 								if (selection_mode == 'object') {
-									if (face_intersects) {
+									if (face_intersects && isForeground(element, face)) {
 										isSelected = true;
 										break;
 									}
