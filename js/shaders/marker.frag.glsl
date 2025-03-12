@@ -23,4 +23,4 @@ void main(void)
 		gl_FragColor.g = gl_FragColor.g * 0.7;
 	}
 
-}`
+}

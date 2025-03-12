@@ -8,7 +8,6 @@ import Prism from 'prismjs'
 import GIF from 'gif.js'
 
 const THREE = Object.assign({}, threejs);
-//Vue.use(Sortable);
 
 export {
     GIFEnc,
