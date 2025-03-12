@@ -1471,9 +1471,9 @@ Interface.definePanels(function() {
 				/>` +
 			'</div>' +
 			//Other Entries
-			'<ul v-if="node.isOpen">' +
+			'<ul v-if="node.children && node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.constructor.multi_selected.includes(node)"></div>` +
+				`<div class="outliner_line_guide" v-if="node.type == 'group' && node.constructor.multi_selected.includes(node)"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1898,8 +1898,11 @@ Interface.definePanels(function() {
 			new MenuSeparator('add_element'),
 			'add_mesh',
 			'add_cube',
-			'add_texture_mesh',
 			'add_group',
+			'add_locator',
+			'add_null_object',
+			'add_armature_bone',
+			'add_texture_mesh',
 			new MenuSeparator('copypaste'),
 			'paste',
 			new MenuSeparator('manage'),

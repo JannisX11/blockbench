@@ -7,7 +7,7 @@ export const MirrorModeling = {
 		if (element instanceof Cube && !Math.epsilon(element.to[0], MirrorModeling.flipCoord(element.from[0]), 0.01)) return false;
 
 		let checkParent = (parent) => {
-			if (parent instanceof Group) {
+			if (parent instanceof OutlinerNode) {
 				if (parent.origin[0] != center) return true;
 				if (parent.rotation[1] || parent.rotation[2]) return true;
 				return checkParent(parent.parent);
@@ -64,7 +64,7 @@ export const MirrorModeling = {
 			function updateParent(child, child_b) {
 				let parent = child.parent;
 				let parent_b = child_b.parent;
-				if (parent instanceof Group == false || parent_b instanceof Group == false || parent == parent_b) return;
+				if (parent instanceof OutlinerNode == false || parent_b instanceof Group == false || parent == parent_b) return;
 
 				MirrorModeling.updateGroupCounterpart(parent_b, parent);
 
@@ -75,7 +75,7 @@ export const MirrorModeling = {
 		} else {
 			function getParentMirror(child) {
 				let parent = child.parent;
-				if (parent instanceof Group == false) return 'root';
+				if (parent instanceof OutlinerNode == false) return 'root';
 
 				if (parent.origin[0] == center) {
 					return parent;
@@ -89,7 +89,7 @@ export const MirrorModeling = {
 					mirror_group.rotation[2] *= -1;
 					mirror_group.isOpen = parent.isOpen;
 
-					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
+					let parent_list = mirror_group_parent instanceof OutlinerNode ? mirror_group_parent.children : Outliner.root;
 					let match = parent_list.find(node => {
 						if (node instanceof Group == false) return false;
 						if ((node.name == mirror_group.name || Condition(mirror_group.needsUniqueName)) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
@@ -317,7 +317,7 @@ export const MirrorModeling = {
 		function getElementParents(el) {
 			let list = [];
 			let subject = el;
-			while (subject.parent instanceof Group) {
+			while (subject.parent instanceof OutlinerNode) {
 				subject = subject.parent;
 				list.push(subject)
 			}
