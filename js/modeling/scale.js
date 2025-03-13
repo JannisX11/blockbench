@@ -1,4 +1,4 @@
-const ModelScaler = {
+export const ModelScaler = {
 	dialog: new Dialog({
 		id: 'scale',
 		title: 'dialog.scale.title',
@@ -22,7 +22,7 @@ const ModelScaler = {
 			pivot_options: {label: ' ', nocolon: true, type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
 				ModelScaler.setPivot(['pivot', 'selection'][index]);
 			}},
-			scale: {label: '', type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},
+			scale: {type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},
 			overflow_info: {
 				condition: () => ModelScaler.overflow,
 				type: 'info',
@@ -68,16 +68,13 @@ const ModelScaler = {
 	}),
 	overflow: null,
 	getScaleGroups() {
-		let groups = [];
-		if (!Format.bone_rig) return groups;
-		if (Group.selected) {
-			Group.selected.forEachChild((g) => {
-				groups.push(g);
-			}, Group, true);
+		if (!Format.bone_rig) return [];
+		if (Group.first_selected) {
+			return Group.all.filter(g => g.selected);
 		} else if (Outliner.selected.length == Outliner.elements.length && Group.all.length) {
-			groups = Group.all;
+			return Group.all;
 		}
-		return groups;
+		return [];
 	},
 	scaleAll(save, size) {
 		let data = ModelScaler.dialog.getFormResult();
@@ -129,7 +126,7 @@ const ModelScaler = {
 					}
 				}
 			})
-			if (obj instanceof Cube && Format.cube_size_limiter) {
+			if (obj.getTypeBehavior('cube_size_limit') && Format.cube_size_limiter) {
 				if (Format.cube_size_limiter.test(obj)) {
 					overflow.push(obj);
 				}
@@ -140,8 +137,8 @@ const ModelScaler = {
 			if (save === true) {
 				delete obj.before
 			}
-			if (obj instanceof Cube && obj.box_uv) {
-				Canvas.updateUV(obj)
+			if (obj.getTypeBehavior('cube_faces') && obj.box_uv) {
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 		scale_groups.forEach((g) => {
@@ -255,7 +252,7 @@ BARS.defineActions(function() {
 
 			ModelScaler.overflow = null;
 			let v = Format.centered_grid ? 0 : 8;
-			let origin = Group.selected ? Group.selected.origin : [v, 0, v];
+			let origin = Group.first_selected ? Group.first_selected.origin : [v, 0, v];
 			ModelScaler.dialog.setFormValues({
 				origin,
 				scale: 1

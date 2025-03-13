@@ -1,4 +1,7 @@
-class ResizeLine {
+import { Blockbench } from "../api";
+import { translateUI } from "../languages";
+
+export class ResizeLine {
 	constructor(id, data) {
 		var scope = this;
 		if (typeof id == 'object') {
@@ -12,6 +15,7 @@ class ResizeLine {
 		this.width = 0;
 		this.get = data.get;
 		this.set = data.set;
+		this.reset = data.reset;
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
@@ -39,6 +43,13 @@ class ResizeLine {
 			document.addEventListener('pointermove', move, false);
 			document.addEventListener('pointerup', stop, false);
 		})
+		if (this.reset) {
+			this.node.addEventListener('dblclick', event => {
+				this.reset();
+				updateInterface();
+				this.update();
+			})
+		}
 	}
 	update() {
 		if (BARS.condition(this.condition)) {
@@ -71,7 +82,7 @@ class ResizeLine {
 		}
 	}
 }
-const Interface = {
+export const Interface = {
 	default_data: {
 		left_bar_width: 366,
 		right_bar_width: 314,
@@ -146,9 +157,9 @@ const Interface = {
 	},
 	getLeftPanels() {
 		let list = [];
-		for (let key in Panels) {
+		for (let key of Interface.getModeData().left_bar) {
 			let panel = Panels[key];
-			if (panel.slot == 'left_bar' && Condition(panel.condition)) {
+			if (panel && panel.slot == 'left_bar' && Condition(panel.condition)) {
 				list.push(panel);
 			}
 		}
@@ -156,9 +167,9 @@ const Interface = {
 	},
 	getRightPanels() {
 		let list = [];
-		for (let key in Panels) {
+		for (let key of Interface.getModeData().right_bar) {
 			let panel = Panels[key];
-			if (panel.slot == 'right_bar' && Condition(panel.condition)) {
+			if (panel && panel.slot == 'right_bar' && Condition(panel.condition)) {
 				list.push(panel);
 			}
 		}
@@ -209,6 +220,10 @@ const Interface = {
 					Prop.show_left_bar = true;
 				}
 			},
+			reset() {
+				Interface.getModeData().left_bar_width = Interface.default_data.left_bar_width;
+				Prop.show_left_bar = true;
+			},
 			position() {
 				this.setPosition({
 					top: 0,
@@ -241,6 +256,10 @@ const Interface = {
 					Prop.show_right_bar = true;
 				}
 			},
+			reset() {
+				Interface.getModeData().right_bar_width = Interface.default_data.right_bar_width;
+				Prop.show_right_bar = true;
+			},
 			position() {
 				this.setPosition({
 					top: 30,
@@ -253,6 +272,9 @@ const Interface = {
 			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
 			get() {return Interface.data.quad_view_x},
 			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
+			reset() {
+				Interface.data.quad_view_x = Interface.default_data.quad_view_x;
+			},
 			position() {
 				let p = Interface.preview;
 				if (!p) return;
@@ -273,6 +295,9 @@ const Interface = {
 			get() {return Interface.data.quad_view_y},
 			set(o, diff) {
 				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
+			},
+			reset() {
+				Interface.data.quad_view_y = Interface.default_data.quad_view_y;
 			},
 			position() {
 				let p = Interface.preview;
@@ -330,12 +355,15 @@ const Interface = {
 		}),
 		timeline_head: new ResizeLine('timeline_head', {
 			horizontal: false,
-			condition() {return Modes.animate},
+			condition() {return Modes.animate && !Blockbench.isMobile},
 			get() {return Interface.data.timeline_head},
 			set(o, diff) {
 				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
 				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
+			},
+			reset() {
+				Interface.data.timeline_head = Interface.default_data.timeline_head;
 			},
 			position() {
 				let offset = $(Panels.timeline.vue.$el).offset();
@@ -381,7 +409,8 @@ const Interface = {
 		resizeWindow();
 	}
 }
-const Panels = Interface.Panels;
+
+export const Panels = Interface.Panels;
 Interface.panel_definers = []
 Interface.definePanels = function(callback) {
 	Interface.panel_definers.push(callback);
@@ -423,8 +452,13 @@ Interface.definePanels = function(callback) {
 })()
 
 //Misc
-function unselectInterface(event) {
-	if (open_menu && $('.contextMenu').find(event.target).length === 0 && $('.menu_bar_point.opened:hover').length === 0) {
+export function unselectInterface(event) {
+	if (
+		open_menu &&
+		!event.target.classList.contains('contextMenu') && $('.contextMenu').find(event.target).length === 0 &&
+		$('.menu_bar_point.opened:hover').length === 0 &&
+		!document.getElementById('mobile_menu_bar')?.contains(event.target)
+	) {
 		Menu.closed_in_this_click = open_menu.id;
 		open_menu.hide();
 
@@ -433,6 +467,9 @@ function unselectInterface(event) {
 			document.removeEventListener('click', mouseUp);
 		}
 		document.addEventListener('click', mouseUp);
+	}
+	if (Dialog.open instanceof ToolConfig && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
+		Dialog.open.close();
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
 		ActionControl.hide();
@@ -448,8 +485,9 @@ function unselectInterface(event) {
 	) {
 		ReferenceImageMode.deactivate();
 	}
+	Blockbench.dispatchEvent('unselect_interface', {event});
 }
-function setupInterface() {
+export function setupInterface() {
 
 	translateUI()
 
@@ -476,6 +514,9 @@ function setupInterface() {
 		setupMobilePanelSelector()
 		Prop.show_right_bar = false;
 		Prop.show_left_bar = false;
+	} else {
+		let panel_selector_bar = document.getElementById('panel_selector_bar');
+		if (panel_selector_bar) panel_selector_bar.remove();
 	}
 
 	for (var key in Interface.Resizers) {
@@ -530,8 +571,6 @@ function setupInterface() {
 		reference.select();
 	});
 
-	document.getElementById('texture_list').addEventListener('click', e => unselectTextures());
-
 	$(Panels.timeline.node).mousedown((event) => {
 		setActivePanel('timeline');
 	})
@@ -585,8 +624,8 @@ function setupInterface() {
 		}
 
 		obj.val(val)
-		eval(obj.attr('oninput'))
-		eval(obj.attr('onmouseup'))
+		// eval(obj.attr('oninput'))
+		// eval(obj.attr('onmouseup'))
 	})
 
 	//Mousemove
@@ -602,7 +641,7 @@ function setupInterface() {
 	updateInterface()
 }
 
-function updateInterface() {
+export function updateInterface() {
 	BARS.updateConditions()
 	MenuBar.update()
 	updatePanelSelector();
@@ -610,7 +649,7 @@ function updateInterface() {
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
 }
 
-function resizeWindow(event) {
+export function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
@@ -648,18 +687,20 @@ function resizeWindow(event) {
 	Blockbench.dispatchEvent('resize_window', event);
 }
 
-function setProjectTitle(title) {
+export function setProjectTitle(title) {
 	let window_title = 'Blockbench';
 	if (title == undefined && Project.name) {
 		title = Project.name
 	}
 	if (title) {
-		Prop.file_name = Prop.file_name_alt = title
-		if (!Project.name) {
-			Project.name = title
-		}
-		if (Format.bone_rig) {
-			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+		if (Project) {
+			Prop.file_name = Prop.file_name_alt = title
+			if (!Project.name) {
+				Project.name = title
+			}
+			if (Format.bone_rig) {
+				title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+			}
 		}
 		window_title = title+' - Blockbench';
 	} else {
@@ -672,7 +713,7 @@ function setProjectTitle(title) {
 	}
 }
 //Zoom
-function setZoomLevel(mode) {
+export function setZoomLevel(mode) {
 	if (Prop.active_panel === 'uv') {
 		var zoom = UVEditor.zoom
 		switch (mode) {
@@ -713,7 +754,7 @@ function setZoomLevel(mode) {
 }
 
 //UI Edit
-function setProgressBar(id, val, time) {
+export function setProgressBar(id, val, time) {
 	if (!id || id === 'main') {
 		Prop.progress = val
 	} else {
@@ -725,7 +766,7 @@ function setProgressBar(id, val, time) {
 }
 
 //Tooltip
-function showShiftTooltip() {
+export function showShiftTooltip() {
 	$(':hover').find('.tooltip_shift').css('display', 'inline')
 }
 $(document).keyup(function(event) {
@@ -746,9 +787,9 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		}
 	}
 	let options = typeof data.options == 'function' ? data.options() : data.options;
-	let value = data.value || data.default || Object.keys(options)[0];
+	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
 	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
-	function setKey(key, options) {
+	function setKey(key, options, input_event) {
 		if (!options) {
 			options = typeof data.options == 'function' ? data.options() : data.options;
 		}
@@ -758,6 +799,9 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		if (typeof data.onChange == 'function') {
 			data.onChange(value);
 		}
+		if (input_event && typeof data.onInput == 'function') {
+			data.onInput(value, input_event);
+		}
 	}
 	select.addEventListener('click', function(event) {
 		if (Menu.closed_in_this_click == id) return this;
@@ -765,17 +809,16 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		let options = typeof data.options == 'function' ? data.options() : data.options;
 		for (let key in options) {
 			let val = options[key];
-			if (val) {
-				items.push({
-					name: getNameFor(options[key]),
-					icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-					color: val.color,
-					condition: val.condition,
-					click: (e) => {
-						setKey(key, options);
-					}
-				})
-			}
+			if (!val) continue;
+			items.push({
+				name: getNameFor(options[key]),
+				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+				color: val.color,
+				condition: val.condition,
+				click: (context, event) => {
+					setKey(key, options, event || 1);
+				}
+			})
 		}
 		let menu = new Menu(id, items, {searchable: items.length > 16});
 		menu.node.style['min-width'] = select.clientWidth+'px';
@@ -785,7 +828,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	this.set = setKey;
 }
 Interface.CustomElements.NumericInput = function(id, data) {
-	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: 'decimal'});
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : ''});
 	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
 	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider
@@ -798,7 +841,8 @@ Interface.CustomElements.NumericInput = function(id, data) {
 			convertTouchEvent(e2);
 			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
 			if (difference != last_difference) {
-				input.value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				let value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
+				input.value = trimFloatNumber(value, 8);
 				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
 				last_difference = difference;
 			}
@@ -810,6 +854,14 @@ Interface.CustomElements.NumericInput = function(id, data) {
 		addEventListeners(document, 'mousemove touchmove', move);
 		addEventListeners(document, 'mouseup touchend', stop);
 	})
+	Object.defineProperty(this, 'value', {
+		get() {
+			return Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max)
+		},
+		set(value) {
+			input.value = trimFloatNumber(value, 8);
+		}
+	})
 
 	addEventListeners(input, 'focusout dblclick', () => {
 		input.value = Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max);
@@ -819,7 +871,7 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	})
 }
 
-function openTouchKeyboardModifierMenu(node) {
+export function openTouchKeyboardModifierMenu(node) {
 	if (Menu.closed_in_this_click == 'mobile_keyboard') return;
 
 	let modifiers = ['ctrl', 'shift', 'alt'];
@@ -847,6 +899,27 @@ function openTouchKeyboardModifierMenu(node) {
 	])
 	menu.open(node);
 }
+
+
+Blockbench.setCursorTooltip = function(text) {
+	if (!Interface.cursor_tooltip) {
+		Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
+	}
+	if (text) {
+		Interface.cursor_tooltip.textContent = text;
+		if (!Interface.cursor_tooltip.parentNode) {
+			document.body.append(Interface.cursor_tooltip);
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
+	} else {
+		Interface.cursor_tooltip.textContent = '';
+		Interface.cursor_tooltip.remove();
+	}
+};
+Blockbench.setProgress = function(progress, time = 0, bar) {
+	setProgressBar(bar, progress ?? 0, time);
+};
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({
@@ -1010,10 +1083,29 @@ BARS.defineActions(function() {
 				panel.resetCustomLayout();
 			}
 
+			Prop.show_left_bar = true;
+			Prop.show_right_bar = true;
+
 			Blockbench.dispatchEvent('reset_layout', {});
 
-			updateInterface();
 			updateSidebarOrder();
+			resizeWindow();
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ResizeLine,
+	Interface,
+	Panels,
+	unselectInterface,
+	setupInterface,
+	updateInterface,
+	resizeWindow,
+	setProjectTitle,
+	setZoomLevel,
+	setProgressBar,
+	showShiftTooltip,
+	openTouchKeyboardModifierMenu,
+});

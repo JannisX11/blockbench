@@ -8,7 +8,7 @@ function createEmptyCanvas(width, height) {
 	return [canvas, ctx];
 }
 
-const ScreencamGIFFormats = {
+export const ScreencamGIFFormats = {
 	gif: {
 		name: 'dialog.create_gif.format.gif',
 		interval: v => Math.max(Math.round(v.interval / 10) * 10, 20),
@@ -18,9 +18,11 @@ const ScreencamGIFFormats = {
 				Screencam.processing_gif = vars.gif;
 			}
 			let i = 0;
-			let format = 'rgba4444';
+			let format = 'rgb565';
+			let prio_color_accuracy = false;
 			function quantize(data) {
-				let palette = [[0, 0, 0]];
+				let palette = vars.has_transparency ? [[0, 0, 0]] : [];
+				let counter = vars.has_transparency ? [100] : [];
 				for (let i = 0; i < data.length; i += 4) {
 					if (data[i+3] < 127) {
 						continue;
@@ -28,11 +30,26 @@ const ScreencamGIFFormats = {
 					let r = data[i];
 					let g = data[i+1];
 					let b = data[i+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
 					if (match == -1) {
 						palette.push([r, g, b])
+						counter.push(1)
+					} else {
+						counter[match] += 1;
 					}
-					if (palette.length > 256) break;
+					if (!prio_color_accuracy && palette.length > 256) break;
+				}
+				let threshold = 4;
+				while (palette.length > 256 && prio_color_accuracy) {
+					counter.forEachReverse((count, index) => {
+						if (index == 0) return;
+						if (count < threshold) {
+							palette.splice(index, 1);
+							counter.splice(index, 1);
+						}
+					});
+					threshold *= 1.5;
+					if (threshold > 50) break;
 				}
 				return palette;
 			}
@@ -45,25 +62,47 @@ const ScreencamGIFFormats = {
 					let r = data[i*4];
 					let g = data[i*4+1];
 					let b = data[i*4+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && i != 0);
-					if (match == -1) {match = 0;}
-					array[i] = match;
+					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
+					if (match == -1 && prio_color_accuracy) {
+						let closest = palette.filter((color, i) => Math.epsilon(color[0], r, 6) && Math.epsilon(color[1], g, 6) && Math.epsilon(color[2], b, 6) && (i != 0 || !vars.has_transparency));
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 64) && Math.epsilon(color[1], g, 64) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
+						}
+						if (!closest.length) {
+							closest = palette.slice();
+						}
+						closest.sort((color_a, color_b) => {
+							let diff_a = Math.pow(color_a[0] + r, 2) + Math.pow(color_a[1] + g, 2) + Math.pow(color_a[2] + b, 2);
+							let diff_b = Math.pow(color_b[0] + r, 2) + Math.pow(color_b[1] + g, 2) + Math.pow(color_b[2] + b, 2);
+							return diff_a - diff_b;
+						})
+						if (closest[0]) {
+							match = palette.indexOf(closest[0]);
+						}
+					}
+					if (match != -1) array[i] = match;
 				}
 				return array;
 			}
 			for (let canvas of vars.frame_canvases) {
 				let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-				let palette = quantize(data, 256, {format, oneBitAlpha: true});
+				let palette = quantize(data, 256, {format, oneBitAlpha: true, clearAlphaThreshold: 127});
 				let index;
 				if (palette.length > 256) {
 					// Built-in methods
-					palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true});
+					palette = GIFEnc.quantize(data, 256, {format, oneBitAlpha: true, clearAlphaThreshold: 127});
 					index = GIFEnc.applyPalette(data, palette, format);
 				} else {
 					// Direct flicker-free color mapping
 					index = applyPalette(data, palette, format);
 				}
-				vars.gif.writeFrame(index, canvas.width, canvas.height, {palette, delay: vars.interval, transparent: true});
+				vars.gif.writeFrame(index, canvas.width, canvas.height, { palette, delay: vars.interval, transparent: vars.has_transparency });
 				i++;
 				Blockbench.setProgress(i / vars.frame_canvases.length);
 				await new Promise(resolve => setTimeout(resolve, 0));
@@ -136,7 +175,7 @@ const ScreencamGIFFormats = {
 	}
 }
 
-const Screencam = {
+export const Screencam = {
 	NoAAPreview: null,
 	recording_timelapse: false,
 	gif_options_dialog: new Dialog({
@@ -154,17 +193,20 @@ const Screencam = {
 			}},
 			length: 	{label: 'dialog.create_gif.length', type: 'number', value: 5, min: 0.1, step: 0.25, condition: (form) => ['seconds', 'frames'].includes(form.length_mode)},
 			fps: 		{label: 'dialog.create_gif.fps', type: 'number', value: 20, min: 0.5, max: 120},
-			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [500, 500], toggle_enabled: true, toggle_default: false},
+			resolution: {type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, linked_ratio: false, value: [500, 500], toggle_enabled: true, toggle_default: false},
 			zoom: 		{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, toggle_enabled: true, toggle_default: false},
 			'_2': '_',
 			pixelate:	{label: 'dialog.create_gif.pixelate', type: 'range', value: 1, min: 1, max: 8, step: 1},
-			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#00000000'},
+			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#000000', toggle_enabled: true, toggle_default: false},
 			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
-			turnspeed:		{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+			turnspeed:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
+			turnspeed_o:{type: 'buttons', condition: (form) => (Animation.selected && form.play), buttons: ['dialog.create_gif.turn.sync_to_anim_length'], click: (index) => {
+				Dialog.open.setFormValues({turnspeed: 60 / (Animation.selected.length||1)});
+			}},
 		},
 		onConfirm(formData) {
-			formData.background = formData.color.toHex8String() != '#00000000' ? formData.color.toHexString() : undefined;
+			formData.background = (formData.color && formData.color.toHex8String() != '#00000000') ? formData.color.toHexString() : undefined;
 			this.hide();
 			document.getElementById('gif_recording_frame')?.remove();
 			Screencam.createGif(formData)
@@ -191,7 +233,7 @@ const Screencam = {
 				})
 				return options;
 			}},
-			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080]},
+			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080], linked_ratio: false},
 			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
 			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
 			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
@@ -213,7 +255,7 @@ const Screencam = {
 
 			if (options.crop !== false) {
 
-				if (Modes.display && display_slot === 'gui') {
+				if (!options && Modes.display && DisplayMode.display_slot === 'gui') {
 					var zoom = display_preview.camOrtho.zoom * devicePixelRatio
 					var resolution = 256 * zoom;
 	
@@ -309,6 +351,14 @@ const Screencam = {
 				img_frame.ctx.filter = `blur(1px)`;
 				img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
 				frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
+
+				if (frame.isEmpty() && options.resolution[0] * options.resolution[1] > 2_000_000) {
+					Blockbench.showMessageBox({
+						translateKey: 'screenshot_too_large',
+						icon: 'broken_image'
+					})
+					return false;
+				}
 
 				Screencam.returnScreenshot(frame.canvas.toDataURL(), cb);
 
@@ -457,13 +507,17 @@ const Screencam = {
 			recording: false,
 			loop: null,
 			crop: Screencam.gif_crop,
-			custom_resolution: options.resolution && (options.resolution[0] > preview.width || options.resolution[1] > preview.height),
+			custom_resolution: options.resolution && (options.resolution[0] > Preview.selected.width || options.resolution[1] > Preview.selected.height),
+			has_transparency: options.background == undefined
 		}
 		if (options.background_image) {
 			vars.background_image = new Image();
 			vars.background_image.src = options.background_image
 			vars.background_image.onerror = () => {
 				vars.background_image = null;
+			}
+			vars.background_image.onload = () => {
+				vars.has_transparency = false;
 			}
 		}
 		if (ScreencamGIFFormats[options.format].interval) {
@@ -479,8 +533,8 @@ const Screencam = {
 			}
 		}
 		function startRecording() {
-			vars.canvas_width = Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000);
-			vars.canvas_height = Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000);
+			vars.canvas_width = Math.round(Math.clamp((vars.preview.width - vars.crop.left - vars.crop.right) * window.devicePixelRatio, 24, 4000));
+			vars.canvas_height = Math.round(Math.clamp((vars.preview.height - vars.crop.top - vars.crop.bottom) * window.devicePixelRatio, 24, 4000));
 	
 			if (options.turnspeed) {
 				vars.preview.controls.autoRotate = true;
@@ -518,8 +572,8 @@ const Screencam = {
 
 			vars.recording = true;
 			vars.loop = setInterval(() => {
-				if (vars.animation) {
-					Timeline.setTime(vars.interval*vars.frames / 1000);
+				if (vars.animation && options.play) {
+					Timeline.setTime((Timeline.playback_speed/100) * vars.interval*vars.frames / 1000);
 					Animator.preview(true);
 				}
 				vars.frames++;
@@ -589,6 +643,8 @@ const Screencam = {
 			}, vars.interval)
 
 			vars.frame.classList.add('recording');
+
+			key_listener.delete();
 		}
 		async function endRecording(render) {
 			if (!vars.recording) return;
@@ -616,6 +672,7 @@ const Screencam = {
 		}
 		function cancel() {
 			vars.frame.remove();
+			key_listener.delete();
 		}
 		function updateCrop() {
 			if (!options.resolution) {
@@ -640,18 +697,18 @@ const Screencam = {
 		vars.frame.append(vars.frame_label);
 
 		if (options.resolution) {
-			crop.left = crop.right = (preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
-			crop.top = crop.bottom = (preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
+			vars.crop.left = vars.crop.right = (vars.preview.width  - options.resolution[0] / window.devicePixelRatio) / 2;
+			vars.crop.top = vars.crop.bottom = (vars.preview.height - options.resolution[1] / window.devicePixelRatio) / 2;
 		}
 		function drag(e1) {
-			let crop_original = Object.assign({}, crop);
+			let crop_original = Object.assign({}, vars.crop);
 			function move(e2) {
 				convertTouchEvent(e2);
-				crop.left	= crop_original.left	+ (e2.clientX - e1.clientX);
-				crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
-				crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
-				crop.bottom	= crop_original.bottom	- (e2.clientY - e1.clientY);
-				custom_resolution = false;
+				vars.crop.left	= crop_original.left	+ (e2.clientX - e1.clientX);
+				vars.crop.right	= crop_original.right	- (e2.clientX - e1.clientX);
+				vars.crop.top	= crop_original.top		+ (e2.clientY - e1.clientY);
+				vars.crop.bottom= crop_original.bottom	- (e2.clientY - e1.clientY);
+				vars.custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -669,12 +726,12 @@ const Screencam = {
 		let resizer_bottom_left = 	Interface.createElement('div', {style: 'bottom: -2px; left: -2px;', class: 'gif_recording_frame_handle gif_resize_sw'}, Blockbench.getIconNode('arrow_back_ios'));
 
 		function resize(e1, x_value, y_value) {
-			let crop_original = Object.assign({}, crop);
+			let crop_original = Object.assign({}, vars.crop);
 			function move(e2) {
 				convertTouchEvent(e2);
-				crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
-				crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
-				custom_resolution = false;
+				vars.crop[x_value] = crop_original[x_value] + (e2.clientX - e1.clientX) * (x_value == 'left' ? 1 : -1);
+				vars.crop[y_value] = crop_original[y_value] + (e2.clientY - e1.clientY) * (y_value == 'top'  ? 1 : -1);
+				vars.custom_resolution = false;
 				updateCrop();
 			}
 			function stop(e3) {
@@ -702,6 +759,19 @@ const Screencam = {
 			startRecording();
 		});
 		controls.append(record_button);
+
+		let key_listener = Blockbench.on('press_key', context => {
+			if (Keybinds.extra.confirm.keybind.isTriggered(context.event)) {
+				context.capture();
+				startRecording();
+				return;
+			}
+			if (Keybinds.extra.cancel.keybind.isTriggered(context.event)) {
+				context.capture();
+				vars.recording ? endRecording(false) : cancel();
+				return;
+			}
+		})
 
 		let stop_button = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('stop'));
 		stop_button.addEventListener('click', event => {
@@ -866,3 +936,9 @@ BARS.defineActions(function() {
 		click() {Screencam.fullScreen()}
 	})
 })
+
+
+Object.assign(window, {
+	ScreencamGIFFormats,
+	Screencam,
+});

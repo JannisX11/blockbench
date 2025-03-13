@@ -1,4 +1,4 @@
-class BarMenu extends Menu {
+export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
 		MenuBar.menus[id] = this
@@ -10,6 +10,7 @@ class BarMenu extends Menu {
 		this.node.className = 'contextMenu menu_bar_menu';
 		this.node.style.minHeight = '8px';
 		this.node.style.minWidth = '150px';
+		this.icon = options.icon;
 		this.name = tl(options.name || `menu.${id}`);
 		this.label = Interface.createElement('li', {class: 'menu_bar_point'}, this.name);
 		this.label.addEventListener('click', (event) => {
@@ -37,6 +38,7 @@ class BarMenu extends Menu {
 		MenuBar.open = undefined;
 		this.highlight_action = null;
 		this.label.classList.remove('highlighted');
+		if (MenuBar.last_opened == this) document.getElementById('mobile_menu_bar')?.remove();
 		return this;
 	}
 	highlight(action) {
@@ -45,9 +47,11 @@ class BarMenu extends Menu {
 	}
 }
 
-const MenuBar = {
+export const MenuBar = {
 	menus: {},
 	open: undefined,
+	last_opened: null,
+	mode_switcher_button: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
@@ -137,6 +141,7 @@ const MenuBar = {
 			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
+			'save_project_incremental',
 			'convert_project',
 			'close_project',
 			new MenuSeparator('import_export'),
@@ -180,6 +185,7 @@ const MenuBar = {
 				'export_optifine_full',
 				'export_optifine_part',
 				'export_minecraft_skin',
+				'export_image',
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
@@ -228,7 +234,7 @@ const MenuBar = {
 			]},
 			'plugins_window',
 			'edit_session'
-		])
+		], {icon: 'draft'})
 		new BarMenu('edit', [
 			new MenuSeparator('undo'),
 			'undo',
@@ -248,21 +254,8 @@ const MenuBar = {
 			'find_replace',
 			'unlock_everything',
 			'delete',
+			'apply_mirror_modeling',
 			new MenuSeparator('mesh_specific'),
-			{name: 'data.mesh', id: 'mesh', icon: 'fa-gem', children: [
-				'extrude_mesh_selection',
-				'inset_mesh_selection',
-				'loop_cut',
-				'create_face',
-				'invert_face',
-				'switch_face_crease',
-				'merge_vertices',
-				'dissolve_edges',
-				'solidify_mesh_selection',
-				'apply_mesh_rotation',
-				'split_mesh',
-				'merge_meshes',
-			]},
 			new MenuSeparator('editing_mode'),
 			'proportional_editing',
 			'mirror_modeling',
@@ -271,7 +264,7 @@ const MenuBar = {
 			'select_all',
 			'unselect_all',
 			'invert_selection'
-		])
+		], {icon: 'edit'})
 		new BarMenu('transform', [
 			'scale',
 			{name: 'menu.transform.rotate', id: 'rotate', icon: 'rotate_90_degrees_ccw', children: [
@@ -303,11 +296,29 @@ const MenuBar = {
 			]}
 
 		], {
-			condition: {modes: ['edit']}
+			icon: 'open_with',
+			condition: {modes: ['edit']},
 		})
+		new BarMenu('mesh', [
+			new MenuSeparator('geometry'),
+			'extrude_mesh_selection',
+			'inset_mesh_selection',
+			'loop_cut',
+			'create_face',
+			'invert_face',
+			'switch_face_crease',
+			'merge_vertices',
+			'dissolve_edges',
+			'solidify_mesh_selection',
+			new MenuSeparator('element'),
+			'apply_mesh_rotation',
+			'split_mesh',
+			'merge_meshes',
+		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
+			icon: 'photo_size_select_large',
 			onOpen() {
 				setActivePanel('uv');
 			}
@@ -331,6 +342,7 @@ const MenuBar = {
 			'resize_texture',
 			'crop_texture_to_selection'
 		], {
+			icon: 'image',
 			condition: {modes: ['paint']}
 		})
 
@@ -338,19 +350,23 @@ const MenuBar = {
 			new MenuSeparator('edit_options'),
 			'animation_onion_skin',
 			'animation_onion_skin_selective',
+			'toggle_motion_trails',
 			'lock_motion_trail',
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
 			'flip_animation',
 			'optimize_animation',
+			'retarget_animators',
 			'bake_ik_animation',
 			'bake_animation_into_model',
+			'merge_animation',
 			new MenuSeparator('file'),
 			'load_animation_file',
 			'save_all_animations',
 			'export_animation_file'
 		], {
+			icon: 'movie',
 			condition: {modes: ['animate']}
 		})
 
@@ -374,11 +390,13 @@ const MenuBar = {
 			'resolve_keyframe_expressions',
 			'delete',
 		], {
+			icon: 'icon-keyframe',
 			condition: {modes: ['animate']}
 		})
 
 		new BarMenu('timeline', Timeline.menu.structure, {
 			name: 'panel.timeline',
+			icon: 'timeline',
 			condition: {modes: ['animate'], method: () => !AnimationController.selected},
 			onOpen() {
 				setActivePanel('timeline');
@@ -393,12 +411,13 @@ const MenuBar = {
 			'add_display_preset',
 			'apply_display_preset'
 		], {
+			icon: 'tune',
 			condition: {modes: ['display']}
 		})
 		
 		new BarMenu('tools', [
 			new MenuSeparator('overview'),
-			{id: 'main_tools', icon: 'construction', name: 'Toolbox', condition: () => Project, children() {
+			{id: 'main_tools', icon: 'construction', name: 'menu.tools.main_tools', condition: () => Project, children() {
 				let tools = Toolbox.children.filter(tool => tool instanceof Tool && tool.condition !== false);
 				tools.forEach(tool => {
 					let old_condition = tool.condition;
@@ -411,10 +430,10 @@ const MenuBar = {
 				tools.sort((a, b) => {
 					return (a.modes ? modes.indexOf(a.modes[0]) : -1) - (b.modes ? modes.indexOf(b.modes[0]) : -1);
 				})
-				let mode = tools[0].modes[0];
+				let mode = tools[0].modes?.[0];
 				for (let i = 0; i < tools.length; i++) {
-					if (tools[i].modes[0] !== mode) {
-						mode = tools[i].modes[0];
+					if (tools[i].modes?.[0] !== mode) {
+						mode = tools[i].modes?.[0];
 						tools.splice(i, 0, '_');
 						i++;
 					}
@@ -428,27 +447,64 @@ const MenuBar = {
 			'convert_to_mesh',
 			'auto_set_cullfaces',
 			'remove_blank_faces',
-		])
+		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
 		new BarMenu('view', [
-			new MenuSeparator('viewport'),
+			new MenuSeparator('window'),
 			'fullscreen',
+			new MenuSeparator('interface'),
+			{
+				id: 'panels',
+				name: 'menu.view.panels',
+				icon: 'web_asset',
+				children() {
+					let entries = [];
+					for (let id in Panels) {
+						let panel = Panels[id];
+						if (!Condition(panel.condition)) continue;
+						let menu_entry = {
+							id,
+							name: panel.name,
+							icon: panel.icon,
+							children: [
+								{
+									id: 'move_to',
+									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
+									icon: 'drag_handle',
+									context: panel,
+									children: panel.snap_menu.structure
+								},
+								{
+									id: 'fold',
+									name: 'menu.panel.fold',
+									icon: panel.folded == true,
+									condition: panel.slot != 'hidden',
+									click() {
+										panel.fold();
+									}
+								}
+							]
+						}
+						entries.push(menu_entry);
+					}
+					return entries;
+				}
+			},
+			'toggle_sidebars',
+			'split_screen',
 			new MenuSeparator('viewport'),
 			'view_mode',
 			'toggle_shading',
-			'toggle_motion_trails',
 			'toggle_all_grids',
 			'toggle_ground_plane',
 			'preview_checkerboard',
 			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
+			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
-			new MenuSeparator('interface'),
-			'toggle_sidebars',
-			'split_screen',
 			new MenuSeparator('model'),
 			'hide_everything_except_selection',
 			'focus_on_selection',
@@ -459,7 +515,7 @@ const MenuBar = {
 			'advanced_screenshot',
 			'record_model_gif',
 			'timelapse',
-		])
+		], {icon: 'visibility'})
 		new BarMenu('help', [
 			new MenuSeparator('search'),
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
@@ -467,7 +523,7 @@ const MenuBar = {
 			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
 				Blockbench.openLink('https://blockbench.net/quickstart/');
 			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', click: () => {
+			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
 				Blockbench.openLink('http://discord.blockbench.net');
 			}},
 			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
@@ -496,7 +552,6 @@ const MenuBar = {
 						singleButton: true
 					}).show();
 				}},
-				'reset_layout',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
@@ -515,8 +570,9 @@ const MenuBar = {
 				}},
 				'reload',
 			]},
+			'reset_layout',
 			'about_window'
-		])
+		], {icon: 'help'})
 		MenuBar.update();
 
 		if (Blockbench.isMobile) {
@@ -547,28 +603,101 @@ const MenuBar = {
 			})
 			MenuBar.mode_switcher_button = mode_switcher;
 
-			let buttons = [menu_button, search_button, undo_button, redo_button, mode_switcher];
+			let home_button = document.getElementById('title_bar_home_button');
+			let profile_button = document.getElementById('settings_profiles_header_menu');
+
+			let buttons = [menu_button, search_button, profile_button, home_button, undo_button, redo_button,, mode_switcher];
 			buttons.forEach(button => {
 				header.append(button);
+			})
+
+			header.addEventListener('touchstart', e1 => {
+				convertTouchEvent(e1);
+				let opened, bar, initial;
+				let onMove = e2 => {
+					convertTouchEvent(e2);
+					let y_diff = e2.clientY - e1.clientY;
+					if (y_diff > 16) {
+						if (!opened) {
+							bar = MenuBar.openMobile(menu_button);
+							opened = true;
+							initial = y_diff;
+						}
+					}
+					if (bar) {
+						bar.style.marginTop = Math.clamp(y_diff - 50, -60, 0)+'px';
+						for (let node of bar.childNodes) {
+							if (!node.bbOpenMenu) continue;
+							let offset_center = bar.offsetLeft + node.offsetLeft + node.clientWidth/2;
+							if (Math.abs(offset_center - e2.clientX) < 21) {
+								node.bbOpenMenu(e2);
+								break;
+							}
+						}
+					}
+				}
+				let onStop = e2 => {
+					document.removeEventListener('touchmove', onMove);
+					document.removeEventListener('touchend', onStop);
+					if (bar) {
+						bar.style.marginTop = '0';
+						convertTouchEvent(e2);
+						let y_diff = e2.clientY - e1.clientY;
+						if (y_diff < initial && MenuBar.open) {
+							MenuBar.open.hide()
+						}
+					}
+				}
+				document.addEventListener('touchmove', onMove);
+				document.addEventListener('touchend', onStop);
 			})
 		}
 	},
 	openMobile(button, event) {
-		let entries = [];
-		for (let id in MenuBar.menus) {
-			if (id == 'filter') continue;
-			let menu = MenuBar.menus[id];
-			let entry = {
-				id,
-				icon: menu.icon || '',
-				name: menu.name,
-				children: menu.structure,
-				condition: menu.condition,
-			};
-			entries.push(entry);
+		if (document.getElementById('mobile_menu_bar')) {
+			document.getElementById('mobile_menu_bar').remove();
+			return;
 		}
-		let menu = new Menu(entries).open(button);
-		return menu;
+		let label = Interface.createElement('label', {});
+		let bar = Interface.createElement('div', {id: 'mobile_menu_bar'}, label);
+		let menu_button_nodes = [];
+		let menu_position;
+		let setSelected = (node, menu) => {
+			menu_button_nodes.forEach(n => n.classList.remove('selected'))
+			node.classList.add('selected');
+			label.innerText = menu.name;
+		}
+		for (let id in MenuBar.menus) {
+			let menu = MenuBar.menus[id];
+			if (id == 'filter') continue;
+			if (!Condition(menu.condition)) continue;
+
+			let node = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode(menu.icon));
+			let openMenu = event => {
+				if (MenuBar.last_opened == menu) return;
+				MenuBar.last_opened = MenuBar.open = menu;
+				menu.open(menu_position);
+				setSelected(node, menu);
+			}
+			addEventListeners(node, 'pointerdown touchmove', openMenu);
+			node.bbOpenMenu = openMenu;
+
+			menu_button_nodes.push(node);
+			bar.append(node);
+			if (MenuBar.last_opened == menu || (!MenuBar.last_opened && id == 'file')) {
+				setTimeout(() => {
+					MenuBar.last_opened = menu;
+					menu.open(menu_position);
+					setSelected(node, menu);
+				}, 1)
+			}
+		}
+		document.body.append(bar);
+		menu_position = {
+			clientX: bar.offsetLeft + 7,
+			clientY: bar.offsetTop + bar.clientHeight - 1
+		}
+		return bar;
 	},
 	update() {
 		if (!Blockbench.isMobile) {
@@ -604,3 +733,9 @@ const MenuBar = {
 		}
 	}
 }
+
+
+Object.assign(window, {
+	BarMenu,
+	MenuBar,
+});

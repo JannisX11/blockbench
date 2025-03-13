@@ -1,5 +1,30 @@
+import blender from '../../keymaps/blender.json';
+import cinema4d from '../../keymaps/cinema4d.json';
+import maya from '../../keymaps/maya.json';
+import { BARS } from './toolbars';
 
-class Keybind {
+window.KeymapPresets = {
+	blender,
+	cinema4d,
+	maya,
+}
+
+export const Keybinds = {
+	actions: [],
+	stored: {},
+	extra: {},
+	structure: {},
+	save() {
+		localStorage.setItem('keybindings', JSON.stringify(Keybinds.stored))
+	}
+}
+if (localStorage.getItem('keybindings')) {
+	try {
+		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'))
+	} catch (err) {}
+}
+
+export class Keybind {
 	/**
 	 * Create a keybind
 	 * @param {object} keys Set up the default keys that need to be pressed
@@ -9,7 +34,7 @@ class Keybind {
 	 * @param {boolean} keys.alt Alt key
 	 * @param {boolean} keys.meta Meta key
 	 */
-	constructor(keys) {
+	constructor(keys, variations) {
 		this.key 	= -1;
 		this.ctrl 	= false;
 		this.shift 	= false;
@@ -27,6 +52,12 @@ class Keybind {
 			}
 			this.set(keys)
 		}
+		if (variations) {
+			this.variations = {};
+			for (let option in variations) {
+				this.variations[option] = variations[option];
+			}
+		}
 	}
 	set(keys, dflt) {
 		if (!keys || typeof keys !== 'object') return this;
@@ -40,6 +71,11 @@ class Keybind {
 			if (dflt.shift 	== null) this.shift = null;
 			if (dflt.alt 	== null) this.alt = null;
 			if (dflt.meta 	== null) this.meta = null;
+		}
+		if (keys.variations && this.variations) {
+			for (let option in keys.variations) {
+				this.variations[option] = keys.variations[option];
+			}
 		}
 		this.label = this.getText()
 		TickUpdates.keybind_conflicts = true;
@@ -57,13 +93,20 @@ class Keybind {
 	}
 	save(save) {
 		if (this.action) {
-			var obj = {
+			let obj = {
 				key: this.key
 			}
 			if (this.ctrl)	 obj.ctrl = true
 			if (this.shift)	 obj.shift = true
 			if (this.alt)	 obj.alt = true
 			if (this.meta)	 obj.meta = true
+
+			if (this.variations && Object.keys(this.variations)) {
+				obj.variations = {};
+				for (let option in this.variations) {
+					obj.variations[option] = this.variations[option];
+				}
+			}
 
 			let key = this.sub_id ? (this.action + '.' + this.sub_id) : this.action;
 			Keybinds.stored[key] = obj
@@ -79,7 +122,7 @@ class Keybind {
 		return this;
 	}
 	setAction(id, sub_id) {
-		var action = BarItems[id]
+		var action = BarItems[id];
 		if (!action) {
 			action = Keybinds.extra[id]
 		}
@@ -154,7 +197,7 @@ class Keybind {
 			case  13: return 'enter';
 			case  27: return 'escape';
 			case  46: return 'delete';
-			case  46: return 'caps';
+			case  20: return 'caps';
 			case  16: return 'shift';
 			case  17: return 'control';
 			case  18: return 'alt';
@@ -171,6 +214,13 @@ class Keybind {
 			case  44: return 'printscreen';
 			case  19: return 'pause';
 			case 1001: return 'mousewheel';
+
+			case 106: return tl('keys.numpad', ['*']);
+			case 107: return tl('keys.numpad', ['+']);
+			case 108: return tl('keys.numpad', ['+']);
+			case 109: return tl('keys.numpad', ['-']);
+			case 110: return tl('keys.numpad', [',']);
+			case 111: return tl('keys.numpad', ['/']);
 
 			case 188: return ',';
 			case 190: return '.';
@@ -205,13 +255,38 @@ class Keybind {
 		return this;
 	}
 	isTriggered(event) {
+		let modifiers_used = new Set();
+		if (this.variations) {
+			for (let option in this.variations) {
+				modifiers_used.add(this.variations[option].replace('unless_', ''));
+			}
+		}
 		return (
 			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null 	) &&
-			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	) &&
-			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null 	) &&
-			(this.meta 	=== event.metaKey								|| this.meta === null 	)
+			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null	|| modifiers_used.has('ctrl') 	) &&
+			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	|| modifiers_used.has('shift')	) &&
+			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null	|| modifiers_used.has('alt') 	) &&
+			(this.meta 	=== event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	)
 		)
+	}
+	additionalModifierTriggered(event, variation) {
+		if (!this.variations) return;
+		for (let option in this.variations) {
+			if (variation && option != variation) continue;
+			let key = this.variations[option];
+			if (
+				(key == 'always') ||
+				(key == 'ctrl' && (event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+				(key == 'shift' && (event.shiftKey || Pressing.overrides.shift)) ||
+				(key == 'alt' && (event.altKey || Pressing.overrides.alt)) ||
+				(key == 'meta' && (event.metaKey || Pressing.overrides.meta)) ||
+				(key == 'unless_ctrl' && !(event.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+				(key == 'unless_shift' && !(event.shiftKey || Pressing.overrides.shift)) ||
+				(key == 'unless_alt' && !(event.altKey || Pressing.overrides.alt))
+			) {
+				return variation ? true : option;
+			}
+		}
 	}
 	record() {
 		var scope = this;
@@ -336,7 +411,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 Keybinds.no_overlap = function(k1, k2) {
 	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
-function updateKeybindConflicts() {
+export function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
 		Keybinds.structure[key].conflict = false;
 	}
@@ -375,259 +450,6 @@ function updateKeybindConflicts() {
 }
 
 
-BARS.defineActions(() => {
-	
-	new Action('keybindings_window', {
-		name: tl('dialog.settings.keybinds') + '...',
-		icon: 'keyboard',
-		category: 'blockbench',
-		click: function () {
-			Keybinds.dialog.show();
-			document.querySelector('dialog#keybindings .search_bar > input').focus();
-		}
-	})
-	new Action('load_keymap', {
-		icon: 'format_list_bulleted',
-		category: 'blockbench',
-		work_in_dialog: true,
-		click(e) {
-			new Menu(this.children).open(e.target);
-		},
-		children: [
-			'import_keymap',
-			'_',
-			{icon: 'keyboard', id: 'default', description: 'action.load_keymap.default.desc', name: 'action.load_keymap.default', click() {Keybinds.loadKeymap('default')}},
-			{icon: 'keyboard', id: 'mouse', description: 'action.load_keymap.mouse.desc', name: 'action.load_keymap.mouse', click() {Keybinds.loadKeymap('mouse')}},
-			{icon: 'keyboard', id: 'blender', description: 'action.load_keymap.blender.desc', name: 'Blender', click() {Keybinds.loadKeymap('blender')}},
-			{icon: 'keyboard', id: 'cinema4d', description: 'action.load_keymap.cinema4d.desc', name: 'Cinema 4D', click() {Keybinds.loadKeymap('cinema4d')}},
-			{icon: 'keyboard', id: 'maya', description: 'action.load_keymap.maya.desc', name: 'Maya', click() {Keybinds.loadKeymap('maya')}}
-		]
-	})
-	new Action('import_keymap', {
-		icon: 'folder',
-		category: 'blockbench',
-		work_in_dialog: true,
-		click() {
-			Blockbench.import({
-				resource_id: 'config',
-				extensions: ['bbkeymap'],
-				type: 'Blockbench Keymap'
-			}, function(files) {
-				let {keys} = JSON.parse(files[0].content);
-
-				Keybinds.actions.forEach(keybind_item => {
-					if (keys[keybind_item.id] === null) {
-						keybind_item.keybind.clear();
-					} else {
-						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
-					}
-				})
-				Keybinds.save();
-				TickUpdates.keybind_conflicts = true;
-			})
-		}
-	})
-	new Action('export_keymap', {
-		icon: 'keyboard_hide',
-		category: 'blockbench',
-		work_in_dialog: true,
-		click() {
-			var keys = {}
-
-			Keybinds.actions.forEach(item => {
-				if (!Keybinds.stored[item.id]) return
-				if (Keybinds.stored[item.id].key == -1) {
-					keys[item.id] = null;
-				} else {
-					keys[item.id] = new oneLiner(Keybinds.stored[item.id])
-				}
-			})
-			Blockbench.export({
-				resource_id: 'config',
-				type: 'Blockbench Keymap',
-				extensions: ['bbkeymap'],
-				content: compileJSON({keys})
-			})
-		}
-	})
-	BarItems.load_keymap.toElement('#keybinds_title_bar')
-	BarItems.export_keymap.toElement('#keybinds_title_bar')
-})
-
-onVueSetup(function() {
-
-	let sidebar_pages = {};
-	for (let key in Keybinds.structure) {
-		sidebar_pages[key] = Keybinds.structure[key].name;
-	}
-
-	Keybinds.dialog = new Dialog({
-		id: 'keybindings',
-		title: 'dialog.settings.keybinds',
-		singleButton: true,
-		width: 800,
-		title_menu: new Menu([
-			'settings_window',
-			'keybindings_window',
-			'theme_window',
-			'about_window',
-		]),
-		sidebar: {
-			pages: sidebar_pages,
-			page: 'navigate',
-			actions: [
-				'load_keymap',
-				'export_keymap',
-			],
-			onPageSwitch(page) {
-				Keybinds.dialog.content_vue.open_category = page;
-				Keybinds.dialog.content_vue.search_term = '';
-			}
-		},
-		component: {
-			data() {return {
-				structure: Keybinds.structure,
-				open_category: 'navigate',
-				search_term: '',
-			}},
-			methods: {
-				record(item, sub_id) {
-					if (sub_id) {
-						item.sub_keybinds[sub_id].keybind.record();
-
-					} else {
-						if (!item.keybind) item.keybind = new Keybind();
-						item.keybind.record();
-					}
-				},
-				reset(item, sub_id) {
-					if (sub_id) {
-						let sub_keybind = item.sub_keybinds[sub_id];
-						if (sub_keybind.default_keybind) {
-							sub_keybind.keybind.set(sub_keybind.default_keybind);
-						} else {
-							sub_keybind.keybind.clear();
-						}
-						sub_keybind.keybind.save(true);
-
-					} else if (item.keybind) {
-						if (item.default_keybind) {
-							item.keybind.set(item.default_keybind);
-						} else {
-							item.keybind.clear();
-						}
-						item.keybind.save(true);
-					}
-				},
-				clear(item, sub_id) {
-					if (sub_id) {
-						item.sub_keybinds[sub_id].keybind.clear().save(true);
-
-					} else if (item.keybind) {
-						item.keybind.clear().save(true)
-					}
-				},
-				toggleCategory(category) {
-					if (!category.open) {
-						for (var ct in Keybinds.structure) {
-							Keybinds.structure[ct].open = false
-						}
-						
-					}
-					category.open = !category.open
-				},
-				hasSubKeybinds(item) {
-					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
-				}
-			},
-			computed: {
-				list() {
-					if (this.search_term) {
-						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
-						var actions = [];
-
-						for (var action of Keybinds.actions) {
-			
-							if (true) {;
-								var missmatch = false;
-								for (var word of keywords) {
-									if (
-										!missmatch &&
-										!action.name.toLowerCase().includes(word) &&
-										!action.id.toLowerCase().includes(word) &&
-										!action.keybind.label.toLowerCase().includes(word) 
-									) {
-										missmatch = true;
-									}
-									if (missmatch && action.sub_keybinds) {
-										for (let key in action.sub_keybinds) {
-											if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
-												missmatch = false;
-											}
-										}
-									}
-									if (missmatch) break;
-								}
-								if (!missmatch) {
-									actions.push(action)
-								}
-							}
-						}
-						return actions;
-					} else {
-						return this.structure[this.open_category].actions;
-					}
-				},
-				title() {
-					if (this.search_term) {
-						return tl('dialog.settings.search_results');
-					} else {
-						return this.structure[this.open_category].name;
-					}
-				}
-			},
-			template: `
-				<div>
-					<h2 class="i_b">{{ title }}</h2>
-
-					<search-bar id="settings_search_bar" v-model="search_term"></search-bar>
-
-					<ul id="keybindlist">
-						<li v-for="action in list">
-							<div class="keybind_line">
-								<div :title="action.description"><span>{{action.name}}</span><span class="keybind_guide_line" /></div>
-								<div class="keybindslot" :class="{conflict: action.keybind && action.keybind.conflict}" @click.stop="record(action)" v-html="action.keybind ? action.keybind.getText(true) : ''"></div>
-
-								<div class="tool" v-on:click="reset(action)" title="${tl('keybindings.reset')}"><i class="material-icons">replay</i></div>
-								<div class="tool" v-on:click="clear(action)" title="${tl('keybindings.clear')}"><i class="material-icons">clear</i></div>
-							</div>
-
-							<ul class="keybind_item_sub_keybinds" v-if="hasSubKeybinds(action)">
-								<li v-for="(sub_keybind, sub_id) in action.sub_keybinds" class="keybind_line keybind_line__sub" :key="sub_id">
-									<div><span>{{ sub_keybind.name }}</span><span class="keybind_guide_line" /></div>
-									<div class="keybindslot"
-										:class="{conflict: sub_keybind.keybind && sub_keybind.keybind.conflict}"
-										@click.stop="record(action, sub_id)"
-										v-html="sub_keybind.keybind ? sub_keybind.keybind.getText(true) : ''"
-									></div>
-		
-									<div class="tool" v-on:click="reset(action, sub_id)" title="${tl('keybindings.reset')}"><i class="material-icons">replay</i></div>
-									<div class="tool" v-on:click="clear(action, sub_id)" title="${tl('keybindings.clear')}"><i class="material-icons">clear</i></div>
-								</li>
-							</ul>
-						</li>
-					</ul>
-				</div>`
-		},
-		onButton() {
-			Keybinds.save();
-		},
-		onOpen() {
-			updateKeybindConflicts();
-		}
-	})
-})
-
 window.addEventListener('blur', event => {
 	if (Pressing.alt) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
@@ -641,7 +463,7 @@ window.addEventListener('blur', event => {
 	Pressing.alt = false;
 	Pressing.ctrl = false;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
 
@@ -667,7 +489,7 @@ window.addEventListener('focus', event => {
 	setTimeout(remove_func, 100);
 })
 
-function getFocusedTextInput() {
+export function getFocusedTextInput() {
 	let element = document.activeElement;
 	if (element.nodeName == 'TEXTAREA' || (element.nodeName == 'INPUT' && ['number', 'text'].includes(element.type)) || element.isContentEditable) {
 		return element;
@@ -685,7 +507,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (modifiers_changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 
 	if (e.which === 16) {
@@ -811,8 +633,10 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 					for (let sub_id in action.sub_keybinds) {
 						let sub = action.sub_keybinds[sub_id];
 						if (sub.keybind.isTriggered(e)) {
+							let value_before = action.value;
 							sub.trigger(e)
 							used = true;
+							if (action instanceof BarSelect && value_before != action.value) break;
 						}
 					}
 				}
@@ -864,6 +688,12 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			ReferenceImageMode.deactivate();
 			used = true;
 		}
+	} else if (Project && Undo.amend_edit_menu && (Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e))) {
+		Undo.closeAmendEditMenu();
+
+	} else if (UVEditor.vue.texture_selection_polygon.length && Keybinds.extra.cancel.keybind.isTriggered(e)) {
+		UVEditor.vue.texture_selection_polygon.empty();
+
 	} else if (Prop.active_panel == 'uv' && Modes.paint && Texture.selected && Texture.selected.selection.is_custom) {
 		if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
 			SharedActions.run('unselect_all', e);
@@ -933,6 +763,13 @@ $(document).keyup(function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
 	}
 })
+
+
+Object.assign(window, {
+	Keybind,
+	updateKeybindConflicts,
+	getFocusedTextInput
+});

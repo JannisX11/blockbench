@@ -1,4 +1,4 @@
-const ActionControl = {
+export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
@@ -431,7 +431,7 @@ BARS.defineActions(function() {
 							:class="{selected: i === index}"
 							:title="item.description"
 							@click="click(item, $event)"
-							@mouseenter="index = i"
+							@mousemove="index = i"
 						>
 							<dynamic-icon :icon="item.icon" :color="item.color" />
 							<span>{{ item.name }}</span>
@@ -444,3 +444,7 @@ BARS.defineActions(function() {
 		`
 	})
 })
+
+Object.assign(window, {
+	ActionControl
+});

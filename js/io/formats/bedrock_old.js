@@ -1,6 +1,4 @@
-(function() {
-
-function parseGeometry(data) {
+export function parseGeometry(data) {
 	let geometry_name = data.name.replace(/^geometry\./, '');
 
 	let existing_tab = isApp && ModelProject.all.find(project => (
@@ -114,7 +112,6 @@ function parseGeometry(data) {
 
 	codec.dispatchEvent('parsed', {model: data.object});
 
-	loadTextureDraggable()
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name && Project.BedrockEntityManager) {
@@ -440,5 +437,4 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
 

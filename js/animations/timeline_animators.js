@@ -1,4 +1,6 @@
-class GeneralAnimator {
+import Wintersky from 'wintersky';
+
+export class GeneralAnimator {
 	constructor(uuid, animation) {
 		this.animation = animation;
 		this.expanded = false;
@@ -29,9 +31,18 @@ class GeneralAnimator {
 		})
 		return this;
 	}
-	addToTimeline() {
+	clickSelect() {
+		Undo.initSelection();
+		this.select();
+		Undo.finishSelection('Select animator');
+	}
+	addToTimeline(end_of_list = false) {
 		if (!Timeline.animators.includes(this)) {
-			Timeline.animators.splice(0, 0, this);
+			if (end_of_list == true) {
+				Timeline.animators.push(this);
+			} else {
+				Timeline.animators.splice(0, 0, this);
+			}
 		}
 		for (let channel in this.channels) {
 			if (!this[channel]) this[channel] = [];
@@ -168,7 +179,7 @@ GeneralAnimator.addChannel = function(channel, options) {
 	})
 	Timeline.vue.$forceUpdate();
 }
-class BoneAnimator extends GeneralAnimator {
+export class BoneAnimator extends GeneralAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
@@ -206,14 +217,14 @@ class BoneAnimator extends GeneralAnimator {
 			this.group.select();
 		}
 		Group.all.forEach(group => {
-			if (group.name == group.selected.name && group != Group.selected) {
+			if (group.name == Group.first_selected.name && group != Group.first_selected) {
 				duplicates = true;
 			}
 		})
 		function iterate(arr) {
 			arr.forEach((it) => {
 				if (it.type === 'group' && !duplicates) {
-					if (it.name === Group.selected.name && it !== Group.selected) {
+					if (it.name === Group.first_selected.name && it !== Group.first_selected) {
 						duplicates = true;
 					} else if (it.children && it.children.length) {
 						iterate(it.children);
@@ -230,7 +241,7 @@ class BoneAnimator extends GeneralAnimator {
 		}
 		super.select();
 		
-		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this) && !Blockbench.hasFlag('loading_selection_save')) {
 			var nearest;
 			this[Toolbox.selected.animation_channel].forEach(kf => {
 				if (Math.abs(kf.time - Timeline.time) < 0.002) {
@@ -390,6 +401,7 @@ class BoneAnimator extends GeneralAnimator {
 			}
 		}
 
+		let i = 0;
 		for (var keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
@@ -525,7 +537,7 @@ class BoneAnimator extends GeneralAnimator {
 		'apply_animation_preset'
 	])
 
-class NullObjectAnimator extends BoneAnimator {
+export class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
@@ -725,7 +737,7 @@ class NullObjectAnimator extends BoneAnimator {
 	}
 	NullObject.animator = NullObjectAnimator;
 
-class EffectAnimator extends GeneralAnimator {
+export class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
 		super(null, animation);
 		this.last_displayed_time = 0;
@@ -745,16 +757,21 @@ class EffectAnimator extends GeneralAnimator {
 	displayFrame(in_loop) {
 		if (in_loop && !this.muted.sound) {
 			this.sound.forEach(kf => {
-				var diff = kf.time - this.animation.time;
-				if (diff >= 0 && diff < (1/60) * (Timeline.playback_speed/100)) {
+				let diff = this.animation.time - kf.time;
+				if (diff < 0) return;
+
+				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
+				if (diff >= 0 && diff < (1/30) * (Timeline.playback_speed/100) && !media) {
 					if (kf.data_points[0].file && !kf.cooldown) {
-						var media = new Audio(kf.data_points[0].file);
+						media = new Audio(kf.data_points[0].file);
+						media.keyframe_id = kf.uuid;
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;
@@ -762,20 +779,26 @@ class EffectAnimator extends GeneralAnimator {
 							delete kf.cooldown;
 						}, 400)
 					} 
+				} else if (diff > 0 && media) {
+					if (Math.abs(media.currentTime - diff) > 0.18 && diff < media.duration) {
+						console.log('Resyncing sound')
+						// Resync
+						media.currentTime = Math.clamp(diff + 0.08, 0, media.duration);
+						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
+					}
 				}
 			})
 		}
-		
+
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
 				let diff = this.animation.time - kf.time;
-				if (diff >= 0) {
-					let i = 0;
-					for (let data_point of kf.data_points) {
-						let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
-						if (particle_effect) {
-
-							let emitter = particle_effect.emitters[kf.uuid + i];
+				let i = 0;
+				for (let data_point of kf.data_points) {
+					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
+					if (particle_effect) {
+						let emitter = particle_effect.emitters[kf.uuid + i];
+						if (diff >= 0) {
 							if (!emitter) {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
@@ -806,9 +829,12 @@ class EffectAnimator extends GeneralAnimator {
 							}
 							scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
-						} 
-						i++;
-					}
+
+						} else if (emitter && emitter.enabled) {
+							emitter.stop(true);
+						}
+					} 
+					i++;
 				}
 			})
 		}
@@ -834,10 +860,12 @@ class EffectAnimator extends GeneralAnimator {
 						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
 						media.currentTime = -diff;
+						media.keyframe_id = kf.uuid;
 						media.play().catch(() => {});
 						Timeline.playing_sounds.push(media);
 						media.onended = function() {
 							Timeline.playing_sounds.remove(media);
+							Timeline.paused_sounds.safePush(media);
 						}
 
 						kf.cooldown = true;
@@ -943,3 +971,10 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+Object.assign(window, {
+	GeneralAnimator,
+	BoneAnimator,
+	NullObjectAnimator,
+	EffectAnimator
+});

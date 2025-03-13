@@ -1,5 +1,3 @@
-let ColorPanel;
-
 function colorDistance(color1, color2) {
 	return Math.sqrt(
 		Math.pow(color2._r - color1._r, 2) +
@@ -7,7 +5,6 @@ function colorDistance(color1, color2) {
 		Math.pow(color2._b - color1._b, 2)
 	);
 }
-(function() {
 //
 StateMemory.init('color_palettes', 'array')
 
@@ -51,376 +48,36 @@ var palettes = {
 }
 
 
-SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.vue.open_tab),
-	run() {
-		if (StateMemory.color_palette_locked) {
-			Blockbench.showQuickMessage('message.palette_locked');
-			return;
-		}
-		if (ColorPanel.vue.palette.includes(ColorPanel.vue.selected_color)) {
-			ColorPanel.vue.palette.remove(ColorPanel.vue.selected_color)
-		}
+
+
+var saved_colors = localStorage.getItem('colors');
+if (saved_colors) {
+	try {
+		saved_colors = JSON.parse(saved_colors);
+	} catch (err) {
+		saved_colors = null;
 	}
-})
+}
+StateMemory.init('color_picker_tab', 'string')
+StateMemory.init('color_picker_rgb', 'boolean')
+StateMemory.init('color_palette_locked', 'boolean')
 
-Interface.definePanels(() => {
-	var saved_colors = localStorage.getItem('colors');
-	if (saved_colors) {
-		try {
-			saved_colors = JSON.parse(saved_colors);
-		} catch (err) {
-			saved_colors = null;
-		}
-	}
-	StateMemory.init('color_picker_tab', 'string')
-	StateMemory.init('color_picker_rgb', 'boolean')
-	StateMemory.init('color_palette_locked', 'boolean')
-
-	ColorPanel = new Panel('color', {
-		icon: 'palette',
-		condition: {modes: ['paint']},
-		default_position: {
-			slot: 'right_bar',
-			float_position: [0, 0],
-			float_size: [300, 400],
-			height: 400
-		},
-		toolbars: [
-			new Toolbar('color_picker', {
-				children: [
-					'slider_color_h',
-					'slider_color_s',
-					'slider_color_v',
-					'slider_color_red',
-					'slider_color_green',
-					'slider_color_blue',
-					'add_to_palette',
-					'pick_screen_color'
-				]
-			}),
-			new Toolbar('palette', {
-				children: [
-					'import_palette',
-					'export_palette',
-					'generate_palette',
-					'sort_palette',
-					'save_palette',
-					'load_palette',
-				]
-			})
-		],
-		onResize() {
-			Panels.color.vue.width = 0;
-			Vue.nextTick(() => {
-				let disp_before = this.vue.$refs.square_picker.style.display;
-				this.vue.$refs.square_picker.style.display = 'none';
-				Panels.color.vue.width = Math.clamp(this.width, 100, 1000);
-				if (!this.isInSidebar()) {
-					if (this.vue.picker_type == 'box') {
-						let height = this.height - this.vue.$el.clientHeight - this.handle.clientHeight - 6;
-						Panels.color.vue.picker_height = Math.clamp(height, 100, 1000);
-					} else {
-						let max = Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
-						Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
-					}
-				}
-				this.vue.$refs.square_picker.style.display = disp_before;
-				Vue.nextTick(() => {
-					$('#main_colorpicker').spectrum('reflow');
-				})
-			})
-		},
-		component: {
-			data: {
-				width: 100,
-				picker_height: 100,
-				open_tab: StateMemory.color_picker_tab || 'picker',
-				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
-				main_color: '#ffffff',
-				second_color: '#000000',
-				hover_color: '',
-				second_color_selected: false,
-				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
-				set color_code(color) {
-					if (this.second_color_selected == false) {
-						this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
-					} else {
-						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
-					}
-				},
-				text_input: '#ffffff',
-				hsv: {
-					h: 0,
-					s: 0,
-					v: 0,
-				},
-				palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
-				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
-			},
-			methods: {
-				colorPickerMenu(event) {
-					new Menu('color_picker_menu', [
-						{
-							id: 'picker_type',
-							name: 'menu.color_picker.picker_type',
-							icon: 'palette',
-							children: [
-								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
-									settings.color_wheel.set(false);
-									Panels.color.onResize();
-								}},
-								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									settings.color_wheel.set(true);
-									Panels.color.onResize();
-								}}
-							]
-						},
-						{
-							id: 'slider_mode',
-							name: 'menu.color_picker.slider_mode',
-							icon: 'tune',
-							children: [
-								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
-									StateMemory.set('color_picker_rgb', false);
-									BARS.updateConditions();
-									this.updateSliders();
-								}},
-								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									StateMemory.set('color_picker_rgb', true);
-									BARS.updateConditions();
-									this.updateSliders();
-								}}
-							]
-						},
-						{
-							id: 'lock_palette',
-							name: 'menu.palette.lock_palette',
-							icon: () => StateMemory.color_palette_locked,
-							click() {
-								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
-								StateMemory.save('color_palette_locked');
-							}
-						}
-						// slider
-					]).open(event.target);
-				},
-				updateSliders() {
-					if (StateMemory.color_picker_rgb) {
-						BarItems.slider_color_red.update();
-						BarItems.slider_color_green.update();
-						BarItems.slider_color_blue.update();
-					} else {
-						BarItems.slider_color_h.update();
-						BarItems.slider_color_s.update();
-						BarItems.slider_color_v.update();
-					}
-					BarItems.slider_palette_color.update();
-				},
-				onMouseWheel(event) {
-					if (!event.target) return;
-					if (settings.color_wheel.value || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
-						let sign = Math.sign(event.deltaY);
-						if (event.shiftKey) sign *= 4;
-						BarItems.slider_color_h.change(v => v+sign);
-					}
-				},
-				sortChoose() {
-					if (StateMemory.color_palette_locked) {
-						Blockbench.showQuickMessage('message.palette_locked');
-					}
-				},
-				sortMove() {
-					if (StateMemory.color_palette_locked) {
-						return false;
-					}
-				},
-				sort(event) {
-					var item = this.palette.splice(event.oldIndex, 1)[0];
-					this.palette.splice(event.newIndex, 0, item);
-				},
-				drop(event) {
-				},
-				setColor(color, second_color = this.second_color_selected) {
-					ColorPanel.set(color, second_color);
-				},
-				changeColor(color, secondary = this.second_color_selected) {
-					this[secondary ? 'second_color' : 'main_color'] = color;
-				},
-				swapColors() {
-					BarItems.swap_colors.click();
-				},
-				getSwapColorsTooltip() {
-					return `${BarItems.swap_colors.name} (${BarItems.swap_colors.keybind})`
-				},
-				selectMainOrSecondary(secondary) {
-					if (this.second_color_selected != secondary) {
-						this.second_color_selected = !!secondary;
-						Object.assign(this.hsv, ColorPanel.hexToHsv(this.selected_color));
-						this.updateSliders();
-						$('#main_colorpicker').spectrum('set', this.selected_color);
-						this.text_input = this.selected_color;
-					}
-				},
-				validateMainColor() {
-					var color = this.main_color;
-					if (!color.match(/^#[0-9a-f]{6}$/)) {
-						this.main_color = tinycolor(color).toHexString();
-					}
-				},
-				isDarkColor(hex) {
-					if (hex) {
-						let color_val = new tinycolor(hex).getBrightness();
-						let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
-						return Math.abs(color_val - bg_val) <= 50;
-					}
-				},
-				tl
-			},
-			computed: {
-				selected_color() {
-					return this.second_color_selected ? this.second_color : this.main_color;
-				}
-			},
-			watch: {
-				main_color: function(value) {
-					this.hover_color = '';
-					if (!this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
-						this.text_input = value;
-					}
-					Blockbench.dispatchEvent('change_color', {color: value})
-				},
-				second_color: function(value) {
-					this.hover_color = '';
-					if (this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
-						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
-						this.text_input = value;
-					}
-					Blockbench.dispatchEvent('change_color', {color: value, secondary: true})
-				},
-				open_tab(tab) {
-					StateMemory.color_picker_tab = tab;
-					StateMemory.save('color_picker_tab');
-					Vue.nextTick(() => {
-						ColorPanel.onResize()
-					})
-				}
-			},
-			template: `
-				<div id="color_panel_wrapper" class="panel_inside">
-					<div id="color_panel_head">
-						<div class="chosen">
-							<div class="secondary" :class="{selected: second_color_selected}" :style="{'background-color': (second_color_selected && hover_color) || second_color}" @click="selectMainOrSecondary(true)"></div>
-							<div class="main" :class="{selected: !second_color_selected}" :style="{'background-color': (!second_color_selected && hover_color) || main_color}" @click="selectMainOrSecondary(false)"></div>
-							<div class="tool switcher" @click="swapColors()" :title="getSwapColorsTooltip()">
-								<i class="material-icons icon">swap_vert</i>
-							</div>
-						</div>
-						<div class="side">
-							<input type="text" v-model="color_code" @focusout="validateMainColor()">
-							<div id="color_history">
-								<li
-									v-for="(color, i) in history" v-if="i || color != main_color"
-									:key="color"
-									:style="{'background-color': color}"
-									:title="color"
-									@click="setColor(color)" @contextmenu="setColor(color, true)"
-								></li>
-							</div>
-						</div>
-					</div>
-
-					<div class="bar tabs_small">
-
-						<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
-						<label for="radio_color_picker">${tl('panel.color.picker')}</label>
-
-						<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
-						<label for="radio_color_palette">${tl('panel.color.palette')}</label>
-
-						<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
-						<label for="radio_color_both">${tl('panel.color.both')}</label>
-
-						<div class="tool" @click="colorPickerMenu($event)" title="${tl('panel.color.picker_options')}">
-							<i class="icon material-icons">settings</i>
-						</div>
-
-					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
-						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
-							<input id="main_colorpicker">
-						</div>
-						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
-						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
-					</div>
-					<div v-show="open_tab == 'palette' || open_tab == 'both'">
-						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
-							<li
-								class="color" v-for="color in palette"
-								:title="color" :key="color"
-								:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
-								@click="setColor(color)"
-								@contextmenu.stop="setColor(color, true)"
-							>
-								<div class="color_inner" :style="{'background-color': color}"></div>
-							</li>
-						</ul>
-					</div>
-				</div>
-			`,
-			mounted() {
-				Panels.color.picker = $(this.$el).find('#main_colorpicker').spectrum({
-					preferredFormat: "hex",
-					color: 'ffffff',
-					flat: true,
-					localStorageKey: 'brush_color_palette',
-					move: (c) => {
-						ColorPanel.change(c, this.second_color_selected);
-					}
-				})
-			}
-		},
-		menu: new Menu([
-			new MenuSeparator('options'),
-			{
-				id: 'lock_palette',
-				name: 'menu.palette.lock_palette',
-				icon: () => StateMemory.color_palette_locked,
-				click() {
-					StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
-					StateMemory.save('color_palette_locked');
-				}
-			},
-			new MenuSeparator('file'),
-			'sort_palette',
-			'save_palette',
-			'load_palette',
-		])
-	})
-	ColorPanel.updateFromHsv = function() {
+export const ColorPanel = {
+	updateFromHsv: function() {
 		ColorPanel.change({
-			h: ColorPanel.vue._data.hsv.h,
-			s: ColorPanel.vue._data.hsv.s/100,
-			v: ColorPanel.vue._data.hsv.v/100
+			h: ColorPanel.panel.vue._data.hsv.h,
+			s: ColorPanel.panel.vue._data.hsv.s/100,
+			v: ColorPanel.panel.vue._data.hsv.v/100
 		});
-	}
-	ColorPanel.hexToHsv = function(hex) {
+	},
+	hexToHsv(hex) {
 		var color = new tinycolor(hex);
 		var tc = color.toHsv();
 		return {h: tc.h, s: tc.s*100, v: tc.v*100};
-	}
-
-
-	ColorPanel.palette = Interface.Panels.color.vue._data.palette;
-	ColorPanel.addToHistory = function(color) {
+	},
+	addToHistory(color) {
 		color = color.toLowerCase();
-		var history = ColorPanel.vue._data.history;
+		var history = ColorPanel.panel.vue._data.history;
 		if (color == history[0]) return;
 
 		if (color.match(/#[a-f0-9]{6}/g)) {
@@ -431,39 +88,28 @@ Interface.definePanels(() => {
 			$('#color_history')[0].scrollLeft = 0;
 			ColorPanel.saveLocalStorages();
 		}
-	}
-	ColorPanel.change = function(color, secondary) {
+	},
+	change(color, secondary) {
 		var value = new tinycolor(color)
-		ColorPanel.vue[secondary ? 'second_color' : 'main_color'] = value.toHexString();
-	}
-	ColorPanel.set = function(color, secondary, no_sync) {
+		ColorPanel.panel.vue[secondary ? 'second_color' : 'main_color'] = value.toHexString();
+	},
+	set(color, secondary, no_sync) {
 		ColorPanel.change(color, secondary);
-		ColorPanel.addToHistory(ColorPanel.vue.main_color)
-	}
-	ColorPanel.get = function(secondary) {
-		let color = secondary ? ColorPanel.vue.second_color : ColorPanel.vue.main_color;
+		ColorPanel.addToHistory(ColorPanel.panel.vue.main_color)
+	},
+	get(secondary) {
+		let color = secondary ? ColorPanel.panel.vue.second_color : ColorPanel.panel.vue.main_color;
 		ColorPanel.addToHistory(color);
 		return color;
-	}
-	ColorPanel.saveLocalStorages = function() {
+	},
+	saveLocalStorages() {
 		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.vue._data.palette,
-			history: ColorPanel.vue._data.history,
+			palette: ColorPanel.panel.vue._data.palette,
+			history: ColorPanel.panel.vue._data.history,
 		}))
 	}
-
-	$('#color_history').on('wheel', function(e) {
-		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
-		this.scrollLeft += delta;
-	})
-
-	if (isApp) {
-		ipcRenderer.on('set-main-color', (event, arg) => {
-			ColorPanel.set(arg);
-		})
-	}	
-
-	ColorPanel.importPalette = function(file) {
+,
+	importPalette(file) {
 
 		let extension = pathToExtension(file.path);
 
@@ -706,8 +352,8 @@ Interface.definePanels(() => {
 			})
 			ColorPanel.saveLocalStorages();
 		}
-	}
-	ColorPanel.generatePalette = function(source, process_colors = true) {
+	},
+	generatePalette(source, process_colors = true) {
 
 		var options = {};
 		let selected_texture;
@@ -725,6 +371,7 @@ Interface.definePanels(() => {
 			width: 460,
 			form: {
 				texture: {label: 'data.texture', type: 'select', options, value: selected_texture, condition: !source},
+				selection_only: {label: 'message.import_palette.selection_only', type: 'checkbox', value: false, condition: Texture.all[selected_texture]?.selection?.is_custom},
 				replace: {label: 'message.import_palette.replace_palette', type: 'checkbox', value: true},
 				threshold: {label: 'message.import_palette.threshold', type: 'number', value: 10, min: 0, max: 100, condition: process_colors},
 			},
@@ -740,6 +387,7 @@ Interface.definePanels(() => {
 				}
 				Painter.scanCanvas(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height, (x, y, px) => {
 					if (px[3] < 12) return;
+					if (formData.selection_only && texture.selection.is_custom && !texture.selection.get(x, y)) return;
 					var t = tinycolor({
 						r: px[0],
 						g: px[1],
@@ -815,30 +463,386 @@ Interface.definePanels(() => {
 		});
 		dialog.show();
 	}
+};
 
-	Blockbench.addDragHandler('palette', {
-		extensions: ['gpl', 'css', 'txt', 'hex', 'png', 'aco', 'act', 'ase', 'bbpalette'],
-		readtype: 'text',
-		readtype: (path) => {
-			switch (pathToExtension(path)) {
-				case 'png': return 'image'; break;
-				case 'ase': return 'binary'; break;
-				case 'act': return 'binary'; break;
-				case 'aco': return 'binary'; break;
-				default: return 'text'; break;
-			}},
-		element: '#color',
-		propagate: true,
-	}, function(files) {
-		if (files && files[0]) {
-			ColorPanel.importPalette(files[0]);
-		}
-	})
-	Toolbars.palette.toPlace();
-	Toolbars.color_picker.toPlace();
+Blockbench.addDragHandler('palette', {
+	extensions: ['gpl', 'css', 'txt', 'hex', 'png', 'aco', 'act', 'ase', 'bbpalette'],
+	readtype: (path) => {
+		switch (pathToExtension(path)) {
+			case 'png': return 'image'; break;
+			case 'ase': return 'binary'; break;
+			case 'act': return 'binary'; break;
+			case 'aco': return 'binary'; break;
+			default: return 'text'; break;
+		}},
+	element: '#color',
+	propagate: true,
+}, function(files) {
+	if (files && files[0]) {
+		ColorPanel.importPalette(files[0]);
+	}
 })
 
 
+SharedActions.add('delete', {
+	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.panel.vue.open_tab),
+	run() {
+		if (StateMemory.color_palette_locked) {
+			Blockbench.showQuickMessage('message.palette_locked');
+			return;
+		}
+		if (ColorPanel.panel.vue.palette.includes(ColorPanel.panel.vue.selected_color)) {
+			ColorPanel.panel.vue.palette.remove(ColorPanel.panel.vue.selected_color)
+		}
+	}
+})
+
+
+Interface.definePanels(() => {
+	
+	ColorPanel.panel = new Panel('color', {
+		icon: 'palette',
+		condition: {modes: ['paint']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
+		toolbars: [
+			new Toolbar('color_picker', {
+				children: [
+					'slider_color_h',
+					'slider_color_s',
+					'slider_color_v',
+					'slider_color_red',
+					'slider_color_green',
+					'slider_color_blue',
+					'add_to_palette',
+					'pick_screen_color'
+				]
+			}),
+			new Toolbar('palette', {
+				children: [
+					'import_palette',
+					'export_palette',
+					'generate_palette',
+					'sort_palette',
+					'save_palette',
+					'load_palette',
+				]
+			})
+		],
+		onResize() {
+			Panels.color.vue.width = 0;
+			Vue.nextTick(() => {
+				let disp_before = this.vue.$refs.square_picker.style.display;
+				this.vue.$refs.square_picker.style.display = 'none';
+				Panels.color.vue.width = Math.clamp(this.width, 100, 1000);
+				if (!this.isInSidebar()) {
+					if (this.vue.picker_type == 'box') {
+						let height = this.height - this.vue.$el.clientHeight - this.handle.clientHeight - 6;
+						Panels.color.vue.picker_height = Math.clamp(height, 100, 1000);
+					} else {
+						let max = Math.min(1000, (this.height - this.vue.$el.clientHeight - this.handle.clientHeight) * (this.vue.picker_type == 'box' ? 1.25 : 1));
+						Interface.Panels.color.vue.width = Math.clamp(this.width, 100, max);
+					}
+				}
+				this.vue.$refs.square_picker.style.display = disp_before;
+				Vue.nextTick(() => {
+					$('#main_colorpicker').spectrum('reflow');
+				})
+			})
+		},
+		component: {
+			data: {
+				width: 100,
+				picker_height: 100,
+				open_tab: StateMemory.color_picker_tab || 'picker',
+				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
+				main_color: '#ffffff',
+				second_color: '#000000',
+				hover_color: '',
+				second_color_selected: false,
+				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
+				set color_code(color) {
+					if (this.second_color_selected == false) {
+						this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
+					} else {
+						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
+					}
+				},
+				text_input: '#ffffff',
+				hsv: {
+					h: 0,
+					s: 0,
+					v: 0,
+				},
+				palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
+				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
+			},
+			methods: {
+				colorPickerMenu(event) {
+					new Menu('color_picker_menu', [
+						{
+							id: 'picker_type',
+							name: 'menu.color_picker.picker_type',
+							icon: 'palette',
+							children: [
+								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
+									settings.color_wheel.set(false);
+									Panels.color.onResize();
+								}},
+								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+									settings.color_wheel.set(true);
+									Panels.color.onResize();
+								}}
+							]
+						},
+						{
+							id: 'slider_mode',
+							name: 'menu.color_picker.slider_mode',
+							icon: 'tune',
+							children: [
+								{name: 'menu.color_picker.slider_mode.hsv', icon: StateMemory.color_picker_rgb ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
+									StateMemory.set('color_picker_rgb', false);
+									BARS.updateConditions();
+									this.updateSliders();
+								}},
+								{name: 'menu.color_picker.slider_mode.rgb', icon: StateMemory.color_picker_rgb ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+									StateMemory.set('color_picker_rgb', true);
+									BARS.updateConditions();
+									this.updateSliders();
+								}}
+							]
+						},
+						{
+							id: 'lock_palette',
+							name: 'menu.palette.lock_palette',
+							icon: () => StateMemory.color_palette_locked,
+							click() {
+								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+								StateMemory.save('color_palette_locked');
+							}
+						}
+						// slider
+					]).open(event.target);
+				},
+				updateSliders() {
+					if (StateMemory.color_picker_rgb) {
+						BarItems.slider_color_red.update();
+						BarItems.slider_color_green.update();
+						BarItems.slider_color_blue.update();
+					} else {
+						BarItems.slider_color_h.update();
+						BarItems.slider_color_s.update();
+						BarItems.slider_color_v.update();
+					}
+					BarItems.slider_palette_color.update();
+				},
+				onMouseWheel(event) {
+					if (!event.target) return;
+					if (settings.color_wheel.value || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
+						let sign = Math.sign(event.deltaY);
+						if (event.shiftKey) sign *= 4;
+						BarItems.slider_color_h.change(v => v+sign);
+					}
+				},
+				sortChoose() {
+					if (StateMemory.color_palette_locked) {
+						Blockbench.showQuickMessage('message.palette_locked');
+					}
+				},
+				sortMove() {
+					if (StateMemory.color_palette_locked) {
+						return false;
+					}
+				},
+				sort(event) {
+					var item = this.palette.splice(event.oldIndex, 1)[0];
+					this.palette.splice(event.newIndex, 0, item);
+				},
+				drop(event) {
+				},
+				setColor(color, second_color = this.second_color_selected) {
+					ColorPanel.set(color, second_color);
+				},
+				changeColor(color, secondary = this.second_color_selected) {
+					this[secondary ? 'second_color' : 'main_color'] = color;
+				},
+				swapColors() {
+					BarItems.swap_colors.click();
+				},
+				getSwapColorsTooltip() {
+					return `${BarItems.swap_colors.name} (${BarItems.swap_colors.keybind})`
+				},
+				selectMainOrSecondary(secondary) {
+					if (this.second_color_selected != secondary) {
+						this.second_color_selected = !!secondary;
+						Object.assign(this.hsv, ColorPanel.hexToHsv(this.selected_color));
+						this.updateSliders();
+						$('#main_colorpicker').spectrum('set', this.selected_color);
+						this.text_input = this.selected_color;
+					}
+				},
+				validateMainColor() {
+					var color = this.main_color;
+					if (!color.match(/^#[0-9a-f]{6}$/)) {
+						this.main_color = tinycolor(color).toHexString();
+					}
+				},
+				isDarkColor(hex) {
+					if (hex) {
+						let color_val = new tinycolor(hex).getBrightness();
+						let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
+						return Math.abs(color_val - bg_val) <= 50;
+					}
+				},
+				tl
+			},
+			computed: {
+				selected_color() {
+					return this.second_color_selected ? this.second_color : this.main_color;
+				}
+			},
+			watch: {
+				main_color: function(value) {
+					this.hover_color = '';
+					if (!this.second_color_selected) {
+						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						this.updateSliders()
+						$('#main_colorpicker').spectrum('set', value);
+						this.text_input = value;
+					}
+					Blockbench.dispatchEvent('change_color', {color: value})
+				},
+				second_color: function(value) {
+					this.hover_color = '';
+					if (this.second_color_selected) {
+						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						this.updateSliders()
+						$('#main_colorpicker').spectrum('set', value);
+						this.text_input = value;
+					}
+					Blockbench.dispatchEvent('change_color', {color: value, secondary: true})
+				},
+				open_tab(tab) {
+					StateMemory.color_picker_tab = tab;
+					StateMemory.save('color_picker_tab');
+					Vue.nextTick(() => {
+						ColorPanel.panel.onResize()
+					})
+				}
+			},
+			template: `
+				<div id="color_panel_wrapper" class="panel_inside">
+					<div id="color_panel_head">
+						<div class="chosen">
+							<div class="secondary" :class="{selected: second_color_selected}" :style="{'background-color': (second_color_selected && hover_color) || second_color}" @click="selectMainOrSecondary(true)"></div>
+							<div class="main" :class="{selected: !second_color_selected}" :style="{'background-color': (!second_color_selected && hover_color) || main_color}" @click="selectMainOrSecondary(false)"></div>
+							<div class="tool switcher" @click="swapColors()" :title="getSwapColorsTooltip()">
+								<i class="material-icons icon">swap_vert</i>
+							</div>
+						</div>
+						<div class="side">
+							<input type="text" v-model="color_code" @focusout="validateMainColor()">
+							<div id="color_history">
+								<li
+									v-for="(color, i) in history" v-if="i || color != main_color"
+									:key="color"
+									:style="{'background-color': color}"
+									:title="color"
+									@click="setColor(color)" @contextmenu="setColor(color, true)"
+								></li>
+							</div>
+						</div>
+					</div>
+
+					<div class="bar tabs_small">
+
+						<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
+						<label for="radio_color_picker">${tl('panel.color.picker')}</label>
+
+						<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
+						<label for="radio_color_palette">${tl('panel.color.palette')}</label>
+
+						<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
+						<label for="radio_color_both">${tl('panel.color.both')}</label>
+
+						<div class="tool" @click="colorPickerMenu($event)" title="${tl('panel.color.picker_options')}">
+							<i class="icon material-icons">settings</i>
+						</div>
+
+					</div>
+					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
+						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
+							<input id="main_colorpicker">
+						</div>
+						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
+						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
+					</div>
+					<div v-show="open_tab == 'palette' || open_tab == 'both'">
+						<div class="toolbar_wrapper palette" toolbar="palette"></div>
+						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
+							<li
+								class="color" v-for="color in palette"
+								:title="color" :key="color"
+								:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
+								@click="setColor(color)"
+								@contextmenu.stop="setColor(color, true)"
+							>
+								<div class="color_inner" :style="{'background-color': color}"></div>
+							</li>
+						</ul>
+					</div>
+				</div>
+			`,
+			mounted() {
+				Panels.color.picker = $(this.$el).find('#main_colorpicker').spectrum({
+					preferredFormat: "hex",
+					color: 'ffffff',
+					flat: true,
+					localStorageKey: 'brush_color_palette',
+					move: (c) => {
+						ColorPanel.change(c, this.second_color_selected);
+					}
+				})
+			}
+		},
+		menu: new Menu([
+			new MenuSeparator('options'),
+			{
+				id: 'lock_palette',
+				name: 'menu.palette.lock_palette',
+				icon: () => StateMemory.color_palette_locked,
+				click() {
+					StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
+					StateMemory.save('color_palette_locked');
+				}
+			},
+			new MenuSeparator('file'),
+			'sort_palette',
+			'save_palette',
+			'load_palette',
+		])
+	})
+
+	$('#color_history').on('wheel', function(e) {
+		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
+		this.scrollLeft += delta;
+	})
+
+	if (isApp) {
+		ipcRenderer.on('set-main-color', (event, arg) => {
+			ColorPanel.set(arg);
+		})
+	}
+
+	Toolbars.palette.toPlace();
+	Toolbars.color_picker.toPlace();
+
+	ColorPanel.palette = ColorPanel.panel.vue._data.palette;
+});
 
 
 BARS.defineActions(function() {
@@ -864,9 +868,9 @@ BARS.defineActions(function() {
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'x'}),
 		click() {
-			let color = ColorPanel.vue.main_color;
-			ColorPanel.vue.main_color = ColorPanel.vue.second_color;
-			ColorPanel.vue.second_color = color;
+			let color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.second_color;
+			ColorPanel.panel.vue.second_color = color;
 		}
 	})
 	new Action('import_palette', {
@@ -1020,6 +1024,7 @@ BARS.defineActions(function() {
 
 	new Action('save_palette', {
 		icon: 'playlist_add',
+		category: 'color',
 		condition: {modes: ['paint']},
 		click(event) {	
 			let dialog = new Dialog({
@@ -1058,11 +1063,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.h);
+			return Math.round(ColorPanel.panel.vue._data.hsv.h);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.h);
-			ColorPanel.vue._data.hsv.h = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.h);
+			ColorPanel.panel.vue._data.hsv.h = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1078,11 +1083,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.s);
+			return Math.round(ColorPanel.panel.vue._data.hsv.s);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.s);
-			ColorPanel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.s);
+			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1098,11 +1103,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.vue._data.hsv.v);
+			return Math.round(ColorPanel.panel.vue._data.hsv.v);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.vue._data.hsv.v);
-			ColorPanel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.v);
+			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1117,13 +1122,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(1, 3), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(1, 3), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 1) + hex + ColorPanel.vue.main_color.substring(3);
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 1) + hex + ColorPanel.panel.vue.main_color.substring(3);
 		}
 	})
 	let green = new NumSlider('slider_color_green', {
@@ -1134,13 +1139,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(3, 5), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(3, 5), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 3) + hex + ColorPanel.vue.main_color.substring(5);
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 3) + hex + ColorPanel.panel.vue.main_color.substring(5);
 		}
 	})
 	let blue = new NumSlider('slider_color_blue', {
@@ -1151,13 +1156,13 @@ BARS.defineActions(function() {
 			min: 0, max: 255, default: 0, show_bar: true, step: 1
 		},
 		get() {
-			return parseInt(ColorPanel.vue.main_color.substring(5), 16);
+			return parseInt(ColorPanel.panel.vue.main_color.substring(5), 16);
 		},
 		change: function(modify) {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.vue.main_color = ColorPanel.vue.main_color.substring(0, 5) + hex;
+			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 5) + hex;
 		}
 	})
 	let slider_vector_rgb = [red, green, blue];
@@ -1169,7 +1174,7 @@ BARS.defineActions(function() {
 		category: 'color',
 		invert_scroll_direction: true,
 		get() {
-			return ColorPanel.palette.indexOf(ColorPanel.vue.main_color) + 1;
+			return ColorPanel.palette.indexOf(ColorPanel.panel.vue.main_color) + 1;
 		},
 		getInterval() {return 1},
 		change(modify) {
@@ -1196,4 +1201,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
-})()
+
+Object.assign(window, {
+	ColorPanel
+})

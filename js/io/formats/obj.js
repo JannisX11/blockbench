@@ -1,6 +1,5 @@
-(function() {
 var _obj_export;
-function getMtlFace(obj, index) {
+export function getMtlFace(obj, index) {
 	//if (index % 2 == 1) index--;
 	var key = Canvas.face_order[index];
 	var tex = obj.faces[key].getTexture()
@@ -13,7 +12,7 @@ function getMtlFace(obj, index) {
 		return 'usemtl m_' + tex.uuid;
 	}
 }
-const cube_face_normals = {
+export const cube_face_normals = {
 	north: [0, 0, -1],
 	east: [1, 0, 0],
 	south: [0, 0, 1],
@@ -25,6 +24,7 @@ const cube_face_normals = {
 var codec = new Codec('obj', {
 	name: 'OBJ Wavefront Model',
 	extension: 'obj',
+	support_partial_export: true,
 	compile(options) {
 		if (!options) options = 0;
 
@@ -71,7 +71,7 @@ var codec = new Codec('obj', {
 				output.push(`o ${element.name||'cube'}`)
 
 				element.getGlobalVertexPositions().forEach((coords) => {
-					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(export_scale);
+					vertex.set(...coords).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				})
@@ -484,5 +484,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

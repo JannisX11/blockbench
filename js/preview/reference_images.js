@@ -1,4 +1,4 @@
-class ReferenceImage {
+export class ReferenceImage {
 	constructor(data = {}) {
 
 		this.name = '';
@@ -11,6 +11,7 @@ class ReferenceImage {
 		this.rotation = 0;
 		this.opacity = 0;
 		this.visibility = true;
+		this.sync_to_timeline = true;
 		this.clear_mode = false;
 		this.attached_side = 0;
 		this.source = '';
@@ -32,7 +33,6 @@ class ReferenceImage {
 		this.image_is_loaded = false;
 		this.auto_aspect_ratio = true;
 
-		// todo: Add video properties: autoplay, animation sync
 		this.is_video = false;
 		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
 			this.is_video = true;
@@ -303,11 +303,18 @@ class ReferenceImage {
 			this.node.style.left = pos_x + 'px';
 			this.node.style.top  = pos_y + 'px';
 
+			let offset_top = preview.node.offsetTop - this.node.offsetTop;
+			let offset_right = preview.node.clientWidth + preview.node.offsetLeft - this.node.offsetLeft;
+			let offset_bottom = preview.node.clientHeight + preview.node.offsetTop - this.node.offsetTop;
+			let offset_left = preview.node.offsetLeft - this.node.offsetLeft;
+			this.node.style.clipPath = `rect(${offset_top}px ${offset_right}px ${offset_bottom}px ${offset_left}px) view-box`;
+
 		} else {
 			this.node.style.width = this.size[0] + 'px';
 			this.node.style.height = this.size[1] + 'px';
 			this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
 			this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+			this.node.style.clipPath = '';
 		}
 		return this;
 	}
@@ -342,14 +349,19 @@ class ReferenceImage {
 						(e2.clientX - e1.clientX) * multiplier,
 						(e2.clientY - e1.clientY) * multiplier,
 					];
-					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, 48);
+					let zoom_level = this.getZoomLevel();
+					let max_size = [
+						32 / zoom_level,
+						24 / zoom_level
+					];
+					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, max_size[0]);
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
 						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
-					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, 32);
+					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
 					if (this.layer !== 'blueprint') {
@@ -424,6 +436,19 @@ class ReferenceImage {
 				name: tl(name),
 				node: node
 			})
+			return node;
+		}
+		
+		if (this.is_video) {
+			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
+				if (this.video.paused) {
+					this.video._loading = false;
+					this.video.play();
+				} else {
+					this.video.pause();
+				}
+				toggle.querySelector('.icon').replaceWith(Blockbench.getIconNode(this.video.paused ? 'play_arrow' : 'pause'))
+			});
 		}
 
 		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
@@ -528,19 +553,26 @@ class ReferenceImage {
 	projectMouseCursor(x, y) {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
-		let image_content = this.is_video ? this.video : this.img;
-		let rect = image_content.getBoundingClientRect();
-		if (x > rect.x && y > rect.y && x < rect.right && y < rect.bottom) {
+		let rect = this.node.getBoundingClientRect();
+		let center = [rect.x + rect.width/2, rect.y + rect.height/2];
+		let local_offset = [x - center[0], y - center[1]];
+
+		let s = Math.sin(Math.degToRad(this.rotation));
+		let c = Math.cos(Math.degToRad(this.rotation));
+		let local_x = center[0] + local_offset[0] * c + local_offset[1] * s;
+		let local_y = center[1] - local_offset[0] * s + local_offset[1] * c;
+
+		if (local_x > rect.x && local_y > rect.y && local_x < rect.right && local_y < rect.bottom) {
 			// Check if not clipped behind UI
 			if (this.layer != 'float') {
 				let parent = this.node.parentElement;
 				if (!parent) return false;
 				let parent_rect = parent.getBoundingClientRect();
-				if (!(x > parent_rect.x && y > parent_rect.y && x < parent_rect.right && y < parent_rect.bottom)) return false;
+				if (!(local_x > parent_rect.x && local_y > parent_rect.y && local_x < parent_rect.right && local_y < parent_rect.bottom)) return false;
 			}
 
-			let lerp_x = Math.getLerp(rect.x, rect.right,  x);
-			let lerp_y = Math.getLerp(rect.y, rect.bottom, y);
+			let lerp_x = Math.getLerp(rect.x, rect.right,  local_x);
+			let lerp_y = Math.getLerp(rect.y, rect.bottom, local_y);
 			if (this.flip_x) lerp_x = 1 - lerp_x;
 			if (this.flip_y) lerp_y = 1 - lerp_y;
 			return [
@@ -639,10 +671,11 @@ class ReferenceImage {
 					global: 'reference_image.scope.global',
 				}},
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
-				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, value: this.size},
+				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
+				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -655,6 +688,7 @@ class ReferenceImage {
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
 					visibility: result.visibility,
+					sync_to_timeline: result.sync_to_timeline,
 					clear_mode: result.clear_mode,
 				});
 				this.changeLayer(result.layer);
@@ -672,8 +706,22 @@ class ReferenceImage {
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
 }
-ReferenceImage.supported_extensions = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif', 'gif'];
 ReferenceImage.prototype.menu = new Menu([
+	new MenuSeparator('media_controls'),
+	{
+		id: 'toggle_playback',
+		name: 'reference_image.toggle_playback',
+		condition: (ref) => ref.is_video,
+		icon: (ref) => ref.video.paused ? 'play_arrow' : 'pause',
+		click(ref) {
+			if (ref.video.paused) {
+				ref.video._loading = false;
+				ref.video.play();
+			} else {
+				ref.video.pause();
+			}
+		}
+	},
 	new MenuSeparator('settings'),
 	{
 		id: 'visibility',
@@ -681,6 +729,16 @@ ReferenceImage.prototype.menu = new Menu([
 		icon: (ref) => ref.visibility,
 		click(ref) {
 			ref.visibility = !ref.visibility;
+			ref.update().save();
+		}
+	},
+	{
+		id: 'sync_to_timeline',
+		name: 'reference_image.sync_to_timeline',
+		condition: () => Format.animation_mode,
+		icon: (ref) => ref.sync_to_timeline,
+		click(ref) {
+			ref.sync_to_timeline = !ref.sync_to_timeline;
 			ref.update().save();
 		}
 	},
@@ -788,6 +846,7 @@ new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
+new Property(ReferenceImage, 'boolean', 'sync_to_timeline', {default: true});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
@@ -830,21 +889,38 @@ SharedActions.add('delete', {
 	}
 })
 
-let reference_image_playback_cooldown;
 Blockbench.on('display_animation_frame', () => {
-	if (reference_image_playback_cooldown) return;
 	ReferenceImage.active.forEach(ref => {
-		if (ref.is_video && ref.visibility) {
-			ref.video.currentTime = Timeline.time;
-			if (!ref.video.paused) ref.video.pause();
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video._loading) {
+			ref.video._loading = true;
+			ref.video.ontimeupdate = () => {
+				ref.video._loading = false;
+			}
+
+			let video_time = Math.max(0, Timeline.time - 0.02) % ref.video.duration;
+			if (Timeline.playing) {
+				ref.video.playbackRate = Timeline.playback_speed/100;
+				if (Math.abs(ref.video.currentTime - video_time + 0.02) > 0.05) {
+					ref.video.currentTime = video_time;
+				}
+				if (ref.video.paused) ref.video.play();
+
+			} else {
+				ref.video.currentTime = video_time;
+				if (!ref.video.paused) ref.video.pause();
+			}
 		}
 	})
-	reference_image_playback_cooldown = setTimeout(() => {
-		reference_image_playback_cooldown = null;
-	}, 30)
+})
+Blockbench.on('timeline_pause', () => {
+	ReferenceImage.active.forEach(ref => {
+		if (ref.is_video && ref.visibility && ref.sync_to_timeline && !ref.video.paused) {
+			ref.video.pause();
+		}
+	})
 })
 
-const ReferenceImageMode = {
+export const ReferenceImageMode = {
 	active: false,
 	toolbar: null,
 	activate() {
@@ -1086,4 +1162,9 @@ Interface.definePanels(function() {
 			'toggle_all_reference_images',
 		]
 	})
+})
+
+Object.assign(window, {
+	ReferenceImage,
+	ReferenceImageMode,
 })

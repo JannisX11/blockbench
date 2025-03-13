@@ -298,6 +298,8 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
+		overflow: hidden;
+		flex-shrink: 0;
 	}
 	i.fa_big {
 		font-size: 18px;
@@ -342,6 +344,7 @@
 		--color-checkerboard: #1c2026;
 
 		--color-menu_separator: #b0afba;
+		--color-guidelines: rgba(136, 150, 157, 0.35);
 
 		--color-close: #d62e3f;
 		--color-confirm: #90ee90;
@@ -404,7 +407,7 @@
 		cursor: default;
 	}
 	hr {
-		border-top: 1px solid var(--color-dark);
+		border-top: 1px solid var(--color-border);
 		margin: 12px 0;
 	}
 	h1, h2, h3, h4, h5, h6 {
@@ -516,7 +519,6 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
-		cursor: default;
 		resize: none;
 		outline: none;
 		user-select: initial;
@@ -736,14 +738,27 @@
 		display: inline-block;
 		width: 20px;
 		height: 24px;
-		margin-top: -28px;
+		margin-top: -29px;
 		user-select: none;
 		margin-left: -42px;
 		overflow: hidden;
 		text-align: center;
 	}
-	div.nslide_arrow.na_right {
-		margin-left: 16px;
+	div.nslide.editing {
+		cursor: text;
+	}
+	.numeric_input.is_colored::before {
+		content: "";
+		position: absolute;
+		pointer-events: none;
+		top: 0;
+		right: 0;
+		z-index: 1;
+		border-width: 4px;
+		border-style: solid;
+		border-color: var(--corner-color);
+		border-bottom-color: transparent !important;
+		border-left-color: transparent !important;
 	}
 
 	input.toggle_panel {

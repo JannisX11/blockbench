@@ -1,14 +1,18 @@
-var ground_animation = false;
+import { THREE } from "../lib/libs";
+import { Mode } from "./modes";
+
 var ground_timer = 0
-var display_slot = 'thirdperson_righthand';
 var display_presets;
 var display_preview;
-var enterDisplaySettings, exitDisplaySettings;
-const DisplayMode = {};
+
+export const DisplayMode = {
+	display_slot: 'thirdperson_righthand'
+};
 
 
-class DisplaySlot {
+export class DisplaySlot {
 	constructor(id, data) {
+		this.slot_id = id;
 		this.default()
 		if (data) this.extend(data)
 	}
@@ -16,7 +20,10 @@ class DisplaySlot {
 		this.rotation = [0, 0, 0];
 		this.translation = [0, 0, 0];
 		this.scale = [1, 1, 1];
+		this.rotation_pivot = [0, 0, 0];
+		this.scale_pivot = [0, 0, 0];
 		this.mirror = [false, false, false]
+		this.fit_to_frame = false;
 		return this;
 	}
 	copy() {
@@ -24,36 +31,70 @@ class DisplaySlot {
 			rotation: this.rotation.slice(),
 			translation: this.translation.slice(),
 			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot.slice(),
+			scale_pivot: this.scale_pivot.slice(),
 			mirror: this.mirror.slice()
 		}
 	}
 	export() {
-		var build = {}
-		if (!this.rotation.allEqual(0)) build.rotation = this.rotation
-		if (!this.translation.allEqual(0)) build.translation = this.translation
-		if (!this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
+		let build = {};
+		let export_all = Format.id == 'bedrock_block';
+		if (export_all || !this.rotation.allEqual(0)) build.rotation = this.rotation
+		if (export_all || !this.translation.allEqual(0)) build.translation = this.translation
+		if (export_all || !this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
 
-				for (var i = 0; i < 3; i++) {
+				for (let i = 0; i < 3; i++) {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
 			}
 		}
+		if (export_all || !this.rotation_pivot.allEqual(0)) build.rotation_pivot = this.rotation_pivot
+		if (export_all || !this.scale_pivot.allEqual(0)) build.scale_pivot = this.scale_pivot
 		if (Object.keys(build).length) {
 			return build;
 		}
+	}
+	exportBedrock() {
+		let has_data = !this.rotation.allEqual(0)
+			|| !this.translation.allEqual(0)
+			|| !this.scale.allEqual(1)
+			|| !this.mirror.allEqual(false)
+			|| !this.rotation_pivot.allEqual(0)
+			|| !this.scale_pivot.allEqual(0);
+		if (!has_data) return;
+
+		let build = {
+			rotation: this.rotation.slice(),
+			translation: this.translation.slice(),
+			scale: this.scale.slice(),
+			rotation_pivot: this.rotation_pivot,
+			scale_pivot: this.scale_pivot,
+		}
+		if (this.slot_id == 'gui') {
+			build.fit_to_frame = this.fit_to_frame;
+		}
+		if (!this.mirror.allEqual(false)) {
+			for (let i = 0; i < 3; i++) {
+				build.scale[i] *= this.mirror[i] ? -1 : 1;
+			}
+		}
+		return build;
 	}
 	extend(data) {
 		if (!data) return this;
 		for (var i = 0; i < 3; i++) {
 			if (data.rotation) Merge.number(this.rotation, data.rotation, i)
-			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.mirror) Merge.boolean(this.mirror, data.mirror, i)
 			if (data.scale) Merge.number(this.scale, data.scale, i)
+			if (data.translation) Merge.number(this.translation, data.translation, i)
+			if (data.rotation_pivot) Merge.number(this.rotation_pivot, data.rotation_pivot, i)
+			if (data.scale_pivot) Merge.number(this.scale_pivot, data.scale_pivot, i)
 			this.scale[i] = Math.abs(this.scale[i])
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
+		if (typeof data.fit_to_frame == 'boolean') this.fit_to_frame = data.fit_to_frame;
 		this.update()
 		return this;
 	}
@@ -66,7 +107,6 @@ class DisplaySlot {
 	}
 }
 
-(function() {
 
 
 display_presets = [
@@ -218,13 +258,14 @@ if (localStorage.getItem('display_presets') != null) {
 
 
 
-class refModel {
+export class refModel {
 	constructor(id, options = 0) {
 		var scope = this;
 		this.model = new THREE.Object3D();
 		this.name = tl('display.reference.'+id);
 		this.id = id;
 		this.icon = options.icon || id;
+		this.condition = options.condition;
 		this.initialized = false;
 		this.pose_angles = {};
 
@@ -235,6 +276,7 @@ class refModel {
 				this.pose_angles.head = 0;
 
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					let angle = Math.degToRad(scope.pose_angles[display_slot] || 0)
 					let x = scope.variant === 'alex' ? 5.5 : 6
 					let y = 22 - Math.cos(angle)*10 + Math.sin(angle)*2
@@ -263,6 +305,7 @@ class refModel {
 				break;
 			case 'armor_stand':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(6, 12, -2, -90, 0, 0, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -274,6 +317,7 @@ class refModel {
 				break;
 			case 'armor_stand_small':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -283,8 +327,19 @@ class refModel {
 					}
 				}
 				break;
+			case 'fox':
+				this.updateBasePosition = function() {
+					setDisplayArea(0, 0, -6, 90, 180, 0, 1, 1, 1);
+				}
+				break;
+			case 'block':
+				this.updateBasePosition = function() {
+					setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
+				}
+				break;
 			case 'zombie':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -296,6 +351,7 @@ class refModel {
 				break;
 			case 'baby_zombie':
 				this.updateBasePosition = function() {
+					let display_slot = DisplayMode.display_slot;
 					if (display_slot === 'thirdperson_righthand') {
 						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
 					} else if (display_slot === 'thirdperson_lefthand') {
@@ -307,8 +363,8 @@ class refModel {
 				break;
 			case 'monitor':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*9.039, -8.318, 20.8, 0, 0, 0, 1,1,1)
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
+					setDisplayArea(side*9.039, -8.318+24, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
 			case 'frame':
@@ -333,14 +389,31 @@ class refModel {
 				break;
 			case 'bow':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*4.2, -4.9, 25, -20, -19, -8, 1,1,1)
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
+					setDisplayArea(side*4.2, -4.9+24, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
 			case 'crossbow':
 				this.updateBasePosition = function() {
-					var side = display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*-1.2, -6.75, 23, 0, side*10, 0, 1, 1, 1)
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
+					setDisplayArea(side*-1.2, -6.75+24, 23, 0, side*10, 0, 1, 1, 1)
+				}
+				break;
+				
+			case 'eating':
+				this.updateBasePosition = function() {
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
+					DisplayMode.setBase(
+						side*-1.7, -6.1+24, 23.4,
+						-92, side*100, side*119,
+						0.8, 0.8, 0.8)
+				}
+				break;
+			case 'tooting':
+				this.updateBasePosition = function() {
+					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
+					//setDisplayArea(side*-0.6, 19.8, 23.8, 31.5, side*22, -11, 1, 1, 1)
+					setDisplayArea(side == 1 ? -2.7 : 2.1, 20.1, Format.id.includes('bedrock') ? 24.5 : 25.6, 36, side*21.5, side*-12, 1, 1, 1)
 				}
 				break;
 		}
@@ -441,7 +514,7 @@ class refModel {
 		}
 	}
 	load(index) {
-		displayReferenceObjects.ref_indexes[display_slot] = index || 0;
+		displayReferenceObjects.ref_indexes[DisplayMode.display_slot] = index || 0;
 		displayReferenceObjects.clear()
 		if (typeof this.updateBasePosition === 'function') {
 			this.updateBasePosition()
@@ -454,9 +527,12 @@ class refModel {
 				case 'armor_stand': this.buildArmorStand(); break;
 				case 'baby_zombie': this.buildBabyZombie(); break;
 				case 'armor_stand_small': this.buildArmorStandSmall(); break;
+				case 'fox': this.buildFox(); break;
+				case 'crossbow':
+				case 'bow':
+				case 'eating':
+				case 'tooting':
 				case 'monitor': this.buildMonitor(); break;
-				case 'bow': this.buildMonitor(); break;
-				case 'crossbow': this.buildMonitor(); break;
 				case 'block': this.buildBlock(); break;
 				case 'frame': this.buildFrame(); break;
 				case 'frame_invisible': this.buildFrameInvisible(); break;
@@ -468,8 +544,12 @@ class refModel {
 		scene.add(this.model)
 		displayReferenceObjects.active = this;
 
-		DisplayMode.vue.pose_angle = this.pose_angles[display_slot] || 0;
+		DisplayMode.vue.pose_angle = this.pose_angles[DisplayMode.display_slot] || 0;
 		DisplayMode.vue.reference_model = this.id;
+
+		if (DisplayMode.display_slot == 'ground') {
+			Canvas.ground_animation = this.id != 'fox';
+		}
 		
 		ReferenceImage.updateAll()
 	}
@@ -933,6 +1013,55 @@ class refModel {
 			}
 		]`), 'assets/armor_stand.png', [64, 64])
 	}
+	buildFox() {
+		this.buildModel(JSON.parse(`[
+			{
+				"size": [8, 6, 6],
+				"pos": [0, 4, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv": [7, 11, 15, 17]},
+				"east": {"uv": [1, 11, 7, 17]},
+				"south": {"uv": [21, 11, 29, 17]},
+				"west": {"uv": [15, 11, 21, 17]},
+				"up": {"uv": [15, 11, 7, 5]},
+				"down": {"uv": [23, 5, 15, 11]}
+			},
+			{
+				"size": [4, 2, 3],
+				"pos": [0, 2, -4.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [9, 21, 13, 23]},
+				"east": {"uv": [6, 21, 9, 23]},
+				"south": {"uv": [16, 21, 20, 23]},
+				"west": {"uv": [13, 21, 16, 23]},
+				"up": {"uv": [13, 21, 9, 18]},
+				"down": {"uv": [17, 18, 13, 21]}
+			},
+			{
+				"size": [2, 2, 1],
+				"pos": [3, 8, -1.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [9, 2, 11, 4]},
+				"east": {"uv": [8, 2, 9, 4]},
+				"south": {"uv": [12, 2, 14, 4]},
+				"west": {"uv": [11, 2, 12, 4]},
+				"up": {"uv": [11, 2, 9, 1]},
+				"down": {"uv": [13, 1, 11, 2]}
+			},
+			{
+				"size": [2, 2, 1],
+				"pos": [-3, 8, -1.5],
+				"origin": [0, 0, 0],
+				"north": {"uv": [16, 2, 18, 4]},
+				"east": {"uv": [15, 2, 16, 4]},
+				"south": {"uv": [19, 2, 21, 4]},
+				"west": {"uv": [18, 2, 19, 4]},
+				"up": {"uv": [18, 2, 16, 1]},
+				"down": {"uv": [20, 1, 18, 2]}
+			}
+
+		]`), 'assets/fox.png', [32, 32])
+	}
 	buildZombie() {
 		this.buildModel(JSON.parse(`[
 			{
@@ -1075,10 +1204,10 @@ class refModel {
 	}
 	buildMonitor() {
 		this.buildModel(JSON.parse(`[
-			{"size": [8, 8, 0.1], "pos": [0, 4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [0, -4.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
-			{"size": [8, 8, 0.1], "pos": [-5.65, 0, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
+			{"size": [8, 8, 0.1], "pos": [0, 28.93, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [0, 19.07, 31.20], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [5.65, 24, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}},
+			{"size": [8, 8, 0.1], "pos": [-5.65, 24, 31.2], "origin": [0, 0, 0], "north":{"uv":[0,0,0,0]},"east":{"uv":[0,0,0,0]},"south":{"uv":[0,0,0,0]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,0,0]},"down":{"uv":[0,0,0,0]}}
 		]`), 'black')
 	}
 	buildBlock() {
@@ -1132,9 +1261,12 @@ window.displayReferenceObjects = {
 		armor_stand: 		new refModel('armor_stand', {icon: 'icon-armor_stand'}),
 		baby_zombie: 		new refModel('baby_zombie', {icon: 'icon-baby_zombie'}),
 		armor_stand_small:  new refModel('armor_stand_small', {icon: 'icon-armor_stand_small'}),
+		fox: 				new refModel('fox', {icon: 'pets', condition: {formats: ['java_block']}}),
 		monitor: 			new refModel('monitor', {icon: 'fa-asterisk'}),
 		bow: 				new refModel('bow', {icon: 'icon-bow'}),
 		crossbow: 			new refModel('crossbow', {icon: 'icon-crossbow'}),
+		eating: 			new refModel('eating', {icon: 'fa-apple-whole'}),
+		tooting: 			new refModel('tooting', {icon: 'fa-bullhorn'}),
 		block: 				new refModel('block', {icon: 'fa-cube'}),
 		frame: 				new refModel('frame', {icon: 'filter_frames'}),
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
@@ -1146,11 +1278,8 @@ window.displayReferenceObjects = {
 	},
 	active: '',
 	bar: function(buttons) {
-		$('#display_ref_bar').html('')
-		if (buttons.length === 10000) {
-			this.refmodels[buttons[0]].load()
-			return;
-		}
+		buttons = buttons.filter(id => Condition(this.refmodels[id]));
+		$('#display_ref_bar').html('');
 		if (buttons.length < 2) {
 			$('.reference_model_bar').css('visibility', 'hidden')
 		} else {
@@ -1170,7 +1299,7 @@ window.displayReferenceObjects = {
 			)
 			button.find('> label.tool').append(icon);
 			$('#display_ref_bar').append(button)
-			if (i === displayReferenceObjects.ref_indexes[display_slot]) {
+			if (i === displayReferenceObjects.ref_indexes[DisplayMode.display_slot]) {
 				ref.load(i)
 				button.find('input').prop("checked", true)
 			}
@@ -1204,16 +1333,14 @@ window.displayReferenceObjects = {
 }
 DisplayMode.slots = displayReferenceObjects.slots
 
-const display_angle_preset = {
+export const display_angle_preset = {
 	projection: 'perspective',
 	position: [-80, 40, -30],
 	target: [0, 8, 0],
 	default: true
 }
 
-enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
-	display_mode = true;
-
+export function enterDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
 	unselectAllElements()
 
 	if (Project.model_3d) display_base.add(Project.model_3d)
@@ -1229,11 +1356,14 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 	Canvas.updateShading()
 	
 	scene.add(display_area);
-	if (Project.model_3d) Project.model_3d.position.copy(Canvas.scene.position);
+	if (Project.model_3d) {
+		Project.model_3d.position.copy(Canvas.scene.position);
+		Project.model_3d.position.y = -8;
+	}
 	scene.position.set(0, 0, 0);
 
 	resizeWindow() //Update panels and sidebars so that the camera can be loaded with the correct aspect ratio
-	DisplayMode.load(display_slot)
+	DisplayMode.load(DisplayMode.display_slot)
 
 	display_area.updateMatrixWorld()
 	Transformer.center()
@@ -1241,7 +1371,7 @@ enterDisplaySettings = function() {		//Enterung Display Setting Mode, changes th
 		Canvas.outlines.children.empty();
 	}
 }
-exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the scene etc
+export function exitDisplaySettings() {		//Enterung Display Setting Mode, changes the scene etc
 	resetDisplayBase()
 	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
@@ -1250,16 +1380,16 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.global_light_side = 0;
 	Canvas.updateShading();
 	scene.remove(display_area)
-	if (!Format.centered_grid) scene.position.set(-8, -8, -8);
+	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
 	display_base.children.forEachReverse(child => {
 		display_base.remove(child);
 		child.position.set(0, 0, 0);
 	})
 	if (Project.model_3d) {
 		scene.add(Project.model_3d);
+		Project.model_3d.position.set(0, 0, 0);
 	}
 
-	display_mode = false;
 	main_preview.fullscreen()
 
 	resizeWindow()
@@ -1272,7 +1402,7 @@ exitDisplaySettings = function() {		//Enterung Display Setting Mode, changes the
 	Canvas.updateShading()
 	Canvas.updateRenderSides()
 }
-function resetDisplayBase() {
+export function resetDisplayBase() {
 	display_base.rotation.x = Math.PI / (180 / 0.1);
 	display_base.rotation.y = Math.PI / (180 / 0.1);
 	display_base.rotation.z = Math.PI / (180 / 0.1);
@@ -1285,13 +1415,13 @@ function resetDisplayBase() {
 }
 
 DisplayMode.updateDisplayBase = function(slot) {
-	if (!slot) slot = Project.display_settings[display_slot]
+	if (!slot) slot = Project.display_settings[DisplayMode.display_slot]
 
 	display_base.rotation.x = Math.PI / (180 / slot.rotation[0]);
-	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
-	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
+	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 
-	display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
+	display_base.position.x = slot.translation[0] * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 	display_base.position.y = slot.translation[1];
 	display_base.position.z = slot.translation[2];
 
@@ -1299,25 +1429,49 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
 	display_base.scale.z = (slot.scale[2]||0.001) * (slot.mirror[2] ? -1 : 1);
 
+	if (!slot.rotation_pivot.allEqual(0)) {
+		let rot_piv_offset = new THREE.Vector3().fromArray(slot.rotation_pivot).multiplyScalar(16);
+		let original = new THREE.Vector3().copy(rot_piv_offset);
+		rot_piv_offset.applyEuler(display_base.rotation);
+		rot_piv_offset.sub(original);
+		display_base.position.sub(rot_piv_offset);
+	}
+	if (!slot.scale_pivot.allEqual(0)) {
+		let scale_piv_offset = new THREE.Vector3().fromArray(slot.scale_pivot).multiplyScalar(16);
+		scale_piv_offset.applyEuler(display_base.rotation);
+		scale_piv_offset.x *= (1-slot.scale[0]);
+		scale_piv_offset.y *= (1-slot.scale[1]);
+		scale_piv_offset.z *= (1-slot.scale[2]);
+		display_base.position.add(scale_piv_offset)
+	}
+
 	Transformer.center()
 }
 
 
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
-	var slots = [display_slot]
+	var slots = [DisplayMode.display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
-	} else if (preset.areas[display_slot] == undefined) {
+	} else if (preset.areas[DisplayMode.display_slot] == undefined) {
 		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
 	Undo.initEdit({display_slots: slots})
 	slots.forEach(function(sl) {
 		if (!Project.display_settings[sl]) {
-			Project.display_settings[sl] = new DisplaySlot()
+			Project.display_settings[sl] = new DisplaySlot(sl)
 		}
-		Project.display_settings[sl].extend(preset.areas[sl])
+		let preset_values = preset.areas[sl];
+		if (preset_values) {
+			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
+			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
+			Project.display_settings[sl].extend(preset.areas[sl]);
+			if (preset.id == 'block' && Format.id == 'bedrock_block' && sl == 'gui') {
+				Project.display_settings[sl].rotation[1] = 45;
+			}
+		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
@@ -1325,7 +1479,7 @@ DisplayMode.applyPreset = function(preset, all) {
 DisplayMode.loadJSON = function(data) {
 	for (var slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot().extend(data[slot])
+			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
 		}
 	}
 }
@@ -1349,14 +1503,21 @@ var setDisplayArea = DisplayMode.setBase = function(x, y, z, rx, ry, rz, sx, sy,
 }
 DisplayMode.groundAnimation = function() {
 	display_area.rotation.y += 0.015
-	ground_timer += 1
-	display_area.position.y = 5.5 + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
+	ground_timer += 1;
+	let ground_offset = 3.8;
+	if (Format.id != 'bedrock_block') {
+		ground_offset = 1.9 + display_base.scale.y * 3.6;
+	}
+	display_area.position.y = ground_offset + Math.sin(Math.PI * (ground_timer / 100)) * Math.PI/2
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
-	if (display_slot == 'gui' && Project.front_gui_light == true) {
+	if (Format.id == 'bedrock_block') {
+		Canvas.global_light_side = 0;
+		Canvas.updateShading();
+	} else if (DisplayMode.display_slot == 'gui' && Project.front_gui_light == true) {
 		lights.rotation.set(-Math.PI, 0.6, 0);
 		Canvas.global_light_side = 4;
 	} else {
@@ -1366,20 +1527,20 @@ DisplayMode.updateGUILight = function() {
 	Canvas.updateShading();
 } 
 
-function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
-	display_slot = key
+export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
+	DisplayMode.display_slot = key
 
 	if (key !== 'gui' && display_preview.isOrtho === true) {
 		display_preview.loadAnglePreset(display_angle_preset)
 	}
 	display_preview.controls.enabled = true;
-	ground_animation = false;
+	Canvas.ground_animation = false;
 	$('#display_crosshair').detach()
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (Project.display_settings[key] == undefined) {
-		Project.display_settings[key] = new DisplaySlot()
+		Project.display_settings[key] = new DisplaySlot(key)
 	}
 	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
@@ -1407,7 +1568,7 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 	})
 	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
 }
-function getOptimalFocalLength() {
+export function getOptimalFocalLength() {
 	if (display_preview.camera.aspect > 1.7) {
 		return 18 / display_preview.camera.aspect;
 	} else if (display_preview.camera.aspect > 1.0) {
@@ -1419,25 +1580,25 @@ function getOptimalFocalLength() {
 DisplayMode.loadFirstRight = function() {	//Loader
 	loadDisp('firstperson_righthand')
 	display_preview.loadAnglePreset({
-		position: [0, 0, 32.4],
-		target: [0, 0, 0],
+		position: [0, 24, 32.4],
+		target: [0, 24, 0],
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
 	display_preview.loadAnglePreset({
-		position: [0, 0, 32.4],
-		target: [0, 0, 0],
+		position: [0, 24, 32.4],
+		target: [0, 24, 0],
 		focal_length: getOptimalFocalLength(),
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow'])
+	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
 	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
@@ -1470,9 +1631,9 @@ DisplayMode.loadGround = function() {		//Loader
 		target: [0, 3, 0]
 	})
 	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
-	ground_animation = true;
+	Canvas.ground_animation = true;
 	ground_timer = 0
-	displayReferenceObjects.bar(['block'])
+	displayReferenceObjects.bar(['block', 'fox'])
 }
 DisplayMode.loadFixed = function() {		//Loader
 	loadDisp('fixed')
@@ -1515,14 +1676,14 @@ DisplayMode.copy = function() {
 	Clipbench.display_slot = DisplayMode.slot.copy()
 }
 DisplayMode.paste = function() {
-	Undo.initEdit({display_slots: [display_slot]})
+	Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 	DisplayMode.slot.extend(Clipbench.display_slot)
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Paste display slot')
 }
 
 DisplayMode.scrollSlider = function(type, value, el) {
-	Undo.initEdit({display_slots: [display_slot]})
+	Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 
 	var [channel, axis] = type.split('.')
 	DisplayMode.slot[channel][parseInt(axis)] = value
@@ -1588,7 +1749,7 @@ window.changeDisplaySkin = function() {
 		}
 	})
 }
-function updateDisplaySkin(feedback) {
+export function updateDisplaySkin(feedback) {
 	var val = settings.display_skin.value
 	function setPSkin(skin, slim) {
 		if (displayReferenceObjects.refmodels.player.material) {
@@ -1653,7 +1814,36 @@ function updateDisplaySkin(feedback) {
 }
 DisplayMode.updateDisplaySkin = updateDisplaySkin;
 
+DisplayMode.debugBase = function() {
+	new Dialog('display_base_debug', {
+		title: 'Debug Display Base',
+		darken: false,
+		form: {
+			translation: {type: 'vector', dimensions: 3, step: 0.1, value: [0, 0, 0], label: 'Translation'},
+			rotation: {type: 'vector', dimensions: 3, step: 0.5, value: [0, 0, 0], label: 'Rotation'},
+			scale: {type: 'vector', dimensions: 3, step: 0.05, value: [1, 1, 1], label: 'Scale'},
+		},
+		onFormChange(result) {
+			DisplayMode.setBase(...result.translation, ...result.rotation, ...result.scale)
+		}
+	}).show();
+}
+
 BARS.defineActions(function() {
+	new Mode('display', {
+		icon: 'tune',
+		selectElements: false,
+		default_tool: 'move_tool',
+		category: 'navigate',
+		condition: () => Format.display_mode,
+		onSelect: () => {
+			enterDisplaySettings()
+		},
+		onUnselect: () => {
+			exitDisplaySettings()
+		},
+	})
+
 	new Action('add_display_preset', {
 		icon: 'add',
 		category: 'display',
@@ -1748,7 +1938,7 @@ BARS.defineActions(function() {
 			side: true,
 			front: true,
 		},
-		condition: () => Modes.display && display_slot === 'gui',
+		condition: () => Modes.display && DisplayMode.display_slot === 'gui' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.front_gui_light = slider.get() == 'front';
 			DisplayMode.updateGUILight();
@@ -1785,19 +1975,28 @@ Interface.definePanels(function() {
 				axes: [0, 1, 2],
 				reference_model: 'player',
 				pose_angle: 0,
-				slot: new DisplaySlot(),
+				slot: new DisplaySlot(''),
 				allow_mirroring: Settings.get('allow_display_slot_mirror')
 			}},
 			watch: {
 				pose_angle(value) {
-					displayReferenceObjects.active.pose_angles[display_slot] = value;
+					displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value;
 					if (displayReferenceObjects.active.updateBasePosition) displayReferenceObjects.active.updateBasePosition();
 				}
 			},
 			methods: {
+				allowMirroring() {
+					return this.allow_mirroring && !this.isBedrockStyle();
+				},
+				allowEnablingMirroring() {
+					return Format.id != 'bedrock_block';
+				},
+				isBedrockStyle() {
+					return Format.id == 'bedrock_block';
+				},
 				isMirrored: (axis) => {
-					if (Project.display_settings[display_slot]) {
-						return Project.display_settings[display_slot].scale[axis] < 0;
+					if (Project.display_settings[DisplayMode.display_slot]) {
+						return Project.display_settings[DisplayMode.display_slot].scale[axis] < 0;
 					}
 				},
 				change: (axis, channel) => {
@@ -1822,14 +2021,16 @@ Interface.definePanels(function() {
 						}
 					} else if (channel === 'translation') {
 						DisplayMode.slot.translation[axis] = limitNumber(DisplayMode.slot.translation[axis], -80, 80)||0;
-					} else {
+					} else if (channel == 'rotation') {
 						DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis])||0;
+					} else {
+						DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0;
 					}
 					DisplayMode.updateDisplayBase()
 				},
 				resetChannel: (channel) => {
 					var v = channel === 'scale' ? 1 : 0;
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 					DisplayMode.slot.extend({[channel]: [v, v, v]})
 					if (channel === 'scale') {
 					DisplayMode.slot.extend({mirror: [false, false, false]})
@@ -1837,17 +2038,23 @@ Interface.definePanels(function() {
 					Undo.finishEdit('Reset display channel')
 				},
 				invert: (axis) => {
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 					DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
 					DisplayMode.slot.update()
 					Undo.finishEdit('Mirror display setting')
 				},
-				start: (axis, channel) => {
-					Undo.initEdit({display_slots: [display_slot]});
+				start: () => {
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]});
 					Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
-				save: (axis, channel) => {
+				save: () => {
 					Undo.finishEdit('Change display setting');
+					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
+				},
+				toggleFitToFrame() {
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]});
+					this.slot.fit_to_frame = !this.slot.fit_to_frame;
+					Undo.finishEdit('Change display setting fit-to-frame property');
 					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 				},
 				showMirroringSetting() {
@@ -1892,7 +2099,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.rotation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('rotation')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'rotation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
@@ -1903,7 +2110,7 @@ Interface.definePanels(function() {
 							<p class="panel_toolbar_label">${ tl('display.translation') }</p>
 							<div class="tool head_right" v-on:click="resetChannel('translation')"><i class="material-icons">replay</i></div>
 							</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'translation.'+axis" :title="getAxisLetter(axis).toUpperCase()">
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.translation[axis]" v-bind:trigger_type="'translation.'+axis"
 								v-bind:min="Math.abs(slot.translation[axis]) < 10 ? -20 : (slot.translation[axis] > 0 ? -70*3+10 : -80)"
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
@@ -1914,11 +2121,11 @@ Interface.definePanels(function() {
 
 						<div class="bar display_slot_section_bar">
 							<p class="panel_toolbar_label">${ tl('display.scale') }</p>
-							<div class="tool head_right" v-on:click="showMirroringSetting()"><i class="material-icons">flip</i></div>
-							<div class="tool head_right" v-on:click="resetChannel('scale')"><i class="material-icons">replay</i></div>
+							<div class="tool head_right" @click="showMirroringSetting()" v-if="allowEnablingMirroring()"><i class="material-icons">flip</i></div>
+							<div class="tool head_right" @click="resetChannel('scale')"><i class="material-icons">replay</i></div>
 						</div>
-						<div class="bar slider_input_combo" v-for="axis in axes" :title="getAxisLetter(axis).toUpperCase()">
-							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allow_mirroring">
+						<div class="bar slider_input_combo" v-for="axis in axes" :key="'mirror.'+axis" :title="getAxisLetter(axis).toUpperCase()">
+							<div class="tool display_scale_invert" v-on:click="invert(axis)" v-if="allowMirroring()">
 								<div class="tooltip">${ tl('display.mirror') }</div>
 								<i class="material-icons">{{ slot.mirror[axis] ? 'check_box' : 'check_box_outline_blank' }}</i>
 							</div>
@@ -1929,6 +2136,10 @@ Interface.definePanels(function() {
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
 							<numeric-input class="tool disp_text" v-model.number="slot.scale[axis]" :min="0" :max="4" :step="0.01" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()" />
 						</div>
+						<div class="bar" v-if="isBedrockStyle() && slot.slot_id == 'gui'" @click="toggleFitToFrame()">
+							<input type="checkbox" :checked="slot.fit_to_frame == true">
+							<label style="padding-top: 3px;">Fit to Frame</label>
+						</div>
 						
 						<template v-if="reference_model == 'player'">
 							<div class="bar display_slot_section_bar">
@@ -1938,6 +2149,40 @@ Interface.definePanels(function() {
 								<input type="range" class="tool disp_range" v-model.number="pose_angle"
 									min="-180" max="180" step="1" >
 								<numeric-input class="tool disp_text" v-model.number="pose_angle" :min="-180" :max="180" :step="0.5" />
+							</div>
+						</template>
+						
+						<template v-if="isBedrockStyle()">
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.rotation_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('rotation_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :key="'rotation_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.rotation_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'rotation_pivot')"
+									@focusout="focusout(axis, 'rotation_pivot');save()"
+									@mousedown="start()"
+								/>
+							</div>
+
+							<div class="bar display_slot_section_bar">
+								<p class="panel_toolbar_label">${ tl('display.scale_pivot') }</p>
+								<div class="tool head_right" v-on:click="resetChannel('scale_pivot')"><i class="material-icons">replay</i></div>
+							</div>
+							<div class="bar display_inline_inputs">
+								<numeric-input class="tool disp_text is_colored"
+									:style="{'--corner-color': 'var(--color-axis-'+getAxisLetter(axis) + ')'}"
+									v-for="axis in axes" :key="'scale_pivot.'+axis" :title="getAxisLetter(axis).toUpperCase()"
+									v-model.number="slot.scale_pivot[axis]"
+									:min="-10" :max="10" :step="0.05"
+									@input="change(axis, 'scale_pivot')"
+									@focusout="focusout(axis, 'scale_pivot');save()"
+									@mousedown="start()"
+								/>
 							</div>
 						</template>
 					</div>
@@ -2298,4 +2543,13 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
+Object.assign(window, {
+	DisplayMode,
+	DisplaySlot,
+	refModel,
+	display_angle_preset,
+	resetDisplayBase,
+	loadDisp,
+	getOptimalFocalLength,
+	updateDisplaySkin
+});

@@ -28,13 +28,13 @@
 	}
 	.progress_bar {
 		background-color: var(--color-back);
-		height: 20px;
+		height: 18px;
 		margin-top: 12px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
-		width: 0px;
+		width: calc(100% * var(--progress));
 	}
 	.accent_color {
 		color: var(--color-accent);
@@ -47,8 +47,10 @@
 		font-weight: normal; 
 		display: inline-block;
 	}
-	.code {
+	code, .code {
 		font-family: var(--font-code);
+	}
+	.code {
 		font-size: 16px;
 	}
 	.small_text {
@@ -379,16 +381,21 @@
 	div.toolbar_wrapper {
 		float: none;
 	}
-	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar {
+	.toolbar_wrapper.narrow > .toolbar {
+		width: fit-content;
+		display: flex;
+		height: 100%;
+	}
+	.toolbar_wrapper > .toolbar.no_wrap {
 		width: fit-content;
 		display: flex;
 		flex-flow: row-reverse;
+		flex-wrap: nowrap;
 		height: 100%;
 	}
-	.toolbar.narrow, .toolbar_wrapper.narrow > .toolbar > .content {
+	.toolbar_wrapper > .toolbar.no_wrap > .content {
 		height: 100%;
-		overflow-x: hidden;
-		overflow-y: auto;
+		overflow: hidden;
 		flex-grow: 1;
 	}
 	.toolbar_wrapper > .toolbar.vertical {
@@ -419,6 +426,19 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
+	.toolbar_overflow_popup {
+		background-color: var(--color-ui);
+		position: absolute;
+		display: flex;
+		flex-wrap: wrap;
+		max-width: 180px;
+		z-index: 20;
+		box-shadow: 0 0px 8px rgba(0, 0, 0, 0.64);
+	}
+	.toolbar_overflow_dummy {
+		height: 30px;
+		width: 38px;
+	}
 	.tool {
 		height: 30px;
 		width: 36px;
@@ -431,6 +451,7 @@
 		cursor: default;
 		float: left;
 		color: var(--color-text);
+		flex-shrink: 0;
 	}
 	.tool i {
 		display: block;
@@ -690,6 +711,9 @@
 		pointer-events: none;
 		flex: 1 0 auto;
 	}
+	.contextMenu li.marked > span {
+		text-decoration: underline;
+	}
 	.contextMenu li.parent.focused > .contextMenu.sub {
 		display: block;
 	}
@@ -748,6 +772,10 @@
 	.contextMenu .menu_search_bar {
 		padding: 0;
 		display: flex;
+		position: sticky;
+		top: 0;
+		background-color: inherit;
+		border-bottom: 2px solid var(--color-menu_separator);
 	}
 	.menu_search_bar > input {
 		color: inherit;

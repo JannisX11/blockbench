@@ -3,7 +3,7 @@ new ModelFormat({
 	id: 'free',
 	icon: 'icon-format_free',
 	category: 'general',
-	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender'],
+	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender', tl('format.free.info.3d_printing')],
 	format_page: {
 		content: [
 			{type: 'h3', text: tl('mode.start.format.informations')},

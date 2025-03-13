@@ -1,5 +1,5 @@
-const Codecs = {};
-class Codec extends EventSystem {
+export const Codecs = {};
+export class Codec extends EventSystem {
 	constructor(id, data) {
 		super();
 		if (!data) data = 0;
@@ -15,16 +15,20 @@ class Codec extends EventSystem {
 		Merge.function(this, data, 'write');
 		Merge.function(this, data, 'overwrite');
 		Merge.function(this, data, 'export');
+		Merge.function(this, data, 'exportCollection');
+		Merge.function(this, data, 'writeCollection');
 		Merge.function(this, data, 'fileName');
 		Merge.function(this, data, 'afterSave');
 		Merge.function(this, data, 'afterDownload');
 		Merge.string(this, data, 'extension');
 		Merge.boolean(this, data, 'remember');
 		Merge.boolean(this, data, 'multiple_per_file');
+		Merge.boolean(this, data, 'support_partial_export');
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
+		this.context = null;
 	}
 	getExportOptions() {
 		let options = {};
@@ -119,11 +123,53 @@ class Codec extends EventSystem {
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
 	}
+	async patchCollectionExport(collection, callback) {
+		this.context = collection;
+		let element_export_values = {};
+		let all = Outliner.elements.concat(Group.all);
+		for (let node of all) {
+			if (typeof node.export != 'boolean') continue;
+			element_export_values[node.uuid] = node.export;
+			node.export = false;
+		}
+		for (let node of collection.getAllChildren()) {
+			if (node.export == false) node.export = true;
+		}
+		try {
+			await callback();
+		} catch (error) {
+			throw error;
+		} finally {
+			this.context = null;
+			for (let node of all) {
+				if (element_export_values[node.uuid] === undefined) continue;
+				node.export = element_export_values[node.uuid];
+			}
+		}
+	}
+	async exportCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			await this.export();
+		})
+	}
+	async writeCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			await this.export();
+		})
+	}
 	fileName() {
-		return Project.name||'model';
+		if (this.context instanceof Collection) {
+			return this.context.name;
+		} else {
+			return Project.name||'model';
+		}
 	}
 	startPath() {
-		return Project.export_path;
+		if (this.context instanceof Collection) {
+			return this.context.export_path;
+		} else {
+			return Project.export_path;
+		}
 	}
 	write(content, path) {
 		if (fs.existsSync(path) && this.overwrite) {
@@ -141,7 +187,11 @@ class Codec extends EventSystem {
 	}
 	afterSave(path) {
 		var name = pathToName(path, true)
-		if (Format.codec == this || this.id == 'project') {
+		if (this.context instanceof Collection) {
+			this.context.export_path = path;
+			this.context.codec = this.id;
+
+		} else if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
 				Project.save_path = path;
 			} else {
@@ -176,3 +226,9 @@ Codec.getAllExtensions = function() {
 	}
 	return extensions;
 }
+
+
+Object.assign(window, {
+	Codec,
+	Codecs
+});

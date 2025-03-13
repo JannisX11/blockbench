@@ -1,5 +1,5 @@
 
-class Locator extends OutlinerElement {
+export class Locator extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -42,7 +42,7 @@ class Locator extends OutlinerElement {
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
-			this.addTo(Group.selected)
+			this.addTo(Group.first_selected)
 		}
 		super.init();
 		return this;
@@ -61,7 +61,7 @@ class Locator extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter() {
-		var pos = Reusable.vec1.set(0, 0, 0);
+		var pos = new THREE.Vector3();
 		var q = Reusable.quat1.set(0, 0, 0, 1);
 		if (this.parent instanceof Group) {
 			THREE.fastWorldPosition(this.parent.mesh, pos);
@@ -74,20 +74,22 @@ class Locator extends OutlinerElement {
 
 		return pos;
 	}
+	static behavior = {
+		unique_name: true,
+		movable: true,
+		rotatable: true,
+	}
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
 	Locator.prototype.icon = 'fa-anchor';
-	Locator.prototype.name_regex = 'a-z0-9_'
-	Locator.prototype.movable = true;
-	Locator.prototype.rotatable = true;
+	Locator.prototype.name_regex = () => Format.node_name_regex ?? 'a-zA-Z0-9_',
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
 			...Outliner.control_menu_group,
 			new MenuSeparator('settings'),
@@ -193,7 +195,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var locator = new Locator().addTo(Group.selected||selected[0]).init();
+			var locator = new Locator().addTo(Group.first_selected||selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('Add locator');
@@ -205,3 +207,6 @@ BARS.defineActions(function() {
 		}
 	})
 })
+Object.assign(window, {
+	Locator
+});

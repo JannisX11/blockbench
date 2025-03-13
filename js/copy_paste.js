@@ -1,5 +1,5 @@
 
-const Clipbench = {
+export const Clipbench = {
 	elements: [],
 	types: {
 		text: 'text',
@@ -85,7 +85,7 @@ const Clipbench = {
 		}
 		if (Modes.edit && p == 'preview') {
 			let options = [];
-			if (Clipbench.elements.length || Clipbench.group) {
+			if (Clipbench.elements.length || Clipbench.groups) {
 				options.push(Clipbench.types.outliner);
 			}
 			if (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && Clipbench.vertices) {
@@ -153,7 +153,7 @@ const Clipbench = {
 			case 'face':
 				UVEditor.copy(event);
 				if (Prop.active_panel == 'uv') {
-					Clipbench.group = undefined;
+					Clipbench.groups = undefined;
 					Clipbench.elements = [];
 				}
 				break;
@@ -170,9 +170,9 @@ const Clipbench = {
 		}
 		if (copy_type == 'outliner' || (copy_type == 'face' && Prop.active_panel == 'preview')) {
 			Clipbench.setElements();
-			Clipbench.setGroup();
-			if (Group.selected) {
-				Clipbench.setGroup(Group.selected);
+			Clipbench.setGroups();
+			if (Group.multi_selected.length) {
+				Clipbench.setGroups(Group.multi_selected);
 			} else {
 				Clipbench.setElements(selected);
 			}
@@ -221,14 +221,14 @@ const Clipbench = {
 				break;
 		}
 	},
-	setGroup(group) {
-		if (!group) {
-			Clipbench.group = undefined
+	setGroups(groups) {
+		if (!groups || !groups.length) {
+			Clipbench.groups = undefined
 			return;
 		}
-		Clipbench.group = group.getSaveCopy()
+		Clipbench.groups = groups.map(group => group.getSaveCopy())
 		if (isApp) {
-			clipboard.writeHTML(JSON.stringify({type: 'group', content: Clipbench.group}))
+			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.groups}))
 		}
 	},
 	setElements(arr) {
@@ -308,9 +308,9 @@ const Clipbench = {
 		Undo.initEdit({outliner: true, elements: [], selection: true});
 		//Group
 		var target = 'root'
-		if (Group.selected) {
-			target = Group.selected
-			Group.selected.isOpen = true
+		if (Group.first_selected) {
+			target = Group.first_selected
+			Group.first_selected.isOpen = true
 		} else if (selected[0]) {
 			target = selected[0]
 		}
@@ -320,18 +320,18 @@ const Clipbench = {
 			try {
 				var data = JSON.parse(raw)
 				if (data.type === 'elements' && data.content) {
-					Clipbench.group = undefined;
+					Clipbench.groups = undefined;
 					Clipbench.elements = data.content;
 				} else if (data.type === 'group' && data.content) {
-					Clipbench.group = data.content;
+					Clipbench.groups = data.content;
 					Clipbench.elements = [];
 				}
 			} catch (err) {}
 		}
-		if (Clipbench.group) {
+		if (Clipbench.groups) {
 			function iterate(obj, parent) {
 				if (obj.children) {
-					var copy = new Group(obj).addTo(parent).init();
+					let copy = new Group(obj).addTo(parent).init();
 					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
@@ -341,15 +341,19 @@ const Clipbench = {
 							iterate(child, copy)
 						})
 					}
+					return copy;
 				} else if (OutlinerElement.isTypePermitted(obj.type)) {
 					var copy = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
 					copy.createUniqueName();
 					Property.resetUniqueValues(copy.constructor, copy);
 					copy.preview_controller.updateTransform(copy);
+					return copy;
 				}
 			}
-			iterate(Clipbench.group, target)
-			updateSelection()
+			for (let group_template of Clipbench.groups) {
+				let copy = iterate(group_template, target);
+				copy.multiSelect();
+			}
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
@@ -366,7 +370,7 @@ const Clipbench = {
 		//Rotate Cubes
 		if (!Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				cube.rotation.V3_set(0, 0, 0)
 			})
 			Canvas.updateView({elements, element_aspects: {transform: true}});
@@ -376,7 +380,7 @@ const Clipbench = {
 		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			elements.forEach(s => {
-				if (s instanceof Cube) {
+				if (s.getTypeBehavior('cube_rotation_limit')) {
 					//Push elements into 3x3 block box
 					Format.cube_size_limiter.move(s);
 				}
@@ -387,7 +391,7 @@ const Clipbench = {
 		//Rotation Limit
 		if (Format.rotation_limit && Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				if (!cube.rotation.allEqual(0)) {
 					var axis = getAxisNumber(cube.rotationAxis()) || 0;
 					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
@@ -431,7 +435,15 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
-		keybind: new Keybind({key: 'c', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'c', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.copy.multiple',
+				description: 'action.copy.multiple.desc',
+			}
+		},
 		click(event) {
 			Clipbench.copy(event)
 		}
@@ -441,7 +453,15 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(1, true) || SharedActions.condition('copy'),
-		keybind: new Keybind({key: 'x', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'x', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.copy.multiple',
+				description: 'action.copy.multiple.desc',
+			}
+		},
 		click(event) {
 			Clipbench.copy(event, true)
 		}
@@ -451,7 +471,14 @@ BARS.defineActions(function() {
 		category: 'edit',
 		work_in_dialog: true,
 		condition: () => Clipbench.getCopyType(2, true) || SharedActions.condition('paste'),
-		keybind: new Keybind({key: 'v', ctrl: true, shift: null}),
+		keybind: new Keybind({key: 'v', ctrl: true}, {
+			multiple: 'shift'
+		}),
+		variations: {
+			multiple: {
+				name: 'action.paste.multiple',
+			}
+		},
 		click(event) {
 			Clipbench.paste(event)
 		}
@@ -481,3 +508,5 @@ BARS.defineActions(function() {
 		DisplayMode.paste();
 	});
 })
+
+Object.assign(window, {Clipbench});

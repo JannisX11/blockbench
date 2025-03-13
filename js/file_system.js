@@ -1,3 +1,5 @@
+import saveAs from 'file-saver'
+
 Object.assign(Blockbench, {
 	import(options, cb) {
 		if (typeof options !== 'object') {options = {}}
@@ -48,7 +50,7 @@ Object.assign(Blockbench, {
 			let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
 				(navigator.userAgent.includes("Mac") && "ontouchend" in document);
 			
-			if (isIOS && options.extensions && options.extensions.length > 1) {
+			if ((isIOS || Blockbench.isTouch) && options.extensions && options.extensions.length > 1) {
 				let ext_options = {};
 				options.extensions.forEach(extension => {
 					ext_options[extension] = extension;
@@ -128,6 +130,16 @@ Object.assign(Blockbench, {
 		var errant;
 		var i = 0;
 		if (isApp) {
+			if (options.readtype == 'none') {
+				let results = files.map(file => {
+					return {
+						name: pathToName(file, true),
+						path: file
+					}
+				})
+				cb(results);
+				return results;
+			}
 			while (index < files.length) {
 				(function() {
 					var this_i = index;
@@ -176,7 +188,7 @@ Object.assign(Blockbench, {
 						try {
 							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
 						} catch(err) {
-							console.log(err)
+							console.error(err)
 							if (!errant && options.errorbox !== false) {
 								Blockbench.showMessageBox({
 									translateKey: 'file_not_found',
@@ -300,7 +312,13 @@ Object.assign(Blockbench, {
 					saveAs(blob, file_name)
 
 				} else {
-					var blob = new Blob([options.content], {type: "text/plain;charset=utf-8"});
+					let type = 'text/plain;charset=utf-8';
+					if (file_name.endsWith('json')) {
+						type = 'application/json;charset=utf-8';
+					} else if (file_name.endsWith('bbmodel')) {
+						type = 'model/vnd.blockbench.bbmodel';
+					}
+					var blob = new Blob([options.content], {type});
 					saveAs(blob, file_name, {autoBOM: true})
 				}
 
@@ -499,12 +517,17 @@ document.body.ondrop = function(event) {
 	}
 
 	forDragHandlers(event, function(handler, el) {
-		var fileNames = event.dataTransfer.files
+		let fileNames = event.dataTransfer.files
 
-		var paths = [];
+		let paths = [];
 		if (isApp) {
-			for (var file of fileNames) {
-				if (file.path) paths.push(file.path)
+			for (let file of fileNames) {
+				if (file.path) {
+					paths.push(file.path)
+				} else if (isApp) {
+					let path = webUtils.getPathForFile(file);
+					paths.push(path);
+				}
 			}
 		} else {
 			paths = fileNames
@@ -529,7 +552,7 @@ document.body.ondragleave = function(event) {
 	})
 }
 
-function forDragHandlers(event, cb) {
+export function forDragHandlers(event, cb) {
 	if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
 		return; 
 	}

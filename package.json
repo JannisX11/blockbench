@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.9.4",
+	"version": "4.12.2",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -12,12 +12,19 @@
 		"type": "git",
 		"url": "https://github.com/JannisX11/blockbench"
 	},
-	"main": "main.js",
+	"main": "electron/main.js",
+	"type": "module",
+	"vue": {
+		"runtimeCompiler": true
+	},
 	"build": {
 		"afterSign": "scripts/notarize.js",
 		"appId": "blockbench",
 		"productName": "Blockbench",
 		"artifactName": "${productName}_${version}.${ext}",
+		"directories": {
+			"output": "dist-electron"
+		},
 		"publish": [
 			{
 				"provider": "github"
@@ -41,11 +48,10 @@
 			"assets/",
 			"build/",
 			"css/",
-			"js/",
 			"lib/",
 			"font/",
+			"dist/",
 			"main.js",
-			"bundle.js",
 			"index.html",
 			"package.json",
 			"favicon.png",
@@ -76,7 +82,17 @@
 		},
 		"win": {
 			"certificateSubjectName": "Jannis Tobias Petersen",
-			"target": "nsis"
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
+			"target": {
+				"target": "nsis",
+				"arch": [
+					"arm64",
+					"x64"
+				]
+			}
+		},
+		"nsis": {
+			"license": "LICENSE.MD"
 		},
 		"linux": {
 			"artifactName": "${productName}_${version}.${ext}",
@@ -85,41 +101,69 @@
 				"rpm",
 				"appImage"
 			],
-			"category": "3DGraphics",
+			"category": "Graphics;3DGraphics",
 			"icon": "build/icon.icns"
 		},
 		"fileAssociations": [
 			{
 				"ext": "bbmodel",
 				"name": "Blockbench Project",
+				"mimeType": "model/vnd.blockbench.bbmodel",
+				"role": "Editor"
+			},
+			{
+				"ext": "json",
+				"name": "JSON Model",
+				"mimeType": "application/json",
 				"role": "Editor"
 			}
 		]
 	},
 	"scripts": {
-		"bundle": "webpack --config webpack.config.js",
-		"bundle-watch": "webpack --config webpack.config.js --watch",
-		"dev": "electron .",
-		"dist": "electron-builder",
-		"beta": "electron-builder --windows portable",
-		"publish-windows": "npm run bundle && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
+		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
+		"serve": "node ./build.js --target=web --serve",
+		"electron": "electron .",
+		"build-web": "node ./build.js --target=web",
+		"build-electron": "node ./build.js --target=electron",
+		"build-test-portable": "npm run build-electron && electron-builder --windows portable",
+		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
-		"prepublish": "npm run bundle && npm run pwa",
-		"webapp": "git checkout gh-pages && git merge master && git push && git checkout master"
+		"prepublish": "npm run build-web && npm run pwa",
+		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
+		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
+	},
+	"overrides": {
+		"three": "^0.174.0"
 	},
 	"devDependencies": {
-		"blockbench-types": "^4.6.1",
-		"electron": "^29.1.0",
+		"@electron/notarize": "^2.5.0",
+		"command-line-args": "^6.0.1",
+		"concurrently": "^9.1.2",
+		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
-		"electron-notarize": "^1.0.0",
-		"webpack": "^5.74.0",
-		"webpack-cli": "^4.5.0",
+		"esbuild": "0.25.0",
+		"esbuild-plugin-glsl": "^1.2.2",
+		"typescript": "^5.8.2",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {
 		"@electron/remote": "^2.1.2",
+		"@types/three": "^0.174.0",
+		"blockbench-types": "^4.12.1",
 		"electron-color-picker": "^0.2.0",
-		"electron-updater": "^6.1.8",
-		"gifenc": "^1.0.3"
+		"electron-updater": "^6.3.4",
+		"file-saver": "^2.0.5",
+		"gif.js": "^0.2.0",
+		"gifenc": "^1.0.3",
+		"jquery": "^3.7.1",
+		"jszip": "^3.10.1",
+		"molangjs": "^1.6.5",
+		"peerjs": "^1.5.4",
+		"prismjs": "^1.29.0",
+		"three": "^0.174.0",
+		"tinycolor2": "^1.6.0",
+		"vue": "^2.7.16",
+		"vue-sortable": "^0.1.3",
+		"wintersky": "^1.3.2"
 	}
 }
