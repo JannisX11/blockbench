@@ -1483,6 +1483,51 @@ new NodePreviewController(Cube, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element: cube});
+	},
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
+		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
+
+		let {mesh} = element;
+		let vector = Reusable.vec2;
+		var adjustedFrom = element.from.slice();
+		var adjustedTo = element.to.slice();
+		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
+
+		let vertices = [
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
+		].map(coords => {
+			coords.V3_subtract(element.origin);
+			vector.fromArray(coords);
+			mesh.localToWorld(vector);
+			return projectPoint(vector);
+		})
+		let is_on_screen = vertices.find(vertex => {
+			return (vertex[0] >= 0 && vertex[0] <= preview.width
+				 && vertex[1] >= 0 && vertex[1] <= preview.height);
+		})
+		return is_on_screen && (
+			   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+		);
 	}
 })
 

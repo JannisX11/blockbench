@@ -1498,6 +1498,101 @@ new NodePreviewController(Mesh, {
 		let geometry_clone = element.mesh.geometry.clone();
 		element.mesh.geometry = geometry_clone;
 		geometry_orig.dispose();
+	},
+	viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview}) {
+		let selection_mode = BarItems.selection_mode.value;
+		if (!(selection_mode == 'object' || preview.selection.old_selected.includes(element))) return;
+
+		let mesh_selection;
+		let mesh = element.mesh;
+		let isSelected = false;
+		let vector = Reusable.vec6;
+		if (selection_mode != 'object') {
+			isSelected = true;
+			if (!Project.mesh_selection[element.uuid]) {
+				mesh_selection = Project.mesh_selection[element.uuid] = {vertices: [], edges: [], faces: []};
+			} else {
+				mesh_selection = Project.mesh_selection[element.uuid];
+			}
+			if (!extend_selection) mesh_selection.vertices.empty();
+		}
+
+		let vertex_points = {};
+		let is_on_screen = false;
+		for (let vkey in element.vertices) {
+			let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
+			vertex_points[vkey] = point;
+			if (point[0] >= 0 && point[0] <= preview.width && point[1] >= 0 && point[1] <= preview.height) {
+				is_on_screen = true;
+			}
+		}
+		if (extend_selection && preview.selection.old_mesh_selection[element.uuid]) {
+			mesh_selection.vertices.safePush(...preview.selection.old_mesh_selection[element.uuid].vertices);
+			mesh_selection.edges.safePush(...preview.selection.old_mesh_selection[element.uuid].edges);
+			mesh_selection.faces.safePush(...preview.selection.old_mesh_selection[element.uuid].faces);
+		}
+		if (!is_on_screen) {
+			return isSelected;
+		}
+		if (selection_mode == 'vertex') {
+			for (let vkey in element.vertices) {
+				let point = vertex_points[vkey];
+				if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+					mesh_selection.vertices.push(vkey);
+				}
+			}
+
+		} else if (selection_mode == 'edge') {
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						mesh_selection.vertices.safePush(vkey, vkey2);
+						let edge = [vkey, vkey2];
+						if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+							mesh_selection.edges.push(edge);
+						}
+					}
+				}
+			}
+
+		} else {
+			if (selection_mode != 'object' && !extend_selection) {
+				mesh_selection.faces.empty();
+			}
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				let face_intersects;
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						face_intersects = true;
+						break;
+					}
+				}
+				if (selection_mode == 'object') {
+					if (face_intersects) {
+						isSelected = true;
+						break;
+					}
+				} else {
+					if (face_intersects) {
+						mesh_selection.vertices.safePush(...face.vertices);
+						mesh_selection.faces.safePush(fkey);
+					}
+				}
+			}
+		}
+		return isSelected;
 	}
 })
 

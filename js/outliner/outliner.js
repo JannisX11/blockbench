@@ -686,6 +686,10 @@ export class NodePreviewController extends EventSystem {
 			default: element.mesh.renderOrder = 0; break;	
 		}
 	}
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end}) {
+		element.mesh.getWorldPosition(Reusable.vec2);
+		return pointInRectangle(projectPoint(Reusable.vec2), rect_start, rect_end);
+	}
 }
 /**
 Standardied outliner node context menu group order
