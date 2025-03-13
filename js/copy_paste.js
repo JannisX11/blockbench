@@ -370,7 +370,7 @@ export const Clipbench = {
 		//Rotate Cubes
 		if (!Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				cube.rotation.V3_set(0, 0, 0)
 			})
 			Canvas.updateView({elements, element_aspects: {transform: true}});
@@ -380,7 +380,7 @@ export const Clipbench = {
 		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			elements.forEach(s => {
-				if (s instanceof Cube) {
+				if (s.getTypeBehavior('cube_rotation_limit')) {
 					//Push elements into 3x3 block box
 					Format.cube_size_limiter.move(s);
 				}
@@ -391,7 +391,7 @@ export const Clipbench = {
 		//Rotation Limit
 		if (Format.rotation_limit && Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				if (!cube.rotation.allEqual(0)) {
 					var axis = getAxisNumber(cube.rotationAxis()) || 0;
 					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];

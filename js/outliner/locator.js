@@ -74,20 +74,22 @@ export class Locator extends OutlinerElement {
 
 		return pos;
 	}
+	static behavior = {
+		unique_name: true,
+		movable: true,
+		rotatable: true,
+	}
 }
 	Locator.prototype.title = tl('data.locator');
 	Locator.prototype.type = 'locator';
 	Locator.prototype.icon = 'fa-anchor';
 	Locator.prototype.name_regex = () => Format.node_name_regex ?? 'a-zA-Z0-9_',
-	Locator.prototype.movable = true;
-	Locator.prototype.rotatable = true;
 	Locator.prototype.visibility = true;
 	Locator.prototype.buttons = [
 		Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Locator.prototype.needsUniqueName = true;
 	Locator.prototype.menu = new Menu([
 			...Outliner.control_menu_group,
 			new MenuSeparator('settings'),

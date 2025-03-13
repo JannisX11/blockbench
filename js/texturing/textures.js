@@ -1302,7 +1302,7 @@ export class Texture {
 
 					} else if (Texture.length >= 2 && elements_to_change) {
 						elements_to_change.forEach(element => {
-							if (element instanceof Cube) {
+							if (element.getTypeBehavior('cube_faces')) {
 								for (var key in element.faces) {
 									if (element.faces[key].texture !== scope.uuid) continue;
 									var uv = element.faces[key].uv;

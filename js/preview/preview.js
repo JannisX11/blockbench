@@ -429,7 +429,7 @@ export class Preview {
 			let element, face;
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces') && element.getTypeBehavior('select_faces')) {
 					face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
 				} else if (element instanceof Mesh) {
 					let index = intersects[0].faceIndex;
@@ -1352,7 +1352,7 @@ export class Preview {
 				isSelected = true
 
 			} else if (element.visibility) {
-				if (element.mesh && element.resizable) {
+				if (element.mesh && element.getTypeBehavior('resizable')) {
 					let {mesh} = element;
 					
 					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {

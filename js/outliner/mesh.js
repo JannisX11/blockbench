@@ -899,14 +899,16 @@ export class Mesh extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		resizable: true,
+		rotatable: true,
+	}
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
 	Mesh.prototype.icon = 'far.fa-gem';
-	Mesh.prototype.movable = true;
-	Mesh.prototype.resizable = true;
-	Mesh.prototype.rotatable = true;
-	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
 		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',

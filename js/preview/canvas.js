@@ -510,7 +510,7 @@ export const Canvas = {
 				if (element.selected && mesh.outline) edit(mesh.outline);
 				if (mesh.grid_box) edit(mesh.grid_box);
 				if (element instanceof Locator) edit(mesh.children[0]);
-				if (element instanceof NullObject) edit(mesh);
+				if (element.getTypeBehavior('hide_in_screenshot')) edit(mesh);
 			})
 		}
 		editVis(obj => {

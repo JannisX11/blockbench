@@ -1279,7 +1279,7 @@ BARS.defineActions(function() {
 					}
 				})
 				// Rotation
-				if (node.rotatable) {
+				if (node.getTypeBehavior('rotatable')) {
 					node.rotation[0] -= offset_rotation[0];
 					node.rotation[1] -= offset_rotation[1];
 					node.rotation[2] += offset_rotation[2];

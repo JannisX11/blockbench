@@ -92,7 +92,7 @@ export const MirrorModeling = {
 					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
 					let match = parent_list.find(node => {
 						if (node instanceof Group == false) return false;
-						if ((node.name == mirror_group.name || Condition(mirror_group.needsUniqueName)) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+						if ((node.name == mirror_group.name || Condition(mirror_group.getTypeBehavior('unique_name'))) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
 							return true;
 						}
 					})

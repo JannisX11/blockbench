@@ -517,7 +517,7 @@ export function centerElements(axis, update) {
 	var difference = (Format.centered_grid ? 0 : 8) - center
 
 	Outliner.selected.forEach(function(obj) {
-		if (obj.movable) obj.origin[axis] += difference;
+		if (obj.getTypeBehavior('movable')) obj.origin[axis] += difference;
 		if (obj.from) obj.from[axis] = obj.from[axis] + difference;
 		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
 		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -645,8 +645,8 @@ export function moveElementsInSpace(difference, axis) {
 					el.local_pivot[axis] += difference;
 
 				} else {
-					if (el.movable) el.from[axis] += difference;
-					if (el.resizable && el.to) el.to[axis] += difference;
+					if (el.getTypeBehavior('movable')) el.from[axis] += difference;
+					if (el.getTypeBehavior('resizable') && el.to) el.to[axis] += difference;
 					
 					if (el instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 						Format.cube_size_limiter.move(el);
@@ -654,13 +654,13 @@ export function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable && el.from instanceof Array) {
+				if (el.getTypeBehavior('movable') && el.from instanceof Array) {
 					el.from[axis] += difference;
-				} else if (el.movable && el.position) {
+				} else if (el.getTypeBehavior('movable') && el.position) {
 					el.position[axis] += difference;
 				}
-				if (el.resizable && el.to instanceof Array) el.to[axis] += difference;
-				if (el.rotatable && !el.position) el.origin[axis] += difference;
+				if (el.getTypeBehavior('resizable') && el.to instanceof Array) el.to[axis] += difference;
+				if (el.getTypeBehavior('rotatable') && !el.position) el.origin[axis] += difference;
 			} else {
 				let move_origin = !!groups;
 				if (group_m) {
@@ -699,7 +699,7 @@ export function moveElementsInSpace(difference, axis) {
 					el.position.V3_add(m.x, m.y, m.z);
 				} 
 				if (move_origin) {
-					if (el.rotatable && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
 			}
 		}
@@ -735,7 +735,7 @@ export function getRotationInterval(event) {
 export function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
 	let elements = Outliner.selected.filter(element => {
-		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
+		return element.getTypeBehavior('rotatable') && (element instanceof Cube == false || Format.rotate_cubes);
 	})
 	if (elements.length) return elements;
 }
@@ -977,7 +977,7 @@ BARS.defineActions(function() {
 				})
 				obj.preview_controller.updateGeometry(obj);
 
-			} else if (obj.movable) {
+			} else if (obj.getTypeBehavior('movable')) {
 				let main_pos = obj.from || obj.position;
 				var val = modify(main_pos[axis]);
 
@@ -1081,9 +1081,9 @@ BARS.defineActions(function() {
 
 	function resizeOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
-			if (obj.resizable) {
+			if (obj.getTypeBehavior('resizable')) {
 				obj.resize(modify, axis, false, true, obj instanceof Mesh)
-			} else if (obj.scalable) {
+			} else if (obj.getTypeBehavior('scalable')) {
 				obj.scale[axis] = modify(obj.scale[axis]);
 				obj.preview_controller.updateTransform(obj);
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
@@ -1095,12 +1095,12 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[0]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(0, true);
 			}
 		},
@@ -1108,7 +1108,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1120,12 +1120,12 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[1]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(1, true);
 			}
 		},
@@ -1133,7 +1133,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1145,12 +1145,12 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[2]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(2, true);
 			}
 		},
@@ -1158,7 +1158,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1334,7 +1334,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[0];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[0];
 		},
@@ -1343,7 +1343,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1362,7 +1362,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[1];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[1];
 		},
@@ -1371,7 +1371,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1390,7 +1390,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[2];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[2];
 		},
@@ -1399,7 +1399,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1454,7 +1454,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.origin[0];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[0];
 		},
@@ -1481,7 +1481,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.origin[1];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[1];
 		},
@@ -1508,7 +1508,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.origin[2];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[2];
 		},

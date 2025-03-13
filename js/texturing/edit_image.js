@@ -674,7 +674,7 @@ BARS.defineActions(function() {
 										}
 									}
 								}
-							} else if (el instanceof Cube) {
+							} else if (el.getTypeBehavior('cube_faces')) {
 								let factor_x = texture.width  / Project.texture_width;
 								let factor_y = texture.display_height / Project.texture_height;
 								for (var fkey in el.faces) {
@@ -885,7 +885,7 @@ BARS.defineActions(function() {
 					uv_adjust_y = rect.height / old_height;
 				}
 				elements_to_change.forEach(element => {
-					if (element instanceof Cube) {
+					if (element.getTypeBehavior('cube_faces')) {
 						for (let key in element.faces) {
 							if (element.faces[key].getTexture() != texture) continue;
 							if (element.box_uv) {

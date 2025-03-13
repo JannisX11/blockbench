@@ -858,11 +858,11 @@ export function calculateVisibleBox() {
 					let offset = obj.position.slice();
 					offset[0] *= -1;
 
-					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
+					if ((obj.getTypeBehavior('rotatable') && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable) {
+						if (obj.getTypeBehavior('rotatable')) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],
