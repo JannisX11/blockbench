@@ -1,9 +1,11 @@
+import { THREE } from "../../lib/libs";
+
 class BillboardFace extends CubeFace {
 	constructor(data, billboard) {
 		super();
 		this.texture = false;
 		this.billboard = billboard;
-		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
+		this.uv = [0, 0, canvasGridSize()*2, canvasGridSize()*2]
 		this.rotation = 0;
 
 		if (data) {
@@ -39,7 +41,6 @@ class BillboardFace extends CubeFace {
 		return getRectangle(...this.uv);
 	}
 }
-BillboardFace.prototype.is_rectangular = true;
 new Property(BillboardFace, 'number', 'rotation', {default: 0});
 
 
@@ -59,7 +60,6 @@ class Billboard extends OutlinerElement {
 			Billboard.properties[key].reset(this);
 		}
 
-		this.box_uv = Project.box_uv;
 		this.faces = {
 			front: 	new BillboardFace(null, this),
 		}
@@ -228,14 +228,19 @@ class Billboard extends OutlinerElement {
 	mapAutoUV() {
 
 	}
+
+	static behavior = {
+		select_faces: false,
+		cube_faces: true,
+		//rotatable: true,
+		movable: true,
+		resizable: true,
+		unique_name: false
+	}
 }
 	Billboard.prototype.title = tl('data.billboard');
 	Billboard.prototype.type = 'billboard';
 	Billboard.prototype.icon = 'fa fas fa-bookmark';
-	Billboard.prototype.movable = true;
-	Billboard.prototype.resizable = true;
-	Billboard.prototype.rotatable = false;
-	Billboard.prototype.needsUniqueName = false;
 	Billboard.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		'_',
@@ -286,14 +291,35 @@ class Billboard extends OutlinerElement {
 	];
 
 new Property(Billboard, 'string', 'name', {default: 'billboard'});
+new Property(Billboard, 'vector', 'position');
+new Property(Billboard, 'boolean', 'visibility', {default: true});
 new Property(Billboard, 'boolean', 'locked');
+new Property(Billboard, 'enum', 'facing_mode', {
+	default: 'lookat',
+	values: ['lookat', 'lookat_y', 'rotate', 'rotate_y'],
+	inputs: {
+		element_panel: {
+			input: {label: 'Facing Mode', type: 'select', options: {
+				lookat: 'Look At',
+				lookat_y: 'Look At Y',
+				rotate: 'Rotate',
+				rotate_y: 'Rotate Y',
+			}},
+			onChange() {
+				for (let billboard of Billboard.selected) {
+					Billboard.preview_controller.updateFacingCamera(billboard);
+				}
+			}
+		}
+	}
+});
 
 OutlinerElement.registerType(Billboard, 'billboard');
 
 
 new NodePreviewController(Billboard, {
 	setup(element) {
-		let geometry = new THREE.PlaneBufferGeometry(2, 2);
+		let geometry = new THREE.PlaneGeometry(2, 2);
 		let mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
@@ -332,30 +358,28 @@ new NodePreviewController(Billboard, {
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {
-		if (element.resizable) {
-			let mesh = element.mesh;
-			let half_size = [element.size[0]/2, element.size[1]/2];
+		let mesh = element.mesh;
+		let half_size = [element.size[0]/2, element.size[1]/2];
 
-			let corners = [
-				-half_size[0],  half_size[1], 0,
-				 half_size[0],  half_size[1], 0,
-				-half_size[0], -half_size[1], 0,
-				 half_size[0], -half_size[1], 0,
-			];
-			mesh.geometry.attributes.position.array.set(corners, 0);
-			mesh.geometry.attributes.position.needsUpdate = true;
-			mesh.geometry.computeBoundingBox()
-			mesh.geometry.computeBoundingSphere()
+		let corners = [
+			-half_size[0],  half_size[1], 0,
+			 half_size[0],  half_size[1], 0,
+			-half_size[0], -half_size[1], 0,
+			 half_size[0], -half_size[1], 0,
+		];
+		mesh.geometry.attributes.position.array.set(corners, 0);
+		mesh.geometry.attributes.position.needsUpdate = true;
+		mesh.geometry.computeBoundingBox()
+		mesh.geometry.computeBoundingSphere()
 
-			let outline_corners = [
-				-half_size[0],  half_size[1], 0,
-				 half_size[0],  half_size[1], 0,
-				 half_size[0], -half_size[1], 0,
-				-half_size[0], -half_size[1], 0,
-				-half_size[0],  half_size[1], 0,
-			];
-			mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_corners), 3));
-		}
+		let outline_corners = [
+			-half_size[0],  half_size[1], 0,
+			 half_size[0],  half_size[1], 0,
+			 half_size[0], -half_size[1], 0,
+			-half_size[0], -half_size[1], 0,
+			-half_size[0],  half_size[1], 0,
+		];
+		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_corners), 3));
 
 		this.dispatchEvent('update_geometry', {element});
 	},
@@ -363,7 +387,10 @@ new NodePreviewController(Billboard, {
 		let {mesh} = element;
 
 		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.solidMaterial
+			mesh.material = Canvas.monochromaticSolidMaterial
+		
+		} else if (Project.view_mode === 'colored_solid') {
+			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -379,12 +406,12 @@ new NodePreviewController(Billboard, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
 
 		} else {
 			let tex = element.faces.front.getTexture();
 			if (tex && tex.uuid) {
-				mesh.material = Project.materials[tex.uuid];
+				mesh.material = tex.getMaterial();
 			} else {
 				mesh.material = Canvas.emptyMaterials[element.color];
 			}
@@ -397,12 +424,8 @@ new NodePreviewController(Billboard, {
 		let mesh = element.mesh
 		if (mesh === undefined || !mesh.geometry) return;
 
-		
-		let stretch = 1
-		let frame = 0
-
-		stretch = 1;
-		frame = 0;
+		let stretch = 1;
+		let frame = 0;
 		let tex = element.faces.front.getTexture();
 		if (tex instanceof Texture && tex.frameCount !== 1) {
 			stretch = tex.frameCount
@@ -429,19 +452,6 @@ new NodePreviewController(Billboard, {
 			}
 		}
 		stretch *= -1;
-
-		// Box UV fight texture bleeding
-		if (element.box_uv) {
-			uv = uv.slice();
-			for (let si = 0; si < 2; si++) {
-				let margin = 1/64;
-				if (uv[si] > uv[si+2]) {
-					margin = -margin
-				}
-				uv[si] += margin
-				uv[si+2] -= margin
-			}
-		}
 
 		let arr = [
 			[uv[0]/pw, (uv[1]/ph)/stretch+1],
@@ -479,7 +489,37 @@ new NodePreviewController(Billboard, {
 	},
 	updateFacingCamera(element) {
 		//let scale = Preview.selected.calculateControlScale(billboard.getWorldPosition());
-		element.mesh.lookAt(Preview.selected.camera.position);
+		let {mesh} = element;
+		let vec = Reusable.vec1;
+		let dummy_vec = Reusable.vec2;
+		let world_quat_inverse = mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
+		let camera = Preview.selected.camera;
+		switch (element.facing_mode) {
+			case 'lookat': {
+				mesh.lookAt(camera.position);
+				break;
+			}
+			case 'lookat_y': {
+				var v = vec.copy(camera.position);
+				dummy_vec.set(0, 0, 0);
+				mesh.localToWorld(dummy_vec);
+				v.y = dummy_vec.y;
+				mesh.lookAt(v);
+				break;
+			}
+			case 'rotate': {
+				mesh.rotation.copy(camera.rotation);
+				mesh.quaternion.premultiply(world_quat_inverse);
+				break;
+			}
+			case 'rotate_y': {
+				mesh.rotation.copy(camera.rotation);
+				mesh.rotation.reorder('YXZ');
+				mesh.rotation.x = mesh.rotation.z = 0;
+				mesh.quaternion.premultiply(world_quat_inverse);
+				break;
+			}
+		}
 	},
 	updateHighlight(element, hover_cube, force_off) {
 		let mesh = element.mesh;
@@ -591,7 +631,7 @@ new NodePreviewController(Billboard, {
 		}
 
 
-		let geometry = new THREE.BufferGeometry();
+		let geometry = new THREE.Geometry();
 		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
 
 		let box = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
@@ -605,6 +645,34 @@ new NodePreviewController(Billboard, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element: cube});
+	},
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
+		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
+
+		let {mesh} = element;
+		let vector = Reusable.vec2;
+
+		let vertices = [
+			[element.size[0]/2, -element.size[1]/2, 0],
+			[element.size[0]/2, element.size[1]/2, 0],
+			[-element.size[0]/2, -element.size[1]/2, 0],
+			[-element.size[0]/2, element.size[1]/2, 0],
+		].map(coords => {
+			//coords.V3_subtract(element.origin);
+			vector.fromArray(coords);
+			mesh.localToWorld(vector);
+			return projectPoint(vector);
+		})
+		let is_on_screen = vertices.find(vertex => {
+			return (vertex[0] >= 0 && vertex[0] <= preview.width
+				 && vertex[1] >= 0 && vertex[1] <= preview.height);
+		})
+		return is_on_screen && (
+			   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+		);
 	}
 })
 
@@ -650,4 +718,9 @@ BARS.defineActions(function() {
 			return new_billboard
 		}
 	})
+})
+
+Object.assign(window, {
+	Billboard,
+	BillboardFace
 })

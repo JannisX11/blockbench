@@ -426,6 +426,9 @@ export const UVEditor = {
 	},
 	getSelectedFaces(element, create) {
 		if (!element) return [];
+		if (element.getTypeBehavior('select_faces') == false) {
+			return Object.keys(element.faces);
+		}
 		if (element.getSelectedFaces) {
 			return element.getSelectedFaces(create);
 		} else {
@@ -4138,6 +4141,7 @@ Interface.definePanels(function() {
 				},
 				isFaceSelected(element, fkey) {
 					if (!element) element = this.mappable_elements[0];
+					if (element.getTypeBehavior('select_faces') == false) return true;
 					return UVEditor.getSelectedFaces(element).indexOf(fkey) != -1;
 				},
 				isTransformingLayer() {
@@ -4260,7 +4264,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type != 'mesh' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].getTypeBehavior('select_faces') && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 							:class="{selected: isFaceSelected(null, key), disabled: mappable_elements[0].faces[key].texture === null}"
 							@mousedown="selectFace(null, key, $event, false, true)"
@@ -4381,7 +4385,7 @@ Interface.definePanels(function() {
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
 									<div class="cube_uv_face uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key))"
+										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
 										:title="face_names[key]"
 										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(element, key, $event)"

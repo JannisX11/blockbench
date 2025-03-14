@@ -1145,10 +1145,10 @@
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
 							} else if (obj.getTypeBehavior('resizable')) {
-								obj.old_size = obj.size(axisnr)
-								obj.oldStretch = obj.stretch.slice();
+								obj.old_size = typeof obj.size == 'function' ? obj.size(axisnr) : obj.size.slice();
+								if (obj.stretch) obj.oldStretch = obj.stretch.slice();
 								if (obj.uv_offset) obj.oldUVOffset = obj.uv_offset.slice();
-								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
+								if (obj.to && obj.to) obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
 							} else if (obj.size) {
 								obj.old_size = obj.size.slice();
 							}
