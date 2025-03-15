@@ -1,6 +1,6 @@
 import { THREE } from "../../lib/libs";
 
-class BillboardFace extends CubeFace {
+export class BillboardFace extends CubeFace {
 	constructor(data, billboard) {
 		super();
 		this.texture = false;
@@ -44,21 +44,22 @@ class BillboardFace extends CubeFace {
 new Property(BillboardFace, 'number', 'rotation', {default: 0});
 
 
-class Billboard extends OutlinerElement {
+export class Billboard extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
-		let size = Settings.get('default_cube_size');
-		this.position = [0, 0, 0];
-		this.size = [size, size];
 		this.shade = true;
-		this.mirror_uv = false;
-		this.color = Math.floor(Math.random()*markerColors.length)
 		this.visibility = true;
 		this.autouv = 0;
 
 		for (var key in Billboard.properties) {
 			Billboard.properties[key].reset(this);
 		}
+
+		let size = Settings.get('default_cube_size');
+		this.position = [0, 0, 0];
+		this.size = [size, size];
+		this.offset = [0, 0];
+		this.color = Math.floor(Math.random()*markerColors.length)
 
 		this.faces = {
 			front: 	new BillboardFace(null, this),
@@ -182,34 +183,6 @@ class Billboard extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
-	moveVector(arr, axis, update = true) {
-		if (typeof arr == 'number') {
-			let n = arr;
-			arr = [0, 0, 0];
-			arr[axis||0] = n;
-		} else if (arr instanceof THREE.Vector3) {
-			arr = arr.toArray();
-		}
-		let scope = this;
-		let in_box = true;
-		arr.forEach((val, i) => {
-
-			val += scope.from[i];
-
-			let val_before = val;
-			if (Math.abs(val_before - val) >= 1e-4) in_box = false;
-			val -= scope.from[i]
-
-			scope.position[i] += val;
-		})
-		if (update) {
-			this.mapAutoUV()
-			this.preview_controller.updateTransform(this);
-			this.preview_controller.updateGeometry(this);
-		}
-		TickUpdates.selection = true;
-		return in_box;
-	}
 	resize(val, axis, negative) {
 		if (axis == 2) return;
 		if (negative) val = -val;
@@ -292,6 +265,20 @@ class Billboard extends OutlinerElement {
 
 new Property(Billboard, 'string', 'name', {default: 'billboard'});
 new Property(Billboard, 'vector', 'position');
+new Property(Billboard, 'vector2', 'size', {default: [2, 2]});
+new Property(Billboard, 'vector2', 'offset', {
+	inputs: {
+		element_panel: {
+			input: {label: 'Offset', type: 'vector', dimensions: 2},
+			onChange() {
+				for (let billboard of Billboard.selected) {
+					Billboard.preview_controller.updateGeometry(billboard);
+				}
+			}
+		}
+	}
+});
+new Property(Billboard, 'number', 'color')
 new Property(Billboard, 'boolean', 'visibility', {default: true});
 new Property(Billboard, 'boolean', 'locked');
 new Property(Billboard, 'enum', 'facing_mode', {
@@ -360,24 +347,25 @@ new NodePreviewController(Billboard, {
 	updateGeometry(element) {
 		let mesh = element.mesh;
 		let half_size = [element.size[0]/2, element.size[1]/2];
+		let offset = element.offset;
 
 		let corners = [
-			-half_size[0],  half_size[1], 0,
-			 half_size[0],  half_size[1], 0,
-			-half_size[0], -half_size[1], 0,
-			 half_size[0], -half_size[1], 0,
+			offset[0] - half_size[0], offset[1] + half_size[1], 0,
+			offset[0] + half_size[0], offset[1] + half_size[1], 0,
+			offset[0] - half_size[0], offset[1] - half_size[1], 0,
+			offset[0] + half_size[0], offset[1] - half_size[1], 0,
 		];
 		mesh.geometry.attributes.position.array.set(corners, 0);
 		mesh.geometry.attributes.position.needsUpdate = true;
-		mesh.geometry.computeBoundingBox()
-		mesh.geometry.computeBoundingSphere()
+		mesh.geometry.computeBoundingBox();
+		mesh.geometry.computeBoundingSphere();
 
 		let outline_corners = [
-			-half_size[0],  half_size[1], 0,
-			 half_size[0],  half_size[1], 0,
-			 half_size[0], -half_size[1], 0,
-			-half_size[0], -half_size[1], 0,
-			-half_size[0],  half_size[1], 0,
+			offset[0] - half_size[0], offset[1] + half_size[1], 0,
+			offset[0] + half_size[0], offset[1] + half_size[1], 0,
+			offset[0] + half_size[0], offset[1] - half_size[1], 0,
+			offset[0] - half_size[0], offset[1] - half_size[1], 0,
+			offset[0] - half_size[0], offset[1] + half_size[1], 0,
 		];
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_corners), 3));
 
@@ -687,7 +675,7 @@ BARS.defineActions(function() {
 		id: 'add_billboard',
 		icon: 'bookmark_add',
 		category: 'edit',
-		condition: () => Modes.edit,
+		condition: {features: ['billboards']},
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

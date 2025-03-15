@@ -635,7 +635,7 @@ export class NodePreviewController extends EventSystem {
 			mesh.rotation.z = Math.degToRad(element.rotation[2]);
 		}
 
-		if (element.scalable) {
+		if (element.getTypeBehavior('scalable')) {
 			mesh.scale.x = element.scale[0] || 1e-7;
 			mesh.scale.y = element.scale[1] || 1e-7;
 			mesh.scale.z = element.scale[2] || 1e-7;

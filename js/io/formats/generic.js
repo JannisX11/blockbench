@@ -15,6 +15,7 @@ new ModelFormat({
 		]
 	},
 	meshes: true,
+	billboards: true,
 	rotate_cubes: true,
 	bone_rig: true,
 	centered_grid: true,
