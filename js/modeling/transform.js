@@ -335,9 +335,9 @@ const Vertexsnap = {
 		let mode = BarItems.vertex_snap_mode.get();
 
 		function ignoreVectorAxes(vector) {
-			if (options.ignore_x) vector.x = 0;
-			if (options.ignore_y) vector.y = 0;
-			if (options.ignore_z) vector.z = 0;
+			if (options.ignore_axis?.x) vector.x = 0;
+			if (options.ignore_axis?.y) vector.y = 0;
+			if (options.ignore_axis?.z) vector.z = 0;
 		}
 
 		if (Vertexsnap.move_origin) {
@@ -497,9 +497,7 @@ const Vertexsnap = {
 					y: tl('edit.vertex_snap.align.align_axis', 'Y'),
 					z: tl('edit.vertex_snap.align.align_axis', 'Z'),
 				}},
-				ignore_x: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'X'), value: false},
-				ignore_y: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'Y'), value: false},
-				ignore_z: {type: 'checkbox', label: tl('edit.vertex_snap.ignore_axis', 'Z'), value: false},
+				ignore_axis: {type: 'inline_multi_select', label: tl('edit.vertex_snap.ignore_axis', ''),  options: {x: 'X', y: 'Y', z: 'Z'}, value: {x: false, y: false, z: false}},
 			}, form => {
 				Vertexsnap.snap(data, form, true);
 			})
