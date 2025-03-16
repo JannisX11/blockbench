@@ -161,6 +161,7 @@
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
 		"three": "^0.174.0",
+		"three-csg-ts": "^3.2.0",
 		"tinycolor2": "^1.6.0",
 		"vue": "^2.7.16",
 		"vue-sortable": "^0.1.3",

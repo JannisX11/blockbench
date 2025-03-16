@@ -40,9 +40,15 @@ export class MeshFace extends Face {
 		if (vertices.length == 4 && alt_tri) {
 			indices = [0, 2, 3];
 		}
-		let base = this.mesh.vertices[vertices[indices[0]]];
-		let a = this.mesh.vertices[vertices[indices[1]]].slice().V3_subtract(base);
-		let b = this.mesh.vertices[vertices[indices[2]]].slice().V3_subtract(base);
+		let base, a, b;
+		try {
+			base = this.mesh.vertices[vertices[indices[0]]];
+			a = this.mesh.vertices[vertices[indices[1]]].slice().V3_subtract(base);
+			b = this.mesh.vertices[vertices[indices[2]]].slice().V3_subtract(base);
+		} catch (err) {
+			console.log(this, this.getFaceKey(), this.vertices.map(vkey => this.mesh.vertices[vkey]));
+			return [0, 0, 0];
+		}
 		let direction = [
 			a[1] * b[2] - a[2] * b[1],
 			a[2] * b[0] - a[0] * b[2],
@@ -923,6 +929,7 @@ export class Mesh extends OutlinerElement {
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
+		'boolean_operation',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',

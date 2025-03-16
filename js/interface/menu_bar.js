@@ -313,6 +313,7 @@ export const MenuBar = {
 			'apply_mesh_rotation',
 			'split_mesh',
 			'merge_meshes',
+			'boolean_operation',
 		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {

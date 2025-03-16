@@ -1,3 +1,7 @@
+import { CSG } from 'three-csg-ts';
+import { THREE } from '../../lib/libs';
+
+
 export function sameMeshEdge(edge_a, edge_b) {
 	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
 }
@@ -3470,6 +3474,163 @@ BARS.defineActions(function() {
 			updateSelection();
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
+	})
+	function booleanOperation(mode) {
+		if (Mesh.selected.length != 2) {
+			Blockbench.showQuickMessage('Select the mesh you want to edit first, then select the reference mesh.');
+			return;	
+		}
+		let mesh_a = Mesh.selected[0];
+		let mesh_b = Mesh.selected[1];
+		let result;
+
+		Undo.initEdit({elements: [mesh_a, mesh_b], outliner: true});
+
+		mesh_a.mesh.applyMatrix4(mesh_a.mesh.parent.matrixWorld);
+		mesh_b.mesh.applyMatrix4(mesh_b.mesh.parent.matrixWorld);
+
+		switch (mode) {
+			case 'subtract': result = CSG.subtract(mesh_a.mesh, mesh_b.mesh); break;
+			case 'union': result = CSG.union(mesh_a.mesh, mesh_b.mesh); break;
+			case 'intersect': result = CSG.intersect(mesh_a.mesh, mesh_b.mesh); break;
+		}
+
+		let old_faces = Object.assign({}, mesh_a.faces);
+		let old_vertices = Object.assign({}, mesh_a.vertices);
+		let half_matching = {};
+		for (let fkey in mesh_a.faces) {
+			delete mesh_a.faces[fkey];
+		}
+		for (let vkey in mesh_a.vertices) {
+			delete mesh_a.vertices[vkey];
+		}
+
+		function findVertexMatch(pos, vertices) {
+			vertices: for (let vkey in vertices) {
+				let i = 0;
+				axis: for (let val of pos) {
+					if (!Math.epsilon(val, vertices[vkey][i])) {
+						continue vertices;
+					}
+					i++;
+				}
+				return vkey;
+			}
+		}
+		function findFaceMatch(vertex_keys) {
+			for (let fkey in old_faces) {
+				let face = old_faces[fkey];
+				if (vertex_keys.allAre(vkey => face.vertices.includes(vkey))) {
+					return {fkey, face};
+				}
+			}
+		}
+
+		let attr_position = result.geometry.getAttribute('position');
+		let attr_uv = result.geometry.getAttribute('uv');
+		let fallback_texture = Texture.getDefault();
+		for (let i = 0; i < attr_position.count/3; i++) {
+			// Tri
+			let vertices = [];
+			let uv_data = [];
+			for (let j = 0; j < 3; j++) {
+				// Vertex
+				let arr_offset = (3*i + j) * 3;
+				let pos = [
+					attr_position.array[arr_offset + 0],
+					attr_position.array[arr_offset + 1],
+					attr_position.array[arr_offset + 2],
+				];
+				vertices.push(pos);
+				let uv_offset = (3*i + j) * 2;
+				let uv = [
+					attr_uv.array[uv_offset + 0],
+					attr_uv.array[uv_offset + 1],
+				]
+				uv_data.push(uv);
+			}
+
+			let vertex_keys = vertices.map(pos => {
+				let original_vertex = findVertexMatch(pos, old_vertices);
+				if (original_vertex) {
+					mesh_a.vertices[original_vertex] = old_vertices[original_vertex].slice();
+					return original_vertex;
+				}
+				let vkey = findVertexMatch(pos, mesh_a.vertices);
+				if (vkey) {
+					return vkey;
+				}
+				return mesh_a.addVertices(pos)[0];
+			});
+			let matching_face = findFaceMatch(vertex_keys);
+			console.log({vertex_keys, matching_face, attr_uv});
+
+			function reAddFace(matching_face) {
+				mesh_a.faces[matching_face.fkey] = matching_face.face;
+				for (let vkey of matching_face.face.vertices) {
+					if (!mesh_a.vertices[vkey]) {
+						mesh_a.vertices[vkey] = old_vertices[vkey].slice();
+					}
+				}
+			}
+
+			if (matching_face) {
+				reAddFace(matching_face);
+				let face_texture = matching_face.face.getTexture();
+				if (face_texture instanceof Texture && (!fallback_texture || face_texture != fallback_texture)) {
+					fallback_texture = face_texture;
+				}
+			} else {
+				let uv = {};
+				let i = 0;
+				for (let vkey of vertex_keys) {
+					uv[vkey] = [
+						uv_data[i][0] * Project.getUVWidth(fallback_texture),
+						(1-uv_data[i][1]) * Project.getUVHeight(fallback_texture),
+					];
+					i++;
+				}
+				console.log(vertex_keys);
+				let new_face = new MeshFace(mesh_a, {
+					vertices: vertex_keys,
+					uv,
+					texture: fallback_texture ? fallback_texture.uuid : undefined
+				})
+				let [fkey] = mesh_a.addFaces(new_face);
+			}
+		}
+		mesh_b.remove();
+		Mesh.preview_controller.updateAll(mesh_a);
+		updateSelection();
+		Undo.finishEdit('Mesh boolean operation', {elements: [mesh_a], outliner: true});
+	}
+	new Action('boolean_operation', {
+		icon: 'masked_transitions',
+		category: 'edit',
+		condition: {modes: ['edit'], features: ['meshes'], selected: {mesh: true}},
+		click() {
+			new Menu(this.children).open('mouse');
+		},
+		children: [
+			{
+				id: 'subtract',
+				name: 'action.boolean_operation.subtract',
+				icon: 'north_east',
+				click() {booleanOperation('subtract')}
+			},
+			{
+				id: 'union',
+				name: 'action.boolean_operation.union',
+				icon: 'close_fullscreen',
+				click() {booleanOperation('union')}
+			},
+			{
+				id: 'intersect',
+				name: 'action.boolean_operation.intersect',
+				icon: 'expand_less',
+				click() {booleanOperation('intersect')}
+			},
+		]
 	})
 	let import_obj_dialog;
 	new Action('import_obj', {
