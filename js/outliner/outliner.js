@@ -125,6 +125,9 @@ export class OutlinerNode {
 	get preview_controller() {
 		return this.constructor.preview_controller;
 	}
+	getTypeBehavior(flag) {
+		return OutlinerElement.types[this.type]?.behavior[flag];
+	}
 	//Sorting
 	sortInBefore(element, index_mod = 0) {
 		var index = -1;
@@ -380,9 +383,6 @@ export class OutlinerElement extends OutlinerNode {
 		Project.selected_elements.remove(this);
 		Project.elements.remove(this);
 		return this;
-	}
-	getTypeBehavior(flag) {
-		return OutlinerElement.types[this.type]?.behavior[flag];
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
