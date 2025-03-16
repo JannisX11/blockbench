@@ -123,7 +123,7 @@
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: url(../font/material-icons.woff2) format('woff');
+		src: url(../font/material-icons.woff2?4) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
