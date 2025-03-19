@@ -179,13 +179,16 @@ class TextureGroup {
 			}
 
 			function generateMap(source_channel, key) {
-				let canvas = material[key]?.image ?? document.createElement('canvas');
+				let canvas = material[key]?.image;
+				if (!canvas || key == 'emissiveMap') {
+					canvas = document.createElement('canvas');
+				}
 				let ctx = canvas.getContext('2d');
 				canvas.width = mer_tex.width;
 				canvas.height = mer_tex.height;
 				ctx.fillStyle = 'black';
 				ctx.fillRect(0, 0, mer_tex.width, mer_tex.height);
-				document.body.append(canvas);
+				// document.body.append(canvas);
 
 				ctx.putImageData(source_channel === 1 ? extractEmissiveChannel() : extractGrayscaleValue(source_channel), 0, 0);
 
@@ -615,6 +618,7 @@ BARS.defineActions(function() {
 	new Action('create_material', {
 		icon: 'lightbulb_circle',
 		category: 'textures',
+		condition: () => !Texture.selected || !Texture.selected.getGroup()?.is_material,
 		click() {
 			let texture = Texture.selected;
 			let texture_group = new TextureGroup({is_material: true});
@@ -653,7 +657,7 @@ BARS.defineActions(function() {
 			let new_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 			canvas.style.width = 256 + 'px';
 			canvas.style.height = 256 + 'px';
-			let original_image = new CanvasFrame(texture.canvas);
+			let original_image = new CanvasFrame(texture.canvas, true);
 			original_image.canvas.style.width = 256 + 'px';
 			original_image.canvas.style.height = 256 + 'px';
 
@@ -799,7 +803,12 @@ BARS.defineActions(function() {
 					updateCanvas(result);
 					let textures = [];
 					Undo.initEdit({texture_groups: texture_group ? [texture_group] : null, textures});
-					let pbr_channel = result.channel;
+					let pbr_channel;
+					switch (result.channel) {
+						case 'height': pbr_channel = result.channel; break;
+						default: pbr_channel = 'mer'; break;
+					}
+
 					let new_texture = new Texture({
 						name: texture.name,
 						pbr_channel,
