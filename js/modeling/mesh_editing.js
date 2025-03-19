@@ -3615,19 +3615,19 @@ BARS.defineActions(function() {
 			{
 				id: 'subtract',
 				name: 'action.boolean_operation.subtract',
-				icon: 'north_east',
+				icon: 'join_left',
 				click() {booleanOperation('subtract')}
 			},
 			{
 				id: 'union',
 				name: 'action.boolean_operation.union',
-				icon: 'close_fullscreen',
+				icon: 'join',
 				click() {booleanOperation('union')}
 			},
 			{
 				id: 'intersect',
 				name: 'action.boolean_operation.intersect',
-				icon: 'expand_less',
+				icon: 'join_inner',
 				click() {booleanOperation('intersect')}
 			},
 		]
