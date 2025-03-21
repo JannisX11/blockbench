@@ -81,7 +81,7 @@ export class Codec extends EventSystem {
 			let opts_in_project = Project.export_options[codec.id];
 
 			for (let form_id in this.export_options) {
-				if (!Condition(this.export_options[form_id].condition)) continue;
+				// if (!Condition(this.export_options[form_id].condition)) continue;
 				form[form_id] = {};
 				for (let key in this.export_options[form_id]) {
 					form[form_id][key] = this.export_options[form_id][key];

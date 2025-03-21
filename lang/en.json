@@ -2332,6 +2332,8 @@
 	"codec.common.embed_textures": "Embed Textures",
 	"codec.common.format": "Format",
 	"codec.image.quality": "Quality",
+	"codec.image.alpha_channel": "Alpha Channel",
+	"codec.image.animation_fps": "Animation FPS",
 
 	"preview.center_camera": "Center Camera",
 
