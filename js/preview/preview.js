@@ -1918,7 +1918,8 @@ export function initCanvas() {
 		position: [0, 0],
 		size: [528, 528],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	canvas_scenes.inventory_full = new ReferenceImage({
@@ -1928,7 +1929,8 @@ export function initCanvas() {
 		position: [0, -215.6],
 		size: [1390, 1310],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	canvas_scenes.hud = new ReferenceImage({
@@ -1938,7 +1940,8 @@ export function initCanvas() {
 		position: [-112, -70],
 		size: [1695, 308],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});

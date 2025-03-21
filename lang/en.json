@@ -2318,7 +2318,7 @@
 	"reference_image.layer.background": "Behind Model",
 	"reference_image.layer.viewport": "Above Model",
 	"reference_image.layer.float": "Above Interface",
-	"reference_image.layer.blueprint": "Locked Blueprint",
+	"reference_image.blueprint": "Locked Blueprint",
 	"reference_image.scope": "Scope",
 	"reference_image.scope.project": "Just this project",
 	"reference_image.scope.global": "All projects",
