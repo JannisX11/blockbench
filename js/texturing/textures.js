@@ -1788,6 +1788,9 @@ class Texture {
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
+		if ((this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+			this.getGroup().updateMaterial();
+		}
 		this.saved = false;
 		this.syncToOtherProject();
 	}

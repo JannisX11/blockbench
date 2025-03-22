@@ -110,6 +110,8 @@ class TextureGroup {
 		let normal_tex = textures.find(t => t.pbr_channel == 'normal');
 		let height_tex = textures.find(t => t.pbr_channel == 'height');
 		let mer_tex = textures.find(t => t.pbr_channel == 'mer');
+
+		// Albedo
 		if (color_tex) {
 			material.map = color_tex.getOwnMaterial().map;
 			material.color.set('#ffffff');
@@ -120,6 +122,8 @@ class TextureGroup {
 			material.color.set({r: c[0] / 255, g: c[1] / 255, b: c[2] / 255});
 			material.opacity = c[4] / 255;
 		}
+
+		// Height
 		if (normal_tex) {
 			material.normalMap = normal_tex.getOwnMaterial().map;
 			material.bumpMap = null;
@@ -139,7 +143,12 @@ class TextureGroup {
 			material.bumpMap.image = canvas;
 			material.bumpMap.magFilter = THREE.LinearFilter;
 			material.bumpMap.needsUpdate = true;
+		} else {
+			material.normalMap = null;
+			material.bumpMap = null;
 		}
+
+		// MER
 		if (mer_tex && mer_tex.img?.naturalWidth) {
 			let image_data = mer_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
 
@@ -192,11 +201,8 @@ class TextureGroup {
 
 				ctx.putImageData(source_channel === 1 ? extractEmissiveChannel() : extractGrayscaleValue(source_channel), 0, 0);
 
-				if (!material[key] || true) {
-					material[key] = new THREE.Texture(canvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.NearestFilter, THREE.NearestFilter);
-					material[key].needsUpdate = true;
-				}
-				//material.map = material[key];
+				material[key] = new THREE.Texture(canvas, THREE.UVMapping, THREE.RepeatWrapping, THREE.RepeatWrapping, THREE.NearestFilter, THREE.NearestFilter);
+				material[key].needsUpdate = true;
 			}
 			generateMap(0, 'metalnessMap');
 			generateMap(1, 'emissiveMap');
@@ -802,20 +808,41 @@ BARS.defineActions(function() {
 				onConfirm(result) {
 					updateCanvas(result);
 					let textures = [];
-					Undo.initEdit({texture_groups: texture_group ? [texture_group] : null, textures});
 					let pbr_channel;
 					switch (result.channel) {
 						case 'height': pbr_channel = result.channel; break;
 						default: pbr_channel = 'mer'; break;
 					}
 
-					let new_texture = new Texture({
-						name: texture.name,
-						pbr_channel,
-						group: texture_group?.uuid,
-					}).fromDataURL(canvas.toDataURL()).add(false);
-					textures.push(new_texture);
+					let existing_channel_texture = texture_group.getTextures().find(tex => tex.pbr_channel == pbr_channel);
+
+					if (existing_channel_texture && pbr_channel == 'mer') {
+						Undo.initEdit({textures: [existing_channel_texture], bitmap: true});
+						if (!existing_channel_texture.layers_enabled) {
+							existing_channel_texture.activateLayers(false);
+						}
+						let layer = new TextureLayer({
+							name: result.channel,
+							blend_mode: 'add'
+						}, existing_channel_texture);
+						let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+						layer.setSize(canvas.width, canvas.height);
+						layer.ctx.putImageData(image_data, 0, 0);
+						layer.addForEditing();
+						existing_channel_texture.updateLayerChanges(true);
+
+					} else {
+						Undo.initEdit({texture_groups: texture_group ? [texture_group] : null, textures});
+						let new_texture = new Texture({
+							name: texture.name,
+							pbr_channel,
+							group: texture_group?.uuid,
+						}).fromDataURL(canvas.toDataURL()).add(false);
+						textures.push(new_texture);
+					}
+
 					Undo.finishEdit('Create PBR map');
+					updateSelection();
 				},
 				onOpen() {
 					updateCanvas(this.getFormResult());

@@ -92,8 +92,8 @@ class AnimationControllerState {
 							// Delay to after loading controller so that all states can be found
 							let state_match = this.controller.states.find(state => state !== this && state.name == key);
 							if (state_match) {
-								let transition = this.transitions.find(t => t.uuid == transition.uuid) ?? this.transitions;
-								transition.target = state_match.uuid;
+								let updated_transition = this.transitions.find(t => t.uuid == transition.uuid) ?? transitions;
+								updated_transition.target = state_match.uuid;
 							}
 						}, 0);
 					}
