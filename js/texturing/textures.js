@@ -2652,6 +2652,9 @@ Interface.definePanels(function() {
 
 				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			closeContextMenu() {
+				if (Menu.open) Menu.open.hide();
 			}
 		},
 		template: `
@@ -2659,7 +2662,7 @@ Interface.definePanels(function() {
 				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
 				v-bind:texid="texture.uuid"
 				class="texture"
-				@click.stop="texture.select($event)"
+				@click.stop="closeContextMenu();texture.select($event)"
 				@mousedown="highlightTexture($event)"
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.openMenu($event)"

@@ -624,7 +624,7 @@ BARS.defineActions(function() {
 	new Action('create_material', {
 		icon: 'lightbulb_circle',
 		category: 'textures',
-		condition: () => !Texture.selected || !Texture.selected.getGroup()?.is_material,
+		condition: () => (!Texture.selected || !Texture.selected.getGroup()?.is_material) && Format.pbr,
 		click() {
 			let texture = Texture.selected;
 			let texture_group = new TextureGroup({is_material: true});
