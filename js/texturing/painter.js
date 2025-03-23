@@ -509,7 +509,7 @@ export const Painter = {
 		}
 
 		function paintElement(element) {
-			if (element instanceof Cube) {
+			if (element.getTypeBehavior('cube_faces')) {
 				texture.selection.maskCanvas(ctx, offset);
 				ctx.beginPath();
 				for (var fkey in element.faces) {
@@ -556,7 +556,7 @@ export const Painter = {
 			}
 		}
 
-		if ((element instanceof Cube || element instanceof Mesh) && (fill_mode === 'element' || fill_mode === 'face')) {
+		if ((element.getTypeBehavior('cube_faces') || element instanceof Mesh) && (fill_mode === 'element' || fill_mode === 'face')) {
 			paintElement(element);
 
 		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {

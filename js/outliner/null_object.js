@@ -94,19 +94,21 @@ export class NullObject extends OutlinerElement {
 
 		return pos;
 	}
+	static behavior = {
+		movable: true,
+		hide_in_screenshot: true,
+	}
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
 	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
-	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
 	NullObject.prototype.buttons = [
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
 			new MenuSeparator('ik'),
 			'set_ik_target',

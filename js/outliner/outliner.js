@@ -125,6 +125,9 @@ export class OutlinerNode {
 	get preview_controller() {
 		return this.constructor.preview_controller;
 	}
+	getTypeBehavior(flag) {
+		return OutlinerElement.types[this.type]?.behavior[flag];
+	}
 	//Sorting
 	sortInBefore(element, index_mod = 0) {
 		var index = -1;
@@ -280,7 +283,7 @@ export class OutlinerNode {
 			scope.name = name
 			scope.sanitizeName();
 			delete scope.old_name
-			if (Condition(scope.needsUniqueName)) {
+			if (Condition(scope.getTypeBehavior('unique_name'))) {
 				scope.createUniqueName()
 			}
 			Undo.finishEdit('Rename element')
@@ -306,7 +309,7 @@ export class OutlinerNode {
 		}
 	}
 	createUniqueName(arr) {
-		if (!Condition(this.needsUniqueName)) return;
+		if (!Condition(this.getTypeBehavior('unique_name'))) return;
 		var scope = this;
 		var others = this.constructor.all.slice();
 		if (arr && arr.length) {
@@ -440,7 +443,7 @@ export class OutlinerElement extends OutlinerNode {
 			selected.push(copy)
 		}
 		Property.resetUniqueValues(this.constructor, copy);
-		if (Condition(copy.needsUniqueName)) {
+		if (Condition(copy.getTypeBehavior('unique_name'))) {
 			copy.createUniqueName()
 		}
 		TickUpdates.selection = true;
@@ -627,11 +630,11 @@ export class NodePreviewController extends EventSystem {
 	updateTransform(element) {
 		let mesh = element.mesh;
 
-		if (element.movable) {
+		if (element.getTypeBehavior('movable')) {
 			mesh.position.set(element.origin[0], element.origin[1], element.origin[2])
 		}
 
-		if (element.rotatable) {
+		if (element.getTypeBehavior('rotatable')) {
 			mesh.rotation.x = Math.degToRad(element.rotation[0]);
 			mesh.rotation.y = Math.degToRad(element.rotation[1]);
 			mesh.rotation.z = Math.degToRad(element.rotation[2]);
@@ -688,6 +691,10 @@ export class NodePreviewController extends EventSystem {
 			default: element.mesh.renderOrder = 0; break;	
 		}
 	}
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end}) {
+		element.mesh.getWorldPosition(Reusable.vec2);
+		return pointInRectangle(projectPoint(Reusable.vec2), rect_start, rect_end);
+	}
 }
 /**
 Standardied outliner node context menu group order
@@ -715,6 +722,7 @@ Outliner.control_menu_group = [
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
+	if (!constructor.behavior) constructor.behavior = {};
 	Object.defineProperty(constructor, 'all', {
 		get() {
 			return (Project.elements?.length && Project.elements.find(element => element instanceof constructor))
@@ -1201,11 +1209,13 @@ BARS.defineActions(function() {
 			var face_count = 0;
 			let vertex_count = 0;
 			Outliner.elements.forEach(element => {
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces')) {
 					for (var face in element.faces) {
 						if (element.faces[face].texture !== null) face_count++;
 					}
-					vertex_count += 8;
+					if (element instanceof Cube) {
+						vertex_count += 8;
+					}
 				} else if (element.faces) {
 					face_count += Object.keys(element.faces).length;
 				}
@@ -1441,7 +1451,8 @@ Interface.definePanels(function() {
 		`<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" v-bind:style="{'--indentation': indentation}">` +
 			`<div
 				class="outliner_object"
-				v-bind:class="{ cube: node.type === 'cube', group: !!node.children, selected: node.selected }"
+				v-bind:class="{ group: node.type === 'group', selected: node.selected }"
+				:element_type="node.type"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
 				:title="node.title"
@@ -1683,7 +1694,7 @@ Interface.definePanels(function() {
 									affected.push(node);
 									previous_values[node.uuid] = node[key];
 									node[key] = value;
-									if (key == 'mirror_uv' && node instanceof Cube) Canvas.updateUV(node);
+									if (key == 'mirror_uv' && node.preview_controller.updateUV) node.preview_controller.updateUV(node);
 								})
 								// Update
 								if (key == 'visibility') Canvas.updateVisibility();

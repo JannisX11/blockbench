@@ -429,7 +429,7 @@ export class Preview {
 			let element, face;
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces') && element.getTypeBehavior('select_faces')) {
 					face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
 				} else if (element instanceof Mesh) {
 					let index = intersects[0].faceIndex;
@@ -1327,15 +1327,14 @@ export class Preview {
 		//Select
 		if (!this.selection.activated) return;
 		
-		let vector = new THREE.Vector3();
 		let rect_start = [c.ax, c.ay];
 		let rect_end = [c.bx, c.by];
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
 				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
 		let selection_mode = BarItems.selection_mode.value;
 
-		let widthHalf = 0.5 * scope.canvas.width / window.devicePixelRatio;
-		let heightHalf = 0.5 * scope.canvas.height / window.devicePixelRatio;
+		let widthHalf = 0.5 * this.canvas.width / window.devicePixelRatio;
+		let heightHalf = 0.5 * this.canvas.height / window.devicePixelRatio;
 
 		function projectPoint(vector) {
 			vector.project(scope.camera);
@@ -1348,147 +1347,11 @@ export class Preview {
 		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && scope.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
+			if (extend_selection && this.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
 				isSelected = true
 
-			} else if (element.visibility) {
-				if (element.mesh && element.resizable) {
-					let {mesh} = element;
-					
-					if (element instanceof Mesh && (selection_mode == 'object' || scope.selection.old_selected.includes(element))) {
-
-						let mesh_selection;
-						if (selection_mode != 'object') {
-							isSelected = true;
-							if (!Project.mesh_selection[element.uuid]) {
-								mesh_selection = Project.mesh_selection[element.uuid] = {vertices: [], edges: [], faces: []};
-							} else {
-								mesh_selection = Project.mesh_selection[element.uuid];
-							}
-							if (!extend_selection) mesh_selection.vertices.empty();
-						}
-
-						let vertex_points = {};
-						let is_on_screen = false;
-						for (let vkey in element.vertices) {
-							let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
-							vertex_points[vkey] = point;
-							if (point[0] >= 0 && point[0] <= scope.width && point[1] >= 0 && point[1] <= scope.height) {
-								is_on_screen = true;
-							}
-						}
-						if (extend_selection && this.selection.old_mesh_selection[element.uuid]) {
-							mesh_selection.vertices.safePush(...this.selection.old_mesh_selection[element.uuid].vertices);
-							mesh_selection.edges.safePush(...this.selection.old_mesh_selection[element.uuid].edges);
-							mesh_selection.faces.safePush(...this.selection.old_mesh_selection[element.uuid].faces);
-						}
-						if (!is_on_screen) {
-						} else if (selection_mode == 'vertex') {
-							for (let vkey in element.vertices) {
-								let point = vertex_points[vkey];
-								if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
-									mesh_selection.vertices.push(vkey);
-								}
-							}
-
-						} else if (selection_mode == 'edge') {
-							for (let fkey in element.faces) {
-								let face = element.faces[fkey];
-								let vertices = face.getSortedVertices();
-								for (let i = 0; i < vertices.length; i++) {
-									let vkey = vertices[i];
-									let vkey2 = vertices[i+1]||vertices[0];
-									let p1 = vertex_points[vkey];
-									let p2 = vertex_points[vkey2];
-									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
-										mesh_selection.vertices.safePush(vkey, vkey2);
-										let edge = [vkey, vkey2];
-										if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
-											mesh_selection.edges.push(edge);
-										}
-									}
-								}
-							}
-	
-						} else {
-							if (selection_mode != 'object' && !extend_selection) {
-								mesh_selection.faces.empty();
-							}
-							for (let fkey in element.faces) {
-								let face = element.faces[fkey];
-								let vertices = face.getSortedVertices();
-								let face_intersects;
-								for (let i = 0; i < vertices.length; i++) {
-									let vkey = vertices[i];
-									let vkey2 = vertices[i+1]||vertices[0];
-									let p1 = vertex_points[vkey];
-									let p2 = vertex_points[vkey2];
-									if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
-										face_intersects = true;
-										break;
-									}
-								}
-								if (selection_mode == 'object') {
-									if (face_intersects) {
-										isSelected = true;
-										break;
-									}
-								} else {
-									if (face_intersects) {
-										mesh_selection.vertices.safePush(...face.vertices);
-										mesh_selection.faces.safePush(fkey);
-									}
-								}
-							}
-						}
-
-					} else if (element instanceof Cube && (selection_mode == 'object' || !Format.meshes || !scope.selection.old_selected.find(el => el instanceof Mesh))) {
-						var adjustedFrom = element.from.slice();
-						var adjustedTo = element.to.slice();
-						adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
-
-						let vertices = [
-							[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
-							[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
-							[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
-							[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
-							[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
-							[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
-							[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
-							[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
-						].map(coords => {
-							coords.V3_subtract(element.origin);
-							vector.fromArray(coords);
-							mesh.localToWorld(vector);
-							return projectPoint(vector);
-						})
-						let is_on_screen = vertices.find(vertex => {
-							return (vertex[0] >= 0 && vertex[0] <= scope.width
-								 && vertex[1] >= 0 && vertex[1] <= scope.height);
-						})
-						isSelected = is_on_screen && (
-							   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
-
-							|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
-
-							|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
-							|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
-						);
-					}
-
-				} else if (element.mesh) {
-					
-					element.mesh.getWorldPosition(vector);
-					isSelected = pointInRectangle(projectPoint(vector), rect_start, rect_end);
-				}
+			} else if (element.preview_controller?.viewportRectangleOverlap && element.mesh) {
+				isSelected = element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
 			}
 			if (isSelected) {
 				element.selectLow();
@@ -2055,7 +1918,8 @@ export function initCanvas() {
 		position: [0, 0],
 		size: [528, 528],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	canvas_scenes.inventory_full = new ReferenceImage({
@@ -2065,7 +1929,8 @@ export function initCanvas() {
 		position: [0, -215.6],
 		size: [1390, 1310],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	canvas_scenes.hud = new ReferenceImage({
@@ -2075,7 +1940,8 @@ export function initCanvas() {
 		position: [-112, -70],
 		size: [1695, 308],
 		attached_side: 'south',
-		layer: 'blueprint'
+		layer: 'background',
+		is_blueprint: true
 	}).addAsBuiltIn(),
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});

@@ -559,10 +559,10 @@ export const UVEditor = {
 		return matches;
 	},
 	forCubes(cb) {
-		var i = 0;
-		while (i < Cube.selected.length) {
-			cb(Cube.selected[i]);
-			i++;
+		for (let element of Outliner.selected) {
+			if (element.getTypeBehavior('cube_faces')) {
+				cb(element);
+			}
 		}
 	},
 	forElements(cb) {
@@ -964,7 +964,7 @@ export const UVEditor = {
 		this.getMappableElements().forEach(obj => {
 			let height, width;
 			let faces = face_keys || this.getFaces(obj, event, BarItems.uv_auto);
-			if (obj instanceof Cube) {
+			if (obj.getTypeBehavior('cube_faces')) {
 				faces.forEach(function(side) {
 					let face = obj.faces[side];
 					let mirror_x = face.uv[0] > face.uv[2];
@@ -980,6 +980,9 @@ export const UVEditor = {
 					} else if (side == 'up' || side == 'down') {
 						width = Math.abs(obj.size(0));
 						height = Math.abs(obj.size(2));
+					} else {
+						width = Math.abs(obj.size(0));
+						height = Math.abs(obj.size(1));
 					}
 					if (face.rotation % 180) {
 						[width, height] = [height, width];
@@ -1171,7 +1174,7 @@ export const UVEditor = {
 	mirrorX(event) {
 		var scope = this;
 		this.forElements(obj => {
-			if (obj instanceof Cube) {
+			if (obj.getTypeBehavior('cube_faces')) {
 				scope.getFaces(obj, event, BarItems.uv_mirror_x).forEach((side) => {
 					var proxy = obj.faces[side].uv[0]
 					obj.faces[side].uv[0] = obj.faces[side].uv[2]
@@ -1203,7 +1206,7 @@ export const UVEditor = {
 	mirrorY(event) {
 		var scope = this;
 		this.forElements(obj => {
-			if (obj instanceof Cube) {
+			if (obj.getTypeBehavior('cube_faces')) {
 				scope.getFaces(obj, event, BarItems.uv_mirror_y).forEach((side) => {
 					var proxy = obj.faces[side].uv[1]
 					obj.faces[side].uv[1] = obj.faces[side].uv[3]
@@ -1441,8 +1444,8 @@ export const UVEditor = {
 		if (multiple || UVEditor.clipboard.length === 1) {
 			let tag = UVEditor.clipboard[0];
 			elements.forEach(el => {
-				if (el instanceof Cube && el.box_uv) return;
-				if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
+				if (el.getTypeBehavior('cube_faces') && el.box_uv) return;
+				if ((el.getTypeBehavior('cube_faces') && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
 					let selected_faces = UVEditor.getSelectedFaces(el);
 					for (let key in el.faces) {
 						if (multiple || selected_faces.includes(key)) {
@@ -1456,8 +1459,8 @@ export const UVEditor = {
 		} else {
 			UVEditor.clipboard.forEach(tag => {
 				elements.forEach(el => {
-					if (el instanceof Cube && el.box_uv) return;
-					if ((el instanceof Cube && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
+					if (el.getTypeBehavior('cube_faces') && el.box_uv) return;
+					if ((el.getTypeBehavior('cube_faces') && tag instanceof CubeFace) || (el instanceof Mesh && tag instanceof MeshFace)) {
 						let key = tag.direction;
 						if (el.faces[key]) {
 							mergeFace(el, key, tag);
@@ -2205,7 +2208,7 @@ BARS.defineActions(function() {
 								face.uv[vkey][1] = Math.clamp(Math.round(face.uv[vkey][1] / res_y) * res_y, 0, UVEditor.getUVHeight());
 							}
 						})
-					} else if (element instanceof Cube) {
+					} else if (face instanceof CubeFace) {
 						face.uv[0] = Math.clamp(Math.round(face.uv[0] / res_x) * res_x, 0, UVEditor.getUVWidth());
 						face.uv[1] = Math.clamp(Math.round(face.uv[1] / res_y) * res_y, 0, UVEditor.getUVHeight());
 						face.uv[2] = Math.clamp(Math.round(face.uv[2] / res_x) * res_x, 0, UVEditor.getUVWidth());
@@ -2818,14 +2821,14 @@ Interface.definePanels(function() {
 							}
 							
 							elements.forEach(element => {
-								if (element instanceof Cube && !element.box_uv) {
+								if (element.getTypeBehavior('cube_faces') && !element.box_uv) {
 									for (let fkey in element.faces) {
 										let face_rect = getRectangle(...element.faces[fkey].uv);
 										if (doRectanglesOverlap(rect, face_rect)) {
 											UVEditor.getSelectedFaces(element, true).safePush(fkey);
 										}
 									}
-								} else if (element instanceof Cube) {
+								} else if (element.getTypeBehavior('cube_faces')) {
 									let overlaps = false;
 									for (let fkey in element.faces) {
 										let face_rect = getRectangle(...element.faces[fkey].uv);
@@ -3174,7 +3177,7 @@ Interface.definePanels(function() {
 
 								} else {
 									UVEditor.getSelectedFaces(element).forEach(key => {
-										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
+										if (element.faces[key] && element.getTypeBehavior('cube_faces') && element.faces[key].texture !== null) {
 											diff_x = Math.clamp(diff_x, -element.faces[key].uv[0], UVEditor.getUVWidth()  - element.faces[key].uv[0]);
 											diff_y = Math.clamp(diff_y, -element.faces[key].uv[1], UVEditor.getUVHeight() - element.faces[key].uv[1]);
 											diff_x = Math.clamp(diff_x, -element.faces[key].uv[2], UVEditor.getUVWidth()  - element.faces[key].uv[2]);
@@ -3198,11 +3201,12 @@ Interface.definePanels(function() {
 									element.uv_offset[1] = Math.floor(element.uv_offset[1] + diff_y);
 								} else {
 									UVEditor.getSelectedFaces(element).forEach(key => {
-										if (element.faces[key] && element instanceof Cube && element.faces[key].texture !== null) {
-											element.faces[key].uv[0] += diff_x;
-											element.faces[key].uv[1] += diff_y;
-											element.faces[key].uv[2] += diff_x;
-											element.faces[key].uv[3] += diff_y;
+										let face = element.faces[key]
+										if (face instanceof CubeFace && element.faces[key].texture !== null) {
+											face.uv[0] += diff_x;
+											face.uv[1] += diff_y;
+											face.uv[2] += diff_x;
+											face.uv[3] += diff_y;
 										}
 									})
 								}
@@ -3257,7 +3261,7 @@ Interface.definePanels(function() {
 					elements.forEach(element => {
 						let faces = inverted[element.uuid] = {};
 						UVEditor.getSelectedFaces(element).forEach(key => {
-							if (element.faces[key] && element instanceof Cube) {
+							if (element.faces[key] && element.getTypeBehavior('cube_faces')) {
 								faces[key] = [
 									element.faces[key].uv[0] > element.faces[key].uv[2],
 									element.faces[key].uv[1] > element.faces[key].uv[3],
@@ -3271,7 +3275,7 @@ Interface.definePanels(function() {
 						onDrag: (x, y) => {
 							elements.forEach(element => {
 								UVEditor.getSelectedFaces(element).forEach(key => {
-									if (element.faces[key] && element instanceof Cube) {
+									if (element.faces[key] && element.getTypeBehavior('cube_faces')) {
 										if (x_side && (x_side == -1) != inverted[element.uuid][key][0]) element.faces[key].uv[0] = Math.clamp(element.faces[key].uv[0] + x, 0, UVEditor.getUVWidth());
 										if (y_side && (y_side == -1) != inverted[element.uuid][key][1]) element.faces[key].uv[1] = Math.clamp(element.faces[key].uv[1] + y, 0, UVEditor.getUVHeight());
 										if (x_side && (x_side ==  1) != inverted[element.uuid][key][0]) element.faces[key].uv[2] = Math.clamp(element.faces[key].uv[2] + x, 0, UVEditor.getUVWidth());
@@ -3301,7 +3305,7 @@ Interface.definePanels(function() {
 						UVEditor.getSelectedFaces(element).forEach(fkey => {
 							let face = element.faces[fkey];
 							if (!face) return;
-							if (element instanceof Cube) {
+							if (face instanceof CubeFace) {
 								face_center[0] += face.uv[0] + face.uv[2];
 								face_center[1] += face.uv[1] + face.uv[3];
 								points += 2;
@@ -3348,7 +3352,7 @@ Interface.definePanels(function() {
 							straight_angle = undefined;
 							scope.helper_lines.x = scope.helper_lines.y = -1;
 							elements.forEach(element => {
-								if (element instanceof Cube && Format.uv_rotation) {
+								if (element.getTypeBehavior('cube_faces') && Format.uv_rotation) {
 									UVEditor.getSelectedFaces(element).forEach(key => {
 										if (element.faces[key]) {
 											element.faces[key].rotation += 90 * Math.sign(last_angle - angle);
@@ -3439,9 +3443,9 @@ Interface.definePanels(function() {
 						UVEditor.getSelectedFaces(element).forEach(fkey => {
 							let face = element.faces[fkey];
 							if (!face) return;
-							if (element instanceof Cube) {
+							if (face instanceof CubeFace) {
 								face.old_uv = face.uv.slice();
-							} else if (element instanceof Mesh) {
+							} else if (face instanceof MeshFace) {
 								face.old_uv = {};
 								face.vertices.forEach(vkey => {
 									if (!face.uv[vkey]) return;
@@ -3465,7 +3469,7 @@ Interface.definePanels(function() {
 								UVEditor.getSelectedFaces(element).forEach(key => {
 									if (!element.faces[key]) return;
 									let face = element.faces[key];
-									if (element instanceof Cube) {
+									if (element.getTypeBehavior('cube_faces')) {
 										face.uv[0] = min[0] + (face.old_uv[0] - min[0]) * (1 + total_offset[0]/bounding_size[0]);
 										face.uv[1] = min[1] + (face.old_uv[1] - min[1]) * (1 + total_offset_y /bounding_size[1]);
 										face.uv[2] = min[0] + (face.old_uv[2] - min[0]) * (1 + total_offset[0]/bounding_size[0]);
@@ -3627,7 +3631,7 @@ Interface.definePanels(function() {
 					}
 				},
 				isScalingAvailable() {
-					if (this.mappable_elements[0] instanceof Cube) {
+					if (this.mappable_elements[0]?.getTypeBehavior('cube_faces')) {
 						return UVEditor.isFaceUV() && !!UVEditor.getReferenceFace();
 
 					} else if (this.mappable_elements[0] instanceof Mesh) {
@@ -3651,7 +3655,7 @@ Interface.definePanels(function() {
 							if (element.faces[fkey].texture === null) return;
 
 							let face = element.faces[fkey];
-							if (element instanceof Cube) {
+							if (face instanceof CubeFace) {
 								min[0] = Math.min(min[0], face.uv[0], face.uv[2]);
 								min[1] = Math.min(min[1], face.uv[1], face.uv[3]);
 								max[0] = Math.max(max[0], face.uv[0], face.uv[2]);
@@ -4253,7 +4257,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type == 'cube' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type != 'mesh' && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 							:class="{selected: isFaceSelected(null, key), disabled: mappable_elements[0].faces[key].texture === null}"
 							@mousedown="selectFace(null, key, $event, false, true)"
@@ -4304,7 +4308,7 @@ Interface.definePanels(function() {
 						</div>
 
 
-						<ul v-if="mappable_elements[0] && mappable_elements[0].type == 'cube'">
+						<ul v-if="mappable_elements[0] && mappable_elements[0].getTypeBehavior('select_faces') == 'enum'">
 							<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 								class="uv_face_properties_line"
 								:class="{selected: isFaceSelected(mappable_elements[0], key), disabled: mappable_elements[0].faces[key].texture === null}"
@@ -4371,7 +4375,7 @@ Interface.definePanels(function() {
 
 							<template v-for="element in getDisplayedUVElements()">
 
-								<template v-if="element.type == 'cube' && !element.box_uv">
+								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
 									<div class="cube_uv_face uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
 										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key))"
@@ -4409,7 +4413,7 @@ Interface.definePanels(function() {
 									</div>
 								</template>
 								
-								<div v-else-if="element.type == 'cube'" class="cube_box_uv uv_face"
+								<div v-if="element.getTypeBehavior('cube_faces') && element.box_uv" class="cube_box_uv uv_face"
 									:key="element.uuid"
 									@mousedown.prevent="dragFace(element, null, $event)"
 									@touchstart.prevent="dragFace(element, null, $event)"
@@ -4621,9 +4625,9 @@ Interface.definePanels(function() {
 		let elements = UVEditor.getMappableElements();
 		if (!elements[0]) return 0;
 
-		if (UVEditor.isBoxUV() && elements[0] instanceof Cube) {
+		if (UVEditor.isBoxUV() && elements[0].getTypeBehavior('cube_faces')) {
 			return trimFloatNumber(elements[0].uv_offset[axis])
-		} else if (elements[0] instanceof Cube) {
+		} else if (elements[0].getTypeBehavior('cube_faces')) {
 			var face = UVEditor.getReferenceFace();
 			if (face) {
 				return trimFloatNumber(face.uv[axis])

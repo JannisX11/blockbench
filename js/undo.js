@@ -826,7 +826,7 @@ UndoSystem.selectionSave = class {
 					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
-			} else if (element instanceof Cube && !element.box_uv) {
+			} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {
 				this.geometry[element.uuid] = {
 					faces: UVEditor.getSelectedFaces(element).slice()
 				}
@@ -894,7 +894,7 @@ UndoSystem.selectionSave = class {
 					element.getSelectedEdges(true).replace(geo_data.edges);
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
-				} else if (element instanceof Cube && !element.box_uv) {
+				} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {
 					UVEditor.getSelectedFaces(element, true).replace(geo_data.faces);
 				}
 			}

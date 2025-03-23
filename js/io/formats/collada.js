@@ -547,7 +547,7 @@ var codec = new Codec('collada', {
 					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(export_scale).join(' ')},
 				]
 			}
-			if (node.rotatable) {
+			if (node.getTypeBehavior('rotatable')) {
 				let rotation_angles = [
 					{type: 'rotate', attributes: {sid: 'rotationZ'}, content: `0 0 1 ${node.rotation[2]}`},
 					{type: 'rotate', attributes: {sid: 'rotationY'}, content: `0 1 0 ${node.rotation[1]}`},

@@ -247,7 +247,7 @@ export class Group extends OutlinerNode {
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.getTypeBehavior('rotatable')) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -266,7 +266,7 @@ export class Group extends OutlinerNode {
 
 				if (obj.from) obj.from.V3_add(diff);
 				if (obj.to) obj.to.V3_add(diff);
-				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
+				if (obj.getTypeBehavior('rotatable') || obj instanceof Group) obj.origin.V3_add(diff);
 
 				if (obj instanceof Group) {
 					obj.forEachChild(child => {
@@ -316,7 +316,7 @@ export class Group extends OutlinerNode {
 				obj.children.forEach(child => iterateChild(child));
 
 			} else {
-				if (obj.movable) {
+				if (obj.getTypeBehavior('movable')) {
 					obj.origin.V3_add(shift);
 				}
 				if (obj.to) {
@@ -434,12 +434,15 @@ export class Group extends OutlinerNode {
 		this.autouv = val;
 		this.updateElement()
 	}
+	static behavior = {
+		unique_name: () => Format.bone_rig,
+		rotatable: true,
+	}
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
-	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
@@ -449,7 +452,6 @@ export class Group extends OutlinerNode {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	function setGroupColor(color) {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})

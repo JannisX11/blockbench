@@ -75,7 +75,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	this.updateSceneScale = function() {
 		ReferenceImage.active.forEach(ref => {
-			if (ref.layer == 'blueprint' && ref.attached_side == scope.preview.angle) {
+			if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
 				ref.updateTransform()
 			}
 		})

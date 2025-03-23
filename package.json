@@ -120,7 +120,7 @@
 		]
 	},
 	"scripts": {
-		"dev": "concurrently --raw \"electron .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
+		"dev": "concurrently --raw \"electron --remote-debugging-port=9223 .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
 		"serve": "node ./build.js --target=web --serve",
 		"electron": "electron .",
 		"build-web": "node ./build.js --target=web",

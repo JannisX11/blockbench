@@ -67,14 +67,16 @@ export class TextureMesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		scalable: true,
+		rotatable: true,
+	}
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
 	TextureMesh.prototype.icon = 'fa-puzzle-piece';
-	TextureMesh.prototype.movable = true;
-	TextureMesh.prototype.scalable = true;
-	TextureMesh.prototype.rotatable = true;
-	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),

@@ -344,7 +344,7 @@ export const TextureGenerator = {
 		let double_use_faces = {};
 		let element_list = ((Format.single_texture && typeof makeTexture == 'function') ? Outliner.elements : Outliner.selected);
 		element_list = element_list.filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 		function faceRect(cube, face_key, tex, x, y, face_old_pos_id) {
 			this.cube = cube;
@@ -414,7 +414,7 @@ export const TextureGenerator = {
 		element_list.forEach(element => {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
-			if (element instanceof Cube) {
+			if (element.getTypeBehavior('cube_faces')) {
 				if (element.box_uv || options.box_uv) {
 					element.box_uv = true;
 					
@@ -1523,7 +1523,7 @@ export const TextureGenerator = {
 		setProgress();
 		// Warning
 		if (element_list.find(element => {
-			if (element instanceof Cube == false || !element.box_uv) return false;
+			if (!element.getTypeBehavior('cube_faces') || !element.box_uv) return false;
 			let size = element.size();
 			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
 		})) {
@@ -1542,7 +1542,7 @@ export const TextureGenerator = {
 
 		var face_list = [];
 		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 
 		Undo.initEdit({
@@ -1559,7 +1559,7 @@ export const TextureGenerator = {
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (element instanceof Mesh && face.vertices.length <= 2) continue;
-				if (element instanceof Cube && face.texture === null) continue;
+				if (element.getTypeBehavior('cube_faces') && face.texture === null) continue;
 				face_list.push({element, fkey, face});
 			}
 		})
@@ -1675,7 +1675,7 @@ export const TextureGenerator = {
 			Undo.current_save.addElements(changed_elements, {uv_only: true});
 
 			changed_elements.forEach(element => {
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces')) {
 					for (var key in element.faces) {
 						let face = element.faces[key];
 						if (texture && face.getTexture() == texture) continue;

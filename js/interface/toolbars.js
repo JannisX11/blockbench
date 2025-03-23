@@ -574,7 +574,7 @@ export const BARS = {
 						elements.forEach(element => {
 							element.name = replace(element.name);
 							element.sanitizeName();
-							if (Condition(element.needsUniqueName)) {
+							if (Condition(element.getTypeBehavior('unique_name'))) {
 								element.createUniqueName();
 							}
 						})
@@ -585,7 +585,7 @@ export const BARS = {
 						groups.forEach(group => {
 							group.name = replace(group.name);
 							group.sanitizeName();
-							if (Condition(group.needsUniqueName)) {
+							if (Condition(group.getTypeBehavior('unique_name'))) {
 								group.createUniqueName();
 							}
 						})

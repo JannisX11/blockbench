@@ -2321,7 +2321,7 @@
 	"reference_image.layer.background": "Behind Model",
 	"reference_image.layer.viewport": "Above Model",
 	"reference_image.layer.float": "Above Interface",
-	"reference_image.layer.blueprint": "Locked Blueprint",
+	"reference_image.blueprint": "Locked Blueprint",
 	"reference_image.scope": "Scope",
 	"reference_image.scope.project": "Just this project",
 	"reference_image.scope.global": "All projects",
@@ -2335,6 +2335,8 @@
 	"codec.common.embed_textures": "Embed Textures",
 	"codec.common.format": "Format",
 	"codec.image.quality": "Quality",
+	"codec.image.alpha_channel": "Alpha Channel",
+	"codec.image.animation_fps": "Animation FPS",
 
 	"preview.center_camera": "Center Camera",
 

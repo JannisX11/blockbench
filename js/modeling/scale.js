@@ -126,7 +126,7 @@ export const ModelScaler = {
 					}
 				}
 			})
-			if (obj instanceof Cube && Format.cube_size_limiter) {
+			if (obj.getTypeBehavior('cube_size_limit') && Format.cube_size_limiter) {
 				if (Format.cube_size_limiter.test(obj)) {
 					overflow.push(obj);
 				}
@@ -137,8 +137,8 @@ export const ModelScaler = {
 			if (save === true) {
 				delete obj.before
 			}
-			if (obj instanceof Cube && obj.box_uv) {
-				Canvas.updateUV(obj)
+			if (obj.getTypeBehavior('cube_faces') && obj.box_uv) {
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 		scale_groups.forEach((g) => {

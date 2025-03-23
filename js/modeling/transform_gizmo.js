@@ -798,9 +798,9 @@
 						if (Outliner.selected.length) {
 							Outliner.selected.forEach(element => {
 								if (
-									(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-									((element.resizable) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
+									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
+									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
+									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
 								) {
 									scope.attach(element);
 								}
@@ -834,7 +834,7 @@
 
 				if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-				if (input_space == 'local' && selected.length && selected[0].rotatable && (!Format.bone_rig || !Group.first_selected)) {
+				if (input_space == 'local' && selected.length && selected[0].getTypeBehavior('rotatable') && (!Format.bone_rig || !Group.first_selected)) {
 					let is_local = true;
 					if (Format.bone_rig) {
 						for (var el of selected) {
@@ -1144,7 +1144,7 @@
 								for (let key in obj.vertices) {
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
-							} else if (obj.resizable) {
+							} else if (obj.getTypeBehavior('resizable')) {
 								obj.oldScale = obj.size(axisnr);
 								obj.oldStretch = obj.stretch.slice();
 								obj.oldUVOffset = obj.uv_offset.slice();
@@ -1307,7 +1307,7 @@
 							beforeFirstChange(event)
 
 							selected.forEach(function(obj, i) {
-								if (obj.resizable) {
+								if (obj.getTypeBehavior('resizable')) {
 									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh;
 
 									if (axis == 'e') {
