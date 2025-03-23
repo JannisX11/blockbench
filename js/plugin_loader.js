@@ -1295,7 +1295,8 @@ BARS.defineActions(function() {
 
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
-				tl
+				tl,
+				capitalizeFirstLetter
 			},
 			mount_directly: true,
 			template: `

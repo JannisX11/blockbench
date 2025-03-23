@@ -851,6 +851,8 @@
 	"layout.color.button.desc": "Buttons and switches",
 	"layout.color.selected": "Selected",
 	"layout.color.selected.desc": "Selected tabs and objects",
+	"layout.color.elevated": "Elevated",
+	"layout.color.elevated.desc": "Elevated UI elements, usually separated by drop shadow",
 	"layout.color.border": "Border",
 	"layout.color.border.desc": "Border of buttons and inputs",
 	"layout.color.accent": "Accent",
