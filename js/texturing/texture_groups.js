@@ -149,7 +149,7 @@ class TextureGroup {
 		}
 
 		// MER
-		if (mer_tex && mer_tex.img?.naturalWidth) {
+		if (mer_tex && mer_tex.img?.naturalWidth && mer_tex.width) {
 			let image_data = mer_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
 
 			const extractEmissiveChannel = () => {
@@ -541,7 +541,7 @@ function importTextureSet(file) {
 	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
 	if (file.name.endsWith('texture_set.json')) {
 		let texture_group = new TextureGroup({is_material: true});
-		texture_group.name = file.name.replace('.texture_set.json', '');
+		texture_group.name = file.name.replace('.texture_set.json', '.png material');
 
 		let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
 		let content_json = autoParseJSON(content);
@@ -591,6 +591,14 @@ function importTextureSet(file) {
 		texture_group.add(false);
 	}
 	Undo.finishEdit('Import texture set');
+}
+function loadAdjacentTextureSet(texture) {
+	let path = texture.path.replace(/\.png$/i, '.texture_set.json');
+	if (fs.existsSync(path)) {
+		Blockbench.read([path], {}, (files) => {
+			importTextureSet(files[0])
+		})
+	}
 }
 
 SharedActions.add('rename', {
@@ -833,8 +841,13 @@ BARS.defineActions(function() {
 
 					} else {
 						Undo.initEdit({texture_groups: texture_group ? [texture_group] : null, textures});
+						
+						let main_texture = texture_group?.getTextures().find(t => t.pbr_channel == 'color');
+						let name = main_texture ? main_texture.name : texture.name;
+						name = name.replace('.', `_${pbr_channel}.`);
+
 						let new_texture = new Texture({
-							name: texture.name,
+							name,
 							pbr_channel,
 							group: texture_group?.uuid,
 						}).fromDataURL(canvas.toDataURL()).add(false);
