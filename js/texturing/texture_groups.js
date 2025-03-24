@@ -130,7 +130,7 @@ class TextureGroup {
 			// Use DirectX normal maps for RenderDragon. Flips the "handedness" of the normal map.
 			material.normalScale = Project.format.id.includes('bedrock') ? new THREE.Vector2(1, -1) : new THREE.Vector2(1, 1);
 		} else if (height_tex) {
-			material.bumpMap = height_tex.getOwnMaterial().map;
+			material.bumpMap = height_tex.getOwnMaterial().map.clone();
 			material.bumpScale = 0.4;
 			material.normalMap = null;
 			// Bump map scale
