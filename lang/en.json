@@ -521,6 +521,8 @@
 	"dialog.material_config.color_value": "Color Value",
 	"dialog.material_config.mer": "Metal-Emissive-Roughness",
 	"dialog.material_config.mer_value": "MER Value",
+	"dialog.material_config.subsurface": "Subsurface Scattering",
+	"dialog.material_config.subsurface_enabled.desc": "Use the MER map alpha channel for subsurface scattering",
 	"dialog.material_config.depth_type": "Depth Type",
 
 	"dialog.edit_texture.preview": "Preview",

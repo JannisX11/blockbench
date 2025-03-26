@@ -327,7 +327,14 @@ class TextureGroupMaterialConfig {
 			texture_set.color = this.color_value.slice();
 		}
 		if (mer_tex) {
-			texture_set.metalness_emissive_roughness = getTextureName(mer_tex);
+			let texture_name = getTextureName(mer_tex);
+			if (this.subsurface_value) {
+				texture_set.metalness_emissive_roughness_subsurface = texture_name;
+			} else {
+				texture_set.metalness_emissive_roughness = texture_name;
+			}
+		} else if (this.subsurface_value) {
+			texture_set.metalness_emissive_roughness_subsurface = [...this.mer_value, this.subsurface_value];
 		} else if (!this.mer_value.allEqual(0)) {
 			texture_set.metalness_emissive_roughness = this.mer_value.slice();
 		}
@@ -337,8 +344,12 @@ class TextureGroupMaterialConfig {
 			texture_set.heightmap = getTextureName(height_tex);
 		}
 
+		let format_version = "1.16.100";
+		if (texture_set.metalness_emissive_roughness_subsurface) {
+			format_version = "1.21.30";
+		}
 		let file = {
-			format_version: "1.16.100",
+			format_version,
 			"minecraft:texture_set": texture_set
 		}
 		return file;
@@ -407,7 +418,7 @@ class TextureGroupMaterialConfig {
 						a: this.color_value[3] / 255
 					}
 				},
-				'mer': '_',
+				'_mers': '_',
 				mer: {
 					type: 'select',
 					label: 'dialog.material_config.mer',
@@ -421,7 +432,21 @@ class TextureGroupMaterialConfig {
 					min: 0, max: 255, step: 1, force_step: true,
 					value: this.mer_value.map(v => Math.clamp(v, 0, 255)),
 				},
-				'depth': '_',
+				subsurface: {
+					type: 'checkbox',
+					label: 'dialog.material_config.subsurface',
+					description: 'dialog.material_config.subsurface_enabled.desc',
+					condition: form => isUUID(form.mer),
+					value: this.subsurface_value > 0,
+				},
+				subsurface_value: {
+					label: 'dialog.material_config.subsurface',
+					condition: form => form.mer == 'uniform',
+					type: 'number',
+					min: 0, max: 255, step: 1, force_step: true,
+					value: Math.clamp(this.subsurface_value, 0, 255),
+				},
+				'_depth': '_',
 				depth_type: {
 					type: 'inline_select',
 					label: 'dialog.material_config.depth_type',
@@ -466,10 +491,12 @@ class TextureGroupMaterialConfig {
 					for (let texture of textures) {
 						if (texture.pbr_channel == 'mer') texture.group = '';
 					}
+					this.subsurface_value = result.subsurface_value;
 				} else {
 					this.mer_value.replace([0, 0, 0]);
 					let target = textures.find(t => t.uuid == result.mer);
 					if (target) target.pbr_channel = 'mer';
+					this.subsurface_value = result.subsurface ? 1 : 0;
 				}
 				
 				if (result.depth_type == 'normal') {
@@ -494,6 +521,7 @@ class TextureGroupMaterialConfig {
 }
 new Property(TextureGroupMaterialConfig, 'vector4', 'color_value', {default: [255, 255, 255, 255]});
 new Property(TextureGroupMaterialConfig, 'vector', 'mer_value');
+new Property(TextureGroupMaterialConfig, 'number', 'subsurface_value');
 new Property(TextureGroupMaterialConfig, 'boolean', 'saved', {default: true});
 TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_config', [
 	'generate_pbr_map',
@@ -552,6 +580,7 @@ function importTextureSet(file) {
 				normal: 'normal',
 				heightmap: 'height',
 				metalness_emissive_roughness: 'mer',
+				metalness_emissive_roughness_subsurface: 'mer',
 			};
 			for (let key in channels) {
 				let source = content_json['minecraft:texture_set'][key];
@@ -567,6 +596,9 @@ function importTextureSet(file) {
 						new_textures.push(t);
 						t.group = texture_group.uuid;
 					})
+					if (key == 'metalness_emissive_roughness_subsurface') {
+						texture_group.material_config.subsurface_value = 1;
+					}
 				} else {
 					let color_array = source;
 					if (typeof source == 'string') {
@@ -581,6 +613,9 @@ function importTextureSet(file) {
 							}
 						} else if (key == 'metalness_emissive_roughness') {
 							texture_group.material_config.mer_value.V3_set(color_array);
+						} else if (key == 'metalness_emissive_roughness_subsurface') {
+							texture_group.material_config.mer_value.V3_set(color_array);
+							texture_group.material_config.subsurface_value = Math.clamp(color_array[3] ?? 0, 0, 255);
 						}
 					}
 				}
