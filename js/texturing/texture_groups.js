@@ -807,6 +807,17 @@ BARS.defineActions(function() {
 				width: 564,
 				lines: [preview],
 				form: {
+					channel: {
+						type: 'select',
+						label: 'PBR Channel',
+						options: {
+							//normal: 'menu.texture.pbr_channel.normal',
+							height: 'menu.texture.pbr_channel.height',
+							metalness: 'Metalness',
+							emissive: 'Emissive',
+							roughness: 'Roughness',
+						}
+					},
 					method: {
 						type: 'select',
 						label: 'Source',
@@ -818,17 +829,6 @@ BARS.defineActions(function() {
 							red: 'Red',
 							green: 'Green',
 							blue: 'Blue',
-						}
-					},
-					channel: {
-						type: 'select',
-						label: 'PBR Channel',
-						options: {
-							//normal: 'menu.texture.pbr_channel.normal',
-							height: 'menu.texture.pbr_channel.height',
-							metalness: 'Metalness',
-							emissive: 'Emissive',
-							roughness: 'Roughness',
 						}
 					},
 					in_range: {
@@ -887,8 +887,15 @@ BARS.defineActions(function() {
 							group: texture_group?.uuid,
 						}).fromDataURL(canvas.toDataURL()).add(false);
 						textures.push(new_texture);
+
+						if (texture_group.material_config) {
+							texture_group.material_config.saved = false;
+						}
 					}
 
+					setTimeout(() => {
+						texture_group.updateMaterial();
+					}, 50);
 					Undo.finishEdit('Create PBR map');
 					updateSelection();
 				},
