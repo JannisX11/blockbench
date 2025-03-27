@@ -528,6 +528,7 @@ const Settings = {
 		new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
 		new Setting('move_with_selection_tool',		{category: 'paint', value: true});
 		new Setting('pick_color_opacity',			{category: 'paint', value: false});
+		new Setting('pick_combined_color',			{category: 'paint', value: false});
 		new Setting('paint_through_transparency',	{category: 'paint', value: true});
 		new Setting('paint_side_restrict',			{category: 'paint', value: true});
 		new Setting('paint_with_stylus_only',		{category: 'paint', value: false});

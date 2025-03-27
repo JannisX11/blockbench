@@ -1081,6 +1081,8 @@
 	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
 	"settings.pick_color_opacity": "Pick Color Opacity",
 	"settings.pick_color_opacity.desc": "Pick the color opacity with the Color Picker and set it as brush opacity",
+	"settings.pick_combined_color": "Pick Combined Color",
+	"settings.pick_combined_color.desc": "Pick the combined color of all layers at the respective pixel, instead of the color on the active layer",
 	"settings.brush_cursor_2d": "2D Brush Cursor",
 	"settings.brush_cursor_2d.desc": "Display an outline around the brush in the 2D workspace",
 	"settings.brush_cursor_3d": "3D Brush Cursor",

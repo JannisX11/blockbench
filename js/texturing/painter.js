@@ -1181,7 +1181,7 @@ const Painter = {
 		}, {no_undo: true, use_cache: true});
 	},
 	colorPicker(texture, x, y, event) {
-		var ctx = Painter.getCanvas(texture).getContext('2d')
+		let {ctx} = settings.pick_combined_color.value ? texture : texture.getActiveCanvas();
 		let color = Painter.getPixelColor(ctx, x, y);
 		if (settings.pick_color_opacity.value) {
 			let opacity = Math.floor(color.getAlpha()*256);
