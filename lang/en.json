@@ -1663,6 +1663,8 @@
 	"action.adjust_curves.desc": "Adjust the brightness curves of the selected texture",
 	"action.limit_to_palette": "Limit to Palette",
 	"action.limit_to_palette.desc": "Limits the colors of the texture to those in the currently loaded palette",
+	"action.split_rgb_into_layers": "Split RGB Channels into Layers",
+	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel",
 	"action.clear_unused_texture_space": "Clear Unused Texture Space",
 	"action.clear_unused_texture_space.desc": "Clear parts of the texture that are not UV-mapped to any elements",
 	"action.flip_texture_x": "Flip Horizontally",
