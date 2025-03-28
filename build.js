@@ -4,6 +4,7 @@ import { createRequire } from "module";
 import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
+import fs from 'node:fs';
 const pkg = createRequire(import.meta.url)("./package.json");
 
 const options = commandLineArgs([
@@ -20,6 +21,33 @@ function conditionalImportPlugin(config) {
             build.onResolve({ filter: /desktop.js$/ }, args => {
                 return { path: path.join(args.resolveDir, config.file) };
             });
+        }
+    };
+};
+function createJsonPlugin(ext_suffix, namespace) {
+    return {
+        name: `${namespace}-plugin`,
+        setup(build) {
+            // Intercept import paths with the specified extension
+            build.onResolve({ filter: new RegExp(`${ext_suffix}$`) }, args => ({
+                path: path.join(
+                    args.resolveDir,
+                    args.path
+                ),
+                namespace: `${namespace}-ns`,
+            }))
+
+            // Load paths tagged with the specified namespace and treat them as JSON
+            build.onLoad({ filter: /.*/, namespace: `${namespace}-ns` }, async (args) => {
+                // Read the content of the file
+                const content = await fs.promises.readFile(args.path, 'utf8');
+
+                // Return the content as JSON
+                return {
+                    contents: content,
+                    loader: 'json',
+                }
+            })
         }
     };
 };
@@ -51,6 +79,8 @@ const config = {
         conditionalImportPlugin({
             file: isApp ? 'desktop.js' : 'web.js'
         }),
+        createJsonPlugin('.bbtheme', 'bbtheme'),
+        createJsonPlugin('.bbkeymap', 'bbkeymap'),
         glsl({
             minify
         })
