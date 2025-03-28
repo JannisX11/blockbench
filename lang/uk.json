@@ -2320,5 +2320,11 @@
 	"settings.selection_tolerance": "Толерантність виділення",
 	"settings.selection_tolerance.desc": "Розмір області, яку можна натиснути, щоб виділити ребро або вершину",
 	"action.delete.keep_vertices": "Зберігати ребра/вершини",
-	"menu.mesh": "Сітка"
+	"menu.mesh": "Сітка",
+	"dialog.material_config.subsurface": "Subsurface Scattering",
+	"dialog.material_config.subsurface_enabled.desc": "Use the MER map alpha channel for subsurface scattering",
+	"settings.pick_combined_color": "Pick Combined Color",
+	"settings.pick_combined_color.desc": "Pick the combined color of all layers at the respective pixel, instead of the color on the active layer",
+	"action.split_rgb_into_layers": "Split RGB Channels into Layers",
+	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel"
 }
