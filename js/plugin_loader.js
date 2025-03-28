@@ -33,8 +33,32 @@ const Plugins = {
 		});
 	}
 }
+
+const ENVIRONMENT_CUSTOM_PLUGINS = []
+const ENVIRONMENT_PLUGINS = []
+if (process.env.BLOCKBENCH_INSTALL_CUSTOM_PLUGINS) {
+	ENVIRONMENT_CUSTOM_PLUGINS.push(...process.env.BLOCKBENCH_INSTALL_CUSTOM_PLUGINS
+		.split(',')
+		.map(file => file.trim())
+	)
+}
+if (process.env.BLOCKBENCH_INSTALL_PLUGINS) {
+	ENVIRONMENT_PLUGINS.push(...process.env.BLOCKBENCH_INSTALL_PLUGINS
+		.split(',')
+		.map(url => url.trim())
+	)
+}
+
 StateMemory.init('installed_plugins', 'array')
-Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
+
+if (process.env.BLOCKBENCH_CLEAN_INSTALLED_PLUGINS === 'TRUE') {
+	app.terminal.log('--clean-installed-plugins: Clearing installed plugins')
+	Plugins.installed = StateMemory.installed_plugins = []
+} else {
+	Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(
+		p => p && typeof p == 'object' && !ENVIRONMENT_CUSTOM_PLUGINS.includes(p.path) && !ENVIRONMENT_PLUGINS.includes(p.id)
+	)
+}
 
 async function runPluginFile(path, plugin_id) {
 	let file_content;
@@ -663,6 +687,16 @@ class Plugin {
 		}
 		return this.details;
 	}
+
+	/**
+	 * Logs output to the terminal Blockbench was started from with a fancy plugin-specific prefix
+	 * @example
+	 * myPlugin.log('Hello World!')
+	 * /// [Blockbench] <my-plugin> Hello World!
+	 */
+	log(...args) {
+		Blockbench.log(`\x1b[90m<\x1b[33m${this.id}\x1b[90m>\x1b[0m`, ...args)
+	}
 }
 Plugin.prototype.menu = new Menu([
 	new MenuSeparator('installation'),
@@ -867,7 +901,6 @@ async function loadInstalledPlugins() {
 	if (Plugins.installed.length > 0) {
 		var load_counter = 0;
 		Plugins.installed.forEachReverse(function(plugin) {
-
 			if (plugin.source == 'file') {
 				//Dev Plugins
 				if (isApp && fs.existsSync(plugin.path)) {
@@ -901,7 +934,115 @@ async function loadInstalledPlugins() {
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')
-	
+
+	// CLI Environment Plugins
+	for (const path of ENVIRONMENT_CUSTOM_PLUGINS) {
+		const id = PathModule.basename(path, '.js');
+		const pathType = path.startsWith('http') ? 'URL' : 'File';
+
+		const alreadyInstalled = Plugins.installed.find(plugin => plugin.id === id)
+		if (alreadyInstalled) {
+			app.terminal.error(`Failed to install Environment plugin "${id}":`)
+			app.terminal.error(`A Plugin with the ID "${id}" already exists in the installed plugins list!`)
+			app.exit(1)
+		}
+
+		// Remove the plugin from the installed plugins list when Blockbench is closed.
+		Blockbench.on('before_closing', () => {
+			const plugin = Plugins.installed.find(plugin => plugin.id === id)
+			Plugins.installed.remove(plugin)
+			StateMemory.save('installed_plugins')
+			app.terminal.log(`Uninstalled Environment plugin "${id}"`)
+		})
+
+		if (pathType === 'URL') {
+			app.terminal.log(`Installing Environment plugin "${id || path}" from URL...`);
+			if (!(Plugins.json instanceof Object && navigator.onLine)) {
+				app.terminal.error(`Failed to install Environment plugins:`)
+				app.terminal.error(`Blockbench cannot install plugins by URL when offline.`)
+				app.exit(1)
+			}
+			const instance = new Plugin(id);
+			install_promises.push(instance.loadFromURL(path, false)
+				.then(() => {
+					app.terminal.log(`Loaded Environment plugin "${id || path}" from URL`);
+					console.log(`🧩🏠🌐 Loaded Environment plugin "${id || path}" from URL`);
+				})
+				.catch(err => {
+					app.terminal.error(`Failed to load Environment plugin "${id || path}":`)
+					app.terminal.error(err)
+					app.exit(1)
+				})
+			);
+		} else {
+			if (!fs.existsSync(path)) {
+				app.terminal.error(`Failed to install Environment plugin "${id}":`)
+				app.terminal.error(`The specified plugin file does not exist: "${path}"`)
+				app.exit(1)
+			}
+			app.terminal.log(`Installing Environment plugin "${id || path}" from file...`);
+			const instance = new Plugin(id);
+			install_promises.push(instance.loadFromFile({path}, false)
+				.then(() => {
+					app.terminal.log(`Loaded Environment plugin "${id || path}" from file`);
+					console.log(`🧩🏠📁 Loaded Environment plugin "${id || path}" from file`);
+				})
+				.catch(err => {
+					app.terminal.error(`Failed to load Environment plugin "${id || path}":`)
+					app.terminal.error(err)
+					app.exit(1)
+				})
+			);
+		}
+	}
+
+	// Cannot install plugins by URL when offline
+	if (ENVIRONMENT_PLUGINS.length > 0 && !(Plugins.json instanceof Object && navigator.onLine)) {
+		app.terminal.error(`Failed to install Environment plugins:`)
+		app.terminal.error(`Blockbench cannot install plugins by URL when offline.`)
+		app.exit(1)
+	}
+
+	for (const id of ENVIRONMENT_PLUGINS) {
+		const exists = Plugins.json[id] instanceof Object
+		if (!exists) {
+			app.terminal.error(`Failed to install Environment plugin "${id}":`)
+			app.terminal.error(`Plugin data for "${id}" does not exist in the plugin repository.`)
+			app.exit(1)
+		}
+		const alreadyInstalled = Plugins.installed.find(plugin => plugin.id === id)
+		if (alreadyInstalled) {
+			app.terminal.error(`Failed to install Environment plugin "${id}":`)
+			app.terminal.error(`A Plugin with the ID "${id}" already exists in the installed plugins list!`)
+			app.exit(1)
+		}
+
+		// Remove the plugin from the installed plugins list when Blockbench is closed.
+		Blockbench.on('before_closing', () => {
+			const plugin = Plugins.installed.find(plugin => plugin.id === id)
+			Plugins.installed.remove(plugin)
+			StateMemory.save('installed_plugins')
+			app.terminal.log(`Uninstalled Environment plugin "${id}"`)
+		})
+
+		app.terminal.log(`Installing Environment plugin "${id}"`);
+		const plugin = new Plugin(id, Plugins.json[id])
+		install_promises.push(
+			plugin.download().then(() => {
+				if (!Plugins.json[id]) {
+					app.terminal.error(`Failed to install Environment plugin "${id}":`)
+					app.terminal.error(`Failed to fetch plugin data.`)
+					app.exit(1)
+				}
+				app.terminal.log(`Installed Environment plugin "${id}"`);
+				console.log(`🧩🏠📁 Installed Environment plugin "${id}"`);
+			}).catch(err => {
+				app.terminal.error(`Failed to install Environment plugin "${id}":`)
+				app.terminal.error(err)
+				app.exit(1)
+			})
+		)
+	}
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
