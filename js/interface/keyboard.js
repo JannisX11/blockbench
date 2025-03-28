@@ -1,6 +1,6 @@
-import blender from '../../keymaps/blender.json';
-import cinema4d from '../../keymaps/cinema4d.json';
-import maya from '../../keymaps/maya.json';
+import blender from '../../keymaps/blender.bbkeymap';
+import cinema4d from '../../keymaps/cinema4d.bbkeymap';
+import maya from '../../keymaps/maya.bbkeymap';
 import { BARS } from './toolbars';
 
 window.KeymapPresets = {
