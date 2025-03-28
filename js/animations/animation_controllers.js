@@ -75,6 +75,7 @@ class AnimationControllerState {
 					target: '',
 					condition: ''
 				};
+				this.transitions.push(transition);
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
 					Object.assign(transition, a);
@@ -90,11 +91,13 @@ class AnimationControllerState {
 						setTimeout(() => {
 							// Delay to after loading controller so that all states can be found
 							let state_match = this.controller.states.find(state => state !== this && state.name == key);
-							if (state_match) transition.target = state_match.uuid;
+							if (state_match) {
+								let updated_transition = this.transitions.find(t => t.uuid == transition.uuid) ?? transitions;
+								updated_transition.target = state_match.uuid;
+							}
 						}, 0);
 					}
 				}
-				this.transitions.push(transition);
 			})
 		}
 		if (data.particles instanceof Array) {

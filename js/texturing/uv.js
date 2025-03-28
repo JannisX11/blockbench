@@ -1277,7 +1277,6 @@ const UVEditor = {
 		Undo.finishEdit('Toggle cullface')
 	},
 	switchTint(event) {
-		var scope = this;
 		var val = UVEditor.getReferenceFace().tint === -1 ? 0 : -1;
 
 		if (event === 0 || event === false) val = event
@@ -4204,21 +4203,27 @@ Interface.definePanels(function() {
 				},
 				toggleFaceTint(key, event) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					UVEditor.switchTint(event)
-					UVEditor.vue.$forceUpdate();
+					let value = UVEditor.getFirstMappableElement()?.faces[key]?.tint === -1 ? 0 : -1;
+					UVEditor.forCubes(cube => {
+						cube.faces[key].tint = value;
+					})
+					this.$forceUpdate();
 					Undo.finishEdit('Toggle face tint')
 				},
 				changeFaceTint(key, event) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
-					UVEditor.setTint(event, parseInt(event.target.value));
-					Undo.finishEdit('Toggle face tint');
+					let value = parseInt(event.target.value);
+					UVEditor.forCubes(cube => {
+						cube.faces[key].tint = value;
+					})					
+					Undo.finishEdit('Set face tint');
 				},
 				setCullface(key, value) {
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					UVEditor.forCubes(obj => {
-						UVEditor.getSelectedFaces(obj).forEach(face => {
-							obj.faces[face].cullface = value;
-						})
+						if (obj.faces[key]) {
+							obj.faces[key].cullface = value;
+						}
 					})
 					Undo.finishEdit(value ? `Set cullface to ${value}` : 'Disable cullface');
 				},
