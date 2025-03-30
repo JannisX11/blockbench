@@ -649,7 +649,7 @@
 		display: block;
 		height: auto;
 		width: fit-content;
-		min-width: 110px;
+		min-width: 145px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
 		z-index: 30;

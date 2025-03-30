@@ -45,7 +45,7 @@
 		z-index: 250;
 	}
 	#work_screen {
-		--toolbar-height: 30px;
+		--toolbar-height: 40px;
 		position: relative;
 		display: grid;
 		overflow: hidden;
@@ -284,6 +284,7 @@
 		overflow: hidden;
 		white-space: nowrap;
 		display: flex;
+		padding: 5px;
 	}
 	#main_toolbar > * {
 		display: inline-block;
@@ -611,9 +612,9 @@
 	#mode_selector li {
 		display: inline-block;
 		height: 30px;
-		margin: 0 5px;
 		overflow: hidden;
-		padding-top: 1px;
+		padding: 1px 7px;
+		border-radius: 5px;
 		font-size: 1.2em;
 		cursor: pointer;
 	}
@@ -621,7 +622,8 @@
 		color: var(--color-light);
 	}
 	#mode_selector li.selected {
-		border-bottom: 3px solid var(--color-accent);
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
 	}
 	#update_menu .tool > .icon {
 		margin-top: 3px;
