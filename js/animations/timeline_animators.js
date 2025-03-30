@@ -1,4 +1,5 @@
 import Wintersky from 'wintersky';
+import { THREE } from '../../lib/libs';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -595,17 +596,6 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		return (this.element && this.element && this.element.mesh);
 	}
 	displayPosition(arr, multiplier = 1) {
-	}
-	displayRotation(arr, multiplier = 1) {
-
-		let element = this.element;
-		let mesh = element.getParentArray().filter(m => m instanceof Mesh)[0];
-		if (!mesh) return;
-
-		for (let vkey of vertices) {}
-
-
-
 		var bone = this.element.mesh
 		if (arr) {
 			bone.position.x -= arr[0] * multiplier;
@@ -614,19 +604,76 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		}
 		return this;
 	}
+	displayRotation(arr, multiplier = 1) {
+		var mesh = this.element.mesh
+		if (arr) {
+			if (arr.length === 4) {
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				mesh.rotation.x -= added_rotation.x * multiplier
+				mesh.rotation.y -= added_rotation.y * multiplier
+				mesh.rotation.z += added_rotation.z * multiplier
+			} else {
+				arr.forEach((n, i) => {
+					mesh.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
+				})
+			}
+		}
+		return this;
+	}
+	displayMeshDeform(mesh) {
+		if (!mesh) return;
+		// Only gets called at the base bone of each rig
+
+		let matrices = {};
+		let bones = [];
+		let element = this.getElement();
+		let mesh_world_matrix_inverse = new THREE.Matrix4().copy(mesh.mesh.matrixWorld).invert();
+		let vertex_offsets = {};
+		let vector = new THREE.Vector3();
+		let vector2 = new THREE.Vector3();
+
+		element.parent.mesh.updateMatrixWorld();
+		element.forEachChild(bone => {
+			let matrix = new THREE.Matrix4().multiplyMatrices(bone.mesh.matrixWorld, mesh_world_matrix_inverse);
+			matrices[bone.uuid] = matrix;
+			bones.push(bone);
+
+		}, ArmatureBone, true);
+
+		for (let vkey in mesh.vertices) {
+
+			vector.fromArray(mesh.vertices[vkey]);
+			vector2.copy(vector2);
+
+			for (let bone of bones) {
+				let matrix = matrices[bone.uuid];
+				if (true) {
+					vector.applyMatrix4(matrix);
+				}
+			}
+			vector.sub(vector2);
+			//vector.lerpVectors();
+			vertex_offsets[vkey] = vector.toArray();
+		}
+		Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
+	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getElement()
 
 		if (!this.muted.position) {
 			this.displayPosition(this.interpolate('position'), multiplier);
-			this.displayRotation(this.interpolate('position'), multiplier);
 		}
+		if (!this.muted.rotation) {
+			this.displayRotation(this.interpolate('rotation'), multiplier);
+		}
+		this.displayMeshDeform();
 	}
 }
 	ArmatureBoneAnimator.prototype.type = 'null_object';
 	ArmatureBoneAnimator.prototype.channels = {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
+		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
 	}
 	ArmatureBone.animator = ArmatureBoneAnimator;
 

@@ -306,6 +306,18 @@ export const Animator = {
 			})
 		})
 
+		for (let mesh of Mesh.all) {
+			let array = mesh.getParentArray();
+			let mesh_index = array.indexOf(mesh);
+			let rig_root = array[mesh_index+1];
+			if (rig_root instanceof ArmatureBone) {
+				animations.forEach(animation => {
+					let animator = animation.getBoneAnimator(rig_root);
+					animator.displayMeshDeform(mesh);
+				});
+			}
+		}
+
 		Animator.resetLastValues();
 		scene.updateMatrixWorld();
 

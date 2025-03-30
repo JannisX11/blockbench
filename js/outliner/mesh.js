@@ -1051,7 +1051,7 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element) {
+	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
 		let point_position_array = [];
@@ -1062,6 +1062,16 @@ new NodePreviewController(Mesh, {
 		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
+
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
 
 		for (let key in vertices) {
 			let vector = vertices[key];

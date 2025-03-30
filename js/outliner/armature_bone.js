@@ -185,7 +185,7 @@ export class ArmatureBone extends OutlinerElement {
 				offset.z += this.parent.origin[2];
 			}
 		} else {
-			offset = Reusable.vec3.fromArray(this.position);
+			offset = Reusable.vec3.fromArray(this.origin);
 		}
 		offset.applyQuaternion(q);
 		pos.add(offset);
@@ -287,6 +287,11 @@ export class ArmatureBone extends OutlinerElement {
 			i++;
 		}
 	}
+	static behavior = {
+		movable: true,
+		rotatable: true,
+		hide_in_screenshot: true,
+	}
 }
 	ArmatureBone.prototype.title = tl('data.armature_bone');
 	ArmatureBone.prototype.type = 'armature_bone';
@@ -313,6 +318,7 @@ OutlinerElement.registerType(ArmatureBone, 'armature_bone');
 
 new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
 new Property(ArmatureBone, 'vector', 'rotation');
+new Property(ArmatureBone, 'object', 'vertex_weights');
 
 new NodePreviewController(ArmatureBone, {
 	setup(element) {
@@ -320,7 +326,7 @@ new NodePreviewController(ArmatureBone, {
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
-		object_3d.isArmatureBone = true;
+		object_3d.isElement = true;
 		Project.nodes_3d[element.uuid] = object_3d;
 
 
