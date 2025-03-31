@@ -374,10 +374,8 @@ if (isApp) {
 export const StateMemory = {
 	/**
 	 * Initialize a memorized property
-	 * @param {string} key 
-	 * @param {'string'|'number'|'boolean'|'object'|'array'} type 
 	 */
-	init(key, type) {
+	init(key: string, type: 'string'|'number'|'boolean'|'object'|'array') {
 		let saved: any = localStorage.getItem(`StateMemory.${key}`)
 		if (typeof saved == 'string') {
 			try {
