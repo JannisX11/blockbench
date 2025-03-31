@@ -80,6 +80,7 @@
 		padding-top: 1px;
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		border-radius: 5px;
 	}
 	.input_wide {
 		width: 100%;
@@ -135,8 +136,9 @@
 	}
 	.preview .preview_menu {
 		position: absolute;
-		right: -1px;
-		top: 0;
+		right: 3px;
+		top: 2px;
+		border-radius: 5px;
 		background-color: var(--color-dark);
 		display: flex;
 	}
@@ -293,6 +295,12 @@
 	}
 	.light_on_hover:hover {
 		color: var(--color-light);
+	}
+
+	.elevated {
+		background-color: var(--color-elevated);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+		border-radius: 5px;
 	}
 
 	.spinning {
@@ -452,24 +460,21 @@
 		float: left;
 		color: var(--color-text);
 		flex-shrink: 0;
+		cursor: pointer;
 	}
 	.tool i {
 		display: block;
 		margin: 4px auto;
 	}
-	.tool:active .icon {
+	.tool:active > .icon {
 		padding-top: 1px;
 	}
-	.tool:active .icon.fa_big {
+	.tool:active > .icon.fa_big {
 		padding-top: 2px;
 	}
 	img.icon {
 		height: 26px;
 		image-rendering: pixelated;
-	}
-
-	.tool.enabled {
-		border-bottom: 3px solid var(--color-accent);
 	}
 
 	.tool.widget {
@@ -488,6 +493,11 @@
 	}
 	.tool.right_tool {
 		position: relative;
+	}
+	.tool.enabled {
+		background: var(--color-accent);
+		border-radius: 4px;
+		color: var(--color-accent_text);
 	}
 
 	.placeholder {
@@ -545,17 +555,18 @@
 	}
 	.tooltip {
 		position: absolute;
-		height: 28px;
+		height: 29px;
 		width: fit-content;
-		padding-left: 5px;
-		padding-right: 5px;
-		padding-top: 2px;
+		padding-left: 6px;
+		padding-right: 6px;
+		padding-top: 3px;
 		background: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
 		margin-top: 30px;
 		white-space: nowrap;
 		z-index: 20;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
+		border-radius: 4px;
 		pointer-events: none;
 		visibility: hidden;
 	}
@@ -585,11 +596,13 @@
 	.tool.bar_select.icon_mode {
 		padding: 0 4px;
 		background-color: var(--color-button);
+		border-radius: 5px;
 	}
 	.tool.bar_select .select_option {
 		float: left;
 		width: 28px;
 		height: 100%;
+		border-radius: 4px;
 		color: var(--color-text);
 	}
 	.tool.bar_select .select_option:hover {
@@ -598,6 +611,9 @@
 	.tool.bar_select .select_option.selected {
 		background: var(--color-accent);
 		color: var(--color-accent_text);
+	}
+	.tool.bar_select .select_option:active {
+		padding-top: 1px;
 	}
 	.tool.bar_select .select_option .icon {
 		transform: scale(0.86);
@@ -639,11 +655,12 @@
 		display: block;
 		height: auto;
 		width: fit-content;
-		min-width: 110px;
+		min-width: 145px;
 		background-color: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
 		z-index: 30;
 		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
+		border-radius: 6px;
 		cursor: default;
 		white-space: nowrap;
 	}
@@ -661,6 +678,14 @@
 		padding: 4px;
 		padding-left: 34px;
 		padding-right: 8px;
+	}
+	.contextMenu li:first-of-type {
+		border-top-left-radius: inherit;
+		border-top-right-radius: inherit;
+	}
+	.contextMenu li:last-of-type {
+		border-bottom-left-radius: inherit;
+		border-bottom-right-radius: inherit;
 	}
 	.contextMenu li.parent {
 		padding-right: 20px;

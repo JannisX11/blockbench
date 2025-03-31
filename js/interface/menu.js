@@ -74,7 +74,13 @@ export class Menu {
 		}
 	}
 	hover(node, event, expand) {
-		if (node.classList.contains('focused') && !expand) return;
+		if (node.classList.contains('focused') && !expand) {
+			if (node.classList.contains('hybrid_parent')) {
+				node.classList.remove('opened');
+			} else {
+				return;
+			}
+		}
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
@@ -547,8 +553,9 @@ export class Menu {
 			} else if (position && position.parentElement.classList.contains('tool')) {
 				position = position.parentElement;
 			}
-			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + position.offsetHeight;
+			let offset = $(position).offset();
+			var offset_left = offset.left;
+			var offset_top  = offset.top + position.offsetHeight;
 		}
 
 		if (offset_left > window.innerWidth - el_width) {

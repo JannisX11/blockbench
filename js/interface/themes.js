@@ -34,6 +34,7 @@ export const CustomTheme = {
 		dark: '#17191d',
 		border: '#181a1f',
 		selected: '#474d5d',
+		elevated: '#323640',
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
