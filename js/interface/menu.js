@@ -74,7 +74,14 @@ export class Menu {
 		}
 	}
 	hover(node, event, expand) {
-		if (node.classList.contains('focused') && !expand) return;
+		console.trace('HOV', node, event ,expand)
+		if (node.classList.contains('focused') && !expand) {
+			if (node.classList.contains('hybrid_parent')) {
+				node.classList.remove('opened');
+			} else {
+				return;
+			}
+		}
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
