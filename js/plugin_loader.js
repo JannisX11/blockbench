@@ -426,6 +426,7 @@ export class Plugin {
 		entry.path = path;
 		entry.source = this.source;
 		entry.disabled = this.disabled ? true : undefined;
+		entry.dependencies = this.dependencies?.length ? this.dependencies.slice() : undefined;
 
 		if (!already_exists) Plugins.installed.push(entry);
 
@@ -817,85 +818,107 @@ export async function loadInstalledPlugins() {
 		await Plugins.loading_promise;
 	}
 	const install_promises = [];
+	const online_access = Plugins.json instanceof Object && navigator.onLine;
 
-	if (Plugins.json instanceof Object && navigator.onLine) {
-		//From Store
-		let to_install = [];
+	// Setup offers from store
+	if (online_access) {
 		for (let id in Plugins.json) {
-			let plugin = new Plugin(id, Plugins.json[id]);
-			to_install.push(plugin);
+			new Plugin(id, Plugins.json[id]);
 		}
 		Plugins.sort();
+	}
 
-		for (let plugin of to_install) {
-			let installed_match = Plugins.installed.find(p => {
-				return p && p.id == plugin.id && p.source == 'store'
-			});
-			if (installed_match) {
-				plugin.installed = true;
-				if (installed_match.disabled) plugin.disabled = true;
+	// Load plugins
+	if (Plugins.installed.length > 0) {
 
-				if (isApp && (
-					(installed_match.version && plugin.version && !compareVersions(plugin.version, installed_match.version)) ||
-					Blockbench.isOlderThan(plugin.min_version)
-				)) {
-					// Get from file
-					let promise = plugin.load(false);
-					install_promises.push(promise);
-				} else {
-					// Update
-					let promise = plugin.download();
-					if (plugin.await_loading) {
-						install_promises.push(promise);
+		// Resolve dependency order
+		// TODO: solve dependency order on plugins that load asynchronously (on update from web etc.)
+		function resolveDependencies(installation, depth) {
+			if (depth > 10)  {
+				console.error(`Could not resolve plugin dependencies: Recursive dependency on plugin "${installation.id}"`, installation);
+				return;
+			}
+			for (let dependency_id of installation.dependencies) {
+				let dependency_installation = Plugins.installed.find(inst => inst.id == dependency_id);
+				let this_index = Plugins.installed.indexOf(installation);
+				let dep_index =  Plugins.installed.indexOf(dependency_installation);
+				console.log({this_index, dep_index, installation, dependency_installation, depth, r: dependency_installation && dep_index > this_index})
+				if (dependency_installation && dep_index > this_index) {
+					Plugins.installed.remove(dependency_installation);
+					Plugins.installed.splice(this_index, 0, dependency_installation);
+					if (dependency_installation.dependencies?.length) {
+						resolveDependencies(dependency_installation, depth+1);
 					}
 				}
 			}
 		}
-	} else if (Plugins.installed.length > 0 && isApp) {
-		//Offline
-		Plugins.installed.forEach(function(plugin_data) {
-
-			if (plugin_data.source == 'store') {
-				let instance = new Plugin(plugin_data.id); 
-				let promise = instance.load(false, function() {
-					Plugins.sort();
-				})
-				install_promises.push(promise);
+		for (let installation of Plugins.installed.slice()) {
+			if (installation.dependencies?.length) {
+				resolveDependencies(installation, 0);
 			}
-		})
-	}
-	if (Plugins.installed.length > 0) {
+		}
+
+		// Install plugins
 		var load_counter = 0;
-		Plugins.installed.forEachReverse(function(plugin) {
+		Plugins.installed.slice().forEach(function loadPlugin(installation) {
 
-			if (plugin.source == 'file') {
-				//Dev Plugins
-				if (isApp && fs.existsSync(plugin.path)) {
-					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
-					install_promises.push(instance.loadFromFile({path: plugin.path}, false));
+			if (installation.source == 'file') {
+				// Dev Plugins
+				if (isApp && fs.existsSync(installation.path)) {
+					var instance = new Plugin(installation.id, {disabled: installation.disabled});
+					install_promises.push(instance.loadFromFile({path: installation.path}, false));
 					load_counter++;
-					console.log(`🧩📁 Loaded plugin "${plugin.id || plugin.path}" from file`);
+					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
 				} else {
-					Plugins.installed.remove(plugin);
+					Plugins.installed.remove(installation);
 				}
 
-			} else if (plugin.source == 'url') {
-				if (plugin.path) {
-					var instance = new Plugin(plugin.id, {disabled: plugin.disabled});
-					install_promises.push(instance.loadFromURL(plugin.path, false));
+			} else if (installation.source == 'url') {
+				// URL
+				if (installation.path) {
+					var instance = new Plugin(installation.id, {disabled: installation.disabled});
+					install_promises.push(instance.loadFromURL(installation.path, false));
 					load_counter++;
-					console.log(`🧩🌐 Loaded plugin "${plugin.id || plugin.path}" from URL`);
+					console.log(`🧩🌐 Loaded plugin "${installation.id || installation.path}" from URL`);
 				} else {
-					Plugins.installed.remove(plugin);
+					Plugins.installed.remove(installation);
 				}
 
-			} else {
-				if (Plugins.all.find(p => p.id == plugin.id)) {
+			} else if (online_access) {
+				// Store plugin
+				let plugin = Plugins.all.find(p => p.id == installation.id);
+				if (plugin) {
+					plugin.installed = true;
+					if (installation.disabled) plugin.disabled = true;
+					
+					if (isApp && (
+						(installation.version && plugin.version && !compareVersions(plugin.version, installation.version)) ||
+						Blockbench.isOlderThan(plugin.min_version)
+					)) {
+						// Get from file
+						let promise = plugin.load(false);
+						install_promises.push(promise);
+					} else {
+						// Update
+						let promise = plugin.download();
+						if (plugin.await_loading) {
+							install_promises.push(promise);
+						}
+					}
 					load_counter++;
-					console.log(`🧩🛒 Loaded plugin "${plugin.id}" from store`);
+					console.log(`🧩🛒 Loaded plugin "${installation.id}" from store`);
+
 				} else if (Plugins.json instanceof Object && navigator.onLine) {
-					Plugins.installed.remove(plugin);
+					Plugins.installed.remove(installation);
 				}
+
+			} else if (isApp && installation.source == 'store') {
+				// Offline install store plugin
+				let plugin = new Plugin(installation.id); 
+				let promise = plugin.load(false);
+				install_promises.push(promise);
+			} else {
+				Plugins.installed.remove(installation);
 			}
 		})
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
@@ -1295,6 +1318,7 @@ BARS.defineActions(function() {
 
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
+				capitalizeFirstLetter,
 				tl
 			},
 			mount_directly: true,
