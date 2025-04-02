@@ -149,7 +149,7 @@
 	"dependencies": {
 		"@electron/remote": "^2.1.2",
 		"@types/three": "^0.174.0",
-		"blockbench-types": "^4.12.1",
+		"blockbench-types": "^4.12.2",
 		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^6.3.4",
 		"file-saver": "^2.0.5",

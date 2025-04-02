@@ -390,11 +390,10 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     height: 30px;
     display:inline-block;
     zoom: 1;
-    display: inline;
-    background: var(--color-button);
     color: var(--color-text);
     vertical-align: middle;
     outline: none;
+    border-radius: 5px;
 }
 .sp-replacer:hover, .sp-replacer.sp-active {
     color: var(--color-light);
