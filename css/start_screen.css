@@ -406,6 +406,8 @@
 	
 	#start_files li.format_category {
 		margin-top: 16px;
+		padding-left: 6px;
+		padding-right: 6px;
 	}
 	#start_files li.format_category > label {
 		color: var(--color-subtle_text);
@@ -416,7 +418,8 @@
 		padding: 4px 0;
 		cursor: pointer;
 		font-size: 18px;
-		padding-left: 24px;
+		padding-left: 18px;
+		border-radius: 6px;
 	}
 	#start_files li.format_entry span.icon_wrapper {
 		height: 30px;

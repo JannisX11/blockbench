@@ -289,7 +289,9 @@
 /*Display*/
 
 	.tabs_small input[type="radio"]:checked+label {
-		border-bottom: 3px solid var(--color-accent);
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+		border-radius: 5px;
 	}
 	.tabs_small input[type="radio"] {
 		display: none;
@@ -301,6 +303,7 @@
 		text-align: center;
 		flex-grow: 1;
 		overflow: hidden;
+		cursor: pointer;
 	}
 	#color .tabs_small label {
 		font-size: 1em;

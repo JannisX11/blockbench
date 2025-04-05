@@ -369,6 +369,8 @@
 		flex-wrap: wrap;
 		gap: 2px;
 		flex-grow: 1;
+		border-radius: 5px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 	}
 	.form_inline_select > li {
 		height: 30px;
@@ -378,6 +380,14 @@
 		background-color: var(--color-button);
 		text-align: center;
 	}
+	.form_inline_select > li:first-of-type {
+		border-top-left-radius: inherit;
+		border-bottom-left-radius: inherit;
+	}
+	.form_inline_select > li:last-of-type {
+		border-top-right-radius: inherit;
+		border-bottom-right-radius: inherit;
+	}
 	.form_inline_select > li:hover {
 		color: var(--color-light);
 	}
@@ -385,6 +395,7 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 		cursor: default;
+		border-radius: inherit;
 	}
 	.form_bar_radio {
 		display: flex;
@@ -854,16 +865,17 @@
 	}
 	#theme_list .theme {
 		float: left;
-		padding: 6px;
+		padding: 8px;
 		border: 2px solid transparent;
-		background-color: var(--color-back);
 		color: var(--color-text);
+		background-color: var(--color-elevated);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 		cursor: pointer;
+		border-radius: 5px;
 	}
 	#theme_list .theme:hover {
-		border-color: var(--color-border);
 		color: var(--color-light);
-		background-color: var(--color-back);
+		background-color: var(--color-button);
 	}
 	#theme_list .theme.selected {
 		border-color: var(--color-accent);

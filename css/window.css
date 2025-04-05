@@ -613,9 +613,9 @@
 		display: inline-block;
 		height: 30px;
 		overflow: hidden;
-		padding: 1px 7px;
+		padding: 2px 7px;
 		border-radius: 5px;
-		font-size: 1.2em;
+		font-size: 1.1em;
 		cursor: pointer;
 	}
 	#mode_selector li:hover {
@@ -624,6 +624,9 @@
 	#mode_selector li.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
+	}
+	#mode_selector li > .icon {
+		vertical-align: text-bottom;
 	}
 	#update_menu .tool > .icon {
 		margin-top: 3px;
@@ -978,7 +981,7 @@
 		width: 16px;
 		height: 16px;
 		margin: -8px;
-		border-radius: 50%;
+		border-radius: 5px;
 		z-index: 1;
 		text-align: center;
 		font-size: 12px;
