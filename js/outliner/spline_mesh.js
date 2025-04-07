@@ -465,21 +465,79 @@ class SplineMesh extends OutlinerElement {
         let vertices = [];
         let normals = [];
         let indices = [];
-        let curveKeys = [];
 
+        // Gather Tangents for the entire tube
+        let prevCurve;
+        let prevCurveTangent;
+        let tangents = [];
+        let points = [];
         for (let cKey in this.curves) {
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
                 let curveData = this.getBézierForCurve(time, cKey);
+                let curveChange = prevCurve && prevCurve != cKey;
 
+                // Obtain local tangent, then check if we just changed curve segment, if so, we 
+                // need to interpolate the previous and current tangents so that the tube mesh doesn't break
+                let tangent = curveData.tangent;
+                if (curveChange) {
+                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent); 
+                    let currTangent = new THREE.Vector3().copy(curveData.tangent); 
+                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
+                    tangent = avgTangent;
+                }
+
+                // Store tangents for later steps
+                if (curveChange) { // Pop & replace last tangent if our curve has changed
+                    tangents.pop()
+                    tangents.push(tangent)
+                }
+                tangents.push(tangent);
+                points.push(curveData.point)
+
+                // Assign temp
+                prevCurveTangent = curveData.tangent;
+                prevCurve = cKey;
+            }
+        }
+
+        // Add Verties per ring
+        let vertex = new THREE.Vector3();
+        let vertex_vectors = [];
+        for (let tangentId = 0; tangentId <= (tangents.length - 1); tangentId++) {
+            let tangent = tangents[tangentId];
+            let matrix = new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), tangent, new THREE.Vector3(0, 1, 0));
+
+            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+                let angle = ringPoint / radialSegments * Math.PI * 2;
+                let cos = -Math.cos(angle);
+                let sin = Math.sin(angle);
+
+                // Generate base rings, at scene origin, all aligned on one axis.
+                vertex.x = sin * radius;
+                vertex.y = cos * radius;
+                vertex.z = 0.0;
+
+                // Finalize vertices & push em
+                vertex.applyMatrix4(matrix);
+                vertex.add(points[tangentId]);
+                vertex_vectors.push(vertex);
+                vertices.push(...vertex.toArray());
+
+                // Face indices, so we can render them properly
+                let a = (radialSegments + 1) * (tangentId - 1) + (ringPoint - 1);
+                let b = (radialSegments + 1) * tangentId + (ringPoint - 1);
+                let c = (radialSegments + 1) * tangentId + ringPoint;
+                let d = (radialSegments + 1) * (tangentId - 1) + ringPoint;
+                indices.push(a, b, d);
+                indices.push(b, c, d);
             }
         }
 
         return {
             vertices: vertices,
             normals: normals,
-            indices: indices,
-            curves: curveKeys
+            indices: indices
         };
     }
     getBézierForCurve(time, key) {
@@ -668,11 +726,12 @@ new NodePreviewController(SplineMesh, {
         let debugTangentColors = []
         let prevCurve;
         let prevCurveTangent;
-        for (let cKey in element.curves) {
+
+        let pushPoints = function(bézierFunc, cKey = null) {
             for (let res = 0; res <= element.resolution[1]; res++) {
                 let time = res / element.resolution[1];
-                let curve = element.getBézierForCurve(time, cKey);
-                let curveChange = prevCurve && prevCurve != cKey;
+                let curve = bézierFunc(time);
+                let curveChange = prevCurve && cKey && prevCurve != cKey;
 
                 // Check if we just changed curve segment, if so, we need to interpolate the 
                 // previous and current tangents so that the tube mesh doesn't break
@@ -700,9 +759,15 @@ new NodePreviewController(SplineMesh, {
                 debugTangentColors.push(color);
                 debugTangentColors.push(color);
 
+                // Assign temp
                 prevCurveTangent = curve.tangent;
                 prevCurve = cKey;
             }
+        }
+
+        // Add curve line points
+        for (let cKey in element.curves) {
+            pushPoints((time) => element.getBézierForCurve(time, cKey), cKey);
         }
 
         // Add another curve to the mesh if this spline is cyclic
@@ -710,15 +775,9 @@ new NodePreviewController(SplineMesh, {
             let firsthandle = element.getFirstHandle();
             let lasthandle = element.getLastHandle();
 
-            for (let res = 0; res <= element.resolution[1]; res++) {
-                let time = res / element.resolution[1];
-                let curve = element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
-                pointsToAdd.push(curve.point);
-                debugTangentPoints.push(curve.point);
-                debugTangentPoints.push(new THREE.Vector3().addVectors(curve.point, curve.tangent));
-                debugTangentColors.push(debugTangentColor);
-                debugTangentColors.push(debugTangentColor);
-            }
+            pushPoints((time) => { 
+                return element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint) 
+            });
         }
 
         // Add all points to line geometry
@@ -727,12 +786,12 @@ new NodePreviewController(SplineMesh, {
             line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
             line_colors.push(...pathColor, ...(shouldDouble ? pathColor : []))
         })
-        debugTangentPoints.forEach((vector, i) => {
-            line_points.push(...vector.toArray());
-        })
-        debugTangentColors.forEach((array, i) => {
-            line_colors.push(...array);
-        })
+        // debugTangentPoints.forEach((vector, i) => {
+        //     line_points.push(...vector.toArray());
+        // })
+        // debugTangentColors.forEach((array, i) => {
+        //     line_colors.push(...array);
+        // })
 
         // Tube geometry
         let tube = element.getTubeGeo();
