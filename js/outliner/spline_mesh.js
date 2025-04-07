@@ -207,113 +207,6 @@ class SplineMesh extends OutlinerElement {
             return key;
         })
     }
-    // TODO: Implement ring orientation, based on the previous point & next point's angle with for center the current point.
-    // https://en.wikipedia.org/wiki/Inverse_trigonometric_functions
-    getTubeGeo() {
-        let radialSegments = this.resolution[0];
-        let vertices = [];
-        let vertex_vectors = [];
-        let normals = [];
-        let indices = [];
-        let vertex = new THREE.Vector3();
-        let point = new THREE.Vector3();
-        let radius = 2;
-
-        // Curve components
-        let curve = this.getCurvePath();
-        let tubePoints = curve.getPoints(this.resolution[1]);
-
-        let prevAngles = [];
-        for (let ts = 0; ts <= tubePoints.length - 1; ts++) {
-            // Grab the current point from the points array
-            point = tubePoints[ts];
-
-            // Check if we're at a sub-curve extremity
-            let isCurveExtremity = ts % this.resolution[1] == 0;
-
-            // Build a matrix between prev & next tube points
-            // TODO: this currently does NOT work, the spline twists badly and many rings simply don't align propetly
-            let P1 = new THREE.Vector3().copy(tubePoints[ts - 1] || point); // Copy previous point into new vector
-            let P2 = new THREE.Vector3().copy(tubePoints[ts + 1] || point); // Copy next point into new vector
-            let direction = P2.sub(P1).normalize();
-            let angleY = -Math.atan(direction.z / direction.x);
-            let angleZ = Math.atan(direction.y / direction.x);
-            let matrixY = new THREE.Matrix4().makeRotationY(angleY);
-            let matrixZ = new THREE.Matrix4().makeRotationZ(angleZ);
-            let matrix = matrixZ.multiply(matrixY);
-            prevAngles = [angleY, angleZ];
-
-            // generate normals (TODO), Face Indices and Vertices for the current point
-            for (let rs = 0; rs <= radialSegments; rs++) {
-                let angle = rs / radialSegments * Math.PI * 2;
-                let cos = -Math.cos(angle);
-                let sin = Math.sin(angle);
-
-                // Generate base rings, at scene origin, all aligned on one axis.
-                vertex.x = 0.0;
-                vertex.y = cos * radius;
-                vertex.z = sin * radius;
-
-                // Finalize vertices & push em
-                vertex.applyMatrix4(matrix);
-                vertex.add(point);
-                vertex_vectors.push(vertex);
-                vertices.push(vertex.x, vertex.y, vertex.z);
-            }
-        }
-
-        // Face indices, so we can render them properly
-        for (let ts = 1; ts <= tubePoints.length - 1; ts++) {
-            for (let rs = 1; rs <= radialSegments; rs++) {
-                let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
-                let b = (radialSegments + 1) * ts + (rs - 1);
-                let c = (radialSegments + 1) * ts + rs;
-                let d = (radialSegments + 1) * (ts - 1) + rs;
-                indices.push(a, b, d);
-                indices.push(b, c, d);
-            }
-        }
-
-        // Normals (broken atm)
-        /*
-        for (let ts = 1; ts <= tubePoints.length - 1; ts++) {
-            for (let rs = 1; rs <= radialSegments; rs++) {
-                let a = (radialSegments + 1) * (ts - 1) + (rs - 1);
-                let b = (radialSegments + 1) * ts + (rs - 1);
-                let c = (radialSegments + 1) * ts + rs;
-                let d = (radialSegments + 1) * (ts - 1) + rs;
-                if (!(vertex_vectors[a] && vertex_vectors[b] && vertex_vectors[c] && vertex_vectors[d])) continue;
-                
-                let faceVertices = [vertex_vectors[a], vertex_vectors[b], vertex_vectors[c], vertex_vectors[d]];
-                let P1 = [
-                    faceVertices[1].x - faceVertices[0].x,
-                    faceVertices[1].y - faceVertices[0].y,
-                    faceVertices[1].z - faceVertices[0].z,
-                ]
-                let P2 = [
-                    faceVertices[2].x - faceVertices[0].x,
-                    faceVertices[2].y - faceVertices[0].y,
-                    faceVertices[2].z - faceVertices[0].z,
-                ]
-                let direction = [
-                    P1[1] * P2[2] - P1[2] * P2[1],
-                    P1[2] * P2[0] - P1[0] * P2[2],
-                    P1[0] * P2[1] - P1[1] * P2[0],
-                ]
-                let length = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
-                let faceNormal = direction.map(dir => dir / length || 0);
-                normals.push(...faceNormal, ...faceNormal, ...faceNormal, ...faceNormal);
-            }
-        }
-        */
-
-        return {
-            vertices: vertices,
-            normals: normals,
-            indices: indices
-        };
-
-    }
     extend(object) {
         for (var key in SplineMesh.properties) {
             SplineMesh.properties[key].merge(this, object)
@@ -418,28 +311,6 @@ class SplineMesh extends OutlinerElement {
         if (this.visibility) {
             this.preview_controller.updateFaces(this);
         }
-    }
-    getCurvePath() {
-        let curvePath = new THREE.CurvePath()
-        for (let key in this.curves) {
-            let curve = this.getCurveAsBezier(key);
-            curvePath.curves.push(curve);
-        }
-        return curvePath;
-    }
-    getCurveAsBezier(key) {
-        let points = this.curves[key];
-        let curve = this.getBezierForVertices(points.start, points.start_ctrl, points.end_ctrl, points.end);
-        return curve;
-    }
-    getBezierForVertices(start_key, start_control_key, end_control_key, end_key) {
-        let curve = new THREE.CubicBezierCurve3(
-            new THREE.Vector3().fromArray(this.vertices[start_key]),
-            new THREE.Vector3().fromArray(this.vertices[start_control_key]),
-            new THREE.Vector3().fromArray(this.vertices[end_control_key]),
-            new THREE.Vector3().fromArray(this.vertices[end_key])
-        );
-        return curve;
     }
     getSelectedVertices(make) {
         if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [], handles: [] };
@@ -582,10 +453,78 @@ class SplineMesh extends OutlinerElement {
             vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
             vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
             vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
-            vec2.applyEuler(Transformer.rotation_selection);
+            vec2.applyEuler(Transformer.rotation_selection); 
             this.vertices[key].replace(vec2.toArray())
         })
         this.preview_controller.updateGeometry(this);
+    }
+    getTubeGeo() {
+        let radialSegments = this.resolution[0];
+        let tubularSegments = this.resolution[1];
+        let radius = 2;
+        let vertices = [];
+        let normals = [];
+        let indices = [];
+        let curveKeys = [];
+
+        for (let cKey in this.curves) {
+            for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
+                let time = tubePoint / tubularSegments;
+                let curveData = this.getBézierForCurve(time, cKey);
+
+            }
+        }
+
+        return {
+            vertices: vertices,
+            normals: normals,
+            indices: indices,
+            curves: curveKeys
+        };
+    }
+    getBézierForCurve(time, key) {
+        let points = this.curves[key];
+        return this.getBézierForPoints(time, points.start, points.start_ctrl, points.end_ctrl, points.end);
+    }
+    getBézierForPoints(time, p1k, p2k, p3k, p4k) {
+        let p1 = new THREE.Vector3().fromArray(this.vertices[p1k]);
+        let p2 = new THREE.Vector3().fromArray(this.vertices[p2k]);
+        let p3 = new THREE.Vector3().fromArray(this.vertices[p3k]);
+        let p4 = new THREE.Vector3().fromArray(this.vertices[p4k]);    
+        return this.cubicBézier(time, p1, p2, p3, p4);
+    }
+    cubicBézier(time, point1, point2, point3, point4) {
+        let timeP2 = Math.pow(time, 2);
+        let timeP3 = Math.pow(time, 3);
+        let p = [1, time, timeP2, timeP3]; // Power matrix (Position)
+        let d = [0, 1, 2*time, 3*timeP2]; // Derivative Power matrix (Tangent)
+
+        // Characteristic Coefficients for the original Bézier curve ("pc" variable is inverted to respect operation order)
+        let pc1 = [ 1, 0,  0, 0];
+        let pc2 = [-3, 3,  0, 0];
+        let pc3 = [ 3, -6, 3, 0];
+        let pc4 = [-1, 3, -3, 1];
+        let pc = [pc4, pc3, pc2, pc1]
+
+        // Bernstein polynomial function
+        let bernstein = function(powers, char) {
+            let result = new THREE.Vector3();
+            let points = [ point1, point2, point3, point4 ];
+            for (let i = 0; i < 4; i++) {
+                let point = new THREE.Vector3().copy(points[i]);
+                let term = point.multiplyScalar(powers[3]*char[i][0] + powers[2]*char[i][1] + powers[1]*char[i][2] + powers[0]*char[i][3]);
+                result.add(term);
+            }
+            return result
+        }
+
+        // Gather results
+        let pointPos = bernstein(p, pc);
+        let tangentVec = bernstein(d, pc);
+        return {
+            point: pointPos, 
+            tangent: tangentVec.normalize()
+        };
     }
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
@@ -721,26 +660,79 @@ new NodePreviewController(SplineMesh, {
         }
 
         // Bezier Curves
-        let path_color = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
-        let addPoints = function (points) {
-            points.forEach((vector, i) => {
-                let shouldDouble = i > 0 && i < (points.length - 1); // Band-aid because I don't calculate indices for outlines.
-                line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
-                line_colors.push(...path_color, ...(shouldDouble ? path_color : []))
-            })
+        let pathColor = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
+        let debugTangentColor = [gizmo_colors.r.r, gizmo_colors.r.g, gizmo_colors.r.b];
+        let debugTangentColorSplit = [gizmo_colors.g.r, gizmo_colors.g.g, gizmo_colors.g.b];
+        let pointsToAdd = []
+        let debugTangentPoints = []
+        let debugTangentColors = []
+        let prevCurve;
+        let prevCurveTangent;
+        for (let cKey in element.curves) {
+            for (let res = 0; res <= element.resolution[1]; res++) {
+                let time = res / element.resolution[1];
+                let curve = element.getBézierForCurve(time, cKey);
+                let curveChange = prevCurve && prevCurve != cKey;
+
+                // Check if we just changed curve segment, if so, we need to interpolate the 
+                // previous and current tangents so that the tube mesh doesn't break
+                let localTangent;
+                let color;
+                if (curveChange) {
+                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent); 
+                    let currTangent = new THREE.Vector3().copy(curve.tangent); 
+                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
+                    localTangent = new THREE.Vector3().addVectors(curve.point, avgTangent);
+                    color = debugTangentColorSplit;
+                } else {
+                    localTangent = new THREE.Vector3().addVectors(curve.point, curve.tangent);
+                    color = debugTangentColor
+                }
+
+                // Push all points to their respective arrays
+                pointsToAdd.push(curve.point);
+                if (curveChange) { // Pop & replace last tangent if our curve has changed
+                    debugTangentPoints.pop()
+                    debugTangentPoints.push(localTangent)
+                }
+                debugTangentPoints.push(curve.point);
+                debugTangentPoints.push(localTangent);
+                debugTangentColors.push(color);
+                debugTangentColors.push(color);
+
+                prevCurveTangent = curve.tangent;
+                prevCurve = cKey;
+            }
         }
-        let curvePath = element.getCurvePath();
-        let curve_points = curvePath.getPoints(element.resolution[1])
-        addPoints(curve_points);
 
         // Add another curve to the mesh if this spline is cyclic
         if (element.cyclic) {
             let firsthandle = element.getFirstHandle();
             let lasthandle = element.getLastHandle();
-            let curve = element.getBezierForVertices(lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
-            let curve_points = curve.getPoints(element.resolution[1]);
-            addPoints(curve_points);
+
+            for (let res = 0; res <= element.resolution[1]; res++) {
+                let time = res / element.resolution[1];
+                let curve = element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
+                pointsToAdd.push(curve.point);
+                debugTangentPoints.push(curve.point);
+                debugTangentPoints.push(new THREE.Vector3().addVectors(curve.point, curve.tangent));
+                debugTangentColors.push(debugTangentColor);
+                debugTangentColors.push(debugTangentColor);
+            }
         }
+
+        // Add all points to line geometry
+        pointsToAdd.forEach((vector, i) => {
+            let shouldDouble = i > 0 && i < (pointsToAdd.length - 1); // Band-aid because I don't calculate indices for outlines.
+            line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
+            line_colors.push(...pathColor, ...(shouldDouble ? pathColor : []))
+        })
+        debugTangentPoints.forEach((vector, i) => {
+            line_points.push(...vector.toArray());
+        })
+        debugTangentColors.forEach((array, i) => {
+            line_colors.push(...array);
+        })
 
         // Tube geometry
         let tube = element.getTubeGeo();
@@ -748,7 +740,9 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
         mesh.geometry.setIndex(tube.indices);
 
-        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(line_points.length).fill(mesh.geometry.attributes.highlight.array[0]), 1));
+        let tubeVertCount = mesh.geometry.attributes.position.array.length;
+        let highlightArray = mesh.geometry.attributes.highlight.array
+        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(tubeVertCount).fill(highlightArray[0]), 1));
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_points), 3));
@@ -766,11 +760,24 @@ new NodePreviewController(SplineMesh, {
     updateFaces(element) {
         let { mesh } = element;
 
-        if (Project.view_mode === 'solid') mesh.material = Canvas.monochromaticSolidMaterial
-        else if (Project.view_mode === 'colored_solid') mesh.material = Canvas.coloredSolidMaterials[element.color]
-        else if (Project.view_mode === 'wireframe') mesh.material = Canvas.wireframeMaterial
-        else if (Project.view_mode === 'normal') mesh.material = Canvas.normalHelperMaterial
-        else if (Project.view_mode === 'uv') mesh.material = Canvas.uvHelperMaterial
+        if (Project.view_mode === 'solid') 
+            mesh.material = Canvas.monochromaticSolidMaterial
+        else if (Project.view_mode === 'colored_solid') 
+            mesh.material = Canvas.coloredSolidMaterials[element.color]
+        else if (Project.view_mode === 'wireframe') 
+            mesh.material = Canvas.wireframeMaterial
+        else if (Project.view_mode === 'normal') 
+            mesh.material = Canvas.normalHelperMaterial
+        else if (Project.view_mode === 'uv') 
+            mesh.material = Canvas.uvHelperMaterial
+        else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) 
+            mesh.material = Canvas.getLayeredMaterial();
+        else if (Format.single_texture) {
+            let tex = Texture.getDefault();
+            mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
+        }
+        else if (Project.view_mode === 'textured') 
+            mesh.material = Canvas.emptyMaterials[element.color];
 
         this.dispatchEvent('update_faces', { element });
     },

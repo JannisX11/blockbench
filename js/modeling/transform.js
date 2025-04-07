@@ -598,18 +598,10 @@ function moveElementsInSpace(difference, axis) {
 					return new THREE.Vector3().fromArray(final);
 				}
 
-				// Gives us the opposite point of the current vkey about a given handle's joint
-				let getInverseOfCtrl = function (handle) {
-					let control = el.vertices[vkey];
-					let joint = el.vertices[handle.joint];
-					let inverse = getInverseOfVec(control, joint);
-					return new THREE.Vector3().fromArray(inverse);
-				}
-
 				// Give us the opposite point of the current vkey for this handle
 				let getOppositeCtrl = function (handle) {
-					if (handle.control1 == vkey) return handle.control2;
-					else if (handle.control2 == vkey) return handle.control1;
+					if (handle.control1 === vkey) return handle.control2;
+					else if (handle.control2 === vkey) return handle.control1;
 				}
 
 				for (let hkey in el.handles) {
@@ -619,8 +611,12 @@ function moveElementsInSpace(difference, axis) {
 
 					// "mirrored" handle behavior, both controls mirror one another about the joint
 					if (BarItems.spline_handle_mode.value === "mirrored") {
-						if (!selected_vertices.includes(oppositeKey))
-							el.vertices[oppositeKey] = getInverseOfCtrl(handle).toArray();
+						if (!selected_vertices.includes(oppositeKey)) {
+							let control = el.vertices[vkey];
+							let joint = el.vertices[handle.joint];
+							let inverse = getInverseOfVec(control, joint);
+							el.vertices[oppositeKey] = inverse.toArray();
+						}
 					}
 					// "aligned" handle behavior, the unselected control stays aligned with the active one, but doesn't mirror it
 					else if (BarItems.spline_handle_mode.value === "aligned") {

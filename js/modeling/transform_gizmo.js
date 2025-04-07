@@ -568,47 +568,6 @@
 		}
 	};
 
-	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor() {
-			super();
-			var pointGeometry = new THREE.BoxGeometry( 0.07, 0.07, 0.07 );
-			let pickerCylinderGeo = new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false );
-
-			var lineCtrl1Geometry = new THREE.BufferGeometry();
-			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
-			lineCtrl1Geometry.name = 'gizmo_ctrl1'
-
-			var lineCtrl2Geometry = new THREE.BufferGeometry();
-			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  -1, 0, 0 ], 3 ) );
-			lineCtrl2Geometry.name = 'gizmo_ctrl2'
-
-			this.handleGizmos = {
-				Ctrl1: [
-					[ new THREE.Mesh( pointGeometry, new GizmoMaterial( { color: gizmo_colors.spline_handle_aligned } ) ), [ 1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
-					[ new THREE.Line( lineCtrl1Geometry, new GizmoLineMaterial( { color: gizmo_colors.spline_handle_aligned } ) ) ]
-				],
-				Ctrl2: [
-					[ new THREE.Mesh( pointGeometry, new GizmoMaterial( { color: gizmo_colors.spline_handle_aligned } ) ), [ 1, 0, 0 ] ],
-					[ new THREE.Line( lineCtrl2Geometry, new GizmoLineMaterial( { color: gizmo_colors.spline_handle_aligned } ) ) ]
-				],
-			};
-
-			this.pickerGizmos = {
-				Ctrl1: [
-					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
-				],
-				Ctrl2: [
-					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0.6, 0, 0 ] ]
-				]
-			};
-
-			this.setActivePlane = function ( axis, eye ) {
-			};
-
-			this.init();
-		}
-	};
-
 	THREE.TransformControls = class extends THREE.Object3D {
 		constructor( cam, domElement ) {
 
@@ -640,7 +599,6 @@
 				"scale": new THREE.TransformGizmoScale(),
 				"rotate": new THREE.TransformGizmoRotate(),
 				"stretch": new THREE.TransformGizmoScale(),
-				"spline_handle": new THREE.TransformGizmoSplineHandle()
 			};
 
 			for ( var type in _gizmo ) {
