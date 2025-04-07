@@ -1,8 +1,9 @@
 import { Clipbench } from "../copy_paste"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
+import { Interface } from "./interface"
 
-interface FormElementOptions {
+export interface FormElementOptions {
 	label?: string
 	/**
 	 * Detailed description of the field, available behind the questionmark icon or on mouse hover
@@ -110,77 +111,38 @@ interface FormElementOptions {
 	 */
 	toggle_default?: boolean
 	/**
+	 * Lock the ratio of a vector
+	 */
+	linked_ratio?: boolean
+	/**
+	 * Set the return type of files on file inputs
+	 */
+	return_as?: 'file'
+	/**
 	 * Runs when any of the buttons is pressed
 	 * @param button_index Index of the clicked button in the buttons list
 	 */
 	click?: (button_index: number) => void
+
+	readtype?: ReadType | ((file: string) => ReadType)
+	resource_id?: string
+	extensions?: string[]
+	filetype?: string
 }
 
 type FormResultValue = string | number | boolean | any[] | {}
 
-type FormElementData = {
-	slider?: NumSlider
-	select_input?: Interface.CustomElements.SelectInput<any>
-	value?: string
-	content?: string
-	file?: any
-	colorpicker?: ColorPicker
-	bar: JQuery
-	input_toggle: HTMLInputElement
-	text: string
-}
-
 type InputFormConfig = {
-	[formElement: string]: '_' | FormElement
+	[formElement: string]: '_' | FormElementOptions
 }
 type FormValues = Record<string, FormResultValue>
 
 
-
-
-class FormElement {
-	id: string
-	label: string
-	condition: ConditionResolvable
-	nocolon: boolean
-	full_width: boolean
-	readonly: boolean
-	constructor(id: string, options: FormElementOptions) {
-		this.id = id;
-		this.label = options.label;
-		this.condition = options.condition;
-		this.nocolon = options.nocolon;
-		this.full_width = options.full_width;
-		this.readonly = options.readonly;
-	}
-	getDefault(): any {
-		return null;
-	}
-	static types: Record<string, typeof FormElement> = {};
-	static registerType(id: string, type_class: typeof FormElement) {
-		FormElement.types[id] = type_class;
-	}
-}
-
-
-
-FormElement.types['range'] = class FormElementRange extends FormElement {
-	constructor(id: string, options: FormElementOptions) {
-		super(id, options);
-	}
-	getDefault() {
-		return 0;
-	}
-};
-
-
-
-
-
+// MARK: InputForm
 export class InputForm extends EventSystem {
 	uuid: string
 	form_config: InputFormConfig
-	form_data: { [formElement: string]: FormElementData }
+	form_data: { [formElement: string]: FormElement }
 	node: HTMLDivElement
 	max_label_width: number
 	uses_wide_inputs: boolean
@@ -200,491 +162,30 @@ export class InputForm extends EventSystem {
 	buildForm() {
 		let jq_node = $(this.node);
 		jq_node.empty();
-		let scope = this;
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
-			let data = this.form_data[form_id] = {} as FormElementData;
 			form_id = form_id.replace(/"/g, '');
 			if (input_config === '_') {
-				jq_node.append('<hr />')
-				
-			} else {
-				let bar = $(`<div class="dialog_bar bar form_bar form_bar_${form_id}"></div>`)
-				let label;
-				if (typeof input_config.label == 'string') {
-					label = Interface.createElement('label', {class: 'name_space_left', for: form_id}, tl(input_config.label)+((input_config.nocolon || !input_config.label)?'':':'))
-					bar.append(label);
-					if (!input_config.full_width && input_config.condition !== false) {
-						this.max_label_width = Math.max(getStringWidth(label.textContent), this.max_label_width)
-					}
-				}
-				if (input_config.full_width) {
-					bar.addClass('full_width_dialog_bar');
-					this.uses_wide_inputs = true;
-				}
-				if (input_config.description) {
-					bar.attr('title', tl(input_config.description))
-				}
-				let input_element;
-				if (['checkbox', 'buttons', 'color', 'info'].includes(input_config.type) == false) {
-					this.uses_wide_inputs = true;
-				}
-	
-				switch (input_config.type) {
-					default:
-						input_element = Object.assign(document.createElement('input'), {
-							type: 'text',
-							className: 'dark_bordered half focusable_input',
-							id: form_id,
-							value: input_config.value||'',
-							placeholder: input_config.placeholder||'',
-							oninput() {
-								scope.updateValues()
-							}
-						});
-						bar.append(input_element)
-	
-						if (input_config.list) {
-							let list_id = `${this.uuid}_${form_id}_list`;
-							input_element.setAttribute('list', list_id);
-							let list = $(`<datalist id="${list_id}"></datalist>`);
-							for (let value of input_config.list) {
-								let node = document.createElement('option');
-								node.value = value;
-								list.append(node);
-							}
-							bar.append(list);
-						}
-						if (input_config.type == 'password') {
-							bar.append(`<div class="password_toggle form_input_tool tool">
-									<i class="fas fa-eye-slash"></i>
-								</div>`)
-							input_element.type = 'password';
-							let hidden = true;
-							let this_bar = bar;
-							let this_input_element = input_element;
-							this_bar.find('.password_toggle').on('click', e => {
-								hidden = !hidden;
-								this_input_element.attributes.type.value = hidden ? 'password' : 'text';
-								this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
-							})
-						}
-						if (input_config.share_text && input_config.value) {
-							let text = input_config.value.toString();
-							let is_url = text.startsWith('https://');
-	
-							let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
-							copy_button.addEventListener('click', e => {
-								if (isApp || navigator.clipboard) {
-									Clipbench.setText(text);
-									Blockbench.showQuickMessage('dialog.copied_to_clipboard');
-									input_element.focus();
-									document.execCommand('selectAll');
-	
-								} else if (is_url) {
-									Blockbench.showMessageBox({
-										title: 'dialog.share_model.title',
-										message: `[${text}](${text})`,
-									})
-								}
-							});
-							bar.append(copy_button);
-	
-							if (is_url) {
-								let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
-								open_button.addEventListener('click', e => {
-									Blockbench.openLink(text);
-								});
-								bar.append(open_button);
-							}
-							if (navigator.share) {
-								let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
-								share_button.addEventListener('click', e => {
-									navigator.share({
-										title: input_config.label ? tl(input_config.label) : 'Share',
-										[is_url ? 'url' : 'text']: text
-									});
-								});
-								bar.append(share_button);
-							}
-						}
-						break;
-					case 'textarea':
-						input_element = Object.assign(document.createElement('textarea'), {
-							className: 'focusable_input',
-							id: form_id,
-							value: input_config.value||'',
-							placeholder: input_config.placeholder||'',
-							oninput() {
-								scope.updateValues()
-							}
-						});
-						input_element.style.height = (input_config.height || 150) + 'px';
-						bar.append(input_element)
-						break;
-	
-	
-					case 'select':
-						let select_input = new Interface.CustomElements.SelectInput(form_id, {
-							options: input_config.options,
-							value: input_config.value || input_config.default,
-							onInput() {
-								scope.updateValues();
-							}
-						});
-						data.select_input = select_input;
-						bar.append(select_input.node)
-						break;
-	
-	
-					case 'inline_select':
-                        let options = [];
-                        let val = input_config.value || input_config.default;
-                        let i = 0;
-                        let wrapper;
-                        for (let key in input_config.options) {
-                            let is_selected = val ? key == val : i == 0;
-                            let text: string = typeof input_config.options[key] == 'string' ? input_config.options[key] : input_config.options[key].name;
-                            let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
-                            node.onclick = event => {
-                                options.forEach(li => {
-                                    li.classList.toggle('selected', li == node);
-                                })
-                                scope.updateValues();
-                            }
-                            options.push(node);
-                            i++;
-                        }
-                        wrapper = Interface.createElement('ul', {class: 'form_inline_select'}, options);
-                        bar.append(wrapper)
-                        break;
-	
-	
-					case 'inline_multi_select': {
-						let val = input_config.value || input_config.default;
-						data.value = {};
-						if (val) {
-							for (let key in input_config.options) {
-								data.value[key] = !!val[key];
-							}
-						}
-						let i = 0;
-						let options = [];
-						let wrapper;
-						for (let key in input_config.options) {
-							let is_selected = val && val[key];
-							let text = input_config.options[key].name || input_config.options[key];
-							let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
-							node.onclick = event => {
-								data.value[key] = !data.value[key];
-								node.classList.toggle('selected', data.value[key]);
-								scope.updateValues();
-							}
-							options.push(node);
-							i++;
-						}
-						wrapper = Interface.createElement('ul', {class: 'form_inline_select multi_select'}, options);
-						bar.append(wrapper)
-						break;
-					}
-	
-					case 'radio':
-						let el = $(`<div class="half form_part_radio" id="${form_id}"></div>`)
-						for (let key in input_config.options) {
-							let name = tl(input_config.options[key])
-							el.append(`<div class="form_bar_radio">
-								<input type="radio" class="focusable_input" name="${form_id}_radio" id="${key}" ${(input_config.default || input_config.value) === key ? 'selected' : ''}>
-								<label for="${key}">${name}</label>
-							</div>`)
-							input_element = el.find(`input#${key}`);
-							input_element.on('change', () => {
-								scope.updateValues()
-							})
-						}
-						bar.append(el)
-						break;
-	
-	
-					case 'info':
-						data.text = pureMarked(tl(input_config.text))
-						bar.append(`<p>${data.text}</p>`)
-						bar.addClass('small_text')
-						break;
-	
-	
-					case 'buttons':
-						let list = document.createElement('div');
-						list.className = 'dialog_form_buttons';
-						input_config.buttons.forEach((button_text, index) => {
-							let button = document.createElement('a');
-							button.innerText = tl(button_text);
-							button.addEventListener('click', e => {
-								input_config.click(index, e);
-							})
-							list.append(button);
-						})
-						bar.append(list);
-						break;
-	
-	
-					case 'number':
-						let numeric_input = new Interface.CustomElements.NumericInput(form_id, {
-							value: input_config.value,
-							min: input_config.min, max: input_config.max, step: input_config.step,
-							onChange() {
-								scope.updateValues()
-							}
-						});
-						bar.append(numeric_input.node)
-						break;
-	
-	
-					case 'range':
-						input_element = $(`<input class="half focusable_input" type="range" id="${form_id}"
-							value="${parseFloat(input_config.value)||0}" min="${input_config.min}" max="${input_config.max}" step="${input_config.step||1}">`)
-						bar.append(input_element)
-	
-						if (!input_config.editable_range_label) {
-							let display = Interface.createElement('span', {class: 'range_input_label'}, (input_config.value||0).toString())
-							bar.append(display);
-							input_element.on('input', () => {
-								let result = this.getResult();
-								display.textContent = trimFloatNumber(result[form_id] as number);
-							})
-						} else {
-							bar.addClass('slider_input_combo');
-							let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_number', {
-								value: input_config.value ?? 0,
-								min: input_config.min, max: input_config.max, step: input_config.step,
-								onChange() {
-									input_element.val(numeric_input.value);
-									scope.updateValues();
-								}
-							});
-							bar.append(numeric_input.node);
-							input_element.on('input', () => {
-								let result = parseFloat(input_element.val());
-								numeric_input.value = result;
-							})
-						}
-						input_element.on('input', () => {
-							scope.updateValues();
-						})
-						break;
-
-					case 'num_slider':
-						let getInterval = input_config.getInterval;
-						if (input_config.interval_type == 'position') getInterval = getSpatialInterval;
-						if (input_config.interval_type == 'rotation') getInterval = getRotationInterval;
-						let slider = new NumSlider('form_slider_'+form_id, {
-							private: true,
-							onChange: () => {
-								scope.updateValues();
-							},
-							getInterval,
-							settings: {
-								default: input_config.value || 0,
-								min: input_config.min,
-								max: input_config.max,
-								step: input_config.step||1,
-							},
-						});
-						bar.append(slider.node);
-						slider.update();
-						data.slider = slider;
-						break;
-	
-	
-					case 'vector':
-						let group = $(`<div class="dialog_vector_group half"></div>`)
-						bar.append(group)
-						let vector_inputs = [];
-						let initial_value = input_config.value instanceof Array ? input_config.value.slice() : [1, 1, 1];
-						function updateInputs(changed_input) {
-							let i2 = -1;
-							for (let vector_input_2 of vector_inputs) {
-								i2++;
-								if (vector_input_2 == changed_input) continue;
-								let new_value = initial_value[i2] * (changed_input.value / initial_value[vector_inputs.indexOf(changed_input)]);
-								new_value = Math.clamp(new_value, input_config.min, input_config.max)
-								if (input_config.force_step && input_config.step) {
-									new_value = Math.round(new_value / input_config.step) * input_config.step;
-								}
-								vector_input_2.value = new_value;
-							}
-						}
-						for (let i = 0; i < (input_config.dimensions || 3); i++) {
-							let numeric_input = new Interface.CustomElements.NumericInput(form_id + '_' + i, {
-								value: input_config.value ? input_config.value[i] : 0,
-								min: input_config.min, max: input_config.max, step: input_config.step,
-								onChange() {
-									if (data.linked_ratio) {
-										updateInputs(numeric_input);
-									}
-									scope.updateValues();
-								}
-							});
-							group.append(numeric_input.node)
-							vector_inputs.push(numeric_input);
-						}
-						if (typeof input_config.linked_ratio == 'boolean') {
-							data.linked_ratio = input_config.linked_ratio;
-							let icon = Blockbench.getIconNode('link');
-							let linked_ratio_toggle = Interface.createElement('div', {class: 'tool linked_ratio_toggle'}, icon);
-							linked_ratio_toggle.addEventListener('click', event => {
-								data.linked_ratio = !data.linked_ratio;
-								if (data.linked_ratio) {
-									initial_value = vector_inputs.map(v => v.value);
-									// updateInputs(vector_inputs[0]);
-									// scope.updateValues();
-								}
-								updateState();
-							})
-							function updateState() {
-								icon.textContent = data.linked_ratio ? 'link' : 'link_off';
-								linked_ratio_toggle.classList.toggle('enabled', data.linked_ratio);
-							}
-							updateState();
-							group.append(linked_ratio_toggle)
-						}
-						break;
-	
-	
-					case 'color':
-						if (input_config.colorpicker) data.colorpicker = input_config.colorpicker;
-						if (!data.colorpicker) {
-							data.colorpicker = new ColorPicker({
-								id: 'cp_'+form_id,
-								name: tl(input_config.label),
-								label: false,
-								private: true,
-								value: input_config.value
-							})
-						}
-						data.colorpicker.onChange = function() {
-							scope.updateValues()
-						};
-						bar.append(data.colorpicker.getNode())
-						break;
-	
-	
-					case 'checkbox':
-						input_element = $(`<input type="checkbox" class="focusable_input" id="${form_id}"${input_config.value ? ' checked' : ''}>`)
-						bar.append(input_element)
-						input_element.on('change', () => {
-							scope.updateValues()
-						})
-						break;
-	
-	
-					case 'file':
-					case 'folder':
-					case 'save':
-						if (input_config.type == 'folder' && !isApp) break;
-						data.value = input_config.value;
-	
-						let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${form_id}" style="pointer-events: none;" disabled>`);
-						input[0].value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value || '';
-						let input_wrapper = $('<div class="input_wrapper"></div>');
-						input_wrapper.append(input);
-						bar.append(input_wrapper);
-						bar.addClass('form_bar_file');
-	
-						switch (input_config.type) {
-							case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
-							case 'folder':	input_wrapper.append('<i class="material-icons">folder</i>'); break;
-							case 'save':	input_wrapper.append('<i class="material-icons">save</i>'); break;
-						}
-						let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
-						bar.append(remove_button);
-						remove_button.on('click', e => {
-							e.stopPropagation();
-							data.value = '';
-							delete data.content;
-							delete data.file;
-							input.val('');
-						})
-	
-						input_wrapper.on('click', e => {
-							function fileCB(files) {
-								data.value = files[0].path;
-								data.content = files[0].content;
-								data.file = files[0];
-								input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
-								scope.updateValues()
-							}
-							switch (input_config.type) {
-								case 'file':
-									Blockbench.import({
-										resource_id: input_config.resource_id,
-										extensions: input_config.extensions,
-										type: input_config.filetype,
-										startpath: data.value,
-										readtype: input_config.readtype
-									}, fileCB);
-									break;
-								case 'folder':
-									let path = Blockbench.pickDirectory({
-										startpath: data.value,
-									})
-									if (path) fileCB([{path}]);
-									break;
-								case 'save':
-									Blockbench.export({
-										resource_id: input_config.resource_id,
-										extensions: input_config.extensions,
-										type: input_config.filetype,
-										startpath: data.value,
-										custom_writer: () => {},
-									}, path => {
-										data.value = path;
-										input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
-										scope.updateValues()
-									});
-									break;
-							}
-						})
-	
-				}
-				if (input_config.readonly) {
-					bar.find('input').attr('readonly', 'readonly').removeClass('focusable_input')
-				}
-				if (input_config.description) {
-					let icon = document.createElement('i');
-					icon.className = 'fa fa-question dialog_form_description';
-					icon.onclick = function() {
-						Blockbench.showQuickMessage(input_config.description, 3600);
-					}
-					bar.append(icon);
-				}
-				if (input_config.toggle_enabled) {
-					let toggle = Interface.createElement('input', {
-						type: 'checkbox',
-						class: 'focusable_input form_input_toggle',
-						id: form_id + '_toggle',
-					}) as HTMLInputElement;
-					toggle.checked = input_config.toggle_default != false;
-					bar.append(toggle);
-					bar.toggleClass('form_toggle_disabled', !toggle.checked);
-					toggle.addEventListener('input', () => {
-						scope.updateValues();
-						bar.toggleClass('form_toggle_disabled', !toggle.checked);
-					});
-					data.input_toggle = toggle;
-				}
-				jq_node.append(bar)
-				data.bar = bar;
+				jq_node.append('<hr />');
+				continue;
 			}
+			let InputType = FormElement.types[input_config.type] ?? FormElement.types.text;
+			let form_element = this.form_data[form_id] = new InputType(form_id, input_config, this);
+			let bar = Interface.createElement('div', {class: `dialog_bar bar form_bar form_bar_${form_id}`});
+			form_element.build(bar);
+			form_element.setup();
+			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
+			jq_node.append(bar);
 		}
 		this.node.style.setProperty('--max_label_width', this.max_label_width+'px');
 	}
-	update(form_result) {
+	update(form_result: FormValues) {
 		for (let form_id in this.form_config) {
-			let data = this.form_data[form_id];
+			let form_element = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
-			if (typeof input_config == 'object' && data.bar) {
+			if (typeof input_config == 'object' && form_element.bar) {
 				let show = Condition(input_config.condition, form_result);
-				data.bar.toggle(show);
+				form_element.bar.style.display = show ? undefined : 'none';
 			}
 		}
 	}
@@ -696,182 +197,781 @@ export class InputForm extends EventSystem {
 		}
 		return form_result;
 	}
-	setValues(values, update = true) {
+	setValues(values: FormValues, update = true) {
 		for (let form_id in this.form_config) {
-			let data = this.form_data[form_id];
+			let form_element = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
-			if (values[form_id] != undefined && typeof input_config == 'object' && data.bar) {
-				let value = values[form_id];
-				switch (input_config.type) {
-					default:
-						data.bar.find('input').val(value);
-						break;
-					case 'info':
-						break;
-					case 'textarea':
-						data.bar.find('textarea').val(value);
-						break;
-					case 'select':
-						data.select_input.set(value);
-						break;
-					case 'inline_select':
-						data.bar.find('li').each((i, el) => {
-							el.classList.toggle('selected', el.getAttribute('key') == value);
-						})
-						break;
-					case 'inline_multi_select':
-						for (let key in value) {
-							if (data.value[key] !== undefined)  {
-								data.value[key] = value[key];
-							}
-						}
-						data.bar.find('li').each((i, el) => {
-							el.classList.toggle('selected', !!data.value[el.getAttribute('key')]);
-						})
-						break;
-					case 'radio':
-						data.bar.find('.form_part_radio input#'+value).prop('checked', value);
-						break;
-					case 'number': case 'range':
-						data.bar.find('input').val(value);
-						break;
-					case 'num_slider':
-						data.slider.setValue(value);
-						break;
-					case 'vector':
-						for (let i = 0; i < (input_config.dimensions || 3); i++) {
-							data.bar.find(`input#${form_id}_${i}`).val(value[i])
-						}
-						break;
-					case 'color':
-						data.colorpicker.set(value);
-						break;
-					case 'checkbox':
-						data.bar.find('input').prop('checked', value);
-						break;
-					case 'file':
-						delete data.file;
-						if (input_config.return_as == 'file' && typeof value == 'object') {
-							data.file = value;
-							data.value = data.file.name;
-						} else if (isApp) {
-							data.value = value;
-						} else {
-							data.content = value;
-						}
-						data.bar.find('input').val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : data.value);
-						break;
-				}
+			if ('setValue' in form_element && values[form_id] != undefined && typeof input_config == 'object') {
+				form_element.setValue(values[form_id]);
 			}
 		}
 		if (update) this.updateValues();
 	}
-	setToggles(values, update = true) {
+	setToggles(values: Record<string, boolean>, update = true) {
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
-			let data = this.form_data[form_id];
-			if (values[form_id] != undefined && typeof input_config == 'object' && data.input_toggle && data.bar) {
-				data.input_toggle.checked = values[form_id];
-				data.bar.toggleClass('form_toggle_disabled', !data.input_toggle.checked);
+			let form_element = this.form_data[form_id];
+			if (values[form_id] != undefined && typeof input_config == 'object' && form_element.input_toggle && form_element.bar) {
+				form_element.input_toggle.checked = values[form_id];
+				form_element.bar.classList.toggle('form_toggle_disabled', !form_element.input_toggle.checked);
 			}
 		}
 		if (update) this.updateValues();
 	}
 	getResult(): FormValues {
 		let result = {}
-		for (let form_id in this.form_config) {
-			let input_config = this.form_config[form_id];
-			let data = this.form_data[form_id];
-			if (data && data.input_toggle && data.input_toggle.checked == false) {
-				result[form_id] = null;
-				continue;
-			}
-
-			if (typeof input_config === 'object') {
-				switch (input_config.type) {
-					default:
-						result[form_id] = data.bar.find('input#'+form_id).val()
-						break;
-					case 'info':
-						break;
-					case 'textarea':
-						result[form_id] = data.bar.find('textarea#'+form_id).val()
-						break;
-					case 'select':
-						result[form_id] = data.bar.find('bb-select#'+form_id).attr('value');
-						break;
-					case 'inline_select':
-						result[form_id] = data.bar.find('li.selected')[0]?.getAttribute('key') || '';
-						break;
-					case 'inline_multi_select':
-						result[form_id] = data.value;
-						break;
-					case 'radio':
-						result[form_id] = data.bar.find('.form_part_radio#'+form_id+' input:checked').attr('id')
-						break;
-					case 'number':
-						result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, input_config.min, input_config.max)
-						if (input_config.force_step && input_config.step) {
-							result[form_id] = Math.round(result[form_id] / input_config.step) * input_config.step;
-						}
-						break;
-					case 'range':
-						if (input_config.editable_range_label) {
-							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id+'_number').val())||0, input_config.min, input_config.max);
-						} else {
-							result[form_id] = Math.clamp(parseFloat(data.bar.find('input#'+form_id).val())||0, input_config.min, input_config.max);
-						}
-						if (input_config.force_step && input_config.step) {
-							result[form_id] = Math.round(result[form_id] / input_config.step) * input_config.step;
-						}
-						break;
-					case 'num_slider':
-						result[form_id] = data.slider.get();
-						break;
-					case 'vector':
-						result[form_id] = [];
-						for (let i = 0; i < (input_config.dimensions || 3); i++) {
-							let num = Math.clamp(parseFloat(data.bar.find(`input#${form_id}_${i}`).val())||0, input_config.min, input_config.max)
-							if (input_config.force_step && input_config.step) {
-								num = Math.round(num / input_config.step) * input_config.step;
-							}
-							result[form_id].push(num)
-						}
-						break;
-					case 'color':
-						result[form_id] = data.colorpicker.get();
-						break;
-					case 'checkbox':
-						result[form_id] = data.bar.find('input#'+form_id).is(':checked')
-						break;
-					case 'file':
-						if (input_config.return_as == 'file') {
-							result[form_id] = data.file;
-						} else {
-							result[form_id] = isApp ? data.value : data.content;
-						}
-						break;
+		for (let form_id in this.form_data) {
+			let form_element = this.form_data[form_id];
+			if (form_element) {
+				if (form_element.input_toggle && form_element.input_toggle.checked == false) {
+					result[form_id] = null;
+					continue;
+				} else {
+					result[form_id] = form_element.getValue();
 				}
 			}
 		}
 		return result;
 	}
-	static getDefaultValue(input_config): FormResultValue {
+	static getDefaultValue(input_config: FormElementOptions): FormResultValue {
 		let set_value = input_config.value ?? input_config.default;
 		if (set_value) return set_value;
-		switch (input_config.type) {
-			case 'checkbox': return false;
-			case 'text': case 'textarea': return '';
-			case 'number': case 'range': case 'num_slider': return Math.clamp(0, input_config.min, input_config.max);
-			case 'select': case 'inline_select': case 'radio': return Object.keys(input_config.options)[0] ?? '';
-			case 'inline_multi_select': return {};
-			case 'file': case 'folder': return '';
-			case 'vector': return new Array(input_config.dimensions??3).fill(Math.clamp(0, input_config.min, input_config.max));
-			case 'color': return '#ffffff';
-			default: return '';
+		let type = FormElement.types[input_config.type];
+		if (type) {
+			return type.prototype.getDefault();
 		}
+		return '';
 	}
 }
 
+// MARK: FormElement
+export class FormElement extends EventSystem {
+	id: string
+	form: InputForm
+	condition: ConditionResolvable
+	options: FormElementOptions
+	bar: HTMLElement
+	input_toggle?: HTMLInputElement
+	constructor(id: string, options: FormElementOptions, form: InputForm) {
+		super();
+		this.id = id;
+		this.options = options;
+		this.form = form;
+		this.condition = options.condition;
+	}
+	build(bar: HTMLDivElement) {
+		this.bar = bar;
+		if (typeof this.options.label == 'string') {
+			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label)+((this.options.nocolon || !this.options.label)?'':':'))
+			bar.append(label);
+			if (!this.options.full_width && this.condition !== false) {
+				this.form.max_label_width = Math.max(getStringWidth(label.textContent), this.form.max_label_width)
+			}
+		}
+		if (this.options.full_width) {
+			bar.classList.add('full_width_dialog_bar');
+		}
+		if (this.options.description) {
+			bar.setAttribute('title', tl(this.options.description));
+		}
+	}
+	get uses_wide_inputs() {
+		return this.options.full_width;
+	}
+	getValue(): any {
+		return this.getDefault();
+	}
+	setValue(value: any) {
+	}
+	getDefault(): any {
+		return null;
+	}
+	change() {
+		this.dispatchEvent('change', {});
+		this.form.updateValues();
+	}
+	setup() {
+		if (this.options.readonly && 'input' in this) {
+			$(this.input).attr('readonly', 'readonly').removeClass('focusable_input');
+		}
+		if (this.options.description) {
+			let icon = document.createElement('i');
+			icon.className = 'fa fa-question dialog_form_description';
+			icon.onclick = () => {
+				Blockbench.showQuickMessage(this.options.description, 3600);
+			}
+			this.bar.append(icon);
+		}
+		if (this.options.toggle_enabled) {
+			let toggle = Interface.createElement('input', {
+				type: 'checkbox',
+				class: 'focusable_input form_input_toggle',
+				id: this.id + '_toggle',
+			}) as HTMLInputElement;
+			toggle.checked = this.options.toggle_default != false;
+			this.bar.append(toggle);
+			this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
+			toggle.addEventListener('input', () => {
+				this.change();
+				this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
+			});
+			this.input_toggle = toggle;
+		}
+	}
 
-Object.assign(window, {InputForm});
+	static types: Record<string, typeof FormElement> = {};
+	static registerType(id: string, type_class: typeof FormElement) {
+		FormElement.types[id] = type_class;
+	}
+}
+
+// MARK: FormElement Types
+FormElement.types.range = class FormElementRange extends FormElement {
+	input: HTMLInputElement
+	numeric_input?: {value: number}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+
+		let input_element = $(`<input class="half focusable_input" type="range" id="${this.id}"
+			value="${this.options.value||0}" min="${this.options.min}" max="${this.options.max}" step="${this.options.step||1}">`)
+		bar.append(input_element[0]);
+		this.input = input_element[0] as HTMLInputElement;
+
+		if (!this.options.editable_range_label) {
+			let display = Interface.createElement('span', {class: 'range_input_label'}, (this.options.value||0).toString())
+			bar.append(display);
+			input_element.on('input', () => {
+				let result = this.form.getResult();
+				display.textContent = trimFloatNumber(result[this.id] as number);
+			})
+		} else {
+			bar.classList.add('slider_input_combo');
+			let numeric_input = new Interface.CustomElements.NumericInput(this.id + '_number', {
+				value: this.options.value ?? 0,
+				min: this.options.min, max: this.options.max, step: this.options.step,
+				onChange() {
+					input_element.val(numeric_input.value);
+					scope.change();
+				}
+			});
+			this.numeric_input = numeric_input;
+			bar.append(numeric_input.node);
+			input_element.on('input', () => {
+				let result = parseFloat(input_element.val() as string);
+				numeric_input.value = result;
+			})
+		}
+		input_element.on('input', () => {
+			this.change();
+		})
+	}
+	getValue(): number {
+		let result: number;
+		if (this.options.editable_range_label && this.numeric_input) {
+			result = this.numeric_input.value;
+		} else {
+			result = parseFloat(this.input.value);
+		}
+		if (this.options.force_step && this.options.step) {
+			result = Math.round(result / this.options.step) * this.options.step;
+		}
+		return Math.clamp(result||0, this.options.min, this.options.max);
+	}
+	setValue(value: number): void {
+		this.input.value = value.toString();
+	}
+	getDefault(): number {
+		return Math.clamp(0, this.options.min, this.options.max);
+	}
+};
+FormElement.types.info = class FormElementInfo extends FormElement {
+	get uses_wide_inputs(): boolean {
+		return true;
+	}
+	build(bar: HTMLDivElement) {
+		this.bar = bar;
+		let html_content = pureMarked(tl(this.options.text))
+		bar.innerHTML = `<p>${html_content}</p>`;
+		bar.classList.add('small_text');
+	}
+};
+FormElement.types.text = class FormElementText extends FormElement {
+	password_toggle?: HTMLElement
+	input: HTMLInputElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		let input_element = Object.assign(document.createElement('input'), {
+			type: 'text',
+			className: 'dark_bordered half focusable_input',
+			id: this.id,
+			value: this.options.value||'',
+			placeholder: this.options.placeholder||'',
+			oninput() {
+				scope.change();
+			}
+		});
+		this.input = input_element;
+		bar.append(input_element)
+
+		if (this.options.list) {
+			let list_id = `${this.form.uuid}_${this.id}_list`;
+			input_element.setAttribute('list', list_id);
+			let list = Interface.createElement('datalist', {id: list_id});
+			for (let value of this.options.list) {
+				let node = document.createElement('option');
+				node.value = value;
+				list.append(node);
+			}
+			bar.append(list[0]);
+		}
+		if (this.options.type == 'password') {
+
+			bar.append(`<div class="password_toggle form_input_tool tool">
+					<i class="fas fa-eye-slash"></i>
+				</div>`)
+			input_element.type = 'password';
+			let hidden = true;
+			let this_bar = $(bar);
+			let this_input_element = input_element;
+			this_bar.find('.password_toggle').on('click', e => {
+				hidden = !hidden;
+				this_input_element.setAttribute('type', hidden ? 'password' : 'text');
+				this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+			})
+		}
+		if (this.options.share_text && this.options.value) {
+			let text = this.options.value.toString();
+			let is_url = text.startsWith('https://');
+
+			let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
+			copy_button.addEventListener('click', e => {
+				if (isApp || navigator.clipboard) {
+					Clipbench.setText(text);
+					Blockbench.showQuickMessage('dialog.copied_to_clipboard');
+					input_element.focus();
+					document.execCommand('selectAll');
+
+				} else if (is_url) {
+					Blockbench.showMessageBox({
+						title: 'dialog.share_model.title',
+						message: `[${text}](${text})`,
+					})
+				}
+			});
+			bar.append(copy_button);
+
+			if (is_url) {
+				let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
+				open_button.addEventListener('click', e => {
+					Blockbench.openLink(text);
+				});
+				bar.append(open_button);
+			}
+			if (navigator.share) {
+				let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
+				share_button.addEventListener('click', e => {
+					navigator.share({
+						title: this.options.label ? tl(this.options.label) : 'Share',
+						[is_url ? 'url' : 'text']: text
+					});
+				});
+				bar.append(share_button);
+			}
+		}
+	}
+	getValue(): string {
+		return this.input.value;
+	}
+	setValue(value: string) {
+		this.input.value = value;
+	}
+	getDefault(): string {
+		return '';
+	}
+};
+FormElement.types.textarea = class FormElementTextarea extends FormElement {
+	textarea: HTMLTextAreaElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.textarea = Object.assign(document.createElement('textarea'), {
+			className: 'focusable_input',
+			id: this.id,
+			value: this.options.value||'',
+			placeholder: this.options.placeholder||'',
+			oninput() {
+				scope.change();
+			}
+		});
+		this.textarea.style.height = (this.options.height || 150) + 'px';
+		bar.append(this.textarea);
+	}
+	getValue() {
+		return this.textarea.value;
+	}
+	setValue(value: string) {
+		this.textarea.value = value;
+	}
+	getDefault(): string {
+		return '';
+	}
+};
+FormElement.types.number = class FormElementNumber extends FormElement {
+	numeric_input: {value: number, node: HTMLElement}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.numeric_input = new Interface.CustomElements.NumericInput(this.id, {
+			value: this.options.value,
+			min: this.options.min, max: this.options.max, step: this.options.step,
+			onChange() {
+				scope.change();
+			}
+		});
+		bar.append(this.numeric_input.node)
+	}
+	getValue() {
+		let result = Math.clamp(this.numeric_input.value, this.options.min, this.options.max);
+		if (this.options.force_step && this.options.step) {
+			result = Math.round(result / this.options.step) * this.options.step;
+		}
+		return result;
+	}
+	setValue(value: number) {
+		this.numeric_input.value = value;
+	}
+	getDefault(): number {
+		return Math.clamp(0, this.options.min, this.options.max);
+	}
+};
+FormElement.types.select = class FormElementSelect extends FormElement {
+	select_input: {node: HTMLElement, set: (value: string) => void}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.select_input = new Interface.CustomElements.SelectInput(this.id, {
+			options: this.options.options,
+			value: this.options.value || this.options.default,
+			onInput() {
+				scope.change();
+			}
+		});
+		bar.append(this.select_input.node);
+	}
+	getValue(): string {
+		return this.select_input.node.getAttribute('value');
+	}
+	setValue(value: string) {
+		this.select_input.set(value);
+	}
+	getDefault(): string {
+		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.inline_select = class FormElementInlineSelect extends FormElement {
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let options = [];
+		let val = this.options.value || this.options.default;
+		let i = 0;
+		for (let key in this.options.options) {
+			let is_selected = val ? key == val : i == 0;
+			let text: string = typeof this.options.options[key] == 'string' ? this.options.options[key] : this.options.options[key].name;
+			let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
+			node.onclick = () => {
+				options.forEach(li => {
+					li.classList.toggle('selected', li == node);
+				})
+				this.change();
+			}
+			options.push(node);
+			i++;
+		}
+		let wrapper = Interface.createElement('ul', {class: 'form_inline_select'}, options);
+		bar.append(wrapper);
+	}
+	getValue(): string {
+		return $(this.bar).find('li.selected')[0]?.getAttribute('key') || '';
+	}
+	setValue(value: string) {
+		$(this.bar).find('li').each((i, el) => {
+			el.classList.toggle('selected', el.getAttribute('key') == value);
+		})
+	}
+	getDefault(): string {
+		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.inline_multi_select = class FormElementInlineMultiSelect extends FormElement {
+	value: Record<string, boolean>
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let val = this.options.value || this.options.default;
+		this.value = {};
+		if (val) {
+			for (let key in this.options.options) {
+				this.value[key] = !!val[key];
+			}
+		}
+		let i = 0;
+		let options = [];
+		for (let key in this.options.options) {
+			let is_selected = val && val[key];
+			let text = this.options.options[key];
+			if (typeof text != 'string') text = text.name;
+			let node = Interface.createElement('li', {class: is_selected ? 'selected' : '', key: key}, tl(text));
+			node.onclick = () => {
+				this.value[key] = !this.value[key];
+				node.classList.toggle('selected', this.value[key]);
+				this.change();
+			}
+			options.push(node);
+			i++;
+		}
+		let wrapper = Interface.createElement('ul', {class: 'form_inline_select multi_select'}, options);
+		bar.append(wrapper)
+	}
+	getValue(): Record<string, boolean> {
+		return this.value;
+	}
+	setValue(value: Record<string, boolean>) {
+		for (let key in value) {
+			if (this.value[key] !== undefined)  {
+				this.value[key] = value[key];
+			}
+		}
+		$(this.bar).find('li').each((i, el) => {
+			el.classList.toggle('selected', !!this.value[el.getAttribute('key')]);
+		})
+	}
+	getDefault(): Record<string, boolean> {
+		return {};
+	}
+};
+FormElement.types.radio = class FormElementRadio extends FormElement {
+	input: HTMLInputElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let el = $(`<div class="half form_part_radio" id="${this.id}"></div>`)
+		for (let key in this.options.options) {
+			let name = tl(typeof this.options.options[key] == 'string' ? this.options.options[key] : this.options.options[key].name)
+			el.append(`<div class="form_bar_radio">
+				<input type="radio" class="focusable_input" name="${this.id}_radio" id="${key}" ${(this.options.default || this.options.value) === key ? 'selected' : ''}>
+				<label for="${key}">${name}</label>
+			</div>`)
+			this.input = el.find(`input#${key}`)[0] as HTMLInputElement;
+			this.input.addEventListener('change', () => {
+				this.change();
+			})
+		}
+		bar.append(el[0]);
+	}
+	getValue(): string {
+		return $(this.bar).find('.form_part_radio#'+this.id+' input:checked').attr('id');
+	}
+	setValue(value: string) {
+		$(this.bar).find('.form_part_radio input#'+value).prop('checked', true);
+	}
+	getDefault() {
+		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.buttons = class FormElementButtons extends FormElement {
+	get uses_wide_inputs(): boolean {
+		return true;
+	}
+	build(bar: HTMLDivElement) {
+		this.bar = bar;
+		let list = document.createElement('div');
+		list.className = 'dialog_form_buttons';
+		this.options.buttons.forEach((button_text, index) => {
+			let button = document.createElement('a');
+			button.innerText = tl(button_text);
+			button.addEventListener('click', e => {
+				this.options.click(index);
+			})
+			list.append(button);
+		})
+		bar.append(list);
+	}
+};
+FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
+	slider: NumSlider
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let getInterval = this.options.getInterval;
+		// @ts-ignore
+		if (this.options.interval_type == 'position') getInterval = getSpatialInterval;
+		// @ts-ignore
+		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
+		this.slider = new NumSlider('form_slider_'+this.id, {
+			private: true,
+			// @ts-ignore
+			onChange: () => {
+				this.change();
+			},
+			getInterval,
+			settings: {
+				default: this.options.value || 0,
+				min: this.options.min,
+				max: this.options.max,
+				step: this.options.step||1,
+			},
+		});
+		bar.append(this.slider.node);
+		this.slider.update();
+	}
+	getValue(): number {
+		return this.slider.get();
+	}
+	setValue(value: number) {
+		this.slider.setValue(value);
+	}
+	getDefault() {
+		return Math.clamp(0, this.options.min, this.options.max);
+	}
+};
+FormElement.types.vector = class FormElementVector extends FormElement {
+	linked_ratio: boolean
+	constructor(id: string, options: FormElementOptions, form: InputForm) {
+		super(id, options, form);
+		this.linked_ratio = false;
+	}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		let group = $(`<div class="dialog_vector_group half"></div>`)
+		bar.append(group[0])
+		let vector_inputs = [];
+		let initial_value = this.options.value instanceof Array ? this.options.value.slice() : [1, 1, 1];
+		let updateInputs = (changed_input) => {
+			let i2 = -1;
+			for (let vector_input_2 of vector_inputs) {
+				i2++;
+				if (vector_input_2 == changed_input) continue;
+				let new_value = initial_value[i2] * (changed_input.value / initial_value[vector_inputs.indexOf(changed_input)]);
+				new_value = Math.clamp(new_value, this.options.min, this.options.max)
+				if (this.options.force_step && this.options.step) {
+					new_value = Math.round(new_value / this.options.step) * this.options.step;
+				}
+				vector_input_2.value = new_value;
+			}
+		}
+		for (let i = 0; i < (this.options.dimensions || 3); i++) {
+			let numeric_input = new Interface.CustomElements.NumericInput(this.id + '_' + i, {
+				value: this.options.value ? this.options.value[i] : 0,
+				min: this.options.min, max: this.options.max, step: this.options.step,
+				onChange() {
+					if (scope.linked_ratio) {
+						updateInputs(numeric_input);
+					}
+					scope.change();
+				}
+			});
+			group.append(numeric_input.node)
+			vector_inputs.push(numeric_input);
+		}
+		if (typeof this.options.linked_ratio == 'boolean') {
+			let updateState = () => {
+				icon.textContent = scope.linked_ratio ? 'link' : 'link_off';
+				linked_ratio_toggle.classList.toggle('enabled', scope.linked_ratio);
+			};
+			this.linked_ratio = this.options.linked_ratio;
+			let icon = Blockbench.getIconNode('link');
+			let linked_ratio_toggle = Interface.createElement('div', {class: 'tool linked_ratio_toggle'}, icon);
+			linked_ratio_toggle.addEventListener('click', event => {
+				this.linked_ratio = !this.linked_ratio;
+				if (this.linked_ratio) {
+					initial_value = vector_inputs.map(v => v.value);
+					// updateInputs(vector_inputs[0]);
+					// scope.change()
+				}
+				updateState();
+			})
+			updateState();
+			group.append(linked_ratio_toggle)
+		}
+	}
+	getResult(): number[] {
+		let result: number[] = [];
+		for (let i = 0; i < (this.options.dimensions || 3); i++) {
+			let input_value = $(this.bar).find(`input#${this.id}_${i}`).val() as string;
+			let num = Math.clamp(parseFloat(input_value)||0, this.options.min, this.options.max);
+			if (this.options.force_step && this.options.step) {
+				num = Math.round(num / this.options.step) * this.options.step;
+			};
+			result.push(num);
+		}
+		return result;
+	}
+	setValue(value: number[]) {
+		for (let i = 0; i < (this.options.dimensions || 3); i++) {
+			$(this.bar).find(`input#${this.id}_${i}`).val(value[i]);
+		}
+	}
+	getDefault(): number[] {
+		return new Array(this.options.dimensions??3).fill(Math.clamp(0, this.options.min, this.options.max))
+	}
+};
+FormElement.types.color = class FormElementColor extends FormElement {
+	colorpicker: ColorPicker
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		if (this.options.colorpicker) this.colorpicker = this.options.colorpicker;
+		let scope = this;
+		if (!this.colorpicker) {
+			this.colorpicker = new ColorPicker({
+				id: 'cp_'+this.id,
+				name: tl(this.options.label),
+				// @ts-ignore
+				label: false,
+				private: true,
+				value: this.options.value
+			})
+		}
+		this.colorpicker.onChange = function() {
+			scope.change();
+		};
+		bar.append(this.colorpicker.getNode())
+	}
+	getValue(): tinycolor.Instance {
+		return this.colorpicker.get();
+	}
+	setValue(value: string | any) {
+		this.colorpicker.set(value);
+	}
+	getDefault() {
+		return '#ffffff';
+	}
+};
+FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
+	input: HTMLInputElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		this.input = Interface.createElement('input', {
+			type: 'checkbox',
+			class: 'focusable_input',
+			id: this.id,
+			checked: this.options.value
+		})
+		bar.append(this.input)
+		this.input.addEventListener('change', () => {
+			this.change();
+		})
+	}
+	setValue(value: boolean) {
+		this.input.checked = value;
+	}
+	getValue(): boolean {
+		return this.input.checked;
+	}
+	getDefault() {
+		return false;
+	}
+};
+
+class FormElementFile extends FormElement {
+	file: FileResult
+	value: string
+	content: any
+	input: HTMLInputElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		if (this.options.type == 'folder' && !isApp) return;
+		this.value = this.options.value;
+		let scope = this;
+
+		let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${this.id}" style="pointer-events: none;" disabled>`);
+		this.input = input[0] as HTMLInputElement;
+		this.input.value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
+		let input_wrapper = $('<div class="input_wrapper"></div>');
+		input_wrapper.append(input);
+		bar.append(input_wrapper[0]);
+		bar.classList.add('form_bar_file');
+
+		switch (this.options.type) {
+			case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
+			case 'folder':	input_wrapper.append('<i class="material-icons">folder</i>'); break;
+			case 'save':	input_wrapper.append('<i class="material-icons">save</i>'); break;
+		}
+		let remove_button = $('<div class="tool" style="float: none; vertical-align: top;"><i class="material-icons">clear</i></div>');
+		bar.append(remove_button[0]);
+		remove_button.on('click', e => {
+			e.stopPropagation();
+			this.value = '';
+			delete this.content;
+			delete this.file;
+			input.val('');
+		})
+
+		input_wrapper.on('click', e => {
+			function fileCB(files) {
+				this.value = files[0].path;
+				this.content = files[0].content;
+				this.file = files[0];
+				input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+				scope.change();
+			}
+			switch (this.options.type) {
+				case 'file':
+					Blockbench.import({
+						resource_id: this.options.resource_id,
+						extensions: this.options.extensions,
+						type: this.options.filetype,
+						startpath: this.value,
+						readtype: this.options.readtype
+					}, fileCB);
+					break;
+				case 'folder':
+					let path = Blockbench.pickDirectory({
+						startpath: this.value,
+					})
+					if (path) fileCB([{path}]);
+					break;
+				case 'save':
+					Blockbench.export({
+						resource_id: this.options.resource_id,
+						extensions: this.options.extensions,
+						type: this.options.filetype,
+						startpath: this.value,
+						custom_writer: () => {},
+					}, path => {
+						this.value = path;
+						input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+						scope.change();
+					});
+					break;
+			}
+		})
+	}
+	getValue(): FileResult | string | any {
+		if (this.options.return_as == 'file') {
+			return this.file;
+		} else {
+			return isApp ? this.value : this.content;
+		}
+	}
+	setValue(value: string) {
+		delete this.file;
+		if (this.options.return_as == 'file' && typeof value == 'object') {
+			this.file = value;
+			this.value = this.file.name;
+		} else if (isApp) {
+			this.value = value;
+		} else {
+			this.content = value;
+		}
+		$(this.input).val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+	}
+	getDefault() {
+		return '';
+	}
+};
+FormElement.types.file = FormElementFile;
+FormElement.types.folder = FormElementFile;
+FormElement.types.save = FormElementFile;
+
+
+Object.assign(window, {InputForm, FormElement});
