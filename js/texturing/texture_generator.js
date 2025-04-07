@@ -775,8 +775,8 @@ export const TextureGenerator = {
 					}
 	
 	
-					max_x = -Infinity;
-					max_z = -Infinity;
+					let max_x = -Infinity;
+					let max_z = -Infinity;
 					for (let fkey in vertex_uvs) {
 						for (let vkey in vertex_uvs[fkey]) {
 							max_x = Math.max(max_x, vertex_uvs[fkey][vkey][0]);

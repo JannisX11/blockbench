@@ -1197,7 +1197,6 @@ export class Texture {
 				}
 			},
 			onConfirm: function(formResult) {
-
 				let old_width = scope.width;
 				let old_height = scope.height;
 				let elements_to_change = null;

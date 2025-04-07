@@ -185,7 +185,7 @@ export class InputForm extends EventSystem {
 			let input_config = this.form_config[form_id];
 			if (typeof input_config == 'object' && form_element.bar) {
 				let show = Condition(input_config.condition, form_result);
-				form_element.bar.style.display = show ? undefined : 'none';
+				form_element.bar.style.display = show ? null : 'none';
 			}
 		}
 	}
@@ -794,7 +794,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			group.append(linked_ratio_toggle)
 		}
 	}
-	getResult(): number[] {
+	getValue(): number[] {
 		let result: number[] = [];
 		for (let i = 0; i < (this.options.dimensions || 3); i++) {
 			let input_value = $(this.bar).find(`input#${this.id}_${i}`).val() as string;
@@ -802,6 +802,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			if (this.options.force_step && this.options.step) {
 				num = Math.round(num / this.options.step) * this.options.step;
 			};
+
 			result.push(num);
 		}
 		return result;
@@ -831,6 +832,7 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				value: this.options.value
 			})
 		}
+		// @ts-ignore
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
