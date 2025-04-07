@@ -348,21 +348,23 @@ export const TextureGenerator = {
 		});
 		function faceRect(cube, face_key, tex, x, y, face_old_pos_id) {
 			this.cube = cube;
+			this.face = cube.faces[face_key];
 			if (options.rearrange_uv) {
 				this.width  = Math.abs(x) * res_multiple;
 				this.height = Math.abs(y) * res_multiple;
+				this.mirror_x = Math.sign(this.face.uv_size[0]);
+				this.mirror_y = Math.sign(this.face.uv_size[1]);
 				this.width  = ((this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width)) / res_multiple;
 				this.height = ((this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height)) / res_multiple;
 			} else {
-				this.posx = cube.faces[face_key].uv[0], cube.faces[face_key].uv[0+2];
-				this.posy = cube.faces[face_key].uv[1], cube.faces[face_key].uv[1+2];
-				this.width = cube.faces[face_key].uv[0+2] - cube.faces[face_key].uv[0];
-				this.height = cube.faces[face_key].uv[1+2] - cube.faces[face_key].uv[1];
+				this.posx = this.face.uv[0], this.face.uv[0+2];
+				this.posy = this.face.uv[1], this.face.uv[1+2];
+				this.width = this.face.uv[0+2] - this.face.uv[0];
+				this.height = this.face.uv[1+2] - this.face.uv[1];
 			}
 			this.size = this.width * this.height;
 			this.face_key = face_key;
 			this.texture = tex
-			this.face = cube.faces[face_key];
 			this.face_old_pos_id = face_old_pos_id;
 		}
 		function faceOldPositionIdentifier(face) {
@@ -374,7 +376,14 @@ export const TextureGenerator = {
 				vertex_identifiers.sort(sort_collator.compare);
 				uv_id = vertex_identifiers.join(',');
 			} else if (face.uv instanceof Array) {
-				uv_id = face.uv.map(v => Math.roundTo(v, 4)).join(',');
+				let absolute_uv = face.uv.slice();
+				for (let i = 0; i < 2; i++) {
+					if (absolute_uv[i] > absolute_uv[i+2]) {
+						absolute_uv[i] = absolute_uv[i+2];
+						absolute_uv[i+2] = face.uv[i];
+					}
+				}
+				uv_id = absolute_uv.map(v => Math.roundTo(v, 4)).join(',');
 			}
 			let texture = face.getTexture();
 			return uv_id + ':' + (texture ? texture.uuid : 'blank');
@@ -1408,6 +1417,15 @@ export const TextureGenerator = {
 							uv: flip_rotation ? [pos.y, pos.x] : [pos.x, pos.y]
 						})
 						target.face.uv_size = flip_rotation ? [pos.h, pos.w] : [pos.w, pos.h];
+						if (source != target) {
+							// Double occupancy mirroring
+							if (target.mirror_x == -1) {
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							}
+							if (target.mirror_y == -1) {
+								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
+							}
+						}
 						if (target.face_key == 'up') {
 							[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];

@@ -868,7 +868,7 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 		Outliner.root.forEach(node => {
 			if (node instanceof Group) {
 				node.forEachChild(child => {
-					if (child.selected && !child.parent.selected && !target.isChildOf?.(child)) {
+					if (child.selected && !child.parent.selected && (target instanceof OutlinerNode == false || !target.isChildOf?.(child))) {
 						items.push(child);
 					}
 				}, null, true);

@@ -332,6 +332,7 @@ export const MenuBar = {
 			'adjust_curves',
 			new MenuSeparator('filters'),
 			'limit_to_palette',
+			'split_rgb_into_layers',
 			'clear_unused_texture_space',
 			new MenuSeparator('transform'),
 			'flip_texture_x',

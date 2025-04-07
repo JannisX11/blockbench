@@ -643,6 +643,43 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Limit texture to palette')
 		}
 	})
+	new Action('split_rgb_into_layers', {
+		icon: 'stacked_bar_chart',
+		category: 'textures',
+		condition: {modes: ['paint'], selected: {texture: true}},
+		click() {
+			let texture = Texture.getDefault();
+			let original_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+
+			texture.layers_enabled = true;
+			let i = 0;
+			for (let color of ['red', 'green', 'blue']) {
+				data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+				for (let j = 0; j < data_copy.data.length; j += 4) {
+					if (i != 0) data_copy.data[j+0] = 0;
+					if (i != 1) data_copy.data[j+1] = 0;
+					if (i != 2) data_copy.data[j+2] = 0;
+				}
+				let layer = new TextureLayer({
+					name: color,
+					blend_mode: 'add'
+				}, texture);
+				layer.setSize(original_data.width, original_data.height);
+				layer.ctx.putImageData(data_copy, 0, 0);
+				texture.layers.unshift(layer);
+				if (color == 'red') {
+					layer.select();
+				}
+				i++;
+			}
+			texture.updateLayerChanges(true);
+			Undo.finishEdit('Split texture into RGB layers');
+			updateInterfacePanels();
+			BARS.updateConditions();
+		}
+	})
 	new Action('clear_unused_texture_space', {
 		icon: 'cleaning_services',
 		category: 'textures',

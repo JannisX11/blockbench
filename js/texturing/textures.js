@@ -1682,6 +1682,9 @@ export class Texture {
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
+		if ((this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+			this.getGroup().updateMaterial();
+		}
 		this.saved = false;
 		this.syncToOtherProject();
 	}
@@ -1890,6 +1893,7 @@ export class Texture {
 					'adjust_curves',
 					new MenuSeparator('filters'),
 					'limit_to_palette',
+					'split_rgb_into_layers',
 					'clear_unused_texture_space',
 					new MenuSeparator('transform'),
 					'flip_texture_x',
@@ -2543,6 +2547,9 @@ Interface.definePanels(function() {
 
 				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			closeContextMenu() {
+				if (Menu.open) Menu.open.hide();
 			}
 		},
 		template: `
@@ -2550,7 +2557,7 @@ Interface.definePanels(function() {
 				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
 				v-bind:texid="texture.uuid"
 				class="texture"
-				@click.stop="texture.select($event)"
+				@click.stop="closeContextMenu();texture.select($event)"
 				@mousedown="highlightTexture($event)"
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.openMenu($event)"
