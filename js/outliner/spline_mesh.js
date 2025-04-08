@@ -462,9 +462,7 @@ class SplineMesh extends OutlinerElement {
         let radialSegments = this.resolution[0];
         let tubularSegments = this.resolution[1];
         let radius = 1 * this.radius_multiplier;
-        let vertices = [];
         let normals = [];
-        let indices = [];
 
         // Gather Tangents for the entire tube
         let prevCurve;
@@ -472,7 +470,7 @@ class SplineMesh extends OutlinerElement {
         let prevCurveNormal;
         let curveTangents = [];
         let curveNormals = [];
-        let points = [];
+        let tubePoints = [];
         for (let cKey in this.curves) {
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
@@ -504,7 +502,7 @@ class SplineMesh extends OutlinerElement {
                 }
                 curveTangents.push(tangent);
                 curveNormals.push(normal);
-                points.push(curveData.point)
+                tubePoints.push(curveData.point)
             }
         }
         if (this.cyclic) {
@@ -519,17 +517,18 @@ class SplineMesh extends OutlinerElement {
 
                 curveTangents.push(tangent);
                 curveNormals.push(normal);
-                points.push(curveData.point)
+                tubePoints.push(curveData.point)
             }
         }
 
         // Add Verties per ring, and create face indices
-        let vertex = new THREE.Vector3();
-        let vertex_vectors = [];
         let matrix = new THREE.Matrix4();
-        for (let pt = 0; pt < points.length; pt++) {
-            let tangent = curveTangents[pt];
-            let normal = curveNormals[pt];
+        let vertexVectors = [];
+        let vertices = [];
+        let indices = [];
+        for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
+            let tangent = curveTangents[tubePoint];
+            let normal = curveNormals[tubePoint];
             let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
             matrix = matrix.makeBasis(tangent, normal, biNormal);
 
@@ -540,25 +539,68 @@ class SplineMesh extends OutlinerElement {
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
     
-                // Generate base rings, at scene origin, all aligned on one axis.
-                vertex.x = 0.0;
-                vertex.y = cos * radius;
-                vertex.z = sin * radius;
-    
-                // Finalize vertices & push em
-                vertex.applyMatrix4(matrix);
-                vertex.add(points[pt]);
-                vertex_vectors.push(vertex);
+                // Generate base rings, at scene origin, all aligned on one axis, apply matrix to orient them, and 
+                // offset by the position of the corresponding spline point. Then push this vertex to relevant arrays.
+                let vertex = new THREE.Vector3(0.0, cos * radius, sin * radius).applyMatrix4(matrix).add(tubePoints[tubePoint]);
+                vertexVectors.push(vertex);
                 vertices.push(...vertex.toArray());
 
                 // Face indices, so we can render them properly
-                if (pt > 0 && ringPoint > 0) {
-                    let a = (radialSegments + 1) * (pt - 1) + (ringPoint - 1);
-                    let b = (radialSegments + 1) * pt + (ringPoint - 1);
-                    let c = (radialSegments + 1) * pt + ringPoint;
-                    let d = (radialSegments + 1) * (pt - 1) + ringPoint;
+                if (tubePoint > 0 && ringPoint > 0) {
+                    //-
+                    let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
+                    let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
+                    let c = (radialSegments + 1) * tubePoint + ringPoint;
+                    let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
                     indices.push(a, b, d);
                     indices.push(b, c, d);
+                    // console.log(`${vertexVectors.length - 1}, ${a}, ${b}, ${c}, ${d}`);
+                }
+            }
+        }
+
+        // for (let i = 0; i < indices.length; i += 3) {
+        //     let i0 = indices[i];
+        //     let i1 = indices[i + 1];
+        //     let i2 = indices[i + 2];
+        //     let v0 = vertexVectors[indices[i0]];
+        //     let v1 = vertexVectors[indices[i1]];
+        //     let v2 = vertexVectors[indices[i2]];
+        //     console.log(
+        //         `vectors: [
+        //         ${i0} => (${v0}), 
+        //         ${i1} => (${v1}), 
+        //         ${i2} => (${v2}) ], 
+        //         max index: ${indices.reduce((acc, item) => (item > acc ? item : acc), indices[0])}`
+        //     );
+
+        //     let edge1 = new THREE.Vector3().subVectors(v1, v0);
+        //     let edge2 = new THREE.Vector3().subVectors(v2, v0);
+        //     let direction = new THREE.Vector3().crossVectors(edge1, edge2);
+        //     let normal = direction.normalize();
+
+        //     normals.push(...normal.toArray(), ...normal.toArray(), ...normal.toArray());
+        // }
+        
+        for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
+            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+                if (tubePoint > 0 && ringPoint > 0) {
+                    let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
+                    let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
+                    let c = (radialSegments + 1) * tubePoint + ringPoint;
+                    let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
+                    console.log(`Vectors: [ \n${a} => (${vertexVectors[a]}), \n${b} => (${vertexVectors[b]}), \n${c} => (${vertexVectors[c]}), \n${d} => (${vertexVectors[d]}) \n], indices: [ ${a}, ${b}, ${c}, ${d} ]`);
+
+                    let tri1 = new THREE.Triangle(vertexVectors[a], vertexVectors[b], vertexVectors[d]);
+                    let normal1 = new THREE.Vector3();
+                    tri1.getNormal(normal1);
+    
+                    let tri2 = new THREE.Triangle(vertexVectors[b], vertexVectors[c], vertexVectors[d]);
+                    let normal2 = new THREE.Vector3();
+                    tri2.getNormal(normal2);
+    
+                    normals.push(...normal1.toArray(), ...normal1.toArray(), ...normal1.toArray());
+                    normals.push(...normal2.toArray(), ...normal2.toArray(), ...normal2.toArray());
                 }
             }
         }
