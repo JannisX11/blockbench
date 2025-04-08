@@ -469,7 +469,9 @@ class SplineMesh extends OutlinerElement {
         // Gather Tangents for the entire tube
         let prevCurve;
         let prevCurveTangent;
-        let tangents = [];
+        let prevCurveNormal;
+        let curveTangents = [];
+        let curveNormals = [];
         let points = [];
         for (let cKey in this.curves) {
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
@@ -480,55 +482,66 @@ class SplineMesh extends OutlinerElement {
                 // Obtain local tangent, then check if we just changed curve segment, if so, we 
                 // need to interpolate the previous and current tangents so that the tube mesh doesn't break
                 let tangent = curveData.tangent;
+                let normal = curveData.normal;
                 if (curveChange) {
-                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent); 
-                    let currTangent = new THREE.Vector3().copy(curveData.tangent); 
-                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
+                    let avgTangent = (new THREE.Vector3().addVectors(curveData.tangent, prevCurveTangent)).multiplyScalar(0.5).normalize();
+                    let avgNormal = (new THREE.Vector3().addVectors(curveData.normal, prevCurveNormal)).multiplyScalar(0.5).normalize();
                     tangent = avgTangent;
+                    normal = avgNormal;
                 }
 
                 // Store tangents for later steps
                 if (curveChange) { // Pop & replace last tangent if our curve has changed
-                    tangents.pop()
-                    tangents.push(tangent)
+                    curveTangents.pop()
+                    curveTangents.push(tangent)
+
+                    curveNormals.pop()
+                    curveNormals.push(normal)
                 }
-                tangents.push(tangent);
+                curveTangents.push(tangent);
+                curveNormals.push(normal);
                 points.push(curveData.point)
 
                 // Assign temp
                 prevCurveTangent = curveData.tangent;
+                prevCurveNormal = curveData.normal;
                 prevCurve = cKey;
             }
         }
 
-        // Add Verties per ring
+        // Add Verties per ring, and create face indices
         let vertex = new THREE.Vector3();
         let vertex_vectors = [];
-        for (let tangentId = 0; tangentId <= (tangents.length - 1); tangentId++) {
-            let tangent = tangents[tangentId];
-            let matrix = new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), tangent, new THREE.Vector3(0, 1, 0));
+        let matrix = new THREE.Matrix4();
+        for (let pt = 0; pt < points.length; pt++) {
+            let tangent = curveTangents[pt];
+            let normal = curveNormals[pt];
+            let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
+            matrix = matrix.makeBasis(tangent, normal, biNormal);
 
-            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+            for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
+
+                // Vertices
                 let angle = ringPoint / radialSegments * Math.PI * 2;
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
-
+    
                 // Generate base rings, at scene origin, all aligned on one axis.
-                vertex.x = sin * radius;
+                vertex.x = 0.0;
                 vertex.y = cos * radius;
-                vertex.z = 0.0;
-
+                vertex.z = sin * radius;
+    
                 // Finalize vertices & push em
                 vertex.applyMatrix4(matrix);
-                vertex.add(points[tangentId]);
+                vertex.add(points[pt]);
                 vertex_vectors.push(vertex);
                 vertices.push(...vertex.toArray());
 
                 // Face indices, so we can render them properly
-                let a = (radialSegments + 1) * (tangentId - 1) + (ringPoint - 1);
-                let b = (radialSegments + 1) * tangentId + (ringPoint - 1);
-                let c = (radialSegments + 1) * tangentId + ringPoint;
-                let d = (radialSegments + 1) * (tangentId - 1) + ringPoint;
+                let a = (radialSegments + 1) * (pt - 1) + (ringPoint - 1);
+                let b = (radialSegments + 1) * pt + (ringPoint - 1);
+                let c = (radialSegments + 1) * pt + ringPoint;
+                let d = (radialSegments + 1) * (pt - 1) + ringPoint;
                 indices.push(a, b, d);
                 indices.push(b, c, d);
             }
@@ -578,10 +591,22 @@ class SplineMesh extends OutlinerElement {
 
         // Gather results
         let pointPos = bernstein(p, pc);
-        let tangentVec = bernstein(d, pc);
+        let tangentVec = bernstein(d, pc).normalize();
+
+        // Calculate the binormal vector
+        let upVec = new THREE.Vector3(0, 1, 0); // Arbitrary UP vector not parallel to the tangent
+        if (tangentVec.y === 1) {
+            upVec = new THREE.Vector3(1, 0, 0); // Use a different arbitrary vector if the tangent is parallel to the y-axis
+        }
+        let binormalVec = new THREE.Vector3().crossVectors(tangentVec, upVec).normalize();
+
+        // Calculate the normal vector
+        let normalVec = new THREE.Vector3().crossVectors(binormalVec, tangentVec).normalize();
+
         return {
             point: pointPos, 
-            tangent: tangentVec.normalize()
+            tangent: tangentVec,
+            normal: normalVec
         };
     }
 }
@@ -691,11 +716,104 @@ new NodePreviewController(SplineMesh, {
         let colorArray = [ color.r, color.g, color.b ];
         return [ colorArray, color ];
     },
+    debugDraw(element, linePoints, lineColors, renderParams = [true, true]) {
+        let debugTangentPoints = [];
+        let debugTangentColors = [];
+        let debugNormalPoints = [];
+        let debugNormalColors = [];
+
+        let pushPoints = function(bézierFunc, cKey) {
+            let prevCurve;
+            let prevCurveTangent;
+            let prevCurveNormal;
+            let debugTangentColor = [gizmo_colors.r.r, gizmo_colors.r.g, gizmo_colors.r.b];
+            let debugNormalColor = [gizmo_colors.g.r, gizmo_colors.g.g, gizmo_colors.g.b];
+            let debugColorSplit = [gizmo_colors.b.r, gizmo_colors.b.g, gizmo_colors.b.b];
+            
+            for (let res = 0; res <= element.resolution[1]; res++) {
+                let time = res / element.resolution[1];
+                let curve = bézierFunc(time);
+                let curveChange = prevCurve && cKey && prevCurve != cKey;
+
+                // Check if we just changed curve segment, if so, we need to interpolate the 
+                // previous and current tangents so that the tube mesh doesn't break
+                let localTangent = new THREE.Vector3().addVectors(curve.point, curve.tangent);
+                let localNormal = new THREE.Vector3().addVectors(curve.point, curve.normal);
+                let tangentColor = debugTangentColor;
+                let normalColor = debugNormalColor;
+                if (curveChange) {
+                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent);
+                    let currTangent = new THREE.Vector3().copy(curve.tangent);
+                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
+                    localTangent = new THREE.Vector3().addVectors(curve.point, avgTangent);
+                    tangentColor = debugColorSplit;
+
+                    let prevNormal = new THREE.Vector3().copy(prevCurveNormal);
+                    let currNormal = new THREE.Vector3().copy(curve.normal);
+                    let avgNormal = (new THREE.Vector3().addVectors(currNormal, prevNormal)).multiplyScalar(0.5).normalize();
+                    localNormal = new THREE.Vector3().addVectors(curve.point, avgNormal);
+                    normalColor = debugColorSplit;
+                    console.log(`curve change from ${prevCurve} to ${cKey}`);
+                }
+
+                // Push all points to their respective arrays
+                if (curveChange) { // Pop & replace last tangent if our curve has changed
+                    debugTangentPoints.pop()
+                    debugTangentPoints.push(localTangent)
+
+                    debugNormalPoints.pop()
+                    debugNormalPoints.push(localNormal)
+                }
+
+                // Compile Tangents
+                debugTangentPoints.push(curve.point);
+                debugTangentPoints.push(localTangent);
+                debugTangentColors.push(tangentColor);
+                debugTangentColors.push(tangentColor);
+                
+                // Compile Normals
+                debugNormalPoints.push(curve.point);
+                debugNormalPoints.push(localNormal);
+                debugNormalColors.push(normalColor);
+                debugNormalColors.push(normalColor);
+
+                // Assign temp for next loop
+                prevCurveTangent = curve.tangent;
+                prevCurveNormal = curve.normal;
+                prevCurve = cKey;
+            }
+        }
+
+        // Add curve line points
+        for (let cKey in element.curves) {
+            pushPoints((time) => element.getBézierForCurve(time, cKey));
+        }
+
+        // Add another curve to the mesh if this spline is cyclic
+        if (element.cyclic) {
+            let firsthandle = element.getFirstHandle();
+            let lasthandle = element.getLastHandle();
+
+            pushPoints((time) => { 
+                return element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint) 
+            }, null);
+        }
+
+        // Add all points to line arrays for render
+        if (renderParams[0]) {
+            debugTangentPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
+            debugTangentColors.forEach((array, i) => lineColors.push(...array))
+        }
+        if (renderParams[1]) {
+            debugNormalPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
+            debugNormalColors.forEach((array, i) => lineColors.push(...array))
+        }
+    },
     updateGeometry(element) {
         let { mesh } = element;
         let point_positions = [];
-        let line_points = [];
-        let line_colors = [];
+        let linePoints = [];
+        let lineColors = [];
         let { handles, vertices } = element;
 
         // Handle geometry
@@ -709,65 +827,28 @@ new NodePreviewController(SplineMesh, {
 
             // Add handle lines
             if (BarItems.spline_selection_mode.value == 'handles') {
-                line_points.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
+                linePoints.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
 
                 // Handle color
                 let color = this.getHandleColor()[0];
-                line_colors.push(...color, ...color, ...color, ...color);
+                lineColors.push(...color, ...color, ...color, ...color);
             }
         }
 
         // Bezier Curves
         let pathColor = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
-        let debugTangentColor = [gizmo_colors.r.r, gizmo_colors.r.g, gizmo_colors.r.b];
-        let debugTangentColorSplit = [gizmo_colors.g.r, gizmo_colors.g.g, gizmo_colors.g.b];
         let pointsToAdd = []
-        let debugTangentPoints = []
-        let debugTangentColors = []
-        let prevCurve;
-        let prevCurveTangent;
-
-        let pushPoints = function(bézierFunc, cKey = null) {
+        let pushPoints = function(bézierFunc) {
             for (let res = 0; res <= element.resolution[1]; res++) {
                 let time = res / element.resolution[1];
                 let curve = bézierFunc(time);
-                let curveChange = prevCurve && cKey && prevCurve != cKey;
-
-                // Check if we just changed curve segment, if so, we need to interpolate the 
-                // previous and current tangents so that the tube mesh doesn't break
-                let localTangent;
-                let color;
-                if (curveChange) {
-                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent); 
-                    let currTangent = new THREE.Vector3().copy(curve.tangent); 
-                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
-                    localTangent = new THREE.Vector3().addVectors(curve.point, avgTangent);
-                    color = debugTangentColorSplit;
-                } else {
-                    localTangent = new THREE.Vector3().addVectors(curve.point, curve.tangent);
-                    color = debugTangentColor
-                }
-
-                // Push all points to their respective arrays
                 pointsToAdd.push(curve.point);
-                if (curveChange) { // Pop & replace last tangent if our curve has changed
-                    debugTangentPoints.pop()
-                    debugTangentPoints.push(localTangent)
-                }
-                debugTangentPoints.push(curve.point);
-                debugTangentPoints.push(localTangent);
-                debugTangentColors.push(color);
-                debugTangentColors.push(color);
-
-                // Assign temp
-                prevCurveTangent = curve.tangent;
-                prevCurve = cKey;
             }
         }
 
         // Add curve line points
         for (let cKey in element.curves) {
-            pushPoints((time) => element.getBézierForCurve(time, cKey), cKey);
+            pushPoints((time) => element.getBézierForCurve(time, cKey));
         }
 
         // Add another curve to the mesh if this spline is cyclic
@@ -783,15 +864,10 @@ new NodePreviewController(SplineMesh, {
         // Add all points to line geometry
         pointsToAdd.forEach((vector, i) => {
             let shouldDouble = i > 0 && i < (pointsToAdd.length - 1); // Band-aid because I don't calculate indices for outlines.
-            line_points.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
-            line_colors.push(...pathColor, ...(shouldDouble ? pathColor : []))
+            linePoints.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
+            lineColors.push(...pathColor, ...(shouldDouble ? pathColor : []))
         })
-        // debugTangentPoints.forEach((vector, i) => {
-        //     line_points.push(...vector.toArray());
-        // })
-        // debugTangentColors.forEach((array, i) => {
-        //     line_colors.push(...array);
-        // })
+        this.debugDraw(element, linePoints, lineColors, [false, true]);
 
         // Tube geometry
         let tube = element.getTubeGeo();
@@ -804,8 +880,8 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(tubeVertCount).fill(highlightArray[0]), 1));
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
-        mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_points), 3));
-        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(line_colors), 3));
+        mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
+        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
