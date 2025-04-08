@@ -911,4 +911,5 @@ Object.assign(window, {
 	TextureGroup,
 	TextureGroupMaterialConfig,
 	importTextureSet,
+	loadAdjacentTextureSet
 });
