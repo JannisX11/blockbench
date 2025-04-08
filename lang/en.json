@@ -1519,6 +1519,7 @@
 	"action.spline_handle_mode.desc": "Which mode to use for transforming spline handles",
 	"action.spline_handle_mode.aligned": "Aligned",
 	"action.spline_handle_mode.free": "Free",
+	"action.spline_handle_mode.mirrored": "Mirrored",
 	"action.rotation_space": "Rotation Space",
 	"action.transform_pivot_space": "Pivot Transform Space",
 	"action.scale": "Scale...",
@@ -2290,6 +2291,7 @@
 	"panel.element.origin": "Pivot Point",
 	"panel.element.rotation": "Rotation",
 	"panel.spline.resolution": "Resolution",
+	"panel.spline.radius_multiplier": "Radius",
 
 	"panel.bone": "Bone",
 	"panel.bone.ik": "Inverse Kinematics (Experimental)",

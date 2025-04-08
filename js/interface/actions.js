@@ -2255,13 +2255,22 @@ const BARS = {
 				'slider_spline_resolution_v'
 			]
 		})
+		Toolbars.spline_radius = new Toolbar({
+			id: 'spline_radius',
+			name: 'panel.spline.radius',
+			label: true,
+			children: [
+				'slider_spline_radius',
+			]
+		})
 		if (Blockbench.isMobile) {
 			[Toolbars.element_position,
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation,
-				Toolbars.spline_resolution
+				Toolbars.spline_resolution,
+				Toolbars.spline_radius
 			].forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;

@@ -461,7 +461,7 @@ class SplineMesh extends OutlinerElement {
     getTubeGeo() {
         let radialSegments = this.resolution[0];
         let tubularSegments = this.resolution[1];
-        let radius = 2;
+        let radius = 1 * this.radius_multiplier;
         let vertices = [];
         let normals = [];
         let indices = [];
@@ -478,6 +478,7 @@ class SplineMesh extends OutlinerElement {
                 let time = tubePoint / tubularSegments;
                 let curveData = this.getBézierForCurve(time, cKey);
                 let curveChange = prevCurve && prevCurve != cKey;
+                prevCurve = cKey;
 
                 // Obtain local tangent, then check if we just changed curve segment, if so, we 
                 // need to interpolate the previous and current tangents so that the tube mesh doesn't break
@@ -489,23 +490,36 @@ class SplineMesh extends OutlinerElement {
                     tangent = avgTangent;
                     normal = avgNormal;
                 }
+                prevCurveTangent = curveData.tangent;
+                prevCurveNormal = curveData.normal;
 
                 // Store tangents for later steps
-                if (curveChange) { // Pop & replace last tangent if our curve has changed
+                if (curveChange) { // Pop & replace last tangent & normals if our curve has changed, & avoid duplicate points
                     curveTangents.pop()
                     curveTangents.push(tangent)
 
                     curveNormals.pop()
                     curveNormals.push(normal)
+                    continue;
                 }
                 curveTangents.push(tangent);
                 curveNormals.push(normal);
                 points.push(curveData.point)
+            }
+        }
+        if (this.cyclic) {
+            let firsthandle = this.getFirstHandle();
+            let lasthandle = this.getLastHandle();
 
-                // Assign temp
-                prevCurveTangent = curveData.tangent;
-                prevCurveNormal = curveData.normal;
-                prevCurve = cKey;
+            for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
+                let time = tubePoint / tubularSegments;
+                let curveData = this.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
+                let tangent = curveData.tangent;
+                let normal = curveData.normal;
+
+                curveTangents.push(tangent);
+                curveNormals.push(normal);
+                points.push(curveData.point)
             }
         }
 
@@ -519,7 +533,7 @@ class SplineMesh extends OutlinerElement {
             let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
             matrix = matrix.makeBasis(tangent, normal, biNormal);
 
-            for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
+            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
 
                 // Vertices
                 let angle = ringPoint / radialSegments * Math.PI * 2;
@@ -538,12 +552,14 @@ class SplineMesh extends OutlinerElement {
                 vertices.push(...vertex.toArray());
 
                 // Face indices, so we can render them properly
-                let a = (radialSegments + 1) * (pt - 1) + (ringPoint - 1);
-                let b = (radialSegments + 1) * pt + (ringPoint - 1);
-                let c = (radialSegments + 1) * pt + ringPoint;
-                let d = (radialSegments + 1) * (pt - 1) + ringPoint;
-                indices.push(a, b, d);
-                indices.push(b, c, d);
+                if (pt > 0 && ringPoint > 0) {
+                    let a = (radialSegments + 1) * (pt - 1) + (ringPoint - 1);
+                    let b = (radialSegments + 1) * pt + (ringPoint - 1);
+                    let c = (radialSegments + 1) * pt + ringPoint;
+                    let d = (radialSegments + 1) * (pt - 1) + ringPoint;
+                    indices.push(a, b, d);
+                    indices.push(b, c, d);
+                }
             }
         }
 
@@ -665,6 +681,7 @@ new Property(SplineMesh, 'boolean', 'visibility', { default: true });
 new Property(SplineMesh, 'boolean', 'locked');
 new Property(SplineMesh, 'boolean', 'cyclic'); // If the spline should be closed or not
 new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline
+new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by
 new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
 
 OutlinerElement.registerType(SplineMesh, 'spline');

@@ -1628,6 +1628,29 @@ BARS.defineActions(function () {
 	let slider_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v];
 	slider_spline_resolution.forEach(slider => slider.slider_vector = slider_spline_resolution);
 
+	new NumSlider('slider_spline_radius', {
+		category: 'transform',
+		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		getInterval: getSpatialInterval,
+		get: function () {
+			return SplineMesh.selected[0].radius_multiplier;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach(function (obj, i) {
+				var v = modify(obj.radius_multiplier);
+				obj.radius_multiplier = Math.max(v, 0);
+				obj.preview_controller.updateGeometry(obj);
+			})
+			Canvas.updatePositions()
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust radius of splines')
+		}
+	})
+
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),
 		icon: 'rotate_right',

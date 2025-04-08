@@ -83,6 +83,10 @@ function updateNslideValues() {
 			BarItems.slider_spline_resolution_u.update()
 			BarItems.slider_spline_resolution_v.update()
 		}
+
+		if (Condition(BarItems.slider_spline_radius)) {
+			BarItems.slider_spline_radius.update()
+		}
 	}
 	if (Outliner.selected.length || (Format.bone_rig && Group.selected)) {
 		BarItems.slider_origin_x.update()
