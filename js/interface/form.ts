@@ -157,7 +157,7 @@ export class InputForm extends EventSystem {
 		this.uses_wide_inputs = false;
 
 		this.buildForm();
-		this.updateValues(true);
+		this.updateValues({cause: 'setup'});
 	}
 	buildForm() {
 		let jq_node = $(this.node);
@@ -189,11 +189,14 @@ export class InputForm extends EventSystem {
 			}
 		}
 	}
-	updateValues(initial?: boolean) {
+	updateValues(context: {cause?: string, changed_keys?: string[]} = {}) {
 		let form_result = this.getResult();
-		this.update(form_result)
-		if (!initial) {
-			this.dispatchEvent('change', {result: form_result});
+		this.update(form_result);
+		if (context.cause != 'setup') {
+			this.dispatchEvent('change', {result: form_result, cause: context.cause, changed_keys: context.changed_keys});
+		}
+		if (context.cause == 'input') {
+			this.dispatchEvent('input', {result: form_result, changed_keys: context.changed_keys});
 		}
 		return form_result;
 	}
@@ -205,7 +208,7 @@ export class InputForm extends EventSystem {
 				form_element.setValue(values[form_id]);
 			}
 		}
-		if (update) this.updateValues();
+		if (update) this.updateValues({cause: 'update_value'});
 	}
 	setToggles(values: Record<string, boolean>, update = true) {
 		for (let form_id in this.form_config) {
@@ -216,7 +219,7 @@ export class InputForm extends EventSystem {
 				form_element.bar.classList.toggle('form_toggle_disabled', !form_element.input_toggle.checked);
 			}
 		}
-		if (update) this.updateValues();
+		if (update) this.updateValues({cause: 'update_toggle'});
 	}
 	getResult(): FormValues {
 		let result = {}
@@ -287,8 +290,8 @@ export class FormElement extends EventSystem {
 		return null;
 	}
 	change() {
-		this.dispatchEvent('change', {});
-		this.form.updateValues();
+		this.dispatchEvent('change', {changed_keys: [this.id]});
+		this.form.updateValues({cause: 'input', changed_keys: [this.id]});
 	}
 	setup() {
 		if (this.options.readonly && 'input' in this) {
@@ -662,7 +665,7 @@ FormElement.types.radio = class FormElementRadio extends FormElement {
 				<label for="${key}">${name}</label>
 			</div>`)
 			this.input = el.find(`input#${key}`)[0] as HTMLInputElement;
-			this.input.addEventListener('change', () => {
+			this.input.addEventListener('change', (args) => {
 				this.change();
 			})
 		}

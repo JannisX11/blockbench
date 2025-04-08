@@ -407,7 +407,7 @@ export class Dialog {
 		if (!this.object) {
 			this.build();
 		} else if (this.form) {
-			this.form.updateValues(true);
+			this.form.updateValues({cause: 'setup'});
 		}
 
 		let jq_dialog = $(this.object);
