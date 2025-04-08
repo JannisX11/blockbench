@@ -43,7 +43,7 @@ export const data = {
  * @param variables Array of variables that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
  * @param default_value String value to default to if the translation is not available
  */
-export const tl = function(string: string, variables?: string | string[], default_value?: string): string {
+export const tl = function(string: string, variables?: string | number | (string|number)[], default_value?: string): string {
 	if (string && string.length > 100) return string;
 	var result = Language.data[string]
 	if (result && result.length > 0) {

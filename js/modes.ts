@@ -38,7 +38,6 @@ export class Mode extends KeybindItem {
 	hide_toolbars: boolean
 	hide_sidebars: boolean
 	hide_status_bar: boolean
-	condition: ConditionResolvable
 	vue?: Vue
 
 	onSelect?: () => void

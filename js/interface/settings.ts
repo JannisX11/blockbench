@@ -3,6 +3,7 @@ import { Blockbench } from "../api";
 import { Dialog } from "./dialog";
 
 export const settings: Record<string, Setting> = {};
+export type settings_type = typeof settings;
 
 type SettingsValue = string | number | boolean;
 interface SettingOptions {
@@ -27,10 +28,16 @@ interface SettingOptions {
 	onChange?(value: any): void
 }
 
+/**
+ * Settings can be used to add global configuration options to Blockbench. All settings are listed under File > Preferences > Settings.
+ */
 export class Setting {
 	id: string
 	type: string
 	default_value: SettingsValue
+	/**
+	 * The master value, not affected by profiles
+	 */
 	master_value: SettingsValue
 	condition: ConditionResolvable
 	category: string
@@ -128,7 +135,10 @@ export class Setting {
 			Settings.saveLocalStorages();
 		}
 	}
-	get value() {
+	/**
+	 * The active value
+	 */
+	get value(): SettingsValue {
 		let profile = SettingsProfile.all.find(profile => profile.isActive() && profile.settings[this.id] !== undefined);
 		if (profile) {
 			return profile.settings[this.id] ?? this.master_value;
@@ -136,10 +146,13 @@ export class Setting {
 			return this.master_value;
 		}
 	}
-	set value(value) {
+	set value(value: SettingsValue) {
 		this.master_value = value;
 	}
-	get ui_value() {
+	/**
+	 * The value that is displayed in the settings dialog
+	 */
+	get ui_value(): SettingsValue {
 		let profile = Settings.dialog.content_vue?.$data.profile;
 		if (profile) {
 			return profile.settings[this.id] ?? this.master_value;
@@ -147,9 +160,9 @@ export class Setting {
 			return this.master_value;
 		}
 	}
-	set ui_value(value) {
+	set ui_value(value: SettingsValue) {
 		let profile = Settings.dialog.content_vue?.$data.profile;
-		if (this.type == 'number') value = Math.clamp(value, this.min, this.max)
+		if (this.type == 'number') value = Math.clamp(value as number, this.min, this.max)
 		if (profile) {
 			Vue.set(profile.settings, this.id, value);
 		} else {
@@ -164,6 +177,9 @@ export class Setting {
 			delete Settings.structure[this.category].items[this.id];
 		}
 	}
+	/**
+	 * Sets the value of the setting, while triggering the onChange function if available, and saving the change.
+	 */
 	set(value: SettingsValue) {
 		if (value === undefined || value === null) return;
 		let old_value = this.value;
@@ -185,6 +201,9 @@ export class Setting {
 		}
 		Settings.saveLocalStorages();
 	}
+	/**
+	 * Triggers the setting, as if selected in action control. This toggles boolean settings, opens a dialog for string or numeric settings, etc.
+	 */
 	trigger(e: KeyboardEvent | MouseEvent) {
 		let {type} = this;
 		let setting = this;
@@ -424,9 +443,12 @@ export class SettingsProfile {
 	}
 }
 
+/**
+ * Global namespace handling data and functionality related to settings.
+ */
 export const Settings = {
 	profile_menu_button: null as HTMLElement | null,
-	structure: {},
+	structure: {} as Record<string, {name: string, open: boolean, items: Record<string, Setting>}>,
 	stored: {} as Record<string, SettingsValue>,
 	dialog: null as Dialog | null,
 	addCategory(id: string, data: {name?: string, open?: boolean}) {
@@ -438,6 +460,9 @@ export const Settings = {
 		Settings.dialog.sidebar.pages[id] = Settings.structure[id].name;
 		Settings.dialog.sidebar.build();
 	},
+	/**
+	 * Save all settings to the local storage
+	 */
 	saveLocalStorages() {
 		var settings_copy = {}
 		for (var key in settings) {
@@ -449,6 +474,9 @@ export const Settings = {
 		// @ts-ignore
 		if (window.ColorPanel) ColorPanel.saveLocalStorages()
 	},
+	/**
+	 * Save the settings and apply changes
+	 */
 	save() {
 		Settings.saveLocalStorages()
 		updateSelection();
@@ -494,6 +522,9 @@ export const Settings = {
 			}
 		}
 	},
+	/**
+	 * Returns the value of the specified setting
+	 */
 	get(id: string) {
 		if (id && settings[id]) {
 			return settings[id].value;

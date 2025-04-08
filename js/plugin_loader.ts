@@ -1,6 +1,7 @@
-import { StateMemory } from "./api";
+import { FileResult } from "../types/blockbench";
+import { Blockbench, StateMemory } from "./api";
 import { Dialog } from "./interface/dialog";
-import { Settings, SettingsProfile } from "./interface/settings";
+import { settings, Settings, SettingsProfile } from "./interface/settings";
 import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";

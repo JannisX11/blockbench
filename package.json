@@ -130,26 +130,28 @@
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run build-web && npm run pwa",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
-		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
-	},
-	"overrides": {
-		"three": "^0.150.0"
+		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master",
+		"generate-docs": "node ./scripts/generate_docs.js",
+		"generate-wiki": "node ./scripts/generate_docs.js --out \"../../blockbench.net/content/api/\""
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
+		"@types/node": "^22.14.0",
 		"command-line-args": "^6.0.1",
 		"concurrently": "^9.1.2",
 		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
 		"esbuild": "0.25.0",
 		"esbuild-plugin-glsl": "^1.2.2",
+		"typedoc": "^0.28.2",
 		"typescript": "^5.8.2",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {
 		"@electron/remote": "^2.1.2",
+		"@types/jquery": "^3.5.32",
 		"@types/three": "^0.150.0",
-		"blockbench-types": "^4.12.2",
+		"@types/tinycolor2": "^1.4.6",
 		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^6.3.4",
 		"file-saver": "^2.0.5",

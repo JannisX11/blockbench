@@ -115,3 +115,16 @@ import "./io/formats/image"
 import "./boot_loader"
 import "./globals"
 
+import {
+	settings as _settings,
+	Setting as _Setting,
+	SettingsProfile as _SettingsProfile,
+	Settings as _Settings,
+} from './interface/settings'
+declare global {
+	const settings: typeof _settings
+	const Setting: typeof _Setting
+	const SettingsProfile: typeof _SettingsProfile
+	const Settings: typeof _Settings
+}
+
