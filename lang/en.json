@@ -2291,7 +2291,7 @@
 	"panel.element.origin": "Pivot Point",
 	"panel.element.rotation": "Rotation",
 	"panel.spline.resolution": "Resolution",
-	"panel.spline.radius_multiplier": "Radius",
+	"panel.spline.radius": "Radius",
 
 	"panel.bone": "Bone",
 	"panel.bone.ik": "Inverse Kinematics (Experimental)",

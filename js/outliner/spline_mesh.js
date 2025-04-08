@@ -900,8 +900,8 @@ new NodePreviewController(SplineMesh, {
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
-        mesh.geometry.computeBoundingBox();
-        mesh.geometry.computeBoundingSphere();
+        // mesh.geometry.computeBoundingBox();
+        // mesh.geometry.computeBoundingSphere();
 
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();
