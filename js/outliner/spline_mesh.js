@@ -462,7 +462,6 @@ class SplineMesh extends OutlinerElement {
         let radialSegments = this.resolution[0];
         let tubularSegments = this.resolution[1];
         let radius = 1 * this.radius_multiplier;
-        let normals = [];
 
         // Gather Tangents for the entire tube
         let prevCurve;
@@ -522,93 +521,71 @@ class SplineMesh extends OutlinerElement {
         }
 
         // Add Verties per ring, and create face indices
-        let matrix = new THREE.Matrix4();
         let vertexVectors = [];
         let vertices = [];
         let indices = [];
+        let curveNormalPerVert = [];
+        let curveBiNormalPerVert = [];
         for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
             let tangent = curveTangents[tubePoint];
             let normal = curveNormals[tubePoint];
             let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
-            matrix = matrix.makeBasis(tangent, normal, biNormal);
+            let matrix = new THREE.Matrix4().makeBasis(tangent, normal, biNormal);
 
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
 
-                // Vertices
+                // Generate base rings, at scene origin, all aligned on one axis, apply matrix to orient them, and 
+                // offset by the position of the corresponding spline point. Then push this vertex to relevant arrays.
                 let angle = ringPoint / radialSegments * Math.PI * 2;
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
-    
-                // Generate base rings, at scene origin, all aligned on one axis, apply matrix to orient them, and 
-                // offset by the position of the corresponding spline point. Then push this vertex to relevant arrays.
                 let vertex = new THREE.Vector3(0.0, cos * radius, sin * radius).applyMatrix4(matrix).add(tubePoints[tubePoint]);
+
                 vertexVectors.push(vertex);
                 vertices.push(...vertex.toArray());
+                curveNormalPerVert.push(normal);
+                curveBiNormalPerVert.push(biNormal);
 
-                // Face indices, so we can render them properly
+                // Face indices
                 if (tubePoint > 0 && ringPoint > 0) {
-                    //-
                     let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
                     let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
                     let c = (radialSegments + 1) * tubePoint + ringPoint;
                     let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
+
                     indices.push(a, b, d);
                     indices.push(b, c, d);
-                    // console.log(`${vertexVectors.length - 1}, ${a}, ${b}, ${c}, ${d}`);
                 }
             }
         }
-
-        // for (let i = 0; i < indices.length; i += 3) {
-        //     let i0 = indices[i];
-        //     let i1 = indices[i + 1];
-        //     let i2 = indices[i + 2];
-        //     let v0 = vertexVectors[indices[i0]];
-        //     let v1 = vertexVectors[indices[i1]];
-        //     let v2 = vertexVectors[indices[i2]];
-        //     console.log(
-        //         `vectors: [
-        //         ${i0} => (${v0}), 
-        //         ${i1} => (${v1}), 
-        //         ${i2} => (${v2}) ], 
-        //         max index: ${indices.reduce((acc, item) => (item > acc ? item : acc), indices[0])}`
-        //     );
-
-        //     let edge1 = new THREE.Vector3().subVectors(v1, v0);
-        //     let edge2 = new THREE.Vector3().subVectors(v2, v0);
-        //     let direction = new THREE.Vector3().crossVectors(edge1, edge2);
-        //     let normal = direction.normalize();
-
-        //     normals.push(...normal.toArray(), ...normal.toArray(), ...normal.toArray());
-        // }
         
+        // Vertex normals, so we can render this properly
+        let normals = [];
         for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
-            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
-                if (tubePoint > 0 && ringPoint > 0) {
-                    let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
-                    let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
-                    let c = (radialSegments + 1) * tubePoint + ringPoint;
-                    let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
-                    console.log(`Vectors: [ \n${a} => (${vertexVectors[a]}), \n${b} => (${vertexVectors[b]}), \n${c} => (${vertexVectors[c]}), \n${d} => (${vertexVectors[d]}) \n], indices: [ ${a}, ${b}, ${c}, ${d} ]`);
+            let tangent = curveTangents[tubePoint];
+            let normal = curveNormals[tubePoint];
+            let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
 
-                    let tri1 = new THREE.Triangle(vertexVectors[a], vertexVectors[b], vertexVectors[d]);
-                    let normal1 = new THREE.Vector3();
-                    tri1.getNormal(normal1);
-    
-                    let tri2 = new THREE.Triangle(vertexVectors[b], vertexVectors[c], vertexVectors[d]);
-                    let normal2 = new THREE.Vector3();
-                    tri2.getNormal(normal2);
-    
-                    normals.push(...normal1.toArray(), ...normal1.toArray(), ...normal1.toArray());
-                    normals.push(...normal2.toArray(), ...normal2.toArray(), ...normal2.toArray());
-                }
+            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+                // Vertex normals
+                let angle = ringPoint / radialSegments * Math.PI * 2;
+                let cos = -Math.cos(angle);
+                let sin = Math.sin(angle);
+                let normalVec = new THREE.Vector3(
+                    cos * normal.x + sin * biNormal.x, 
+                    cos * normal.y + sin * biNormal.y, 
+                    cos * normal.z + sin * biNormal.z 
+                ).normalize();
+
+				normals.push(...normalVec.toArray());
             }
         }
-
+       
         return {
             vertices: vertices,
             normals: normals,
-            indices: indices
+            indices: indices,
+            vertexVectors: vertexVectors
         };
     }
     getBézierForCurve(time, key) {
@@ -933,6 +910,22 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
         mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
         mesh.geometry.setIndex(tube.indices);
+        
+        let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
+        for (let i = 0; i < tube.indices.length; i+=6) {
+            let v1 = tube.indices[i];
+            let v2 = tube.indices[i + 1];
+            let v3 = tube.indices[i + 4];
+            let v4 = tube.indices[i + 1];
+            let vertexOrder = [v2, v3, v4, v1];
+
+            // Roughly copied from mesh.js's indexing for outllines, adapted for this use-case
+            vertexOrder.forEach((index, i) => {
+                let vector = tube.vertexVectors[index];
+                linePoints.push(...vector.toArray());
+                lineColors.push(...outlineColor);
+            })
+        }
 
         let tubeVertCount = mesh.geometry.attributes.position.array.length;
         let highlightArray = mesh.geometry.attributes.highlight.array
@@ -944,6 +937,10 @@ new NodePreviewController(SplineMesh, {
 
         // mesh.geometry.computeBoundingBox();
         // mesh.geometry.computeBoundingSphere();
+
+        // Shade flat (do we want to?)
+        // mesh.geometry = mesh.geometry.toNonIndexed();
+        // mesh.geometry.computeVertexNormals();
 
         mesh.vertex_points.geometry.computeBoundingSphere();
         mesh.outline.geometry.computeBoundingSphere();
@@ -972,6 +969,8 @@ new NodePreviewController(SplineMesh, {
         }
         else if (Project.view_mode === 'textured') 
             mesh.material = Canvas.emptyMaterials[element.color];
+
+        // mesh.material.flatShading = true;
 
         this.dispatchEvent('update_faces', { element });
     },
