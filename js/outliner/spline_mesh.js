@@ -521,16 +521,19 @@ class SplineMesh extends OutlinerElement {
         }
 
         // Add Verties per ring, and create face indices
-        let vertexVectors = [];
+        // let vertexVectors = [];
         let vertices = [];
         let indices = [];
-        let curveNormalPerVert = [];
-        let curveBiNormalPerVert = [];
+        let uvs = [];
+        let faces;
+        let vertex = new THREE.Vector3();
+        let biNormal = new THREE.Vector3();
+        let matrix = new THREE.Matrix4();
         for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
             let tangent = curveTangents[tubePoint];
             let normal = curveNormals[tubePoint];
-            let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
-            let matrix = new THREE.Matrix4().makeBasis(tangent, normal, biNormal);
+            biNormal.crossVectors(tangent, normal).normalize();
+            matrix.makeBasis(tangent, normal, biNormal);
 
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
 
@@ -539,12 +542,12 @@ class SplineMesh extends OutlinerElement {
                 let angle = ringPoint / radialSegments * Math.PI * 2;
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
-                let vertex = new THREE.Vector3(0.0, cos * radius, sin * radius).applyMatrix4(matrix).add(tubePoints[tubePoint]);
 
-                vertexVectors.push(vertex);
+                vertex.x = 0.0;
+                vertex.y = cos * radius;
+                vertex.z = sin * radius;
+                vertex.applyMatrix4(matrix).add(tubePoints[tubePoint]);
                 vertices.push(...vertex.toArray());
-                curveNormalPerVert.push(normal);
-                curveBiNormalPerVert.push(biNormal);
 
                 // Face indices
                 if (tubePoint > 0 && ringPoint > 0) {
@@ -553,13 +556,21 @@ class SplineMesh extends OutlinerElement {
                     let c = (radialSegments + 1) * tubePoint + ringPoint;
                     let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
 
-                    indices.push(a, b, d);
-                    indices.push(b, c, d);
+                    indices.push(a, b, c);
+                    indices.push(a, c, d);
+                    if (faces) faces.push([a, b, c, d]);
+                    else faces = [[a, b, c, d]];
                 }
+
+                // Make UVs
+                let uvx = tubePoint / tubePoints;
+                let uvy = ringPoint / radialSegments;
+				uvs.push(uvx, uvy);
             }
         }
         
-        // Vertex normals, so we can render this properly
+        // Vertex normals, so we can render this properly. This is isolated 
+        // for now as I'm considering tweaking it with data gathered above.
         let normals = [];
         for (let tubePoint = 0; tubePoint < tubePoints.length; tubePoint++) {
             let tangent = curveTangents[tubePoint];
@@ -567,7 +578,6 @@ class SplineMesh extends OutlinerElement {
             let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
 
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
-                // Vertex normals
                 let angle = ringPoint / radialSegments * Math.PI * 2;
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
@@ -580,12 +590,32 @@ class SplineMesh extends OutlinerElement {
 				normals.push(...normalVec.toArray());
             }
         }
+
+        // console.log(faces);
+        // console.log(vertexVectors);
+        // for (let vertices of faces) {
+        //     console.log(vertices)
+        //     let v0 = new THREE.Vector3().copy(vertexVectors[vertices[0]]);
+        //     let v1 = new THREE.Vector3().copy(vertexVectors[vertices[1]]);
+        //     let v2 = new THREE.Vector3().copy(vertexVectors[vertices[2]]);
+        //     let edge1 = new THREE.Vector3().subVectors(v1, v0);
+        //     let edge2 = new THREE.Vector3().subVectors(v2, v0);
+        //     let direction = new THREE.Vector3().crossVectors(edge1, edge2);
+        //     let normal = new THREE.Vector3().copy(direction).normalize();
+
+        //     normals.push(
+        //         ...normal.toArray(), 
+        //         ...normal.toArray(), 
+        //         ...normal.toArray(), 
+        //         ...normal.toArray()
+        //     );
+        // }
        
         return {
             vertices: vertices,
             normals: normals,
             indices: indices,
-            vertexVectors: vertexVectors
+            uvs: uvs
         };
     }
     getBézierForCurve(time, key) {
@@ -909,6 +939,8 @@ new NodePreviewController(SplineMesh, {
         let tube = element.getTubeGeo();
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
         mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2)), 
+		mesh.geometry.attributes.uv.needsUpdate = true;
         mesh.geometry.setIndex(tube.indices);
         
         let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
@@ -919,10 +951,14 @@ new NodePreviewController(SplineMesh, {
             let v4 = tube.indices[i + 1];
             let vertexOrder = [v2, v3, v4, v1];
 
-            // Roughly copied from mesh.js's indexing for outllines, adapted for this use-case
+            // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
             vertexOrder.forEach((index, i) => {
-                let vector = tube.vertexVectors[index];
-                linePoints.push(...vector.toArray());
+                let vector = [
+                    tube.vertices[index * 3], 
+                    tube.vertices[(index * 3) + 1], 
+                    tube.vertices[(index * 3) + 2]
+                ];
+                linePoints.push(...vector);
                 lineColors.push(...outlineColor);
             })
         }
@@ -935,8 +971,8 @@ new NodePreviewController(SplineMesh, {
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
-        // mesh.geometry.computeBoundingBox();
-        // mesh.geometry.computeBoundingSphere();
+        mesh.geometry.computeBoundingBox();
+        mesh.geometry.computeBoundingSphere();
 
         // Shade flat (do we want to?)
         // mesh.geometry = mesh.geometry.toNonIndexed();
