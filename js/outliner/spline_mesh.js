@@ -521,11 +521,10 @@ class SplineMesh extends OutlinerElement {
         }
 
         // Add Verties per ring, and create face indices
-        // let vertexVectors = [];
         let vertices = [];
         let indices = [];
         let uvs = [];
-        let faces;
+        let verticesPerFace;
         let vertex = new THREE.Vector3();
         let biNormal = new THREE.Vector3();
         let matrix = new THREE.Matrix4();
@@ -558,8 +557,8 @@ class SplineMesh extends OutlinerElement {
 
                     indices.push(a, b, c);
                     indices.push(a, c, d);
-                    if (faces) faces.push([a, b, c, d]);
-                    else faces = [[a, b, c, d]];
+                    if (verticesPerFace) verticesPerFace.push([a, b, c, d]);
+                    else verticesPerFace = [[a, b, c, d]];
                 }
 
                 // Make UVs
@@ -590,32 +589,13 @@ class SplineMesh extends OutlinerElement {
 				normals.push(...normalVec.toArray());
             }
         }
-
-        // console.log(faces);
-        // console.log(vertexVectors);
-        // for (let vertices of faces) {
-        //     console.log(vertices)
-        //     let v0 = new THREE.Vector3().copy(vertexVectors[vertices[0]]);
-        //     let v1 = new THREE.Vector3().copy(vertexVectors[vertices[1]]);
-        //     let v2 = new THREE.Vector3().copy(vertexVectors[vertices[2]]);
-        //     let edge1 = new THREE.Vector3().subVectors(v1, v0);
-        //     let edge2 = new THREE.Vector3().subVectors(v2, v0);
-        //     let direction = new THREE.Vector3().crossVectors(edge1, edge2);
-        //     let normal = new THREE.Vector3().copy(direction).normalize();
-
-        //     normals.push(
-        //         ...normal.toArray(), 
-        //         ...normal.toArray(), 
-        //         ...normal.toArray(), 
-        //         ...normal.toArray()
-        //     );
-        // }
        
         return {
             vertices: vertices,
             normals: normals,
             indices: indices,
-            uvs: uvs
+            uvs: uvs,
+            verticesPerFace: verticesPerFace
         };
     }
     getBézierForCurve(time, key) {
@@ -623,10 +603,10 @@ class SplineMesh extends OutlinerElement {
         return this.getBézierForPoints(time, points.start, points.start_ctrl, points.end_ctrl, points.end);
     }
     getBézierForPoints(time, p1k, p2k, p3k, p4k) {
-        let p1 = new THREE.Vector3().fromArray(this.vertices[p1k]);
-        let p2 = new THREE.Vector3().fromArray(this.vertices[p2k]);
-        let p3 = new THREE.Vector3().fromArray(this.vertices[p3k]);
-        let p4 = new THREE.Vector3().fromArray(this.vertices[p4k]);    
+        let p1 = this.vertices[p1k];
+        let p2 = this.vertices[p2k];
+        let p3 = this.vertices[p3k];
+        let p4 = this.vertices[p4k];    
         return this.cubicBézier(time, p1, p2, p3, p4);
     }
     cubicBézier(time, point1, point2, point3, point4) {
@@ -647,7 +627,7 @@ class SplineMesh extends OutlinerElement {
             let result = new THREE.Vector3();
             let points = [ point1, point2, point3, point4 ];
             for (let i = 0; i < 4; i++) {
-                let point = new THREE.Vector3().copy(points[i]);
+                let point = new THREE.Vector3(points[i][0], points[i][1], points[i][2]);
                 let term = point.multiplyScalar(powers[3]*char[i][0] + powers[2]*char[i][1] + powers[1]*char[i][2] + powers[0]*char[i][3]);
                 result.add(term);
             }
@@ -660,7 +640,7 @@ class SplineMesh extends OutlinerElement {
 
         // Calculate the binormal vector
         let upVec = new THREE.Vector3(0, 1, 0); // Arbitrary UP vector not parallel to the tangent
-        if (tangentVec.y === 1) {
+        if (tangentVec.y === 1) { // not ideal, breaks with some point configurations
             upVec = new THREE.Vector3(1, 0, 0); // Use a different arbitrary vector if the tangent is parallel to the y-axis
         }
         let binormalVec = new THREE.Vector3().crossVectors(tangentVec, upVec).normalize();
@@ -808,15 +788,11 @@ new NodePreviewController(SplineMesh, {
                 let tangentColor = debugTangentColor;
                 let normalColor = debugNormalColor;
                 if (curveChange) {
-                    let prevTangent = new THREE.Vector3().copy(prevCurveTangent);
-                    let currTangent = new THREE.Vector3().copy(curve.tangent);
-                    let avgTangent = (new THREE.Vector3().addVectors(currTangent, prevTangent)).multiplyScalar(0.5).normalize();
+                    let avgTangent = (new THREE.Vector3().addVectors(curve.tangent, prevCurveTangent)).multiplyScalar(0.5).normalize();
                     localTangent = new THREE.Vector3().addVectors(curve.point, avgTangent);
                     tangentColor = debugColorSplit;
 
-                    let prevNormal = new THREE.Vector3().copy(prevCurveNormal);
-                    let currNormal = new THREE.Vector3().copy(curve.normal);
-                    let avgNormal = (new THREE.Vector3().addVectors(currNormal, prevNormal)).multiplyScalar(0.5).normalize();
+                    let avgNormal = (new THREE.Vector3().addVectors(curve.normal, prevCurveNormal)).multiplyScalar(0.5).normalize();
                     localNormal = new THREE.Vector3().addVectors(curve.point, avgNormal);
                     normalColor = debugColorSplit;
                     console.log(`curve change from ${prevCurve} to ${cKey}`);
@@ -943,16 +919,16 @@ new NodePreviewController(SplineMesh, {
 		mesh.geometry.attributes.uv.needsUpdate = true;
         mesh.geometry.setIndex(tube.indices);
         
+        // Add outlines for tube geo edges
         let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
         for (let i = 0; i < tube.indices.length; i+=6) {
             let v1 = tube.indices[i];
             let v2 = tube.indices[i + 1];
             let v3 = tube.indices[i + 4];
             let v4 = tube.indices[i + 1];
-            let vertexOrder = [v2, v3, v4, v1];
 
             // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
-            vertexOrder.forEach((index, i) => {
+            [v2, v3, v4, v1].forEach((index, i) => {
                 let vector = [
                     tube.vertices[index * 3], 
                     tube.vertices[(index * 3) + 1], 
