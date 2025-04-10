@@ -49,7 +49,7 @@ export const Animator = {
 			Animator.timeline_node = Panels.timeline.node;
 		}
 		updateInterface()
-		if (Panels.element) {
+		if (Panels.transform) {
 			Toolbars.element_origin.toPlace('bone_origin')
 		}
 		if (!Timeline.is_setup) {
@@ -84,8 +84,8 @@ export const Animator = {
 		Animator.showDefaultPose();
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 
-		if (Panels.element) {
-			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+		if (Panels.transform) {
+			let anchor = Panels.transform.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 	},

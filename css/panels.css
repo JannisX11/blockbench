@@ -1,18 +1,25 @@
 /*Panel*/
+	.panel_container {
+		background-color: var(--color-back);
+		display: flex;
+		flex-direction: column;
+		position: relative;
+	}
+	.panel_container.hidden {
+		display: none !important;
+	}
+	.panel_container.grow {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+		min-height: 133px;
+	}
+
 	.panel {
 		background-color: var(--color-ui);
 		display: flex;
 		flex-direction: column;
 		position: relative;
-	}
-	.panel.hidden {
-		display: none !important;
-	}
-	.panel.grow {
-		display: flex;
-		flex-direction: column;
-		flex-grow: 1;
-		min-height: 133px;
 	}
 	.panel.grow > .panel_vue_wrapper:not(.list) {
 		flex-grow: 1;
@@ -38,7 +45,44 @@
 		overflow-y: auto;
 		overflow-x: hidden;
 	}
-	h3.panel_handle {
+	.panel_tab_bar {
+		display: flex;
+		width: 100%;
+		height: 40px;
+		flex-shrink: 0;
+		margin: 0;
+		padding: 0;
+		align-items: center;
+	}
+	.panel_tab_bar.single_tab {
+		background-color: var(--color-ui);
+	}
+	.panel_tab_list {
+		display: flex;
+		overflow-x: auto;
+		margin-right: auto;
+		height: 100%;
+		height: calc(100% - 3px);
+		margin-top: 3px;
+	}
+	.panel_tab_list > .panel_handle {
+		padding: 4px 4px;
+		flex: 1 1 auto;
+		min-width: 58px;
+		overflow: hidden;
+		font-size: 1.06em;
+		letter-spacing: -0.5px;
+		text-transform: uppercase;
+		color: var(--color-subtle_text);
+		padding: 8px 10px;
+	}
+	.panel_tab_list > .panel_handle:hover {
+		color: var(--color-text);
+	}
+	.panel_tab_list > .panel_handle.selected {
+		background-color: var(--color-ui);
+	}
+	/*h3.panel_handle {
 		display: flex;
 		width: 100%;
 		height: 40px;
@@ -53,7 +97,8 @@
 	h3.panel_handle > label {
 		flex: 1 1 auto;
 		overflow: hidden;
-		font-size: 1.1em;
+		font-size: 1.06em;
+		letter-spacing: -0.5px;
 		text-transform: uppercase;
 		color: var(--color-subtle_text);
 		margin-left: 8px;
@@ -92,7 +137,7 @@
 	}
 	body.is_touch h3.panel_handle > .tool.panel_control {
 		flex-basis: 36px;
-	}
+	}*/
 	.panel p {
 		margin-left: 12px;
 	}
@@ -104,14 +149,14 @@
 		margin: 0 8px;
 	}
 
-	.panel.folded {
+	.panel_container.folded {
 		min-height: auto;
 		flex-grow: 0;
 	}
-	.panel.folded > *:not(.panel_handle) {
+	.panel_container.folded > .panel {
 		display: none !important;
 	}
-	.panel.fixed_height {
+	.panel_container.fixed_height {
 		flex-grow: 0;
 	}
 	.panel.bottommost_panel:not(.topmost_panel) {

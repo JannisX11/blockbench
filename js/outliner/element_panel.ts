@@ -3,7 +3,7 @@ import { Interface } from "../interface/interface";
 import { Panel } from "../interface/panels";
 
 Interface.definePanels(function() {
-	let element_panel = new Panel('element', {
+	let element_panel = new Panel('transform', {
 		icon: 'fas.fa-cube',
 		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
@@ -20,10 +20,21 @@ Interface.definePanels(function() {
 			Toolbars.element_origin,
 			Toolbars.element_rotation,
 		],
+	})
+	let element_properties_panel = new Panel('element', {
+		icon: 'format_list_bulleted',
+		condition: !Blockbench.isMobile && {modes: ['edit']},
+		display_condition: () => Outliner.selected.length || Group.first_selected,
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400
+		},
 		form: new InputForm({})
 	})
 	function updateElementForm() {
-		const {form_config} = element_panel.form;
+		const {form_config} = element_properties_panel.form;
 		for (let key in form_config) {
 			delete form_config[key];
 		}
@@ -44,7 +55,7 @@ Interface.definePanels(function() {
 				}
 			}
 		}
-		element_panel.form.on('input', ({result}) => {
+		element_properties_panel.form.on('input', ({result}) => {
 			let elements = Outliner.selected.slice();
 			Undo.initEdit({elements});
 			for (let element of elements) {
@@ -58,7 +69,7 @@ Interface.definePanels(function() {
 			Undo.finishEdit('Change element property');
 			onchanges.forEach(onchange => onchange(result));
 		})
-		element_panel.form.buildForm();
+		element_properties_panel.form.buildForm();
 	}
 	updateElementForm();
 
@@ -80,8 +91,8 @@ Interface.definePanels(function() {
 				}
 			}
 		}
-		element_panel.form.setValues(values);
-		element_panel.form.update();
+		element_properties_panel.form.setValues(values);
+		element_properties_panel.form.update();
 	});
 	Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 })
