@@ -549,6 +549,7 @@ class SplineMesh extends OutlinerElement {
                 vertices.push(...vertex.toArray());
 
                 // Face indices
+                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
                 if (tubePoint > 0 && ringPoint > 0) {
                     let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
                     let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
@@ -562,8 +563,9 @@ class SplineMesh extends OutlinerElement {
                 }
 
                 // Make UVs
-                let uvx = tubePoint / tubePoints;
-                let uvy = ringPoint / radialSegments;
+                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
+                let uvx = (tubePoint / tubePoints) * Project.texture_width;
+                let uvy = (ringPoint / radialSegments) * Project.texture_height;
 				uvs.push(uvx, uvy);
             }
         }
