@@ -111,7 +111,7 @@ export const Interface = {
 			}
 		},
 		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: [['transform', 'element'], 'bone', 'color', 'skin_pose', 'layers', 'outliner', 'chat'],
+		right_bar: ['transform', 'bone', 'color', 'skin_pose', 'layers', 'outliner', 'chat'],
 		panels: {
 			paint: {
 				slot: 'left_bar',
