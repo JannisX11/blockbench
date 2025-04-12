@@ -2246,21 +2246,24 @@ const BARS = {
 				'rescale_toggle'
 			]
 		})
-		Toolbars.spline_resolution = new Toolbar({
-			id: 'spline_resolution',
-			name: 'panel.spline.resolution',
+		Toolbars.spline_dimensions = new Toolbar({
+			id: 'spline_dimensions',
+			name: 'panel.spline.dimensions',
 			label: true,
 			children: [
 				'slider_spline_resolution_u',
-				'slider_spline_resolution_v'
+				'slider_spline_resolution_v',
+				'slider_spline_radius'
 			]
 		})
-		Toolbars.spline_radius = new Toolbar({
-			id: 'spline_radius',
-			name: 'panel.spline.radius',
+		Toolbars.spline_render = new Toolbar({
+			id: 'spline_render',
+			name: 'panel.spline.render',
 			label: true,
 			children: [
-				'slider_spline_radius',
+				'toggle_spline_normals',
+				'toggle_spline_tangents',
+				'toggle_spline_render_mesh'
 			]
 		})
 		if (Blockbench.isMobile) {

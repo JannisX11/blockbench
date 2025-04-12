@@ -461,19 +461,18 @@ class SplineMesh extends OutlinerElement {
     getTubeGeo() {
         let pathData = this.getBézierPath();
 
-        // Add Verties per ring, and create face indices
-        let vertices = [];
-        let indices = [];
-        let normals = [];
-        let uvs = [];
+        // Buffers
         let faceData = [];
         let vertexData = [];
-        let vertex = new THREE.Vector3();
-        let biNormal = new THREE.Vector3();
-        let matrix = new THREE.Matrix4();
+
+        // Dimensions
         let radialSegments = this.resolution[0];
         let radius = 1 * this.radius_multiplier;
 
+        // Gather all data for each vertex and face
+        let vertex = new THREE.Vector3();
+        let biNormal = new THREE.Vector3();
+        let matrix = new THREE.Matrix4();
         for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
             let tangent = pathData.tangents[tubePoint];
             let normal = pathData.normals[tubePoint];
@@ -515,21 +514,30 @@ class SplineMesh extends OutlinerElement {
                     });
                 }
 
-                // // Make UVs
-                // // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
-                // let uvx = (tubePoint / tubePoints) * Project.texture_width;
-                // let uvy = (ringPoint / radialSegments) * Project.texture_height;
-				// uvs.push(uvx, uvy);
+                // Make UVs
+                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
+                // Doesn't even work for our use case, will be replaced
+                let uvx = (tubePoint / pathData.points) * Project.texture_width;
+                let uvy = (ringPoint / radialSegments) * Project.texture_height;
 
                 vertexData.push({
                     normal: vertexNormal.toArray(),
                     vector: vertex.toArray(),
-                    angles: [ angle, cos, sin ]
+                    angles: [ angle, cos, sin ],
+                    uv: [ uvx, uvy ]
                 })
             }
         }
 
-        // weird code smell from Mesh.js
+        // Final Buffers
+        let vertices = [];
+        let indices = [];
+        let normals = [];
+        let uvs = [];
+
+        // Append all of the data created above to the relevant arrays, I originally 
+        // would do this above per-vertex, but for clarity and consistency I chose 
+        // to separate it here, and loosely copy the method used in Mesh.js's Render Controller.
         for (let face of faceData) {
             let vertexIndices = face.indices;
             let indexOffset = vertices.length / 3;
@@ -537,11 +545,15 @@ class SplineMesh extends OutlinerElement {
             
             vertexIndices.forEach((vertId, i) => {
                 let vec = vertexData[vertId].vector;
-                vertices.push(...vec);
-
                 let normal = vertexData[vertId].normal;
-                normals.push(...normal);
+                let uv = vertexData[vertId].uv;
 
+                // Append to the relevant arrays
+                vertices.push(...vec);
+                normals.push(...normal);
+				uvs.push(...uv);
+
+                // Increment face index
                 faceIndices[vertId] = indexOffset + i;
             });
     
@@ -741,7 +753,7 @@ new Property(SplineMesh, 'boolean', 'cyclic'); // If the spline should be closed
 new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
 new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
 new Property(SplineMesh, 'boolean', 'show_normals'); // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'show_tangent'); // mainly for debug, may be used for other purposes tho.
+new Property(SplineMesh, 'boolean', 'show_tangents'); // mainly for debug, may be used for other purposes tho.
 new Property(SplineMesh, 'boolean', 'render_mesh'); // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
 

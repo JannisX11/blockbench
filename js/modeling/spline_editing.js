@@ -35,7 +35,7 @@ BARS.defineActions(function() {
 			tilt: {name: true, icon: 'fas.fa-compass-drafting'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && SplineMesh.hasAny(),
+		condition: function () { return SplineMesh.selected.length && Modes.edit },
         onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {

@@ -1594,7 +1594,6 @@ BARS.defineActions(function () {
 				obj.resolution[0] = Math.max(v, 3);
 				obj.preview_controller.updateGeometry(obj);
 			})
-			Canvas.updatePositions()
 		},
 		onBefore: function () {
 			Undo.initEdit({ elements: SplineMesh.selected })
@@ -1616,7 +1615,6 @@ BARS.defineActions(function () {
 				obj.resolution[1] = Math.max(v, 1);
 				obj.preview_controller.updateGeometry(obj);
 			})
-			Canvas.updatePositions()
 		},
 		onBefore: function () {
 			Undo.initEdit({ elements: SplineMesh.selected })
@@ -1641,13 +1639,55 @@ BARS.defineActions(function () {
 				obj.radius_multiplier = Math.max(v, 0);
 				obj.preview_controller.updateGeometry(obj);
 			})
-			Canvas.updatePositions()
 		},
 		onBefore: function () {
 			Undo.initEdit({ elements: SplineMesh.selected })
 		},
 		onAfter: function () {
 			Undo.finishEdit('Adjust radius of splines')
+		}
+	})
+
+	new Toggle("toggle_spline_normals", {
+		icon: 'fas.fa-ruler-combined',
+		category: 'edit',
+		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		get: function () {
+			return SplineMesh.selected[0].show_normals;
+		},
+		onChange() {
+			SplineMesh.selected.forEach(function (obj, i) {
+				obj.show_normals = !obj.show_normals;
+				obj.preview_controller.updateGeometry(obj);
+			})
+		}
+	})
+	new Toggle("toggle_spline_tangents", {
+		icon: 'fas.fa-ruler-vertical',
+		category: 'edit',
+		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		get: function () {
+			return SplineMesh.selected[0].show_tangents;
+		},
+		onChange() {
+			SplineMesh.selected.forEach(function (obj, i) {
+				obj.show_tangents = !obj.show_tangents;
+				obj.preview_controller.updateGeometry(obj);
+			})
+		}
+	})
+	new Toggle("toggle_spline_render_mesh", {
+		icon: 'fas.fa-spinner',
+		category: 'edit',
+		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		get: function () {
+			return SplineMesh.selected[0].render_mesh;
+		},
+		onChange() {
+			SplineMesh.selected.forEach(function (obj, i) {
+				obj.render_mesh = !obj.render_mesh;
+				obj.preview_controller.updateGeometry(obj);
+			})
 		}
 	})
 
