@@ -1,5 +1,5 @@
-class Property {
-	constructor(target_class, type = 'boolean', name, options = 0) {
+export class Property {
+	constructor(target_class, type = 'boolean', name, options = {}) {
 		if (!target_class.properties) {
 			target_class.properties = {};
 		}
@@ -23,6 +23,7 @@ class Property {
 				case 'instance': this.default = null; break;
 				case 'vector': this.default = [0, 0, 0]; break;
 				case 'vector2': this.default = [0, 0]; break;
+				case 'vector4': this.default = [0, 0, 0, 0]; break;
 			}
 		}
 		switch (this.type) {
@@ -34,8 +35,9 @@ class Property {
 			case 'array': this.isArray = true; break;
 			case 'object': this.isObject = true; break;
 			case 'instance': this.isInstance = true; break;
-			case 'vector': this.isVector = true; break;
-			case 'vector2': this.isVector2 = true; break;
+			case 'vector':
+			case 'vector2':
+			case 'vector4': this.isVector = true; break;
 		}
 
 		if (this.isMolang) {
@@ -62,6 +64,7 @@ class Property {
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
 		if (options.placeholder) this.placeholder = options.placeholder;
+		if (options.inputs) this.inputs = options.inputs;
 		if (options.options) this.options = options.options;
 	}
 	delete() {
@@ -113,7 +116,7 @@ class Property {
 	copy(instance, target) {
 		if (!Condition(this.condition, instance)) return;
 
-		if (this.isArray || this.isVector || this.isVector2) {
+		if (this.isArray || this.isVector) {
 			if (instance[this.name] instanceof Array) {
 				target[this.name] = instance[this.name].slice();
 				if (this.isArray) {
@@ -136,7 +139,7 @@ class Property {
 		if (instance[this.name] == undefined && !Condition(this.condition, instance) && !force) return;
 		var dft = this.getDefault(instance)
 
-		if (this.isArray || this.isVector || this.isVector2) {
+		if (this.isArray || this.isVector) {
 			if (instance[this.name] instanceof Array == false) {
 				instance[this.name] = [];
 			}
@@ -154,3 +157,5 @@ Property.resetUniqueValues = function(type, instance) {
 		}
 	}
 }
+
+Object.assign(window, {Property});

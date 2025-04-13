@@ -1,4 +1,4 @@
-class KeyframeDataPoint {
+export class KeyframeDataPoint {
 	constructor(keyframe) {
 		this.keyframe = keyframe;
 		for (var key in KeyframeDataPoint.properties) {
@@ -43,7 +43,7 @@ new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), 
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 
-class Keyframe {
+export class Keyframe {
 	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
@@ -94,11 +94,8 @@ class Keyframe {
 		data_point = this.data_points[data_point];
 		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
-		} else if (!isNaN(data_point[axis])) {
-			let num = parseFloat(data_point[axis]);
-			return isNaN(num) ? 0 : num;
 		} else {
-			return data_point[axis]
+			return exportMolang(data_point[axis])
 		}
 	}
 	calc(axis, data_point = 0) {
@@ -113,6 +110,7 @@ class Keyframe {
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
+		if (typeof value == 'number') value = Math.roundTo(value, 10).toString();
 		if (this.data_points[data_point]) {
 			if (this.uniform) {
 				this.data_points[data_point].x = value;
@@ -435,12 +433,19 @@ class Keyframe {
 		}
 		Timeline.selected.safePush(this);
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
-			Timeline.selected[0].animator.select()
+			Timeline.selected[0].animator.select();
 		}
-		this.selected = true
+		this.selected = true;
 		TickUpdates.keyframe_selection = true;
 
 		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
+
+		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection({timeline: true});
+
+		this.select(event);
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
@@ -453,7 +458,7 @@ class Keyframe {
 				case 'scale': BarItems.resize_tool.select(); break;
 			}
 		}
-		return this;
+		Undo.finishSelection('Select keyframe')
 	}
 	callPlayhead() {
 		Timeline.setTime(this.time)
@@ -587,7 +592,7 @@ class Keyframe {
 	}
 
 // Misc Functions
-function updateKeyframeValue(axis, value, data_point) {
+export function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
 		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
 		if (data_point && !kf.data_points[data_point]) return;
@@ -598,7 +603,7 @@ function updateKeyframeValue(axis, value, data_point) {
 		updateKeyframeSelection();
 	}
 }
-function updateKeyframeSelection() {
+export function updateKeyframeSelection() {
 	Timeline.keyframes.forEach(kf => {
 		if (kf.selected && !Timeline.selected.includes(kf)) {
 			kf.selected = false;
@@ -625,7 +630,7 @@ function updateKeyframeSelection() {
 			BarItems.keyframe_bezier_linked.updateEnabledState();
 		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -640,7 +645,7 @@ function updateKeyframeSelection() {
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
-function selectAllKeyframes() {
+export function selectAllKeyframes() {
 	if (!Animation.selected) return;
 	var state = Timeline.selected.length !== Timeline.keyframes.length
 	Timeline.keyframes.forEach((kf) => {
@@ -653,7 +658,7 @@ function selectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function unselectAllKeyframes() {
+export function unselectAllKeyframes() {
 	if (!Animation.selected) return;
 	Timeline.keyframes.forEach((kf) => {
 		Timeline.selected.remove(kf)
@@ -1150,7 +1155,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	flip_action = new Action('flip_animation', {
+	let flip_action = new Action('flip_animation', {
 		icon: 'transfer_within_a_station',
 		category: 'animation',
 		condition: {modes: ['animate'], method: () => Animation.selected},
@@ -1598,4 +1603,13 @@ Interface.definePanels(function() {
 			}
 		}
 	})
+})
+
+Object.assign(window, {
+	KeyframeDataPoint,
+	Keyframe,
+	updateKeyframeValue,
+	updateKeyframeSelection,
+	selectAllKeyframes,
+	unselectAllKeyframes
 })

@@ -1,6 +1,4 @@
-(function() {
-
-function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
+export function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
 
@@ -163,7 +161,7 @@ function buildAnimationTracks(export_scale = Settings.get('model_export_scale'),
 	return anims;
 }
 
-function buildSkinnedMesh(root_group, scale) {
+export function buildSkinnedMesh(root_group, scale) {
 	let skinIndices = [];
 	let skinWeights = [];
 	let position_array = [];
@@ -183,7 +181,7 @@ function buildSkinnedMesh(root_group, scale) {
 	function addGroup(group, parent_bone) {
 		if (group.export == false) return;
 
-		for (child of group.children) {
+		for (let child of group.children) {
 			if (!child.faces || child.export == false) continue;
 			let {geometry} = child.mesh;
 			let matrix = new THREE.Matrix4().copy(child.mesh.matrixWorld);
@@ -214,7 +212,7 @@ function buildSkinnedMesh(root_group, scale) {
 				if (face.texture === null) continue;
 				let tex = face.getTexture();
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[child.color])
 				}
@@ -240,7 +238,7 @@ function buildSkinnedMesh(root_group, scale) {
 			parent_bone.add(bone);
 		}
 		// Children
-		for (child of group.children) {
+		for (let child of group.children) {
 			if (child instanceof Group) {
 				addGroup(child, bone);
 			}
@@ -310,6 +308,7 @@ function buildSkinnedMesh(root_group, scale) {
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
+	support_partial_export: true,
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
@@ -418,5 +417,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

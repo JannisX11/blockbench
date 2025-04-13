@@ -1,3 +1,5 @@
+import { Blockbench } from "./api";
+
 Blockbench.Outliner = Outliner;
 Blockbench.OutlinerNode = OutlinerNode;
 Blockbench.OutlinerElement = OutlinerElement;
@@ -32,6 +34,8 @@ Blockbench.Panel = Panel;
 Blockbench.Mode = Mode;
 Blockbench.Dialog = Dialog;
 Blockbench.ShapelessDialog = ShapelessDialog;
+Blockbench.ToolConfig = ToolConfig;
+Blockbench.InputForm = InputForm;
 Blockbench.Setting = Setting;
 Blockbench.Plugin = Plugin;
 Blockbench.Preview = Preview;

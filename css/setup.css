@@ -123,7 +123,7 @@
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: url(../font/material-icons.woff2) format('woff');
+		src: url(../font/material-icons.woff2?4) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -333,6 +333,7 @@
 		--color-accent: #3e90ff;
 		--color-button: #3a3f4b;
 		--color-selected: #474d5d;
+		--color-elevated: #323640;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
@@ -412,7 +413,7 @@
 		cursor: default;
 	}
 	hr {
-		border-top: 1px solid var(--color-dark);
+		border-top: 1px solid var(--color-border);
 		margin: 12px 0;
 	}
 	h1, h2, h3, h4, h5, h6 {
@@ -466,6 +467,8 @@
 		padding-left: 16px;
 		font-weight: normal;
 		cursor: pointer;
+		border-radius: 5px;
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 	}
 	button.disabled {
 		opacity: 0.5;
@@ -543,6 +546,7 @@
 		padding-top: 4px;
 		padding-left: 8px;
 		padding-right: 24px;
+		border-radius: 5px;
 		color: var(--color-text);
 		white-space: nowrap;
 		overflow: hidden;
@@ -713,7 +717,9 @@
 		overflow: hidden;
 		white-space: nowrap;
 		outline: none;
-		background-color: var(--color-button);
+		background-color: var(--color-elevated);
+    	border-radius: 4px;
+		box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
 	}
 	.tool.nslide_tool.has_percentage_bar .nslide::after {
 		content: "";
@@ -743,14 +749,11 @@
 		display: inline-block;
 		width: 20px;
 		height: 24px;
-		margin-top: -28px;
+		margin-top: -29px;
 		user-select: none;
 		margin-left: -42px;
 		overflow: hidden;
 		text-align: center;
-	}
-	div.nslide_arrow.na_right {
-		margin-left: 16px;
 	}
 	div.nslide.editing {
 		cursor: text;

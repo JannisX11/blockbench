@@ -1,5 +1,3 @@
-(function() {
-
 let item_parents = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -11,6 +9,7 @@ var codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -135,11 +134,10 @@ var codec = new Codec('java_block', {
 			}
 		}
 		function iterate(arr) {
-			var i = 0;
 			if (!arr || !arr.length) {
 				return;
 			}
-			for (i=0; i<arr.length; i++) {
+			for (let i=0; i<arr.length; i++) {
 				if (arr[i].type === 'cube') {
 					computeCube(arr[i])
 				} else if (arr[i].type === 'group') {
@@ -238,7 +236,7 @@ var codec = new Codec('java_block', {
 			}
 		}
 		if (checkExport('groups', (settings.export_groups.value && Group.all.length))) {
-			groups = compileGroups(false, element_index_lut)
+			let groups = compileGroups(false, element_index_lut)
 			var i = 0;
 			while (i < groups.length) {
 				if (typeof groups[i] === 'object') {
@@ -346,7 +344,7 @@ var codec = new Codec('java_block', {
 
 		if (model.elements) {
 			model.elements.forEach(function(obj) {
-				base_cube = new Cube(obj)
+				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
 				//Faces
 				var faces_without_uv = false;
@@ -452,7 +450,7 @@ var codec = new Codec('java_block', {
 					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
 				}
 			}, (result) => {
-				if (result) {
+				if (typeof result == 'string') {
 					let parent = model.parent.replace(/\w+:/, '');
 					let path_arr = path.split(osfs);
 					let index = path_arr.length - path_arr.indexOf('models');
@@ -626,5 +624,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

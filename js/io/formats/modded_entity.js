@@ -1,5 +1,3 @@
-(function() {
-
 function F(num) {
 	var s = trimFloatNumber(num) + '';
 	if (!s.includes('.')) {
@@ -10,7 +8,7 @@ function F(num) {
 function I(num) {
 	return Math.floor(num)
 }
-const Templates = {
+export const Templates = {
 	'1.12': {
 		name: 'Forge 1.7 - 1.13',
 		remember: true,
@@ -338,7 +336,7 @@ const Templates = {
 		return new RegExp(`%\\(${name}\\)`, 'g');
 	}
 }
-const AnimationTemplates = {
+export const AnimationTemplates = {
 	'mojang': {
 		name: 'Mojmaps',
 		file:
@@ -423,6 +421,7 @@ var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'text',
 		extensions: ['java']
@@ -435,6 +434,7 @@ var codec = new Codec('modded_entity', {
 		let all_groups = getAllGroups();
 		let loose_cubes = [];
 		Cube.all.forEach(cube => {
+			if (cube.export == false) return;
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
@@ -448,6 +448,7 @@ var codec = new Codec('modded_entity', {
 		}
 
 		all_groups.slice().forEach(group => {
+			if (group.export == false) return;
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
@@ -1068,6 +1069,7 @@ var format = new ModelFormat({
 		]
 	},
 	codec,
+	node_name_regex: '\\w',
 	box_uv: true,
 	box_uv_float_size: true,
 	single_texture: true,
@@ -1136,5 +1138,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

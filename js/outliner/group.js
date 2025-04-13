@@ -1,5 +1,5 @@
 
-class Group extends OutlinerNode {
+export class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -65,34 +65,58 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	select(event, is_outliner_click) {
-		var scope = this;
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
+		let multi_select = (event.ctrlOrCmd || Pressing.overrides.ctrl) && !Modes.animate;
+		let shift_select = (event.shiftKey || Pressing.overrides.shift) && !Modes.animate;
 
-		//Clear Old Group
-		if (Group.selected) Group.selected.unselect();
-		if ((event.shiftKey || Pressing.overrides.shift) !== true && (event.ctrlOrCmd || Pressing.overrides.ctrl) !== true) {
-			selected.length = 0
+		//Unselect others
+		if (!multi_select && !shift_select) {
+			unselectAllElements();
+			Project.groups.forEach(function(s) {
+				s.selected = false;
+			})
 		}
-		//Select This Group
-		Project.groups.forEach(function(s) {
-			s.selected = false
-		})
-		this.selected = true
-		Group.selected = this;
+
+		if (event && shift_select && this.getParentArray().includes(Group.multi_selected.last()) && is_outliner_click) {
+			let selecting;
+			let last_selected = Group.multi_selected.last();
+			this.getParentArray().forEach((s, i) => {
+				let select_this = false;
+				if (s === last_selected || s === this) {
+					selecting = !selecting;
+					select_this = true;
+				} else if (selecting) {
+					select_this = true;
+				}
+				if (select_this) {
+					if (s instanceof Group) {
+						s.multiSelect()
+					} else if (!Outliner.selected.includes(s)) {
+						s.selectLow()
+					}
+				}
+			})
+		} else {
+			//Select This Group
+			this.selected = true;
+			Group.multi_selected.safePush(this);
+		}
 
 		//Select / Unselect Children
 		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
 			//Select Only Group, unselect Children
-			selected.length = 0
+			this.forEachChild(child => {
+				child.unselect();
+			});
 		} else {
 			// Fix for #2401
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
-				selected.push(previous_first_selected);
+				selected.safePush(previous_first_selected);
 			}
-			scope.children.forEach(function(s) {
+			this.children.forEach(function(s) {
 				s.selectLow()
 			})
 		}
@@ -102,31 +126,26 @@ class Group extends OutlinerNode {
 		updateSelection()
 		return this;
 	}
-	selectChildren(event) {
-		var scope = this;
-		if (Blockbench.hasFlag('renaming')) return;
-		if (!event) event = {shiftKey: false}
-		var firstChildSelected = false
-
-		//Clear Old Group
-		if (Group.selected) Group.selected.unselect()
-		selected.length = 0
-
-		//Select This Group
-		Project.groups.forEach(function(s) {
-			s.selected = false
-		})
-		this.selected = true
-		Group.selected = this
-
-		scope.children.forEach(function(s) {
+	clickSelect(event, is_outliner_click) {
+		if (Blockbench.hasFlag('renaming') || this.locked) return this;
+		Undo.initSelection();
+		this.select(event, is_outliner_click);
+		Undo.finishSelection('Select group');
+	}
+	multiSelect() {
+		if (this.locked) return this;
+		this.selected = true;
+		Group.multi_selected.safePush(this);
+		this.children.forEach(function(s) {
 			s.selectLow()
 		})
-		updateSelection()
+		TickUpdates.selection = true;
 		return this;
 	}
+	selectChildren(event) {
+		console.warn('Group#selectChildren is deprecated');
+	}
 	selectLow(highlight) {
-		//Group.selected = this;
 		//Only Select
 		if (highlight !== false) {
 			this.selected = true
@@ -138,22 +157,22 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	unselect() {
-		if (this.selected === false) return;
 		if (Animator.open && Animation.selected) {
 			var ba = Animation.selected.animators[this.uuid];
 			if (ba) {
 				ba.selected = false
 			}
 		}
-		Group.selected = undefined;
-		this.selected = false
+		Group.multi_selected.remove(this);
+		this.selected = false;
 		TickUpdates.selection = true;
 		return this;
 	}
 	matchesSelection() {
-		var scope = this;
-		var match = true;
-		for (var i = 0; i < selected.length; i++) {
+		if (Group.multi_selected.length != 1 || this != Group.first_selected) return false;
+		let scope = this;
+		let match = true;
+		for (let i = 0; i < selected.length; i++) {
 			if (!selected[i].isChildOf(scope, 128)) {
 				return false
 			}
@@ -213,7 +232,7 @@ class Group extends OutlinerNode {
 			Undo.finishEdit('Delete group')
 		}
 	}
-	resolve() {
+	resolve(undo = true) {
 		var array = this.children.slice();
 		var index = this.getParentArray().indexOf(this)
 		let all_elements = [];
@@ -223,12 +242,12 @@ class Group extends OutlinerNode {
 			}
 		})
 
-		Undo.initEdit({outliner: true, elements: all_elements})
+		if (undo) Undo.initEdit({outliner: true, elements: all_elements})
 
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.getTypeBehavior('rotatable')) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -247,7 +266,7 @@ class Group extends OutlinerNode {
 
 				if (obj.from) obj.from.V3_add(diff);
 				if (obj.to) obj.to.V3_add(diff);
-				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
+				if (obj.getTypeBehavior('rotatable') || obj instanceof Group) obj.origin.V3_add(diff);
 
 				if (obj instanceof Group) {
 					obj.forEachChild(child => {
@@ -268,12 +287,12 @@ class Group extends OutlinerNode {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		Undo.finishEdit('Resolve group')
+		if (undo) Undo.finishEdit('Resolve group')
 		return array;
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (Group.selected != this) this.select(event);
+		if (!Group.multi_selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -297,7 +316,7 @@ class Group extends OutlinerNode {
 				obj.children.forEach(child => iterateChild(child));
 
 			} else {
-				if (obj.movable) {
+				if (obj.getTypeBehavior('movable')) {
 					obj.origin.V3_add(shift);
 				}
 				if (obj.to) {
@@ -380,6 +399,7 @@ class Group extends OutlinerNode {
 			obj.locked = this.locked;
 			obj.visibility = this.visibility;
 			obj.autouv = this.autouv;
+			obj.selected = Group.multi_selected.includes(this);
 		}
 		
 		if (this.rotation.allEqual(0)) {
@@ -414,13 +434,16 @@ class Group extends OutlinerNode {
 		this.autouv = val;
 		this.updateElement()
 	}
+	static behavior = {
+		unique_name: () => Format.bone_rig,
+		rotatable: true,
+	}
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';
 	Group.prototype.isParent = true;
-	Group.prototype.rotatable = true;
-	Group.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
 		Outliner.buttons.mirror_uv,
@@ -429,7 +452,6 @@ class Group extends OutlinerNode {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	function setGroupColor(color) {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})
@@ -458,7 +480,7 @@ class Group extends OutlinerNode {
 			}})
 		}},
 		"randomize_marker_colors",
-		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children() {
+		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
 				Undo.initEdit({outliner: true});
@@ -477,7 +499,7 @@ class Group extends OutlinerNode {
 				arr.push({
 					name: t.name,
 					icon: (t.mode === 'link' ? t.img : t.source),
-					marked: t.uuid == Group.selected.texture,
+					marked: t.uuid == context.texture,
 					click(group) {
 						applyTexture(t.uuid, 'Apply texture to group');
 					}
@@ -501,12 +523,37 @@ class Group extends OutlinerNode {
 			Project.groups.replace(arr);
 		}
 	})
+	Object.defineProperty(Group, 'multi_selected', {
+		get() {
+			return Project.selected_groups || []
+		},
+		set(arr) {
+			if (arr instanceof Array == false) {
+				console.warn('Not an array!')
+			}
+			Project.selected_groups.replace(arr)
+		}
+	})
 	Object.defineProperty(Group, 'selected', {
 		get() {
-			return Project.selected_group
+			console.warn('"Group.selected" will be an array in the future!');
+			return Project.selected_groups?.[0]
 		},
 		set(group) {
-			Project.selected_group = group;
+			console.warn('"Group.selected" will be an array in the future!');
+			if (group instanceof Group) {
+				Project.selected_groups.replace([group]);
+			} else {
+				Project.selected_groups.empty();
+			}
+		}
+	})
+	Object.defineProperty(Group, 'first_selected', {
+		get() {
+			return Project.selected_groups?.[0]
+		},
+		set(group) {
+			Project.selected_groups.replace([groups]);
 		}
 	})
 
@@ -518,7 +565,7 @@ new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'string', 'texture', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
@@ -540,9 +587,9 @@ new NodePreviewController(Group, {
 })
 
 
-function getCurrentGroup() {
-	if (Group.selected) {
-		return Group.selected
+export function getCurrentGroup() {
+	if (Group.first_selected) {
+		return Group.first_selected
 	} else if (selected.length) {
 		var g1 = selected[0].parent;
 		if (g1 instanceof Group) {
@@ -555,7 +602,7 @@ function getCurrentGroup() {
 		}
 	}
 }
-function getAllGroups() {
+export function getAllGroups() {
 	var ta = []
 	function iterate(array) {
 		for (var obj of array) {
@@ -569,8 +616,8 @@ function getAllGroups() {
 	return ta;
 }
 window.__defineGetter__('selected_group', () => {
-	console.warn('selected_group is deprecated. Please use Group.selected instead.')
-	return Group.selected
+	console.warn('selected_group is deprecated. Please use Group.first_selected instead.')
+	return Group.first_selected
 })
 
 BARS.defineActions(function() {
@@ -581,7 +628,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			var add_group = Group.selected
+			var add_group = Group.first_selected
 			if (!add_group && selected.length) {
 				add_group = selected.last()
 			}
@@ -614,11 +661,11 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.selected),
+		condition: () => Modes.edit && (selected.length || Group.first_selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			let add_group = Group.selected
+			let add_group = Group.first_selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
@@ -635,7 +682,9 @@ BARS.defineActions(function() {
 				base_group.createUniqueName()
 			}
 			if (add_group instanceof Group) {
-				add_group.addTo(base_group);
+				for (let group of Group.multi_selected) {
+					group.addTo(base_group);
+				}
 			} else if (add_group instanceof OutlinerElement) {
 				Outliner.selected.forEach(function(s, i) {
 					s.addTo(base_group);
@@ -677,7 +726,7 @@ BARS.defineActions(function() {
 	new Action('edit_bedrock_binding', {
 		icon: 'fa-paperclip',
 		category: 'edit',
-		condition: () => Format.bone_binding_expression && Group.selected,
+		condition: () => Format.bone_binding_expression && Group.first_selected,
 		click: function() {
 
 			let dialog = new Dialog({
@@ -686,13 +735,13 @@ BARS.defineActions(function() {
 				component: {
 					components: {VuePrismEditor},
 					data: {
-						binding: Group.selected.bedrock_binding,
+						binding: Group.first_selected.bedrock_binding,
 					},
 					methods: {
 						showPresetMenu(event) {
 							new Menu([
 								{
-									name: 'Main Hand',
+									name: 'Item Slot',
 									icon: 'build',
 									click: () => {
 										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
@@ -743,10 +792,12 @@ BARS.defineActions(function() {
 					dialog.hide().delete();
 					let value = dialog.component.data.binding.replace(/\n/g, '');
 					if (
-						value != Group.selected.bedrock_binding
+						value != Group.first_selected.bedrock_binding
 					) {
-						Undo.initEdit({group: Group.selected});
-						Group.selected.bedrock_binding = value;
+						Undo.initEdit({groups: Group.multi_selected});
+						for (let group of Group.multi_selected) {
+							group.bedrock_binding = value;
+						}
 						Undo.finishEdit('Edit group binding');
 					}
 				},
@@ -758,9 +809,21 @@ BARS.defineActions(function() {
 	})
 	new Action('resolve_group', {
 		icon: 'fa-leaf',
-		condition: {modes: ['edit'], method: () => Group.selected},
+		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
-			Group.selected.resolve();
+			let all_elements = [];
+			for (let group of Group.multi_selected) {
+				group.forEachChild(obj => {
+					if (obj instanceof Group == false) {
+						all_elements.safePush(obj);
+					}
+				})
+			}
+			Undo.initEdit({outliner: true, elements: all_elements})
+			for (let group of Group.multi_selected) {
+				group.resolve(false);
+			}
+			Undo.finishEdit('Resolve group');
 		}
 	})
 })
@@ -769,7 +832,7 @@ Interface.definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
 		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},
-		display_condition: () => Group.selected,
+		display_condition: () => Group.first_selected,
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -786,3 +849,9 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Group,
+	getCurrentGroup,
+	getAllGroups
+});

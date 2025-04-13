@@ -1,5 +1,5 @@
 
-class NullObject extends OutlinerElement {
+export class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -42,7 +42,7 @@ class NullObject extends OutlinerElement {
 	}
 	init() {
 		if (this.parent instanceof Group == false) {
-			this.addTo(Group.selected)
+			this.addTo(Group.first_selected)
 		}
 		super.init();
 		return this;
@@ -94,19 +94,21 @@ class NullObject extends OutlinerElement {
 
 		return pos;
 	}
+	static behavior = {
+		movable: true,
+		hide_in_screenshot: true,
+	}
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
 	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
-	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
 	NullObject.prototype.buttons = [
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
 			new MenuSeparator('ik'),
 			'set_ik_target',
@@ -201,7 +203,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var null_object = new NullObject().addTo(Group.selected||selected[0]).init();
+			var null_object = new NullObject().addTo(Group.first_selected||selected[0]).init();
 			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');
@@ -299,3 +301,7 @@ BARS.defineActions(function() {
 
 	})
 })
+
+Object.assign(window, {
+	NullObject
+});

@@ -96,7 +96,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				}
 				if (valid_textures_list.length == 1) {
-					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					let texture = new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
@@ -169,14 +170,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 							cancelIndex: 2,
 							onButton(index) {
 								dialog.hide();
+								let textures_to_import = [];
 								if (index == 1) {
-									valid_textures_list.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = valid_textures_list;
 								} else if (index == 0) {
-									selected_textures.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = selected_textures;
+								}
+								for (let path of textures_to_import) {
+									let texture = new Texture({keep_size: true, render_mode}).fromPath(path).add();
+									if (isApp) loadAdjacentTextureSet(texture);
 								}
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
@@ -234,7 +236,9 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				try {
 					let content = fs.readFileSync(path, 'utf8');
 					Animator.loadFile({path, content}, animation_names);
-				} catch (err) {}
+				} catch (err) {
+					console.err(err)
+				}
 			})
 		}
 	}
@@ -320,7 +324,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			} else {
 				function tryItWith(extension) {
 					if (fs.existsSync(texture_path+'.'+extension)) {
-						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
+						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add();
+						loadAdjacentTextureSet(texture);
 						return true;
 					}
 				}
@@ -452,6 +457,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				])
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (target == '*') {
 						texture.use_as_default = true;
 
@@ -477,7 +483,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 }
 }
 
-function calculateVisibleBox() {
+export function calculateVisibleBox() {
 	var visible_box = new THREE.Box3()
 	Canvas.withoutGizmos(() => {
 		Cube.all.forEach(cube => {
@@ -518,7 +524,6 @@ function calculateVisibleBox() {
 	return Project.visible_box;
 }
 
-(function() {
 
 // Parse
 
@@ -718,6 +723,11 @@ function calculateVisibleBox() {
 
 		if (data.object.item_display_transforms !== undefined) {
 			DisplayMode.loadJSON(data.object.item_display_transforms)
+			if (data.object.item_display_transforms.gui) {
+				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
+					Project.display_settings.gui.fit_to_frame = true;
+				}
+			}
 		}
 
 		var bones = {}
@@ -852,11 +862,11 @@ function calculateVisibleBox() {
 					let offset = obj.position.slice();
 					offset[0] *= -1;
 
-					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
+					if ((obj.getTypeBehavior('rotatable') && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable) {
+						if (obj.getTypeBehavior('rotatable')) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],
@@ -913,6 +923,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	name: 'Bedrock Entity',
 	extension: 'json',
 	remember: false,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1032,7 +1043,6 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 
 function getFormatVersion() {
 	if (Format.display_mode) {
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
 			if (Project.display_settings[key] && Project.display_settings[key].export) {
@@ -1044,6 +1054,7 @@ function getFormatVersion() {
 		}
 	}
 	for (let cube of Cube.all) {
+		if (cube.box_uv) continue;
 		for (let fkey in cube.faces) {
 			if (cube.faces[fkey].rotation) return '1.21.0';
 		}
@@ -1057,6 +1068,7 @@ var codec = new Codec('bedrock', {
 	extension: 'json',
 	remember: true,
 	multiple_per_file: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1148,15 +1160,14 @@ var codec = new Codec('bedrock', {
 		}
 
 		let new_display = {};
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
-			if (Project.display_settings[key] && Project.display_settings[key].export) {
-				new_display[key] = Project.display_settings[key].export();
-				if (new_display[key]) has_new_displays = true;
+			if (Project.display_settings[key] && Project.display_settings[key].exportBedrock) {
+				let data = Project.display_settings[key].exportBedrock();
+				if (data) new_display[key] = data;
 			}
 		}
-		if (has_new_displays) {
+		if (Object.keys(new_display).length) {
 			entitymodel.item_display_transforms = new_display
 		}
 
@@ -1178,7 +1189,7 @@ var codec = new Codec('bedrock', {
 				throw 'Incompatible format';
 			}
 			var i = 0;
-			for (model of data['minecraft:geometry']) {
+			for (let model of data['minecraft:geometry']) {
 				if (model.description && model.description.identifier == model_id) {
 					index = i;
 					break;
@@ -1340,6 +1351,7 @@ var entity_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
@@ -1354,6 +1366,7 @@ var entity_format = new ModelFormat({
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {
@@ -1378,6 +1391,7 @@ var block_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,
@@ -1391,6 +1405,7 @@ var block_format = new ModelFormat({
 	animation_mode: false,
 	display_mode: true,
 	texture_meshes: true,
+	pbr: true,
 	cube_size_limiter: {
 		rotation_affected: true,
 		box_marker_size: [30, 30, 30],
@@ -1564,6 +1579,3 @@ new ValidatorCheck('bedrock_binding', {
 		}
 	}
 })
-
-})()
-

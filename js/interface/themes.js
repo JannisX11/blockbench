@@ -1,4 +1,17 @@
-const CustomTheme = {
+import DarkTheme from '../../themes/dark.bbtheme'
+import LightTheme from '../../themes/light.bbtheme'
+import ContrastTheme from '../../themes/contrast.bbtheme'
+
+window.CustomThemeOptions = [
+	DarkTheme,
+	LightTheme,
+	ContrastTheme
+]
+for (let theme of window.CustomThemeOptions) {
+	theme.source = 'built_in';
+}
+
+export const CustomTheme = {
 	data: {
 		id: 'dark',
 		name: '',
@@ -21,10 +34,11 @@ const CustomTheme = {
 		dark: '#17191d',
 		border: '#181a1f',
 		selected: '#474d5d',
+		elevated: '#323640',
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
-		frame: '#181a1f',
+		frame: '#121418',
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',
@@ -446,7 +460,7 @@ const CustomTheme = {
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.color, '--color-brush-outline');
+			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
 			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
 			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
@@ -611,3 +625,7 @@ BARS.defineActions(function() {
 	BarItems.import_theme.toElement('#layout_title_bar')
 	BarItems.export_theme.toElement('#layout_title_bar')
 })
+
+Object.assign(window, {
+	CustomTheme
+});

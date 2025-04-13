@@ -1,4 +1,4 @@
-const TextureGenerator = {
+export const TextureGenerator = {
 	background_color: new ColorPicker({
 		id: 'background_color',
 		name: 'data.color',
@@ -36,29 +36,33 @@ const TextureGenerator = {
 			title: tl('action.create_texture'),
 			width: 610,
 			form: {
-				name: 		{label: 'generic.name', value: 'texture'},
-				folder: 	{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
-				type:	{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
-				section2:    "_",
+				name: 			{label: 'generic.name', value: 'texture'},
+				folder: 		{label: 'dialog.create_texture.folder', condition: {features: ['texture_folder']}},
+				type:			{label: 'dialog.create_texture.type', type: 'inline_select', options: type_options, condition: Object.keys(type_options).length > 1},
+				section2:    	"_",
 
-				resolution: {label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
+				resolution: 	{label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
 				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
+				color: 			{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 
-				rearrange_uv:{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
-				box_uv: 	{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
-				power: 		{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
-				double_use: {label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: ((form) => (form.type == 'template' && form.rearrange_uv))},
-				combine_polys: {label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				max_edge_angle: {label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 36, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				rearrange_uv:	{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
+				box_uv: 		{label: 'dialog.project.uv_mode.box_uv', type: 'checkbox', value: false, condition: (form) => (form.type == 'template' && !Project.box_uv && Cube.all.length)},
+				power: 			{label: 'dialog.create_texture.power', description: 'dialog.create_texture.power.desc', type: 'checkbox', value: true, condition: (form) => (form.type !== 'blank' && (form.rearrange_uv || form.type == 'color_map'))},
+				double_use: 	{label: 'dialog.create_texture.double_use', description: 'dialog.create_texture.double_use.desc', type: 'checkbox', value: true, condition: ((form) => (form.type == 'template' && form.rearrange_uv))},
+				combine_polys:	{label: 'dialog.create_texture.combine_polys', description: 'dialog.create_texture.combine_polys.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
+				max_edge_angle:	{label: 'dialog.create_texture.max_edge_angle', description: 'dialog.create_texture.max_edge_angle.desc', type: 'number', value: 36, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
 				max_island_angle: {label: 'dialog.create_texture.max_island_angle', description: 'dialog.create_texture.max_island_angle.desc', type: 'number', value: 45, condition: (form) => (form.type == 'template' && form.rearrange_uv && Mesh.selected.length)},
-				padding:	{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
+				padding:		{label: 'dialog.create_texture.padding', description: 'dialog.create_texture.padding.desc', type: 'checkbox', value: Mesh.selected.length > 0, condition: (form) => (form.type == 'template' && form.rearrange_uv)},
+				disable_mirror_uv:{label: 'dialog.create_texture.disable_mirror_uv', description: 'dialog.create_texture.disable_mirror_uv.desc', type: 'checkbox', value: true, condition: (form) => BarItems.mirror_modeling.value && BarItems.mirror_modeling.tool_config.options.mirror_uv},
 
 			},
 			onConfirm: function(results) {
 				results.particle = 'auto';
 				if (results.type == 'blank') {
 					results.resolution = results.resolution_vec;
+				}
+				if (results.disable_mirror_uv) {
+					BarItems.mirror_modeling.tool_config.changeOptions({mirror_uv: false});
 				}
 				dialog.hide()
 				if (Format.edit_mode && Outliner.selected.length == 0) {
@@ -340,25 +344,27 @@ const TextureGenerator = {
 		let double_use_faces = {};
 		let element_list = ((Format.single_texture && typeof makeTexture == 'function') ? Outliner.elements : Outliner.selected);
 		element_list = element_list.filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 		function faceRect(cube, face_key, tex, x, y, face_old_pos_id) {
 			this.cube = cube;
+			this.face = cube.faces[face_key];
 			if (options.rearrange_uv) {
 				this.width  = Math.abs(x) * res_multiple;
 				this.height = Math.abs(y) * res_multiple;
+				this.mirror_x = Math.sign(this.face.uv_size[0]);
+				this.mirror_y = Math.sign(this.face.uv_size[1]);
 				this.width  = ((this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width)) / res_multiple;
 				this.height = ((this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height)) / res_multiple;
 			} else {
-				this.posx = cube.faces[face_key].uv[0], cube.faces[face_key].uv[0+2];
-				this.posy = cube.faces[face_key].uv[1], cube.faces[face_key].uv[1+2];
-				this.width = cube.faces[face_key].uv[0+2] - cube.faces[face_key].uv[0];
-				this.height = cube.faces[face_key].uv[1+2] - cube.faces[face_key].uv[1];
+				this.posx = this.face.uv[0], this.face.uv[0+2];
+				this.posy = this.face.uv[1], this.face.uv[1+2];
+				this.width = this.face.uv[0+2] - this.face.uv[0];
+				this.height = this.face.uv[1+2] - this.face.uv[1];
 			}
 			this.size = this.width * this.height;
 			this.face_key = face_key;
 			this.texture = tex
-			this.face = cube.faces[face_key];
 			this.face_old_pos_id = face_old_pos_id;
 		}
 		function faceOldPositionIdentifier(face) {
@@ -370,7 +376,14 @@ const TextureGenerator = {
 				vertex_identifiers.sort(sort_collator.compare);
 				uv_id = vertex_identifiers.join(',');
 			} else if (face.uv instanceof Array) {
-				uv_id = face.uv.map(v => Math.roundTo(v, 4)).join(',');
+				let absolute_uv = face.uv.slice();
+				for (let i = 0; i < 2; i++) {
+					if (absolute_uv[i] > absolute_uv[i+2]) {
+						absolute_uv[i] = absolute_uv[i+2];
+						absolute_uv[i+2] = face.uv[i];
+					}
+				}
+				uv_id = absolute_uv.map(v => Math.roundTo(v, 4)).join(',');
 			}
 			let texture = face.getTexture();
 			return uv_id + ':' + (texture ? texture.uuid : 'blank');
@@ -410,8 +423,9 @@ const TextureGenerator = {
 		element_list.forEach(element => {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
-			if (element instanceof Cube) {
+			if (element.getTypeBehavior('cube_faces')) {
 				if (element.box_uv || options.box_uv) {
+					element.box_uv = true;
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
 					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
@@ -433,7 +447,6 @@ const TextureGenerator = {
 							doubles[double_key] = [template]
 						}
 					}
-					element.box_uv = true;
 					box_uv_templates.push(template)
 					avg_size += box_uv_templates[box_uv_templates.length-1].template_size
 					
@@ -771,8 +784,8 @@ const TextureGenerator = {
 					}
 	
 	
-					max_x = -Infinity;
-					max_z = -Infinity;
+					let max_x = -Infinity;
+					let max_z = -Infinity;
 					for (let fkey in vertex_uvs) {
 						for (let vkey in vertex_uvs[fkey]) {
 							max_x = Math.max(max_x, vertex_uvs[fkey][vkey][0]);
@@ -1404,6 +1417,15 @@ const TextureGenerator = {
 							uv: flip_rotation ? [pos.y, pos.x] : [pos.x, pos.y]
 						})
 						target.face.uv_size = flip_rotation ? [pos.h, pos.w] : [pos.w, pos.h];
+						if (source != target) {
+							// Double occupancy mirroring
+							if (target.mirror_x == -1) {
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							}
+							if (target.mirror_y == -1) {
+								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
+							}
+						}
 						if (target.face_key == 'up') {
 							[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
@@ -1519,7 +1541,7 @@ const TextureGenerator = {
 		setProgress();
 		// Warning
 		if (element_list.find(element => {
-			if (element instanceof Cube == false || !element.box_uv) return false;
+			if (!element.getTypeBehavior('cube_faces') || !element.box_uv) return false;
 			let size = element.size();
 			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
 		})) {
@@ -1538,7 +1560,7 @@ const TextureGenerator = {
 
 		var face_list = [];
 		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 
 		Undo.initEdit({
@@ -1555,7 +1577,7 @@ const TextureGenerator = {
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (element instanceof Mesh && face.vertices.length <= 2) continue;
-				if (element instanceof Cube && face.texture === null) continue;
+				if (element.getTypeBehavior('cube_faces') && face.texture === null) continue;
 				face_list.push({element, fkey, face});
 			}
 		})
@@ -1671,7 +1693,7 @@ const TextureGenerator = {
 			Undo.current_save.addElements(changed_elements, {uv_only: true});
 
 			changed_elements.forEach(element => {
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces')) {
 					for (var key in element.faces) {
 						let face = element.faces[key];
 						if (texture && face.getTexture() == texture) continue;
@@ -1698,3 +1720,7 @@ const TextureGenerator = {
 		return changed_elements;
 	}
 }
+
+Object.assign(window, {
+	TextureGenerator
+});

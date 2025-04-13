@@ -1,4 +1,4 @@
-class TextureMesh extends OutlinerElement {
+export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		
@@ -67,14 +67,16 @@ class TextureMesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		scalable: true,
+		rotatable: true,
+	}
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
 	TextureMesh.prototype.icon = 'fa-puzzle-piece';
-	TextureMesh.prototype.movable = true;
-	TextureMesh.prototype.scalable = true;
-	TextureMesh.prototype.rotatable = true;
-	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -305,7 +307,7 @@ new NodePreviewController(TextureMesh, {
 		} else {
 			var tex = Texture.getDefault();
 			if (tex && tex.uuid) {
-				mesh.material = Project.materials[tex.uuid]
+				mesh.material = tex.getMaterial()
 			} else {
 				mesh.material = Canvas.emptyMaterials[0]
 			}
@@ -348,7 +350,7 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			base_texture_mesh.select()
 			Undo.finishEdit('Add texture mesh', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_texture_mesh', {object: base_texture_mesh} )
@@ -362,3 +364,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureMesh
+});

@@ -94,7 +94,7 @@
 
 				//// PLANES
 
-				var planeGeometry = new THREE.PlaneBufferGeometry( 50, 50, 2, 2 );
+				var planeGeometry = new THREE.PlaneGeometry( 50, 50, 2, 2 );
 				var planeMaterial = new THREE.MeshBasicMaterial( { visible: false, side: THREE.DoubleSide } );
 
 				var planes = {
@@ -237,7 +237,7 @@
 			super();
 			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false );
 
-			let pickerCylinderGeo = new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false );
+			let pickerCylinderGeo = new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false );
 
 			var lineXGeometry = new THREE.BufferGeometry();
 			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
@@ -319,8 +319,8 @@
 			var lineZGeometry = new THREE.BufferGeometry();
 			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
 
-			let planeGeo = new THREE.PlaneBufferGeometry( 0.3, 0.3 );
-			let planePickerGeo = new THREE.PlaneBufferGeometry( 0.4, 0.4 );
+			let planeGeo = new THREE.PlaneGeometry( 0.3, 0.3 );
+			let planePickerGeo = new THREE.PlaneGeometry( 0.4, 0.4 );
 
 			let plane_offset = 0.3;
 			
@@ -388,16 +388,16 @@
 
 			this.pickerGizmos = {
 				X: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ -0.6, 0, 0 ], [ 0, 0, Math.PI / 2 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ -0.6, 0, 0 ], [ 0, 0, Math.PI / 2 ] ]
 				],
 				Y: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, -0.6, 0 ], [Math.PI / 1, 0, 0 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, -0.6, 0 ], [Math.PI / 1, 0, 0 ] ]
 				],
 				Z: [
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
-					[ new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
 				],
 				XY: [
 					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, plane_offset, 0 ] ]
@@ -408,7 +408,7 @@
 				XZ: [
 					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ]
 				],
-				E: [[ new THREE.Mesh( new THREE.SphereBufferGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+				E: [[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]],
 			};
 			this.pickerGizmos.X[1][0].name = 'NX'
 			this.pickerGizmos.Y[1][0].name = 'NY'
@@ -470,15 +470,15 @@
 
 				X: [
 					[ new THREE.Line( new CircleGeometry( 1, 'x', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
 				],
 				Y: [
 					[ new THREE.Line( new CircleGeometry( 1, 'y', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
 				],
 				Z: [
 					[ new THREE.Line( new CircleGeometry( 1, 'z', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
-					[ new THREE.Mesh( new THREE.OctahedronBufferGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
 				],
 
 				E: [
@@ -490,10 +490,10 @@
 
 			this.pickerGizmos = {
 
-				X: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
-				Y: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
-				Z: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
-				E: [[ new THREE.Mesh( new THREE.TorusBufferGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+				X: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
+				Y: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
+				Z: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
+				E: [[ new THREE.Mesh( new THREE.TorusGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
 
 			};
 
@@ -795,15 +795,15 @@
 						if (Outliner.selected.length) {
 							Outliner.selected.forEach(element => {
 								if (
-									(element.movable && Toolbox.selected.transformerMode == 'translate') ||
-									((element.resizable) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.rotatable && Toolbox.selected.transformerMode == 'rotate')
+									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
+									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
+									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
 								) {
 									scope.attach(element);
 								}
 							})
-						} else if (Group.selected && getRotationObject() == Group.selected) {
-							scope.attach(Group.selected)
+						} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
+							scope.attach(Group.first_selected)
 						} else {
 							this.update()
 							return this;
@@ -820,7 +820,7 @@
 
 			this.getTransformSpace = function() {
 				var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
-				if (!selected.length && (!Group.selected || !Format.bone_rig)) return;
+				if (!selected.length && (!Group.first_selected || !Format.bone_rig)) return;
 
 				let input_space;
 				switch (Toolbox.selected.id) {
@@ -831,7 +831,7 @@
 
 				if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-				if (input_space == 'local' && selected.length && selected[0].rotatable && (!Format.bone_rig || !Group.selected)) {
+				if (input_space == 'local' && selected.length && selected[0].getTypeBehavior('rotatable') && (!Format.bone_rig || !Group.first_selected)) {
 					let is_local = true;
 					if (Format.bone_rig) {
 						for (var el of selected) {
@@ -853,7 +853,7 @@
 					}
 					if (is_local) return 2;
 				}
-				if (input_space === 'local' && Format.bone_rig && Group.selected) {
+				if (input_space === 'local' && Format.bone_rig && Group.first_selected) {
 					// Group local Space
 					return 2;
 				}
@@ -863,9 +863,9 @@
 				}
 				if (input_space !== 'global' && Format.bone_rig) {
 					// Bone Space
-					if (Format.bone_rig && Group.selected && Group.selected.matchesSelection()) {
-						if (Group.selected.parent instanceof Group) {
-							return Group.selected.parent;
+					if (Format.bone_rig && Group.first_selected && Group.first_selected.matchesSelection()) {
+						if (Group.first_selected.parent instanceof Group) {
+							return Group.first_selected.parent;
 						} else {
 							return 0;
 						}
@@ -873,8 +873,8 @@
 					let bone = 0;
 					if (Outliner.selected.length) {
 						bone = Outliner.selected[0].parent;
-					} else if (Group.selected && Group.selected.parent instanceof Group) {
-						bone = Group.selected.parent;
+					} else if (Group.first_selected && Group.first_selected.parent instanceof Group) {
+						bone = Group.first_selected.parent;
 					}
 					for (var el of Outliner.selected) {
 						if (el.parent !== bone) {
@@ -893,12 +893,12 @@
 				if (!scope.dragging) Transformer.rotation_selection.set(0, 0, 0);
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
-						var rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
-						var rotation_object = getRotationObject()
+						let rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
+						let rotation_object = getRotationObjects()
 						if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
-							var arr = rotation_object instanceof Array ? rotation_object : selected;
+							let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
 							rotation_object = undefined;
-							for (var obj of arr) {
+							for (let obj of arr) {
 								if (obj.visibility !== false) {
 									rotation_object = obj;
 									break;
@@ -935,7 +935,7 @@
 						let space = Transformer.getTransformSpace();
 						//Rotation
 						if (space >= 2 || Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id == 'stretch_tool') {
-							Transformer.rotation_ref = (Group.selected && Format.bone_rig) ? Group.selected.mesh : (selected[0] && selected[0].mesh);
+							Transformer.rotation_ref = (Group.first_selected && Format.bone_rig) ? Group.first_selected.mesh : (selected[0] && selected[0].mesh);
 							if (space === 3 && Mesh.selected[0]) {
 								let rotation = Mesh.selected[0].getSelectionRotation();
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
@@ -945,7 +945,7 @@
 							Transformer.rotation_ref = space.mesh;
 
 						}
-					} else if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.selected)) {
+					} else if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.first_selected)) {
 						var center = getSelectionCenter()
 						Transformer.position.fromArray(center)
 					}
@@ -980,16 +980,16 @@
 							Transformer.position.sub(pivot_offset);
 						}
 
-						if (display_slot == 'gui') {
+						if (DisplayMode.display_slot == 'gui') {
 							Transformer.rotation_ref = display_gui_rotation;
 						}
 					}
 					Transformer.update()
 
-				} else if (Modes.animate && Group.selected) {
+				} else if (Modes.animate && Group.first_selected) {
 
-					this.attach(Group.selected);
-					Group.selected.mesh.getWorldPosition(this.position);
+					this.attach(Group.first_selected);
+					Group.first_selected.mesh.getWorldPosition(this.position);
 
 					if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
 						delete Transformer.rotation_ref;
@@ -998,13 +998,13 @@
 						delete Transformer.rotation_ref;
 
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'local') {
-						Transformer.rotation_ref = Group.selected.mesh;
+						Transformer.rotation_ref = Group.first_selected.mesh;
 
 					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
-						Transformer.rotation_ref = Group.selected.mesh;
+						Transformer.rotation_ref = Group.first_selected.mesh;
 
 					} else {
-						Transformer.rotation_ref = Group.selected.mesh.parent;
+						Transformer.rotation_ref = Group.first_selected.mesh.parent;
 					}
 				} else if (Modes.animate && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 
@@ -1020,7 +1020,7 @@
 			}
 			this.cancelMovement = function(event, keep_changes = false) {
 				onPointerUp(event, keep_changes);
-				Undo.cancelEdit();
+				Undo.cancelEdit(true);
 			}
 			function displayDistance(number) {
 				Blockbench.setCursorTooltip(trimFloatNumber(number));
@@ -1141,7 +1141,7 @@
 								for (let key in obj.vertices) {
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
-							} else if (obj.resizable) {
+							} else if (obj.getTypeBehavior('resizable')) {
 								obj.oldScale = obj.size(axisnr);
 								obj.oldStretch = obj.stretch.slice();
 								obj.oldUVOffset = obj.uv_offset.slice();
@@ -1149,8 +1149,8 @@
 							} 
 						})
 					}
-					_has_groups = Format.bone_rig && Group.selected && Group.selected.matchesSelection() && Toolbox.selected.transformerMode == 'translate';
-					var rotate_group = Format.bone_rig && Group.selected && (Toolbox.selected.transformerMode == 'rotate');
+					_has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
+					var rotate_group = Format.bone_rig && Group.first_selected && (Toolbox.selected.transformerMode == 'rotate');
 
 					if (Toolbox.selected.id == 'move_tool') {
 						if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -1168,7 +1168,7 @@
 					}
 
 					if (rotate_group) {
-						Undo.initEdit({group: Group.selected})
+						Undo.initEdit({groups: Group.multi_selected})
 					} else if (_has_groups) {
 						Undo.initEdit({elements: selected, outliner: true, selection: true})
 					} else {
@@ -1193,7 +1193,7 @@
 					}
 
 				} else if (Modes.id === 'display') {
-					Undo.initEdit({display_slots: [display_slot]})
+					Undo.initEdit({display_slots: [DisplayMode.display_slot]})
 				}
 				scope.firstChangeMade = true
 			}
@@ -1304,7 +1304,7 @@
 							beforeFirstChange(event)
 
 							selected.forEach(function(obj, i) {
-								if (obj.resizable) {
+								if (obj.getTypeBehavior('resizable')) {
 									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh;
 
 									if (axis == 'e') {
@@ -1423,8 +1423,10 @@
 								origin[axisNumber] += difference;
 							}
 							
-							if (Format.bone_rig && Group.selected) {
-								Group.selected.transferOrigin(origin, true);
+							if (Format.bone_rig && Group.first_selected) {
+								for (let group of Group.multi_selected) {
+									group.transferOrigin(origin);
+								}
 							} else {
 								selected.forEach(obj => {
 									if (obj.transferOrigin) {
@@ -1481,7 +1483,7 @@
 							difference = 0;
 						}
 
-						let {mesh} = Group.selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
+						let {mesh} = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
 
 						if (Toolbox.selected.id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || scope.axis == 'E' || (Timeline.selected_animator?.rotation_global && Transformer.getTransformSpace() == 2))) {
 
@@ -1573,6 +1575,7 @@
 
 				} else if (Modes.display) {
 
+					let {display_slot} = DisplayMode;
 					var rotation = new THREE.Quaternion()
 					scope.getWorldQuaternion(rotation)
 					point.applyQuaternion(rotation.invert())

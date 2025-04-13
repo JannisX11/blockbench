@@ -1,9 +1,9 @@
 # Blockbench
 
-Blockbench is a free, modern model editor for low-poly and boxy models with pixel art textures.
+Blockbench is a free and open source model editor for low-poly models with pixel art textures.
 Models can be exported into standardized formats, to be shared, rendered, 3D-printed, or used in game engines. There are also multiple dedicated formats for Minecraft Java and Bedrock Edition with format-specific features. 
 
-Blockbench features a modern and intuitive UI, plugin support and innovative features. It is the industry standard for creating custom 3D models for the Minecraft Marketplace.
+Blockbench features a modern and beginner friendly interface, but also offers lots of customization and advanced features for experienced 3D artists. Plugins can extend the functionality of the program even further.
 
 Website and download: [blockbench.net](https://www.blockbench.net)
 
@@ -22,19 +22,35 @@ Check out the [Contribution Guidelines](CONTRIBUTING.md).
 
 ## Launching Blockbench
 
-To launch Blockbench from source, you can clone the repository, navigate to the correct branch and launch the program in development mode using the instructions below. If you just want to use the latest version, please download the app from the website.
+To launch Blockbench from source, you can clone the repository, navigate to the correct branch and launch the program in development mode using the instructions below.
+If you just want to use the latest version, please download the app from the website.
 
+### Setup Repository
 * Install [NodeJS](https://nodejs.org/en/).
 * Then install all dependencies via
 `npm install`
-* Finally, launch Blockbench using
+
+
+### Run in Electron
+Use this command or press Ctrl + Shift + B to launch Blockbench in Electron:
+
 `npm run dev`
 
+To enable debugging in VS Code, switch to the **Run & Debug** tab, select the **"Debug Renderer"** configuration, and press the green arrow button to launch.
+Now you can set breakpoints and debug inside VSCode.
+
+
+### Run the web app
+Use this command to launch the web app locally:
+
+`npm run serve`
+
+Now you can open the web app in your browser under http://localhost:3000
 
 
 ## Plugins
 
-Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/api/index](https://www.blockbench.net/wiki/api/index).
+Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/docs/plugin](https://www.blockbench.net/wiki/docs/plugin).
 
 
 

@@ -1,4 +1,6 @@
-class MeshFace extends Face {
+import { Property } from "../util/property";
+
+export class MeshFace extends Face {
 	constructor(mesh, data) {
 		super(data);
 		this.mesh = mesh;
@@ -13,7 +15,12 @@ class MeshFace extends Face {
 	}
 	extend(data) {
 		super.extend(data);
-		this.vertices.forEach(key => {
+		this.vertices.forEachReverse((key, i) => {
+			if (typeof key != 'string' || !key.length) {
+				this.vertices.splice(i, 1);
+				delete this.uv[key];
+				return;
+			}
 			if (!this.uv[key]) this.uv[key] = [0, 0];
 			if (data.uv && data.uv[key] instanceof Array) {
 				this.uv[key].replace(data.uv[key]);
@@ -26,19 +33,16 @@ class MeshFace extends Face {
 		}
 		return this;
 	}
-	getNormal(normalize) {
+	getNormal(normalize, alt_tri) {
 		let vertices = this.getSortedVertices();
 		if (vertices.length < 3) return [0, 0, 0];
-		let a = [
-			this.mesh.vertices[vertices[1]][0] - this.mesh.vertices[vertices[0]][0],
-			this.mesh.vertices[vertices[1]][1] - this.mesh.vertices[vertices[0]][1],
-			this.mesh.vertices[vertices[1]][2] - this.mesh.vertices[vertices[0]][2],
-		]
-		let b = [
-			this.mesh.vertices[vertices[2]][0] - this.mesh.vertices[vertices[0]][0],
-			this.mesh.vertices[vertices[2]][1] - this.mesh.vertices[vertices[0]][1],
-			this.mesh.vertices[vertices[2]][2] - this.mesh.vertices[vertices[0]][2],
-		]
+		let indices = [0, 1, 2];
+		if (vertices.length == 4 && alt_tri) {
+			indices = [0, 2, 3];
+		}
+		let base = this.mesh.vertices[vertices[indices[0]]];
+		let a = this.mesh.vertices[vertices[indices[1]]].slice().V3_subtract(base);
+		let b = this.mesh.vertices[vertices[indices[2]]].slice().V3_subtract(base);
 		let direction = [
 			a[1] * b[2] - a[2] * b[1],
 			a[2] * b[0] - a[0] * b[2],
@@ -288,6 +292,56 @@ class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv, vertices = this.getSortedVertices()) {
+		let vert_a = vertices[0];
+		let vert_b = vertices[1];
+		let vert_c = vertices[2];
+
+		// Use non-truncated uv coordinates to select the correct triangle of a face.
+		if (vertices[3]) {
+			let is_in_tri = pointInTriangle(uv, this.uv[vert_a], this.uv[vert_b], this.uv[vert_c]);
+
+			if (!is_in_tri) {
+				vert_a = vertices[0];
+				vert_b = vertices[2];
+				vert_c = vertices[3];
+			}
+		}
+		let p0 = this.uv[vert_a];
+		let p1 = this.uv[vert_b];
+		let p2 = this.uv[vert_c];
+
+		let vertexa = this.mesh.vertices[vert_a];
+		let vertexb = this.mesh.vertices[vert_b];
+		let vertexc = this.mesh.vertices[vert_c];
+
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		function UVToLocal(uv) {
+			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
+			let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0;
+			let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0;
+			let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0;
+
+			return new THREE.Vector3(
+				vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+				vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+				vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3
+			)
+		}
+
+		let texel_pos = UVToLocal(uv);
+		let texel_x_axis = UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
+		return matrix;
+	}
 	UVToLocal(uv, vertices = this.getSortedVertices()) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
@@ -347,7 +401,7 @@ class MeshFace extends Face {
 new Property(MeshFace, 'array', 'vertices');
 
 
-class Mesh extends OutlinerElement {
+export class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
@@ -748,7 +802,7 @@ class Mesh extends OutlinerElement {
 		return this;
 	}
 	flipSelection(axis, center) {
-		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.selected;
+		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.first_selected;
 		let selected_vertices = this.getSelectedVertices();
 		for (let vkey in this.vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
@@ -845,14 +899,16 @@ class Mesh extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		resizable: true,
+		rotatable: true,
+	}
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
 	Mesh.prototype.icon = 'far.fa-gem';
-	Mesh.prototype.movable = true;
-	Mesh.prototype.resizable = true;
-	Mesh.prototype.rotatable = true;
-	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
 		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
@@ -938,6 +994,17 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
+new Property(Mesh, 'boolean', 'smooth_shading', {
+	default: false,
+	inputs: {
+		element_panel: {
+			input: {label: 'Smooth Shading', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
+			}
+		}
+	}
+});
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
@@ -992,6 +1059,7 @@ new NodePreviewController(Mesh, {
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
+		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
 
@@ -1002,6 +1070,35 @@ new NodePreviewController(Mesh, {
 
 		for (let key in faces) {
 			let face = faces[key];
+
+			if (face.vertices.length > 2) {
+				// Normals
+				if (element.smooth_shading == false) {
+					let normal = face.getNormal(true);
+					face.vertices.forEach((vkey) => {
+						normal_array.push(...normal);
+					});
+				} else {
+					face.vertices.forEach((vkey) => {
+						let average_normal = Reusable.vec2.set(0, 0, 0);
+						let normal_count = 0;
+						for (let fkey2 in faces) {
+							let face2 = faces[fkey2];
+							if (face2.vertices.length > 2 && face2.vertices.includes(vkey)) {
+								let face_normal = face_normals[fkey2] ?? face2.getNormal(true);
+								if (!face_normals[fkey2]) face_normals[fkey2] = face_normal;
+								// if (face2.getAngleTo(face) > 50) continue;
+								average_normal.x += face_normal[0];
+								average_normal.y += face_normal[1];
+								average_normal.z += face_normal[2];
+								normal_count++;
+							}
+						}
+						average_normal.divideScalar(normal_count);
+						normal_array.push(average_normal.x, average_normal.y, average_normal.z);
+					})
+				}
+			}
 
 			if (face.vertices.length == 2) {
 				// Outline
@@ -1014,8 +1111,6 @@ new NodePreviewController(Mesh, {
 					indices.push(position_array.length / 3);
 					position_array.push(...vertices[key])
 				})
-				let normal = face.getNormal();
-				normal_array.push(...normal, ...normal, ...normal);
 
 				// Outline
 				face.vertices.forEach((key, i) => {
@@ -1038,9 +1133,6 @@ new NodePreviewController(Mesh, {
 					position_array.push(...vertices[vkey])
 					face_indices[vkey] = index_offset + i;
 				})
-
-				let normal = face.getNormal(true);
-				normal_array.push(...normal, ...normal, ...normal, ...normal);
 
 				let sorted_vertices = face.getSortedVertices();
 
@@ -1084,6 +1176,10 @@ new NodePreviewController(Mesh, {
 
 		Mesh.preview_controller.updatePixelGrid(element);
 
+		if (Project.view_mode == 'wireframe' && this.fixWireframe) {
+			this.fixWireframe(element);
+		}
+
 		this.dispatchEvent('update_geometry', {element});
 	},
 	updateFaces(element) {
@@ -1118,7 +1214,7 @@ new NodePreviewController(Mesh, {
 				if (faces[key].vertices.length < 3) continue;
 				var tex = faces[key].getTexture()
 				if (tex && tex.uuid) {
-					materials.push(Project.materials[tex.uuid])
+					materials.push(tex.getMaterial())
 				} else {
 					materials.push(Canvas.emptyMaterials[element.color])
 				}
@@ -1395,5 +1491,120 @@ new NodePreviewController(Mesh, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element});
+	},
+	fixWireframe(element) {
+		let geometry_orig = element.mesh.geometry;
+		if (!geometry_orig) return;
+		let geometry_clone = element.mesh.geometry.clone();
+		element.mesh.geometry = geometry_clone;
+		geometry_orig.dispose();
+	},
+	viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview}) {
+		let selection_mode = BarItems.selection_mode.value;
+		if (!(selection_mode == 'object' || preview.selection.old_selected.includes(element))) return;
+
+		let mesh_selection;
+		let mesh = element.mesh;
+		let isSelected = false;
+		let vector = Reusable.vec6;
+		if (selection_mode != 'object') {
+			isSelected = true;
+			if (!Project.mesh_selection[element.uuid]) {
+				mesh_selection = Project.mesh_selection[element.uuid] = {vertices: [], edges: [], faces: []};
+			} else {
+				mesh_selection = Project.mesh_selection[element.uuid];
+			}
+			if (!extend_selection) mesh_selection.vertices.empty();
+		}
+
+		let vertex_points = {};
+		let is_on_screen = false;
+		for (let vkey in element.vertices) {
+			let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
+			vertex_points[vkey] = point;
+			if (point[0] >= 0 && point[0] <= preview.width && point[1] >= 0 && point[1] <= preview.height) {
+				is_on_screen = true;
+			}
+		}
+		if (extend_selection && preview.selection.old_mesh_selection[element.uuid]) {
+			mesh_selection.vertices.safePush(...preview.selection.old_mesh_selection[element.uuid].vertices);
+			mesh_selection.edges.safePush(...preview.selection.old_mesh_selection[element.uuid].edges);
+			mesh_selection.faces.safePush(...preview.selection.old_mesh_selection[element.uuid].faces);
+		}
+		if (!is_on_screen) {
+			return isSelected;
+		}
+		if (selection_mode == 'vertex') {
+			for (let vkey in element.vertices) {
+				let point = vertex_points[vkey];
+				if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+					mesh_selection.vertices.push(vkey);
+				}
+			}
+
+		} else if (selection_mode == 'edge') {
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						mesh_selection.vertices.safePush(vkey, vkey2);
+						let edge = [vkey, vkey2];
+						if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+							mesh_selection.edges.push(edge);
+						}
+					}
+				}
+			}
+
+		} else {
+			if (selection_mode != 'object' && !extend_selection) {
+				mesh_selection.faces.empty();
+			}
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				let face_intersects;
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						face_intersects = true;
+						break;
+					}
+				}
+				if (selection_mode == 'object') {
+					if (face_intersects) {
+						isSelected = true;
+						break;
+					}
+				} else {
+					if (face_intersects) {
+						mesh_selection.vertices.safePush(...face.vertices);
+						mesh_selection.faces.safePush(fkey);
+					}
+				}
+			}
+		}
+		return isSelected;
 	}
 })
+
+Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
+	if (view_mode == 'wireframe') {
+		for (let mesh of Mesh.selected) {
+			Mesh.preview_controller.fixWireframe(mesh);
+		}
+	}
+});
+
+Object.assign(window, {
+	MeshFace,
+	Mesh
+});

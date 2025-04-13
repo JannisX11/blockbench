@@ -1,4 +1,4 @@
-class CubeFace extends Face {
+export class CubeFace extends Face {
 	constructor(direction, data, cube) {
 		super();
 		this.texture = false;
@@ -51,6 +51,21 @@ class CubeFace extends Face {
 			case 'up': 		return [4, 1, 0, 5];
 			case 'down': 	return [7, 2, 3, 6];
 		}
+	}
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		let texel_pos = this.UVToLocal(uv);
+		let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
+		return matrix;
 	}
 	UVToLocal(point) {
 		let from = this.cube.from.slice()
@@ -114,7 +129,7 @@ CubeFace.opposite = {
 	up: 'down'
 }
 
-class Cube extends OutlinerElement {
+export class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
@@ -618,9 +633,8 @@ class Cube extends OutlinerElement {
 		return vertices.map(coords => {
 			vec.set(...coords.V3_subtract(this.origin));
 			vec.applyMatrix4( this.mesh.matrixWorld );
-			let arr = vec.toArray();
-			arr.V3_add(8, 0, 8);
-			return arr;
+			vec.sub(scene.position)
+			return vec.toArray();
 		})
 	}
 	setUVMode(box_uv) {
@@ -925,14 +939,22 @@ class Cube extends OutlinerElement {
 	isStretched() {
 		return !this.stretch.allEqual(1);
 	}
+
+	static behavior = {
+		uv: 'cube',
+		select_faces: 'enum',
+		cube_faces: true,
+		rotatable: true,
+		movable: true,
+		resizable: true,
+		cube_rotation_limit: true,
+		cube_size_limit: true,
+		unique_name: false
+	}
 }
 	Cube.prototype.title = tl('data.cube');
 	Cube.prototype.type = 'cube';
 	Cube.prototype.icon = 'fa-cube';
-	Cube.prototype.movable = true;
-	Cube.prototype.resizable = true;
-	Cube.prototype.rotatable = true;
-	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -1012,11 +1034,24 @@ new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.opt
 new Property(Cube, 'boolean', 'rescale');
 new Property(Cube, 'boolean', 'locked');
 new Property(Cube, 'number', 'light_emission');
-new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
+new Property(Cube, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {}
+		}
+	}
+});
 
 OutlinerElement.registerType(Cube, 'cube');
 
-function adjustFromAndToForInflateAndStretch(from, to, element) {
+export function adjustFromAndToForInflateAndStretch(from, to, element) {
 	var halfSize = element.size().slice();
 	halfSize.forEach((v, i) => {
 		halfSize[i] /= 2;
@@ -1080,42 +1115,40 @@ new NodePreviewController(Cube, {
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {
-		if (element.resizable) {
-			let mesh = element.mesh;
-			var from = element.from.slice()
-			var to = element.to.slice()
+		let mesh = element.mesh;
+		var from = element.from.slice()
+		var to = element.to.slice()
 
-			adjustFromAndToForInflateAndStretch(from, to, element);
+		adjustFromAndToForInflateAndStretch(from, to, element);
 
-			from.forEach((v, i) => {
-				from[i] -= element.origin[i];
-			})
-			to.forEach((v, i) => {
-				to[i] -= element.origin[i];
-				if (from[i] === to[i]) {
-					to[i] += 0.001
-				}
-			})
-			mesh.geometry.setShape(from, to)
-			mesh.geometry.computeBoundingBox()
-			mesh.geometry.computeBoundingSphere()
+		from.forEach((v, i) => {
+			from[i] -= element.origin[i];
+		})
+		to.forEach((v, i) => {
+			to[i] -= element.origin[i];
+			if (from[i] === to[i]) {
+				to[i] += 0.001
+			}
+		})
+		mesh.geometry.setShape(from, to)
+		mesh.geometry.computeBoundingBox()
+		mesh.geometry.computeBoundingSphere()
 
-			// Update outline
-			var vs = [0,1,2,3,4,5,6,7].map(i => {
-				return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-			});
-			let points = [
-				vs[2], vs[3],
-				vs[6], vs[7],
-				vs[2], vs[0],
-				vs[1], vs[4],
-				vs[5], vs[0],
-				vs[5], vs[7],
-				vs[6], vs[4],
-				vs[1], vs[3]
-			].map(a => new THREE.Vector3().fromArray(a))
-			mesh.outline.geometry.setFromPoints(points);
-		}
+		// Update outline
+		var vs = [0,1,2,3,4,5,6,7].map(i => {
+			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
+		});
+		let points = [
+			vs[2], vs[3],
+			vs[6], vs[7],
+			vs[2], vs[0],
+			vs[1], vs[4],
+			vs[5], vs[0],
+			vs[5], vs[7],
+			vs[6], vs[4],
+			vs[1], vs[3]
+		].map(a => new THREE.Vector3().fromArray(a))
+		mesh.outline.geometry.setFromPoints(points);
 
 		this.updatePixelGrid(element);
 
@@ -1172,7 +1205,7 @@ new NodePreviewController(Cube, {
 				if (element.faces[face].texture !== null) {
 					let tex = element.faces[face].getTexture();
 					if (tex && tex.uuid) {
-						materials.push(Project.materials[tex.uuid])
+						materials.push(tex.getMaterial())
 					} else {
 						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 					}
@@ -1450,6 +1483,51 @@ new NodePreviewController(Cube, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element: cube});
+	},
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
+		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
+
+		let {mesh} = element;
+		let vector = Reusable.vec2;
+		var adjustedFrom = element.from.slice();
+		var adjustedTo = element.to.slice();
+		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
+
+		let vertices = [
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
+		].map(coords => {
+			coords.V3_subtract(element.origin);
+			vector.fromArray(coords);
+			mesh.localToWorld(vector);
+			return projectPoint(vector);
+		})
+		let is_on_screen = vertices.find(vertex => {
+			return (vertex[0] >= 0 && vertex[0] <= preview.width
+				 && vertex[1] >= 0 && vertex[1] <= preview.height);
+		})
+		return is_on_screen && (
+			   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+		);
 	}
 })
 
@@ -1497,7 +1575,7 @@ BARS.defineActions(function() {
 				}
 			}
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			base_cube.select()
 			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
 			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
@@ -1636,3 +1714,10 @@ BARS.defineActions(function() {
 		BarItems.cube_light_emission.setValue(value);
 	})
 })
+
+
+Object.assign(window, {
+	CubeFace,
+	Cube,
+	adjustFromAndToForInflateAndStretch
+});

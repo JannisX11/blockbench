@@ -1,4 +1,3 @@
-(function() {
 
 function arrangeArray(array) {
 	return array.map(v => Math.roundTo(v, 6)).join(' ');
@@ -153,6 +152,7 @@ var codec = new Codec('collada', {
 			down: [0, -1, 0],
 		}
 		Cube.all.forEach(cube => {
+			if (!cube.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -357,6 +357,7 @@ var codec = new Codec('collada', {
 
 		// Mesh Geo
 		Mesh.all.forEach(mesh => {
+			if (!mesh.export) return;
 
 			let positions = [];
 			let normals = [];
@@ -546,7 +547,7 @@ var codec = new Codec('collada', {
 					{type: 'translate', attributes: {sid: 'location'}, content: position.V3_divide(export_scale).join(' ')},
 				]
 			}
-			if (node.rotatable) {
+			if (node.getTypeBehavior('rotatable')) {
 				let rotation_angles = [
 					{type: 'rotate', attributes: {sid: 'rotationZ'}, content: `0 0 1 ${node.rotation[2]}`},
 					{type: 'rotate', attributes: {sid: 'rotationY'}, content: `0 1 0 ${node.rotation[1]}`},
@@ -585,6 +586,7 @@ var codec = new Codec('collada', {
 			}
 			if (node instanceof Group) {
 				node.children.forEach(node => {
+					if (node.export === false) return;
 					tag.content.push(processNode(node));
 				})
 			}
@@ -592,6 +594,7 @@ var codec = new Codec('collada', {
 		}
 
 		Outliner.root.forEach(node => {
+			if (node.export === false) return;
 			root.push(processNode(node))
 		})
 
@@ -916,9 +919,7 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
-
-function compileXML(object) {
+export function compileXML(object) {
 	let depth = 0;
 	let output = '<?xml version="1.0" encoding="utf-8"?>\n';
 

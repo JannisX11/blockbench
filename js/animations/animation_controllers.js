@@ -1,7 +1,11 @@
-class AnimationControllerState {
+import Wintersky from 'wintersky';
+
+export class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
+		this.transitions = [];
+		this.animations = [];
 
 		for (let key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].reset(this);
@@ -39,60 +43,63 @@ class AnimationControllerState {
 			}
 		}
 		if (data.animations instanceof Array) {
+			let previous_animations = this.animations.slice();
 			this.animations.empty();
 			data.animations.forEach(a => {
-				let animation;
+				let animation = previous_animations.find(a1 => a1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					key: '',
+					animation: '',
+					blend_value: ''
+				};
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					animation = {
-						uuid: a.uuid || guid(),
-						key: a.key || '',
-						animation: a.animation || '',// UUID
-						blend_value: a.blend_value || ''
-					};
+					Object.assign(animation, a);
 				} else if (typeof a == 'object' || typeof a == 'string') {
 					// Bedrock
 					let key = typeof a == 'object' ? Object.keys(a)[0] : a;
 					let anim_match = Animation.all.find(anim => anim.getShortName() == key);
-					animation = {
-						uuid: guid(),
+					Object.assign(animation, {
 						key: key || '',
 						animation: anim_match ? anim_match.uuid : '',// UUID
 						blend_value: (typeof a == 'object' && a[key]) || ''
-					};
+					});
 				}
 				this.animations.push(animation);
 			})
 		}
 		if (data.transitions instanceof Array) {
+			let previous_transitions = this.transitions.slice();
 			this.transitions.empty();
 			data.transitions.forEach(a => {
-				let transition;
+				let transition = previous_transitions.find(t1 => t1.uuid == a.uuid) ?? {
+					uuid: guid(),
+					target: '',
+					condition: ''
+				};
+				this.transitions.push(transition);
 				if (typeof a == 'object' && typeof a.uuid == 'string' && a.uuid.length == 36) {
 					// Internal
-					transition = {
-						uuid: a.uuid || guid(),
-						target: a.target || '',
-						condition: a.condition || ''
-					};
+					Object.assign(transition, a);
 				} else if (typeof a == 'object') {
 					// Bedrock
 					let key = Object.keys(a)[0];
 					let state_match = this.controller.states.find(state => state !== this && state.name == key);
-					transition = {
-						uuid: guid(),
+					Object.assign(transition, {
 						target: state_match ? state_match.uuid : '',
 						condition: a[key] || ''
-					};
+					});
 					if (!state_match) {
 						setTimeout(() => {
 							// Delay to after loading controller so that all states can be found
 							let state_match = this.controller.states.find(state => state !== this && state.name == key);
-							if (state_match) transition.target = state_match.uuid;
+							if (state_match) {
+								let updated_transition = this.transitions.find(t => t.uuid == transition.uuid) ?? transitions;
+								updated_transition.target = state_match.uuid;
+							}
 						}, 0);
 					}
 				}
-				this.transitions.push(transition);
 			})
 		}
 		if (data.particles instanceof Array) {
@@ -814,7 +821,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	'delete',
 ]);
 
-class AnimationController extends AnimationItem {
+export class AnimationController extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -1040,7 +1047,6 @@ class AnimationController extends AnimationItem {
 		return this;
 	}
 	select() {
-		Prop.active_panel = 'animations';
 		if (this == AnimationController.selected) return;
 		if (Timeline.playing) Timeline.pause()
 		AnimationItem.all.forEach((a) => {
@@ -1060,6 +1066,11 @@ class AnimationController extends AnimationItem {
 			BarItems.slider_animation_controller_speed.update();
 		}
 		return this;
+	}
+	clickSelect() {
+		Undo.initSelection();
+		this.select();
+		Undo.finishSelection('Select animation')
 	}
 	createUniqueName(arr) {
 		var scope = this;
@@ -1255,12 +1266,21 @@ class AnimationController extends AnimationItem {
 				showItemInFolder(animation.path);
 			}
 		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
+			}
+		},
 		'rename',
 		{
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			condition: (controller) => (Format.animation_files && isApp && controller.saved),
 			click(controller) {
 				Blockbench.read([controller.path], {}, ([file]) => {
 					Undo.initEdit({animation_controllers: [controller]})
@@ -1490,6 +1510,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							animation = state.animations.find(t => t.uuid == animation.uuid);
 							state.animations.remove(animation);
 							Undo.finishEdit('Remove animation from controller state');
 						}}
@@ -1513,6 +1534,7 @@ Interface.definePanels(() => {
 						'_',
 						{id: 'remove', name: 'generic.remove', icon: 'clear', click() {
 							Undo.initEdit({animation_controller_state: state});
+							transition = state.transitions.find(t => t.uuid == transition.uuid);
 							state.transitions.remove(transition);
 							Undo.finishEdit('Remove transition from controller state');
 						}}
@@ -1998,13 +2020,13 @@ Interface.definePanels(() => {
 									<div class="text_button" @click.stop="addAnimationButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
 								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-									<li v-for="animation in state.animations" :key="animation.uuid" class="controller_animation">
+									<li v-for="(animation, i) in state.animations" :key="animation.uuid" class="controller_animation">
 										<div class="controller_item_drag_handle"></div>
-										<div class="tool" title="" @click="openAnimationMenu(state, animation, $event.target)"><i class="material-icons">movie</i></div>
-										<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="animation.key">
+										<div class="tool" title="" @click="openAnimationMenu(state, state.animations[i], $event.target)"><i class="material-icons">movie</i></div>
+										<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.animations[i].key">
 										<vue-prism-editor 
 											class="molang_input animation_controller_text_input tab_target"
-											v-model="animation.blend_value"
+											v-model="state.animations[i].blend_value"
 											language="molang"
 											:autocomplete="autocomplete"
 											:placeholder="'${tl('animation_controllers.state.condition')}'"
@@ -2031,24 +2053,24 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.particles">
-									<li v-for="particle in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, particle, $event)">
+									<li v-for="(particle, i) in state.particles" :key="particle.uuid" class="controller_particle" @contextmenu="openParticleMenu(state, state.particles[i], $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.effect">
-											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, particle)">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.particles[i].effect">
+											<div class="tool" title="${tl('timeline.select_particle_file')}" @click="changeParticleFile(state, state.particles[i])">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
 										<div class="bar flex">
 											<label>${tl('data.locator')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="particle.locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
-											<input type="checkbox" v-model="particle.bind_to_actor" title="${tl('timeline.bind_to_actor')}">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.particles[i].locator" list="locator_suggestion_list" @focus="updateLocatorSuggestionList()">
+											<input type="checkbox" v-model="state.particles[i].bind_to_actor" title="${tl('timeline.bind_to_actor')}">
 										</div>
 										<div class="bar flex">
 											<label>${tl('timeline.pre_effect_script')}</label>
 											<vue-prism-editor
 												class="molang_input animation_controller_text_input tab_target"
-												v-model="particle.script"
+												v-model="state.particles[i].script"
 												language="molang"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
@@ -2075,11 +2097,11 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<ul v-if="!state.fold.sounds">
-									<li v-for="sound in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, sound, $event)">
+									<li v-for="(sound, i) in state.sounds" :key="sound.uuid" class="controller_sound" @contextmenu="openSoundMenu(state, state.sounds[i], $event)">
 										<div class="bar flex">
 											<label>${tl('data.effect')}</label>
-											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="sound.effect">
-											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, sound)">
+											<input type="text" class="dark_bordered tab_target animation_controller_text_input" v-model="state.sounds[i].effect">
+											<div class="tool" title="${tl('timeline.select_sound_file')}" @click="changeSoundFile(state, state.sounds[i])">
 												<i class="material-icons">upload_file</i>
 											</div>
 										</div>
@@ -2129,12 +2151,12 @@ Interface.definePanels(() => {
 								</div>
 								<template v-if="!state.fold.transitions">
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
-										<li v-for="transition in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition">
+										<li v-for="(transition, i) in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
-											<bb-select @click="openTransitionMenu(state, transition, $event)">{{ getStateName(transition.target) }}</bb-select>
+											<bb-select @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</bb-select>
 											<vue-prism-editor 
 												class="molang_input animation_controller_text_input tab_target"
-												v-model="transition.condition"
+												v-model="state.transitions[i].condition"
 												language="molang"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
@@ -2215,7 +2237,7 @@ Interface.definePanels(() => {
 			if (val != molang_edit_value) {
 				Undo.finishEdit('Edit animation controller molang');
 			} else {
-				Undo.cancelEdit();
+				Undo.cancelEdit(false);
 			}
 		}
 	})
@@ -2328,3 +2350,5 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {AnimationController, AnimationControllerState});

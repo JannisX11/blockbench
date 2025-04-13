@@ -1,9 +1,8 @@
-(function() {
-
 var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['jem'],
@@ -21,21 +20,24 @@ var codec = new Codec('optifine_entity', {
 		function getTexturePath(tex) {
 			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
 		}
+		function isAppliedInModel(texture) {
+			return Group.all.find(group => {
+				return group.export && group.texture == texture.uuid;
+			})
+		}
 		entitymodel.textureSize = [Project.texture_width, Project.texture_height];
 		let default_texture = Texture.getDefault();
-		if (!settings.optifine_save_default_texture.value && !default_texture?.use_as_default) {
-			default_texture = null;
-		}
-		if (default_texture) {
+		if (default_texture && (default_texture.use_as_default || (settings.optifine_save_default_texture.value && !isAppliedInModel(default_texture)))) {
 			let texture = Texture.getDefault();
 			entitymodel.texture = getTexturePath(Texture.getDefault());
 			entitymodel.textureSize = [texture.uv_width, texture.uv_height];
+		} else {
+			default_texture = null;
 		}
 		if (Project.shadow_size != 1) entitymodel.shadowSize = Project.shadow_size;
 		entitymodel.models = []
 
-		Outliner.root.forEach(function(g) {
-			if (g instanceof Group == false) return;
+		function compilePart(g) {
 			if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 			//Bone
 			var bone = {
@@ -179,7 +181,22 @@ var codec = new Codec('optifine_entity', {
 			}
 
 			entitymodel.models.push(bone)
-		})
+		}
+
+		if (options.build_part) {
+			compilePart({
+				name: Project.name,
+				origin: [0, 0, 0],
+				rotation: [0, 0, 0],
+				children: Outliner.root.filter(g => g.export)
+			});
+		} else {
+			for (let group of Outliner.root) {
+				if (group instanceof Group && group.export) {
+					compilePart(group);
+				}
+			}
+		}
 
 		this.dispatchEvent('compile', {entitymodel, options});
 
@@ -233,17 +250,21 @@ var codec = new Codec('optifine_entity', {
 
 				//Bone
 				let texture = importTexture(b.texture, b.textureSize);
-				let group = new Group({
-					name: b.part,
-					origin: b.translate,
-					rotation: b.rotate,
-					mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
-					cem_animations: b.animations,
-					cem_attach: b.attach,
-					cem_scale: b.scale,
-					texture: texture ? texture.uuid : undefined,
-				})
-				group.origin.V3_multiply(-1);
+				let group = 0;
+				if (!model._is_jpm) {
+					group = new Group({
+						name: b.part,
+						origin: b.translate,
+						rotation: b.rotate,
+						mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
+						cem_animations: b.animations,
+						cem_attach: b.attach,
+						cem_scale: b.scale,
+						texture: texture ? texture.uuid : undefined,
+					})
+					group.origin.V3_multiply(-1);
+					group.init().addTo();
+				}
 
 				function readContent(submodel, p_group, depth, texture) {
 
@@ -297,7 +318,7 @@ var codec = new Codec('optifine_entity', {
 									}
 								})
 							}
-							if (p_group.parent !== 'root') {
+							if (p_group && (p_group.parent !== 'root' || model._is_jpm)) {
 								for (var i = 0; i < 3; i++) {
 									base_cube.from[i] += p_group.origin[i];
 									base_cube.to[i] += p_group.origin[i];
@@ -315,7 +336,7 @@ var codec = new Codec('optifine_entity', {
 							}
 							let sub_texture = importTexture(subsub.texture, subsub.textureSize);
 							let group = new Group({
-								name: subsub.id || `${b.part}_sub_${subcount}`,
+								name: subsub.id || subsub.comment || `${b.part??'part'}_sub_${subcount}`,
 								origin: subsub.translate || (depth >= 1 ? submodel.translate : undefined),
 								rotation: subsub.rotate,
 								mirror_uv: (subsub.mirrorTexture && subsub.mirrorTexture.includes('u')),
@@ -328,7 +349,6 @@ var codec = new Codec('optifine_entity', {
 					}
 
 				}
-				group.init().addTo()
 				readContent(b, group, 0, texture || main_texture)
 			})
 		}
@@ -383,4 +403,3 @@ BARS.defineActions(function() {
 	})
 })
 
-})()

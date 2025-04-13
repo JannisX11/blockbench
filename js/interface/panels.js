@@ -1,4 +1,4 @@
-class Panel extends EventSystem {
+export class Panel extends EventSystem {
 	constructor(id, data) {
 		super();
 		if (!data) data = id;
@@ -11,6 +11,7 @@ class Panel extends EventSystem {
 		this.condition = data.condition;
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
+		this.optional = data.optional ?? true;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;
@@ -23,6 +24,7 @@ class Panel extends EventSystem {
 		this.toolbars = [];
 
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
+		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
 		this.position_data = Interface.getModeData().panels[this.id];
 		let defaultp = this.default_position = data.default_position || 0;
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
@@ -59,6 +61,12 @@ class Panel extends EventSystem {
 			this.toolbars.push(toolbar);
 		}
 
+		if (data.form) {
+			this.form = data.form instanceof InputForm ? data.form : new InputForm(data.form);
+			this.node.append(this.form.node),
+			this.form.buildForm();
+		}
+
 		if (data.component) {
 			
 			let component_mount = Interface.createElement('div');
@@ -82,8 +90,9 @@ class Panel extends EventSystem {
 					//updateInterfacePanels()
 				})
 			}
-			this.vue = this.inside_vue = new Vue(data.component).$mount(component_mount);	
-			scope.vue.$el.classList.add('panel_vue_wrapper');
+			this.vue = this.inside_vue = new Vue(data.component)
+			this.vue.$mount(component_mount);
+			this.vue.$el.classList.add('panel_vue_wrapper');
 		}
 
 		if (!Blockbench.isMobile) {
@@ -102,38 +111,8 @@ class Panel extends EventSystem {
 
 			let snap_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('drag_handle'))
 			this.handle.append(snap_button);
-			let moveTo = slot => {
-				this.fixed_height = false;
-				this.moveTo(slot);
-			};
 			snap_button.addEventListener('click', (e) => {
-				new Menu([
-					{
-						name: 'Left Sidebar',
-						icon: 'align_horizontal_left',
-						click: () => moveTo('left_bar')
-					},
-					{
-						name: 'Right Sidebar',
-						icon: 'align_horizontal_right',
-						click: () => moveTo('right_bar')
-					},
-					{
-						name: 'Top',
-						icon: 'align_vertical_top',
-						click: () => moveTo('top')
-					},
-					{
-						name: 'Bottom',
-						icon: 'align_vertical_bottom',
-						click: () => moveTo('bottom')
-					},
-					{
-						name: 'Float',
-						icon: 'web_asset',
-						click: () => moveTo('float')
-					}
-				]).show(snap_button);
+				this.snap_menu.show(snap_button, this);
 			})
 
 			let fold_button = Interface.createElement('div', {class: 'tool panel_control panel_folding_button'}, Blockbench.getIconNode('expand_more'))
@@ -596,6 +575,8 @@ class Panel extends EventSystem {
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
 			}
+		} else if (slot == 'hidden' && !Blockbench.isMobile) {
+			this.node.remove();
 		}
 		if (slot !== 'float') {
 			Panel.floating_panel_z_order.remove(this.id);
@@ -634,6 +615,8 @@ class Panel extends EventSystem {
 			if (!this.resize_handles) {
 				this.setupFloatHandles();
 			}
+		} else if (slot == 'hidden' && !Blockbench.isMobile) {
+			this.node.remove();
 		}
 		if (slot !== 'float') {
 			Panel.floating_panel_z_order.remove(this.id);
@@ -746,9 +729,67 @@ class Panel extends EventSystem {
 	}
 }
 Panel.floating_panel_z_order = [];
+Panel.prototype.snap_menu = new Menu([
+	{
+		name: 'menu.panel.move_to.left_bar',
+		icon: 'align_horizontal_left',
+		marked: panel => panel.slot == 'left_bar',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('left_bar');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.right_bar',
+		icon: 'align_horizontal_right',
+		marked: panel => panel.slot == 'right_bar',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('right_bar');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.top',
+		icon: 'align_vertical_top',
+		marked: panel => panel.slot == 'top',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('top');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.bottom',
+		icon: 'align_vertical_bottom',
+		marked: panel => panel.slot == 'bottom',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('bottom');
+		}
+	},
+	{
+		name: 'menu.panel.move_to.float',
+		icon: 'web_asset',
+		marked: panel => panel.slot == 'float',
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('float');
+		}
+	},
+	'_',
+	{
+		name: 'menu.panel.move_to.hidden',
+		icon: 'web_asset_off',
+		marked: panel => panel.slot == 'hidden',
+		condition: panel => (panel.optional && panel.slot != 'hidden'),
+		click: (panel) => {
+			panel.fixed_height = false;
+			panel.moveTo('hidden');
+		}
+	}
+])
 
 
-function setupPanels() {
+export function setupPanels() {
 	Interface.panel_definers.forEach((definer) => {
 		if (typeof definer === 'function') {
 			definer()
@@ -757,7 +798,7 @@ function setupPanels() {
 	updateSidebarOrder();
 }
 
-function updateInterfacePanels() {
+export function updateInterfacePanels() {
 
 	if (!Blockbench.isMobile) {
 		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
@@ -798,7 +839,7 @@ function updateInterfacePanels() {
 	}
 }
 
-function updateSidebarOrder() {
+export function updateSidebarOrder() {
 	['left_bar', 'right_bar'].forEach(bar => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
 
@@ -826,7 +867,7 @@ function updateSidebarOrder() {
 		}
 	})
 }
-function updatePanelSelector() {
+export function updatePanelSelector() {
 	if (!Blockbench.isMobile) return;
 
 	Interface.PanelSelectorVue.$forceUpdate();
@@ -836,11 +877,11 @@ function updatePanelSelector() {
 	}
 }
 
-function setActivePanel(panel) {
+export function setActivePanel(panel) {
 	Prop.active_panel = panel
 }
 
-function setupMobilePanelSelector() {
+export function setupMobilePanelSelector() {
 	Interface.PanelSelectorVue = new Vue({
 		el: '#panel_selector_bar',
 		data: {
@@ -897,3 +938,13 @@ function setupMobilePanelSelector() {
 			</div>`
 	})
 }
+
+Object.assign(window, {
+	Panel,
+	setupPanels,
+	updateInterfacePanels,
+	updateSidebarOrder,
+	updatePanelSelector,
+	setActivePanel,
+	setupMobilePanelSelector,
+});

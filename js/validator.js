@@ -1,4 +1,4 @@
-const Validator = {
+export const Validator = {
 	checks: [],
 
 	warnings: [],
@@ -93,7 +93,7 @@ const Validator = {
 };
 
 
-class ValidatorCheck {
+export class ValidatorCheck {
 	constructor(id, options) {
 		this.id = id;
 
@@ -242,7 +242,7 @@ new ValidatorCheck('texture_names', {
 			let characters = used_path.replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
 			if (characters) {
 				this.warn({
-					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
+					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters and spaces are invalid.`,
 					buttons: [
 						{
 							name: 'Select Texture',
@@ -375,3 +375,5 @@ new ValidatorCheck('zero_wide_uv_faces', {
 		}
 	}
 })
+
+Object.assign(window, {Validator, ValidatorCheck});

@@ -1,4 +1,4 @@
-class AnimationItem {
+export class AnimationItem {
 	constructor() {}
 	getShortName() {
 		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
@@ -10,7 +10,7 @@ class AnimationItem {
 		return this.name.split(/\./).last();
 	}
 }
-class Animation extends AnimationItem {
+export class Animation extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -133,8 +133,8 @@ class Animation extends AnimationItem {
 			copy.animators = {}
 			for (var uuid in this.animators) {
 				let ba = this.animators[uuid]
-				var kfs = ba.keyframes
-				if ((kfs && kfs.length) || ba.rotation_global) {
+				let kfs = ba.keyframes
+				if ((kfs && kfs.length) || ba.rotation_global || !save) {
 					let ba_copy = copy.animators[uuid] = {
 						name: ba.name,
 						type: ba.type,
@@ -160,10 +160,10 @@ class Animation extends AnimationItem {
 
 		if (this.length) ani_tag.animation_length = Math.roundTo(this.length, 4);
 		if (this.override) ani_tag.override_previous_animation = true;
-		if (this.anim_time_update) ani_tag.anim_time_update = this.anim_time_update.replace(/\n/g, '');
-		if (this.blend_weight) ani_tag.blend_weight = this.blend_weight.replace(/\n/g, '');
-		if (this.start_delay) ani_tag.start_delay = this.start_delay.replace(/\n/g, '');
-		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = this.loop_delay.replace(/\n/g, '');
+		if (this.anim_time_update) ani_tag.anim_time_update = exportMolang(this.anim_time_update);
+		if (this.blend_weight) ani_tag.blend_weight = exportMolang(this.blend_weight);
+		if (this.start_delay) ani_tag.start_delay = exportMolang(this.start_delay);
+		if (this.loop_delay && ani_tag.loop) ani_tag.loop_delay = exportMolang(this.loop_delay);
 		ani_tag.bones = {};
 
 		for (var uuid in this.animators) {
@@ -433,14 +433,19 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	select() {
-		var scope = this;
-		Prop.active_panel = 'animations';
+		let previous_animation = Animation.selected;
 		if (this == Animation.selected) return;
-		var selected_bone = Group.selected;
 		AnimationItem.all.forEach((a) => {
 			a.selected = false;
 			if (a.playing == true) a.playing = false;
 		})
+		let animator_keys = previous_animation && Object.keys(previous_animation.animators);
+		let selected_animator_key;
+		let timeline_animator_keys = previous_animation && Timeline.animators.map(a => {
+			let key = animator_keys.find(key => previous_animation.animators[key] == a);
+			if (a.selected) selected_animator_key = key;
+			return key;
+		});
 		Timeline.clear();
 		Timeline.vue._data.markers = this.markers;
 		Timeline.vue._data.animation_length = this.length;
@@ -453,15 +458,21 @@ class Animation extends AnimationItem {
 		BarItems.slider_animation_length.update();
 
 		Group.all.forEach(group => {
-			scope.getBoneAnimator(group);
+			this.getBoneAnimator(group);
 		})
 		Outliner.elements.forEach(element => {
 			if (!element.constructor.animator) return;
-			scope.getBoneAnimator(element);
+			this.getBoneAnimator(element);
 		})
 
-		if (selected_bone) {
-			selected_bone.select();
+		if (timeline_animator_keys) {
+			timeline_animator_keys.forEachReverse(key => {
+				let animator = this.animators[key];
+				if (animator) {
+					animator.addToTimeline();
+					if (selected_animator_key == key) animator.select(false);
+				}
+			});
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -469,6 +480,12 @@ class Animation extends AnimationItem {
 		}
 		Blockbench.dispatchEvent('select_animation', {animation: this})
 		return this;
+	}
+	clickSelect() {
+		Undo.initSelection();
+		Prop.active_panel = 'animations';
+		this.select();
+		Undo.finishSelection('Select animation')
 	}
 	setLength(len = this.length) {
 		this.length = 0;
@@ -551,8 +568,8 @@ class Animation extends AnimationItem {
 		return this;
 	}
 	getBoneAnimator(group) {
-		if (!group && Group.selected) {
-			group = Group.selected;
+		if (!group && Group.first_selected) {
+			group = Group.first_selected;
 		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			group = Outliner.selected[0];
 		} else if (!group) {
@@ -832,12 +849,21 @@ class Animation extends AnimationItem {
 				showItemInFolder(animation.path);
 			}
 		},
+		{
+			name: 'generic.edit_externally',
+			id: 'edit_externally',
+			icon: 'edit_document',
+			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
+			click(animation) {
+				ipcRenderer.send('open-in-default-app', animation.path);
+			}
+		},
 		'rename',
 		{
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			condition: (animation) => (Format.animation_files && isApp && animation.saved),
 			click(animation) {
 				Blockbench.read([animation.path], {}, ([file]) => {
 					Undo.initEdit({animations: [animation]})
@@ -1253,7 +1279,7 @@ BARS.defineActions(function() {
 					}
 				})
 				// Rotation
-				if (node.rotatable) {
+				if (node.getTypeBehavior('rotatable')) {
 					node.rotation[0] -= offset_rotation[0];
 					node.rotation[1] -= offset_rotation[1];
 					node.rotation[2] += offset_rotation[2];
@@ -1517,7 +1543,7 @@ BARS.defineActions(function() {
 						}},
 						'_1': '_',
 						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
-						'_1': '_',
+						'_2': '_',
 						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
 						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
 						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},
@@ -1743,12 +1769,17 @@ BARS.defineActions(function() {
 					temp_animators[target_uuid] = new animator.constructor(target_uuid, animation);
 					copyAnimator(temp_animators[target_uuid], target_animator);
 				}
+
+				let tempsave_current_animator = !temp_animators[animator.uuid];
+				if (tempsave_current_animator) {
+					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
+					copyAnimator(temp_animators[animator.uuid], animator);
+				}
+
 				copyAnimator(target_animator, temp_animators[animator.uuid] ?? animator);
 				
 				// Reset animator
-				if (!temp_animators[animator.uuid]) {
-					temp_animators[animator.uuid] = new animator.constructor(animator.uuid, animation);
-					copyAnimator(temp_animators[animator.uuid], animator);
+				if (tempsave_current_animator) {
 					resetAnimator(animator)
 				}
 			}
@@ -2101,8 +2132,8 @@ Interface.definePanels(function() {
 								v-bind:class="{ selected: animation.selected }"
 								v-bind:anim_id="animation.uuid"
 								class="animation"
-								v-on:click.stop="animation.select()"
-								v-on:dblclick.stop="animation.propertiesDialog()"
+								@click.stop="animation.clickSelect()"
+								@dblclick.stop="animation.propertiesDialog()"
 								:key="animation.uuid"
 								@contextmenu.prevent.stop="animation.showContextMenu($event)"
 							>
@@ -2140,3 +2171,5 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {AnimationItem, Animation});

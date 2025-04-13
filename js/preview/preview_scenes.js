@@ -1,4 +1,4 @@
-class PreviewScene {
+export class PreviewScene {
 	constructor(id, data = 0) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
@@ -33,13 +33,17 @@ class PreviewScene {
 			if (this.description == key) this.description = '';
 		}
 		if (data.light_color) this.light_color = data.light_color;
-		if (data.light_sid) this.light_side = data.light_sid;
+		if (data.light_side) this.light_side = data.light_side;
 		this.condition = data.condition;
 
 		this.cubemap = null;
 		if (data.cubemap) {
 			let urls = data.cubemap;
-			let texture_cube = new THREE.CubeTextureLoader().load( urls );
+			let texture_cube = new THREE.CubeTextureLoader().load(urls, () => {
+				if (PreviewScene.active == this && Project.view_mode == 'material') {
+					Canvas.updateShading();
+				}
+			});
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -104,9 +108,10 @@ class PreviewScene {
 
 		Canvas.global_light_color.copy(this.light_color);
 		Canvas.global_light_side = this.light_side;
-		scene.background = this.cubemap;
-		scene.fog = this.fog;
-		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
+		Canvas.scene.background = this.cubemap;
+		Canvas.scene.fog = this.fog;
+
+		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
 		// Update independent models
@@ -129,7 +134,7 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
-		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
+		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
@@ -160,7 +165,7 @@ PreviewScene.menu_categories = {
 	},
 };
 
-class PreviewModel {
+export class PreviewModel {
 	constructor(id, data) {
 		PreviewModel.models[id] = this;
 		this.id = id;
@@ -460,7 +465,7 @@ new PreviewScene('minecraft_end', {
 });
 
 
-let player_preview_model = new PreviewModel('minecraft_player', {
+export const player_preview_model = new PreviewModel('minecraft_player', {
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
 	position: [30, 0, 8],
@@ -722,7 +727,7 @@ player_preview_model.updateArmVariant = function(slim) {
 }
 
 StateMemory.init('minecraft_eula_accepted', 'object');
-const MinecraftEULA = {
+export const MinecraftEULA = {
 	isAccepted(key) {
 		return StateMemory.minecraft_eula_accepted[key];
 	},
@@ -803,4 +808,11 @@ BARS.defineActions(function() {
 
 		}
 	})
+})
+
+Object.assign(window, {
+	PreviewScene,
+	PreviewModel,
+	MinecraftEULA,
+	player_preview_model
 })
