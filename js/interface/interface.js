@@ -318,7 +318,7 @@ export const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
@@ -338,7 +338,7 @@ export const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getBottomPanel();

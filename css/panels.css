@@ -1,6 +1,6 @@
 /*Panel*/
 	.panel_container {
-		background-color: var(--color-back);
+		background-color: var(--color-ui);
 		display: flex;
 		flex-direction: column;
 		position: relative;
@@ -21,6 +21,10 @@
 		flex-direction: column;
 		position: relative;
 	}
+	.panel.grow {
+		flex-grow: 1;
+		height: calc(100% - 40px);
+	}
 	.panel.grow > .panel_vue_wrapper:not(.list) {
 		flex-grow: 1;
 		display: flex;
@@ -28,17 +32,17 @@
 		overflow: hidden;
 		min-height: 0;
 	}
-	.panel.floating {
+	.panel_container.floating {
 		position: absolute;
 		border: 1px solid var(--color-accent);
 		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
 		box-sizing: content-box;
 		z-index: 14;
 	}
-	.panel.floating > .panel_vue_wrapper:not(.list) {
+	.panel_container.floating > .panel_vue_wrapper:not(.list) {
 		overflow: hidden;
 	}
-	.panel.floating.dragging {
+	.panel_container.floating.dragging {
 		opacity: 0.6;
 	}
 	body.is_mobile .panel {
@@ -53,9 +57,13 @@
 		margin: 0;
 		padding: 0;
 		align-items: center;
+		background-color: var(--color-back);
 	}
 	.panel_tab_bar.single_tab {
 		background-color: var(--color-ui);
+	}
+	.panel_container.attach_target .panel_tab_bar {
+		background-color: var(--color-accent);
 	}
 	.panel_tab_list {
 		display: flex;
@@ -141,6 +149,33 @@
 	body.is_touch h3.panel_handle > .tool.panel_control {
 		flex-basis: 36px;
 	}*/
+	.panel_menu_button {
+		width: 25px;
+		height: 25px;
+		float: none;
+		display: inline-block;
+		vertical-align: top;
+		text-align: center;
+		cursor: pointer;
+		color: var(--color-subtle_text);
+		height: 100%;
+		padding-top: 3px;
+		margin-right: -10px;
+	}
+	.panel_handle:not(.selected) .panel_menu_button {
+		display: none;
+	}
+	.panel_menu_button > i {
+		font-size: 20px;
+	}
+	.tool.panel_control {
+		flex: 0 0 24px;
+		opacity: 0.7;
+		cursor: pointer;
+	}
+	.tool.panel_control:hover {
+		opacity: 1;
+	}
 	.panel p {
 		margin-left: 12px;
 	}
@@ -162,11 +197,11 @@
 	.panel_container.fixed_height {
 		flex-grow: 0;
 	}
-	.panel.bottommost_panel:not(.topmost_panel) {
+	.panel_container.bottommost_panel:not(.topmost_panel) {
 		margin-top: auto;
 	}
 
-	.panel[order]::before {
+	.panel_container[order]::before {
 		content: '';
 		height: 2px;
 		left: 0;
@@ -177,13 +212,13 @@
 		position: absolute;
 		box-shadow: 0 0 20px #ffffff80;
 	}
-	.panel[order] {
+	.panel_container[order] {
 		position: relative;
 	}
-	.panel[order="-1"]::before {
+	.panel_container[order="-1"]::before {
 		margin-top: 0;
 	}
-	.panel[order="1"]::before {
+	.panel_container[order="1"]::before {
 		bottom: 0px;
 	}
 

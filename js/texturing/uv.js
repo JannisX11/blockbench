@@ -4581,7 +4581,7 @@ Interface.definePanels(function() {
 
 					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">
 						<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
-						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor" toolbar="uv_editor"></div>
 					</div>
 				</div>
 			`

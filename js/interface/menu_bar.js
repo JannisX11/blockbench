@@ -460,31 +460,20 @@ export const MenuBar = {
 				icon: 'web_asset',
 				children() {
 					let entries = [];
+					let available_panels = [];
 					for (let id in Panels) {
 						let panel = Panels[id];
 						if (!Condition(panel.condition)) continue;
+						available_panels.push(panel);
+					}
+
+					for (let panel of available_panels) {
 						let menu_entry = {
-							id,
+							id: panel.id,
 							name: panel.name,
 							icon: panel.icon,
-							children: [
-								{
-									id: 'move_to',
-									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
-									icon: 'drag_handle',
-									context: panel,
-									children: panel.snap_menu.structure
-								},
-								{
-									id: 'fold',
-									name: 'menu.panel.fold',
-									icon: panel.folded == true,
-									condition: panel.slot != 'hidden',
-									click() {
-										panel.fold();
-									}
-								}
-							]
+							context: panel,
+							children: panel.snap_menu.structure
 						}
 						entries.push(menu_entry);
 					}
