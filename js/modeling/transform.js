@@ -1600,8 +1600,11 @@ BARS.defineActions(function () {
 
 	// Spline resolution
 	new NumSlider('slider_spline_resolution_u', {
+		name: tl('action.slider_spline_resolution', ['U']),
+		description: tl('action.slider_spline_resolution.desc', ['U']),
+		color: 'x',
 		category: 'transform',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		condition: () => Modes.edit && SplineMesh.selected.length,
 		getInterval: getSpatialInterval,
 		get: function () {
 			return SplineMesh.selected[0].resolution[0]
@@ -1621,8 +1624,11 @@ BARS.defineActions(function () {
 		}
 	})
 	new NumSlider('slider_spline_resolution_v', {
+		name: tl('action.slider_spline_resolution', ['V']),
+		description: tl('action.slider_spline_resolution.desc', ['V']),
+		color: 'y',
 		category: 'transform',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		condition: () => Modes.edit && SplineMesh.selected.length,
 		getInterval: getSpatialInterval,
 		get: function () {
 			return SplineMesh.selected[0].resolution[1]
@@ -1641,10 +1647,9 @@ BARS.defineActions(function () {
 			Undo.finishEdit('Adjust resolution of splines')
 		}
 	})
-	let slider_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v];
-	slider_spline_resolution.forEach(slider => slider.slider_vector = slider_spline_resolution);
-
 	new NumSlider('slider_spline_radius', {
+		name: tl('action.slider_spline_radius'),
+		description: tl('action.slider_spline_radius.desc'),
 		category: 'transform',
 		condition: function () { return SplineMesh.selected.length && Modes.edit },
 		getInterval: getSpatialInterval,
@@ -1665,40 +1670,8 @@ BARS.defineActions(function () {
 			Undo.finishEdit('Adjust radius of splines')
 		}
 	})
-
-	new Toggle("toggle_spline_normals", {
-		icon: 'fas.fa-ruler-combined',
-		category: 'edit',
-		condition: function () { return SplineMesh.hasSelected() && Modes.edit },
-		onChange: function(value) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				obj.show_normals = value;
-				obj.preview_controller.updateGeometry(obj);
-			})
-		}
-	})
-	new Toggle('toggle_spline_tangents', {
-		icon: 'fas.fa-ruler',
-		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.hasSelected(),
-		onChange: function(value) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				obj.show_tangents = value;
-				obj.preview_controller.updateGeometry(obj);
-			})
-		}
-	})
-	new Toggle("toggle_spline_render_mesh", {
-		icon: 'fas.fa-spinner',
-		category: 'edit',
-		condition: function () { return SplineMesh.hasSelected() && Modes.edit },
-		onChange: function(value) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				obj.render_mesh = value;
-				obj.preview_controller.updateGeometry(obj);
-			})
-		}
-	})
+	let slider_vector_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v, BarItems.slider_spline_radius];
+	slider_vector_spline_resolution.forEach(slider => slider.slider_vector = slider_vector_spline_resolution);
 
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),

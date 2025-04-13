@@ -1,4 +1,4 @@
-class SplineHandle {
+export class SplineHandle {
     constructor(spline, data) {
         for (var key in this.constructor.properties) {
             this.constructor.properties[key].reset(this);
@@ -85,7 +85,7 @@ new Property(SplineHandle, 'number', 'size');
 //     -> Basic functionality for this added, but might need updating later on
 
 
-class SplineMesh extends OutlinerElement {
+export class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
         super(data, uuid)
 
@@ -696,14 +696,16 @@ class SplineMesh extends OutlinerElement {
             tangent: tangentVec,
         };
     }
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		resizable: true,
+		rotatable: true,
+	}
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
 SplineMesh.prototype.type = 'spline';
 SplineMesh.prototype.icon = 'fas.fa-bezier-curve';
-SplineMesh.prototype.movable = true;
-SplineMesh.prototype.resizable = true;
-SplineMesh.prototype.rotatable = true;
-SplineMesh.prototype.needsUniqueName = false;
 SplineMesh.prototype.menu = new Menu([
     new MenuSeparator('spline_mesh_edit'),
     new MenuSeparator('spline_mesh_combination'),
@@ -742,15 +744,48 @@ new Property(SplineMesh, 'string', 'name', { default: 'spline' })
 new Property(SplineMesh, 'number', 'color', { default: Math.floor(Math.random() * markerColors.length) });
 new Property(SplineMesh, 'vector', 'origin');
 new Property(SplineMesh, 'vector', 'rotation');
+new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
+new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
+// decide if you want this spline to render the "Mesh" part of its name or not.
+new Property(SplineMesh, 'boolean', 'render_mesh', {
+	default: true,
+	inputs: {
+		element_panel: {
+			input: {label: 'Render Mesh', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+			}
+		}
+	}
+});
+// mainly for debug, may be used for other purposes tho.
+new Property(SplineMesh, 'boolean', 'show_normals', {
+    default: false,
+    inputs: {
+        element_panel: {
+            input: {label: 'Show Normals', type: 'checkbox'},
+            onChange() {
+                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+            }
+        }
+    }
+});
+new Property(SplineMesh, 'boolean', 'show_tangents', {
+	default: false,
+	inputs: {
+		element_panel: {
+			input: {label: 'Show Tangents', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+			}
+		}
+	}
+});
+
 new Property(SplineMesh, 'boolean', 'export', { default: true });
 new Property(SplineMesh, 'boolean', 'visibility', { default: true });
 new Property(SplineMesh, 'boolean', 'locked');
 new Property(SplineMesh, 'boolean', 'cyclic'); // If the spline should be closed or not.
-new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
-new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
-new Property(SplineMesh, 'boolean', 'show_normals', { default: false }); // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'show_tangents', { default: false }); // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'render_mesh', { default: true }); // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
 
 OutlinerElement.registerType(SplineMesh, 'spline');
@@ -1041,4 +1076,24 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_highlight', { element });
     },
+	fixWireframe(element) {
+		let geometry_orig = element.mesh.geometry;
+		if (!geometry_orig) return;
+		let geometry_clone = element.mesh.geometry.clone();
+		element.mesh.geometry = geometry_clone;
+		geometry_orig.dispose();
+	},
 })
+
+Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
+    if (view_mode == 'wireframe') {
+        for (let mesh of SplineMesh.selected) {
+            SplineMesh.preview_controller.fixWireframe(mesh);
+        }
+    }
+});
+
+Object.assign(window, {
+	SplineHandle,
+	SplineMesh
+});
