@@ -167,6 +167,7 @@
 	}
 	.panel_menu_button > i {
 		font-size: 20px;
+		pointer-events: none;
 	}
 	.tool.panel_control {
 		flex: 0 0 24px;
@@ -3073,6 +3074,9 @@ span.controller_state_section_info {
 	}
 	#palette_list .color.selected {
 		padding: 3px;
+	}
+	#palette_list .color.secondary {
+		padding: 1.25px;
 	}
 	#palette_list .color.contrast {
 		background-color: var(--color-text);

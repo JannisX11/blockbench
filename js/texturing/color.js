@@ -85,7 +85,8 @@ export const ColorPanel = {
 			history.remove(color);
 			history.splice(0, 0, color);
 			if (history.length > max) history.length = max;
-			$('#color_history')[0].scrollLeft = 0;
+			let history_node = document.getElementById('color_history')
+			if (history_node) history_node.scrollLeft = 0;
 			ColorPanel.saveLocalStorages();
 		}
 	},
@@ -107,8 +108,7 @@ export const ColorPanel = {
 			palette: ColorPanel.panel.vue._data.palette,
 			history: ColorPanel.panel.vue._data.history,
 		}))
-	}
-,
+	},
 	importPalette(file) {
 
 		let extension = pathToExtension(file.path);
@@ -485,7 +485,7 @@ Blockbench.addDragHandler('palette', {
 
 
 SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'color' && ['palette', 'both'].includes(ColorPanel.panel.vue.open_tab),
+	condition: () => Prop.active_panel == 'palette',
 	run() {
 		if (StateMemory.color_palette_locked) {
 			Blockbench.showQuickMessage('message.palette_locked');
@@ -500,6 +500,7 @@ SharedActions.add('delete', {
 
 Interface.definePanels(() => {
 	
+	// MARK: color panel
 	ColorPanel.panel = new Panel('color', {
 		icon: 'palette',
 		condition: {modes: ['paint']},
@@ -522,16 +523,6 @@ Interface.definePanels(() => {
 					'pick_screen_color'
 				]
 			}),
-			new Toolbar('palette', {
-				children: [
-					'import_palette',
-					'export_palette',
-					'generate_palette',
-					'sort_palette',
-					'save_palette',
-					'load_palette',
-				]
-			})
 		],
 		onResize() {
 			Panels.color.vue.width = 0;
@@ -558,7 +549,6 @@ Interface.definePanels(() => {
 			data: {
 				width: 100,
 				picker_height: 100,
-				open_tab: StateMemory.color_picker_tab || 'picker',
 				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
 				main_color: '#ffffff',
 				second_color: '#000000',
@@ -578,7 +568,6 @@ Interface.definePanels(() => {
 					s: 0,
 					v: 0,
 				},
-				palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
 			},
 			methods: {
@@ -615,15 +604,6 @@ Interface.definePanels(() => {
 									this.updateSliders();
 								}}
 							]
-						},
-						{
-							id: 'lock_palette',
-							name: 'menu.palette.lock_palette',
-							icon: () => StateMemory.color_palette_locked,
-							click() {
-								StateMemory.color_palette_locked = !StateMemory.color_palette_locked;
-								StateMemory.save('color_palette_locked');
-							}
 						}
 						// slider
 					]).open(event.target);
@@ -647,22 +627,6 @@ Interface.definePanels(() => {
 						if (event.shiftKey) sign *= 4;
 						BarItems.slider_color_h.change(v => v+sign);
 					}
-				},
-				sortChoose() {
-					if (StateMemory.color_palette_locked) {
-						Blockbench.showQuickMessage('message.palette_locked');
-					}
-				},
-				sortMove() {
-					if (StateMemory.color_palette_locked) {
-						return false;
-					}
-				},
-				sort(event) {
-					var item = this.palette.splice(event.oldIndex, 1)[0];
-					this.palette.splice(event.newIndex, 0, item);
-				},
-				drop(event) {
 				},
 				setColor(color, second_color = this.second_color_selected) {
 					ColorPanel.set(color, second_color);
@@ -689,13 +653,6 @@ Interface.definePanels(() => {
 					var color = this.main_color;
 					if (!color.match(/^#[0-9a-f]{6}$/)) {
 						this.main_color = tinycolor(color).toHexString();
-					}
-				},
-				isDarkColor(hex) {
-					if (hex) {
-						let color_val = new tinycolor(hex).getBrightness();
-						let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
-						return Math.abs(color_val - bg_val) <= 50;
 					}
 				},
 				tl
@@ -725,13 +682,6 @@ Interface.definePanels(() => {
 						this.text_input = value;
 					}
 					Blockbench.dispatchEvent('change_color', {color: value, secondary: true})
-				},
-				open_tab(tab) {
-					StateMemory.color_picker_tab = tab;
-					StateMemory.save('color_picker_tab');
-					Vue.nextTick(() => {
-						ColorPanel.panel.onResize()
-					})
 				}
 			},
 			template: `
@@ -756,44 +706,17 @@ Interface.definePanels(() => {
 								></li>
 							</div>
 						</div>
-					</div>
-
-					<div class="bar tabs_small">
-
-						<input type="radio" name="tab" id="radio_color_picker" value="picker" v-model="open_tab">
-						<label for="radio_color_picker">${tl('panel.color.picker')}</label>
-
-						<input type="radio" name="tab" id="radio_color_palette" value="palette" v-model="open_tab">
-						<label for="radio_color_palette">${tl('panel.color.palette')}</label>
-
-						<input type="radio" name="tab" id="radio_color_both" value="both" v-model="open_tab">
-						<label for="radio_color_both">${tl('panel.color.both')}</label>
-
 						<div class="tool" @click="colorPickerMenu($event)" title="${tl('panel.color.picker_options')}">
 							<i class="icon material-icons">settings</i>
 						</div>
-
 					</div>
-					<div v-show="open_tab == 'picker' || open_tab == 'both'" @wheel="onMouseWheel($event)">
+
+					<div @wheel="onMouseWheel($event)">
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
 						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
-					</div>
-					<div v-show="open_tab == 'palette' || open_tab == 'both'">
-						<div class="toolbar_wrapper palette" toolbar="palette"></div>
-						<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="ColorPanel.menu.open($event)">
-							<li
-								class="color" v-for="color in palette"
-								:title="color" :key="color"
-								:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
-								@click="setColor(color)"
-								@contextmenu.stop="setColor(color, true)"
-							>
-								<div class="color_inner" :style="{'background-color': color}"></div>
-							</li>
-						</ul>
 					</div>
 				</div>
 			`,
@@ -808,6 +731,122 @@ Interface.definePanels(() => {
 					}
 				})
 			}
+		}
+	})
+	$('#color_history').on('wheel', function(e) {
+		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
+		this.scrollLeft += delta;
+	})
+	
+	
+	// MARK: palette panel
+	ColorPanel.palette_panel = new Panel('palette', {
+		icon: 'apps',
+		condition: {modes: ['paint']},
+		default_position: {
+			slot: 'right_bar',
+			float_position: [0, 0],
+			float_size: [300, 400],
+			height: 400,
+			attached_to: 'color',
+		},
+		toolbars: [
+			new Toolbar('palette', {
+				children: [
+					'import_palette',
+					'export_palette',
+					'generate_palette',
+					'sort_palette',
+					'save_palette',
+					'load_palette',
+				]
+			})
+		],
+		component: {
+			data: {
+				get main_color() {
+					return Panels.color.vue.main_color;
+				},
+				set main_color(value) {
+					Panels.color.vue.main_color = value;
+				},
+				get second_color() {
+					return Panels.color.vue.second_color;
+				},
+				set second_color(value) {
+					Panels.color.vue.second_color = value;
+				},
+				hover_color: '',
+				second_color_selected: false,
+				get color_code() {return this.hover_color || (this.second_color_selected ? this.second_color : this.main_color)},
+				set color_code(color) {
+					if (this.second_color_selected == false) {
+						this.main_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
+					} else {
+						this.second_color = color.toLowerCase().replace(/[^a-f0-9#]/g, '');
+					}
+				},
+				palette: (saved_colors && saved_colors.palette instanceof Array) ? saved_colors.palette : palettes.default.slice(),
+			},
+			methods: {
+				sortChoose() {
+					if (StateMemory.color_palette_locked) {
+						Blockbench.showQuickMessage('message.palette_locked');
+					}
+				},
+				sortMove() {
+					if (StateMemory.color_palette_locked) {
+						return false;
+					}
+				},
+				sort(event) {
+					var item = this.palette.splice(event.oldIndex, 1)[0];
+					this.palette.splice(event.newIndex, 0, item);
+				},
+				drop(event) {
+				},
+				setColor(color, second_color = this.second_color_selected) {
+					ColorPanel.set(color, second_color);
+				},
+				changeColor(color, secondary = this.second_color_selected) {
+					this[secondary ? 'second_color' : 'main_color'] = color;
+				},
+				swapColors() {
+					BarItems.swap_colors.click();
+				},
+				getSwapColorsTooltip() {
+					return `${BarItems.swap_colors.name} (${BarItems.swap_colors.keybind})`
+				},
+				isDarkColor(hex) {
+					if (hex) {
+						let color_val = new tinycolor(hex).getBrightness();
+						let bg_val = new tinycolor(CustomTheme.data.colors.back).getBrightness();
+						return Math.abs(color_val - bg_val) <= 50;
+					}
+				},
+				openContextMenu(event) {
+					Panels.palette.menu.open(event);
+				},
+				tl
+			},
+			computed: {
+				selected_color() {
+					return this.second_color_selected ? this.second_color : this.main_color;
+				}
+			},
+			template: `
+				<ul id="palette_list" class="list mobile_scrollbar" v-sortable="{onChoose: sortChoose, onMove: sortMove, onUpdate: sort, onEnd: drop, fallbackTolerance: 10}" @contextmenu="openContextMenu($event)">
+					<li
+						class="color" v-for="color in palette"
+						:title="color" :key="color"
+						:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
+						@click="setColor(color)"
+						@contextmenu.stop="setColor(color, true)"
+					>
+						<div class="color_inner" :style="{'background-color': color}"></div>
+					</li>
+				</ul>
+			`
 		},
 		menu: new Menu([
 			new MenuSeparator('options'),
@@ -827,11 +866,6 @@ Interface.definePanels(() => {
 		])
 	})
 
-	$('#color_history').on('wheel', function(e) {
-		var delta = (e.originalEvent.deltaY < 0 ? -90 : 90);
-		this.scrollLeft += delta;
-	})
-
 	if (isApp) {
 		ipcRenderer.on('set-main-color', (event, arg) => {
 			ColorPanel.set(arg);
@@ -841,10 +875,10 @@ Interface.definePanels(() => {
 	Toolbars.palette.toPlace();
 	Toolbars.color_picker.toPlace();
 
-	ColorPanel.palette = ColorPanel.panel.vue._data.palette;
+	ColorPanel.palette = ColorPanel.palette_panel.vue._data.palette;
 });
 
-
+// MARK: Actions
 BARS.defineActions(function() {
 
 	new Action('add_to_palette', {

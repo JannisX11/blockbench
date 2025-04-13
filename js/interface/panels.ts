@@ -301,6 +301,7 @@ export class Panel extends EventSystem {
 
 
 			addEventListeners(this.handle, 'mousedown touchstart', (e1: MouseEvent) => {
+				if (e1.target instanceof HTMLElement && e1.target.classList.contains('panel_menu_button')) return;
 				if (e1.which == 2 || e1.which == 3) return;
 				convertTouchEvent(e1);
 				let started = false;
@@ -951,7 +952,7 @@ export interface Panel {
 Panel.prototype.snap_menu = new Menu([
 	{
 		id: 'move_to',
-		name: (panel: Panel) => (panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to'),
+		name: 'menu.panel.move_to',
 		icon: 'drag_handle',
 		children: (panel: Panel) => ([
 			{
