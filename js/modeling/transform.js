@@ -1651,27 +1651,21 @@ BARS.defineActions(function () {
 	new Toggle("toggle_spline_normals", {
 		icon: 'fas.fa-ruler-combined',
 		category: 'edit',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
-		get: function () {
-			return SplineMesh.selected[0].show_normals;
-		},
-		onChange() {
+		condition: function () { return SplineMesh.hasSelected() && Modes.edit },
+		onChange: function(value) {
 			SplineMesh.selected.forEach(function (obj, i) {
-				obj.show_normals = !obj.show_normals;
+				obj.show_normals = value;
 				obj.preview_controller.updateGeometry(obj);
 			})
 		}
 	})
-	new Toggle("toggle_spline_tangents", {
-		icon: 'fas.fa-ruler-vertical',
-		category: 'edit',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
-		get: function () {
-			return SplineMesh.selected[0].show_tangents;
-		},
-		onChange() {
+	new Toggle('toggle_spline_tangents', {
+		icon: 'fas.fa-ruler',
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.hasSelected(),
+		onChange: function(value) {
 			SplineMesh.selected.forEach(function (obj, i) {
-				obj.show_tangents = !obj.show_tangents;
+				obj.show_tangents = value;
 				obj.preview_controller.updateGeometry(obj);
 			})
 		}
@@ -1679,13 +1673,10 @@ BARS.defineActions(function () {
 	new Toggle("toggle_spline_render_mesh", {
 		icon: 'fas.fa-spinner',
 		category: 'edit',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
-		get: function () {
-			return SplineMesh.selected[0].render_mesh;
-		},
-		onChange() {
+		condition: function () { return SplineMesh.hasSelected() && Modes.edit },
+		onChange: function(value) {
 			SplineMesh.selected.forEach(function (obj, i) {
-				obj.render_mesh = !obj.render_mesh;
+				obj.render_mesh = value;
 				obj.preview_controller.updateGeometry(obj);
 			})
 		}

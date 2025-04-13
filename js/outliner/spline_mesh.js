@@ -61,20 +61,20 @@ new Property(SplineHandle, 'number', 'size');
 
 //TODO (in order of roadmap)
 
-// [~] Implement primitive tube drawing, using resolution U as the number of points per slice.
-//     -> in Progress, will need a lot more refinement
-// /!\ This will require more R&D, THREE.js implements a kind of solution for this, but with very little control over how it renders.
+// [x?] Implement primitive tube drawing, using resolution U as the number of points per slice.
+//     -> probably done, might need more refinement
 //   - Needs to respect tilt & size.
-//   - Would ideally generate a special version of.
-//     UV islands that would correspond to slices.
+//   - Would ideally generate a special version of
+//     UV islands that would correspond to slices 
 //     of the resulting tube (one per U edge).
+// [ ] Fix cyclic tube mesh not connecting properly.
 
 // /!\ Priority 2
 
 // [ ] Add ability to extrude points from the curve.
-// [ ] Add ability to delete points from the curve. /!\ Priority 2
-// [ ] Add ability to remove segments from the curve. /!\ Priority 2
-// [ ] Add ability to dissolve points from the curve. /!\ Priority 2
+// [ ] Add ability to delete points from the curve.
+// [ ] Add ability to remove segments from the curve.
+// [ ] Add ability to dissolve points from the curve.
 // [ ] Add ability to scale & tilt handles.
 
 //DONE:
@@ -129,10 +129,7 @@ class SplineMesh extends OutlinerElement {
                 [handle_keys[2], handle_keys[3]], //  )
                 [handle_keys[3], handle_keys[4]]  // (
             );
-            let curve_keys = Object.keys(this.curves);
 
-            // Vertices to be used in the curve's tube mesh
-            // this.addCurveVertices(curve_keys);
         }
         for (var key in SplineMesh.properties) {
             SplineMesh.properties[key].reset(this);
@@ -140,7 +137,6 @@ class SplineMesh extends OutlinerElement {
         if (data && typeof data === 'object') {
             this.extend(data)
         }
-        // console.log(this.curve_vertices);
     }
     get vertices() {
         return this._static.properties.vertices;
@@ -496,8 +492,8 @@ class SplineMesh extends OutlinerElement {
                 // Normals
                 // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
                 let vertexNormal = new THREE.Vector3(
-                    cos * normal.x + sin * biNormal.x, 
-                    cos * normal.y + sin * biNormal.y, 
+                    cos * normal.x + sin * biNormal.x,
+                    cos * normal.y + sin * biNormal.y,
                     cos * normal.z + sin * biNormal.z 
                 ).normalize();
 
@@ -680,7 +676,7 @@ class SplineMesh extends OutlinerElement {
         let pc = [pc4, pc3, pc2, pc1]
 
         // Bernstein polynomial function
-        let bernstein = function(powers, char) {
+        function bernstein(powers, char) {
             let result = new THREE.Vector3();
             let points = [ point1, point2, point3, point4 ];
             for (let i = 0; i < 4; i++) {
@@ -752,9 +748,9 @@ new Property(SplineMesh, 'boolean', 'locked');
 new Property(SplineMesh, 'boolean', 'cyclic'); // If the spline should be closed or not.
 new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
 new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
-new Property(SplineMesh, 'boolean', 'show_normals'); // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'show_tangents'); // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'render_mesh'); // decide if you want this spline to render the "Mesh" part of its name or not.
+new Property(SplineMesh, 'boolean', 'show_normals', { default: false }); // mainly for debug, may be used for other purposes tho.
+new Property(SplineMesh, 'boolean', 'show_tangents', { default: false }); // mainly for debug, may be used for other purposes tho.
+new Property(SplineMesh, 'boolean', 'render_mesh', { default: true }); // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
 
 OutlinerElement.registerType(SplineMesh, 'spline');
@@ -906,39 +902,46 @@ new NodePreviewController(SplineMesh, {
             linePoints.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
             lineColors.push(...pathColor, ...(shouldDouble ? pathColor : []))
         })
-        this.debugDraw(element, linePoints, lineColors, [false, true]);
+        this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
 
         // Tube geometry
-        let tube = element.getTubeGeo();
-        mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-        mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-		mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2)), 
-		mesh.geometry.attributes.uv.needsUpdate = true;
-        mesh.geometry.setIndex(tube.indices);
-        
-        // Add outlines for tube geo edges
-        let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
-        for (let i = 0; i < tube.indices.length; i+=6) {
-            let v1 = tube.indices[i];
-            let v2 = tube.indices[i + 1];
-            let v3 = tube.indices[i + 4];
-            let v4 = tube.indices[i + 1];
+        if (element.render_mesh) {
+            let tube = element.getTubeGeo();
+            mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+            mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+            mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2));
+            mesh.geometry.attributes.uv.needsUpdate = true;
+            mesh.geometry.setIndex(tube.indices);
+            
+            // Add outlines for tube geo edges
+            let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
+            for (let i = 0; i < tube.indices.length; i+=6) {
+                let v1 = tube.indices[i];
+                let v2 = tube.indices[i + 1];
+                let v3 = tube.indices[i + 4];
+                let v4 = tube.indices[i + 1];
+    
+                // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
+                [v2, v3, v4, v1].forEach((index, i) => {
+                    let vector = [
+                        tube.vertices[index * 3], 
+                        tube.vertices[(index * 3) + 1], 
+                        tube.vertices[(index * 3) + 2]
+                    ];
+                    linePoints.push(...vector);
+                    lineColors.push(...outlineColor);
+                })
+            }
 
-            // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
-            [v2, v3, v4, v1].forEach((index, i) => {
-                let vector = [
-                    tube.vertices[index * 3], 
-                    tube.vertices[(index * 3) + 1], 
-                    tube.vertices[(index * 3) + 2]
-                ];
-                linePoints.push(...vector);
-                lineColors.push(...outlineColor);
-            })
+            let tubeVertCount = mesh.geometry.attributes.position.array.length;
+            let highlightArray = mesh.geometry.attributes.highlight.array
+            mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(tubeVertCount).fill(highlightArray[0]), 1));
+        } 
+        else {
+            mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([]), 3));
+            mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([]), 3));
+            mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([]), 2));
         }
-
-        let tubeVertCount = mesh.geometry.attributes.position.array.length;
-        let highlightArray = mesh.geometry.attributes.highlight.array
-        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(tubeVertCount).fill(highlightArray[0]), 1));
 
         mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
