@@ -241,7 +241,7 @@ export class InputForm extends EventSystem {
 		if (set_value) return set_value;
 		let type = FormElement.types[input_config.type];
 		if (type) {
-			return type.prototype.getDefault();
+			return type.prototype.getDefault.call({options: input_config});
 		}
 		return '';
 	}

@@ -1,7 +1,51 @@
+import { Prop } from "../misc";
+import { EventSystem } from "../util/event_system";
+import { InputForm } from "./form";
+import { Interface, Panels, openTouchKeyboardModifierMenu, resizeWindow } from "./interface";
+import {Toolbar} from './toolbars'
+
+interface PanelPositionData {
+	slot: PanelSlot
+	float_position: [number, number]
+	float_size: [number, number]
+	height: number
+	folded: boolean
+	fixed_height: boolean
+}
+
 export class Panel extends EventSystem {
-	constructor(id, data) {
+	type: 'panel'
+	id: string
+	name: string
+	icon: string
+	menu: Menu
+	condition: ConditionResolvable
+	display_condition: ConditionResolvable
+	previous_slot: string
+	optional: boolean
+	plugin?: string
+	growable: boolean
+	resizable?: boolean
+	min_height?: number
+	width: number
+	height: number
+	onResize: () => void
+	onFold: () => void
+	toolbars: Toolbar[]
+	default_position: PanelPositionData
+	position_data: PanelPositionData
+	node: HTMLElement
+	handle: HTMLElement
+	form?: InputForm
+	vue?: Vue
+	inside_vue?: Vue
+	snap_menu: Menu
+	sidebar_resize_handle: HTMLElement
+	resize_handles?: HTMLElement
+
+	constructor(id: string | PanelOptions, data: PanelOptions) {
 		super();
-		if (!data) data = id;
+		if (!data && typeof id != 'string') data = id;
 		let scope = this;
 		this.type = 'panel';
 		this.id = typeof id == 'string' ? id : data.id || 'new_panel';
@@ -26,7 +70,7 @@ export class Panel extends EventSystem {
 		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
 		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
 		this.position_data = Interface.getModeData().panels[this.id];
-		let defaultp = this.default_position = data.default_position || 0;
+		let defaultp = this.default_position = data.default_position || ({} as any);
 		if (defaultp && defaultp.slot) this.previous_slot = defaultp.slot;
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || (data.default_side ? (data.default_side+'_bar') : 'left_bar');
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
@@ -124,7 +168,6 @@ export class Panel extends EventSystem {
 			this.handle.firstElementChild.addEventListener('dblclick', e => {
 				this.fold();
 			})
-
 
 			if (this.resizable) {
 				this.sidebar_resize_handle = Interface.createElement('div', {class: 'panel_sidebar_resize_handle'})
@@ -386,11 +429,11 @@ export class Panel extends EventSystem {
 	set fixed_height(state) {
 		this.position_data.fixed_height = !!state;
 	}
-	resetCustomLayout() {
+	resetCustomLayout(): this {
 		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
 		this.position_data = Interface.getModeData().panels[this.id];
 		
-		let defaultp = this.default_position || 0;
+		let defaultp = this.default_position || ({} as any);
 		if (!this.position_data.slot) 			this.position_data.slot 			= defaultp.slot || 'left_bar';
 		if (!this.position_data.float_position)	this.position_data.float_position 	= defaultp.float_position || [0, 0];
 		if (!this.position_data.float_size) 	this.position_data.float_size 		= defaultp.float_size || [300, 300];
@@ -402,12 +445,11 @@ export class Panel extends EventSystem {
 			let mode_data = Interface.getModeData(mode_id);
 			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
 		}
-
 		this.moveTo(this.slot);
 		this.fold(this.folded);
 		return this;
 	}
-	addToolbar(toolbar, position = this.toolbars.length) {
+	addToolbar(toolbar: Toolbar, position = this.toolbars.length): void {
 		let nodes = [];
 		if (toolbar.label) {
 			let label = Interface.createElement('p', {class: 'panel_toolbar_label'}, tl(toolbar.name));
@@ -427,7 +469,7 @@ export class Panel extends EventSystem {
 		}
 		this.toolbars.splice(position, 0, toolbar);
 	}
-	fold(state = !this.folded) {
+	fold(state = !this.folded): this {
 		this.folded = !!state;
 		let new_icon = Blockbench.getIconNode(state ? 'expand_less' : 'expand_more');
 		$(this.handle).find('> .panel_folding_button > .icon').replaceWith(new_icon);
@@ -442,7 +484,7 @@ export class Panel extends EventSystem {
 		this.dispatchEvent('fold', {});
 		return this;
 	}
-	setupFloatHandles() {
+	setupFloatHandles(): this {
 		let sides = [
 			Interface.createElement('div', {class: 'panel_resize_side resize_top'}),
 			Interface.createElement('div', {class: 'panel_resize_side resize_bottom'}),
@@ -498,7 +540,7 @@ export class Panel extends EventSystem {
 		this.resize_handles = handles;
 		return this;
 	}
-	moveToFront() {
+	moveToFront(): this {
 		if (this.slot == 'float' && Panel.floating_panel_z_order[0] !== this.id) {
 			Panel.floating_panel_z_order.remove(this.id);
 			Panel.floating_panel_z_order.splice(0, 0, this.id);
@@ -512,7 +554,7 @@ export class Panel extends EventSystem {
 		}
 		return this;
 	}
-	moveTo(slot, ref_panel, before = false) {
+	moveTo(slot: PanelSlot, ref_panel?: Panel, before = false): this {
 		let position_data = this.position_data;
 		if (slot == undefined) {
 			slot = ref_panel.position_data.slot;
@@ -592,7 +634,7 @@ export class Panel extends EventSystem {
 		}
 		return this;
 	}
-	updateSlot() {
+	updateSlot(): this {
 		let slot = this.slot;
 
 		this.node.classList.remove('floating');
@@ -640,7 +682,7 @@ export class Panel extends EventSystem {
 		}
 		return this;
 	}
-	update(dragging) {
+	update(dragging: boolean = false) {
 		let show = BARS.condition(this.condition);
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
@@ -727,8 +769,8 @@ export class Panel extends EventSystem {
 		delete Panels[this.id];
 		this.node.remove()
 	}
+	static floating_panel_z_order: string[] = []
 }
-Panel.floating_panel_z_order = [];
 Panel.prototype.snap_menu = new Menu([
 	{
 		name: 'menu.panel.move_to.left_bar',
