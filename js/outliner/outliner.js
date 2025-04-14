@@ -1,4 +1,5 @@
 import { Blockbench } from "../api"
+import { SplineMesh } from "./spline_mesh"
 
 export const Outliner = {
 	root: [],
@@ -686,6 +687,8 @@ export class NodePreviewController extends EventSystem {
 		if (mesh && mesh.outline) {
 			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
 				mesh.outline.visible = false;
+			} else if (element instanceof SplineMesh) { // render path if spline has no mesh attached
+				mesh.outline.visible = !element.render_mesh || element.selected;
 			} else {
 				mesh.outline.visible = element.selected;
 			}
@@ -1265,6 +1268,7 @@ BARS.defineActions(function() {
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
 					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
+					splines: {type: 'info', label: tl('dialog.model_stats.splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
 					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },

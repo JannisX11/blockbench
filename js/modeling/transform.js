@@ -1,3 +1,4 @@
+import { SplineMesh } from "../outliner/spline_mesh";
 import { Canvas } from "../preview/canvas";
 import { autoFixMeshEdit } from "./mesh_editing";
 
@@ -860,7 +861,9 @@ export function rotateOnAxis(modify, axis, slider) {
 			}
 		}
 		
-		if (!Group.first_selected && obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length > 0) {
+		let mesh_cond = obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length;
+		let spline_cond = obj instanceof SplineMesh && Project.spline_selection[obj.uuid] && Project.spline_selection[obj.uuid].vertices.length;
+		if (!Group.first_selected && (mesh_cond || spline_cond)) {
 
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
@@ -882,7 +885,10 @@ export function rotateOnAxis(modify, axis, slider) {
 			let vector = new THREE.Vector3();
 			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
 
-			Project.mesh_selection[obj.uuid].vertices.forEach(key => {
+			let verts;
+			if (mesh_cond) verts = Project.mesh_selection[obj.uuid].vertices
+			if (spline_cond) verts = Project.spline_selection[obj.uuid].vertices
+			verts.forEach(key => {
 				vector.fromArray(obj.vertices[key]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);

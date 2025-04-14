@@ -59,18 +59,15 @@ export class SplineHandle {
 new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
-//TODO (in order of roadmap)
+//TODO (in order of priority)
 
-// [x?] Implement primitive tube drawing, using resolution U as the number of points per slice.
+// [x] Implement primitive tube drawing, using resolution U as the number of points per slice.
 //     -> probably done, might need more refinement
 //   - Needs to respect tilt & size.
 //   - Would ideally generate a special version of
 //     UV islands that would correspond to slices 
 //     of the resulting tube (one per U edge).
 // [ ] Fix cyclic tube mesh not connecting properly.
-
-// /!\ Priority 2
-
 // [ ] Add ability to extrude points from the curve.
 // [ ] Add ability to delete points from the curve.
 // [ ] Add ability to remove segments from the curve.
@@ -83,7 +80,6 @@ new Property(SplineHandle, 'number', 'size');
 // [x] Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
 // [x] Add cyclic functionality, closes the spline from the first to last handle with an additional segment. 
 //     -> Basic functionality for this added, but might need updating later on
-
 
 export class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
@@ -350,13 +346,13 @@ export class SplineMesh extends OutlinerElement {
         let firstKey = Object.keys(this.handles)[0];
         return this.handles[firstKey];
     }
-    // Aza assumption: Bounding box??? idk
+    // Aza assumption: Bounding box
     getSize(axis, selection_only) {
         if (selection_only) {
             let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
             if (!selected_vertices.length) return 0;
             let range = [Infinity, -Infinity];
-            let { vec1, vec2 } = Reusable;
+            let { vec1 } = Reusable;
             let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
             selected_vertices.forEach(key => {
                 vec1.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
@@ -401,7 +397,7 @@ export class SplineMesh extends OutlinerElement {
         }
         return pos;
     }
-    // Code smell (not sure how this works), from mesh.js
+    // Code smell from mesh.js
     transferOrigin(origin, update = true) {
         if (!this.mesh) return;
         var q = new THREE.Quaternion().copy(this.mesh.quaternion);
@@ -422,7 +418,7 @@ export class SplineMesh extends OutlinerElement {
         this.preview_controller.updateGeometry(this);
         return this;
     }
-    // Code smell (not sure how this works), from mesh.js
+    // Code smell from mesh.js
     resize(val, axis, negative, allow_negative, bidirectional) {
         let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
         let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -465,16 +461,17 @@ export class SplineMesh extends OutlinerElement {
         let radialSegments = this.resolution[0];
         let radius = 1 * this.radius_multiplier;
 
-        // Gather all data for each vertex and face
-        let vertex = new THREE.Vector3();
-        let biNormal = new THREE.Vector3();
+        // Reusables for next loop
+        let { vec1, vec2, vec3 } = Reusable; // Vertex, BiNormal, & Vertex Normal
         let matrix = new THREE.Matrix4();
+
+        // Gather all data for each vertex and face
         for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
             let tangent = pathData.tangents[tubePoint];
             let normal = pathData.normals[tubePoint];
             let point = pathData.points[tubePoint];
-            biNormal.crossVectors(tangent, normal).normalize();
-            matrix.makeBasis(tangent, normal, biNormal);
+            vec2.crossVectors(tangent, normal).normalize();
+            matrix.makeBasis(tangent, normal, vec2);
 
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
 
@@ -484,18 +481,17 @@ export class SplineMesh extends OutlinerElement {
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
 
-                vertex.x = 0.0;
-                vertex.y = cos * radius;
-                vertex.z = sin * radius;
-                vertex.applyMatrix4(matrix).add(point);
+                vec1.x = 0.0;
+                vec1.y = cos * radius;
+                vec1.z = sin * radius;
+                vec1.applyMatrix4(matrix).add(point);
 
                 // Normals
                 // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
-                let vertexNormal = new THREE.Vector3(
-                    cos * normal.x + sin * biNormal.x,
-                    cos * normal.y + sin * biNormal.y,
-                    cos * normal.z + sin * biNormal.z 
-                ).normalize();
+                vec3.x = cos * normal.x + sin * vec2.x,
+                vec3.y = cos * normal.y + sin * vec2.y,
+                vec3.z = cos * normal.z + sin * vec2.z 
+                vec3.normalize();
 
                 // Face indices
                 // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
@@ -517,8 +513,8 @@ export class SplineMesh extends OutlinerElement {
                 let uvy = (ringPoint / radialSegments) * Project.texture_height;
 
                 vertexData.push({
-                    normal: vertexNormal.toArray(),
-                    vector: vertex.toArray(),
+                    normal: vec3.toArray(),
+                    vector: vec1.toArray(),
                     angles: [ angle, cos, sin ],
                     uv: [ uvx, uvy ]
                 })
@@ -1042,6 +1038,12 @@ new NodePreviewController(SplineMesh, {
             }
             mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             mesh.outline.geometry.needsUpdate = true;
+        }
+
+        if (element.selected) {
+            let pathColor = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
+            let outlinePoints = mesh.outline.geometry.getAttribute('color').count;
+            console.log(outlinePoints);
         }
 
         mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.spline_selection_mode.value == 'handles');

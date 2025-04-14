@@ -81,9 +81,6 @@ export function updateNslideValues() {
 		if (Condition(BarItems.slider_spline_resolution_u)) {
 			BarItems.slider_spline_resolution_u.update()
 			BarItems.slider_spline_resolution_v.update()
-		}
-
-		if (Condition(BarItems.slider_spline_radius)) {
 			BarItems.slider_spline_radius.update()
 		}
 	}
