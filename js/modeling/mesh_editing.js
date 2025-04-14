@@ -1,3 +1,5 @@
+import { SplineMesh } from "../outliner/spline_mesh";
+
 export function sameMeshEdge(edge_a, edge_b) {
 	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
 }
@@ -2052,9 +2054,9 @@ BARS.defineActions(function() {
 	new Action('convert_to_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
-		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.selected.length)},
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.hasSelected() || SplineMesh.hasSelected())},
 		click() {
-			Undo.initEdit({elements: Cube.selected, outliner: true});
+			Undo.initEdit({elements: [...Cube.selected, ...SplineMesh.selected], outliner: true});
 
 			let new_meshes = [];
 			Cube.selected.forEach(cube => {
@@ -2133,9 +2135,46 @@ BARS.defineActions(function() {
 				new_meshes.push(mesh);
 				selected.push(mesh);
 				cube.remove();
-			})
+			});
+
+			SplineMesh.selected.forEach(spline => {
+				let mesh = new Mesh({
+					name: spline.name,
+					color: spline.color,
+					origin: spline.origin,
+					rotation: spline.rotation,
+					vertices: []
+				})
+
+				let rotation_euler = new THREE.Euler(0, 0, 0, 'ZYX').fromArray(spline.rotation.map(Math.degToRad));
+				rotation_euler.reorder('XYZ');
+				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
+
+				spline.smooth_shading = false;
+				let tube = spline.getTubeGeo();
+
+				for (let index = 0; index < tube.indices.length; index += 6) {
+					let a = tube.indices[index];
+					let b = tube.indices[index + 1];
+					let c = tube.indices[index + 2];
+					let d = tube.indices[index + 5];
+
+					mesh.addVertices(tube.vertices[a], tube.vertices[b], tube.vertices[c], tube.vertices[d]);
+					mesh.addFaces(new MeshFace(mesh, {
+						vertices: [a, b, c, d], 
+						uv: [tube.uvs[a], tube.uvs[b], tube.uvs[c], tube.uvs[d]],
+						texture: spline.texture,
+					}));
+				}
+
+				mesh.sortInBefore(spline).init();
+				new_meshes.push(mesh);
+				selected.push(mesh);
+				spline.remove();
+			});
+
 			updateSelection();
-			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
+			Undo.finishEdit('Convert elements to meshes', {elements: new_meshes, outliner: true});
 		}
 	})
 	new Action('apply_mesh_rotation', {

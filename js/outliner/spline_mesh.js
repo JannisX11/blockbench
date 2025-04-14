@@ -84,6 +84,7 @@ new Property(SplineHandle, 'number', 'size');
 export class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
         super(data, uuid)
+		this.texture = false;
 
         this._static = {
             properties: {
@@ -244,6 +245,17 @@ export class SplineMesh extends OutlinerElement {
             }
         }
         this.sanitizeName();
+
+        // Same as Outliner.Face
+		if (object.texture === null) {
+			this.texture = null;
+		} else if (object.texture === false) {
+			this.texture = false;
+		} else if (Texture.all.includes(object.texture)) {
+			this.texture = object.texture.uuid;
+		} else if (typeof object.texture === 'string') {
+			Merge.string(this, object, 'texture')
+		}
         return this;
     }
     getUndoCopy(aspects = {}) {
@@ -291,6 +303,16 @@ export class SplineMesh extends OutlinerElement {
         for (let key in this.curves) {
             copy.curves[key] = this.curves[key];
         }
+
+        // Same as Outliner.Face
+		let tex = this.getTexture()
+		if (tex === null) {
+			copy.texture = null;
+		} else if (tex instanceof Texture && project) {
+			copy.texture = Texture.all.indexOf(tex)
+		} else if (tex instanceof Texture) {
+			copy.texture = tex.uuid;
+		}
 
         copy.type = 'spline';
         copy.uuid = this.uuid
@@ -493,15 +515,11 @@ export class SplineMesh extends OutlinerElement {
                 vec3.z = cos * pathNormal.z + sin * vec2.z 
                 vec3.normalize();
 
-                // Doesn't even work for our use case, will be replaced
-                let uvx = (tubePoint / pathData.points) * 16;
-                let uvy = (ringPoint / radialSegments) * 16;
-
                 vertexData.push({
                     normal: vec3.toArray(),
                     vector: vec1.toArray(),
                     angles: [ angle, cos, sin ],
-                    uv: [ uvx, uvy ]
+                    coordinates: [tubePoint, ringPoint]
                 })
             }
         }
@@ -510,9 +528,9 @@ export class SplineMesh extends OutlinerElement {
         let vertices = [];
         let indices = [];
         let normals = [];
-        let uvs = [];
+        let uvs = []; 
 
-        // Re-use vertex data gathered above to finalize geo
+        // Re-use vertex data gathered above to finalize base geo
         for (let tubePoint = 1; tubePoint < pathData.points.length; tubePoint++) {
             for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
                 let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
@@ -526,29 +544,42 @@ export class SplineMesh extends OutlinerElement {
                         new THREE.Vector3().fromArray(vertexData[c].vector).sub(new THREE.Vector3().fromArray(vertexData[a].vector))
                     ).normalize();
 
-                    [a, b, c, a, c, d].forEach((index) => {
-                        vertices.push(...vertexData[index].vector);
-                        normals.push(...faceNormal.toArray());
-                        uvs.push(...vertexData[index].uv);
-                    });
-
-                    // Duplicate face indices, this approach is flawed in some way right now, as the 
-                    // very first face of the mesh is missing when smooth shading is off. Will fix later (TODO)
+                    // Duplicate face indices
                     let startIndex = vertices.length / 3;
                     indices.push(startIndex, startIndex + 1, startIndex + 2);
                     indices.push(startIndex + 3, startIndex + 4, startIndex + 5);
+
+                    [a, b, c, a, c, d].forEach((index) => {
+                        vertices.push(...vertexData[index].vector);
+                        normals.push(...faceNormal.toArray());
+
+                        // UVs for duplicated indices
+                        let u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1);
+                        let v = (index % (radialSegments + 1)) / radialSegments;
+                        uvs.push(u, v);
+                    });
                 } else { // Smooth shading: reuse vertices
-                    indices.push(a, b, c, a, c, d);
+                    indices.push(a, b, c);
+                    indices.push(a, c, d);
                 }
             }
         }
 
+        for (let tubePoint = 0; tubePoint <= pathData.points.length - 1; tubePoint++) {
+            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+                if (this.smooth_shading)  {
+					let u = tubePoint / (pathData.points.length - 1);
+					let v = ringPoint / radialSegments;
+                    uvs.push(u, v);
+                }
+            }
+        }
+        
         // Smooth shading: populate vertices, normals, and uvs
         if (this.smooth_shading) {
             vertexData.forEach((vertex) => {
                 vertices.push(...vertex.vector);
                 normals.push(...vertex.normal);
-                uvs.push(...vertex.uv);
             });
         }
 
@@ -560,6 +591,7 @@ export class SplineMesh extends OutlinerElement {
         };
     }
     getBézierPath() {
+        let { vec1 } = Reusable;
         let tubularSegments = this.resolution[1];
         let curveTangents = [];
         let curveNormals = [];
@@ -593,6 +625,14 @@ export class SplineMesh extends OutlinerElement {
                     // replace the values we just removed
                     curveTangents.push(tangent);
                     curveNormals.push(normal);
+                    
+                    // re-assign temps
+                    prevCurveTangent = tangent;
+                    prevCurveNormal = normal;
+                    prevCurve = cKey;
+                    
+                    // continue early
+                    continue;
                 }
     
                 // Store everything
@@ -611,12 +651,20 @@ export class SplineMesh extends OutlinerElement {
         if (this.cyclic) {
             let firsthandle = this.getFirstHandle();
             let lasthandle = this.getLastHandle();
+            let firstnormal = curveNormals[0];
+            let lastnormal = curveNormals[curveNormals.length - 1];
+
+            // avoid hard cuts in spline continuity when cyclic, not quite perfect but works well enough
+            function interpolateNormals(delta) {
+                vec1.set(0, 0, 0);
+                return vec1.lerpVectors(lastnormal, firstnormal, delta).normalize();
+            }
 
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
                 let curveData = this.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
                 let tangent = curveData.tangent;
-                let normal = this.getBézierNormal(tangent);
+                let normal = this.getBézierNormal(tangent, interpolateNormals(time)); 
 
                 curveTangents.push(tangent);
                 curveNormals.push(normal);
@@ -630,11 +678,11 @@ export class SplineMesh extends OutlinerElement {
             points: tubePoints
         }
     }
-    getBézierNormal(tangent, previousNormal = null) {
+    getBézierNormal(tangent, up = null) {
         let upVec = new THREE.Vector3(0, 1, 0); // Arbitrary UP vector not parallel to the tangent
 
         // re-orient up based on curve progress
-        if (previousNormal) upVec = previousNormal;
+        if (up) upVec = up;
         else if (tangent.y === 1) upVec = new THREE.Vector3(1, 0, 0);
 
         let binormal = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
@@ -650,9 +698,10 @@ export class SplineMesh extends OutlinerElement {
         let p1 = this.vertices[p1k];
         let p2 = this.vertices[p2k];
         let p3 = this.vertices[p3k];
-        let p4 = this.vertices[p4k];    
+        let p4 = this.vertices[p4k];
         return this.cubicBézier(time, p1, p2, p3, p4);
     }
+    // thanks for the math, Freya :> https://youtu.be/jvPPXbo87ds?si=XBdiXoriL3MgeGsu
     cubicBézier(time, point1, point2, point3, point4) {
         let timeP2 = Math.pow(time, 2);
         let timeP3 = Math.pow(time, 3);
@@ -687,6 +736,31 @@ export class SplineMesh extends OutlinerElement {
             tangent: tangentVec,
         };
     }
+	getTexture() {
+		if (Format.per_group_texture && this.parent instanceof Group && this.parent.texture) {
+			return Texture.all.findInArray('uuid', this.parent.texture);
+		}
+		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && (Format.per_group_texture || !this.texture)))) {
+			return Texture.getDefault();
+		}
+		if (typeof this.texture === 'string') {
+			return Texture.all.findInArray('uuid', this.texture)
+		}
+		return this.texture;
+	}
+	applyTexture(texture) {
+		if (texture) {
+			this.texture = texture.uuid;
+		} else if (texture === false || texture === null) {
+            this.texture = texture;
+		}
+
+		if (selected.indexOf(this) === 0) {
+			UVEditor.loadData()
+		}
+
+		this.preview_controller.updateFaces(this);
+	}
 	static behavior = {
 		unique_name: false,
 		movable: true,
@@ -702,6 +776,7 @@ SplineMesh.prototype.menu = new Menu([
     new MenuSeparator('spline_mesh_combination'),
     ...Outliner.control_menu_group,
     new MenuSeparator('settings'),
+    'convert_to_mesh',
     {
         name: 'menu.cube.color', icon: 'color_lens', children() {
             return markerColors.map((color, i) => {
@@ -719,6 +794,40 @@ SplineMesh.prototype.menu = new Menu([
         }
     },
     "randomize_marker_colors",
+            {name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
+                var arr = [
+                    {icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(spline) {
+                        spline.forSelected((obj) => {
+                            obj.applyTexture(false)
+                        }, 'texture blank')
+                    }}
+                ]
+                let applied_texture;
+                main_loop: for (let spline of SplineMesh.selected) {
+                    let texture = spline.texture;
+                    if (texture) {
+                        if (!applied_texture) {
+                            applied_texture = texture;
+                        } else if (applied_texture != texture) {
+                            applied_texture = null;
+                            break main_loop;
+                        }
+                    }
+                }
+                Texture.all.forEach((t) => {
+                    arr.push({
+                        name: t.name,
+                        icon: (t.mode === 'link' ? t.img : t.source),
+                        marked: t == applied_texture,
+                        click(spline) {
+                            spline.forSelected((obj) => {
+                                obj.applyTexture(t)
+                            }, 'apply texture')
+                        }
+                    })
+                })
+                return arr;
+            }},
     new MenuSeparator('manage'),
     'rename',
     'toggle_visibility',
@@ -995,6 +1104,7 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_geometry', { element });
     },
+    // partly code smell from mesh.js
     updateFaces(element) {
         let { mesh } = element;
 
@@ -1016,12 +1126,24 @@ new NodePreviewController(SplineMesh, {
         }
         else if (Project.view_mode === 'textured') 
             mesh.material = Canvas.emptyMaterials[element.color];
+        else {
+			var material;
+            var tex = element.getTexture();
+            if (tex && tex.uuid) {
+                material = tex.getMaterial();
+            } else {
+                material = Canvas.emptyMaterials[element.color];
+            }
 
-        // mesh.material.flatShading = true;
+			mesh.geometry.groups.empty();
+
+			mesh.material = material;
+			if (!mesh.material) mesh.material = Canvas.transparentMaterial;
+		}
 
         this.dispatchEvent('update_faces', { element });
     },
-    // This is code smell, majorly copied from mesh.js, I'm still unsure of how it works
+    // code smell from mesh.js
     updateSelection(element) {
         NodePreviewController.prototype.updateSelection.call(this, element);
 
