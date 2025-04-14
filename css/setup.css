@@ -356,12 +356,14 @@
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
+		--color-axis-u: #23d4ed;
+		--color-axis-v: #ff12ed;
+		--color-axis-w: #ffd442;
 
 		--color-spline-handle-aligned: #fb09fb;
 		--color-spline-handle-mirrored: #ffc400;
 		--color-spline-handle-free: #04f1ce;
-		--color-spline-path: #ffffff;
-
+		
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';

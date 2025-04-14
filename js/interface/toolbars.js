@@ -817,7 +817,8 @@ export const BARS = {
 			label: true,
 			children: [
 				'slider_spline_resolution_u',
-				'slider_spline_resolution_v'
+				'slider_spline_resolution_v',
+				"slider_spline_radius",
 			]
 		})
 		if (Blockbench.isMobile) {[	

@@ -22,7 +22,11 @@ export const gizmo_colors = {
 	spline_handle_aligned: new THREE.Color(),
 	spline_handle_mirrored: new THREE.Color(),
 	spline_handle_free: new THREE.Color(),
-	spline_path: new THREE.Color(),
+	// used by spline sliders, to make it clear that they 
+	// operate in a different space than the scene XYZ
+	u: new THREE.Color(),
+	v: new THREE.Color(),
+	w: new THREE.Color(),
 }
 export const DefaultCameraPresets = [
 	{

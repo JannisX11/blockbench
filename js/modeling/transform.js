@@ -1,4 +1,3 @@
-import { SplineMesh } from "../outliner/spline_mesh";
 import { Canvas } from "../preview/canvas";
 import { autoFixMeshEdit } from "./mesh_editing";
 
@@ -1607,8 +1606,8 @@ BARS.defineActions(function () {
 	// Spline resolution
 	new NumSlider('slider_spline_resolution_u', {
 		name: tl('action.slider_spline_resolution', ['U']),
-		description: tl('action.slider_spline_resolution.desc', ['U']),
-		color: 'x',
+		description: tl('action.slider_spline_resolution.desc', ['U', tl('action.slider_spline_resolution.u.desc_precision')]),
+		color: 'u',
 		category: 'transform',
 		condition: () => Modes.edit && SplineMesh.selected.length,
 		getInterval: getSpatialInterval,
@@ -1631,8 +1630,8 @@ BARS.defineActions(function () {
 	})
 	new NumSlider('slider_spline_resolution_v', {
 		name: tl('action.slider_spline_resolution', ['V']),
-		description: tl('action.slider_spline_resolution.desc', ['V']),
-		color: 'y',
+		description: tl('action.slider_spline_resolution.desc', ['V', tl('action.slider_spline_resolution.v.desc_precision')]),
+		color: 'v',
 		category: 'transform',
 		condition: () => Modes.edit && SplineMesh.selected.length,
 		getInterval: getSpatialInterval,
@@ -1656,6 +1655,7 @@ BARS.defineActions(function () {
 	new NumSlider('slider_spline_radius', {
 		name: tl('action.slider_spline_radius'),
 		description: tl('action.slider_spline_radius.desc'),
+		color: 'w',
 		category: 'transform',
 		condition: function () { return SplineMesh.selected.length && Modes.edit },
 		getInterval: getSpatialInterval,
@@ -1895,8 +1895,8 @@ BARS.defineActions(function () {
 		condition: { modes: ['edit'] },
 		onChange() { toggleCubeProperty('autouv') }
 	})
-	new Action('toggle_cyclic', {
-		icon: 'timeline',
+	new Toggle('toggle_cyclic', {
+		icon: 'fas.fa-circle-nodes',
 		category: 'transform',
 		condition: () => Modes.edit && SplineMesh.hasSelected(),
 		onChange() { toggleCubeProperty('cyclic') }
@@ -1925,6 +1925,7 @@ BARS.defineActions(function () {
 		updateToggle(BarItems.toggle_locked, 'locked');
 		updateToggle(BarItems.toggle_export, 'export');
 		updateToggle(BarItems.toggle_autouv, 'autouv');
+		updateToggle(BarItems.toggle_cyclic, 'autouv');
 		updateToggle(BarItems.toggle_shade, 'shade');
 		updateToggle(BarItems.toggle_mirror_uv, 'mirror_uv');
 	})

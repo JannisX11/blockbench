@@ -1,5 +1,4 @@
 import { Blockbench } from "../api"
-import { SplineMesh } from "./spline_mesh"
 
 export const Outliner = {
 	root: [],
@@ -756,6 +755,7 @@ OutlinerElement.registerType = function(constructor, id) {
 		}
 	})
 	Blockbench.dispatchEvent('register_element_type', {id, constructor});
+	console.log('Registered outliner element type', id, constructor.name);
 }
 
 Array.prototype.findRecursive = function(key1, val) {

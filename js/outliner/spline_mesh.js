@@ -90,8 +90,6 @@ export class SplineMesh extends OutlinerElement {
                 handles: {}, // Main component of the spline
                 vertices: {}, // Control points of the handles
                 curves: {}, // Segments of the spline
-                curve_vertices: {}, // TODO, should store the tube's vertices
-                faces: {} // TODO, should store the tube's faces
             }
         }
         Object.freeze(this._static);
@@ -451,6 +449,7 @@ export class SplineMesh extends OutlinerElement {
         this.preview_controller.updateGeometry(this);
     }
     getTubeGeo() {
+        let { vec1, vec2, vec3 } = Reusable;
         let pathData = this.getBézierPath();
 
         // Buffers
@@ -462,16 +461,16 @@ export class SplineMesh extends OutlinerElement {
         let radius = 1 * this.radius_multiplier;
 
         // Reusables for next loop
-        let { vec1, vec2, vec3 } = Reusable; // Vertex, BiNormal, & Vertex Normal
         let matrix = new THREE.Matrix4();
 
         // Gather all data for each vertex and face
+        // vec1, vec2, vec3 > vertex, biNormal, normal
         for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
-            let tangent = pathData.tangents[tubePoint];
-            let normal = pathData.normals[tubePoint];
-            let point = pathData.points[tubePoint];
-            vec2.crossVectors(tangent, normal).normalize();
-            matrix.makeBasis(tangent, normal, vec2);
+            let pathTangent = pathData.tangents[tubePoint];
+            let pathNormal = pathData.normals[tubePoint];
+            let pathPoint = pathData.points[tubePoint];
+            vec2.crossVectors(pathTangent, pathNormal).normalize();
+            matrix.makeBasis(pathTangent, pathNormal, vec2);
 
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
 
@@ -481,36 +480,22 @@ export class SplineMesh extends OutlinerElement {
                 let cos = -Math.cos(angle);
                 let sin = Math.sin(angle);
 
+                // Create current vertex of ongoing tube ring
                 vec1.x = 0.0;
                 vec1.y = cos * radius;
                 vec1.z = sin * radius;
-                vec1.applyMatrix4(matrix).add(point);
+                vec1.applyMatrix4(matrix).add(pathPoint);
 
                 // Normals
                 // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
-                vec3.x = cos * normal.x + sin * vec2.x,
-                vec3.y = cos * normal.y + sin * vec2.y,
-                vec3.z = cos * normal.z + sin * vec2.z 
+                vec3.x = cos * pathNormal.x + sin * vec2.x,
+                vec3.y = cos * pathNormal.y + sin * vec2.y,
+                vec3.z = cos * pathNormal.z + sin * vec2.z 
                 vec3.normalize();
 
-                // Face indices
-                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
-                if (tubePoint > 0 && ringPoint > 0) {
-                    let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
-                    let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
-                    let c = (radialSegments + 1) * tubePoint + ringPoint;
-                    let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
-
-                    faceData.push({
-                        indices: [a, b, c, d]
-                    });
-                }
-
-                // Make UVs
-                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
                 // Doesn't even work for our use case, will be replaced
-                let uvx = (tubePoint / pathData.points) * Project.texture_width;
-                let uvy = (ringPoint / radialSegments) * Project.texture_height;
+                let uvx = (tubePoint / pathData.points) * 16;
+                let uvy = (ringPoint / radialSegments) * 16;
 
                 vertexData.push({
                     normal: vec3.toArray(),
@@ -527,41 +512,51 @@ export class SplineMesh extends OutlinerElement {
         let normals = [];
         let uvs = [];
 
-        // Append all of the data created above to the relevant arrays, I originally 
-        // would do this above per-vertex, but for clarity and consistency I chose 
-        // to separate it here, and loosely copy the method used in Mesh.js's Render Controller.
-        for (let face of faceData) {
-            let vertexIndices = face.indices;
-            let indexOffset = vertices.length / 3;
-            let faceIndices = {};
-            
-            vertexIndices.forEach((vertId, i) => {
-                let vec = vertexData[vertId].vector;
-                let normal = vertexData[vertId].normal;
-                let uv = vertexData[vertId].uv;
+        // Re-use vertex data gathered above to finalize geo
+        for (let tubePoint = 1; tubePoint < pathData.points.length; tubePoint++) {
+            for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
+                let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
+                let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
+                let c = (radialSegments + 1) * tubePoint + ringPoint;
+                let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
 
-                // Append to the relevant arrays
-                vertices.push(...vec);
-                normals.push(...normal);
-				uvs.push(...uv);
+                if (!this.smooth_shading) { // Flat shading: duplicate vertices for each face
+                    let faceNormal = new THREE.Vector3().crossVectors(
+                        new THREE.Vector3().fromArray(vertexData[b].vector).sub(new THREE.Vector3().fromArray(vertexData[a].vector)),
+                        new THREE.Vector3().fromArray(vertexData[c].vector).sub(new THREE.Vector3().fromArray(vertexData[a].vector))
+                    ).normalize();
 
-                // Increment face index
-                faceIndices[vertId] = indexOffset + i;
-            });
-    
-            indices.push(faceIndices[vertexIndices[0]]);
-            indices.push(faceIndices[vertexIndices[1]]);
-            indices.push(faceIndices[vertexIndices[2]]);
-            indices.push(faceIndices[vertexIndices[0]]);
-            indices.push(faceIndices[vertexIndices[2]]);
-            indices.push(faceIndices[vertexIndices[3]]);
+                    [a, b, c, a, c, d].forEach((index) => {
+                        vertices.push(...vertexData[index].vector);
+                        normals.push(...faceNormal.toArray());
+                        uvs.push(...vertexData[index].uv);
+                    });
+
+                    // Duplicate face indices, this approach is flawed in some way right now, as the 
+                    // very first face of the mesh is missing when smooth shading is off. Will fix later (TODO)
+                    let startIndex = vertices.length / 3;
+                    indices.push(startIndex, startIndex + 1, startIndex + 2);
+                    indices.push(startIndex + 3, startIndex + 4, startIndex + 5);
+                } else { // Smooth shading: reuse vertices
+                    indices.push(a, b, c, a, c, d);
+                }
+            }
         }
-       
+
+        // Smooth shading: populate vertices, normals, and uvs
+        if (this.smooth_shading) {
+            vertexData.forEach((vertex) => {
+                vertices.push(...vertex.vector);
+                normals.push(...vertex.normal);
+                uvs.push(...vertex.uv);
+            });
+        }
+
         return {
             vertices: vertices,
             normals: normals,
             indices: indices,
-            uvs: uvs
+            uvs: uvs,
         };
     }
     getBézierPath() {
@@ -742,6 +737,17 @@ new Property(SplineMesh, 'vector', 'origin');
 new Property(SplineMesh, 'vector', 'rotation');
 new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
 new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
+new Property(SplineMesh, 'boolean', 'smooth_shading', {
+    default: false,
+    inputs: {
+        element_panel: {
+            input: {label: 'Smooth Shading', type: 'checkbox'},
+            onChange() {
+                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+            }
+        }
+    }
+});
 // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'boolean', 'render_mesh', {
 	default: true,
@@ -834,8 +840,8 @@ new NodePreviewController(SplineMesh, {
         return [ colorArray, color ];
     },
     debugDraw(element, linePoints, lineColors, renderParams = [true, true]) {
-        let debugTangentColor = [gizmo_colors.r.r, gizmo_colors.r.g, gizmo_colors.r.b];
-        let debugNormalColor = [gizmo_colors.g.r, gizmo_colors.g.g, gizmo_colors.g.b];
+        let debugTangentColor = [gizmo_colors.v.r, gizmo_colors.v.g, gizmo_colors.v.b];
+        let debugNormalColor = [gizmo_colors.w.r, gizmo_colors.w.g, gizmo_colors.w.b];
         let debugTangentPoints = [];
         let debugTangentColors = [];
         let debugNormalPoints = [];
@@ -902,7 +908,7 @@ new NodePreviewController(SplineMesh, {
         }
 
         // Bezier Curves
-        let pathColor = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
+        let pathColor = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
         let pointsToAdd = []
         let pushPoints = function(bézierFunc) {
             for (let res = 0; res <= element.resolution[1]; res++) {
@@ -931,7 +937,7 @@ new NodePreviewController(SplineMesh, {
         pointsToAdd.forEach((vector, i) => {
             let shouldDouble = i > 0 && i < (pointsToAdd.length - 1); // Band-aid because I don't calculate indices for outlines.
             linePoints.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
-            lineColors.push(...pathColor, ...(shouldDouble ? pathColor : []))
+            lineColors.push(...pathColor.toArray(), ...(shouldDouble ? pathColor.toArray() : []))
         })
         this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
 
@@ -980,13 +986,11 @@ new NodePreviewController(SplineMesh, {
 
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
-
-        // Shade flat (do we want to?)
-        // mesh.geometry = mesh.geometry.toNonIndexed();
-        // mesh.geometry.computeVertexNormals();
+        
+        mesh.outline.geometry.computeBoundingSphere();
 
         mesh.vertex_points.geometry.computeBoundingSphere();
-        mesh.outline.geometry.computeBoundingSphere();
+
         SplineMesh.preview_controller.updateHighlight(element);
 
         this.dispatchEvent('update_geometry', { element });
@@ -1038,12 +1042,6 @@ new NodePreviewController(SplineMesh, {
             }
             mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             mesh.outline.geometry.needsUpdate = true;
-        }
-
-        if (element.selected) {
-            let pathColor = [gizmo_colors.spline_path.r, gizmo_colors.spline_path.g, gizmo_colors.spline_path.b];
-            let outlinePoints = mesh.outline.geometry.getAttribute('color').count;
-            console.log(outlinePoints);
         }
 
         mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.spline_selection_mode.value == 'handles');

@@ -452,6 +452,9 @@ export const CustomTheme = {
 			update(gizmo_colors.r, '--color-axis-x');
 			update(gizmo_colors.g, '--color-axis-y');
 			update(gizmo_colors.b, '--color-axis-z');
+			update(gizmo_colors.u, '--color-axis-u'); // spline space colors
+			update(gizmo_colors.v, '--color-axis-v'); // spline space colors
+			update(gizmo_colors.w, '--color-axis-w'); // spline space colors
 			update(gizmo_colors.grid, '--color-grid');
 			update(Canvas.gridMaterial.color, '--color-grid');
 			update(Canvas.wireframeMaterial.color, '--color-wireframe');
@@ -464,7 +467,6 @@ export const CustomTheme = {
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
 			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
 			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
-			update(gizmo_colors.spline_path, '--color-spline-path');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				c.updateColors();
