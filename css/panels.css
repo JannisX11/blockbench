@@ -67,13 +67,14 @@
 	}
 	.panel_tab_list {
 		display: flex;
-		overflow-x: auto;
+		overflow: hidden;
 		margin-right: auto;
 		height: 100%;
 		height: calc(100% - 3px);
 		margin-top: 3px;
 	}
 	.panel_tab_list > .panel_handle {
+		display: flex;
 		padding: 4px 4px;
 		flex: 1 1 auto;
 		min-width: 58px;
@@ -92,6 +93,10 @@
 	}
 	.panel_tab_list > .panel_handle.selected {
 		background-color: var(--color-ui);
+	}
+	.panel_tab_list > .panel_handle span {
+		flex-shrink: 1;
+		overflow: hidden;
 	}
 	/*h3.panel_handle {
 		display: flex;

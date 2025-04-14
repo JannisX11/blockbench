@@ -2189,7 +2189,7 @@
 
 	"menu.panel.enable": "Enable",
 	"menu.panel.move_to": "Move To",
-	"menu.panel.attack_to": "Attach To",
+	"menu.panel.attach_to": "Attach To",
 	"menu.panel.move_to.left_bar": "Left Sidebar",
 	"menu.panel.move_to.right_bar": "Right Sidebar",
 	"menu.panel.move_to.top": "Top",

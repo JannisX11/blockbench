@@ -573,11 +573,18 @@ export class Panel extends EventSystem {
 	getHostPanel(): Panel|undefined {
 		return Panels[this.attached_to];
 	}
+	getContainerPanel(): Panel {
+		return Panels[this.attached_to] || this;
+	}
 	attachPanel(panel: Panel, index?: number) {
+		let old_host_panel = panel.getHostPanel();
 		panel.attached_to = this.id;
 		if (index != undefined) panel.attached_index = index;
 
 		this.update();
+		if (old_host_panel) {
+			old_host_panel.update();
+		}
 		updateSidebarOrder();
 	}
 	selectTab(panel: Panel = this): this{
@@ -838,7 +845,11 @@ export class Panel extends EventSystem {
 		return this;
 	}
 	update(dragging: boolean = false) {
-		let show = BARS.condition(this.condition) && (Blockbench.isMobile || !(this.getHostPanel()?.condition));
+		let show = BARS.condition(this.condition);
+		if (!Blockbench.isMobile) {
+			// Hide panel if its in host panel
+			if (this.getHostPanel() && Condition(this.getHostPanel().condition)) show = false;
+		}
 		let work_screen = document.querySelector('div#work_screen');
 		let center_screen = document.querySelector('div#center');
 		let slot = this.slot;
@@ -917,6 +928,9 @@ export class Panel extends EventSystem {
 		}
 
 		if (!this.attached_to && !Blockbench.isMobile) {
+			if (this.open_attached_panel && this.getAttachedPanels().includes(this.open_attached_panel) == false) {
+				this.open_attached_panel = this;
+			}
 			let tabs: Panel[] = [this]
 			tabs.safePush(...this.getAttachedPanels());
 			$(this.tab_bar.firstElementChild).empty();
@@ -958,7 +972,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.left_bar',
 				icon: 'align_horizontal_left',
-				marked: panel => panel.slot == 'left_bar',
+				marked: panel => panel.slot == 'left_bar' && !panel.attached_to,
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('left_bar');
@@ -967,7 +981,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.right_bar',
 				icon: 'align_horizontal_right',
-				marked: panel => panel.slot == 'right_bar',
+				marked: panel => panel.slot == 'right_bar' && !panel.attached_to,
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('right_bar');
@@ -976,7 +990,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.top',
 				icon: 'align_vertical_top',
-				marked: panel => panel.slot == 'top',
+				marked: panel => panel.slot == 'top' && !panel.attached_to,
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('top');
@@ -985,7 +999,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.bottom',
 				icon: 'align_vertical_bottom',
-				marked: panel => panel.slot == 'bottom',
+				marked: panel => panel.slot == 'bottom' && !panel.attached_to,
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('bottom');
@@ -994,7 +1008,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.float',
 				icon: 'web_asset',
-				marked: panel => panel.slot == 'float',
+				marked: panel => panel.slot == 'float' && !panel.attached_to,
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('float');
@@ -1004,7 +1018,7 @@ Panel.prototype.snap_menu = new Menu([
 			{
 				name: 'menu.panel.move_to.hidden',
 				icon: 'web_asset_off',
-				marked: panel => panel.slot == 'hidden',
+				marked: panel => panel.slot == 'hidden' && !panel.attached_to,
 				condition: panel => (panel.optional && panel.slot != 'hidden'),
 				click: (panel) => {
 					panel.fixed_height = false;
@@ -1016,11 +1030,12 @@ Panel.prototype.snap_menu = new Menu([
 	{
 		id: 'move_to',
 		name: 'menu.panel.attach_to',
-		icon: 'tab_move',
+		icon: 'fa-diagram-next',
 		children: (panel: Panel) => {
 			let options: CustomMenuItem[] = [];
 			for (let id in Panels) {
 				let panel2: Panel = Panels[id];
+				if (!Condition(panel2.condition) || panel2.attached_to || panel2.id == panel.attached_to || panel2 == panel) continue;
 				options.push({
 					id: panel2.id,
 					name: panel2.name,
@@ -1036,10 +1051,10 @@ Panel.prototype.snap_menu = new Menu([
 	{
 		id: 'fold',
 		name: 'menu.panel.fold',
-		icon: (panel: Panel) => panel.folded == true,
-		condition: (panel: Panel) => panel.slot != 'hidden',
+		icon: (panel: Panel) => panel.getHostPanel().folded == true,
+		condition: (panel: Panel) => panel.getHostPanel().slot != 'hidden',
 		click(panel: Panel) {
-			panel.fold();
+			panel.getHostPanel().fold();
 		}
 	}
 ])
