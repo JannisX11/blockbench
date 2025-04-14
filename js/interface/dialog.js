@@ -486,8 +486,9 @@ export class Dialog {
 		var bar = $(this.object).find(`.form_bar_${form_id}`)
 		if (bar.length) return bar;
 	}
+	static open = null;
+	static stack = [];
 }
-Dialog.stack = [];
 
 export class ShapelessDialog extends Dialog {
 	constructor(id, options) {

@@ -55,7 +55,13 @@ declare function convertTouchEvent(event: MouseEvent): MouseEvent
  * @param option Option
  */
 declare function addEventListeners(
-	element: HTMLElement,
+	element: HTMLElement | Document,
+	events: string,
+	func: (event: Event) => void,
+	option?: any
+): void
+declare function removeEventListeners(
+	el: HTMLElement | Document,
 	events: string,
 	func: (event: Event) => void,
 	option?: any
@@ -63,8 +69,6 @@ declare function addEventListeners(
 
 declare function compareVersions(string1: any, string2: any): boolean
 declare function convertTouchEvent(event: any): any
-declare function addEventListeners(el: any, events: any, func: any, option: any): void
-declare function removeEventListeners(el: any, events: any, func: any, option: any): void
 declare function guid(): string
 declare function isUUID(s: any): any
 declare function bbuid(l: any): string

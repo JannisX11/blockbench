@@ -34,6 +34,8 @@ interface UndoAspects {
 }
 interface UndoSelectionAspects {
 	texture_selection?: boolean
+	collections?: boolean
+	timeline?: boolean
 }
 type UndoSave = {
 	aspects: UndoAspects

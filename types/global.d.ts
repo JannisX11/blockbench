@@ -21,6 +21,9 @@ declare global {
 	function rotateOnAxis(modify: OutlinerNode, axis: number, slider?: boolean): void
 	function afterRotateOnAxis(): void
 
+	function showItemInFolder(path: string): void
+	const app: Electron.App
+
 	// const Transformer: THREE.TransformControls
 	interface HTMLImageElement {
 		src: string

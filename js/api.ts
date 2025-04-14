@@ -1,4 +1,5 @@
 import { MessageBox } from "./interface/dialog";
+import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
@@ -10,6 +11,7 @@ declare let Format: ModelFormat
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
 export const Blockbench = {
+	...window.Blockbench,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -222,7 +224,7 @@ export const Blockbench = {
 			console.warn('textPrompt: 4th argument is expected to be an object');
 		}
 		let answer = await new Promise((resolve) => {
-			let form: Record<string, FormElement> = {
+			let form: Record<string, FormElementOptions> = {
 				text: {type: 'text', full_width: true, placeholder: options.placeholder, value, description: options.description},
 			};
 			if (options.info) {

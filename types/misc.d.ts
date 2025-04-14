@@ -119,6 +119,7 @@ type EventName =
 	| 'select_texture'
 	| 'compile_texture_mcmeta'
 	| 'register_element_type'
+	| 'edit_collection_properties'
 
 type IconString = string
 
@@ -222,6 +223,7 @@ declare class Property<T extends keyof IPropertyType> extends Deletable {
 	condition: ConditionResolvable
 	exposed: boolean
 	label: any
+	inputs?: any
 	merge(instance: IPropertyType[T], data: IPropertyType[T]): void
 	reset(instance: IPropertyType[T]): void
 	getDefault(instance: IPropertyType[T]): IPropertyType[T]

@@ -1,4 +1,5 @@
 import { Blockbench } from "../api";
+import { InputForm } from "../interface/form";
 import { Interface } from "../interface/interface";
 import { Panel } from "../interface/panels";
 
@@ -50,6 +51,7 @@ Interface.definePanels(function() {
 			for (let element of elements) {
 				for (let key in result) {
 					let property_id = key.replace(element.type+'_', '');
+					// @ts-ignore
 					if (element.constructor.properties[property_id]) {
 						element[property_id] = result[key];
 					}
@@ -81,7 +83,7 @@ Interface.definePanels(function() {
 			}
 		}
 		element_panel.form.setValues(values);
-		element_panel.form.update();
+		element_panel.form.update(values);
 	});
 	Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))
 })

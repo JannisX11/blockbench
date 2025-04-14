@@ -10,6 +10,7 @@ declare const elements: OutlinerNode[]
 declare class OutlinerNode {
 	static properties: Record<string, Property<any>>
 	constructor(uuid: UUID)
+	type: string
 	name: string
 	uuid: UUID
 	export: boolean
@@ -58,7 +59,7 @@ declare class OutlinerNode {
 	 * Displays the context menu of the element
 	 * @param event Mouse event, determines where the context menu spawns.
 	 */
-	showContexnu(event: Event | HTMLElement): this
+	showContexMenu(event: Event | HTMLElement): this
 	getSaveCopy?(...args: any[]): Record<string, any>
 	sanitizeName(): string
 

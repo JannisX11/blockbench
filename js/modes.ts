@@ -80,6 +80,7 @@ export class Mode extends KeybindItem {
 			this.vue.$mount(mount);
 		}
 	}
+	/**Selects the mode */
 	select() {
 		if (Modes.selected instanceof Mode) {
 			Modes.selected.unselect();
@@ -143,6 +144,7 @@ export class Mode extends KeybindItem {
 		TickUpdates.selection = true;
 		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
+	/**Unselects the mode */
 	unselect() {
 		delete Modes[this.id];
 		Modes.previous_id = this.id;
@@ -153,6 +155,7 @@ export class Mode extends KeybindItem {
 		this.selected = false;
 		Mode.selected = Modes.selected = false;
 	}
+	/**Activates the mode */
 	trigger() {
 		if (Condition(this.condition)) {
 			this.select()
@@ -174,6 +177,11 @@ export const Modes = {
 	selected: false as boolean | Mode,
 	previous_id: '',
 	options: {} as Record<string, Mode>,
+	animate: false,
+	display: false,
+	edit: false,
+	paint: false,
+	pose: false,
 	mobileModeMenu(button, event) {
 		let entries = [];
 		for (let id in Modes.options) {

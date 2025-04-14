@@ -2,9 +2,10 @@ import * as TypeDoc from 'typedoc'
 import fs from 'fs'
 import PathModule from 'path'
 
+const {ReflectionKind} = TypeDoc;
+
 function getArg(key) {
 	let index = process.argv.indexOf('--' + key)
-	console.log(index)
 	if (index > 1) {
 		return process.argv[index + 1]
 	}
@@ -20,10 +21,12 @@ async function main() {
 		],
 		sort: ['source-order'],
 		commentStyle: 'all',
+		categorizeByGroup: true
 		//pretty: true,
 	})
 
 	// If you want TypeDoc to load tsconfig.json / typedoc.json files
+
 	app.options.addReader(new TypeDoc.TSConfigReader())
 	app.options.addReader(new TypeDoc.TypeDocReader())
 
@@ -67,12 +70,13 @@ async function main() {
 		Event: '[Event](https://developer.mozilla.org/en-US/docs/Web/API/Event)',
 		PointerEvent: '[PointerEvent](https://developer.mozilla.org/en-US/docs/Web/API/PointerEvent)',
 	}
+
 	let top_level_references = {}
 	let top_level_hidden_references = {}
 	for (let file of project.children) {
 		let file_name = file.name.replace(/[^\w]/gi, '')
-		for (let concept of file.children) {
-			anchor_name = concept.name.replace(/[^\w]/gi, '').replace(/^_/, '').toLowerCase()
+		for (let concept of (file.children ?? [])) {
+			let anchor_name = concept.name.replace(/[^\w]/gi, '').replace(/^_/, '').toLowerCase()
 			if (anchor_name == file_name) anchor_name += '-1'
 
 			if (concept.kindString == 'Interface' || concept.kindString == 'Type alias') {
@@ -136,7 +140,7 @@ async function main() {
 				return ''
 		}
 	}
-	function addComments(object, lines, default_value) {
+	function addComments(object, lines, default_value = 0) {
 		if (object.comment?.summary) {
 			for (let comment of object.comment.summary) {
 				lines.push(comment.text, '')
@@ -182,7 +186,7 @@ async function main() {
 	}
 	function generateArgumentSuffix(args) {
 		if (args && args.length) {
-			let args = ''
+			let result_args = ''
 			let required_args = args
 				.filter(p => !p.flags.isOptional)
 				.map(p => p.name)
@@ -192,13 +196,13 @@ async function main() {
 				.map(p => p.name)
 				.join(', ')
 			if (required_args && optional_args) {
-				args = required_args + '[, ' + optional_args + ']'
+				result_args = required_args + '[, ' + optional_args + ']'
 			} else if (required_args) {
-				args = required_args
+				result_args = required_args
 			} else if (optional_args) {
-				args = '[' + optional_args + ']'
+				result_args = '[' + optional_args + ']'
 			}
-			return `( ${args} )`
+			return `( ${result_args} )`
 		} else {
 			return '()'
 		}
@@ -211,27 +215,26 @@ async function main() {
 	}
 
 	let num_files = 0
-	console.log(project.children.length)
-	for (let file of project.children) {
+	for (let file of (project.children ?? [])) {
 		console.log(file.name)
 		if (skip_files.includes(file.name)) continue
 
 		let file_name = file.name.replace(/[^\w]/gi, '')
 		let display_name = toTitleCase(file.name)
 		let markdown_lines = ['---', `title: ${display_name}`, '---', '', `# ${display_name}`]
-		let addLine = (s, empty_after) => {
+		let addLine = (s, empty_after = false) => {
 			markdown_lines.push(s || '')
 			if (empty_after && s) markdown_lines.push('')
 		}
 
-		for (let concept of file.children) {
-			if (concept.kindString == 'Interface') continue
-			if (concept.kindString == 'Type alias') continue
+		for (let concept of (file.children ?? [])) {
+			if (concept.kind == ReflectionKind.Interface) continue
+			if (concept.kind == ReflectionKind.TypeAlias) continue
 
 			if (concept.name.startsWith('_')) concept.name = concept.name.substring(1)
 
-			if (concept.kindString == 'Function') {
-				for (let signature of concept.signatures) {
+			if (concept.kind == ReflectionKind.Function) {
+				for (let signature of (concept.signatures ?? [])) {
 					let suffix = generateArgumentSuffix(signature.parameters)
 					addLine(`## ${signature.name.replace(/^_/, '')}${suffix}`)
 					addLine(`#### Global Function`, true)
@@ -250,9 +253,9 @@ async function main() {
 			} else {
 				addLine(`## ${concept.name}`)
 			}
-			if (concept.kindString != 'Class' && concept.kindString != 'Function') {
-				let kind = concept.kindString
-				if (kind != 'Interface' && kind != 'Type alias' && kind != 'Namespace') {
+			if (concept.kind != ReflectionKind.Class && concept.kind != ReflectionKind.Function) {
+				let kind = concept.kind
+				if (kind != ReflectionKind.Interface && kind != ReflectionKind.TypeAlias && kind != ReflectionKind.TypeAlias) {
 					kind = 'Global ' + kind
 				}
 				addLine(`#### ${kind}`, true)
@@ -355,12 +358,12 @@ async function main() {
 				for (let child of concept.children) {
 					if (handled.includes(child.id)) continue
 					addLine(`### ${child.name}`)
-					let kind = child.kindString
+					let kind = child.kind
 					if (child.flags.isStatic) {
 						kind = 'Static ' + kind
 					}
 					addLine(kind, true)
-					if (child.kindString == 'Property') {
+					if (child.kind == ReflectionKind.Property) {
 						addLine(`Type: ${getType(child.type)}`, true)
 					}
 					addComments(child, markdown_lines)
@@ -372,7 +375,6 @@ async function main() {
 		}
 
 		const path = PathModule.resolve(import.meta.dirname, out_path, `${file_name}.md`)
-		console.log(markdown_lines.length, path);
 		fs.mkdirSync(PathModule.dirname(path), { recursive: true })
 		fs.writeFileSync(path, markdown_lines.join('\r\n'), 'utf-8')
 		num_files++

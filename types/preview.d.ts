@@ -62,6 +62,16 @@ declare class Preview extends Deletable {
 
 	mouse: THREE.Vector2
 
+	split_screen: {
+		before: undefined | null
+		enabled: boolean
+		lazyLoadPreview: () => void
+		mode: string
+		previews: Preview[]
+		setMode(mode: string): void
+		updateSize(): void
+	}
+
 	raycast(event: MouseEvent): false | RaycastResult
 	render(): void
 	setProjectionMode(orthographic: boolean): this

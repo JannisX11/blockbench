@@ -7,6 +7,7 @@ interface PanelOptions {
 	name: string
 	icon: string
 	menu?: any
+	plugin?: string
 	/**
 	 * If true, the panel can automatically become smaller or larger than its initial size in the sidebar
 	 */
@@ -69,6 +70,7 @@ declare class Panel {
 	fold(state?: boolean): this
 	vue: Vue.Component
 	menu: Menu
+	plugin?: string
 	/**
 	 * If the panel is floating, move it up to the front
 	 */

@@ -51,6 +51,7 @@ declare global {
 		variations?: {
 			[key: string]: { name: string; description?: string }
 		}
+		readonly label: string
 		set(keys: KeybindKeys): this
 		/**
 		 * Unassign the assigned key
@@ -560,6 +561,22 @@ declare global {
 		children: ('_' | '+' | '#' | string | BarItem)[]
 	}
 	class Toolbar {
+		id: string
+		name: string
+		label: boolean
+		label_node: HTMLElement
+		condition: ConditionResolvable
+		children: (BarItem | string)[]
+		no_wrap: boolean
+		narrow: boolean
+		vertical: boolean
+		default_children: (BarItem | string)[]
+		/*private*/ positionLookup: any
+		/*private*/ condition_cache: any
+		/*private*/ previously_enabled: any
+		/*private*/ postload: any
+		/*private*/ menu: any
+		node: HTMLElement
 		constructor(id: string, data: ToolbarOptions)
 		constructor(data: ToolbarOptions)
 		build(data: any, force: any): this

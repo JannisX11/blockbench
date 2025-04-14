@@ -66,6 +66,7 @@ interface PluginOptions {
 	 * List of secondary contributors to the plugin, excluding the main author(s)
 	 */
 	contributors?: string[]
+	disabled?: boolean
 	/**
 	 * Runs when the plugin loads
 	 */

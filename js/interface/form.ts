@@ -1,7 +1,16 @@
+import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
 import { Interface } from "./interface"
+
+type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+interface FileResult {
+	name: string
+	path: string
+	content: string | ArrayBuffer
+	no_file?: boolean
+}
 
 export interface FormElementOptions {
 	label?: string
