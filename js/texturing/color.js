@@ -64,6 +64,7 @@ StateMemory.init('color_palette_locked', 'boolean')
 
 export const ColorPanel = {
 	updateFromHsv: function() {
+		ColorPanel.panel.vue.editing_hsv = true;
 		ColorPanel.change({
 			h: ColorPanel.panel.vue._data.hsv.h,
 			s: ColorPanel.panel.vue._data.hsv.s/100,
@@ -568,6 +569,7 @@ Interface.definePanels(() => {
 					s: 0,
 					v: 0,
 				},
+				editing_hsv: false,
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
 			},
 			methods: {
@@ -666,20 +668,26 @@ Interface.definePanels(() => {
 				main_color: function(value) {
 					this.hover_color = '';
 					if (!this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						if (!this.editing_hsv) {
+							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						}
 						this.updateSliders()
 						$('#main_colorpicker').spectrum('set', value);
 						this.text_input = value;
+						this.editing_hsv = false;
 					}
 					Blockbench.dispatchEvent('change_color', {color: value})
 				},
 				second_color: function(value) {
 					this.hover_color = '';
 					if (this.second_color_selected) {
-						Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						if (!this.editing_hsv) {
+							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
+						}
 						this.updateSliders()
 						$('#main_colorpicker').spectrum('set', value);
 						this.text_input = value;
+						this.editing_hsv = false;
 					}
 					Blockbench.dispatchEvent('change_color', {color: value, secondary: true})
 				}
