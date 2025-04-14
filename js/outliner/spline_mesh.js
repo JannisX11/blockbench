@@ -565,7 +565,7 @@ export class SplineMesh extends OutlinerElement {
             }
         }
 
-        for (let tubePoint = 0; tubePoint <= pathData.points.length - 1; tubePoint++) {
+        for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
             for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
                 if (this.smooth_shading)  {
 					let u = tubePoint / (pathData.points.length - 1);
@@ -767,6 +767,10 @@ export class SplineMesh extends OutlinerElement {
 		resizable: true,
 		rotatable: true,
 	}
+    updateShading(shade_smooth) {
+        this.smooth_shading = shade_smooth;
+        this.preview_controller.updateGeometry(this);
+    }
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
 SplineMesh.prototype.type = 'spline';

@@ -2137,6 +2137,8 @@ BARS.defineActions(function() {
 				cube.remove();
 			});
 
+			// Turn splines into meshes, not perfect, ideally 
+			// should merge duplicate verts, but this works for now
 			SplineMesh.selected.forEach(spline => {
 				let mesh = new Mesh({
 					name: spline.name,
@@ -2150,21 +2152,51 @@ BARS.defineActions(function() {
 				rotation_euler.reorder('XYZ');
 				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
 
-				spline.smooth_shading = false;
-				let tube = spline.getTubeGeo();
+				spline.updateShading(false); // Ensure we use exploitable data for the code to follow
 
-				for (let index = 0; index < tube.indices.length; index += 6) {
-					let a = tube.indices[index];
-					let b = tube.indices[index + 1];
-					let c = tube.indices[index + 2];
-					let d = tube.indices[index + 5];
+				let attr_position = spline.mesh.geometry.getAttribute('position');
+				let attr_uv = spline.mesh.geometry.getAttribute('uv');
+				let fallback_texture = Texture.getDefault();
 
-					mesh.addVertices(tube.vertices[a], tube.vertices[b], tube.vertices[c], tube.vertices[d]);
-					mesh.addFaces(new MeshFace(mesh, {
-						vertices: [a, b, c, d], 
-						uv: [tube.uvs[a], tube.uvs[b], tube.uvs[c], tube.uvs[d]],
-						texture: spline.texture,
-					}));
+				for (let i = 0; i < attr_position.count / 6; i++) {
+					// Tri
+					let vertices = [];
+					let uv_data = [];
+					for (let j = 0; j < 6; j++) {
+						// Vertex
+						let arr_offset = ((i * 6) + j) * 3;
+						let pos = [
+							attr_position.array[arr_offset + 0],
+							attr_position.array[arr_offset + 1],
+							attr_position.array[arr_offset + 2],
+						];
+						vertices.push(pos);
+						let uv_offset = ((i * 6) + j) * 2;
+						let uv = [
+							attr_uv.array[uv_offset + 0],
+							attr_uv.array[uv_offset + 1],
+						]
+						uv_data.push(uv);
+					}
+
+					let vertex_keys = vertices.map(pos =>  mesh.addVertices(pos)[0]);
+					console.log({vertex_keys, attr_uv});
+
+					let uv = {};
+					let i2 = 0;
+					for (let vkey of vertex_keys) {
+						uv[vkey] = [
+							uv_data[i2][0] * Project.getUVWidth(fallback_texture),
+							(1 - uv_data[i2][1]) * Project.getUVHeight(fallback_texture),
+						];
+						i2++;
+					}
+					let new_face = new MeshFace(mesh, {
+						vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
+						uv,
+						texture: spline.texture || fallback_texture.uuid
+					})
+					let [fkey] = mesh.addFaces(new_face);
 				}
 
 				mesh.sortInBefore(spline).init();
