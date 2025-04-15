@@ -131,6 +131,7 @@
 		"prepublish": "npm run build-web && npm run pwa",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master",
+		"generate-types": "tsc --project tsconfig.json",
 		"generate-docs": "node ./scripts/generate_docs.js",
 		"generate-wiki": "node ./scripts/generate_docs.js --out \"../../blockbench.net/content/api/\""
 	},
@@ -144,7 +145,7 @@
 		"esbuild": "0.25.0",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"typedoc": "^0.28.2",
-		"typescript": "^5.8.2",
+		"typescript": "^5.8.3",
 		"workbox-build": "^6.5.3"
 	},
 	"dependencies": {

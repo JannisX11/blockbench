@@ -1,5 +1,6 @@
 /dist/
 /dist-electron/
+/types/generated/
 electron-builder.env
 node_modules/
 workbox-*.js

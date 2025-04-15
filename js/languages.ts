@@ -17,7 +17,8 @@ import vi from '../lang/vi.json';
 import zh from '../lang/zh.json';
 import zh_tw from '../lang/zh_tw.json';
 
-export const data = {
+type Language = Record<string, string>;
+export const data: Record<string, Language> = {
 	cz: cz,
 	de: de,
 	en: en,

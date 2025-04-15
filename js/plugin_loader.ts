@@ -1,4 +1,3 @@
-import { FileResult } from "../types/blockbench";
 import { Blockbench, StateMemory } from "./api";
 import { Dialog } from "./interface/dialog";
 import { settings, Settings, SettingsProfile } from "./interface/settings";
@@ -6,6 +5,12 @@ import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
+
+interface FileResult {
+	name: string
+	path: string
+	content: string | ArrayBuffer
+}
 
 export const Plugins = {
 	dialog: null as null|Dialog,

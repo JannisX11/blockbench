@@ -3,6 +3,10 @@
 		"js/**/*",
 		"types/**/*"
 	],
+  "exclude": [
+    "lib/marked.min.js",
+    "lib/canvas2apng.js",
+  ],
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -14,7 +18,10 @@
     "esModuleInterop": true,
     "lib": ["ES2020", "DOM"],
     "skipLibCheck": true,
-    "noEmit": true,
-    "allowJs": true
+    "allowJs": true,
+
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./dist-types"
   }
 }

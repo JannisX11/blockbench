@@ -20,13 +20,13 @@ declare namespace Blockbench {
 		| 'screenshot'
 		| 'palette'
 
-	interface FileResult {
+	export interface FileResult {
 		name: string
 		path: string
 		content: string | ArrayBuffer
 	}
 	type ReadType = 'buffer' | 'binary' | 'text' | 'image'
-	interface ReadOptions {
+	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
 	}
@@ -48,7 +48,7 @@ declare namespace Blockbench {
 	): void
 
 	type WriteType = 'buffer' | 'text' | 'zip' | 'image'
-	interface WriteOptions {
+	export interface WriteOptions {
 		content?: string | ArrayBuffer
 		savetype?: WriteType | ((file: string) => WriteType)
 		custom_writer?: (content: string | ArrayBuffer, file_path: string) => void
@@ -62,7 +62,7 @@ declare namespace Blockbench {
 		callback?: (file_path: string) => void
 	): void
 
-	interface PickDirOptions {
+	export interface PickDirOptions {
 		/**Location where the file dialog starts off
 		 */
 		startpath?: string
@@ -78,7 +78,7 @@ declare namespace Blockbench {
 	 */
 	export function pickDirectory(options: PickDirOptions): string | undefined
 
-	interface ImportOptions extends ReadOptions {
+	export interface ImportOptions extends ReadOptions {
 		/** Name of the file type
 		 */
 		type: string
@@ -104,7 +104,7 @@ declare namespace Blockbench {
 	function _import(options: ImportOptions, callback?: (files: FileResult[]) => void): any
 	export { _import as import }
 
-	interface ExportOptions extends WriteOptions {
+	export interface ExportOptions extends WriteOptions {
 		/**
 		 * Name of the file type
 		 */
@@ -132,7 +132,7 @@ declare namespace Blockbench {
 	/**
 	 * Adds a drag handler that handles dragging and dropping files into Blockbench
 	 */
-	interface DragHandlerOptions extends ReadOptions {
+	export interface DragHandlerOptions extends ReadOptions {
 		/**
 		 * Allowed file extensions
 		 */
