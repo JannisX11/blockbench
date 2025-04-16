@@ -1,24 +1,3 @@
-
-function getRescalingFactor(angle) {
-	switch (Math.abs(angle)) {
-		case 0:
-			return 1.4142
-			break;
-		case 22.5:
-			return 1.0824
-			break;
-		case 67.5:
-			return 1.0824
-			break;
-		case 45:
-			return 1.4142
-			break;
-		default:
-			return 1;
-			break;
-	}
-}
-
 const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),

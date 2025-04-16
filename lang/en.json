@@ -136,7 +136,7 @@
 
 	"format.java_block": "Java Block/Item",
 	"format.java_block.desc": "Block or item model for Minecraft Java Edition.",
-	"format.java_block.info.rotation": "Rotations are limited to 22.5 degree steps and one axis per element",
+	"format.java_block.info.rotation": "Rotations are limited to one axis per element",
 	"format.java_block.info.size": "The model is limited to a size of 3 by 3 by 3 blocks. Display settings can make item models larger though",
 	"format.java_block.info.animation": "This format does not support animations in vanilla Minecraft. If you are creating a mod, you can use GeckoLib to animate models. If not, the only way to animate is to switch out the model using commands or animated textures.",
 	
@@ -242,7 +242,7 @@
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",
 	"message.rotation_limit.title": "Rotation Limits",
-	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis and 22.5 degree increments. Rotating on a different axis will clear all rotations on the other axes. Convert the model to \"Generic Model\" if you are modeling for other purposes and need free rotations.",
+	"message.rotation_limit.message": "Rotations are limited by Minecraft to one axis. Rotating on a different axis will clear all rotations on the other axes. Convert the model to \"Generic Model\" if you are modeling for other purposes and need free rotations.",
 	"message.file_not_found.title": "File Not Found",
 	"message.file_not_found.message": "Blockbench could not find the requested file. Make sure it is saved locally and not in a cloud.",
 	"message.recover_backup.title": "Recover Models",
@@ -437,6 +437,7 @@
 	"dialog.project.parent": "Parent Model",
 	"dialog.project.geoname": "Model Identifier",
 	"dialog.project.credit": "Credit",
+	"dialog.project.java_block_version": "Format Version",
 	"dialog.project.modded_entity_version": "Export Version",
 	"dialog.project.modded_entity_entity_class": "Entity Class",
 	"dialog.project.modded_entity_flip_y": "Flip Y Axis",
