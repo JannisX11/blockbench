@@ -606,7 +606,7 @@ var format = new ModelFormat({
 codec.format = format;
 Object.defineProperty(format, 'rotation_snap', {
 	get() {
-		return Project.java_block_version == '1.9'
+		return Project.java_block_version == '1.9.0'
 	}
 })
 
