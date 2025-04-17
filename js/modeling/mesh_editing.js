@@ -2158,7 +2158,7 @@ BARS.defineActions(function() {
 				let attr_uv = spline.mesh.geometry.getAttribute('uv');
 				let texture = Texture.getDefault();
 				let add_texture = false;
-				console.log(spline.texture);
+				
 				if (spline.texture) {
 					if (spline.texture instanceof Texture) {
 						texture = spline.texture;
