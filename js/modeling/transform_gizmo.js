@@ -19,7 +19,13 @@
 	
 			this.setValues( parameters );
 	
-			this.oldColor = this.color = parameters.color;
+			if (typeof parameters.color === "function") { // allows us to dynamically set oldColor
+				this.oldColor = this.color = parameters.color();
+				this.getOriginalColor = parameters.color;
+			}
+			else {
+				this.oldColor = this.color = parameters.color;
+			}
 			this.oldOpacity = this.opacity;
 	
 			this.highlight = function( highlighted ) {
@@ -34,12 +40,16 @@
 	
 				} else {
 	
-					this.color = this.oldColor;
+					this.color = this.getOriginalColor();
 					this.opacity = this.oldOpacity;
 	
 				}
 	
 			};
+		}
+		// Can be changed to determine color based on outside logic
+		getOriginalColor() {
+			return this.oldColor;
 		}
 	}
 	
@@ -53,8 +63,14 @@
 			this.linewidth = 1;
 	
 			this.setValues( parameters );
-	
-			this.oldColor = this.color = parameters.color;
+			
+			if (typeof parameters.color === "function") { // allows us to dynamically set oldColor
+				this.oldColor = this.color = parameters.color();
+				this.getOriginalColor = parameters.color;
+			}
+			else {
+				this.oldColor = this.color = parameters.color;
+			}
 			this.oldOpacity = this.opacity;
 	
 			this.highlight = function( highlighted ) {
@@ -66,12 +82,16 @@
 	
 				} else {
 	
-					this.color = this.oldColor;
+					this.color = this.getOriginalColor();
 					this.opacity = this.oldOpacity;
 	
 				}
 	
 			};
+		}
+		// Can be changed to determine color based on outside logic
+		getOriginalColor() {
+			return this.oldColor;
 		}
 	}
 
@@ -568,6 +588,124 @@
 		}
 	};
 
+	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
+		constructor(handle = {joint: [0, 0, 0], control1: [1, 0.5, -0.333], control2: [-1, -0.5, 0.333]}, spline) {
+			super();
+			var arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+
+			// Gather control point transform data, primarily to orient the handleGizmos correctly
+			function getCtrlTransforms(ctrl) {
+				let cylinderPos = [(ctrl[0] * 0.5) - handle.joint[0], (ctrl[1] * 0.5) - handle.joint[1], (ctrl[2] * 0.5) - handle.joint[2]];
+				let posLocal = [ctrl[0] - handle.joint[0], ctrl[1] - handle.joint[1], ctrl[2] - handle.joint[2]];
+				let posLocalVec = new THREE.Vector3().fromArray(posLocal)
+				let length = posLocalVec.length();
+
+				// Poor and lonely normalized local pos
+				let normalizedLocalPos = posLocalVec.normalize();
+
+				// First matrix, which will give us your general control orient, and basis to properly orient the handle
+				let jointPos = new THREE.Vector3().fromArray(handle.joint);
+				let mat4 = new THREE.Matrix4().lookAt(jointPos, normalizedLocalPos, new THREE.Vector3(0, 1, 0));
+				let {vec1, vec2, vec3} = Reusable; // Basis vectors
+				mat4.extractBasis(vec1, vec2, vec3);
+
+				// Second matrix, to orient the handle in its final position
+				let otherMat4 = new THREE.Matrix4().lookAt(new THREE.Vector3().fromArray(handle.joint), vec2, vec3);
+				let quaternion = new THREE.Quaternion().setFromRotationMatrix(otherMat4);
+				let euler = new THREE.Euler().setFromQuaternion(quaternion);
+
+				return {
+					pos: cylinderPos, 
+					len: length, 
+					euler: [euler.x, euler.y, euler.z]
+				};
+
+			}
+			var ctrl1Transform = getCtrlTransforms(handle.control1);
+			var ctrl2Transform = getCtrlTransforms(handle.control2);
+
+			function getHandleColor() {
+				let colors = {
+					"free": gizmo_colors.spline_handle_free,
+					"mirrored": gizmo_colors.spline_handle_mirrored,
+					"aligned": gizmo_colors.spline_handle_aligned,
+				}
+		
+				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
+			}
+
+			var lineCtrl1Geometry = new THREE.BufferGeometry();
+			var lineCtrl2Geometry = new THREE.BufferGeometry();
+			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control1 ], 3 ) );
+			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control2 ], 3 ) );
+			
+			var CircleGeometry = function ( radius, facing, arc ) {
+				var geometry = new THREE.BufferGeometry();
+				var vertices = [];
+				let points = 16;
+				arc = arc ? arc : 1;
+				
+				for ( var i = 0; i <= points * arc; ++ i ) {
+					if ( facing === 'x' ) vertices.push( 0, Math.cos( i / (points/2) * Math.PI ) * radius, Math.sin( i / (points/2) * Math.PI ) * radius );
+					if ( facing === 'y' ) vertices.push( Math.cos( i / (points/2) * Math.PI ) * radius, 0, Math.sin( i / (points/2) * Math.PI ) * radius );
+					if ( facing === 'z' ) vertices.push( Math.sin( i / (points/2) * Math.PI ) * radius, Math.cos( i / (points/2) * Math.PI ) * radius, 0 );
+				}
+
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+				return geometry;
+
+			};
+
+			this.handleGizmos = {
+				X: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: () => getHandleColor() } ) ), handle.control1, [0, 0, 0] ],
+					[ new THREE.Line( lineCtrl1Geometry, new GizmoLineMaterial( { color: () => getHandleColor() } ) ) ],
+				],
+				Y: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: () => getHandleColor() } ) ), handle.control2, [0, 0, 0]  ],
+					[ new THREE.Line( lineCtrl2Geometry, new GizmoLineMaterial( { color: () => getHandleColor()} ) ) ],
+				],
+				E: [
+					[ new THREE.Line( new CircleGeometry( 0.13, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
+				],
+			};
+
+			this.pickerGizmos = {
+				X: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl1Transform.len + 0.3, 4, 1, false ), pickerMaterial ), ctrl1Transform.pos, ctrl1Transform.euler ]
+				],
+				Y: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl2Transform.len + 0.3, 4, 1, false ), pickerMaterial ), ctrl2Transform.pos, ctrl2Transform.euler ]
+				],
+				E: [
+					[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]
+				],
+			};
+
+			this.setActivePlane = function ( axis, eye ) {
+
+				// var tempMatrix = new THREE.Matrix4();
+				// eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
+
+				if ( axis === "X" ) {
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
+				}
+
+				if ( axis === "Y" ) {
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+
+				if ( axis === "Z" ) {
+					this.activePlane = this.planes[ "XZ" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+			};
+			this.init();
+		}
+	};
+
 	THREE.TransformControls = class extends THREE.Object3D {
 		constructor( cam, domElement ) {
 
@@ -585,6 +723,7 @@
 			this.direction = true;
 			this.last_valid_position = new THREE.Vector3();
 			this.rotation_selection = new THREE.Euler();
+			this.temp_gizmos = [];
 
 			this.firstLocation = [0,0,0]
 
@@ -597,15 +736,17 @@
 			var _gizmo = {
 				"translate": new THREE.TransformGizmoTranslate(),
 				"scale": new THREE.TransformGizmoScale(),
+				// "scale": new THREE.TransformGizmoSplineHandle(), // to test spline handles
 				"rotate": new THREE.TransformGizmoRotate(),
 				"stretch": new THREE.TransformGizmoScale(),
+				"spline_handle": (handle, spline) => new THREE.TransformGizmoSplineHandle(handle, spline),
 			};
 
 			for ( var type in _gizmo ) {
 				var gizmoObj = _gizmo[ type ];
 
 				gizmoObj.visible = ( type === _mode );				
-				this.add( gizmoObj );
+				if (type != "spline_handle") this.add( gizmoObj );
 			}
 			this.pivot_marker = new THREE.Mesh(
 				new THREE.IcosahedronGeometry(0.08),
@@ -705,7 +846,7 @@
 					this.detach()
 				}
 				this.getWorldPosition(worldPosition)
-				this.setScale(this.getScale());
+				this.setScale(this.getScale()); // TODO cancel this for spline handles
 
 				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
 
@@ -797,7 +938,8 @@
 								if (
 									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
 									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
+									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate') ||
+									(element instanceof SplineMesh && BarItems.spline_selection_mode.value == 'handles')
 								) {
 									scope.attach(element);
 								}
@@ -913,12 +1055,15 @@
 						
 						//Center
 						if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-							if (rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' &&
+							if ((rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' &&
 								Project.mesh_selection[rotation_object.uuid] && (
 									Project.mesh_selection[rotation_object.uuid].vertices.length > 0 ||
 									Project.mesh_selection[rotation_object.uuid].edges.length > 0 ||
 									Project.mesh_selection[rotation_object.uuid].faces.length > 0
-								)
+								)) || 
+								(rotation_object instanceof SplineMesh && Toolbox.selected.id === 'rotate_tool' &&
+								Project.spline_selection[rotation_object.uuid] && 
+								Project.spline_selection[rotation_object.uuid].vertices.length > 0)
 							) {
 								this.position.copy(rotation_object.getWorldCenter())
 							} else if (rotation_object.mesh) {

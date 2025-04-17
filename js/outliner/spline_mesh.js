@@ -79,8 +79,8 @@ new Property(SplineHandle, 'number', 'size');
 // [x] Add spline to mesh conversion, so that the spline can be edited as a normal mesh.
 
 // M2 > Editing functionality:
-// [ ] Fix texture not rendering on splines.
-// [ ] Create Gizmo for spline handles, to de-clutter preview controller geo.
+// [x] Fix texture not rendering on splines.
+// [~] Create Gizmo for spline handles, to de-clutter preview controller geo.
 // [ ] Add ability to extrude points from the curve.
 // [ ] Add ability to delete points from the curve.
 // [ ] Add ability to remove segments from the curve.
@@ -256,15 +256,13 @@ export class SplineMesh extends OutlinerElement {
             }
         }
 
-        // About the same as Outliner.Face
+        // About the same as Outliner.Face, nudged to work in this context
 		if (object.texture === null) 
 			this.texture = null;
 		else if (object.texture === false)
 	        this.texture = false;
 		else if (Texture.all.includes(object.texture))
 	        this.texture = object.texture.uuid;
-		else if (typeof object.texture === 'number')
-	        this.texture = Texture.all[object.texture].uuid;
 		else if (typeof object.texture === 'string')
 			this.texture = object.texture;
 
@@ -292,6 +290,15 @@ export class SplineMesh extends OutlinerElement {
             copy.curves[key] = this.curves[key];
         }
 
+        // About the same as Outliner.Face, nudged to work in this context
+		let tex = this.getTexture();
+		if (tex === null)
+			copy.texture = null;
+		else if (tex instanceof Texture)
+            copy.texture = tex.uuid;
+		else if (typeof tex === 'string')
+			copy.texture = tex;
+
         copy.type = 'spline';
         copy.uuid = this.uuid
         return copy;
@@ -317,12 +324,10 @@ export class SplineMesh extends OutlinerElement {
             copy.curves[key] = this.curves[key];
         }
 
-        // About the same as Outliner.Face
+        // About the same as Outliner.Face, nudged to work in this context
 		let tex = this.getTexture();
 		if (tex === null)
 			copy.texture = null;
-		else if (tex instanceof Texture && project)
-			copy.texture = Texture.all.indexOf(tex);
 		else if (tex instanceof Texture)
             copy.texture = tex.uuid;
 		else if (typeof tex === 'string')
@@ -719,8 +724,8 @@ export class SplineMesh extends OutlinerElement {
     }
     // thanks for the math, Freya :> https://youtu.be/jvPPXbo87ds?si=XBdiXoriL3MgeGsu
     cubicBézier(time, point1, point2, point3, point4) {
-        let timeP2 = Math.pow(time, 2);
-        let timeP3 = Math.pow(time, 3);
+        let timeP2 = time ** 2;
+        let timeP3 = time ** 3;
         let p = [1, time, timeP2, timeP3]; // Power matrix (Position)
         let d = [0, 1, 2*time, 3*timeP2]; // Derivative Power matrix (Tangent)
 

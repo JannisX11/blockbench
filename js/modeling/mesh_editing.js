@@ -2137,8 +2137,8 @@ BARS.defineActions(function() {
 				cube.remove();
 			});
 
-			// Turn splines into meshes, not perfect, ideally 
-			// should merge duplicate verts, but this works for now
+			// Turn splines into meshes, not perfect, ideally should merge duplicate 
+			// verts & account for smooth shading, but this works for now.
 			SplineMesh.selected.forEach(spline => {
 				let mesh = new Mesh({
 					name: spline.name,
@@ -2156,7 +2156,13 @@ BARS.defineActions(function() {
 
 				let attr_position = spline.mesh.geometry.getAttribute('position');
 				let attr_uv = spline.mesh.geometry.getAttribute('uv');
-				let fallback_texture = Texture.getDefault();
+				let texture = Texture.getDefault();
+				if (spline.texture) {
+					if (spline.texture instanceof Texture) 
+						texture = spline.texture;
+					else if (typeof spline.texture === "string")
+						texture = Texture.all.findInArray('uuid', spline.texture);
+				};
 
 				for (let i = 0; i < attr_position.count / 6; i++) {
 					// Tri
@@ -2180,21 +2186,20 @@ BARS.defineActions(function() {
 					}
 
 					let vertex_keys = vertices.map(pos =>  mesh.addVertices(pos)[0]);
-					console.log({vertex_keys, attr_uv});
 
 					let uv = {};
 					let i2 = 0;
 					for (let vkey of vertex_keys) {
 						uv[vkey] = [
-							uv_data[i2][0] * Project.getUVWidth(fallback_texture),
-							(1 - uv_data[i2][1]) * Project.getUVHeight(fallback_texture),
+							uv_data[i2][0] * Project.getUVWidth(texture),
+							(1 - uv_data[i2][1]) * Project.getUVHeight(texture),
 						];
 						i2++;
 					}
 					let new_face = new MeshFace(mesh, {
 						vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
 						uv,
-						texture: spline.texture || fallback_texture.uuid
+						texture: (texture instanceof Texture) ? texture.uuid : texture,
 					})
 					let [fkey] = mesh.addFaces(new_face);
 				}
