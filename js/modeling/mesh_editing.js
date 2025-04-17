@@ -2157,11 +2157,17 @@ BARS.defineActions(function() {
 				let attr_position = spline.mesh.geometry.getAttribute('position');
 				let attr_uv = spline.mesh.geometry.getAttribute('uv');
 				let texture = Texture.getDefault();
+				let add_texture = false;
+				console.log(spline.texture);
 				if (spline.texture) {
-					if (spline.texture instanceof Texture) 
+					if (spline.texture instanceof Texture) {
 						texture = spline.texture;
-					else if (typeof spline.texture === "string")
+						add_texture = true;
+					}
+					else if (typeof spline.texture === "string") {
 						texture = Texture.all.findInArray('uuid', spline.texture);
+						add_texture = true;
+					}
 				};
 
 				for (let i = 0; i < attr_position.count / 6; i++) {
@@ -2191,16 +2197,18 @@ BARS.defineActions(function() {
 					let i2 = 0;
 					for (let vkey of vertex_keys) {
 						uv[vkey] = [
-							uv_data[i2][0] * Project.getUVWidth(texture),
-							(1 - uv_data[i2][1]) * Project.getUVHeight(texture),
+							uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
+							(1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
 						];
 						i2++;
 					}
+
 					let new_face = new MeshFace(mesh, {
 						vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
-						uv,
-						texture: (texture instanceof Texture) ? texture.uuid : texture,
+						uv
 					})
+					if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
+
 					let [fkey] = mesh.addFaces(new_face);
 				}
 
