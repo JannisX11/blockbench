@@ -1,3 +1,5 @@
+import { Property } from "../util/property";
+
 export class SplineHandle {
     constructor(spline, data) {
         for (var key in this.constructor.properties) {
@@ -253,18 +255,20 @@ export class SplineMesh extends OutlinerElement {
                 if (!this.curves[key]) this.curves[key] = object.curves[key];
             }
         }
-        this.sanitizeName();
 
-        // Same as Outliner.Face
-		if (object.texture === null) {
+        // About the same as Outliner.Face
+		if (object.texture === null) 
 			this.texture = null;
-		} else if (object.texture === false) {
-			this.texture = false;
-		} else if (Texture.all.includes(object.texture)) {
-			this.texture = object.texture.uuid;
-		} else if (typeof object.texture === 'string') {
-			Merge.string(this, object, 'texture')
-		}
+		else if (object.texture === false)
+	        this.texture = false;
+		else if (Texture.all.includes(object.texture))
+	        this.texture = object.texture.uuid;
+		else if (typeof object.texture === 'number')
+	        this.texture = Texture.all[object.texture].uuid;
+		else if (typeof object.texture === 'string')
+			this.texture = object.texture;
+
+        this.sanitizeName();
         return this;
     }
     getUndoCopy(aspects = {}) {
@@ -313,15 +317,16 @@ export class SplineMesh extends OutlinerElement {
             copy.curves[key] = this.curves[key];
         }
 
-        // Same as Outliner.Face
-		let tex = this.getTexture()
-		if (tex === null) {
+        // About the same as Outliner.Face
+		let tex = this.getTexture();
+		if (tex === null)
 			copy.texture = null;
-		} else if (tex instanceof Texture && project) {
-			copy.texture = Texture.all.indexOf(tex)
-		} else if (tex instanceof Texture) {
-			copy.texture = tex.uuid;
-		}
+		else if (tex instanceof Texture && project)
+			copy.texture = Texture.all.indexOf(tex);
+		else if (tex instanceof Texture)
+            copy.texture = tex.uuid;
+		else if (typeof tex === 'string')
+			copy.texture = tex;
 
         copy.type = 'spline';
         copy.uuid = this.uuid
@@ -484,7 +489,6 @@ export class SplineMesh extends OutlinerElement {
         let pathData = this.getBézierPath();
 
         // Buffers
-        let faceData = [];
         let vertexData = [];
 
         // Dimensions
@@ -562,9 +566,12 @@ export class SplineMesh extends OutlinerElement {
                         vertices.push(...vertexData[index].vector);
                         normals.push(...faceNormal.toArray());
 
-                        // UVs for duplicated indices
+                        // UVs for duplicated indices (with comments for Aza's memory)
+                        // division tells us which ring we're at, divide by total of points to get value between 0 and 1 on U
                         let u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1);
+                        // Remainder of division tells us which step of the ring we're at, divide by radial segments to get value between 0 and 1 on V
                         let v = (index % (radialSegments + 1)) / radialSegments;
+                        // Both combined give me a nice little point between (0, 0) and (1, 1) I can now push to this buffer
                         uvs.push(u, v);
                     });
                 } else { // Smooth shading: reuse vertices
@@ -717,12 +724,12 @@ export class SplineMesh extends OutlinerElement {
         let p = [1, time, timeP2, timeP3]; // Power matrix (Position)
         let d = [0, 1, 2*time, 3*timeP2]; // Derivative Power matrix (Tangent)
 
-        // Characteristic Coefficients for the original Bézier curve ("pc" variable is inverted to respect operation order)
+        // Characteristic "matrix" for the original Bézier curve ("pc" variable is backwards to respect operation order)
         let pc1 = [ 1, 0,  0, 0];
         let pc2 = [-3, 3,  0, 0];
         let pc3 = [ 3, -6, 3, 0];
         let pc4 = [-1, 3, -3, 1];
-        let pc = [pc4, pc3, pc2, pc1]
+        let pc = [pc4, pc3, pc2, pc1];
 
         // Bernstein polynomial function
         function bernstein(powers, char) {
@@ -746,29 +753,24 @@ export class SplineMesh extends OutlinerElement {
         };
     }
 	getTexture() {
-		if (Format.per_group_texture && this.parent instanceof Group && this.parent.texture) {
-			return Texture.all.findInArray('uuid', this.parent.texture);
-		}
-		if (this.texture !== null && (Format.single_texture || (Format.single_texture_default && (Format.per_group_texture || !this.texture)))) {
-			return Texture.getDefault();
-		}
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
 		}
 		return this.texture;
 	}
 	applyTexture(texture) {
+		var value = false;
 		if (texture) {
-			this.texture = texture.uuid;
-		} else if (texture === false || texture === null) {
-            this.texture = texture;
+			value = texture.uuid;
 		}
-
-		if (selected.indexOf(this) === 0) {
-			UVEditor.loadData()
+		
+        this.texture = value;
+		if (Project.selected_elements.indexOf(this) === 0) {
+			UVEditor.loadData(); // useless here since this currently has no editable UV, TODO
 		}
 
 		this.preview_controller.updateFaces(this);
+		// this.preview_controller.updateUV(this);
 	}
 	static behavior = {
 		unique_name: false,
@@ -808,13 +810,11 @@ SplineMesh.prototype.menu = new Menu([
     },
     "randomize_marker_colors",
             {name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
-                var arr = [
-                    {icon: 'crop_square', name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', click(spline) {
-                        spline.forSelected((obj) => {
-                            obj.applyTexture(false)
-                        }, 'texture blank')
-                    }}
-                ]
+                var arr = [{
+                    icon: 'crop_square', 
+                    name: Format.single_texture_default ? 'menu.cube.texture.default' : 'menu.cube.texture.blank', 
+                    click(spline) { spline.forSelected((obj) => obj.applyTexture(false), 'texture blank') }
+                }]
                 let applied_texture;
                 main_loop: for (let spline of SplineMesh.selected) {
                     let texture = spline.texture;
@@ -827,16 +827,13 @@ SplineMesh.prototype.menu = new Menu([
                         }
                     }
                 }
+                // Asa assumption: Compose final menu
                 Texture.all.forEach((t) => {
                     arr.push({
                         name: t.name,
                         icon: (t.mode === 'link' ? t.img : t.source),
                         marked: t == applied_texture,
-                        click(spline) {
-                            spline.forSelected((obj) => {
-                                obj.applyTexture(t)
-                            }, 'apply texture')
-                        }
+                        click(spline) { spline.forSelected((obj) => obj.applyTexture(t), 'apply texture') }
                     })
                 })
                 return arr;
@@ -1131,14 +1128,12 @@ new NodePreviewController(SplineMesh, {
             mesh.material = Canvas.normalHelperMaterial
         else if (Project.view_mode === 'uv') 
             mesh.material = Canvas.uvHelperMaterial
-        else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) 
+        else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered'))
             mesh.material = Canvas.getLayeredMaterial();
         else if (Format.single_texture) {
             let tex = Texture.getDefault();
             mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
         }
-        else if (Project.view_mode === 'textured') 
-            mesh.material = Canvas.emptyMaterials[element.color];
         else {
 			var material;
             var tex = element.getTexture();
