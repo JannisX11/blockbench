@@ -756,7 +756,6 @@ Interface.definePanels(() => {
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400,
-			attached_to: 'color',
 		},
 		toolbars: [
 			new Toolbar('palette', {
