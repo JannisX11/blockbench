@@ -597,18 +597,24 @@ import { SplineMesh } from "../outliner/spline_mesh";
 
 			// Gather control point transform data, primarily to orient the handleGizmos correctly
 			function getCtrlTransforms(ctrl) {
-				let cylinderPos = [(ctrl[0] * 0.5) - handle.joint[0], (ctrl[1] * 0.5) - handle.joint[1], (ctrl[2] * 0.5) - handle.joint[2]];
+				// Position of the picker
+				let cylinderPos = [
+					(ctrl[0] + handle.joint[0]) / 2, 
+					(ctrl[1] + handle.joint[1]) / 2, 
+					(ctrl[2] + handle.joint[2]) / 2
+				];
+
+				// Length
 				let posLocal = [ctrl[0] - handle.joint[0], ctrl[1] - handle.joint[1], ctrl[2] - handle.joint[2]];
 				let posLocalVec = new THREE.Vector3().fromArray(posLocal)
 				let length = posLocalVec.length();
 
-				// Poor and lonely normalized local pos
-				let normalizedLocalPos = posLocalVec.normalize();
-
 				// First matrix, which will give us your general control orient, and basis to properly orient the handle
 				let jointPos = new THREE.Vector3().fromArray(handle.joint);
-				let mat4 = new THREE.Matrix4().lookAt(jointPos, normalizedLocalPos, new THREE.Vector3(0, 1, 0));
+				let ctrlPos = new THREE.Vector3().fromArray(ctrl);
+				let mat4 = new THREE.Matrix4().lookAt(jointPos, ctrlPos, new THREE.Vector3(0, 1, 0));
 				let {vec1, vec2, vec3} = Reusable; // Basis vectors
+				mat4.setPosition(jointPos);
 				mat4.extractBasis(vec1, vec2, vec3);
 
 				// Second matrix, to orient the handle in its final position
@@ -657,27 +663,30 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				return geometry;
 
 			};
+			let mat = new GizmoMaterial( { color: () => getHandleColor() } );
+			let lineMat = new GizmoLineMaterial( { color: () => getHandleColor()} );
 
 			this.handleGizmos = {
-				X: [
-					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: () => getHandleColor() } ) ), handle.control1, [0, 0, 0] ],
-					[ new THREE.Line( lineCtrl1Geometry, new GizmoLineMaterial( { color: () => getHandleColor() } ) ) ],
+				C1: [
+					[ new THREE.Mesh( arrowGeometry, mat ), handle.control1, [0, 0, 0] ],
+					[ new THREE.Line( lineCtrl1Geometry, lineMat ) ],
 				],
-				Y: [
-					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: () => getHandleColor() } ) ), handle.control2, [0, 0, 0]  ],
-					[ new THREE.Line( lineCtrl2Geometry, new GizmoLineMaterial( { color: () => getHandleColor()} ) ) ],
+				C2: [
+					[ new THREE.Mesh( arrowGeometry, mat ), handle.control2, [0, 0, 0]  ],
+					[ new THREE.Line( lineCtrl2Geometry, lineMat ) ],
 				],
 				E: [
 					[ new THREE.Line( new CircleGeometry( 0.13, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
 				],
 			};
 
+			// TODO: fix pickers not being placed properly AT ALL
 			this.pickerGizmos = {
-				X: [
-					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl1Transform.len + 0.3, 4, 1, false ), pickerMaterial ), ctrl1Transform.pos, ctrl1Transform.euler ]
+				C1: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl1Transform.len + 0.3, 4, 1, false ), mat ), ctrl1Transform.pos, ctrl1Transform.euler ]
 				],
-				Y: [
-					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl2Transform.len + 0.3, 4, 1, false ), pickerMaterial ), ctrl2Transform.pos, ctrl2Transform.euler ]
+				C2: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl2Transform.len + 0.3, 4, 1, false ), mat ), ctrl2Transform.pos, ctrl2Transform.euler ]
 				],
 				E: [
 					[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]
@@ -704,6 +713,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
 				}
 			};
+
 			this.init();
 		}
 	};
@@ -854,6 +864,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				this.temp_gizmos.forEach(gizmo => {
 					let scale = this.getScale();
 					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale)
+					gizmo.highlight();
 					gizmo.update( worldRotation, eye );
 				})
 
