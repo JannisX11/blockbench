@@ -24,4 +24,5 @@ new ModelFormat({
 	animation_mode: true,
 	animated_textures: true,
 	locators: true,
+	pbr: true,
 })

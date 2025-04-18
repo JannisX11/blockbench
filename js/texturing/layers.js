@@ -710,7 +710,7 @@ Interface.definePanels(function() {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_layer] = eventTargetToLayer(target, texture);
+							let [target_layer] = eventTargetToLayer(target, texture);
 							if (!target_layer || target_layer == layer ) return;
 
 							let index = texture.layers.indexOf(target_layer);

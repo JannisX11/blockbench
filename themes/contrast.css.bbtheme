@@ -1,0 +1,77 @@
+@bbtheme {
+	id: "contrast"
+	name: "Contrast"
+	author: "Default"
+	borders: true
+}
+@scope (#theme-thumbnail) {
+
+}
+
+body {
+	--theme-name: "Contrast";
+	--theme-id: "contrast";
+	--theme-author: "Default";
+	--theme-borders: true;
+
+	--color-ui: #17191d;
+	--color-back: #17191d;
+	--color-dark: #17191d;
+	--color-border: #9ea4b5;
+	--color-selected: #31525f;
+	--color-button: #3a3f4b;
+	--color-bright_ui: #17191d;
+	--color-accent: #1b71d9;
+	--color-frame: #121418;
+	--color-text: #d0d0db;
+	--color-light: #f4f3ff;
+	--color-accent_text: #eeeef5;
+	--color-bright_ui_text: #d0d0dd;
+	--color-subtle_text: #adb2bc;
+	--color-grid: #727683;
+	--color-wireframe: #5f96bc;
+	--color-checkerboard: #1c2026;
+	--font-main: arial;
+	--font-headline: arial;
+	--font-code: arial;
+}
+
+
+
+#mode_selector li {
+	padding: 2px 10px;
+}
+#mode_selector li.selected {
+	background-color: var(--color-accent);
+	color: var(--color-accent_text);
+}
+
+#tab_bar .project_tab.selected,
+.dialog_sidebar_pages li.selected,
+.tool.enabled
+{
+	background-color: var(--color-accent) !important;
+	color: var(--color-accent_text);
+}
+.contextMenu li {
+	height: 34px;
+	padding-top: 6px;
+	padding-bottom: 6px;
+}
+.dialog_sidebar_pages li.selected {
+	background-color: var(--color-accent) !important;
+	color: var(--color-accent_text);
+}
+.dialog_handle {
+	background: transparent;
+}
+#work_screen {
+	grid-template-rows: 31px minmax(200px, 5000px) 26px;
+}
+.controller_state_gate {
+	background-color: var(--color-border);
+}
+.controller_state_title_bar {
+	background-color: transparent;
+	border-bottom: 1px solid var(--color-border)
+}

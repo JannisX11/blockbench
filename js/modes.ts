@@ -133,11 +133,9 @@ export class Mode extends KeybindItem {
 		if (selected_tool instanceof Tool && Condition(selected_tool.condition)) {
 			selected_tool.select();
 		} else if (default_tool instanceof Tool) {
-			// @ts-ignore
-			if (!default_tool == Toolbox.selected) default_tool.select();
+			if (default_tool != Toolbox.selected) default_tool.select();
 		} else {
-			// @ts-ignore
-			if (!BarItems.move_tool == Toolbox.selected) BarItems.move_tool.select();
+			if (BarItems.move_tool != Toolbox.selected) (BarItems.move_tool as Tool).select();
 		}
 		// @ts-ignore
 		TickUpdates.interface = true;

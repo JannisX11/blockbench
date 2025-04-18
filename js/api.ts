@@ -279,7 +279,7 @@ export const Blockbench = {
 		})
 	},
 	//CSS
-	addCSS(css) {
+	addCSS(css: string) {
 		let style_node = document.createElement('style');
 		style_node.type ='text/css';
 		style_node.appendChild(document.createTextNode(css));
@@ -292,17 +292,17 @@ export const Blockbench = {
 		return new deletableStyle(style_node);
 	},
 	//Flags
-	addFlag(flag) {
-		this.flags[flag] = true
+	addFlag(flag: string) {
+		this.flags[flag] = true;
 	},
-	removeFlag(flag) {
-		delete this.flags[flag]
+	removeFlag(flag: string) {
+		delete this.flags[flag];
 	},
-	hasFlag(flag) {
-		return this.flags[flag]
+	hasFlag(flag: string) {
+		return this.flags[flag];
 	},
 	//Events
-	dispatchEvent(event_name, data) {
+	dispatchEvent(event_name: EventName, data) {
 		let list = this.events[event_name];
 		let results;
 		if (list) {
@@ -374,10 +374,8 @@ if (isApp) {
 export const StateMemory = {
 	/**
 	 * Initialize a memorized property
-	 * @param {string} key 
-	 * @param {'string'|'number'|'boolean'|'object'|'array'} type 
 	 */
-	init(key, type) {
+	init(key: string, type: 'string'|'number'|'boolean'|'object'|'array') {
 		let saved: any = localStorage.getItem(`StateMemory.${key}`)
 		if (typeof saved == 'string') {
 			try {

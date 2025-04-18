@@ -1,6 +1,6 @@
 
 function createEmptyCanvas(width, height) {
-	canvas = document.createElement('canvas');
+	let canvas = document.createElement('canvas');
 	let ctx = canvas.getContext('2d');
 	canvas.width = width;
 	canvas.height = height;
@@ -200,6 +200,7 @@ export const Screencam = {
 			color:  	{label: 'dialog.create_gif.color', type: 'color', value: '#000000', toggle_enabled: true, toggle_default: false},
 			background_image:  	{label: 'dialog.create_gif.bg_image', type: 'file', extensions: ['png'], readtype: 'image', filetype: 'PNG'},
 			play: 		{label: 'dialog.create_gif.play', type: 'checkbox', condition: () => Animator.open},
+			show_gizmos:{label: 'dialog.create_gif.show_gizmos', type: 'checkbox', value: false},
 			turnspeed:	{label: 'dialog.create_gif.turn', type: 'number', value: 0, min: -90, max: 90, description: 'dialog.create_gif.turn.desc'},
 			turnspeed_o:{type: 'buttons', condition: (form) => (Animation.selected && form.play), buttons: ['dialog.create_gif.turn.sync_to_anim_length'], click: (index) => {
 				Dialog.open.setFormValues({turnspeed: 60 / (Animation.selected.length||1)});
@@ -577,7 +578,7 @@ export const Screencam = {
 					Animator.preview(true);
 				}
 				vars.frames++;
-				Canvas.withoutGizmos(function() {
+				function record() {
 					// Update camera
 					NoAAPreview.controls.unlinked = vars.preview.controls.unlinked;
 					NoAAPreview.controls.target.copy(vars.preview.controls.target);
@@ -631,7 +632,12 @@ export const Screencam = {
 						vars.frame_canvases.push(canvas)
 					}
 					NoAAPreview.controls.unlinked = false;
-				})
+				};
+				if (options.show_gizmos) {
+					record();
+				} else {
+					Canvas.withoutGizmos(record);
+				}
 				Blockbench.setProgress(getProgress());
 				vars.frame_label.textContent = vars.frames + ' - ' + (vars.interval*vars.frames/1000).toFixed(2) + 's';
 

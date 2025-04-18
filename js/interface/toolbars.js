@@ -63,7 +63,7 @@ export class Toolbar {
 			let updateOverflow = () => {
 				if (!this.node.isConnected) return;
 				if (Toolbar.open_overflow_popup) return;
-				let show = this.node.querySelector('.content')?.lastElementChild?.offsetTop;
+				let show = this.node.querySelector('.content')?.lastElementChild?.offsetTop > 12;
 				toolbar_overflow_button.style.display = show ? 'block' : 'none';
 			}
 			updateOverflow();

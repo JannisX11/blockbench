@@ -524,7 +524,7 @@ var codec = new Codec('java_block', {
 					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
 				}
 			}, (result) => {
-				if (result) {
+				if (typeof result == 'string') {
 					let parent = model.parent.replace(/\w+:/, '');
 					let path_arr = path.split(osfs);
 					let index = path_arr.length - path_arr.indexOf('models');

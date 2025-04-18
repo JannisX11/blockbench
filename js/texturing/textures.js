@@ -58,13 +58,13 @@ export class Texture {
 		img.setAttribute('pagespeed_no_transform', '');
 		img.src = 'assets/missing.png'
 
-		var tex = new THREE.Texture(this.canvas);
+		let tex = new THREE.Texture(this.canvas);
 		tex.magFilter = THREE.NearestFilter
 		tex.minFilter = THREE.NearestFilter
 		tex.name = this.name;
 		img.tex = tex;
 
-		var mat = new THREE.ShaderMaterial({
+		let mat = new THREE.ShaderMaterial({
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: settings.shading.value},
@@ -82,13 +82,22 @@ export class Texture {
 		mat.name = this.name;
 		this.material = mat;
 
-		var size_control = {};
+		let size_control = {};
 
 		this.img.onload = () => {
+			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
+			if (scope.width && dimensions_changed) {
+				tex = new THREE.Texture(this.canvas);
+				tex.magFilter = THREE.NearestFilter;
+				tex.minFilter = THREE.NearestFilter;
+				tex.name = this.name;
+				mat.map = tex;
+				mat.uniforms.map.value = tex;
+			}
 			tex.needsUpdate = true;
-			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
-			scope.width = img.naturalWidth;
-			scope.height = img.naturalHeight;
+
+			scope.width = tex.width = img.naturalWidth;
+			scope.height = tex.width = img.naturalHeight;
 			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				scope.error = 2;
@@ -128,11 +137,11 @@ export class Texture {
 						let nh = img.naturalHeight;
 
 						//texture is unlike project
-						var unlike = (pw != nw || ph != nh);
+						let unlike = (pw != nw || ph != nh);
 						//Resolution of this texture has changed
-						var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
+						let changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
 						//Resolution could be a multiple of project size
-						var multi = (
+						let multi = (
 							(pw%nw == 0 || nw%pw == 0) &&
 							(ph%nh == 0 || nh%ph == 0)
 						)
@@ -1197,7 +1206,6 @@ export class Texture {
 				}
 			},
 			onConfirm: function(formResult) {
-
 				let old_width = scope.width;
 				let old_height = scope.height;
 				let elements_to_change = null;
@@ -1683,6 +1691,9 @@ export class Texture {
 			this.source = this.canvas.toDataURL('image/png', 1);
 			this.updateImageFromCanvas();
 		}
+		if ((this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
+			this.getGroup().updateMaterial();
+		}
 		this.saved = false;
 		this.syncToOtherProject();
 	}
@@ -1891,6 +1902,7 @@ export class Texture {
 					'adjust_curves',
 					new MenuSeparator('filters'),
 					'limit_to_palette',
+					'split_rgb_into_layers',
 					'clear_unused_texture_space',
 					new MenuSeparator('transform'),
 					'flip_texture_x',
@@ -2544,6 +2556,9 @@ Interface.definePanels(function() {
 
 				addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 				addEventListeners(document, 'mouseup touchend', off, {passive: false});
+			},
+			closeContextMenu() {
+				if (Menu.open) Menu.open.hide();
 			}
 		},
 		template: `
@@ -2551,7 +2566,7 @@ Interface.definePanels(function() {
 				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
 				v-bind:texid="texture.uuid"
 				class="texture"
-				@click.stop="texture.select($event)"
+				@click.stop="closeContextMenu();texture.select($event)"
 				@mousedown="highlightTexture($event)"
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.openMenu($event)"

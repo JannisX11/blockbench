@@ -2307,7 +2307,7 @@
 	"edit.vertex_snap.align.longest": "最长轴",
 	"edit.vertex_snap.align.direction": "Direction from Pivot",
 	"edit.vertex_snap.align.align_axis": "轴 %0",
-	"edit.vertex_snap.ignore_axis": "忽略 %0 轴",
+	"edit.vertex_snap.ignore_axis": "忽略 轴",
 	"codec.common.format": "格式",
 	"codec.image.quality": "品质",
 	"panel.collections": "集合",
@@ -2320,5 +2320,11 @@
 	"settings.selection_tolerance": "Selection Tolerance",
 	"settings.selection_tolerance.desc": "Size of the area that can be clicked to select an edge or vertex",
 	"action.delete.keep_vertices": "Keep Edges/Vertices",
-	"menu.mesh": "网格"
+	"menu.mesh": "网格",
+	"dialog.material_config.subsurface": "Subsurface Scattering",
+	"dialog.material_config.subsurface_enabled.desc": "Use the MER map alpha channel for subsurface scattering",
+	"settings.pick_combined_color": "Pick Combined Color",
+	"settings.pick_combined_color.desc": "Pick the combined color of all layers at the respective pixel, instead of the color on the active layer",
+	"action.split_rgb_into_layers": "Split RGB Channels into Layers",
+	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel"
 }

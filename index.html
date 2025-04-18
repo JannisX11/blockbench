@@ -4,7 +4,7 @@
 	<title>Blockbench</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="theme-color" content="#181a1f">
+	<meta name="theme-color" content="#121418">
 	<meta name="color-scheme" content="dark">
 	<meta name="robots" content="noindex">
 	<link rel="manifest" href="manifest.webmanifest">
@@ -166,7 +166,10 @@
 						v-if="Condition(mode.condition)"
 						v-bind:class="{selected: mode.selected}"
 						v-on:mousedown="mode.select()"
-					>{{ mode.name }}</li>
+					>
+						<dynamic-icon :icon="mode.icon"></dynamic-icon>
+						{{ mode.name }}
+					</li>
 				</ul>
 			</div>
 			

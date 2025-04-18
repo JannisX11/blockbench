@@ -2307,7 +2307,7 @@
 	"edit.vertex_snap.align.longest": "Längste Achse",
 	"edit.vertex_snap.align.direction": "Richtung vom Angelpunkt",
 	"edit.vertex_snap.align.align_axis": "%0-Achse",
-	"edit.vertex_snap.ignore_axis": "%0-Achse ignorieren",
+	"edit.vertex_snap.ignore_axis": "Achse ignorieren",
 	"codec.common.format": "Format",
 	"codec.image.quality": "Qualität",
 	"panel.collections": "Sammlungen",
@@ -2320,5 +2320,11 @@
 	"settings.selection_tolerance": "Auswahltoleranz",
 	"settings.selection_tolerance.desc": "Größe des Bereichs der zur Auswahl eines Eckpunktes oder einer Kante angeklickt werden kann",
 	"action.delete.keep_vertices": "Kanten/Eckpunkte behalten",
-	"menu.mesh": "Masche"
+	"menu.mesh": "Masche",
+	"dialog.material_config.subsurface": "Volumenstreuung",
+	"dialog.material_config.subsurface_enabled.desc": "Verwende den Transparenzkanal der MER Map für Volumenstreuung",
+	"settings.pick_combined_color": "Farbkombination auswählen",
+	"settings.pick_combined_color.desc": "Mit der Farbpipette die kombinierte Farbe aller Ebenen auswählen, an Stelle von der Farbe der ausgewählten Ebene",
+	"action.split_rgb_into_layers": "RGB Farbkanäle in Ebenen aufteilen",
+	"action.split_rgb_into_layers.desc": "Teile die Textur in eine additive Ebene pro RGB Farbkanal auf"
 }

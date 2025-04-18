@@ -576,7 +576,9 @@ BARS.defineActions(function() {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
 					if (Project.export_path && export_codec?.compile) {
-						export_codec.write(export_codec.compile(), Project.export_path)
+						if (export_codec.id != 'image') {
+							export_codec.write(export_codec.compile(), Project.export_path)
+						}
 
 					} else if (export_codec?.export && !Project.save_path) {
 						if (export_codec.id === 'project' || settings.dialog_save_codec.value == false) {

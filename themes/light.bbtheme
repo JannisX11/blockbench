@@ -12,6 +12,7 @@
 		"dark": "#e6e6e6",
 		"border": "#c8c8c8",
 		"selected": "#ececec",
+		"elevated": "#ffffff",
 		"button": "#d5d5d5",
 		"bright_ui": "#ffffff",
 		"accent": "#579eff",

@@ -1,6 +1,6 @@
-import DarkTheme from '../../themes/dark.json'
-import LightTheme from '../../themes/light.json'
-import ContrastTheme from '../../themes/contrast.json'
+import DarkTheme from '../../themes/dark.bbtheme'
+import LightTheme from '../../themes/light.bbtheme'
+import ContrastTheme from '../../themes/contrast.bbtheme'
 
 window.CustomThemeOptions = [
 	DarkTheme,
@@ -34,10 +34,11 @@ export const CustomTheme = {
 		dark: '#17191d',
 		border: '#181a1f',
 		selected: '#474d5d',
+		elevated: '#323640',
 		button: '#3a3f4b',
 		bright_ui: '#f4f3ff',
 		accent: '#3e90ff',
-		frame: '#181a1f',
+		frame: '#121418',
 		text: '#cacad4',
 		light: '#f4f3ff',
 		accent_text: '#000006',

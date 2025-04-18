@@ -15,7 +15,6 @@ Vue.component('search-bar', {
 				this.hidden = false;
 				this.$refs.input.focus();
 			} else {
-				this.value = '';
 				this.$emit('input', '');
 			}
 		}

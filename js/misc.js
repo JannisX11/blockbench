@@ -275,7 +275,6 @@ export const AutoBackup = {
 			if (has_backups && (!isApp || !currentwindow.webContents.second_instance)) {
 
 				let section = addStartScreenSection('recover_backup', {
-					color: 'var(--color-back)',
 					graphic: {type: 'icon', icon: 'fa-archive'},
 					insert_before: 'start_files',
 					text: [

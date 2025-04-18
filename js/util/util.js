@@ -779,5 +779,7 @@ Object.assign(window, {
 	cameraTargetToRotation,
 	cameraRotationToTarget,
 	getDateDisplay,
-	wait
+	wait,
+	Rectangle,
+	getKeyByValue,
 });

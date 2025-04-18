@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.12.2",
+	"version": "4.12.4",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -133,7 +133,7 @@
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
 	},
 	"overrides": {
-		"three": "^0.174.0"
+		"three": "^0.150.0"
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
@@ -148,8 +148,8 @@
 	},
 	"dependencies": {
 		"@electron/remote": "^2.1.2",
-		"@types/three": "^0.174.0",
-		"blockbench-types": "^4.12.1",
+		"@types/three": "^0.150.0",
+		"blockbench-types": "^4.12.2",
 		"electron-color-picker": "^0.2.0",
 		"electron-updater": "^6.3.4",
 		"file-saver": "^2.0.5",
@@ -160,7 +160,7 @@
 		"molangjs": "^1.6.5",
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
-		"three": "^0.174.0",
+		"three": "^0.150.0",
 		"tinycolor2": "^1.6.0",
 		"vue": "^2.7.16",
 		"vue-sortable": "^0.1.3",
