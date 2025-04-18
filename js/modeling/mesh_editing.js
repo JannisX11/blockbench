@@ -2158,7 +2158,7 @@ BARS.defineActions(function() {
 				let attr_uv = spline.mesh.geometry.getAttribute('uv');
 				let texture = Texture.getDefault();
 				let add_texture = false;
-				
+
 				if (spline.texture) {
 					if (spline.texture instanceof Texture) {
 						texture = spline.texture;
@@ -2171,7 +2171,7 @@ BARS.defineActions(function() {
 				};
 
 				for (let i = 0; i < attr_position.count / 6; i++) {
-					// Tri
+					// Tri (twice)
 					let vertices = [];
 					let uv_data = [];
 					for (let j = 0; j < 6; j++) {

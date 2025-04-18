@@ -1007,29 +1007,29 @@ new NodePreviewController(SplineMesh, {
     },
     updateGeometry(element) {
         let { mesh } = element;
-        let point_positions = [];
+        // let point_positions = [];
         let linePoints = [];
         let lineColors = [];
-        let { handles, vertices } = element;
+        // let { handles, vertices } = element;
 
         // Handle geometry
         // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
-        for (let key in handles) {
-            let handle = handles[key];
-            let ctrl1 = handle.control1;
-            let joint = handle.joint;
-            let ctrl2 = handle.control2;
-            point_positions.push(...vertices[ctrl1], ...vertices[joint], ...vertices[ctrl2]);
+        // for (let key in handles) {
+        //     let handle = handles[key];
+        //     let ctrl1 = handle.control1;
+        //     let joint = handle.joint;
+        //     let ctrl2 = handle.control2;
+        //     point_positions.push(...vertices[ctrl1], ...vertices[joint], ...vertices[ctrl2]);
 
-            // Add handle lines
-            if (BarItems.spline_selection_mode.value == 'handles') {
-                linePoints.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
+        //     // Add handle lines
+        //     if (BarItems.spline_selection_mode.value == 'handles') {
+        //         linePoints.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
 
-                // Handle color
-                let color = this.getHandleColor()[0];
-                lineColors.push(...color, ...color, ...color, ...color);
-            }
-        }
+        //         // Handle color
+        //         let color = this.getHandleColor()[0];
+        //         lineColors.push(...color, ...color, ...color, ...color);
+        //     }
+        // }
 
         // Bezier Curves
         let pathColor = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
@@ -1104,7 +1104,7 @@ new NodePreviewController(SplineMesh, {
             mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([]), 2));
         }
 
-        mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
+        // mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
@@ -1113,7 +1113,7 @@ new NodePreviewController(SplineMesh, {
         
         mesh.outline.geometry.computeBoundingSphere();
 
-        mesh.vertex_points.geometry.computeBoundingSphere();
+        // mesh.vertex_points.geometry.computeBoundingSphere();
 
         SplineMesh.preview_controller.updateHighlight(element);
 

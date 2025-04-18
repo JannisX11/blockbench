@@ -3,6 +3,8 @@
  * modified for Blockbench by jannisx11
  */
 
+import { SplineMesh } from "../outliner/spline_mesh";
+
  ( function () {
 
 	'use strict';
@@ -846,7 +848,14 @@
 					this.detach()
 				}
 				this.getWorldPosition(worldPosition)
-				this.setScale(this.getScale()); // TODO cancel this for spline handles
+				this.setScale(this.getScale()); 
+				
+				// cancel scale for spline handles
+				this.temp_gizmos.forEach(gizmo => {
+					let scale = this.getScale();
+					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale)
+					gizmo.update( worldRotation, eye );
+				})
 
 				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
 
@@ -931,15 +940,38 @@
 
 			this.updateSelection = function() {
 				this.elements.empty()
+				let prevSpline;
 				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
 					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-						if (Outliner.selected.length) {
+						// This might not be tyhe best place to do this, but it works for now
+						if (SplineMesh.hasSelected() && BarItems.spline_selection_mode.value == 'handles') {
+							let spline = SplineMesh.selected[0];
+
+							if (prevSpline !== spline) {
+								this.remove(...this.temp_gizmos);
+								this.temp_gizmos.empty();
+							}
+
+							for (let hKey of Object.keys(spline.handles)) {
+								let handle = spline.handles[hKey]
+								let gizmoHandle = {
+									joint: spline.vertices[handle.joint], 
+									control1: spline.vertices[handle.control1], 
+									control2:  spline.vertices[handle.control2]
+								};
+
+								this.temp_gizmos.push(new THREE.TransformGizmoSplineHandle(gizmoHandle, spline));
+							}
+
+							this.add(...this.temp_gizmos);
+							scope.attach(spline);
+							prevSpline = spline;
+						} else if (Outliner.selected.length) {
 							Outliner.selected.forEach(element => {
 								if (
 									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
 									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate') ||
-									(element instanceof SplineMesh && BarItems.spline_selection_mode.value == 'handles')
+									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
 								) {
 									scope.attach(element);
 								}
@@ -953,6 +985,12 @@
 					}
 					this.center()
 				}
+				if (prevSpline !== SplineMesh.selected[0]) {
+					this.remove(...this.temp_gizmos);
+					this.temp_gizmos.empty();
+				}
+
+				console.log(this.temp_gizmos);
 				this.update()
 				return this;
 			}

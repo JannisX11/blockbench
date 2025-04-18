@@ -46,10 +46,10 @@ BARS.defineActions(function() {
 
             // Hide/Show handle lines, didn't find a better way to do this
             // updateSelection() felt like a harder place to control this.
-			SplineMesh.selected.forEach(spline => {
-                spline.preview_controller.updateGeometry(spline);
-			})
-			updateSelection();
+			// SplineMesh.selected.forEach(spline => {
+            //     spline.preview_controller.updateGeometry(spline);
+			// })
+			Transformer.updateSelection();
 			previous_selection_mode = value;
         }
 	})
