@@ -35,7 +35,7 @@ BARS.defineActions(function() {
 			tilt: {name: true, icon: 'fas.fa-compass-drafting'},
 		},
 		icon_mode: true,
-		condition: () => SplineMesh.selected.length && Modes.edit,
+		condition: () => SplineMesh.hasSelected() && Modes.edit,
         onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
@@ -45,6 +45,7 @@ BARS.defineActions(function() {
 			}
 
 			Transformer.updateSelection();
+			Transformer.setMode(Toolbox.selected.transformerMode);
 			previous_selection_mode = value;
         }
 	})
@@ -79,7 +80,7 @@ BARS.defineActions(function() {
 		}
 	}),
     new BarSelect('spline_handle_mode', {
-		condition: () => Modes.edit && SplineMesh.hasSelected() && BarItems.spline_selection_mode.value === "handles",
+		condition: () => Modes.edit && SplineMesh.hasSelected(),
 		category: 'transform',
 		value: 'aligned',
 		options: {
@@ -88,7 +89,8 @@ BARS.defineActions(function() {
 			free: true,
 		},
 		onChange() {
-			updateSelection();
+			Transformer.updateSelection();
+			Transformer.setMode(Toolbox.selected.transformerMode);
 		}
 	})
 })

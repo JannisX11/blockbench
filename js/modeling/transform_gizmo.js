@@ -3,8 +3,6 @@
  * modified for Blockbench by jannisx11
  */
 
-import { Pressing } from "../misc";
-
  ( function () {
 
 	'use strict';
@@ -673,11 +671,14 @@ import { Pressing } from "../misc";
 
 			let lineCtrl1Geometry = new THREE.BufferGeometry();
 			let lineCtrl2Geometry = new THREE.BufferGeometry();
+			let lineTiltGeometry = new THREE.BufferGeometry();
 			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...joint, ...ctrl1 ], 3 ) );
 			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...joint, ...ctrl2 ], 3 ) );
+			lineTiltGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...ctrl1, ...joint, ...ctrl2 ], 3 ) );
 			
 			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
 			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
+			let tiltMat = () => new GizmoMaterial( { color: new THREE.Color(0xffffff) } );
 
 			if (!isTilt) { 
 				this.handleGizmos = {
@@ -702,7 +703,10 @@ import { Pressing } from "../misc";
 			} 
 			else { 
 				this.handleGizmos = {
-					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), mat() ), joint, getHandleEuler() ] ]
+					T: [ 
+						[ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), tiltMat() ), joint, getHandleEuler() ],
+						[ new THREE.Line( lineTiltGeometry, tiltMat() ) ]
+					]
 				};
 
 				this.pickerGizmos = {
