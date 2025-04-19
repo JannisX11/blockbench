@@ -4,6 +4,7 @@
  */
 
 import { SplineMesh } from "../outliner/spline_mesh";
+import { Reusable } from "../preview/canvas";
 
  ( function () {
 
@@ -593,7 +594,8 @@ import { SplineMesh } from "../outliner/spline_mesh";
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
 		constructor(handle = {joint: [0, 0, 0], control1: [1, 0.5, -0.333], control2: [-1, -0.5, 0.333]}, spline) {
 			super();
-			var arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+			let arrowGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
+			let pickerGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 
 			// Gather control point transform data, primarily to orient the handleGizmos correctly
 			function getCtrlTransforms(ctrl) {
@@ -613,14 +615,15 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				let jointPos = new THREE.Vector3().fromArray(handle.joint);
 				let ctrlPos = new THREE.Vector3().fromArray(ctrl);
 				let mat4 = new THREE.Matrix4().lookAt(jointPos, ctrlPos, new THREE.Vector3(0, 1, 0));
-				let {vec1, vec2, vec3} = Reusable; // Basis vectors
-				mat4.setPosition(jointPos);
-				mat4.extractBasis(vec1, vec2, vec3);
 
-				// Second matrix, to orient the handle in its final position
-				let otherMat4 = new THREE.Matrix4().lookAt(new THREE.Vector3().fromArray(handle.joint), vec2, vec3);
-				let quaternion = new THREE.Quaternion().setFromRotationMatrix(otherMat4);
-				let euler = new THREE.Euler().setFromQuaternion(quaternion);
+				// Matrix to fix the orientation of the previous one
+				let reOrientMat4 = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+				mat4.multiply(reOrientMat4);
+				mat4.setPosition(jointPos);
+
+				// Rotations
+				let quaternion = new THREE.Quaternion().setFromRotationMatrix(mat4);
+				let euler = new THREE.Euler().setFromQuaternion(quaternion, "XYZ");
 
 				return {
 					pos: cylinderPos, 
@@ -629,8 +632,8 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				};
 
 			}
-			var ctrl1Transform = getCtrlTransforms(handle.control1);
-			var ctrl2Transform = getCtrlTransforms(handle.control2);
+			let ctrl1Transform = getCtrlTransforms(handle.control1);
+			let ctrl2Transform = getCtrlTransforms(handle.control2);
 
 			function getHandleColor() {
 				let colors = {
@@ -642,12 +645,12 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
 			}
 
-			var lineCtrl1Geometry = new THREE.BufferGeometry();
-			var lineCtrl2Geometry = new THREE.BufferGeometry();
+			let lineCtrl1Geometry = new THREE.BufferGeometry();
+			let lineCtrl2Geometry = new THREE.BufferGeometry();
 			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control1 ], 3 ) );
 			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control2 ], 3 ) );
 			
-			var CircleGeometry = function ( radius, facing, arc ) {
+			let CircleGeometry = function ( radius, facing, arc ) {
 				var geometry = new THREE.BufferGeometry();
 				var vertices = [];
 				let points = 16;
@@ -663,17 +666,20 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				return geometry;
 
 			};
-			let mat = new GizmoMaterial( { color: () => getHandleColor() } );
-			let lineMat = new GizmoLineMaterial( { color: () => getHandleColor()} );
+			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
+			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
 
 			this.handleGizmos = {
 				C1: [
-					[ new THREE.Mesh( arrowGeometry, mat ), handle.control1, [0, 0, 0] ],
-					[ new THREE.Line( lineCtrl1Geometry, lineMat ) ],
+					[ new THREE.Mesh( arrowGeometry, mat() ), handle.control1 ],
+					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
 				],
 				C2: [
-					[ new THREE.Mesh( arrowGeometry, mat ), handle.control2, [0, 0, 0]  ],
-					[ new THREE.Line( lineCtrl2Geometry, lineMat ) ],
+					[ new THREE.Mesh( arrowGeometry, mat() ), handle.control2 ],
+					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
+				],
+				J: [
+					[ new THREE.Mesh( arrowGeometry, mat() ), handle.joint ]
 				],
 				E: [
 					[ new THREE.Line( new CircleGeometry( 0.13, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
@@ -683,35 +689,55 @@ import { SplineMesh } from "../outliner/spline_mesh";
 			// TODO: fix pickers not being placed properly AT ALL
 			this.pickerGizmos = {
 				C1: [
-					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl1Transform.len + 0.3, 4, 1, false ), mat ), ctrl1Transform.pos, ctrl1Transform.euler ]
+					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.control1 ]
 				],
 				C2: [
-					[ new THREE.Mesh( new THREE.CylinderGeometry( 0, 0.2, ctrl2Transform.len + 0.3, 4, 1, false ), mat ), ctrl2Transform.pos, ctrl2Transform.euler ]
+					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.control2 ]
 				],
-				E: [
-					[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]
-				],
+				J: [
+					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.joint ]
+				]
 			};
 
 			this.setActivePlane = function ( axis, eye ) {
+				if ( axis === "C1" || axis === "C2" ) {
+					this.activePlane = planes[ "XYZE" ];
+				}
+			};
 
-				// var tempMatrix = new THREE.Matrix4();
-				// eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
+			this.setHandleScale = function(scale) {
+				// What's below might be a little dirty, need to see if it can be improved
+				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
+				for (let name in this.handleGizmos) {
+					if (name == "E") break;
+					let object = this.handleGizmos[name][0][0];
+					let position = this.handleGizmos[name][0][1];
 
-				if ( axis === "X" ) {
-					this.activePlane = this.planes[ "XY" ];
-					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
+					object.geometry.center();
+					object.scale.set(scale, scale, scale);
+					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
 				}
 
-				if ( axis === "Y" ) {
-					this.activePlane = this.planes[ "XY" ];
-					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
-				}
+				for (let name in this.pickerGizmos) {
+					let object = this.pickerGizmos[name][0][0];
+					let position = this.pickerGizmos[name][0][1];
 
-				if ( axis === "Z" ) {
-					this.activePlane = this.planes[ "XZ" ];
-					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
+					object.geometry.center();
+					object.scale.set(scale, scale, scale);
+					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
 				}
+			}
+
+			this.highlight = function(axis, matching_index) {
+				this.traverse( function(child) {
+					if ( child.material && child.material.highlight && matching_index ) {
+						if (child.name == axis) {
+							child.material.highlight(true);
+						} else {
+							child.material.highlight(false);
+						}
+					}
+				} );
 			};
 
 			this.init();
@@ -735,7 +761,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 			this.direction = true;
 			this.last_valid_position = new THREE.Vector3();
 			this.rotation_selection = new THREE.Euler();
-			this.temp_gizmos = [];
+			this.spline_handles = [];
 
 			this.firstLocation = [0,0,0]
 
@@ -801,6 +827,8 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				var worldRotation = new THREE.Euler();
 				var camPosition = new THREE.Vector3();
 
+				var spline_handle_index = 0;
+
 
 			this.attach = function ( object ) {
 				this.elements.safePush(object);
@@ -861,13 +889,14 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				this.setScale(this.getScale()); 
 				
 				// cancel scale for spline handles
-				this.temp_gizmos.forEach(gizmo => {
+				this.spline_handles.forEach(gizmo => {
 					let scale = this.getScale();
-					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale)
-					gizmo.highlight();
+					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale);
 					gizmo.update( worldRotation, eye );
+					gizmo.setHandleScale(scale);
 				})
 
+				
 				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
 
 				// Origin
@@ -909,6 +938,11 @@ import { SplineMesh } from "../outliner/spline_mesh";
 					_gizmo[ _mode ].update( worldRotation, eye );
 				}
 				_gizmo[ _mode ].highlight( scope.axis );
+
+				scope.spline_handles.forEach(gizmo => {
+					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
+					gizmo.highlight( scope.axis, idMatch );
+				})
 			};
 			this.fadeInControls = function(frames) {
 				if (!frames || typeof frames !== 'number') frames = 10
@@ -959,8 +993,8 @@ import { SplineMesh } from "../outliner/spline_mesh";
 							let spline = SplineMesh.selected[0];
 
 							if (prevSpline !== spline) {
-								this.remove(...this.temp_gizmos);
-								this.temp_gizmos.empty();
+								this.remove(...this.spline_handles);
+								this.spline_handles.empty();
 							}
 
 							for (let hKey of Object.keys(spline.handles)) {
@@ -971,10 +1005,10 @@ import { SplineMesh } from "../outliner/spline_mesh";
 									control2:  spline.vertices[handle.control2]
 								};
 
-								this.temp_gizmos.push(new THREE.TransformGizmoSplineHandle(gizmoHandle, spline));
+								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(gizmoHandle, spline));
 							}
 
-							this.add(...this.temp_gizmos);
+							this.add(...this.spline_handles);
 							scope.attach(spline);
 							prevSpline = spline;
 						} else if (Outliner.selected.length) {
@@ -997,11 +1031,10 @@ import { SplineMesh } from "../outliner/spline_mesh";
 					this.center()
 				}
 				if (prevSpline !== SplineMesh.selected[0]) {
-					this.remove(...this.temp_gizmos);
-					this.temp_gizmos.empty();
+					this.remove(...this.spline_handles);
+					this.spline_handles.empty();
 				}
 
-				console.log(this.temp_gizmos);
 				this.update()
 				return this;
 			}
@@ -1251,6 +1284,10 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				if (axis2) extendTransformLineOnAxis(long, axis2);
 
 				_gizmo[ _mode ].highlight( scope.axis );
+				scope.spline_handles.forEach(gizmo => {
+					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
+					gizmo.highlight( scope.axis, idMatch );
+				})
 			}
 
 			function onPointerHover( event ) {
@@ -1259,13 +1296,23 @@ import { SplineMesh } from "../outliner/spline_mesh";
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
+				for (let spline_gizmo of scope.spline_handles) {
+					intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
+				}
 
 				if (_dragging === true) return;
 				scope.hoverAxis = null;
 
 				if ( intersect ) {
 					scope.hoverAxis = intersect.object.name;
+
+					let iopp = intersect.object.parent.parent;
+					if (iopp instanceof THREE.TransformGizmoSplineHandle) {
+						scope.spline_handle_index = scope.spline_handles.indexOf(iopp);
+					}
+					
 					event.preventDefault();
+				} else {
 				}
 				if ( scope.axis !== scope.hoverAxis ) {
 					scope.axis = scope.hoverAxis;
@@ -1281,7 +1328,11 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
-					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
+					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ); 
+					for (let spline_gizmo of scope.spline_handles) {
+						intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
+					}
+
 					if ( intersect ) {
 						scope.dragging = true
 						document.addEventListener( "touchend", onPointerUp, {passive: true} );
