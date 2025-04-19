@@ -360,9 +360,9 @@
 		--color-axis-v: #ff12ed;
 		--color-axis-w: #ffd442;
 
-		--color-spline-handle-aligned: #fb09fb;
-		--color-spline-handle-mirrored: #ffc400;
-		--color-spline-handle-free: #04f1ce;
+		--color-spline-handle-mirrored: #ff1242;
+		--color-spline-handle-aligned: #ffd014;
+		--color-spline-handle-free: #43ff14;
 		
 		--font-custom-main: '';
 		--font-custom-headline: '';

@@ -3,10 +3,7 @@
  * modified for Blockbench by jannisx11
  */
 
-import { h } from "vue";
-import { SplineMesh } from "../outliner/spline_mesh";
-import { Reusable } from "../preview/canvas";
-import { THREE } from "../../lib/libs";
+import { Pressing } from "../misc";
 
  ( function () {
 
@@ -49,7 +46,22 @@ import { THREE } from "../../lib/libs";
 					this.opacity = this.oldOpacity;
 	
 				}
-	
+
+			};
+			this.select = function( selected ) {
+				
+				if ( selected ) {
+
+					this.color = new THREE.Color(0xffffff);
+					this.opacity = 1;
+
+				} else {
+
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+
+				}
+
 			};
 		}
 		// Can be changed to determine color based on outside logic
@@ -92,6 +104,21 @@ import { THREE } from "../../lib/libs";
 	
 				}
 	
+			};
+			this.select = function( selected ) {
+				
+				if ( selected ) {
+
+					this.color = new THREE.Color(0xffffff);
+					this.opacity = 1;
+
+				} else {
+
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+
+				}
+
 			};
 		}
 		// Can be changed to determine color based on outside logic
@@ -594,16 +621,16 @@ import { THREE } from "../../lib/libs";
 	};
 
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor(spline, hKey) {
+		constructor(spline, hKey, isTilt = false) {
 			super();
 			let arrowGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 			let pickerGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 
 			this.spline = spline;
 			this.handle = this.spline.handles[hKey];
-			let jointPos = this.spline.vertices[this.handle.joint];
-			let ctrl1Pos = this.spline.vertices[this.handle.control1];
-			let ctrl2Pos = this.spline.vertices[this.handle.control2];
+			let joint = this.spline.vertices[this.handle.joint];
+			let ctrl1 = this.spline.vertices[this.handle.control1];
+			let ctrl2 = this.spline.vertices[this.handle.control2];
 
 			function getHandleColor() {
 				let colors = {
@@ -615,34 +642,73 @@ import { THREE } from "../../lib/libs";
 				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
 			}
 
+			// Gather control point transform data, primarily to orient the handleGizmos correctly
+			function getHandleEuler() {
+				// First matrix, which will give us your general control orient, and basis to properly orient the handle
+				let jointPos = new THREE.Vector3().fromArray(joint);
+				let ctrl1Pos = new THREE.Vector3().fromArray(ctrl1);
+				let ctrl2Pos = new THREE.Vector3().fromArray(ctrl2);
+				let mat41 = new THREE.Matrix4().lookAt(jointPos, ctrl1Pos, new THREE.Vector3(0, 1, 0));
+				let mat42 = new THREE.Matrix4().lookAt(ctrl2Pos, jointPos, new THREE.Vector3(0, 1, 0));
+
+				// Matrix to fix the orientation of the previous one
+				let reOrientMat4 = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
+				mat41.multiply(reOrientMat4);
+				mat42.multiply(reOrientMat4);
+
+				// Rotations
+				let quaternion1 = new THREE.Quaternion().setFromRotationMatrix(mat41);
+				let quaternion2 = new THREE.Quaternion().setFromRotationMatrix(mat42);
+				let euler1 = new THREE.Euler().setFromQuaternion(quaternion1);
+				let euler2 = new THREE.Euler().setFromQuaternion(quaternion2);
+				let finalEuler = [
+					(euler1.x + euler2.x) / 2, 
+					(euler1.y + euler2.y) / 2, 
+					(euler1.z + euler2.z) / 2
+				];
+
+				return finalEuler;
+
+			}
+
 			let lineCtrl1Geometry = new THREE.BufferGeometry();
 			let lineCtrl2Geometry = new THREE.BufferGeometry();
-			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...jointPos, ...ctrl1Pos ], 3 ) );
-			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...jointPos, ...ctrl2Pos ], 3 ) );
+			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...joint, ...ctrl1 ], 3 ) );
+			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...joint, ...ctrl2 ], 3 ) );
 			
 			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
 			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
 
-			this.handleGizmos = {
-				C1: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), ctrl1Pos  ],
-					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
-				],
-				C2: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), ctrl2Pos  ],
-					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
-				],
-				J: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), jointPos ]
-				]
-			};
+			if (!isTilt) { 
+				this.handleGizmos = {
+					C1: [
+						[ new THREE.Mesh( arrowGeometry, mat() ), ctrl1 ],
+						[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
+					],
+					C2: [
+						[ new THREE.Mesh( arrowGeometry, mat() ), ctrl2 ],
+						[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
+					],
+					J: [
+						[ new THREE.Mesh( arrowGeometry, mat() ), joint ]
+					]
+				};
 
-			// TODO: fix pickers not being placed properly AT ALL
-			this.pickerGizmos = {
-				C1: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl1Pos  ] ],
-				C2: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl2Pos  ] ],
-				J: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), jointPos ] ]
-			};
+				this.pickerGizmos = {
+					C1: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl1  ] ],
+					C2: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl2  ] ],
+					J: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), joint ] ]
+				};
+			} 
+			else { 
+				this.handleGizmos = {
+					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), mat() ), joint, getHandleEuler() ] ]
+				};
+
+				this.pickerGizmos = {
+					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.12, 4, 12, Math.PI * 2 ), pickerMaterial ), joint, getHandleEuler() ] ]
+				};
+			}
 
 			this.setActivePlane = function ( axis, eye ) {
 				if ( axis === "C1" || axis === "C2" ) {
@@ -671,10 +737,25 @@ import { THREE } from "../../lib/libs";
 					object.scale.set(scale, scale, scale);
 					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
 				}
-			}
+			};
+
+			this.select = function() {
+				let selection = Project.spline_selection[spline.uuid]?.vertices || [];
+				let ctrl1Selected = selection.includes(this.handle.control1);
+				let jointSelected = selection.includes(this.handle.joint);
+				let ctrl2Selected = selection.includes(this.handle.control2);
+
+				this.traverse(function(child) {
+					if (child.material && child.material.select ) {
+						if (child.name == "C1") child.material.select(ctrl1Selected);
+						if (child.name == "J") child.material.select(jointSelected);
+						if (child.name == "C2") child.material.select(ctrl2Selected);
+					}
+				});
+			};
 
 			this.highlight = function(axis, matching_index) {
-				this.traverse( function(child) {
+				this.traverse(function(child) {
 					if ( child.material && child.material.highlight && matching_index ) {
 						if (child.name == axis) {
 							child.material.highlight(true);
@@ -682,7 +763,7 @@ import { THREE } from "../../lib/libs";
 							child.material.highlight(false);
 						}
 					}
-				} );
+				});
 			};
 
 			this.init();
@@ -726,8 +807,8 @@ import { THREE } from "../../lib/libs";
 			for ( var type in _gizmo ) {
 				var gizmoObj = _gizmo[ type ];
 
-				gizmoObj.visible = ( type === _mode );				
-				if (type != "spline_handle") this.add( gizmoObj );
+				gizmoObj.visible = ( type === _mode );
+				this.add( gizmoObj );
 			}
 			this.pivot_marker = new THREE.Mesh(
 				new THREE.IcosahedronGeometry(0.08),
@@ -790,7 +871,9 @@ import { THREE } from "../../lib/libs";
 				}
 				_mode = mode||_mode;
 				if ( _mode === "scale" ) scope.space = "local";
-				for ( var type in _gizmo ) _gizmo[ type ].visible = (type === _mode);
+				for ( var type in _gizmo ) {
+					_gizmo[ type ].visible = (type === _mode) && (BarItems.spline_selection_mode.value == 'object' || Project.spline_selection.length);
+				}
 				if (mode == 'translate') {
 					this.pivot_marker.visible = Toolbox.selected.visible = Toolbox.selected.id == 'pivot_tool';
 				}
@@ -822,6 +905,20 @@ import { THREE } from "../../lib/libs";
 			this.update = function (object) {
 				var scope = Transformer;
 
+				if (BarItems.spline_selection_mode && scope.spline_handles.length) {
+					for ( var type in _gizmo ) {
+						var gizmoObj = _gizmo[ type ];
+						let spline = scope.spline_handles[0].spline;
+						let cond = BarItems.spline_selection_mode.value == 'object';
+						if (Project.spline_selection) {
+							let selected = Project.spline_selection[spline.uuid];
+							if (selected) cond ||= selected.vertices;
+						}
+
+						gizmoObj.visible = (type === _mode) && cond;
+					}
+				}
+
 				if (!object) {
 					object = this.rotation_ref;
 				}
@@ -831,25 +928,27 @@ import { THREE } from "../../lib/libs";
 				this.getWorldPosition(worldPosition)
 				this.setScale(this.getScale()); 
 				
-				// cancel scale for spline handles
+				// Fix transform for spline gizmos. Since they're supposed to 
+				// render on the spline object, not at the origin of the selection
 				this.spline_handles.forEach(gizmo => {
+					// Cancel out controller scale
 					let scale = this.getScale();
 					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale);
-					gizmo.update( worldRotation, eye );
 					gizmo.setHandleScale(scale);
 
 					// properly position this fella in the world
 					let cancelledPos = new THREE.Vector3().copy(worldPosition).multiplyScalar(-1).multiplyScalar(1 / scale);
 					let splinePos = gizmo.spline.position;
 					splinePos = new THREE.Vector3(splinePos[0], splinePos[1], splinePos[2]).multiplyScalar(1 / scale);
-					
 					gizmo.position.copy(cancelledPos.add(splinePos));
 
 					// Properly orient this too, since our splines aren't always aligned to the world axis
 					let splineRot = gizmo.spline.rotation;
 					splineRot = new THREE.Euler(Math.degToRad(splineRot[0]), Math.degToRad(splineRot[1]), Math.degToRad(splineRot[2]));
-
 					gizmo.rotation.copy(splineRot);
+
+					// Update our goober
+					gizmo.update( worldRotation, eye );
 				})
 
 				
@@ -898,6 +997,7 @@ import { THREE } from "../../lib/libs";
 				scope.spline_handles.forEach(gizmo => {
 					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
 					gizmo.highlight( scope.axis, idMatch );
+					gizmo.select();
 				})
 			};
 			this.fadeInControls = function(frames) {
@@ -945,7 +1045,7 @@ import { THREE } from "../../lib/libs";
 				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
 					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 						// This might not be tyhe best place to do this, but it works for now
-						if (SplineMesh.hasSelected() && BarItems.spline_selection_mode.value == 'handles') {
+						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value == 'handles' || BarItems.spline_selection_mode.value == 'tilt')) {
 							let spline = SplineMesh.selected[0];
 
 							if (prevSpline !== spline) {
@@ -954,7 +1054,7 @@ import { THREE } from "../../lib/libs";
 							}
 
 							for (let hKey of Object.keys(spline.handles)) {
-								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey));
+								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value == 'tilt'));
 							}
 
 							this.add(...this.spline_handles);
@@ -1233,6 +1333,7 @@ import { THREE } from "../../lib/libs";
 				if (axis2) extendTransformLineOnAxis(long, axis2);
 
 				_gizmo[ _mode ].highlight( scope.axis );
+
 				scope.spline_handles.forEach(gizmo => {
 					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
 					gizmo.highlight( scope.axis, idMatch );
@@ -1245,6 +1346,7 @@ import { THREE } from "../../lib/libs";
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
+
 				for (let spline_gizmo of scope.spline_handles) {
 					intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
 				}
@@ -1278,6 +1380,7 @@ import { THREE } from "../../lib/libs";
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
 					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ); 
+					
 					for (let spline_gizmo of scope.spline_handles) {
 						intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
 					}
@@ -1318,7 +1421,32 @@ import { THREE } from "../../lib/libs";
 							}
 							extendTransformLine(true);
 						}
-						_dragging = true;
+
+						// Aza: Most of this should probably not be done here, but this'll do for now
+						if (scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J") {
+							let gizmo = scope.spline_handles[scope.spline_handle_index];
+							let spline = gizmo.spline;
+							let handle = gizmo.handle;
+							let selection = Project.spline_selection[spline.uuid];
+							if (!selection) Project.spline_selection[spline.uuid] = { vertices: [], handles: [] };
+
+							let add = Pressing.shift;
+
+							let vertSelection = Project.spline_selection[spline.uuid]?.vertices || [];
+							if (!add) vertSelection.empty();
+							if (scope.axis == "C1" && !vertSelection.includes(handle.control1)) vertSelection.push(handle.control1);
+							if (scope.axis == "J"  && !vertSelection.includes(handle.joint)) vertSelection.push(handle.control1, handle.joint, handle.control2);
+							if (scope.axis == "C2" && !vertSelection.includes(handle.control2)) vertSelection.push(handle.control2);
+
+							scope.center();
+							scope.update();
+						} else {
+							_dragging = true;
+						}
+
+						scope.spline_handles.forEach( (gizmo) => {
+							gizmo.select();
+						})
 					}
 				}
 			}

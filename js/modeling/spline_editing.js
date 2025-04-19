@@ -35,7 +35,7 @@ BARS.defineActions(function() {
 			tilt: {name: true, icon: 'fas.fa-compass-drafting'},
 		},
 		icon_mode: true,
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		condition: () => SplineMesh.selected.length && Modes.edit,
         onChange({value}) {
 			if (value === previous_selection_mode) return;
 			if (value === 'object') {
@@ -44,11 +44,6 @@ BARS.defineActions(function() {
 				})
 			}
 
-            // Hide/Show handle lines, didn't find a better way to do this
-            // updateSelection() felt like a harder place to control this.
-			// SplineMesh.selected.forEach(spline => {
-            //     spline.preview_controller.updateGeometry(spline);
-			// })
 			Transformer.updateSelection();
 			previous_selection_mode = value;
         }
@@ -84,7 +79,7 @@ BARS.defineActions(function() {
 		}
 	}),
     new BarSelect('spline_handle_mode', {
-		condition: () => Modes.edit && SplineMesh.hasAny() && BarItems.spline_selection_mode.value === "handles",
+		condition: () => Modes.edit && SplineMesh.hasSelected() && BarItems.spline_selection_mode.value === "handles",
 		category: 'transform',
 		value: 'aligned',
 		options: {
@@ -93,10 +88,6 @@ BARS.defineActions(function() {
 			free: true,
 		},
 		onChange() {
-            // Update handle line color, didn't find a simpler way to do this.
-			SplineMesh.selected.forEach(spline => {
-                spline.preview_controller.updateGeometry(spline);
-			})
 			updateSelection();
 		}
 	})

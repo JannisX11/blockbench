@@ -61,37 +61,6 @@ export class SplineHandle {
 new Property(SplineHandle, 'number', 'tilt');
 new Property(SplineHandle, 'number', 'size');
 
-//ROADMAP:
-
-// M1 > Base functionality:
-// [x] Make it so moving one control mirrors on the other, unless a key modifier is held (alt, ctrl...). 
-//     -> key modifier replaced by on-ui option.
-// [x] Implement proper graphics for spline handles, so that the connection between controls and origin are clear.
-// [x] Add cyclic functionality, closes the spline from the first to last handle with an additional segment. 
-//     -> Basic functionality for this added, but might need updating later on
-// [x] Implement primitive tube drawing, using resolution U as the number of points per slice.
-//     -> probably done, might need more refinement
-//   - Needs to respect tilt & size.
-//   - Would ideally generate a special version of
-//     UV islands that would correspond to slices 
-//     of the resulting tube (one per U edge).
-// [x] Fix cyclic tube mesh not connecting properly.
-// [x] Add spline to mesh conversion, so that the spline can be edited as a normal mesh.
-
-// M2 > Editing functionality:
-// [x] Fix texture not rendering on splines.
-// [~] Create Gizmo for spline handles, to de-clutter preview controller geo.
-// [ ] Add ability to extrude points from the curve.
-// [ ] Add ability to delete points from the curve.
-// [ ] Add ability to remove segments from the curve.
-// [ ] Add ability to dissolve points from the curve.
-// [ ] Add ability to scale & tilt handles.
-
-// M3 > Advanced functionality:
-// [ ] Add ability to choose a custom mesh for the spline's ring profile.
-
-//DONE:
-
 export class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
         super(data, uuid)
