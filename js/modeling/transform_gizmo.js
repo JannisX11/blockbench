@@ -3,8 +3,10 @@
  * modified for Blockbench by jannisx11
  */
 
+import { h } from "vue";
 import { SplineMesh } from "../outliner/spline_mesh";
 import { Reusable } from "../preview/canvas";
+import { THREE } from "../../lib/libs";
 
  ( function () {
 
@@ -592,48 +594,16 @@ import { Reusable } from "../preview/canvas";
 	};
 
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor(handle = {joint: [0, 0, 0], control1: [1, 0.5, -0.333], control2: [-1, -0.5, 0.333]}, spline) {
+		constructor(spline, hKey) {
 			super();
 			let arrowGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 			let pickerGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 
-			// Gather control point transform data, primarily to orient the handleGizmos correctly
-			function getCtrlTransforms(ctrl) {
-				// Position of the picker
-				let cylinderPos = [
-					(ctrl[0] + handle.joint[0]) / 2, 
-					(ctrl[1] + handle.joint[1]) / 2, 
-					(ctrl[2] + handle.joint[2]) / 2
-				];
-
-				// Length
-				let posLocal = [ctrl[0] - handle.joint[0], ctrl[1] - handle.joint[1], ctrl[2] - handle.joint[2]];
-				let posLocalVec = new THREE.Vector3().fromArray(posLocal)
-				let length = posLocalVec.length();
-
-				// First matrix, which will give us your general control orient, and basis to properly orient the handle
-				let jointPos = new THREE.Vector3().fromArray(handle.joint);
-				let ctrlPos = new THREE.Vector3().fromArray(ctrl);
-				let mat4 = new THREE.Matrix4().lookAt(jointPos, ctrlPos, new THREE.Vector3(0, 1, 0));
-
-				// Matrix to fix the orientation of the previous one
-				let reOrientMat4 = new THREE.Matrix4().makeRotationX(Math.PI / 2);
-				mat4.multiply(reOrientMat4);
-				mat4.setPosition(jointPos);
-
-				// Rotations
-				let quaternion = new THREE.Quaternion().setFromRotationMatrix(mat4);
-				let euler = new THREE.Euler().setFromQuaternion(quaternion, "XYZ");
-
-				return {
-					pos: cylinderPos, 
-					len: length, 
-					euler: [euler.x, euler.y, euler.z]
-				};
-
-			}
-			let ctrl1Transform = getCtrlTransforms(handle.control1);
-			let ctrl2Transform = getCtrlTransforms(handle.control2);
+			this.spline = spline;
+			this.handle = this.spline.handles[hKey];
+			let jointPos = this.spline.vertices[this.handle.joint];
+			let ctrl1Pos = this.spline.vertices[this.handle.control1];
+			let ctrl2Pos = this.spline.vertices[this.handle.control2];
 
 			function getHandleColor() {
 				let colors = {
@@ -647,56 +617,31 @@ import { Reusable } from "../preview/canvas";
 
 			let lineCtrl1Geometry = new THREE.BufferGeometry();
 			let lineCtrl2Geometry = new THREE.BufferGeometry();
-			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control1 ], 3 ) );
-			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...handle.joint, ...handle.control2 ], 3 ) );
+			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...jointPos, ...ctrl1Pos ], 3 ) );
+			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...jointPos, ...ctrl2Pos ], 3 ) );
 			
-			let CircleGeometry = function ( radius, facing, arc ) {
-				var geometry = new THREE.BufferGeometry();
-				var vertices = [];
-				let points = 16;
-				arc = arc ? arc : 1;
-				
-				for ( var i = 0; i <= points * arc; ++ i ) {
-					if ( facing === 'x' ) vertices.push( 0, Math.cos( i / (points/2) * Math.PI ) * radius, Math.sin( i / (points/2) * Math.PI ) * radius );
-					if ( facing === 'y' ) vertices.push( Math.cos( i / (points/2) * Math.PI ) * radius, 0, Math.sin( i / (points/2) * Math.PI ) * radius );
-					if ( facing === 'z' ) vertices.push( Math.sin( i / (points/2) * Math.PI ) * radius, Math.cos( i / (points/2) * Math.PI ) * radius, 0 );
-				}
-
-				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-				return geometry;
-
-			};
 			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
 			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
 
 			this.handleGizmos = {
 				C1: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), handle.control1 ],
+					[ new THREE.Mesh( arrowGeometry, mat() ), ctrl1Pos  ],
 					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
 				],
 				C2: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), handle.control2 ],
+					[ new THREE.Mesh( arrowGeometry, mat() ), ctrl2Pos  ],
 					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
 				],
 				J: [
-					[ new THREE.Mesh( arrowGeometry, mat() ), handle.joint ]
-				],
-				E: [
-					[ new THREE.Line( new CircleGeometry( 0.13, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
-				],
+					[ new THREE.Mesh( arrowGeometry, mat() ), jointPos ]
+				]
 			};
 
 			// TODO: fix pickers not being placed properly AT ALL
 			this.pickerGizmos = {
-				C1: [
-					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.control1 ]
-				],
-				C2: [
-					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.control2 ]
-				],
-				J: [
-					[ new THREE.Mesh( pickerGeometry, pickerMaterial ), handle.joint ]
-				]
+				C1: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl1Pos  ] ],
+				C2: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), ctrl2Pos  ] ],
+				J: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), jointPos ] ]
 			};
 
 			this.setActivePlane = function ( axis, eye ) {
@@ -774,10 +719,8 @@ import { Reusable } from "../preview/canvas";
 			var _gizmo = {
 				"translate": new THREE.TransformGizmoTranslate(),
 				"scale": new THREE.TransformGizmoScale(),
-				// "scale": new THREE.TransformGizmoSplineHandle(), // to test spline handles
 				"rotate": new THREE.TransformGizmoRotate(),
 				"stretch": new THREE.TransformGizmoScale(),
-				"spline_handle": (handle, spline) => new THREE.TransformGizmoSplineHandle(handle, spline),
 			};
 
 			for ( var type in _gizmo ) {
@@ -894,6 +837,19 @@ import { Reusable } from "../preview/canvas";
 					gizmo.scale.set(1 / scale, 1 / scale, 1 / scale);
 					gizmo.update( worldRotation, eye );
 					gizmo.setHandleScale(scale);
+
+					// properly position this fella in the world
+					let cancelledPos = new THREE.Vector3().copy(worldPosition).multiplyScalar(-1).multiplyScalar(1 / scale);
+					let splinePos = gizmo.spline.position;
+					splinePos = new THREE.Vector3(splinePos[0], splinePos[1], splinePos[2]).multiplyScalar(1 / scale);
+					
+					gizmo.position.copy(cancelledPos.add(splinePos));
+
+					// Properly orient this too, since our splines aren't always aligned to the world axis
+					let splineRot = gizmo.spline.rotation;
+					splineRot = new THREE.Euler(Math.degToRad(splineRot[0]), Math.degToRad(splineRot[1]), Math.degToRad(splineRot[2]));
+
+					gizmo.rotation.copy(splineRot);
 				})
 
 				
@@ -998,14 +954,7 @@ import { Reusable } from "../preview/canvas";
 							}
 
 							for (let hKey of Object.keys(spline.handles)) {
-								let handle = spline.handles[hKey]
-								let gizmoHandle = {
-									joint: spline.vertices[handle.joint], 
-									control1: spline.vertices[handle.control1], 
-									control2:  spline.vertices[handle.control2]
-								};
-
-								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(gizmoHandle, spline));
+								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey));
 							}
 
 							this.add(...this.spline_handles);
