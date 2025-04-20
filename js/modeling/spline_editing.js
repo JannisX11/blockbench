@@ -49,6 +49,42 @@ BARS.defineActions(function() {
 			previous_selection_mode = value;
         }
 	})
+    new BarSelect('spline_handle_mode', {
+		condition: () => Modes.edit && SplineMesh.hasSelected(),
+		category: 'transform',
+		value: 'aligned',
+		options: {
+			aligned: true,
+			mirrored: true,
+			free: true,
+		},
+		onChange() {
+			Transformer.updateSelection();
+			Transformer.setMode(Toolbox.selected.transformerMode);
+		}
+	})
+	new Action('extrude_spline_selection', {
+		icon: 'upload',
+		category: 'edit',
+		keybind: new Keybind({key: 'e', shift: true}),
+		condition: {modes: ['edit'], features: ['splines'], method: () => (SplineMesh.selected[0] && SplineMesh.selected[0].getSelectedHandles().length)},
+		click() {
+			function runEdit(amended, extend = 1, even_extend) {
+				Undo.initEdit({elements: SplineMesh.selected, selection: true}, amended);
+
+				Undo.finishEdit('Extrude mesh selection');
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
+			}
+			runEdit();
+
+			Undo.amendEdit({
+				extend: {type: 'num_slider', value: 1, label: 'edit.extrude_spline_selection.extend', interval_type: 'position'},
+				even_extend: {type: 'checkbox', value: false, label: 'edit.extrude_spline_selection.even_extend'},
+			}, form => {
+				runEdit(true, form.extend, form.even_extend);
+			})
+		}
+	})
 	
 	new Action('apply_spline_rotation', {
 		icon: 'published_with_changes',
@@ -77,20 +113,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Merge splines');
 			updateSelection();
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
-		}
-	}),
-    new BarSelect('spline_handle_mode', {
-		condition: () => Modes.edit && SplineMesh.hasSelected(),
-		category: 'transform',
-		value: 'aligned',
-		options: {
-			aligned: true,
-			mirrored: true,
-			free: true,
-		},
-		onChange() {
-			Transformer.updateSelection();
-			Transformer.setMode(Toolbox.selected.transformerMode);
 		}
 	})
 })

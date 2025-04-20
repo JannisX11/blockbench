@@ -29,6 +29,43 @@ export function getSelectionCenter(all = false) {
 	}
 	return center;
 }
+// Spline Point Selection
+export function selectSplinePoints(spline, handle, axis) {
+	let selection = spline.getSelectedVertices(true);
+	let addToPrevious = Pressing.shift;
+	let toAdd = { "C1": [handle.control1], "C2": [handle.control2], "J": [handle.control1, handle.joint, handle.control2] };
+	let selectionLength = 0;
+	let toAddLength = 0;
+
+	// Silly workaround because both of these don't have a length for some reason
+	selection.forEach((e) => selectionLength++);
+	toAdd[axis].forEach((e) => toAddLength++);
+
+	// Determine which points to select
+	if (!toAdd[axis].some((value) => selection.includes(value))) {
+		if (addToPrevious) {
+			selection.push(...toAdd[axis]);
+		}
+		else {
+			selection.replace(toAdd[axis]);
+		}
+	} else {
+		if (addToPrevious) {
+			if (selection.includes(handle.joint) && (axis === "C1" || axis === "C2")) {
+				selection.remove(...toAdd["J"]);
+			} else {
+				selection.remove(...toAdd[axis]);
+			}
+		} else {
+			if (selectionLength > toAddLength) {
+				selection.empty();
+				selection.push(...toAdd[axis]);
+			} else {
+				selection.remove(...toAdd[axis]);
+			}
+		}
+	}
+}
 //Movement
 export function moveElementsRelative(difference, index, event) { //Multiple
 	if (!Preview.selected || !Outliner.selected.length) {
@@ -313,10 +350,6 @@ export const Vertexsnap = {
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.groups = Group.multi_selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
-				let vertices = data.element.getSelectedVertices(true);
-				vertices.safePush(data.vertex);
-			}
-			if (data.element instanceof SplineMesh && BarItems.spline_selection_mode.value == 'handles') {
 				let vertices = data.element.getSelectedVertices(true);
 				vertices.safePush(data.vertex);
 			}
@@ -2196,5 +2229,6 @@ Object.assign(window, {
 	getRotationInterval,
 	getRotationObjects,
 	rotateOnAxis,
-	afterRotateOnAxis
+	afterRotateOnAxis,
+	selectSplinePoints
 });

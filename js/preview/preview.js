@@ -816,9 +816,9 @@ export class Preview {
 				select_mode = 'object';
 			}
 
-			let spline_select_mode = BarItems.spline_selection_mode.value
+			let spline_selection_mode = BarItems.spline_selection_mode.value
 			if (!Condition(BarItems.spline_selection_mode.condition)) {
-				spline_select_mode = 'object';
+				spline_selection_mode = 'object';
 			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
@@ -1990,12 +1990,14 @@ export function initCanvas() {
 	MediaPreview = new Preview({id: 'media', offscreen: true});
 	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
 
-	main_preview = new Preview({id: 'main'}).fullscreen()
+	main_preview = new Preview({id: 'main'}).fullscreen();
 
 	//TransformControls
-	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
-	Transformer.setSize(0.5)
-	scene.add(Transformer)
+	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas);
+	// window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
+	Transformer.setSize(0.5);
+	scene.add(Transformer);
+	// scene.add(SplineGizmos);
 	Canvas.gizmos.push(Transformer);
 	main_preview.occupyTransformer()
 

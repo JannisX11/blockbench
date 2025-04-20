@@ -2154,11 +2154,19 @@ BARS.defineActions(function() {
 
 				spline.updateShading(false); // Ensure we use exploitable data for the code to follow
 
-				let attr_position = spline.mesh.geometry.getAttribute('position');
-				let attr_uv = spline.mesh.geometry.getAttribute('uv');
-				let texture = Texture.getDefault();
-				let add_texture = false;
+				let tube = spline.getTubeGeo();
+				let geo = new THREE.BufferGeometry(1, 1, 1);
+				geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
+				geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
+				geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2));
+				geo.setIndex(tube.indices);
 
+				let attr_position = geo.getAttribute('position');
+				let attr_uv = geo.getAttribute('uv');
+				let texture = Texture.getDefault();
+				
+				// Determine if we have a texture
+				let add_texture = false;
 				if (spline.texture) {
 					if (spline.texture instanceof Texture) {
 						texture = spline.texture;

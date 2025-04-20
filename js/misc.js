@@ -176,6 +176,11 @@ export function updateSelection(options = {}) {
 			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
 		}
 	}
+	if (Format.splines && Outliner.selected.length && Modes.edit && BarItems.spline_selection_mode.value == "handles") {
+		if (SplineMesh.selected.length) {
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+		}
+	}
 	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
 		if (!Outliner.selected[0] || Outliner.selected[0].type !== 'cube' || Outliner.selected[0].box_uv) {
 			UVEditor.vue.mode = 'uv';

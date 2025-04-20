@@ -316,22 +316,21 @@ export class SplineMesh extends OutlinerElement {
         if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [], handles: [] };
         let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
 
-        // Force select control points when an handle joint is selected
-        if (selection.length > 0) {
-            for (let key in this.handles) {
-                let handle = this.handles[key];
-                // Do we have the joint selected?
-                if (selection.includes(handle.joint)) {
-                    // are the controls unselected? check for each, so we can select them
-                    if (!selection.includes(handle.control1)) selection.push(handle.control1)
-                    if (!selection.includes(handle.control2)) selection.push(handle.control2)
-                }
-            }
-        }
+        // // Force select control points when an handle joint is selected
+        // if (selection.length > 0) {
+        //     for (let key in this.handles) {
+        //         let handle = this.handles[key];
+        //         // Do we have the joint selected?
+        //         if (selection.includes(handle.joint)) {
+        //             // are the controls unselected? check for each, so we can select them
+        //             if (!selection.includes(handle.control1)) selection.push(handle.control1)
+        //             if (!selection.includes(handle.control2)) selection.push(handle.control2)
+        //         }
+        //     }
+        // }
 
         return selection;
     }
-    // Might never be used, but still here just in case
     getSelectedHandles() {
         let selection = this.getSelectedVertices();
 
@@ -458,6 +457,7 @@ export class SplineMesh extends OutlinerElement {
         })
         this.preview_controller.updateGeometry(this);
     }
+    // Partly Adapted from https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
     getTubeGeo() {
         let { vec1, vec2, vec3 } = Reusable;
         let pathData = this.getBézierPath();
@@ -691,7 +691,9 @@ export class SplineMesh extends OutlinerElement {
         let p4 = this.vertices[p4k];
         return this.cubicBézier(time, p1, p2, p3, p4);
     }
-    // thanks for the math, Freya :> https://youtu.be/jvPPXbo87ds?si=XBdiXoriL3MgeGsu
+    // Math: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
+    // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Higher-order_curves
+    // Explanation, Thanks Freya :> https://youtu.be/jvPPXbo87ds?si=XBdiXoriL3MgeGsu
     cubicBézier(time, point1, point2, point3, point4) {
         let timeP2 = time ** 2;
         let timeP3 = time ** 3;
@@ -762,6 +764,8 @@ SplineMesh.prototype.type = 'spline';
 SplineMesh.prototype.icon = 'fas.fa-bezier-curve';
 SplineMesh.prototype.menu = new Menu([
     new MenuSeparator('spline_mesh_edit'),
+    "extrude_spline_selection",
+    "apply_spline_rotation",
     new MenuSeparator('spline_mesh_combination'),
     ...Outliner.control_menu_group,
     new MenuSeparator('settings'),
@@ -976,29 +980,8 @@ new NodePreviewController(SplineMesh, {
     },
     updateGeometry(element) {
         let { mesh } = element;
-        // let point_positions = [];
         let linePoints = [];
         let lineColors = [];
-        // let { handles, vertices } = element;
-
-        // Handle geometry
-        // TODO: this can and SHOULD likely be turned into a Gizmo, something to look into
-        // for (let key in handles) {
-        //     let handle = handles[key];
-        //     let ctrl1 = handle.control1;
-        //     let joint = handle.joint;
-        //     let ctrl2 = handle.control2;
-        //     point_positions.push(...vertices[ctrl1], ...vertices[joint], ...vertices[ctrl2]);
-
-        //     // Add handle lines
-        //     if (BarItems.spline_selection_mode.value == 'handles') {
-        //         linePoints.push(...vertices[ctrl1], ...vertices[joint], ...vertices[joint], ...vertices[ctrl2]);
-
-        //         // Handle color
-        //         let color = this.getHandleColor()[0];
-        //         lineColors.push(...color, ...color, ...color, ...color);
-        //     }
-        // }
 
         // Bezier Curves
         let pathColor = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
@@ -1073,16 +1056,11 @@ new NodePreviewController(SplineMesh, {
             mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([]), 2));
         }
 
-        // mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_positions), 3));
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
-        
-        mesh.outline.geometry.computeBoundingSphere();
-
-        // mesh.vertex_points.geometry.computeBoundingSphere();
 
         SplineMesh.preview_controller.updateHighlight(element);
 
@@ -1125,34 +1103,7 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_faces', { element });
     },
-    // code smell from mesh.js
-    updateSelection(element) {
-        NodePreviewController.prototype.updateSelection.call(this, element);
-
-        let mesh = element.mesh;
-        let white = new THREE.Color(0xffffff);
-        let selected_vertices = element.getSelectedVertices();
-
-        if (BarItems.spline_selection_mode.value == 'handles') {
-            let colors = [];
-            for (let key in element.vertices) {
-                let color;
-                if (selected_vertices.includes(key)) {
-                    color = white;
-                } else {
-                    color = this.getHandleColor()[1];
-                }
-                colors.push(color.r, color.g, color.b);
-            }
-            mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            mesh.outline.geometry.needsUpdate = true;
-        }
-
-        mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.spline_selection_mode.value == 'handles');
-
-        this.dispatchEvent('update_selection', { element });
-    },
-    // This is also code smell, from mesh.js, unsure too
+    // Aza assumption: tell preview to display white overlay when hovered
     updateHighlight(element, hover_cube, force_off) {
         var mesh = element.mesh;
         let highlighted = (
@@ -1163,17 +1114,6 @@ new NodePreviewController(SplineMesh, {
         ) ? 1 : 0;
 
         let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
-        let selection_mode = BarItems.selection_mode.value;
-        let selected_vertices = element.getSelectedVertices();
-    	
-        if (!force_off && element.selected && Modes.edit) {
-            let vertices = element.vertices;
-            for (let vkey in vertices) {
-                if (selected_vertices.indexOf(vkey) != -1 && (selection_mode == 'handles')) {
-                    array[selected_vertices.indexOf(vkey)] = 2;
-                }
-            }
-        }
 
         mesh.geometry.attributes.highlight.array.set(array);
         mesh.geometry.attributes.highlight.needsUpdate = true;

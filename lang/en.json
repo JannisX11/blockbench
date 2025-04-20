@@ -239,6 +239,7 @@
 	"modifier_actions.snap_direction": "Snap Direction",
 	"modifier_actions.snap_to_center": "Snap to Center",
 	"modifier_actions.snap_to_pixels": "Snap to Pixels",
+	"modifier_actions.spline_select_multiple_points": "Select multiple Points or Handles",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",
@@ -1627,7 +1628,7 @@
 	"action.spline_selection_mode.desc": "Change how splines can be selected in the viewport",
 	"action.spline_selection_mode.object": "Object",
 	"action.spline_selection_mode.handles": "Handles",
-	"action.spline_selection_mode.tilt": "Tilt",
+	"action.spline_selection_mode.tilt": "Tilt & Radius",
 	"action.select_seam": "Select UV Seam",
 	"action.select_seam.desc": "Select the UV seam mode for the selected edges",
 	"action.select_seam.auto": "Auto",
