@@ -1994,11 +1994,12 @@ export function initCanvas() {
 
 	//TransformControls
 	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas);
-	// window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
+	window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
 	Transformer.setSize(0.5);
 	scene.add(Transformer);
-	// scene.add(SplineGizmos);
+	scene.add(SplineGizmos);
 	Canvas.gizmos.push(Transformer);
+	Canvas.gizmos.push(SplineGizmos);
 	main_preview.occupyTransformer()
 
 

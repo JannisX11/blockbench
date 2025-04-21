@@ -3,9 +3,6 @@
  * modified for Blockbench by jannisx11
  */
 
-import { SplineMesh } from "../outliner/spline_mesh";
-import { Reusable } from "../preview/canvas";
-
  ( function () {
 
 	'use strict';
@@ -779,7 +776,11 @@ import { Reusable } from "../preview/canvas";
 			this.highlight = function(axis, matching_index) {
 				this.traverse(function(child) {
 					if ( child.material && child.material.highlight && matching_index ) {
-						child.material.highlight(child.name == axis);
+						if (child.name == axis) {
+							child.material.highlight(true);
+						} else {
+							child.material.highlight(false);
+						}
 					}
 				});
 			};
@@ -788,78 +789,107 @@ import { Reusable } from "../preview/canvas";
 		}
 	};
 
-	// THREE.SplineGizmoController = class extends THREE.Object3D {
-	// 	constructor( cam, domElement ) {
-	// 		super();
-	// 		domElement = ( domElement !== undefined ) ? domElement : document;
-	// 		this.camera = cam;
-	// 		this.spline_handles = [];
-	// 		let prevSpline = null;
+	THREE.SplineGizmoController = class extends THREE.Object3D {
+		constructor( cam, domElement ) {
+			super();
+			domElement = ( domElement !== undefined ) ? domElement : document;
+			this.camera = cam;
+			this.spline_handles = [];
+			let prevSpline = null;
 
-	// 		this.refreshGizmos = function(scope) {
-	// 			let spline = SplineMesh.selected[0];
+			this.refreshGizmos = function(scope) {
+				let spline = SplineMesh.selected[0];
 	
-	// 			if (prevSpline !== spline) {
-	// 				this.remove(...this.spline_handles);
-	// 				this.spline_handles.length = 0;
-	// 			}
+				if (prevSpline !== spline) {
+					this.remove(...this.spline_handles);
+					this.spline_handles.length = 0;
+				}
 	
-	// 			for (let hKey of Object.keys(spline.handles)) {
-	// 				this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value == 'tilt'));
-	// 			}
+				for (let hKey of Object.keys(spline.handles)) {
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value == 'tilt'));
+				}
 	
-	// 			this.add(...this.spline_handles);
-	// 			scope.attach(spline);
-	// 			prevSpline = spline;
-	// 		}
-	// 		this.tryAssignIndex = function(intersect) {
-	// 			let iopp = intersect.object.parent.parent;
-	// 			if (iopp instanceof THREE.TransformGizmoSplineHandle) {
-	// 				this.spline_handle_index = this.spline_handles.indexOf(iopp);
-	// 			}
-	// 		}
-	// 		this.update (options = {}) = function() {
-	// 			this.spline_handles.forEach(gizmo => {
-	// 				let idMatch = (this.spline_handle_index == this.spline_handles.indexOf(gizmo));
-	// 				if (options.highlight) gizmo.highlight( options.axis, idMatch );
-	// 				if (options.selection) gizmo.select();
-	// 			})
-	// 		}
-	// 		this.selectSplinePoints = function(scope) {
-	// 			let gizmo = this.spline_handles[this.spline_handle_index];
-	// 			selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
+				this.add(...this.spline_handles);
 
-	// 			updateSelection();
-	// 			scope.updateSelection();
-	// 			scope.update();
-	// 			this.update({highlight: true, selection: true})
-	// 		}
-	// 		this.checkSelected = function() {
-	// 			if (prevSpline !== SplineMesh.selected[0]) {
-	// 				this.remove(...this.spline_handles);
-	// 				this.spline_handles.empty();
-	// 			}
-	// 		}
-	// 		this.interesct = function(pointer) {
-	// 			let result = false;
-	// 			for (let gizmo of this.spline_handles) {
-	// 				result ||= intersectObjects( pointer, gizmo.pickers.children );
-	// 			}
-	// 			return result;
-	// 		}
-	// 		this.hideOtherGizmos = function(gizmoDict, selectionMode) {
-	// 			if (BarItems.spline_selection_mode && this.spline_handles.length) {
-	// 				for ( var type in gizmoDict ) {
-	// 					var gizmoObj = gizmoDict[ type ];
-	// 					let spline = this.spline_handles[0].spline;
-	// 					let cond = BarItems.spline_selection_mode.value == 'object' || spline.getSelectedVertices();
+				this.traverse((kid) => {
+					kid.renderOrder = 999;
+				});
 
-	// 					gizmoObj.visible = (type === selectionMode) && cond;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// };
+				scope.attach(spline);
+				prevSpline = spline;
+			}
+			this.tryAssignIndex = function(intersect) {
+				let iopp = intersect.object.parent.parent;
+				if (iopp instanceof THREE.TransformGizmoSplineHandle) {
+					this.spline_handle_index = this.spline_handles.indexOf(iopp);
+				}
+			}
+			this.tryHighlight = function() {
+				this.spline_handles.forEach(gizmo => {
+					let idMatch = (this.spline_handle_index == this.spline_handles.indexOf(gizmo));
+					gizmo.highlight( Transformer.axis, idMatch );
+				});
+			}
+			this.trySelect = function() {
+				this.spline_handles.forEach(gizmo => {
+					gizmo.select();
+				});
+			}
+			this.selectSplinePoints = function(scope) {
+				let gizmo = this.spline_handles[this.spline_handle_index];
+				selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
+
+				updateSelection();
+				scope.updateSelection();
+				scope.update();
+				this.update({selection: true})
+			}
+			this.verifyValidity = function() {
+				if (prevSpline !== SplineMesh.selected[0] || BarItems.spline_selection_mode.value !== 'handles') {
+					this.remove(...this.spline_handles);
+					this.spline_handles.empty();
+				}
+			}
+			this.interesct = function(pointer, intersectMethod) {
+				let result = false;
+				
+				for (let gizmo of this.spline_handles) {
+					result ||= intersectMethod( pointer, gizmo.pickers.children );
+				}
+
+				return result;
+			}
+			this.hideOtherGizmos = function(gizmoDict, selectionMode) {
+				if (BarItems.spline_selection_mode && this.spline_handles.length) {
+					for ( var type in gizmoDict ) {
+						var gizmoObj = gizmoDict[ type ];
+						let spline = this.spline_handles[0].spline;
+						let cond = BarItems.spline_selection_mode.value == 'object' || spline.getSelectedVertices();
+
+						gizmoObj.visible = (type === selectionMode) && cond;
+					}
+				}
+			}
+			this.updateAllGizmoTransforms = function() {
+				this.spline_handles.forEach((gizmo) => {
+					this.updateGizmoTransform(gizmo);
+				})
+			}
+			this.updateGizmoTransform = function(gizmo) {
+				let { vec1, vec2, euler1 } = Reusable;
+				let space = Transformer.getTransformSpace();
+				let splinePosArr = gizmo.spline.position;
+				let splineRotArr = gizmo.spline.rotation;
+				let splinePos = vec2.fromArray(splinePosArr);
+				let splineRot = euler1.fromArray(splineRotArr);
+
+				gizmo.setHandleScale();
+				gizmo.position.copy(splinePos);
+				gizmo.rotation.copy(splineRot);
+
+			}
+		}
+	};
 
 	THREE.TransformControls = class extends THREE.Object3D {
 		constructor( cam, domElement ) {
@@ -878,7 +908,6 @@ import { Reusable } from "../preview/canvas";
 			this.direction = true;
 			this.last_valid_position = new THREE.Vector3();
 			this.rotation_selection = new THREE.Euler();
-			this.spline_handles = [];
 
 			this.firstLocation = [0,0,0]
 
@@ -914,7 +943,7 @@ import { Reusable } from "../preview/canvas";
 
 			//Adjust GIzmos
 			this.traverse((kid) => {
-				kid.renderOrder = 999
+				kid.renderOrder = 999;
 			})
 			this.children[2].children[0].children[6].renderOrder -= 9
 			this.children[2].scale.set(0.8, 0.8, 0.8)
@@ -993,55 +1022,9 @@ import { Reusable } from "../preview/canvas";
 			this.setScale = function(sc) {
 				Transformer.scale.set(sc,sc,sc)
 			}
-			// Fix transform for spline gizmos. Since they're supposed to 
-			// render on the spline object, not at the origin of the selection
-			this.updateSplineGizmo = function(gizmo, transformOnly = false) {
-				let { vec1, vec2, euler1 } = Reusable;
-				let space = Transformer.getTransformSpace();
-
-				// Cancel out controller scale
-				let scale = this.getScale();
-				gizmo.scale.set(1 / scale, 1 / scale, 1 / scale);
-				gizmo.setHandleScale();
-
-				// Values for position cancelling
-				let splinePosArr = gizmo.spline.position;
-				let splineRotArr = gizmo.spline.rotation;
-				let splinePos = vec2.fromArray(splinePosArr).multiplyScalar(1 / scale);
-	
-				if (space === 0) {
-					// Cancel out controller position
-					let splineRot = euler1.set(Math.degToRad(splineRotArr[0]), Math.degToRad(splineRotArr[1]), Math.degToRad(splineRotArr[2]));
-					let cancelledPos = vec1.copy(worldPosition).multiplyScalar(-1).multiplyScalar(1 / scale);
-					gizmo.position.copy(cancelledPos.add(splinePos));
-
-					// Cancel out object orientation
-					gizmo.rotation.copy(splineRot);
-				} 
-				else if (space === 2) {
-					// Cancel out controller position
-					let splineRotInv = euler1.set(Math.degToRad(-splineRotArr[0]), Math.degToRad(-splineRotArr[1]), Math.degToRad(-splineRotArr[2]));
-					let cancelledPos = vec1.copy(worldPosition).multiplyScalar(-1).multiplyScalar(1 / scale);
-					gizmo.position.copy(cancelledPos.add(splinePos).applyEuler(splineRotInv));
-				}
-
-				if (!transformOnly) {
-					gizmo.update( worldRotation, eye );
-				}
-			}
 			this.update = function (object) {
 				var scope = Transformer;
-
-				if (BarItems.spline_selection_mode && scope.spline_handles.length) {
-					for ( var type in _gizmo ) {
-						var gizmoObj = _gizmo[ type ];
-						let spline = scope.spline_handles[0].spline;
-						let cond = BarItems.spline_selection_mode.value == 'object' || spline.getSelectedVertices();
-
-						gizmoObj.visible = (type === _mode) && cond;
-					}
-				}
-
+				
 				if (!object) {
 					object = this.rotation_ref;
 				}
@@ -1074,11 +1057,9 @@ import { Reusable } from "../preview/canvas";
 					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
 					if (Toolbox.selected.transformerMode === 'rotate') {
 						_gizmo[ _mode ].update( worldRotation, eye );
-						scope.spline_handles.forEach(gizmo => this.updateSplineGizmo(gizmo));
 						this.rotation.set(0, 0, 0);
 					} else if (Toolbox.selected.transformerMode === 'scale' || Toolbox.selected.transformerMode === 'stretch') {
 						_gizmo[ _mode ].update( worldRotation, eye );
-						scope.spline_handles.forEach(gizmo => this.updateSplineGizmo(gizmo));
 						object.getWorldQuaternion(this.rotation)
 					} else {
 						object.getWorldQuaternion(this.rotation)
@@ -1093,16 +1074,13 @@ import { Reusable } from "../preview/canvas";
 					worldRotation.set(0, 0, 0);
 					this.rotation.set(0, 0, 0);
 					_gizmo[ _mode ].update( worldRotation, eye );
-					scope.spline_handles.forEach(gizmo => this.updateSplineGizmo(gizmo));
 				}
 				_gizmo[ _mode ].highlight( scope.axis );
 
-				scope.spline_handles.forEach(gizmo => {
-					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
-					gizmo.highlight( scope.axis, idMatch );
-					gizmo.select();
-					this.updateSplineGizmo(gizmo, true);
-				})
+				SplineGizmos.updateAllGizmoTransforms();
+				SplineGizmos.tryHighlight();
+				SplineGizmos.trySelect();
+				SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 			};
 			this.fadeInControls = function(frames) {
 				if (!frames || typeof frames !== 'number') frames = 10
@@ -1145,25 +1123,10 @@ import { Reusable } from "../preview/canvas";
 
 			this.updateSelection = function() {
 				this.elements.empty()
-				let prevSpline;
 				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
 					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-						// This might not be tyhe best place to do this, but it works for now
 						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value == 'handles' || BarItems.spline_selection_mode.value == 'tilt')) {
-							let spline = SplineMesh.selected[0];
-
-							if (prevSpline !== spline) {
-								this.remove(...this.spline_handles);
-								this.spline_handles.empty();
-							}
-
-							for (let hKey of Object.keys(spline.handles)) {
-								this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value == 'tilt'));
-							}
-
-							this.add(...this.spline_handles);
-							scope.attach(spline);
-							prevSpline = spline;
+							SplineGizmos.refreshGizmos(scope);
 						} else if (Outliner.selected.length) {
 							Outliner.selected.forEach(element => {
 								if (
@@ -1183,10 +1146,7 @@ import { Reusable } from "../preview/canvas";
 					}
 					this.center()
 				}
-				if (prevSpline !== SplineMesh.selected[0]) {
-					this.remove(...this.spline_handles);
-					this.spline_handles.empty();
-				}
+				SplineGizmos.verifyValidity();
 
 				this.update()
 				return this;
@@ -1438,10 +1398,7 @@ import { Reusable } from "../preview/canvas";
 
 				_gizmo[ _mode ].highlight( scope.axis );
 
-				scope.spline_handles.forEach(gizmo => {
-					let idMatch = (scope.spline_handle_index == scope.spline_handles.indexOf(gizmo));
-					gizmo.highlight( scope.axis, idMatch );
-				})
+				SplineGizmos.tryHighlight();
 			}
 
 			function onPointerHover( event ) {
@@ -1449,23 +1406,14 @@ import { Reusable } from "../preview/canvas";
 				if ( scope.elements.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
-				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children );
-
-				for (let spline_gizmo of scope.spline_handles) {
-					intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
-				}
-
+				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
+	
 				if (_dragging === true) return;
 				scope.hoverAxis = null;
 
 				if ( intersect ) {
 					scope.hoverAxis = intersect.object.name;
-
-					let iopp = intersect.object.parent.parent;
-					if (iopp instanceof THREE.TransformGizmoSplineHandle) {
-						scope.spline_handle_index = scope.spline_handles.indexOf(iopp);
-					}
-					
+					SplineGizmos.tryAssignIndex(intersect);
 					event.preventDefault();
 				} else {
 				}
@@ -1483,11 +1431,7 @@ import { Reusable } from "../preview/canvas";
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
-					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ); 
-					
-					for (let spline_gizmo of scope.spline_handles) {
-						intersect ||= intersectObjects( pointer, spline_gizmo.pickers.children );
-					}
+					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);					
 
 					if ( intersect ) {
 						scope.dragging = true
@@ -1527,17 +1471,7 @@ import { Reusable } from "../preview/canvas";
 						}
 
 						if (scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J") {
-							let gizmo = scope.spline_handles[scope.spline_handle_index];
-							selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
-
-							scope.spline_handles.forEach( (gizmo) => {
-								gizmo.select();
-								scope.updateSplineGizmo(gizmo) 
-							});
-
-							updateSelection();
-							scope.updateSelection();
-							scope.update();
+							SplineGizmos.selectSplinePoints(scope);
 						} else {
 							_dragging = true;
 						}

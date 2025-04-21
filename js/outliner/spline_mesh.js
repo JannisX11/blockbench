@@ -314,21 +314,7 @@ export class SplineMesh extends OutlinerElement {
     }
     getSelectedVertices(make) {
         if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [], handles: [] };
-        let selection = Project.spline_selection[this.uuid]?.vertices || []; // normal selection result, we will slightly alter this below
-
-        // // Force select control points when an handle joint is selected
-        // if (selection.length > 0) {
-        //     for (let key in this.handles) {
-        //         let handle = this.handles[key];
-        //         // Do we have the joint selected?
-        //         if (selection.includes(handle.joint)) {
-        //             // are the controls unselected? check for each, so we can select them
-        //             if (!selection.includes(handle.control1)) selection.push(handle.control1)
-        //             if (!selection.includes(handle.control2)) selection.push(handle.control2)
-        //         }
-        //     }
-        // }
-
+        let selection = Project.spline_selection[this.uuid]?.vertices || [];
         return selection;
     }
     getSelectedHandles() {
@@ -343,6 +329,9 @@ export class SplineMesh extends OutlinerElement {
         }
 
         return selected_handles;
+    }
+    getLastSelected() {
+        return SplineMesh.selected[SplineMesh.selected.length - 1];
     }
     getLastHandle() {
         let index = Object.keys(this.handles).length - 1;
