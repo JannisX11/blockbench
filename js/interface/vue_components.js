@@ -101,10 +101,13 @@ Vue.component('numeric-input', {
 		}
 	},
 	methods: {
-		change(value) {
+		change(value, emit_change) {
 			this.string_value = typeof value == 'number' ? trimFloatNumber(value) : value;
 			this.resolved_value = Math.clamp(NumSlider.MolangParser.parse(this.string_value), this.min, this.max);
 			this.$emit('input', this.resolved_value);
+			if (emit_change) {
+				this.$emit('change', this.resolved_value);
+			}
 		},
 		slide(e1) {
 			convertTouchEvent(e1);
@@ -115,10 +118,12 @@ Vue.component('numeric-input', {
 				if (difference != last_difference) {
 					let value = Math.clamp((parseFloat(this.value) || 0) + (difference - last_difference), this.min, this.max);
 					this.change(value);
+					this.$emit('input', this.resolved_value);
 					last_difference = difference;
 				}
 			}
 			let stop = e2 => {
+				this.$emit('change', this.resolved_value);
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', stop);
 			}
@@ -127,12 +132,22 @@ Vue.component('numeric-input', {
 		},
 		resolve() {
 			this.string_value = trimFloatNumber(this.resolved_value, 10);
+			this.$emit('change', this.resolved_value);
 		}
 	},
 	template: `
-		<div class="numeric_input">
-			<input class="dark_bordered focusable_input" :value="string_value" @input="change($event.target.value)" :inputmode="min >= 0 ? 'decimal' : ''" lang="en" @focusout="resolve($event)" @dblclick="resolve($event)">
-			<div class="tool numeric_input_slider" @mousedown="slide($event)" @touchstart="slide($event)"><i class="material-icons">code</i></div>
+		<div class="numeric_input" @mousedown="$emit('mousedown', $event)">
+			<input class="dark_bordered focusable_input"
+				:value="string_value" @input="change($event.target.value)"
+				:inputmode="min >= 0 ? 'decimal' : ''" lang="en"
+				@focusout="resolve($event)" @dblclick="resolve($event)"
+			>
+			<div class="tool numeric_input_slider"
+				@mousedown="slide($event)"
+				@touchstart="slide($event)"
+			>
+				<i class="material-icons">code</i>
+			</div>
 		</div>
 	`,
 	mounted() {
