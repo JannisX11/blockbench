@@ -65,6 +65,12 @@ export function selectSplinePoints(spline, handle, axis) {
 			}
 		}
 	}
+
+	return selection.lenght > 0;
+}
+// Spline handle tilt
+export function tiltSplineHandle(index, amount) {
+
 }
 //Movement
 export function moveElementsRelative(difference, index, event) { //Multiple
@@ -2230,5 +2236,6 @@ Object.assign(window, {
 	getRotationObjects,
 	rotateOnAxis,
 	afterRotateOnAxis,
-	selectSplinePoints
+	selectSplinePoints,
+	tiltSplineHandle
 });

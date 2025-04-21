@@ -46,7 +46,14 @@ BARS.defineActions(function() {
 
 			Transformer.updateSelection();
 			Transformer.setMode(Toolbox.selected.transformerMode);
+			SplineGizmos.changeHandleMode(value);
 			previous_selection_mode = value;
+			
+			if (value !== 'handles') {
+				Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+			} else {
+				Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+			}
         }
 	})
     new BarSelect('spline_handle_mode', {

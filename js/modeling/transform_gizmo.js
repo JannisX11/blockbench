@@ -16,6 +16,8 @@
 			this.depthWrite = false;
 			this.side = THREE.FrontSide;
 			this.transparent = true;
+			this.gizmoSelected = false;
+			this.selectedColor = new THREE.Color(0xffffff);
 	
 			this.setValues( parameters );
 	
@@ -33,9 +35,6 @@
 				if ( highlighted ) {
 	
 					this.color = gizmo_colors.gizmo_hover;
-					//this.color.r *= 1.2;
-					//this.color.g *= 1.2;
-					//this.color.b *= 1.2;
 					this.opacity = 1;
 	
 				} else {
@@ -50,7 +49,7 @@
 				
 				if ( selected ) {
 
-					this.color = new THREE.Color(0xffffff);
+					this.color = this.selectedColor;
 					this.opacity = 1;
 
 				} else {
@@ -58,6 +57,21 @@
 					this.color = this.getOriginalColor();
 					this.opacity = this.oldOpacity;
 
+				}
+
+			};
+			this.highlightSelected = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.selectedColor;
+					this.opacity = this.oldOpacity;
+	
 				}
 
 			};
@@ -76,6 +90,8 @@
 			this.depthWrite = false;
 			this.transparent = true;
 			this.linewidth = 1;
+			this.gizmoSelected = false;
+			this.selectedColor = new THREE.Color(0xffffff);
 	
 			this.setValues( parameters );
 			
@@ -115,6 +131,21 @@
 					this.color = this.getOriginalColor();
 					this.opacity = this.oldOpacity;
 
+				}
+
+			};
+			this.highlightSelected = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.selectedColor;
+					this.opacity = this.oldOpacity;
+	
 				}
 
 			};
@@ -624,6 +655,7 @@
 			let arrowGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 			let pickerGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 
+			this.isTilt = handlePropertiesEdit;
 			this.spline = spline;
 			this.handle = this.spline.handles[hKey];
 			this.joint = this.spline.vertices[this.handle.joint];
@@ -721,19 +753,12 @@
 				};
 			}
 
-			this.setActivePlane = function ( axis, eye ) {
-				if ( axis === "C1" || axis === "C2" ) {
-					this.activePlane = planes[ "XYZE" ];
-				}
-			};
-
 			this.setHandleScale = function() {
 				let scale = this.getScale();
 
 				// What's below might be a little dirty, need to see if it can be improved
 				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
 				for (let name in this.handleGizmos) {
-					if (name == "E") break;
 					let object = this.handleGizmos[name][0][0];
 					let position = this.handleGizmos[name][0][1];
 
@@ -758,32 +783,75 @@
 				return Transformer.camera.preview.calculateControlScale(worldPos) * settings.control_size.value * 0.74;
 			}
 
-			this.select = function() {
-				let selection = Project.spline_selection[spline.uuid]?.vertices || [];
-				let ctrl1Selected = selection.includes(this.handle.control1);
-				let jointSelected = selection.includes(this.handle.joint);
-				let ctrl2Selected = selection.includes(this.handle.control2);
+			this.highlight = function(axis) {
+				for (let name in this.handleGizmos) {
+					let handle = this.handleGizmos[name];
+					let object = handle[0][0];
 
-				this.traverse(function(child) {
-					if (child.material && child.material.select ) {
-						if (child.name == "C1") child.material.select(ctrl1Selected);
-						if (child.name == "J") child.material.select(jointSelected);
-						if (child.name == "C2") child.material.select(ctrl2Selected);
+					// Verify for matches in the selection
+					let selection = spline.getSelectedVertices();
+					let ctrl1Selected = selection.includes(this.handle.control1);       
+					let jointSelected = selection.includes(this.handle.joint);
+					let ctrl2Selected = selection.includes(this.handle.control2);
+					let matchSelection = { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
+					
+					// Get line of this handle if it exists
+					let line = false;
+					if (handle.length == 2) {
+						line = handle[1][0];
 					}
-				});
-			};
 
-			this.highlight = function(axis, matching_index) {
-				this.traverse(function(child) {
-					if ( child.material && child.material.highlight && matching_index ) {
-						if (child.name == axis) {
-							child.material.highlight(true);
+					if ( object.material && object.material.highlight ) {
+						if (matchSelection[name]) {
+							if (name == axis) {
+								object.material.highlight(true);
+								if (line) line.material.highlight(true);
+							} else {
+								object.material.highlightSelected(false);
+								if (line) line.material.highlightSelected(false);
+							}
 						} else {
-							child.material.highlight(false);
+							if (name == axis) {
+							   object.material.highlight(true);
+							   if (line) line.material.highlight(true);
+						   } else {
+							   object.material.highlight(false);
+							   if (line) line.material.highlight(false);
+						   }
 						}
 					}
-				});
-			};
+				}
+			}
+			this.select = function() {
+				for (let name in this.handleGizmos) {
+					let handle = this.handleGizmos[name];
+					let object = handle[0][0];
+
+					// Verify for matches in the selection
+					let selection = spline.getSelectedVertices();
+					let ctrl1Selected = selection.includes(this.handle.control1);       
+					let jointSelected = selection.includes(this.handle.joint);
+					let ctrl2Selected = selection.includes(this.handle.control2);
+					let matchSelection = { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
+					
+					// Get line of this handle if it exists
+					let line = false;
+					if (handle.length == 2) {
+						line = handle[1][0];
+					}
+	
+					if (object.material && object.material.select ) {
+						if (matchSelection[name]) {
+							object.material.select(true);
+							if (line) line.material.select(true);
+						}
+						else {
+							object.material.select(false);
+							if (line) line.material.select(false);
+						}
+					}
+				}
+			}
 
 			this.init();
 		}
@@ -795,40 +863,65 @@
 			domElement = ( domElement !== undefined ) ? domElement : document;
 			this.camera = cam;
 			this.spline_handles = [];
-			let prevSpline = null;
+			this.spline = null;
+			this.handleMode = null;
 
+			this.reportStatus = function() {
+				console.log({
+					"Gizmos": this.spline_handles,
+					"Previous Handle Mode": this.handleMode,
+					"Previous Spline": this.spline,
+					"Scope Axis": Transformer.axis
+				});
+			}
+			this.changeHandleMode = function(newMode) {
+				if ((newMode === "tilt" || newMode === "handles") && newMode !== this.handleMode) {
+					this.remove(...this.spline_handles);
+					this.spline_handles.empty();
+					this.refreshGizmos();
+				}
+				this.handleMode = newMode;
+				this.updateAllGizmoTransforms();
+			}
 			this.refreshGizmos = function(scope) {
 				let spline = SplineMesh.selected[0];
-	
-				if (prevSpline !== spline) {
-					this.remove(...this.spline_handles);
-					this.spline_handles.length = 0;
-				}
-	
-				for (let hKey of Object.keys(spline.handles)) {
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value == 'tilt'));
-				}
-	
-				this.add(...this.spline_handles);
 
+				// Dispose of previous gizmos
+				this.remove(...this.spline_handles);
+				this.spline_handles.empty();
+	
+				// Create new Gizmos
+				for (let hKey of Object.keys(spline.handles)) {
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value === 'tilt'));
+				}
+	
+				// Add new Gizmos to parent
+				this.add(...this.spline_handles);
 				this.traverse((kid) => {
 					kid.renderOrder = 999;
 				});
 
-				scope.attach(spline);
-				prevSpline = spline;
+				if (scope) scope.attach(spline);
+				this.spline = spline;
 			}
-			this.tryAssignIndex = function(intersect) {
-				let iopp = intersect.object.parent.parent;
-				if (iopp instanceof THREE.TransformGizmoSplineHandle) {
-					this.spline_handle_index = this.spline_handles.indexOf(iopp);
+			this.tryAssignIndex = function(object) {
+				// if (object) console.log(object.constructor) // see which object we're hitting
+				if (object instanceof THREE.TransformGizmoSplineHandle) {
+					this.spline_handle_index = this.spline_handles.indexOf(object);
 				}
 			}
-			this.tryHighlight = function() {
+			this.tryHighlight = function(axis) {
+				let accu = false;
+				let matches = [];
 				this.spline_handles.forEach(gizmo => {
 					let idMatch = (this.spline_handle_index == this.spline_handles.indexOf(gizmo));
-					gizmo.highlight( Transformer.axis, idMatch );
+					if (idMatch) {
+						gizmo.highlight( axis, );
+						matches.push(this.spline_handles.indexOf(gizmo))
+					}
+					accu ||= idMatch;
 				});
+				// console.log(`Attempting hilight on ${axis}, ${accu?`matched ids: ${matches}`:"no ID match"}`) // see if our loop managed to highlight anything
 			}
 			this.trySelect = function() {
 				this.spline_handles.forEach(gizmo => {
@@ -837,15 +930,21 @@
 			}
 			this.selectSplinePoints = function(scope) {
 				let gizmo = this.spline_handles[this.spline_handle_index];
-				selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
+				let selected = selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
 
+				if (selected) {
+					this.trySelect();
+				}
+				
 				updateSelection();
 				scope.updateSelection();
 				scope.update();
-				this.update({selection: true})
+
+				this.updateAllGizmoTransforms();
+				this.reportStatus();
 			}
 			this.verifyValidity = function() {
-				if (prevSpline !== SplineMesh.selected[0] || BarItems.spline_selection_mode.value !== 'handles') {
+				if (this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object") {
 					this.remove(...this.spline_handles);
 					this.spline_handles.empty();
 				}
@@ -862,11 +961,10 @@
 			this.hideOtherGizmos = function(gizmoDict, selectionMode) {
 				if (BarItems.spline_selection_mode && this.spline_handles.length) {
 					for ( var type in gizmoDict ) {
-						var gizmoObj = gizmoDict[ type ];
 						let spline = this.spline_handles[0].spline;
-						let cond = BarItems.spline_selection_mode.value == 'object' || spline.getSelectedVertices();
+						let cond = BarItems.spline_selection_mode.value === "object" || (spline.getSelectedVertices().length > 0);
 
-						gizmoObj.visible = (type === selectionMode) && cond;
+						gizmoDict[type].visible = (type === selectionMode) && cond;
 					}
 				}
 			}
@@ -876,17 +974,15 @@
 				})
 			}
 			this.updateGizmoTransform = function(gizmo) {
-				let { vec1, vec2, euler1 } = Reusable;
-				let space = Transformer.getTransformSpace();
+				let { vec1, euler1 } = Reusable;
 				let splinePosArr = gizmo.spline.position;
 				let splineRotArr = gizmo.spline.rotation;
-				let splinePos = vec2.fromArray(splinePosArr);
+				let splinePos = vec1.fromArray(splinePosArr);
 				let splineRot = euler1.fromArray(splineRotArr);
 
 				gizmo.setHandleScale();
 				gizmo.position.copy(splinePos);
 				gizmo.rotation.copy(splineRot);
-
 			}
 		}
 	};
@@ -1078,7 +1174,8 @@
 				_gizmo[ _mode ].highlight( scope.axis );
 
 				SplineGizmos.updateAllGizmoTransforms();
-				SplineGizmos.tryHighlight();
+				SplineGizmos.tryAssignIndex(scope.lastGizmoIntersected);
+				SplineGizmos.tryHighlight( scope.axis );
 				SplineGizmos.trySelect();
 				SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 			};
@@ -1397,14 +1494,12 @@
 				if (axis2) extendTransformLineOnAxis(long, axis2);
 
 				_gizmo[ _mode ].highlight( scope.axis );
-
-				SplineGizmos.tryHighlight();
 			}
 
 			function onPointerHover( event ) {
 
 				if ( scope.elements.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
-
+				
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
 	
@@ -1413,10 +1508,14 @@
 
 				if ( intersect ) {
 					scope.hoverAxis = intersect.object.name;
-					SplineGizmos.tryAssignIndex(intersect);
+					scope.lastGizmoIntersected = intersect.object.parent.parent;
+
+					SplineGizmos.tryAssignIndex(scope.lastGizmoIntersected);
+					SplineGizmos.tryHighlight(scope.hoverAxis);
+
 					event.preventDefault();
-				} else {
 				}
+
 				if ( scope.axis !== scope.hoverAxis ) {
 					scope.axis = scope.hoverAxis;
 					scope.update();
@@ -1431,9 +1530,28 @@
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
-					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);					
-
+					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
+					
 					if ( intersect ) {
+						if ( scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J" ) {
+							// Spline Gizmos cannot and should not trigger draggin states.
+							scope.dragging = false;
+							
+							SplineGizmos.selectSplinePoints(scope);
+							SplineGizmos.hideOtherGizmos(_gizmo, _mode);
+							
+							event.preventDefault();
+							event.stopPropagation();
+							scope.dispatchEvent( mouseDownEvent );
+		
+							scope.axis = intersect.object.name;
+							scope.update();
+							
+							_dragging = false;
+							return;
+						}
+						console.log(scope.axis);
+
 						scope.dragging = true
 						document.addEventListener( "touchend", onPointerUp, {passive: true} );
 						document.addEventListener( "touchcancel", onPointerUp, {passive: true} );
@@ -1442,7 +1560,7 @@
 						document.addEventListener( "mousemove", onPointerMove, false );
 						document.addEventListener( "touchmove", onPointerMove, {passive: true} );
 
-						Transformer.getWorldPosition(worldPosition)
+						Transformer.getWorldPosition(worldPosition);
 						//if (scope.camera.axis && (scope.hoverAxis && scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
 						event.preventDefault();
 						event.stopPropagation();
@@ -1470,11 +1588,7 @@
 							extendTransformLine(true);
 						}
 
-						if (scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J") {
-							SplineGizmos.selectSplinePoints(scope);
-						} else {
-							_dragging = true;
-						}
+						_dragging = true;
 					}
 				}
 			}
@@ -2010,6 +2124,10 @@
 				document.removeEventListener( "touchend", onPointerUp );
 				document.removeEventListener( "touchcancel", onPointerUp );
 				document.removeEventListener( "touchleave", onPointerUp );
+
+				if (scope.axis == "C1" && scope.axis == "C2" && scope.axis == "J" || scope.axis == "T") {
+					onPointerHover( event );
+				}
 
 				if ( event.button !== undefined && event.button !== 0 && event.button !== 2 ) return;
 
