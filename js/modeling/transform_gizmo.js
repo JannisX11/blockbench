@@ -652,8 +652,8 @@
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
 		constructor(spline, hKey, handlePropertiesEdit = false) {
 			super();
-			let arrowGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
-			let pickerGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+			let arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+			let pickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
 
 			this.isTilt = handlePropertiesEdit;
 			this.spline = spline;
@@ -778,9 +778,9 @@
 			};
 
 			this.getScale = function() {
-				let worldPos = new THREE.Vector3();
-				this.getWorldPosition(worldPos);
-				return Transformer.camera.preview.calculateControlScale(worldPos) * settings.control_size.value * 0.74;
+				let center = new THREE.Vector3().fromArray(this.joint);
+
+				return Transformer.camera.preview.calculateControlScale(center) * settings.control_size.value * 0.74;
 			}
 
 			this.highlight = function(axis) {
