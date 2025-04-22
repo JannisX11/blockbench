@@ -866,7 +866,7 @@
 			this.spline = null;
 			this.handleMode = null;
 
-			this.reportStatus = function() {
+			this.reportStatus = function() { // Debug only
 				console.log({
 					"Gizmos": this.spline_handles,
 					"Previous Handle Mode": this.handleMode,
@@ -941,10 +941,10 @@
 				scope.update();
 
 				this.updateAllGizmoTransforms();
-				this.reportStatus();
+				// this.reportStatus();
 			}
 			this.verifyValidity = function() {
-				if (this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object") {
+				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object") {
 					this.remove(...this.spline_handles);
 					this.spline_handles.empty();
 				}
@@ -978,7 +978,7 @@
 				let splinePosArr = gizmo.spline.position;
 				let splineRotArr = gizmo.spline.rotation;
 				let splinePos = vec1.fromArray(splinePosArr);
-				let splineRot = euler1.fromArray(splineRotArr);
+				let splineRot = euler1.fromArray([Math.degToRad(splineRotArr[0]), Math.degToRad(splineRotArr[1]), Math.degToRad(splineRotArr[2])]);
 
 				gizmo.setHandleScale();
 				gizmo.position.copy(splinePos);
@@ -1080,6 +1080,7 @@
 				this.visible = false;
 				this.axis = null;
 				this.hoverAxis = null;
+				SplineGizmos.verifyValidity();
 			};
 			this.setMode = function ( mode ) {
 				if (mode === 'hidden') {
@@ -1175,7 +1176,7 @@
 
 				SplineGizmos.updateAllGizmoTransforms();
 				SplineGizmos.tryAssignIndex(scope.lastGizmoIntersected);
-				SplineGizmos.tryHighlight( scope.axis );
+				SplineGizmos.tryHighlight(scope.axis);
 				SplineGizmos.trySelect();
 				SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 			};
@@ -1550,7 +1551,6 @@
 							_dragging = false;
 							return;
 						}
-						console.log(scope.axis);
 
 						scope.dragging = true
 						document.addEventListener( "touchend", onPointerUp, {passive: true} );

@@ -324,6 +324,7 @@ export class SplineMesh extends OutlinerElement {
         if (selection.length > 0) {
             for (let hkey in this.handles) {
                 let handle = this.handles[hkey];
+                // if all goes normally, the joint being selected should always indicate the other points of this handle are selected
                 if (selection.includes(handle.joint)) selected_handles.push(hkey);
             }
         }
@@ -336,11 +337,11 @@ export class SplineMesh extends OutlinerElement {
     getLastHandle() {
         let index = Object.keys(this.handles).length - 1;
         let lastKey = Object.keys(this.handles)[index];
-        return this.handles[lastKey];
+        return {data: this.handles[lastKey], key: lastKey};
     }
     getFirstHandle() {
         let firstKey = Object.keys(this.handles)[0];
-        return this.handles[firstKey];
+        return {data: this.handles[firstKey], key: firstKey};
     }
     // Aza assumption: Bounding box
     getSize(axis, selection_only) {
@@ -628,8 +629,8 @@ export class SplineMesh extends OutlinerElement {
 
         // Close Cyclic paths
         if (this.cyclic) {
-            let firsthandle = this.getFirstHandle();
-            let lasthandle = this.getLastHandle();
+            let firsthandle = this.getFirstHandle().data;
+            let lasthandle = this.getLastHandle().data;
             let firstnormal = curveNormals[0];
             let lastnormal = curveNormals[curveNormals.length - 1];
 
@@ -990,8 +991,8 @@ new NodePreviewController(SplineMesh, {
 
         // Add another curve to the mesh if this spline is cyclic
         if (element.cyclic) {
-            let firsthandle = element.getFirstHandle();
-            let lasthandle = element.getLastHandle();
+            let firsthandle = element.getFirstHandle().data;
+            let lasthandle = element.getLastHandle().data;
 
             pushPoints((time) => { 
                 return element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint) 
