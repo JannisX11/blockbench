@@ -294,7 +294,7 @@ UndoSystem.save = class {
 		}
 
 		if (aspects.outliner) {
-			this.outliner = compileGroups(true)
+			this.outliner = Outliner.toJSON(true)
 		}
 
 		if (aspects.groups) {
@@ -446,7 +446,7 @@ UndoSystem.save = class {
 
 		if (this.outliner) {
 			Group.multi_selected.empty();
-			parseGroups(this.outliner)
+			Outliner.loadJSON(this.outliner)
 			if (is_session) {
 				function iterate(arr) {
 					arr.forEach((obj) => {

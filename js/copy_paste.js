@@ -226,7 +226,7 @@ export const Clipbench = {
 			Clipbench.groups = undefined
 			return;
 		}
-		Clipbench.groups = groups.map(group => group.getSaveCopy())
+		Clipbench.groups = groups.map(group => group.getSaveCopy(true))
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.groups}))
 		}

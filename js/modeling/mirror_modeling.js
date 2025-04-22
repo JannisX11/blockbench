@@ -395,7 +395,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 
 	if (aspects.elements) {
 		MirrorModeling.cached_elements = {};
-		MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
+		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON(true);
 		let edit_side = MirrorModeling.getEditSide();
 
 		aspects.elements.forEach((element) => {
@@ -421,7 +421,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 		let selected_groups = aspects.outliner ? Group.all.filter(g => g.selected) : [aspects.group];
 
 		// update undo
-		if (!Undo.current_save.outliner) Undo.current_save.outliner = compileGroups(true);
+		if (!Undo.current_save.outliner) Undo.current_save.outliner = Outliner.toJSON(true);
 		aspects.outliner = true;
 
 		selected_groups.forEach(group => {

@@ -355,10 +355,12 @@ export class Group extends OutlinerNode {
 		Canvas.updatePositions();
 		return copy;
 	}
-	getSaveCopy(project) {
-		var base_group = this.getChildlessCopy(true);
-		for (var child of this.children) {
-			base_group.children.push(child.getSaveCopy(project));
+	getSaveCopy(nested) {
+		let base_group = this.getChildlessCopy(true);
+		if (nested) {
+			for (let child of this.children) {
+				base_group.children.push(child.getSaveCopy(nested));
+			}
 		}
 		delete base_group.parent;
 		return base_group;
@@ -436,13 +438,13 @@ export class Group extends OutlinerNode {
 	}
 	static behavior = {
 		unique_name: () => Format.bone_rig,
+		parent: true,
 		rotatable: true,
 	}
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';
-	Group.prototype.isParent = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,

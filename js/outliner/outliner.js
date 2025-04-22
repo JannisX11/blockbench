@@ -77,6 +77,93 @@ export const Outliner = {
 				}
 			}
 		}
+	},
+
+	toJSON() {
+		let result = [];
+		function iterate(array, save_array) {
+			let i = 0;
+			for (let element of array) {
+				if (element.children instanceof Array) {
+					let copy = {
+						uuid: element.uuid,
+						isOpen: element.isOpen,
+						children: []
+					}
+					/*if (element instanceof Group) {
+						copy = element.compile(true);
+					}*/
+					if (element.children.length > 0) {
+						iterate(element.children, copy.children);
+					}
+					save_array.push(copy)
+				} else {
+					save_array.push(element.uuid)
+				}
+				i++;
+			}
+		}
+		iterate(Outliner.root, result);
+		return result;
+	},
+	loadJSON(array, add_to_project) {
+		function iterate(array, save_array, addGroup) {
+			console.log(array, save_array, addGroup)
+			for (let item of array) {
+				if (typeof item === 'string') {
+
+					let obj = OutlinerNode.uuids[item];
+					if (obj) {
+						obj.removeFromParent();
+						save_array.push(obj);
+						obj.parent = addGroup;
+					}
+				} else {
+					let obj = OutlinerNode.uuids[item.uuid];
+
+					// Legacy group support
+					if (item && item.name != undefined) {
+						if (obj instanceof Group) {
+							obj.extend(item);
+						} else {
+							obj = new Group(item, item.uuid);
+							if (item.uuid) obj.uuid = item.uuid;
+							obj.init();
+						}
+					}
+
+					if (!obj) {
+						console.warn('Item not found', item);
+						continue;
+					}
+
+					obj.removeFromParent();
+					save_array.push(obj)
+					obj.parent = addGroup;
+
+					obj.isOpen = !!item.isOpen;
+
+					if (item.children instanceof Array) {
+						obj.children.empty();
+						iterate(item.children, obj.children, obj)
+					}
+					if (item.content instanceof Array) {
+						obj.children.empty();
+						iterate(item.content, obj.children, obj)
+					}
+					if (item.selected && obj.multiSelect) {
+						obj.multiSelect();
+					}
+				}
+			}
+		}
+		if (!add_to_project) {
+			Group.all.forEach(group => {
+				group.removeFromParent();
+			})
+			Group.all.empty();
+		}
+		iterate(array, Outliner.root, 'root');
 	}
 }
 Object.defineProperty(window, 'elements', {
@@ -537,7 +624,6 @@ export class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 }
-	OutlinerElement.prototype.isParent = false;
 	OutlinerElement.fromSave = function(obj, keep_uuid) {
 		let Type = OutlinerElement.types[obj.type] || Cube;
 		if (Type) {
@@ -762,73 +848,14 @@ Array.prototype.findRecursive = function(key1, val) {
 	return undefined;
 }
 
-export function compileGroups() {
-	let result = [];
-	function iterate(array, save_array) {
-		let i = 0;
-		for (let element of array) {
-			if (element.children instanceof Array) {
-				let copy = element.compile(true)
-				if (element.children.length > 0) {
-					iterate(element.children, copy.children)
-				}
-				save_array.push(copy)
-			} else {
-				save_array.push(element.uuid)
-			}
-			i++;
-		}
-	}
-	iterate(Outliner.root, result);
-	return result;
-}
-export function parseGroups(array, add_to_project) {
-	function iterate(array, save_array, addGroup) {
-		var i = 0;
-		while (i < array.length) {
-			if (typeof array[i] === 'number' || typeof array[i] === 'string') {
-
-				let obj = OutlinerNode.uuids[array[i]];
-				if (obj) {
-					obj.removeFromParent();
-					save_array.push(obj);
-					obj.parent = addGroup;
-				}
-			} else {
-				if (OutlinerNode.uuids[array[i].uuid] instanceof Group) {
-					OutlinerNode.uuids[array[i].uuid].removeFromParent();
-					delete OutlinerNode.uuids[array[i].uuid];
-				}
-				// todo: Update old groups instead of rebuilding all
-				let obj = new Group(array[i], array[i].uuid)
-				obj.parent = addGroup
-				obj.isOpen = !!array[i].isOpen;
-				if (array[i].uuid) {
-					obj.uuid = array[i].uuid
-				}
-				save_array.push(obj)
-				obj.init()
-				if (array[i].children && array[i].children.length > 0) {
-					iterate(array[i].children, obj.children, obj)
-				}
-				if (array[i].content && array[i].content.length > 0) {
-					iterate(array[i].content, obj.children, obj)
-				}
-				if (array[i].selected) {
-					obj.multiSelect();
-				}
-			}
-			i++;
-		}
-	}
-	if (!add_to_project) {
-		Group.all.forEach(group => {
-			group.removeFromParent();
-		})
-		Group.all.empty();
-	}
-	iterate(array, Outliner.root, 'root');
-}
+export function compileGroups(...args) {
+	console.warn('compileGroups is no longer supported. Use Outliner.toJSON instead');
+	return Outliner.toJSON(...args);
+};
+export function parseGroups(...args) {
+	console.warn('compileGroups is no longer supported. Use Outliner.toJSON instead');
+	return Outliner.loadJSON(...args);
+};
 
 // Dropping
 export function moveOutlinerSelectionTo(item, target, event, order) {

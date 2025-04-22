@@ -1,6 +1,6 @@
 import LZUTF8 from './../../../lib/lzutf8'
 
-const FORMATV = '4.10';
+const FORMATV = '5.0';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -204,12 +204,20 @@ var codec = new Codec('project', {
 				var all_collection_children = options.collection_only.getAllChildren();
 			}
 			model.elements = [];
-			elements.forEach(el => {
+			Outliner.elements.forEach(el => {
 				if (options.collection_only && !all_collection_children.includes(el)) return;
 				let copy = el.getSaveCopy(model.meta);
 				model.elements.push(copy);
 			})
-			model.outliner = compileGroups(true);
+			model.groups = [];
+			Group.all.forEach(group => {
+				if (options.collection_only && !all_collection_children.includes(group)) return;
+				let copy = group.getSaveCopy(false);
+				model.groups.push(copy);
+			});
+
+			model.outliner = Outliner.toJSON(true);
+
 			if (options.collection_only) {
 				function filterList(list) {
 					list.forEachReverse(item => {
@@ -424,7 +432,7 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(template) {
+			model.elements.forEach((template) => {
 
 				let copy = OutlinerElement.fromSave(template, true)
 				for (let face in copy.faces) {
@@ -440,8 +448,13 @@ var codec = new Codec('project', {
 				copy.init()
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				new Group(template, template.uuid).init();
+			})
+		}
 		if (model.outliner) {
-			parseGroups(model.outliner)
+			Outliner.loadJSON(model.outliner)
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
@@ -691,6 +704,14 @@ var codec = new Codec('project', {
 				new_elements.push(copy);
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				if (Group.all.find(g => g.uuid == template.uuid)) {
+					template.uuid = uuid_map[template.uuid] = guid();
+				}
+				new Group(template, template.uuid).init();
+			})
+		}
 		if (model.outliner) {
 			// Handle existing UUIDs
 			function processList(list) {
@@ -702,8 +723,8 @@ var codec = new Codec('project', {
 						}
 					} else if (node && node.uuid) {
 						// Group
-						if (Group.all.find(g => g.uuid == node.uuid)) {
-							node.uuid = uuid_map[node.uuid] = guid();
+						if (uuid_map[node.uuid]) {
+							node.uuid = uuid_map[node.uuid];
 						}
 						if (node.children) processList(node.children);
 					}
@@ -711,12 +732,17 @@ var codec = new Codec('project', {
 			}
 			processList(model.outliner);
 
-			parseGroups(model.outliner, true);
+			Outliner.loadJSON(model.outliner, true);
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
 				let collection = new Collection(collection_data, collection_data.uuid);
 				collection.add();
+				for (let i = 0; i < collection.children.length; i++) {
+					if (uuid_map[collection.children[i]]) {
+						collection.children[i] = uuid_map[collection.children[i]];
+					}
+				}
 			}
 		}
 		if (model.animations && Format.animation_mode) {
