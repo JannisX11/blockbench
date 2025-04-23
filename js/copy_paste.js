@@ -343,7 +343,7 @@ export const Clipbench = {
 					}
 					return copy;
 				} else if (OutlinerElement.isTypePermitted(obj.type)) {
-					var copy = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
+					var copy = OutlinerElement.fromSave(obj).addTo(parent).markAsSelected();
 					copy.createUniqueName();
 					Property.resetUniqueValues(copy.constructor, copy);
 					copy.preview_controller.updateTransform(copy);
@@ -359,7 +359,7 @@ export const Clipbench = {
 			let elements = [];
 			Clipbench.elements.forEach(function(obj) {
 				if (!OutlinerElement.isTypePermitted(obj.type)) return;
-				var copy = OutlinerElement.fromSave(obj).addTo(target).selectLow();
+				var copy = OutlinerElement.fromSave(obj).addTo(target).markAsSelected();
 				copy.createUniqueName();
 				Property.resetUniqueValues(copy.constructor, copy);
 				elements.push(copy);

@@ -267,9 +267,9 @@ export class Cube extends OutlinerElement {
 		}
 		return this;
 	}
-	selectLow(...args) {
+	markAsSelected(...args) {
 		let was_selected = this.selected;
-		super.selectLow(...args);
+		super.markAsSelected(...args);
 		if (!was_selected && Cube.selected[0]) {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);

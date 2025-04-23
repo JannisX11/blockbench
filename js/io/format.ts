@@ -1,7 +1,7 @@
 import { Vue } from "../../lib/libs";
 import { Blockbench } from "../api";
 import { setProjectTitle } from "../interface/interface";
-import { Settings } from "../interface/settings";
+import { settings, Settings } from "../interface/settings";
 import { Mode, Modes } from "../modes";
 import { Group } from "../outliner/group";
 import { Canvas } from "../preview/canvas";
@@ -85,6 +85,10 @@ interface FormatOptions {
 	 * Enable groups to work as bones and rig the model
 	 */
 	bone_rig: boolean
+	/**
+	 * Enable armatures to rig meshes
+	 */
+	armature_rig: boolean
 	/**
 	 * Align the grid center with the model origin, instead of the grid corner
 	 */
@@ -238,6 +242,7 @@ export class ModelFormat implements FormatOptions {
 	vertex_color_ambient_occlusion: boolean
 	animated_textures: boolean
 	bone_rig: boolean
+	armature_rig: boolean
 	centered_grid: boolean
 	rotate_cubes: boolean
 	stretch_cubes: boolean
@@ -548,6 +553,7 @@ new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
+new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');

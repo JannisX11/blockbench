@@ -564,6 +564,9 @@ export class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
+	getArmature() {
+		return this.armature ? Armature.all.find(armature => armature.uuid == this.armature) : undefined;
+	}
 	getUndoCopy(aspects = {}) {
 		let el = {};
 
@@ -923,6 +926,39 @@ export class Mesh extends OutlinerElement {
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
+		{
+			id: 'attach_armature',
+			name: 'menu.mesh.attach_armature',
+			icon: 'accessibility',
+			condition: () => Armature.all.length,
+			children() {
+				function setArmature(mesh, armature) {
+					Undo.initEdit({elements: [mesh]});
+					mesh.armature = armature ? armature.uuid : '';
+					mesh.preview_controller.updateTransform(mesh);
+					Undo.finishEdit('Attach armature to mesh');
+				}
+				let options = [
+					{
+						name: 'generic.none',
+						icon: 'remove',
+						click(mesh) {
+							setArmature(mesh);
+						}
+					}
+				];
+				for (let armature of Armature.all) {
+					options.push({
+						name: armature.name,
+						icon: 'accessibility',
+						click(mesh) {
+							setArmature(mesh, armature);
+						}
+					})
+				}
+				return options;
+			}
+		},
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
@@ -1005,6 +1041,7 @@ new Property(Mesh, 'boolean', 'smooth_shading', {
 		}
 	}
 });
+new Property(Mesh, 'string', 'armature');
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
@@ -1014,11 +1051,24 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh;
+		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
+		let armature = element.getArmature();
+		if (armature) {
+			mesh = new THREE.SkinnedMesh(geometry, Canvas.emptyMaterials[0]);
+			mesh.bind(armature.mesh);
+		} else {
+			mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
+		}
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
 		mesh.isElement = true;
+
+		if (armature) {
+			mesh.geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(new Uint8Array(24), 4));
+			mesh.geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(new Array(24).fill(1), 4));
+		}
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
@@ -1051,6 +1101,26 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
+	updateTransform(element) {
+		NodePreviewController.prototype.updateTransform.call(this, element);
+		
+		let armature = element.getArmature();
+		let mesh = element.mesh;
+
+		console.log(armature, mesh.isSkinnedMesh)
+		if ((!!armature) != (mesh.isSkinnedMesh == true)) {
+			this.setup(element);
+		}
+		if (armature) {
+			let skeleton = armature.mesh.skeleton;
+			skeleton.bones.empty();
+			for (let bone of armature.getAllBones()) {
+				skeleton.bones.push(bone.mesh);
+			}
+			console.log(skeleton);
+			mesh.bind(skeleton);
+		}
+	},
 	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
@@ -1062,6 +1132,28 @@ new NodePreviewController(Mesh, {
 		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
+
+		let skin_indices = [];
+		let skin_weights = [];
+		let armature = element.getArmature();
+		let armature_bones = armature && armature.getAllBones();
+
+		function addVertexPosition(vkey) {
+			position_array.push(...vertices[vkey])
+			if (armature) {
+				let influencing_bones = armature_bones.find(bone => bone.vertex_weights[vkey]);
+				if (influencing_bones.length > 4) {
+					// Reduce to 4
+					influencing_bones.sort((a, b) => b.vertex_weights[vkey]-a.vertex_weights[vkey]);
+					console.log(influencing_bones);
+				}
+				influencing_bones.length = 4;
+				for (let influencing_bone of influencing_bones) {
+					skin_indices.push(influencing_bone ? armature_bones.indexOf(influencing_bone) : 0);
+					skin_weights.push(influencing_bone ? influencing_bone.vertex_weights[vkey] : 0);
+				}
+			}
+		}
 
 		if (vertex_offsets) {
 			vertices = {};
@@ -1119,7 +1211,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					indices.push(position_array.length / 3);
-					position_array.push(...vertices[key])
+					addVertexPosition(key);
 				})
 
 				// Outline
@@ -1140,7 +1232,7 @@ new NodePreviewController(Mesh, {
 					if (!vertices[vkey]) {
 						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
 					}
-					position_array.push(...vertices[vkey])
+					addVertexPosition(vkey);
 					face_indices[vkey] = index_offset + i;
 				})
 
@@ -1172,6 +1264,11 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
 		mesh.geometry.setIndex(indices);
+
+		if (armature) {
+			mesh.geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skin_indices, 4));
+			mesh.geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skin_weights, 4));
+		}
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 

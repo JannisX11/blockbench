@@ -108,7 +108,6 @@ export const Outliner = {
 	},
 	loadJSON(array, add_to_project) {
 		function iterate(array, save_array, addGroup) {
-			console.log(array, save_array, addGroup)
 			for (let item of array) {
 				if (typeof item === 'string') {
 
@@ -557,20 +556,20 @@ export class OutlinerElement extends OutlinerNode {
 					}
 					if (s.type !== 'group') {
 						if (!selected.includes(s)) {
-							s.selectLow()
+							s.markAsSelected(true)
 							just_selected.push(s)
 						}
 					} else {
-						s.selectLow()
+						s.markAsSelected(true)
 					}
 				} else if (starting_point) {
 					if (s.type !== 'group') {
 						if (!selected.includes(s)) {
-							s.selectLow()
+							s.markAsSelected(true)
 							just_selected.push(s)
 						}
 					} else {
-						s.selectLow()
+						s.markAsSelected(true)
 					}
 				}
 			})
@@ -582,14 +581,15 @@ export class OutlinerElement extends OutlinerNode {
 					return e !== this
 				}))
 			} else {
-				this.selectLow()
+				this.markAsSelected(true)
 				just_selected.push(this)
 			}
 
 		//Normal
 		} else {
+			let all_children_selected = this.children instanceof Array && !this.children.find(child => child.selected == false);
 			unselectAllElements([this]);
-			this.selectLow()
+			this.markAsSelected(!all_children_selected);
 			just_selected.push(this)
 			if (settings.outliner_reveal_on_select.value) {
 				this.showInOutliner()
@@ -608,7 +608,7 @@ export class OutlinerElement extends OutlinerNode {
 		}
 		Undo.finishSelection('Select element');
 	}
-	selectLow() {
+	markAsSelected() {
 		Project.selected_elements.safePush(this);
 		this.selected = true;
 		TickUpdates.selection = true;
@@ -1165,7 +1165,7 @@ SharedActions.add('select_all', {
 				}
 			}
 			selectable_elements.forEach(obj => {
-				obj.selectLow()
+				obj.markAsSelected()
 			})
 			TickUpdates.selection = true;
 			Undo.finishSelection('Select all elements');
@@ -1194,7 +1194,7 @@ SharedActions.add('invert_selection', {
 			if (element.selected) {
 				element.unselect()
 			} else {
-				element.selectLow()
+				element.markAsSelected()
 			}
 		})
 		for (let group of Group.multi_selected) {
@@ -1614,7 +1614,7 @@ Interface.definePanels(function() {
 
 		if (!obj) {
 			return;
-		} else if (obj instanceof Group) {
+		} else if (obj.children && (!obj.getTypeBehavior('child_types') || obj.getTypeBehavior('child_types').includes(Outliner.selected[0]?.type))) {
 			if (loc < 8) return -1;
 			if (loc > 24 && (!obj.isOpen || obj.children.length === 0)) return 1;
 		} else {

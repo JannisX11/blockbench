@@ -477,7 +477,7 @@ UndoSystem.save = class {
 			selected.length = 0;
 			Outliner.elements.forEach((obj) => {
 				if (this.selection.includes(obj.uuid)) {
-					obj.selectLow()
+					obj.markAsSelected()
 					if (this.mesh_selection[obj.uuid]) {
 						Project.mesh_selection[obj.uuid] = this.mesh_selection[obj.uuid];
 					}

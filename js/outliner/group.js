@@ -95,7 +95,7 @@ export class Group extends OutlinerNode {
 					if (s instanceof Group) {
 						s.multiSelect()
 					} else if (!Outliner.selected.includes(s)) {
-						s.selectLow()
+						s.markAsSelected()
 					}
 				}
 			})
@@ -117,7 +117,7 @@ export class Group extends OutlinerNode {
 				selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
-				s.selectLow()
+				s.markAsSelected()
 			})
 		}
 		if (Animator.open && Animation.selected) {
@@ -137,7 +137,7 @@ export class Group extends OutlinerNode {
 		this.selected = true;
 		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
-			s.selectLow()
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -145,13 +145,10 @@ export class Group extends OutlinerNode {
 	selectChildren(event) {
 		console.warn('Group#selectChildren is deprecated');
 	}
-	selectLow(highlight) {
-		//Only Select
-		if (highlight !== false) {
-			this.selected = true
-		}
+	markAsSelected() {
+		this.selected = true
 		this.children.forEach(function(s) {
-			s.selectLow(highlight)
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;

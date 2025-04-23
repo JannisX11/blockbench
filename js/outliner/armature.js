@@ -1,14 +1,14 @@
 import { THREE } from "../../lib/libs";
 
-export class ArmatureBone extends OutlinerElement {
+export class Armature extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].reset(this);
+		for (let key in Armature.properties) {
+			Armature.properties[key].reset(this);
 		}
 
-		this.name = 'bone'
+		this.name = 'armature'
 		this.children = []
 		this.selected = false;
 		this.locked = false;
@@ -23,12 +23,9 @@ export class ArmatureBone extends OutlinerElement {
 			this.name = data
 		}
 	}
-	get position() {
-		return this.origin;
-	}
 	extend(object) {
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(this, object)
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(this, object)
 		}
 		Merge.string(this, object, 'name')
 		this.sanitizeName();
@@ -45,7 +42,6 @@ export class ArmatureBone extends OutlinerElement {
 		if (!this.mesh || !this.mesh.parent) {
 			this.constructor.preview_controller.setup(this);
 		}
-		Canvas.updateAllBones([this]);
 		return this;
 	}
 	select(event, isOutlinerClick) {
@@ -129,7 +125,7 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (ArmatureBone.selected != this) this.select(event);
+		if (Armature.selected != this) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
@@ -148,7 +144,7 @@ export class ArmatureBone extends OutlinerElement {
 		this.origin.V3_set(origin);
 
 		function iterateChild(obj) {
-			if (obj instanceof ArmatureBone) {
+			if (obj instanceof Armature) {
 				obj.origin.V3_add(shift);
 				obj.children.forEach(child => iterateChild(child));
 
@@ -196,7 +192,7 @@ export class ArmatureBone extends OutlinerElement {
 		let copy = this.getChildlessCopy(false)
 		delete copy.parent;
 		if (Format.bone_rig) copy._original_name = this.name;
-		Property.resetUniqueValues(ArmatureBone, copy);
+		Property.resetUniqueValues(Armature, copy);
 		copy.sortInBefore(this, 1).init()
 		if (Format.bone_rig) {
 			copy.createUniqueName()
@@ -216,8 +212,8 @@ export class ArmatureBone extends OutlinerElement {
 			name: this.name,
 			children: this.children.map(c => c.uuid),
 		};
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(copy, this);
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(copy, this);
 		}
 		return copy;
 	}
@@ -229,15 +225,15 @@ export class ArmatureBone extends OutlinerElement {
 			name: this.name,
 			children: this.children.map(c => c.uuid),
 		};
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(copy, this);
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(copy, this);
 		}
 		return copy;
 	}
 	getChildlessCopy(keep_uuid) {
-		let base_bone = new ArmatureBone({name: this.name}, keep_uuid ? this.uuid : null);
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].copy(this, base_bone)
+		let base_bone = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
+		for (let key in Armature.properties) {
+			Armature.properties[key].copy(this, base_bone)
 		}
 		base_bone.name = this.name;
 		base_bone.origin.V3_set(this.origin);
@@ -263,6 +259,18 @@ export class ArmatureBone extends OutlinerElement {
 			i++;
 		}
 	}
+	getAllBones() {
+		let bones = [];
+		function addBones(array) {
+			for (let item of array) {
+				if (item instanceof ArmatureBone == false) continue;
+				bones.push(item);
+				addBones(item.children);
+			}
+		}
+		addBones(this.children);
+		return bones;
+	}
 	static behavior = {
 		parent: true,
 		movable: true,
@@ -271,16 +279,16 @@ export class ArmatureBone extends OutlinerElement {
 		hide_in_screenshot: true,
 	}
 }
-	ArmatureBone.prototype.title = tl('data.armature_bone');
-	ArmatureBone.prototype.type = 'armature_bone';
-	ArmatureBone.prototype.icon = 'humerus';
-	ArmatureBone.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
-	ArmatureBone.prototype.buttons = [
+	Armature.prototype.title = tl('data.armature');
+	Armature.prototype.type = 'armature';
+	Armature.prototype.icon = 'accessibility';
+	Armature.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	Armature.prototype.buttons = [
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	ArmatureBone.prototype.needsUniqueName = () => Format.bone_rig;
-	ArmatureBone.prototype.menu = new Menu([
+	Armature.prototype.needsUniqueName = true;
+	Armature.prototype.menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -290,30 +298,22 @@ export class ArmatureBone extends OutlinerElement {
 		'delete'
 	]);
 
-OutlinerElement.registerType(ArmatureBone, 'armature_bone');
+OutlinerElement.registerType(Armature, 'armature');
 
-new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
-new Property(ArmatureBone, 'vector', 'rotation');
-new Property(ArmatureBone, 'object', 'vertex_weights');
+new Property(Armature, 'vector', 'origin', {default: [0, 0, 0]});
+new Property(Armature, 'vector', 'rotation');
+new Property(Armature, 'object', 'vertex_weights');
 
-new NodePreviewController(ArmatureBone, {
+new NodePreviewController(Armature, {
 	setup(element) {
-		let object_3d = new THREE.Bone();
+		let object_3d = new THREE.Object3D();
+		object_3d.skeleton = new THREE.Skeleton();
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
-		//object_3d.isElement = true;
+		object_3d.isElement = true;
 		Project.nodes_3d[element.uuid] = object_3d;
 
-
-		/*let length = 5;
-		let mesh = new THREE.Mesh(
-			new THREE.CapsuleGeometry(2, length, 1, 6),
-			Canvas.solidMaterial
-		);
-		mesh.visible = element.visibility;
-		mesh.no_export = true;
-		object_3d.add(mesh);*/
 		object_3d.no_export = true;
 
 		object_3d.fix_position = new THREE.Vector3();
@@ -324,12 +324,12 @@ new NodePreviewController(ArmatureBone, {
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		let bone = element.mesh;
+		/*let bone = element.mesh;
 
-		bone.rotation.order = 'ZYX';
-		bone.rotation.setFromDegreeArray(element.rotation);
-		bone.position.fromArray(element.origin);
-		bone.scale.x = bone.scale.y = bone.scale.z = 1;
+		//bone.rotation.order = 'ZYX';
+		//bone.rotation.setFromDegreeArray(element.rotation);
+		//bone.position.fromArray(element.origin);
+		//bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
 		if (element.parent instanceof OutlinerNode) {
 			//bone.position.x -=  element.parent.origin[0];
@@ -341,21 +341,21 @@ new NodePreviewController(ArmatureBone, {
 			Project.model_3d.add(bone);
 		}
 
-		bone.fix_position = bone.position.clone();
-		bone.fix_rotation = bone.rotation.clone();
+		//bone.fix_position = bone.position.clone();
+		//bone.fix_rotation = bone.rotation.clone();
 
 		bone.updateMatrixWorld();
 
-		this.dispatchEvent('update_transform', {element});
+		this.dispatchEvent('update_transform', {element});*/
 	}
 })
 
 
-export function getAllArmatureBones() {
+export function getAllArmatures() {
 	let ta = []
 	function iterate(array) {
 		for (let obj of array) {
-			if (obj instanceof ArmatureBone) {
+			if (obj instanceof Armature) {
 				ta.push(obj)
 				iterate(obj.children)
 			}
@@ -366,17 +366,17 @@ export function getAllArmatureBones() {
 }
 
 BARS.defineActions(function() {
-	new Action('add_armature_bone', {
-		icon: 'humerus',
+	new Action('add_armature', {
+		icon: 'accessibility',
 		category: 'edit',
-		condition: () => Modes.edit && (ArmatureBone.selected[0] || Armature.selected[0]),
+		condition: () => Modes.edit,
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;
 			if (!add_to_node && selected.length) {
 				add_to_node = selected.last();
 			}
-			let new_instance = new ArmatureBone({
+			let new_instance = new Armature({
 				origin: add_to_node ? add_to_node.origin : undefined
 			})
 			new_instance.addTo(add_to_node)
@@ -393,13 +393,13 @@ BARS.defineActions(function() {
 					new_instance.rename()
 				}
 				new_instance.showInOutliner()
-				Blockbench.dispatchEvent( 'add_armature_bone', {object: new_instance} )
+				Blockbench.dispatchEvent( 'add_armature', {object: new_instance} )
 			})
 		}
 	})
 })
 
 Object.assign(window, {
-	ArmatureBone,
-	getAllArmatureBones
+	Armature,
+	getAllArmatures
 })

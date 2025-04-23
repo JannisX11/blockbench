@@ -212,7 +212,7 @@ export const ModelScaler = {
 
 		Outliner.selected.empty();
 		ModelScaler.overflow.forEach(obj => {
-			obj.selectLow()
+			obj.markAsSelected()
 		})
 		updateSelection();
 	},

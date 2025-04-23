@@ -1354,7 +1354,7 @@ export class Preview {
 				isSelected = element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
 			}
 			if (isSelected) {
-				element.selectLow();
+				element.markAsSelected();
 			}
 		})
 		TickUpdates.selection = true;
