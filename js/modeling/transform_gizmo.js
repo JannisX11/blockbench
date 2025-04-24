@@ -1714,6 +1714,10 @@
 
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
+					if (BarItems.spline_handle_mode.value === "tilt") {
+						// handling of handle tilt goes here
+					}
+
 					if (Toolbox.selected.id === 'move_tool') {
 
 						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)

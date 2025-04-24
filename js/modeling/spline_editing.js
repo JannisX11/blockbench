@@ -1,8 +1,54 @@
+SharedActions.add('delete', {
+	condition: () => Modes.edit && Prop.active_panel == 'preview' && SplineMesh.selected[0] && Project.spline_selection[SplineMesh.selected[0].uuid],
+	run() {
+		let splines = SplineMesh.selected.slice();
+		Undo.initEdit({elements: splines, outliner: true, selection: true})
+
+		SplineMesh.selected.forEach(spline => {
+			let selected_handles = spline.getSelectedHandles(true);
+
+			// band-aid fix for render issues if a handle is deleted mid-spline.
+			// EDIT: doesn't even fix all of the issues, yeet it out
+			// if (!selected_handles.includes(spline.getLastHandle().key) && !selected_handles.includes(spline.getFirstHandle().key)) {
+			// 	Undo.finishEdit("Cancelled deletion of spline handles, selection not valid.")
+			// 	return;
+			// }
+
+			// Actual deletion logic
+			if (BarItems.spline_selection_mode.value == "handles") {
+				selected_handles.forEachReverse(hKey => {
+					let handle = spline.handles[hKey];
+
+					for (let cKey in spline.curves) {
+						if (spline.curves[cKey].start === handle.joint || spline.curves[cKey].end === handle.joint) {
+							delete spline.curves[cKey];
+						}
+					}
+
+					delete spline.handles[hKey];
+					selected_handles.remove(hKey);
+
+					delete spline.vertices[handle.control1];
+					delete spline.vertices[handle.joint];
+					delete spline.vertices[handle.control2];
+				})
+
+			} else {
+				splines.remove(spline);
+				spline.remove(false);
+			}
+		})
+
+		Undo.finishEdit('Delete spline handle')
+		Canvas.updateView({elements: splines, selection: true, element_aspects: {geometry: true, faces: true, uv: splines.length > 0}})
+	}
+})
+
 BARS.defineActions(function() {
 	new Action('add_spline', {
 		icon: 'fa-bezier-curve',
 		category: 'edit',
-		condition: {modes: ['edit'], method: () => (Format.meshes)},
+		condition: {modes: ['edit'], method: () => (Format.splines)},
 		click: function () {			
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			var spline = new SplineMesh({});

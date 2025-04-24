@@ -269,7 +269,8 @@ export class SplineMesh extends OutlinerElement {
 			copy.texture = tex;
 
         copy.type = 'spline';
-        copy.uuid = this.uuid
+        copy.uuid = this.uuid;
+        // console.log(this, copy);
         return copy;
     }
     getSaveCopy(project) {
@@ -313,19 +314,32 @@ export class SplineMesh extends OutlinerElement {
         }
     }
     getSelectedVertices(make) {
-        if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [], handles: [] };
+        if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [] };
         let selection = Project.spline_selection[this.uuid]?.vertices || [];
         return selection;
     }
-    getSelectedHandles() {
+    /**
+    Readonly reading of selected handles, based on selected vertices.
+    **/
+    getSelectedHandles(loose = false) {
         let selection = this.getSelectedVertices();
 
         let selected_handles = [];
         if (selection.length > 0) {
             for (let hkey in this.handles) {
                 let handle = this.handles[hkey];
-                // if all goes normally, the joint being selected should always indicate the other points of this handle are selected
-                if (selection.includes(handle.joint)) selected_handles.push(hkey);
+
+                // if all goes normally, the joint being selected should always indicate the other points of this handle are selected.
+                if (selection.includes(handle.joint)) {
+                    selected_handles.push(hkey);
+                }
+
+                // "Loose" means we consider either controls being selected as the whole handle being selected.
+                if (loose && !selected_handles.includes(hkey)) {
+                    if (selection.includes(handle.control1) || selection.includes(handle.control2)) {
+                        selected_handles.push(hkey);
+                    }
+                }
             }
         }
 
