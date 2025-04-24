@@ -9,8 +9,6 @@ export class SplineHandle {
         this.joint = '';
         this.control1 = '';
         this.control2 = '';
-        this.tilt = 0.0;
-        this.size = 1.0;
         if (data) {
             this.extend(data);
         }
@@ -54,12 +52,14 @@ export class SplineHandle {
     }
     getUndoCopy() {
         let copy = new this.constructor(this.spline, this);
+        copy.tilt = this.tilt;
+        copy.size = this.size;
         delete copy.spline;
         return copy;
     }
 }
-new Property(SplineHandle, 'number', 'tilt');
-new Property(SplineHandle, 'number', 'size');
+new Property(SplineHandle, 'number', 'tilt', { default: 0 });
+new Property(SplineHandle, 'number', 'size', { default: 1 });
 
 export class SplineMesh extends OutlinerElement {
     constructor(data, uuid) {
@@ -345,6 +345,15 @@ export class SplineMesh extends OutlinerElement {
 
         return selected_handles;
     }
+    getHandleKeyForPointKey(vKey) {
+        for (let hkey in this.handles) {
+            let handle = this.handles[hkey];
+
+            if (vKey == handle.joint || vKey == handle.control1 || vKey == handle.control2) {
+                return hkey;
+            }
+        }
+    }
     getLastSelected() {
         return SplineMesh.selected[SplineMesh.selected.length - 1];
     }
@@ -596,8 +605,14 @@ export class SplineMesh extends OutlinerElement {
         let prevCurveTangent;
         let prevCurveNormal;
         for (let cKey in this.curves) {
+            let handle1 = this.handles[this.getHandleKeyForPointKey(this.curves[cKey].start)];
+            let handle2 = this.handles[this.getHandleKeyForPointKey(this.curves[cKey].end)];
+            let tilt1 = handle1.tilt;
+            let tilt2 = handle2.tilt;
+
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
+                let tilt = Math.lerp(tilt1, tilt2, time);
                 let curveData = this.getBézierForCurve(time, cKey);
                 let curveChange = prevCurve && prevCurve != cKey;
                 let tangent = curveData.tangent;
@@ -618,7 +633,7 @@ export class SplineMesh extends OutlinerElement {
 
                     // replace the values we just removed
                     curveTangents.push(tangent);
-                    curveNormals.push(normal);
+                    curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
                     
                     // re-assign temps
                     prevCurveTangent = tangent;
@@ -631,7 +646,7 @@ export class SplineMesh extends OutlinerElement {
     
                 // Store everything
                 curveTangents.push(tangent);
-                curveNormals.push(normal);
+                curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
                 tubePoints.push(curveData.point);
 
                 // re-assign temps

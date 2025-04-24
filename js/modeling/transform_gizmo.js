@@ -650,17 +650,18 @@
 	};
 
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor(spline, hKey, handlePropertiesEdit = false) {
+		constructor(spline, handle, handlePropertiesEdit = false) {
 			super();
 			let arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 			let pickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
 
 			this.isTilt = handlePropertiesEdit;
 			this.spline = spline;
-			this.handle = this.spline.handles[hKey];
-			this.joint = this.spline.vertices[this.handle.joint];
-			this.ctrl1 = this.spline.vertices[this.handle.control1];
-			this.ctrl2 = this.spline.vertices[this.handle.control2];
+			this.handle = handle;
+			this.hKey = handle.getHandleKey();
+			this.joint = spline.vertices[this.handle.joint];
+			this.ctrl1 = spline.vertices[this.handle.control1];
+			this.ctrl2 = spline.vertices[this.handle.control2];
 
 			function getHandleColor() {
 				let colors = {
@@ -751,6 +752,12 @@
 				this.pickerGizmos = {
 					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.12, 4, 12, Math.PI * 2 ), pickerMaterial ), this.joint, handleEuler ] ]
 				};
+
+				let plane = new THREE.Mesh( new THREE.PlaneGeometry( 50, 50, 2, 2 ), pickerMaterial );
+				plane.applyQuaternion(Reusable.quat1.setFromEuler(Reusable.euler1.fromArray(handleEuler)));
+				plane.position.add(Reusable.vec1.fromArray(this.joint));
+
+				this.activePlane = plane;
 			}
 
 			this.setHandleScale = function() {
@@ -874,6 +881,10 @@
 					"Scope Axis": Transformer.axis
 				});
 			}
+			this.getCurrent = function() {
+				let gizmo = this.spline_handles[this.spline_handle_index];
+				return gizmo;
+			}
 			this.changeHandleMode = function(newMode) {
 				if ((newMode === "tilt" || newMode === "handles") && newMode !== this.handleMode) {
 					this.remove(...this.spline_handles);
@@ -892,7 +903,7 @@
 	
 				// Create new Gizmos
 				for (let hKey of Object.keys(spline.handles)) {
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, hKey, BarItems.spline_selection_mode.value === 'tilt'));
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, spline.handles[hKey], BarItems.spline_selection_mode.value === 'tilt'));
 				}
 	
 				// Add new Gizmos to parent
@@ -929,7 +940,7 @@
 				});
 			}
 			this.selectSplinePoints = function(scope) {
-				let gizmo = this.spline_handles[this.spline_handle_index];
+				let gizmo = this.getCurrent();
 				let selected = selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
 
 				if (selected) {
@@ -1066,8 +1077,6 @@
 				var worldPosition = new THREE.Vector3();
 				var worldRotation = new THREE.Euler();
 				var camPosition = new THREE.Vector3();
-
-				var spline_handle_index = 0;
 
 
 			this.attach = function ( object ) {
@@ -1551,7 +1560,6 @@
 							_dragging = false;
 							return;
 						}
-
 						scope.dragging = true
 						document.addEventListener( "touchend", onPointerUp, {passive: true} );
 						document.addEventListener( "touchcancel", onPointerUp, {passive: true} );
@@ -1571,6 +1579,11 @@
 						eye.copy( camPosition ).sub( worldPosition ).normalize();
 						_gizmo[ _mode ].setActivePlane( scope.axis, eye );
 						var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
+						
+						if (scope.axis == "T") {
+							scope.handleGizmo = SplineGizmos.getCurrent();
+							planeIntersect ||= intersectObjects( pointer, [ scope.handleGizmo.activePlane ] );
+						}
 
 						scope.last_valid_position.copy(scope.position)
 						scope.hasChanged = false
@@ -1668,6 +1681,11 @@
 				scope.orbit_controls.hasMoved = true
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
+						
+				if (scope.axis == "T") {
+					planeIntersect ||= intersectObjects( pointer, [ scope.handleGizmo.activePlane ] );
+				}
+
 				if (!planeIntersect) return;
 
 				event.stopPropagation();
@@ -1684,7 +1702,7 @@
 
 				point.copy( planeIntersect.point );
 
-				if (Toolbox.selected.transformerMode !== 'rotate') {
+				if (Toolbox.selected.transformerMode !== 'rotate' && BarItems.spline_selection_mode.value !== "tilt") {
 					point.sub( offset );
 					if (!Modes.display) {
 						point.removeEuler(worldRotation)
@@ -1695,8 +1713,9 @@
 					point.sub( worldPosition );
 					point.removeEuler(worldRotation);
 
-					if (scope.axis == 'E') {
+					if (scope.axis == 'E' || scope.axis == 'T') {
 						let matrix = new THREE.Matrix4().copy(_gizmo[ _mode ].activePlane.matrix).invert();
+						if (scope.axis == "T") matrix.copy(scope.handleGizmo.activePlane.matrix).invert();
 						point.applyMatrix4(matrix)
 						var angle = Math.radToDeg( Math.atan2( point.y, point.x ) )
 						rotate_normal = Preview.selected.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1);
@@ -1714,11 +1733,27 @@
 
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
-					if (BarItems.spline_handle_mode.value === "tilt") {
-						// handling of handle tilt goes here
-					}
+					if (BarItems.spline_selection_mode.value === "tilt") {
+						// handling of handle tilt goes here, literally the same as rotating one one axis, but for splines.
+						var snap = getRotationInterval(event);
+						angle = Math.round(angle / snap) * snap;
+						if (Math.abs(angle) > 300) angle = angle > 0 ? -snap : snap;
+						if (previousValue === undefined) previousValue = angle;
+						if (originalValue === null) originalValue = angle;
 
-					if (Toolbox.selected.id === 'move_tool') {
+						if (previousValue !== angle) {
+							beforeFirstChange(event)
+
+							var difference = angle - previousValue;
+							tiltSplineHandle(n => (n + difference), scope.handleGizmo.handle);
+							Canvas.updatePositions(true);
+							scope.updateSelection();
+							displayDistance(angle - originalValue);
+							previousValue = angle;
+							scope.hasChanged = true;
+						}
+
+					} else if (Toolbox.selected.id === 'move_tool') {
 
 						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;

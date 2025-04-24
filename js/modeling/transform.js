@@ -69,8 +69,8 @@ export function selectSplinePoints(spline, handle, axis) {
 	return selection.lenght > 0;
 }
 // Spline handle tilt
-export function tiltSplineHandle(index, amount) {
-
+export function tiltSplineHandle(modify, handle) {
+	handle.tilt = modify(handle.tilt);
 }
 //Movement
 export function moveElementsRelative(difference, index, event) { //Multiple
