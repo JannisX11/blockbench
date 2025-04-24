@@ -15,7 +15,7 @@ SharedActions.add('delete', {
 			// }
 
 			// Actual deletion logic
-			if (BarItems.spline_selection_mode.value == "handles") {
+			if (BarItems.spline_selection_mode.value == "handles" && selected_handles.length > 0) {
 				selected_handles.forEachReverse(hKey => {
 					let handle = spline.handles[hKey];
 
