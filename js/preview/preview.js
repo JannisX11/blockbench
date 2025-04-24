@@ -1214,6 +1214,7 @@ export class Preview {
 			!this.controls.hasMoved &&
 			!this.selection.activated &&
 			!Transformer.dragging &&
+			Toolbox.selected.selectElements != false &&
 			!this.selection.click_target
 		) {
 			unselectAllElements();
@@ -1228,6 +1229,22 @@ export class Preview {
 		scope.mouse.y = - ((y - canvas_offset.top) / scope.height) * 2 + 1;
 		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
 		return scope.raycaster.ray.origin
+	}
+	vectorToScreenPosition(vector) {
+		vector = vector.clone();
+		let widthHalf = this.canvas.width / 2;
+		let heightHalf = this.canvas.height / 2;
+
+		vector.project(this.camera);
+	
+		vector.x = ( vector.x * widthHalf ) + widthHalf;
+		vector.y = - ( vector.y * heightHalf ) + heightHalf;
+		vector.divideScalar(window.devicePixelRatio);
+	
+		return { 
+			x: vector.x,
+			y: vector.y
+		};
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'preview';
@@ -1279,6 +1296,7 @@ export class Preview {
 	//Selection Rectangle
 	startSelRect(event) {
 		if (this.sr_move_f) return;
+		if (Toolbox.selected.selectElements == false) return;
 		var scope = this;
 		if (Modes.edit) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
@@ -1448,6 +1466,7 @@ export class Preview {
 		}
 		Preview.all.remove(this);
 	}
+	static selected = null;
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',

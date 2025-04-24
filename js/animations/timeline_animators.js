@@ -622,9 +622,12 @@ class ArmatureBoneAnimator extends BoneAnimator {
 	}
 	displayMeshDeform(mesh) {
 		if (!mesh) return;
+
+		console.log('DISPLAY MESH DEFORM')
+
 		// Only gets called at the base bone of each rig
 
-		let matrices = {};
+		/*let matrices = {};
 		let bones = [];
 		let element = this.getElement();
 		let mesh_world_matrix_inverse = new THREE.Matrix4().copy(mesh.mesh.matrixWorld).invert();
@@ -655,7 +658,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 			//vector.lerpVectors();
 			vertex_offsets[vkey] = vector.toArray();
 		}
-		Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
+		Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);*/
 	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;

@@ -4,6 +4,13 @@ export class Armature extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
+		this._static = {
+			properties: {
+				skeleton: new THREE.Skeleton()
+			}
+		}
+		Object.freeze(this._static);
+
 		for (let key in Armature.properties) {
 			Armature.properties[key].reset(this);
 		}
@@ -22,6 +29,9 @@ export class Armature extends OutlinerElement {
 		} else if (typeof data === 'string') {
 			this.name = data
 		}
+	}
+	get skeleton() {
+		return this._static.properties.skeleton;
 	}
 	extend(object) {
 		for (let key in Armature.properties) {
@@ -307,7 +317,6 @@ new Property(Armature, 'object', 'vertex_weights');
 new NodePreviewController(Armature, {
 	setup(element) {
 		let object_3d = new THREE.Object3D();
-		object_3d.skeleton = new THREE.Skeleton();
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;

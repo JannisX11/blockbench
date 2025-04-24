@@ -16,6 +16,7 @@ export class ArmatureBone extends OutlinerElement {
 		this.parent = 'root';
 		this.isOpen = false;
 		this.visibility = true;
+		this.vertex_weights = {};
 
 		if (typeof data === 'object') {
 			this.extend(data)

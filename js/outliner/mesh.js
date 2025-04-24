@@ -1051,12 +1051,15 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		let mesh;
+		let mesh = element.mesh;
+		if (mesh && mesh.parent) mesh.parent.remove(mesh);
 		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
 		let armature = element.getArmature();
-		if (armature) {
+		if (armature && false) {
+			let old_raycast = mesh.raycast;
 			mesh = new THREE.SkinnedMesh(geometry, Canvas.emptyMaterials[0]);
-			mesh.bind(armature.mesh);
+			mesh.raycast = old_raycast
+			mesh.bind(armature.skeleton);
 		} else {
 			mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		}
@@ -1109,16 +1112,18 @@ new NodePreviewController(Mesh, {
 
 		console.log(armature, mesh.isSkinnedMesh)
 		if ((!!armature) != (mesh.isSkinnedMesh == true)) {
-			this.setup(element);
+			//console.log('SETUP')
+			//this.setup(element);
+			mesh = element.mesh;
 		}
 		if (armature) {
-			let skeleton = armature.mesh.skeleton;
+			let skeleton = armature.skeleton;
 			skeleton.bones.empty();
 			for (let bone of armature.getAllBones()) {
 				skeleton.bones.push(bone.mesh);
 			}
-			console.log(skeleton);
-			mesh.bind(skeleton);
+			console.log(skeleton, mesh, mesh.isSkinnedMesh);
+			//mesh.bind(skeleton);
 		}
 	},
 	updateGeometry(element, vertex_offsets) {
@@ -1126,6 +1131,7 @@ new NodePreviewController(Mesh, {
 		let {mesh} = element;
 		let point_position_array = [];
 		let position_array = [];
+		let color_array = [];
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
@@ -1138,20 +1144,13 @@ new NodePreviewController(Mesh, {
 		let armature = element.getArmature();
 		let armature_bones = armature && armature.getAllBones();
 
+		let armature_bone = Toolbox.selected.id === 'weight_brush' && (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
+
 		function addVertexPosition(vkey) {
-			position_array.push(...vertices[vkey])
-			if (armature) {
-				let influencing_bones = armature_bones.find(bone => bone.vertex_weights[vkey]);
-				if (influencing_bones.length > 4) {
-					// Reduce to 4
-					influencing_bones.sort((a, b) => b.vertex_weights[vkey]-a.vertex_weights[vkey]);
-					console.log(influencing_bones);
-				}
-				influencing_bones.length = 4;
-				for (let influencing_bone of influencing_bones) {
-					skin_indices.push(influencing_bone ? armature_bones.indexOf(influencing_bone) : 0);
-					skin_weights.push(influencing_bone ? influencing_bone.vertex_weights[vkey] : 0);
-				}
+			position_array.push(...vertices[vkey]);
+			if (armature_bone) {
+				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				color_array.push(0, weight, 0);
 			}
 		}
 
@@ -1263,6 +1262,7 @@ new NodePreviewController(Mesh, {
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(color_array), 3));
 		mesh.geometry.setIndex(indices);
 
 		if (armature) {
@@ -1292,8 +1292,11 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
+		if (Toolbox.selected.id === 'weight_brush') {
+			mesh.material = Canvas.vertexWeightHelperMaterial
+
+		} else if (Project.view_mode === 'solid') {
+				mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
 			mesh.material = Canvas.coloredSolidMaterials[element.color]

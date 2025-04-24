@@ -1297,6 +1297,8 @@
 	"action.knife_tool.desc": "Tool to cut mesh faces into smaller pieces",
 	"action.seam_tool": "Seam Tool",
 	"action.seam_tool.desc": "Tool to define UV seams on mesh edges",
+	"action.weight_brush": "Weight Brush",
+	"action.weight_brush.desc": "Paint vertex weights on meshes for armature deformations",
 	"action.pan_tool": "Pan Tool",
 	"action.pan_tool.desc": "Tool to navigate in the viewport and the texture editor",
 	"action.brush_tool": "Paint Brush",
