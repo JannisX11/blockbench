@@ -591,6 +591,17 @@
 	"dialog.add_primitive.minor_sides": "Minor Sides",
 	"dialog.add_primitive.edge_size": "Edge Size",
 
+	"dialog.add_spline.shape": "Shape",
+	"dialog.add_spline.shape.segment": "Segment",
+	"dialog.add_spline.shape.square": "Rectangle",
+	"dialog.add_spline.shape.circle": "Circle",
+	"dialog.add_spline.diameter": "Diameter",
+	"dialog.add_spline.sides_tubular": "Resolution U",
+	"dialog.add_spline.sides_radial": "Resolution V",
+	"dialog.add_spline.radius": "Tube Radius",
+	"dialog.add_spline.length": "Length",
+	"dialog.add_spline.width": "Width",
+
 	"dialog.scale.title": "Scale Model",
 	"dialog.scale.axis": "Axis",
 	"dialog.scale.element_pivot": "Element Pivot",

@@ -660,6 +660,8 @@ export class SplineMesh extends OutlinerElement {
         if (this.cyclic) {
             let firsthandle = this.getFirstHandle().data;
             let lasthandle = this.getLastHandle().data;
+            let tilt1 = firsthandle.tilt;
+            let tilt2 = lasthandle.tilt;
             let firstnormal = curveNormals[0];
             let lastnormal = curveNormals[curveNormals.length - 1];
 
@@ -671,13 +673,47 @@ export class SplineMesh extends OutlinerElement {
 
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
+                let tilt = Math.lerp(tilt1, tilt2, time);
                 let curveData = this.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
                 let tangent = curveData.tangent;
-                let normal = this.getBézierNormal(tangent, interpolateNormals(time)); 
+                let normal = this.getBézierNormal(tangent, interpolateNormals(time));
 
-                curveTangents.push(tangent);
-                curveNormals.push(normal);
-                tubePoints.push(curveData.point)
+                if (tubePoint == 0) { // original tip of the curve, interpolate between its normals and the added curve's normals
+                    let avgTangent = (new THREE.Vector3().addVectors(tangent, prevCurveTangent)).multiplyScalar(0.5).normalize();
+                    let avgNormal = (new THREE.Vector3().addVectors(normal, prevCurveNormal)).multiplyScalar(0.5).normalize();
+                    tangent = avgTangent;
+                    normal = avgNormal;
+
+                    // remove the values we just changed
+                    curveTangents.pop();
+                    curveNormals.pop();
+
+                    // replace the values we just removed
+                    curveTangents.push(tangent);
+                    curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
+                } 
+                else if (tubePoint == tubularSegments) { // The start and end of our tube meet, interpolate normals
+                    let avgTangent = (new THREE.Vector3().addVectors(curveTangents[0], tangent)).multiplyScalar(0.5).normalize();
+                    let avgNormal = (new THREE.Vector3().addVectors(firstnormal, normal)).multiplyScalar(0.5).normalize();
+
+                    // remove the values we just changed
+                    curveTangents.shift();
+                    curveNormals.shift();
+
+                    // replace the values we just removed
+                    curveTangents.unshift(avgTangent);
+                    curveNormals.unshift(avgNormal);
+
+                    // perform normal addition
+                    curveTangents.push(avgTangent);
+                    curveNormals.push(avgNormal);
+                    tubePoints.push(curveData.point);
+                } 
+                else {
+                    curveTangents.push(tangent);
+                    curveNormals.push(normal);
+                    tubePoints.push(curveData.point);
+                }
             }
         }
 
@@ -851,7 +887,7 @@ new Property(SplineMesh, 'string', 'name', { default: 'spline' })
 new Property(SplineMesh, 'number', 'color', { default: Math.floor(Math.random() * markerColors.length) });
 new Property(SplineMesh, 'vector', 'origin');
 new Property(SplineMesh, 'vector', 'rotation');
-new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (ring) and V (length) resolution of the spline.
+new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (radial) and V (tubular) resolution of the spline.
 new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
 new Property(SplineMesh, 'boolean', 'smooth_shading', {
     default: false,

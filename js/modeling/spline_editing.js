@@ -45,31 +45,187 @@ SharedActions.add('delete', {
 })
 
 BARS.defineActions(function() {
+	let add_spline_dialog = new Dialog({
+		id: 'add_spline',
+		title: 'action.add_spline',
+		form: {
+			shape: {label: 'dialog.add_spline.shape', type: 'select', options: {
+				segment: 'dialog.add_spline.shape.segment',
+				square: 'dialog.add_spline.shape.square',
+				circle: 'dialog.add_spline.shape.circle',
+			}},
+			diameter: {label: 'dialog.add_spline.diameter', type: 'number', value: 16, condition: ({shape}) => ["circle"].includes(shape)},
+			sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'number', value: 4, min: 1, max: 48},
+			sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'number', value: 8, min: 3, max: 48},
+			radius: {label: 'dialog.add_spline.radius', type: 'number', value: 2, min: 1, max: 8},
+			length: {label: 'dialog.add_spline.length', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["segment", "square"].includes(shape)},
+			width: {label: 'dialog.add_spline.width', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["square"].includes(shape)},
+		},
+		onConfirm(result) {
+			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
+			let iteration = 0;
+			function runEdit(amended, result) {
+				let elements = [];
+				if (original_selection_group && !Group.first_selected) {
+					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
+					if (group_to_select) {
+						Group.first_selected = group_to_select;
+					}
+				}
+				Undo.initEdit({elements, selection: true}, amended);
+				let spline = new SplineMesh({
+					name: result.shape,
+					vertices: {},
+					handles: {},
+					curves: {}
+				});
+				let group = getCurrentGroup();
+				if (group) {
+					spline.addTo(group);
+					if (settings.inherit_parent_color.value) spline.color = group.color;
+				}
+
+				if (result.shape == "segment") {
+					let length_fac = (result.length / 16);
+					spline.addVertices(
+						[length_fac * 11, 0, 0], [length_fac *  8, 0, 0], [length_fac *   5, 0, 0],
+						[length_fac *  3, 0, 0], [0, 0, 0], [length_fac * -3, 0, 0],
+						[length_fac * -5, 0, 0], [length_fac * -8, 0, 0], [length_fac * -11, 0, 0]
+					);
+					let vertex_keys = Object.keys(spline.vertices);
+
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[0], joint: vertex_keys[1], control2: vertex_keys[2] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[3], joint: vertex_keys[4], control2: vertex_keys[5] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[6], joint: vertex_keys[7], control2: vertex_keys[8] }))
+					let handle_keys = Object.keys(spline.handles);
+
+					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]]);
+				}
+				if (result.shape == "square") {
+					let width_fac = (result.width / 16);
+					let length_fac = (result.length / 16);
+					spline.addVertices(
+						// Top Left
+						[width_fac * 4, 0, length_fac * 1], 
+						[width_fac * 4, 0, length_fac * 4], 
+						[width_fac * 1, 0, length_fac * 4],
+
+						// Top Right
+						[width_fac * -1, 0, length_fac * 4], 
+						[width_fac * -4, 0, length_fac * 4], 
+						[width_fac * -4, 0, length_fac * 1],
+
+						// Bottom Right
+						[width_fac * -4, 0, length_fac * -1], 
+						[width_fac * -4, 0, length_fac * -4], 
+						[width_fac * -1, 0, length_fac * -4],
+
+						// Bottom Left
+						[width_fac * 1, 0, length_fac * -4], 
+						[width_fac * 4, 0, length_fac * -4], 
+						[width_fac * 4, 0, length_fac * -1]
+					);
+					let vertex_keys = Object.keys(spline.vertices);
+
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[0], joint: vertex_keys[1], control2: vertex_keys[2] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[3], joint: vertex_keys[4], control2: vertex_keys[5] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[6], joint: vertex_keys[7], control2: vertex_keys[8] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[9], joint: vertex_keys[10], control2: vertex_keys[11] }))
+					let handle_keys = Object.keys(spline.handles);
+
+					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]], [handle_keys[2], handle_keys[3]]);
+
+					spline.cyclic = true; // close circle
+
+				}
+				if (result.shape == "circle") {
+					let diameter_fac = (result.diameter / 16);
+					let ctrl_off = 4 * (Math.sqrt(2) - 1) / 3;
+					spline.addVertices(
+						// Left
+						[diameter_fac * 8, 0, (-ctrl_off * diameter_fac * 8)], 
+						[diameter_fac * 8, 0, 0], 
+						[diameter_fac * 8, 0, (ctrl_off * diameter_fac * 8)],
+
+						// Top
+						[(ctrl_off * diameter_fac * 8), 0, diameter_fac * 8], 
+						[0, 0, diameter_fac * 8], 
+						[(-ctrl_off * diameter_fac * 8), 0, diameter_fac * 8],
+
+						// Right
+						[-diameter_fac * 8, 0, (ctrl_off * diameter_fac * 8)], 
+						[-diameter_fac * 8, 0, 0], 
+						[-diameter_fac * 8, 0, (-ctrl_off * diameter_fac * 8)],
+
+						// Bottom
+						[(-ctrl_off * diameter_fac * 8), 0, -diameter_fac * 8], 
+						[0, 0, -diameter_fac * 8], 
+						[(ctrl_off * diameter_fac * 8), 0, -diameter_fac * 8]
+					);
+					let vertex_keys = Object.keys(spline.vertices);
+
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[0], joint: vertex_keys[1], control2: vertex_keys[2] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[3], joint: vertex_keys[4], control2: vertex_keys[5] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[6], joint: vertex_keys[7], control2: vertex_keys[8] }))
+					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[9], joint: vertex_keys[10], control2: vertex_keys[11] }))
+					let handle_keys = Object.keys(spline.handles);
+
+					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]], [handle_keys[2], handle_keys[3]]);
+
+					spline.cyclic = true; // close circle
+				}
+
+				spline.resolution = [result.sides_radial, result.sides_tubular];
+				spline.radius_multiplier = result.radius;
+				
+				if (Texture.all.length && Format.single_texture) {
+					spline.texture = Texture.getDefault().uuid
+					UVEditor.loadData()
+				}
+				if (Format.bone_rig) {
+					if (group) {
+						var pos1 = group.origin.slice()
+						spline.extend({
+							origin: pos1.slice()
+						})
+					}
+				}
+
+				elements.push(spline);
+				spline.init()
+				unselectAllElements()
+				spline.select()
+				Undo.finishEdit('Add spline');
+				Blockbench.dispatchEvent( 'add_spline', {object: spline} )
+				iteration++;
+
+				Vue.nextTick(function() {
+					if (settings.create_rename.value && iteration == 1) {
+						spline.rename()
+					}
+				})
+			}
+			runEdit(false, result);
+
+			Undo.amendEdit({
+				diameter: {label: 'dialog.add_spline.diameter', type: 'num_slider', value: result.diameter, interval_type: 'position', condition: ["circle"].includes(result.shape)},
+				sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: result.sides_tubular, min: 1, max: 48},
+				sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: result.sides_radial, min: 3, max: 48},
+				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8},
+				length: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.length, min: 4, max: 64, interval_type: 'position', condition: ["segment", "square"].includes(result.shape)},
+				width: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.width, min: 4, max: 64, interval_type: 'position', condition: ["square"].includes(shape)},
+			}, form => {
+				Object.assign(result, form);
+				runEdit(true, result);
+			})
+		}
+	})
 	new Action('add_spline', {
 		icon: 'fa-bezier-curve',
 		category: 'edit',
 		condition: {modes: ['edit'], method: () => (Format.splines)},
-		click: function () {			
-			Undo.initEdit({outliner: true, elements: [], selection: true});
-			var spline = new SplineMesh({});
-			let group = getCurrentGroup();
-			if (group) {
-				spline.addTo(group)
-				if (settings.inherit_parent_color.value) spline.color = group.color;
-			}
-
-            elements.push(spline);
-            spline.init()
-            if (Group.selected) Group.selected.unselect()
-                spline.select()
-            Undo.finishEdit('Add spline');
-            Blockbench.dispatchEvent( 'add_spline', {object: spline} )
-
-            Vue.nextTick(function() {
-                if (settings.create_rename.value) {
-                    spline.rename()
-                }
-            })
+		click: function () {
+			add_spline_dialog.show();
 		}
 	})
     
