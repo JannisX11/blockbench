@@ -693,53 +693,7 @@ export function moveElementsInSpace(difference, axis) {
 
 			selected_vertices.forEach(vkey => {
 				el.vertices[vkey].V3_add(difference_vec);
-
-				// Gives us the inverse of a given vector about an origin
-				let getInverseOfVec = function (vec, origin) {
-					let local = [vec[0] - origin[0], vec[1] - origin[1], vec[2] - origin[2]];
-					let final = [-local[0] + origin[0], -local[1] + origin[1], -local[2] + origin[2]];
-					return new THREE.Vector3().fromArray(final);
-				}
-
-				// Give us the opposite point of the current vkey for this handle
-				let getOppositeCtrl = function (handle) {
-					if (handle.control1 === vkey) return handle.control2;
-					else if (handle.control2 === vkey) return handle.control1;
-				}
-
-				for (let hkey in el.handles) {
-					let handle = el.handles[hkey];
-					let oppositeKey = getOppositeCtrl(handle);
-					if (vkey == handle.joint || !el.vertices[oppositeKey]) continue; // if OppositeKey is undefined, something went wrong somehow.
-
-					// "mirrored" handle behavior, both controls mirror one another about the joint
-					if (BarItems.spline_handle_mode.value === "mirrored") {
-						if (!selected_vertices.includes(oppositeKey)) {
-							let control = el.vertices[vkey];
-							let joint = el.vertices[handle.joint];
-							let inverse = getInverseOfVec(control, joint);
-							el.vertices[oppositeKey] = inverse.toArray();
-						}
-					}
-					// "aligned" handle behavior, the unselected control stays aligned with the active one, but doesn't mirror it
-					else if (BarItems.spline_handle_mode.value === "aligned") {
-						if (!selected_vertices.includes(oppositeKey)) {
-							let V1 = new THREE.Vector3().fromArray(el.vertices[handle.joint]);
-							let V2 = new THREE.Vector3().fromArray(el.vertices[vkey]).sub(V1);
-							let V3 = new THREE.Vector3().fromArray(el.vertices[oppositeKey]).sub(V1);
-
-							// Build and apply quaternion to align V3 to V2
-							let from = V3.clone().normalize();
-							let to = V2.clone().normalize()
-							let quat = new THREE.Quaternion().setFromUnitVectors(from, to);
-							let aligned = V3.applyQuaternion(quat).add(V1);
-
-							// Invert position to opposite orientation from selected handle
-							let newVert = getInverseOfVec(aligned.toArray(), V1.toArray())
-							el.vertices[oppositeKey] = newVert.toArray();
-						}
-					}
-				}
+				el.applyHandleModeOnVertex(vkey);
 			})
 
 
@@ -932,6 +886,9 @@ export function rotateOnAxis(modify, axis, slider) {
 				vector.applyQuaternion(q);
 				vector.add(local_pivot);
 				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+				if (obj instanceof SplineMesh) {
+					obj.applyHandleModeOnVertex(key);
+				}
 			})
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {

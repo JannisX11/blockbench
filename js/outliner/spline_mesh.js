@@ -490,6 +490,58 @@ export class SplineMesh extends OutlinerElement {
         this.preview_controller.updateGeometry(this);
         return this;
     }
+    /**
+     * Applies the effects of Handle selection mode to the sibling vertex of this vKey. (Mirrored or Aligned)
+     * @param {*} vkey The Key of the reference vertex, from which the result will be copied over to its sibling (if applicable).
+     */
+    applyHandleModeOnVertex(vkey) {
+		// Gives us the inverse of a given vector about an origin
+		function getInverseOfVec(vec, origin) {
+			let local = [vec[0] - origin[0], vec[1] - origin[1], vec[2] - origin[2]];
+			let final = [-local[0] + origin[0], -local[1] + origin[1], -local[2] + origin[2]];
+			return new THREE.Vector3().fromArray(final);
+		}
+
+		// Give us the opposite point of the current vkey for this handle
+		function getOppositeCtrl(handle) {
+			if (handle.control1 === vkey) return handle.control2;
+			else if (handle.control2 === vkey) return handle.control1;
+		}
+
+		for (let hkey in this.handles) {
+			let handle = this.handles[hkey];
+			let oppositeKey = getOppositeCtrl(handle);
+			if (vkey == handle.joint || !this.vertices[oppositeKey]) continue; // if OppositeKey is undefined, something went wrong.
+
+			// "mirrored" handle behavior, both controls mirror one another about the joint
+			if (BarItems.spline_handle_mode.value === "mirrored") {
+				if (!this.getSelectedVertices().includes(oppositeKey)) {
+					let control = this.vertices[vkey];
+					let joint = this.vertices[handle.joint];
+					let inverse = getInverseOfVec(control, joint);
+					this.vertices[oppositeKey] = inverse.toArray();
+				}
+			}
+			// "aligned" handle behavior, the unselected control stays aligned with the active one, but doesn't mirror it
+			else if (BarItems.spline_handle_mode.value === "aligned") {
+				if (!this.getSelectedVertices().includes(oppositeKey)) {
+					let V1 = Reusable.vec1.fromArray(this.vertices[handle.joint]);
+					let V2 = Reusable.vec2.fromArray(this.vertices[vkey]).sub(V1);
+					let V3 = Reusable.vec3.fromArray(this.vertices[oppositeKey]).sub(V1);
+
+					// Build and apply quaternion to align V3 to V2
+					let from = V3.clone().normalize();
+					let to = V2.clone().normalize();
+					let quat = new THREE.Quaternion().setFromUnitVectors(from, to);
+					let aligned = V3.applyQuaternion(quat).add(V1);
+
+					// Invert position to opposite orientation from selected handle
+					let newVert = getInverseOfVec(aligned.toArray(), V1.toArray())
+					this.vertices[oppositeKey] = newVert.toArray();
+				}
+			}
+		}
+    }
     // Code smell from mesh.js
     resize(val, axis, negative, allow_negative, bidirectional) {
         let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
@@ -497,6 +549,7 @@ export class SplineMesh extends OutlinerElement {
         let range = [Infinity, -Infinity];
         let { vec1, vec2 } = Reusable;
         let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
+
         selected_vertices.forEach(key => {
             vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
             range[0] = Math.min(range[0], vec1.getComponent(axis));
@@ -519,6 +572,7 @@ export class SplineMesh extends OutlinerElement {
             vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
             vec2.applyEuler(Transformer.rotation_selection); 
             this.vertices[key].replace(vec2.toArray())
+            this.applyHandleModeOnVertex(key);
         })
         this.preview_controller.updateGeometry(this);
     }

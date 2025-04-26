@@ -754,11 +754,11 @@
 					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.12, 4, 12, Math.PI * 2 ), pickerMaterial ), this.joint, handleEuler ] ]
 				};
 
-				let plane = new THREE.Mesh( new THREE.PlaneGeometry( 50, 50, 2, 2 ), pickerMaterial );
-				plane.applyQuaternion(Reusable.quat1.setFromEuler(Reusable.euler1.fromArray(handleEuler)));
-				plane.position.add(Reusable.vec1.fromArray(this.joint));
+				// let plane = new THREE.Mesh( new THREE.PlaneGeometry( 50, 50, 2, 2 ), pickerMaterial );
+				// plane.applyQuaternion(Reusable.quat1.setFromEuler(Reusable.euler1.fromArray(handleEuler)));
+				// plane.position.add(Reusable.vec1.fromArray(this.joint));
 
-				this.activePlane = plane;
+				// this.activePlane = plane;
 
 				// plane.material = new THREE.MeshBasicMaterial( { transparent: true, side: THREE.DoubleSide, opacity: 0.25 } )
 				// this.add(plane)
@@ -793,7 +793,9 @@
 			};
 
 			this.getScale = function() {
-				let center = new THREE.Vector3().fromArray(this.joint);
+				let jointPos = this.joint.V3_toThree();
+				let handlePos = OutlinerNode.uuids[this.spline].position.V3_toThree();
+				let center = new THREE.Vector3().addVectors(jointPos, handlePos);
 				return Transformer.camera.preview.calculateControlScale(center) * settings.control_size.value * 0.74;
 			}
 			// Get any matches in the spline selection
