@@ -68,9 +68,11 @@ export class SplineMesh extends OutlinerElement {
 
         this._static = {
             properties: {
+                // Both Handles and Curves must ALWAYS be in proper rendering order, or a lot of features will break.
                 handles: {}, // Main component of the spline
-                vertices: {}, // Control points of the handles
                 curves: {}, // Segments of the spline
+                // Points of the handles
+                vertices: {},
             }
         }
         Object.freeze(this._static);
@@ -396,6 +398,28 @@ export class SplineMesh extends OutlinerElement {
         }
 
         return selected_handles;
+    }
+    getCurvesForHandleKey(hKey) {
+        let curves = []
+        for (let cKey in this.curves) {
+            let curve = this.curves[cKey];
+
+            if (hKey == curve.start || hKey == curve.end) {
+                curves.push(cKey);
+            }
+        }
+        return curves;
+    }
+    getCurvesForPointKey(vKey) {
+        let curves = []
+        for (let cKey in this.curves) {
+            let curve = this.curves[cKey];
+
+            if (vKey == curve.start || vKey == curve.start_ctrl || vKey == curve.end_ctrl || vKey == curve.end) {
+                curves.push(cKey);
+            }
+        }
+        return curves;
     }
     getHandleKeyForPointKey(vKey) {
         for (let hkey in this.handles) {
@@ -785,6 +809,14 @@ export class SplineMesh extends OutlinerElement {
         if (this.cyclic && shouldConnect) {
             let firsthandle = this.getFirstHandle().data;
             let lasthandle = this.getLastHandle().data;
+
+            // console.log(firsthandle.tilt, lasthandle.tilt)
+
+            // if (this.getCurvesForPointKey(lasthandle.control2).length != 0 || this.getCurvesForPointKey(firsthandle.control1).length != 0) {
+            //     firsthandle = this.getLastHandle().data;
+            //     lasthandle = this.getFirstHandle().data;
+            // }
+
             let tilt1 = firsthandle.tilt;
             let tilt2 = lasthandle.tilt;
             let size1 = firsthandle.size;
