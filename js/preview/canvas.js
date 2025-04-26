@@ -45,9 +45,11 @@ export const Reusable = {
 
 	quat1: new THREE.Quaternion(),
 	quat2: new THREE.Quaternion(),
+	quat3: new THREE.Quaternion(),
 
 	euler1: new THREE.Euler(),
 	euler2: new THREE.Euler(),
+	euler3: new THREE.Euler(),
 }
 
 

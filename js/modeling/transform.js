@@ -1715,7 +1715,62 @@ BARS.defineActions(function () {
 			Undo.finishEdit('Adjust radius of splines')
 		}
 	})
-	let slider_vector_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v, BarItems.slider_spline_radius];
+	new NumSlider('slider_spline_handle_tilt', {
+		name: tl('action.slider_spline_handle_tilt'),
+		description: tl('action.slider_spline_handle_tilt.desc'),
+		category: 'transform',
+		condition: function () { return SplineMesh.selected.length && Modes.edit && SplineMesh.selected[0].getSelectedHandles().length },
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].tilt;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.tilt);
+					handle.tilt = v;
+					obj.preview_controller.updateGeometry(obj);
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	new NumSlider('slider_spline_handle_size', {
+		name: tl('action.slider_spline_handle_size'),
+		description: tl('action.slider_spline_handle_size.desc'),
+		category: 'transform',
+		condition: function () { return SplineMesh.selected.length && Modes.edit && SplineMesh.selected[0].getSelectedHandles().length },
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].size;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.size);
+					handle.size = Math.max(0, v);
+					obj.preview_controller.updateGeometry(obj);
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	let slider_vector_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v, 
+		BarItems.slider_spline_radius, BarItems.slider_spline_handle_tilt, BarItems.slider_spline_handle_size];
 	slider_vector_spline_resolution.forEach(slider => slider.slider_vector = slider_vector_spline_resolution);
 
 	new Action('rotate_x_cw', {

@@ -54,10 +54,10 @@ BARS.defineActions(function() {
 				square: 'dialog.add_spline.shape.square',
 				circle: 'dialog.add_spline.shape.circle',
 			}},
-			diameter: {label: 'dialog.add_spline.diameter', type: 'number', value: 16, condition: ({shape}) => ["circle"].includes(shape)},
 			sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'number', value: 4, min: 1, max: 48},
 			sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'number', value: 8, min: 3, max: 48},
 			radius: {label: 'dialog.add_spline.radius', type: 'number', value: 2, min: 1, max: 8},
+			diameter: {label: 'dialog.add_spline.diameter', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["circle"].includes(shape)},
 			length: {label: 'dialog.add_spline.length', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["segment", "square"].includes(shape)},
 			width: {label: 'dialog.add_spline.width', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["square"].includes(shape)},
 		},
@@ -102,8 +102,8 @@ BARS.defineActions(function() {
 					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]]);
 				}
 				if (result.shape == "square") {
-					let width_fac = (result.width / 16);
-					let length_fac = (result.length / 16);
+					let width_fac = (result.width / 8);
+					let length_fac = (result.length / 8);
 					spline.addVertices(
 						// Top Left
 						[width_fac * 4, 0, length_fac * 1], 
@@ -208,10 +208,10 @@ BARS.defineActions(function() {
 			runEdit(false, result);
 
 			Undo.amendEdit({
-				diameter: {label: 'dialog.add_spline.diameter', type: 'num_slider', value: result.diameter, interval_type: 'position', condition: ["circle"].includes(result.shape)},
 				sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: result.sides_tubular, min: 1, max: 48},
 				sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: result.sides_radial, min: 3, max: 48},
 				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8},
+				diameter: {label: 'dialog.add_spline.diameter', type: 'num_slider', value: result.diameter, min: 4, max: 64, interval_type: 'position', condition: ["circle"].includes(result.shape)},
 				length: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.length, min: 4, max: 64, interval_type: 'position', condition: ["segment", "square"].includes(result.shape)},
 				width: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.width, min: 4, max: 64, interval_type: 'position', condition: ["square"].includes(shape)},
 			}, form => {
@@ -234,7 +234,7 @@ BARS.defineActions(function() {
 		options: {
 			object: {name: true, icon: 'fas.fa-circle-nodes'},
 			handles: {name: true, icon: 'fas.fa-bezier-curve'},
-			tilt: {name: true, icon: 'fas.fa-compass-drafting'},
+			// tilt: {name: true, icon: 'fas.fa-compass-drafting'},
 		},
 		icon_mode: true,
 		condition: () => SplineMesh.hasSelected() && Modes.edit,
@@ -249,8 +249,8 @@ BARS.defineActions(function() {
 				}
 				case "handles":
 					Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
-				case "tilt":
-					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+				// case "tilt":
+				// 	Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
 			}
 
 			Transformer.updateSelection();

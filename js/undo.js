@@ -423,11 +423,16 @@ UndoSystem.save = class {
 
 					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
-						for (var face in new_element.faces) {
-							new_element.faces[face].reset()
+						if (new_element instanceof SplineMesh) {
+							new_element.overwrite(element)
+						} 
+						else {
+							for (var face in new_element.faces) {
+								new_element.faces[face].reset()
+							}
+							new_element.extend(element)
+							new_element.preview_controller.updateAll(new_element);
 						}
-						new_element.extend(element)
-						new_element.preview_controller.updateAll(new_element);
 					} else {
 						new_element = OutlinerElement.fromSave(element, true);
 					}

@@ -82,6 +82,8 @@ export function updateNslideValues() {
 			BarItems.slider_spline_resolution_u.update()
 			BarItems.slider_spline_resolution_v.update()
 			BarItems.slider_spline_radius.update()
+			BarItems.slider_spline_handle_tilt.update()
+			BarItems.slider_spline_handle_size.update()
 		}
 	}
 	if (Outliner.selected.length || (Format.bone_rig && Group.first_selected)) {

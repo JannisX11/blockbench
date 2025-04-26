@@ -819,6 +819,8 @@ export const BARS = {
 				'slider_spline_resolution_u',
 				'slider_spline_resolution_v',
 				"slider_spline_radius",
+				"slider_spline_handle_tilt",
+				"slider_spline_handle_size",
 			]
 		})
 		if (Blockbench.isMobile) {[	

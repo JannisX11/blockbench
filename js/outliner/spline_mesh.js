@@ -238,6 +238,58 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
+    overwrite(object) { // for Undo specifically, we can't afford having Handles or Curves mis-ordered.
+        for (var key in SplineMesh.properties) {
+            SplineMesh.properties[key].merge(this, object)
+        }
+        // Identical to mesh extend, this one can be mis-ordered
+        if (typeof object.vertices == 'object') {
+            for (let key in this.vertices) {
+                if (!object.vertices[key]) {
+                    delete this.vertices[key];
+                }
+            }
+            if (object.vertices instanceof Array) {
+                this.addVertices(...object.vertices);
+            } else {
+                for (let key in object.vertices) {
+                    if (!this.vertices[key]) this.vertices[key] = [];
+                    this.vertices[key].replace(object.vertices[key]);
+                }
+            }
+        }
+        // Both elements below need to preserve their order
+        if (typeof object.handles == 'object') {
+            for (let key in this.handles) {
+                delete this.handles[key];
+            }
+            for (let key in object.handles) {
+                this.handles[key] = new SplineHandle(this, object.handles[key]);
+            }
+        }
+        if (typeof object.curves == 'object') {
+            for (let key in this.curves) {
+                delete this.curves[key];
+            }
+            for (let key in object.curves) {
+                this.curves[key] = object.curves[key];
+            }
+        }
+
+        // This isn't an ordered object, so it's identical to extend()
+        // About the same as Outliner.Face, nudged to work in this context
+		if (object.texture === null) 
+			this.texture = null;
+		else if (object.texture === false)
+	        this.texture = false;
+		else if (Texture.all.includes(object.texture))
+	        this.texture = object.texture.uuid;
+		else if (typeof object.texture === 'string')
+			this.texture = object.texture;
+
+        this.sanitizeName();
+        return this;
+    }
     getUndoCopy(aspects = {}) {
         let copy = {};
         for (var key in SplineMesh.properties) {
@@ -491,6 +543,7 @@ export class SplineMesh extends OutlinerElement {
             let pathTangent = pathData.tangents[tubePoint];
             let pathNormal = pathData.normals[tubePoint];
             let pathPoint = pathData.points[tubePoint];
+            let pathRadius = pathData.sizes[tubePoint];
             vec2.crossVectors(pathTangent, pathNormal).normalize();
             matrix.makeBasis(pathTangent, pathNormal, vec2);
 
@@ -504,8 +557,8 @@ export class SplineMesh extends OutlinerElement {
 
                 // Create current vertex of ongoing tube ring
                 vec1.x = 0.0;
-                vec1.y = cos * radius;
-                vec1.z = sin * radius;
+                vec1.y = cos * radius * pathRadius;
+                vec1.z = sin * radius * pathRadius;
                 vec1.applyMatrix4(matrix).add(pathPoint);
 
                 // Normals
@@ -532,6 +585,7 @@ export class SplineMesh extends OutlinerElement {
 
         // Re-use vertex data gathered above to finalize base geo
         for (let tubePoint = 1; tubePoint < pathData.points.length; tubePoint++) {
+            let addNextTube = pathData.connections[tubePoint];
             for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
                 let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
                 let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
@@ -545,9 +599,11 @@ export class SplineMesh extends OutlinerElement {
                     ).normalize();
 
                     // Duplicate face indices
-                    let startIndex = vertices.length / 3;
-                    indices.push(startIndex, startIndex + 1, startIndex + 2);
-                    indices.push(startIndex + 3, startIndex + 4, startIndex + 5);
+                    if (addNextTube) {
+                        let startIndex = vertices.length / 3;
+                        indices.push(startIndex, startIndex + 1, startIndex + 2);
+                        indices.push(startIndex + 3, startIndex + 4, startIndex + 5);
+                    }
 
                     [a, b, c, a, c, d].forEach((index) => {
                         vertices.push(...vertexData[index].vector);
@@ -562,8 +618,10 @@ export class SplineMesh extends OutlinerElement {
                         uvs.push(u, v);
                     });
                 } else { // Smooth shading: reuse vertices
-                    indices.push(a, b, c);
-                    indices.push(a, c, d);
+                    if (addNextTube) {
+                        indices.push(a, b, c);
+                        indices.push(a, c, d);
+                    }
                 }
             }
         }
@@ -599,20 +657,30 @@ export class SplineMesh extends OutlinerElement {
         let curveTangents = [];
         let curveNormals = [];
         let tubePoints = [];
+        let tubePointSizes = [];
+        let connectPoints = [];
+        let shouldConnect = true;
 
         // Gather Tangents for the entire tube, and extrapolate normals from them
         let prevCurve;
         let prevCurveTangent;
         let prevCurveNormal;
+        let prevEnd;
         for (let cKey in this.curves) {
             let handle1 = this.handles[this.getHandleKeyForPointKey(this.curves[cKey].start)];
             let handle2 = this.handles[this.getHandleKeyForPointKey(this.curves[cKey].end)];
             let tilt1 = handle1.tilt;
             let tilt2 = handle2.tilt;
+            let size1 = handle1.size;
+            let size2 = handle2.size;
+
+            // If the previous end joint, and this curve's start don't match, we can assume there's a hole in our spline.
+            if (prevEnd) shouldConnect = prevEnd.joint == handle1.joint;
 
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
                 let tilt = Math.lerp(tilt1, tilt2, time);
+                let size = Math.lerp(size1, size2, time);
                 let curveData = this.getBézierForCurve(time, cKey);
                 let curveChange = prevCurve && prevCurve != cKey;
                 let tangent = curveData.tangent;
@@ -621,7 +689,7 @@ export class SplineMesh extends OutlinerElement {
                 // Check if we just changed curve segment, if so, we need to interpolate the 
                 // previous and current tangents so that the tube mesh doesn't break. Then Pop & 
                 // replace last tangent & normals if our curve has changed, & avoid duplicate points.
-                if (curveChange) {
+                if (curveChange && shouldConnect) {
                     let avgTangent = (new THREE.Vector3().addVectors(tangent, prevCurveTangent)).multiplyScalar(0.5).normalize();
                     let avgNormal = (new THREE.Vector3().addVectors(normal, prevCurveNormal)).multiplyScalar(0.5).normalize();
                     tangent = avgTangent;
@@ -648,20 +716,25 @@ export class SplineMesh extends OutlinerElement {
                 curveTangents.push(tangent);
                 curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
                 tubePoints.push(curveData.point);
+                tubePointSizes.push(size);
+                connectPoints.push(tubePoint == 0 ? shouldConnect : true);
 
                 // re-assign temps
                 prevCurveTangent = tangent;
                 prevCurveNormal = normal;
                 prevCurve = cKey;
             }
+            prevEnd = handle2;
         }
 
         // Close Cyclic paths
-        if (this.cyclic) {
+        if (this.cyclic && shouldConnect) {
             let firsthandle = this.getFirstHandle().data;
             let lasthandle = this.getLastHandle().data;
             let tilt1 = firsthandle.tilt;
             let tilt2 = lasthandle.tilt;
+            let size1 = firsthandle.size;
+            let size2 = lasthandle.size;
             let firstnormal = curveNormals[0];
             let lastnormal = curveNormals[curveNormals.length - 1];
 
@@ -673,7 +746,8 @@ export class SplineMesh extends OutlinerElement {
 
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
-                let tilt = Math.lerp(tilt1, tilt2, time);
+                let tilt = Math.lerp(tilt2, tilt1, time);
+                let size = Math.lerp(size2, size1, time);
                 let curveData = this.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint);
                 let tangent = curveData.tangent;
                 let normal = this.getBézierNormal(tangent, interpolateNormals(time));
@@ -708,11 +782,15 @@ export class SplineMesh extends OutlinerElement {
                     curveTangents.push(avgTangent);
                     curveNormals.push(avgNormal);
                     tubePoints.push(curveData.point);
+                    tubePointSizes.push(size);
+                    connectPoints.push(true);
                 } 
                 else {
                     curveTangents.push(tangent);
                     curveNormals.push(normal);
                     tubePoints.push(curveData.point);
+                    tubePointSizes.push(size);
+                    connectPoints.push(true);
                 }
             }
         }
@@ -720,7 +798,9 @@ export class SplineMesh extends OutlinerElement {
         return {
             tangents: curveTangents,
             normals: curveNormals,
-            points: tubePoints
+            points: tubePoints,
+            sizes: tubePointSizes,
+            connections: connectPoints
         }
     }
     getBézierNormal(tangent, up = null) {
@@ -1000,10 +1080,10 @@ new NodePreviewController(SplineMesh, {
         let debugNormalColors = [];
         let pathData = element.getBézierPath();
 
-        for (let pi = 0; pi < pathData.points.length; pi++) {
-            let tangent = pathData.tangents[pi];
-            let normal = pathData.normals[pi];
-            let point = pathData.points[pi];
+        for (let ptIndex = 0; ptIndex < pathData.points.length; ptIndex++) {
+            let tangent = pathData.tangents[ptIndex];
+            let normal = pathData.normals[ptIndex];
+            let point = pathData.points[ptIndex];
             
             let localTangent = new THREE.Vector3().addVectors(point, tangent);
             let localNormal = new THREE.Vector3().addVectors(point, normal);
@@ -1041,34 +1121,30 @@ new NodePreviewController(SplineMesh, {
         // Bezier Curves
         let pathColor = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
         let pointsToAdd = []
-        let pushPoints = function(bézierFunc) {
-            for (let res = 0; res <= element.resolution[1]; res++) {
-                let time = res / element.resolution[1];
-                let curve = bézierFunc(time);
-                pointsToAdd.push(curve.point);
-            }
-        }
 
         // Add curve line points
-        for (let cKey in element.curves) {
-            pushPoints((time) => element.getBézierForCurve(time, cKey));
-        }
-
-        // Add another curve to the mesh if this spline is cyclic
-        if (element.cyclic) {
-            let firsthandle = element.getFirstHandle().data;
-            let lasthandle = element.getLastHandle().data;
-
-            pushPoints((time) => { 
-                return element.getBézierForPoints(time, lasthandle.joint, lasthandle.control2, firsthandle.control1, firsthandle.joint) 
-            });
+        let data = element.getBézierPath();
+        for (let ptIndex = 0; ptIndex < data.points.length; ptIndex++) {
+            pointsToAdd.push({point: data.points[ptIndex], addNext: data.connections[ptIndex]});
         }
 
         // Add all points to line geometry
-        pointsToAdd.forEach((vector, i) => {
+        pointsToAdd.forEach((data, i) => {
             let shouldDouble = i > 0 && i < (pointsToAdd.length - 1); // Band-aid because I don't calculate indices for outlines.
-            linePoints.push(...vector.toArray(), ...(shouldDouble ? vector.toArray() : []));
-            lineColors.push(...pathColor.toArray(), ...(shouldDouble ? pathColor.toArray() : []))
+
+            if (data.addNext) {
+                linePoints.push(...data.point.toArray(), ...((shouldDouble) ? data.point.toArray() : []));
+                lineColors.push(...pathColor.toArray(), ...((shouldDouble) ? pathColor.toArray() : []));
+            }
+            else { // render cuts in the spline path
+                if (shouldDouble) {
+                    linePoints.pop(); linePoints.pop(); linePoints.pop();
+                    lineColors.pop(); lineColors.pop(); lineColors.pop();
+                }
+                
+                linePoints.push(...data.point.toArray());
+                lineColors.push(...pathColor.toArray());
+            }
         })
         this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
 

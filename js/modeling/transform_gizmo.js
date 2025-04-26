@@ -650,18 +650,20 @@
 	};
 
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor(spline, handle, handlePropertiesEdit = false) {
+		constructor(data, handlePropertiesEdit = false) {
 			super();
 			let arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 			let pickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
 
 			this.isTilt = handlePropertiesEdit;
-			this.spline = spline;
-			this.handle = handle;
-			this.hKey = handle.getHandleKey();
-			this.joint = spline.vertices[this.handle.joint];
-			this.ctrl1 = spline.vertices[this.handle.control1];
-			this.ctrl2 = spline.vertices[this.handle.control2];
+			this.spline = data.uuid;
+			this.handle = data.hKey;
+			this.joint = data.joint;
+			this.ctrl1 = data.ctrl1;
+			this.ctrl2 = data.ctrl2;
+			this.vKeyJoint = data.vKeyJoint;
+			this.vKeyCtrl1 = data.vKeyCtrl1;
+			this.vKeyCtrl2 = data.vKeyCtrl2;
 
 			function getHandleColor() {
 				let colors = {
@@ -675,7 +677,9 @@
 			
 			// Gather control point transform data, primarily to orient the handleGizmos correctly
 			function getHandleEuler(j, c1, c2) {
-				// First matrix, which will give us your general control orient, and basis to properly orient the handle
+				let { quat1, quat2, quat3, euler1, euler2, euler3 } = Reusable;
+
+				// First matrix, which will give us our general control orient, and basis to properly orient the handle
 				let jointPos = new THREE.Vector3().fromArray(j);
 				let ctrl1Pos = new THREE.Vector3().fromArray(c1);
 				let ctrl2Pos = new THREE.Vector3().fromArray(c2);
@@ -689,20 +693,14 @@
 				mat42.multiply(reOrientMat4);
 
 				// Rotations
-				let quaternion1 = new THREE.Quaternion().setFromRotationMatrix(mat41);
-				let quaternion2 = new THREE.Quaternion().setFromRotationMatrix(mat42);
-				let euler1 = new THREE.Euler().setFromQuaternion(quaternion1);
-				let euler2 = new THREE.Euler().setFromQuaternion(quaternion2);
-				let finalEulerCombined = [
-					(euler1.x + euler2.x) / 2, 
-					(euler1.y + euler2.y) / 2, 
-					(euler1.z + euler2.z) / 2
-				];
+				let eulerC1 = euler1.setFromQuaternion(quat1.setFromRotationMatrix(mat41));
+				let eulerC2 = euler2.setFromQuaternion(quat2.setFromRotationMatrix(mat42));
+				let eulerJ = euler3.setFromQuaternion(quat3.slerpQuaternions(quat1, quat2, 0.5)); // 50/50 mix between the two handle orients
 
 				return {
-					c1: euler1.toArray(),
-					c2: euler2.toArray(),
-					combined: finalEulerCombined
+					c1: eulerC1.toArray(),
+					c2: eulerC2.toArray(),
+					combined: eulerJ.toArray()
 				};
 			}
 
@@ -746,7 +744,10 @@
 					T: [ 
 						[ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), tiltMat() ), this.joint, handleEuler ],
 						[ new THREE.Line( lineTiltGeometry, tiltMat() ) ]
-					]
+					],
+					// DEBUG_PICKER: [
+					// 	[ new THREE.Mesh( arrowGeometry, tiltMat() ) ]
+					// ]
 				};
 
 				this.pickerGizmos = {
@@ -758,14 +759,21 @@
 				plane.position.add(Reusable.vec1.fromArray(this.joint));
 
 				this.activePlane = plane;
+
+				// plane.material = new THREE.MeshBasicMaterial( { transparent: true, side: THREE.DoubleSide, opacity: 0.25 } )
+				// this.add(plane)
 			}
 
+			this.positionDebugHit = function(newPos) {
+				this.handleGizmos["DEBUG_PICKER"][0][0].position.set( newPos.x, newPos.y, newPos.z );
+			}
 			this.setHandleScale = function() {
 				let scale = this.getScale();
 
 				// What's below might be a little dirty, need to see if it can be improved
 				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
 				for (let name in this.handleGizmos) {
+					if (name === "DEBUG_PICKER") continue;
 					let object = this.handleGizmos[name][0][0];
 					let position = this.handleGizmos[name][0][1];
 
@@ -786,30 +794,30 @@
 
 			this.getScale = function() {
 				let center = new THREE.Vector3().fromArray(this.joint);
-
 				return Transformer.camera.preview.calculateControlScale(center) * settings.control_size.value * 0.74;
+			}
+			// Get any matches in the spline selection
+			this.verifySelection = function() {
+				let selection = Project.spline_selection[this.spline]?.vertices || [];
+				let ctrl1Selected = selection.includes(this.vKeyCtrl1);       
+				let jointSelected = selection.includes(this.vKeyJoint);
+				let ctrl2Selected = selection.includes(this.vKeyCtrl2);
+				return { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
 			}
 
 			this.highlight = function(axis) {
 				for (let name in this.handleGizmos) {
-					let handle = this.handleGizmos[name];
-					let object = handle[0][0];
-
-					// Verify for matches in the selection
-					let selection = spline.getSelectedVertices();
-					let ctrl1Selected = selection.includes(this.handle.control1);       
-					let jointSelected = selection.includes(this.handle.joint);
-					let ctrl2Selected = selection.includes(this.handle.control2);
-					let matchSelection = { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
+					let point = this.handleGizmos[name];
+					let object = point[0][0];
 					
 					// Get line of this handle if it exists
 					let line = false;
-					if (handle.length == 2) {
-						line = handle[1][0];
+					if (point.length == 2) {
+						line = point[1][0];
 					}
 
 					if ( object.material && object.material.highlight ) {
-						if (matchSelection[name]) {
+						if (this.verifySelection()[name]) {
 							if (name == axis) {
 								object.material.highlight(true);
 								if (line) line.material.highlight(true);
@@ -831,24 +839,17 @@
 			}
 			this.select = function() {
 				for (let name in this.handleGizmos) {
-					let handle = this.handleGizmos[name];
-					let object = handle[0][0];
+					let point = this.handleGizmos[name];
+					let object = point[0][0];
 
-					// Verify for matches in the selection
-					let selection = spline.getSelectedVertices();
-					let ctrl1Selected = selection.includes(this.handle.control1);       
-					let jointSelected = selection.includes(this.handle.joint);
-					let ctrl2Selected = selection.includes(this.handle.control2);
-					let matchSelection = { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
-					
 					// Get line of this handle if it exists
 					let line = false;
-					if (handle.length == 2) {
-						line = handle[1][0];
+					if (point.length == 2) {
+						line = point[1][0];
 					}
-	
+					
 					if (object.material && object.material.select ) {
-						if (matchSelection[name]) {
+						if (this.verifySelection()[name]) {
 							object.material.select(true);
 							if (line) line.material.select(true);
 						}
@@ -886,7 +887,7 @@
 				return gizmo;
 			}
 			this.changeHandleMode = function(newMode) {
-				if ((newMode === "tilt" || newMode === "handles") && newMode !== this.handleMode) {
+				if ((newMode === "handles") && newMode !== this.handleMode) {
 					this.remove(...this.spline_handles);
 					this.spline_handles.empty();
 					this.refreshGizmos();
@@ -903,7 +904,17 @@
 	
 				// Create new Gizmos
 				for (let hKey of Object.keys(spline.handles)) {
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(spline, spline.handles[hKey], BarItems.spline_selection_mode.value === 'tilt'));
+					let data = {};
+					data.joint = spline.vertices[spline.handles[hKey].joint];
+					data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
+					data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
+					data.vKeyJoint = spline.handles[hKey].joint;
+					data.vKeyCtrl1 = spline.handles[hKey].control1;
+					data.vKeyCtrl2 = spline.handles[hKey].control2;
+					data.uuid = spline.uuid;
+					data.hKey = hKey
+
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data, false)); // tilt is always false, because I gave up on getting this method to work properly :D
 				}
 	
 				// Add new Gizmos to parent
@@ -941,7 +952,9 @@
 			}
 			this.selectSplinePoints = function(scope) {
 				let gizmo = this.getCurrent();
-				let selected = selectSplinePoints(gizmo.spline, gizmo.handle, scope.axis);
+				let spline = OutlinerNode.uuids[gizmo.spline];
+				let handle = OutlinerNode.uuids[gizmo.spline].handles[gizmo.handle];
+				let selected = selectSplinePoints(spline, handle, scope.axis);
 
 				if (selected) {
 					this.trySelect();
@@ -973,7 +986,7 @@
 				if (BarItems.spline_selection_mode && this.spline_handles.length) {
 					for ( var type in gizmoDict ) {
 						let spline = this.spline_handles[0].spline;
-						let cond = BarItems.spline_selection_mode.value === "object" || (spline.getSelectedVertices().length > 0);
+						let cond = BarItems.spline_selection_mode.value === "object" || (OutlinerNode.uuids[spline].getSelectedVertices().length > 0);
 
 						gizmoDict[type].visible = (type === selectionMode) && cond;
 					}
@@ -986,8 +999,8 @@
 			}
 			this.updateGizmoTransform = function(gizmo) {
 				let { vec1, euler1 } = Reusable;
-				let splinePosArr = gizmo.spline.position;
-				let splineRotArr = gizmo.spline.rotation;
+				let splinePosArr = OutlinerNode.uuids[gizmo.spline].position;
+				let splineRotArr = OutlinerNode.uuids[gizmo.spline].rotation;
 				let splinePos = vec1.fromArray(splinePosArr);
 				let splineRot = euler1.fromArray([Math.degToRad(splineRotArr[0]), Math.degToRad(splineRotArr[1]), Math.degToRad(splineRotArr[2])]);
 
@@ -1232,7 +1245,7 @@
 				this.elements.empty()
 				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
 					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value == 'handles' || BarItems.spline_selection_mode.value == 'tilt')) {
+						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
 							SplineGizmos.refreshGizmos(scope);
 						} else if (Outliner.selected.length) {
 							Outliner.selected.forEach(element => {
@@ -1580,11 +1593,6 @@
 						_gizmo[ _mode ].setActivePlane( scope.axis, eye );
 						var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 						
-						if (scope.axis == "T") {
-							scope.handleGizmo = SplineGizmos.getCurrent();
-							planeIntersect ||= intersectObjects( pointer, [ scope.handleGizmo.activePlane ] );
-						}
-
 						scope.last_valid_position.copy(scope.position)
 						scope.hasChanged = false
 
@@ -1682,10 +1690,6 @@
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 						
-				if (scope.axis == "T") {
-					planeIntersect ||= intersectObjects( pointer, [ scope.handleGizmo.activePlane ] );
-				}
-
 				if (!planeIntersect) return;
 
 				event.stopPropagation();
@@ -1702,7 +1706,7 @@
 
 				point.copy( planeIntersect.point );
 
-				if (Toolbox.selected.transformerMode !== 'rotate' && BarItems.spline_selection_mode.value !== "tilt") {
+				if (Toolbox.selected.transformerMode !== 'rotate') {
 					point.sub( offset );
 					if (!Modes.display) {
 						point.removeEuler(worldRotation)
@@ -1712,10 +1716,9 @@
 
 					point.sub( worldPosition );
 					point.removeEuler(worldRotation);
-
-					if (scope.axis == 'E' || scope.axis == 'T') {
+					
+					if (scope.axis == 'E') {
 						let matrix = new THREE.Matrix4().copy(_gizmo[ _mode ].activePlane.matrix).invert();
-						if (scope.axis == "T") matrix.copy(scope.handleGizmo.activePlane.matrix).invert();
 						point.applyMatrix4(matrix)
 						var angle = Math.radToDeg( Math.atan2( point.y, point.x ) )
 						rotate_normal = Preview.selected.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1);
@@ -1728,32 +1731,36 @@
 						]
 						var angle = Math.radToDeg( rotations[axisNumber] )
 					}
+
 				}
 				let transform_space = Transformer.getTransformSpace()
 
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 
-					if (BarItems.spline_selection_mode.value === "tilt") {
-						// handling of handle tilt goes here, literally the same as rotating one one axis, but for splines.
-						var snap = getRotationInterval(event);
-						angle = Math.round(angle / snap) * snap;
-						if (Math.abs(angle) > 300) angle = angle > 0 ? -snap : snap;
-						if (previousValue === undefined) previousValue = angle;
-						if (originalValue === null) originalValue = angle;
+					// Too janky, and I'm not feeling like fixing it :,)
+					// if (BarItems.spline_selection_mode.value === "tilt") {
+					// 	scope.handleGizmo.positionDebugHit(point);
+					// 	// handling of handle tilt goes here, literally the same as rotating one one axis, but for splines.
+					// 	var snap = getRotationInterval(event);
+					// 	angle = Math.round(angle / snap) * snap;
+					// 	if (Math.abs(angle) > 300) angle = angle > 0 ? -snap : snap;
+					// 	if (previousValue === undefined) previousValue = angle;
+					// 	if (originalValue === null) originalValue = angle;
 
-						if (previousValue !== angle) {
-							beforeFirstChange(event)
+					// 	if (previousValue !== angle) {
+					// 		beforeFirstChange(event)
 
-							var difference = angle - previousValue;
-							tiltSplineHandle(n => (n + difference), scope.handleGizmo.handle);
-							Canvas.updatePositions(true);
-							scope.updateSelection();
-							displayDistance(angle - originalValue);
-							previousValue = angle;
-							scope.hasChanged = true;
-						}
+					// 		var difference = angle - previousValue;
+					// 		tiltSplineHandle(n => (n + difference), OutlinerNode.uuids[scope.handleGizmo.spline].handles[scope.handleGizmo.handle]);
+					// 		Canvas.updatePositions(true);
+					// 		scope.updateSelection();
+					// 		displayDistance(angle - originalValue);
+					// 		previousValue = angle;
+					// 		scope.hasChanged = true;
+					// 	}
 
-					} else if (Toolbox.selected.id === 'move_tool') {
+					// } else 
+					if (Toolbox.selected.id === 'move_tool') {
 
 						var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
 						point[axis] = Math.round( point[axis] / snap_factor ) * snap_factor;
@@ -2164,7 +2171,7 @@
 				document.removeEventListener( "touchcancel", onPointerUp );
 				document.removeEventListener( "touchleave", onPointerUp );
 
-				if (scope.axis == "C1" && scope.axis == "C2" && scope.axis == "J" || scope.axis == "T") {
+				if (scope.axis == "C1" && scope.axis == "C2" && scope.axis == "J") {
 					onPointerHover( event );
 				}
 

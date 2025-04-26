@@ -1224,6 +1224,10 @@
 	"action.slider_spline_resolution.v.desc_precision": "Tube Segments",
 	"action.slider_spline_radius": "Spline Radius",
 	"action.slider_spline_radius.desc": "Change spline Radius",
+	"action.slider_spline_handle_tilt": "Handle Tilt",
+	"action.slider_spline_handle_tilt.desc": "Change spline handle Tilt",
+	"action.slider_spline_handle_size": "Handle Size",
+	"action.slider_spline_handle_size.desc": "Change spline handle Size",
 
 	"action.fill_mode": "Fill Mode",
 	"action.fill_mode.face": "Face",
