@@ -1109,7 +1109,7 @@ SplineMesh.prototype.menu = new Menu([
     "apply_spline_rotation",
     "extrude_spline_selection",
     "split_spline",
-    "divide_curve",
+    "divide_spline_curve",
     new MenuSeparator('spline_mesh_combination'),
     ...Outliner.control_menu_group,
     new MenuSeparator('settings'),

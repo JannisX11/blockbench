@@ -409,7 +409,7 @@ BARS.defineActions(function() {
 		}
 	})
 	// Could have an option to decide how many cuts we want later on
-	new Action('divide_curve', {
+	new Action('divide_spline_curve', {
 		icon: 'fas.fa-bezier-curve',
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['splines'], method: () => {
@@ -417,55 +417,63 @@ BARS.defineActions(function() {
 			return SplineMesh.selected.length && selectedCurves.length;
 		}},
 		click() {
-			let elements = SplineMesh.selected.slice();
-			Undo.initEdit({elements});
-			
-			let spline = SplineMesh.selected[0];
-			let selectedCurves = spline.getSelectedCurves(true);
-			let handleOrder = {};
+			function runEdit(ammended, factor = 50) {
+				Undo.initEdit({elements: SplineMesh.selected}, ammended);
+				
+				let spline = SplineMesh.selected[0];
+				let selectedCurves = spline.getSelectedCurves(true);
+				let handleOrder = {};
 
-			function createCurves(hKeys) {
-				let newCurves = {};
-				for (let i = 0; i < (hKeys.length - 1); i++) {
-					let cKey = spline.addCurves([hKeys[i], hKeys[i + 1]])[0];
-					newCurves[cKey] = {...spline.curves[cKey]};
-					delete spline.curves[cKey];
-				}
-				return newCurves;
-			}
-
-			for (let hKey in spline.handles) {
-				handleOrder[hKey] = spline.handles[hKey];
-
-				selectedCurves.forEach(cKey => {
-
-					let curve = spline.curves[cKey];
-					let p1 = curve.start;
-					let p2 = curve.start_ctrl;
-					let p3 = curve.end_ctrl;
-					let p4 = curve.end;
-
-					let startHandle = spline.getHandleKeyForPointKey(p1);
-					if (startHandle == hKey) {
-						let result = spline.divideBézierCurve(0.5, p1, p2, p3, p4);
-
-						spline.vertices[p2] = result.start_ctrl;
-						spline.vertices[p3] = result.end_ctrl;
-
-						let newVerts = spline.addVertices(result.middle_ctrl1, result.middle, result.middle_ctrl2);
-						let newHandle = spline.addHandles(new SplineHandle(this, { control1: newVerts[0], joint: newVerts[1], control2: newVerts[2] }))[0];
-
-						handleOrder[newHandle] = spline.handles[newHandle];
+				function createCurves(hKeys) {
+					let newCurves = {};
+					for (let i = 0; i < (hKeys.length - 1); i++) {
+						let cKey = spline.addCurves([hKeys[i], hKeys[i + 1]])[0];
+						newCurves[cKey] = {...spline.curves[cKey]};
+						delete spline.curves[cKey];
 					}
-				})
+					return newCurves;
+				}
+
+				for (let hKey in spline.handles) {
+					handleOrder[hKey] = spline.handles[hKey];
+
+					selectedCurves.forEach(cKey => {
+						let curve = spline.curves[cKey];
+						let p1 = curve.start;
+						let p2 = curve.start_ctrl;
+						let p3 = curve.end_ctrl;
+						let p4 = curve.end;
+
+						let startHandle = spline.getHandleKeyForPointKey(p1);
+						if (startHandle == hKey) {
+							let result = spline.divideBézierCurve((factor / 100.0), p1, p2, p3, p4);
+
+							spline.vertices[p2] = result.start_ctrl;
+							spline.vertices[p3] = result.end_ctrl;
+
+							let newVerts = spline.addVertices(result.middle_ctrl1, result.middle, result.middle_ctrl2);
+							let newHandle = spline.addHandles(new SplineHandle(this, { control1: newVerts[0], joint: newVerts[1], control2: newVerts[2] }))[0];
+
+							handleOrder[newHandle] = spline.handles[newHandle];
+						}
+					})
+				}
+
+				spline.handles = handleOrder;
+				spline.curves = createCurves(Object.keys(spline.handles));
+
+
+				updateSelection();
+				Undo.finishEdit('Divide spline curve');
+				Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 			}
+			runEdit();
 
-			spline.handles = handleOrder;
-			spline.curves = createCurves(Object.keys(spline.handles));
-
-			Undo.finishEdit('Divide spline curve');
-			updateSelection();
-			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
+			Undo.amendEdit({
+				extend: {type: 'num_slider', value: 50, min: 0, max: 100, label: 'edit.divide_spline_curve.position'},
+			}, form => {
+				runEdit(true, form.extend);
+			})
 		}
 	})
 	new Action('split_spline', {

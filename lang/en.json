@@ -1677,8 +1677,8 @@
 	"action.split_mesh.desc": "Split the selected faces of the mesh into a new mesh",
 	"action.split_spline": "Split Spline",
 	"action.split_spline.desc": "Splits the spline into two splines at the selected handle.",
-	"action.divide_curve": "Divide Spline Segment",
-	"action.divide_curve.desc": "Splits the spline segment into two new segments with a new handle at their intersection.",
+	"action.divide_spline_curve": "Divide Spline Segment",
+	"action.divide_spline_curve.desc": "Splits the spline segment into two new segments with a new handle at their intersection.",
 	"action.merge_vertices": "Merge Vertices",
 	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected vertex",
 	"action.merge_vertices.merge_all": "Merge All",
@@ -2334,6 +2334,7 @@
 	"edit.vertex_snap.align.align_axis": "%0 Axis",
 	"edit.vertex_snap.ignore_axis": "Ignore Axis",
 	"edit.extrude_spline_selection.extend": "Extend",
+	"edit.divide_spline_curve.position": "Position",
 
 	"web.download_app": "Download App",
 
