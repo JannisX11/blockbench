@@ -302,7 +302,7 @@ BARS.defineActions(function() {
         }
 	})
     new BarSelect('spline_handle_mode', {
-		condition: () => Modes.edit && SplineMesh.hasSelected(),
+		condition: () => Modes.edit && SplineMesh.selected.length,
 		category: 'transform',
 		value: 'aligned',
 		options: {

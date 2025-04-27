@@ -1970,7 +1970,7 @@ BARS.defineActions(function () {
 	new Toggle('toggle_cyclic', {
 		icon: 'fas.fa-circle-nodes',
 		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.hasSelected(),
+		condition: () => Modes.edit && SplineMesh.selected.length,
 		onChange() { toggleCubeProperty('cyclic') }
 	})
 	new Toggle('toggle_shade', {
